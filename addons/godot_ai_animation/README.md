@@ -11,6 +11,8 @@ as a custom MCP tool: `animation_presets` (promoted to
 | `orbit` | Circular position orbit (XZ for 3D, screen space for 2D/Control). |
 | `sweep` | Full-turn rotation sweep (radar / cooldown ring). |
 | `drift` | One-axis position offset (scanlines, marquee, conveyor). |
+| `spin` | 3D quaternion turn around local Y. |
+| `showcase` | Builds a runnable demo of every preset (5 nodes + 5 autoplaying clips). |
 
 Every preset commits **one scene-pinned undo action**; Controls get
 `pivot_offset` recentered inside the same action for `bounce`/`sweep`.

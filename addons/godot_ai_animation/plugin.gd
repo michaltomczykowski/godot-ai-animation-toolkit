@@ -23,10 +23,11 @@ const RETRY_WINDOW_SEC := 30.0
 const DESCRIPTION := (
 	"One-call animation presets for an AnimationPlayer: pulse (breathing / "
 	+ "ping-pong on any property), bounce (press feedback), orbit (circular "
-	+ "position), sweep (full-turn rotation), drift (one-axis offset). Each "
-	+ "preset builds one Animation clip with typed keys and commits a single "
-	+ "undoable action; Controls get their pivot recentered for bounce/sweep. "
-	+ "Requires the Godot AI addon."
+	+ "position), sweep (full-turn rotation), drift (one-axis offset), spin "
+	+ "(3D quaternion turn), and showcase (build a runnable demo of every "
+	+ "preset). Each preset builds one Animation clip with typed keys and "
+	+ "commits a single undoable action; Controls get their pivot recentered "
+	+ "for bounce/sweep. Requires the Godot AI addon."
 )
 
 const PARAMS_SCHEMA := {
@@ -34,19 +35,28 @@ const PARAMS_SCHEMA := {
 	"properties": {
 		"op": {
 			"type": "string",
-			"enum": ["pulse", "bounce", "orbit", "sweep", "drift"],
+			"enum": ["pulse", "bounce", "orbit", "sweep", "drift", "spin", "showcase"],
 			"description": "Which preset to build.",
 		},
 		"player_path": {
 			"type": "string",
-			"description": "Scene path to the AnimationPlayer (it must already exist).",
+			"description": "Scene path to the AnimationPlayer (it must already exist). Not used by showcase.",
 		},
 		"target_path": {
 			"type": "string",
 			"description": (
 				"Node to animate: relative to the player's root_node "
-				+ "(e.g. \"Button\") or scene-absolute (e.g. \"/Main/Button\")."
+				+ "(e.g. \"Button\") or scene-absolute (e.g. \"/Main/Button\"). "
+				+ "Not used by showcase."
 			),
+		},
+		"parent_path": {
+			"type": "string",
+			"description": "showcase: parent node for the demo subtree (default: the edited scene root).",
+		},
+		"name": {
+			"type": "string",
+			"description": "showcase: name for the demo subtree (default \"AnimationShowcase\").",
 		},
 		"animation_name": {
 			"type": "string",
@@ -78,7 +88,7 @@ const PARAMS_SCHEMA := {
 		"clockwise": {"type": "boolean", "default": true},
 		"turns": {
 			"type": "number",
-			"description": "sweep: full turns (default 1.0).",
+			"description": "sweep/spin: full turns (default 1.0).",
 		},
 		"axis": {
 			"type": "string",

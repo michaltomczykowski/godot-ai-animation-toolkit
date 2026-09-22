@@ -630,3 +630,86 @@ func test_preset_drift_rejects_bad_axis_and_loop_mode() -> void:
 	assert_contains(linear_loop.error.message, "pingpong")
 	_remove_node(player_path)
 	_remove_node("/" + scene_root.name + "/DriftBad")
+
+
+# --- spin ------------------------------------------------------------------
+
+func test_preset_spin_quarter_turn_quaternions() -> void:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		skip("No scene root")
+		return
+	_add_sibling(Node3D.new(), "Spin3D")
+	var player_path := _add_player("TestPresetSpin")
+	if player_path.is_empty():
+		_remove_node("/" + scene_root.name + "/Spin3D")
+		skip("Scene not ready")
+		return
+	var result := _handler.preset_spin({
+		"player_path": player_path,
+		"target_path": "Spin3D",
+		"loop_mode": "linear",
+	})
+	assert_has_key(result, "data")
+	assert_eq(result.data.loop_mode, "linear")
+	var anim := _fetch_anim(player_path, "spin")
+	assert_eq(anim.track_get_key_count(0), 5, "one turn must sample four quarter turns")
+	assert_eq(String(anim.track_get_path(0)), "Spin3D:quaternion")
+	assert_eq(anim.loop_mode, Animation.LOOP_LINEAR)
+	var first = anim.track_get_key_value(0, 0)
+	var quarter = anim.track_get_key_value(0, 1)
+	var last = anim.track_get_key_value(0, 4)
+	assert_true(first is Quaternion, "spin keys must be Quaternion")
+	assert_true((quarter as Quaternion).is_equal_approx(Quaternion(Vector3.UP, PI * 0.5)),
+		"the second key must be a quarter turn, got %s" % str(quarter))
+	## The closing key is the same rotation as the first (q == -q is the same
+	## rotation, so accept either sign).
+	assert_true(
+		(last as Quaternion).is_equal_approx(first as Quaternion)
+			or (last as Quaternion).is_equal_approx(-(first as Quaternion)),
+		"spin must close seamlessly, got %s" % str(last)
+	)
+
+	## Control/2D targets are refused — sweep is the in-plane equivalent.
+	_add_sibling(Node2D.new(), "Spin2D")
+	var rejected := _handler.preset_spin({"player_path": player_path, "target_path": "Spin2D"})
+	assert_is_error(rejected, ErrorCodes.WRONG_TYPE)
+	assert_contains(rejected.error.message, "sweep")
+	_remove_node(player_path)
+	_remove_node("/" + scene_root.name + "/Spin3D")
+	_remove_node("/" + scene_root.name + "/Spin2D")
+
+
+# --- showcase --------------------------------------------------------------
+
+func test_preset_showcase_builds_and_undoes_a_runnable_demo() -> void:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		skip("No scene root")
+		return
+	_undo_redo.clear_history()
+	var result := _handler.preset_showcase({"name": "PresetShowcase"})
+	assert_has_key(result, "data")
+	assert_eq(result.data.animations, 5, "the demo must build one clip per preset")
+	var showcase := ValueCodec.resolve_scene_path(result.data.path, scene_root)
+	assert_true(showcase != null, "the demo subtree must exist")
+	assert_eq(showcase.owner, scene_root, "the subtree must be owned so the scene can save it")
+	for player_name in result.data.players:
+		var player := showcase.get_node_or_null(str(player_name)) as AnimationPlayer
+		assert_true(player != null, "%s must exist" % player_name)
+		if player == null:
+			continue
+		assert_eq(player.get_animation_list().size(), 1, "%s must carry one clip" % player_name)
+		assert_false(player.autoplay.is_empty(), "%s must autoplay its clip" % player_name)
+	var did_undo := editor_undo(_undo_redo)
+	assert_true(did_undo, "one undo must remove the whole demo")
+	assert_true(
+		ValueCodec.resolve_scene_path(result.data.path, scene_root) == null,
+		"the demo subtree must be gone after undo"
+	)
+	## A second showcase with the same name is refused while the node exists.
+	var again := _handler.preset_showcase({"name": "PresetShowcase"})
+	assert_has_key(again, "data")
+	var duplicate := _handler.preset_showcase({"name": "PresetShowcase"})
+	assert_is_error(duplicate, ErrorCodes.INVALID_PARAMS)
+	_remove_node(again.data.path)

@@ -15,6 +15,10 @@ core during the animation PR review: a generalized `pulse` plus `bounce`,
 }}
 ```
 
+![The generated demo scene running](docs/images/presets-showcase.gif)
+
+*`op="showcase"` builds the scene above — five nodes, five autoplaying clips, one undo step.*
+
 ## Presets
 
 | op | What it builds | Defaults |
@@ -24,6 +28,8 @@ core during the animation PR review: a generalized `pulse` plus `bounce`,
 | `orbit` | Circular position orbit (XZ plane for 3D, screen space for 2D/Control) | `radius=1.0` (3D) / `100.0` (2D), `duration=2.0` |
 | `sweep` | Full-turn rotation sweep — radar scans, cooldown rings | `turns=1.0`, `duration=1.0` |
 | `drift` | One-axis position offset — scanlines, marquee, conveyor | `axis="x"`, `duration=1.0` |
+| `spin` | 3D quaternion turn around local Y | `turns=1.0`, `duration=3.0` |
+| `showcase` | Builds a runnable demo of every preset (5 nodes + 5 autoplaying clips) | `name="AnimationShowcase"` |
 
 Every preset:
 
@@ -35,6 +41,9 @@ Every preset:
   action**, so the pop/rotation starts from the widget's middle;
 - starts from the target's *current* transform (scale/rotation/position), so a
   preset never snaps the node to identity.
+
+(`showcase` is the exception: it builds a whole demo subtree in one action
+instead of a single clip.)
 
 ## Install
 
@@ -80,6 +89,8 @@ editor suite (19 rows) and `tests/tier1_value_codec.gd` the headless checks
 ## Documentation
 
 - [`docs/tool-reference.md`](docs/tool-reference.md) — every parameter.
+- [`docs/recipes.md`](docs/recipes.md) — core recipes → preset calls, with the
+  demo GIFs.
 - [`addons/godot_ai_animation/README.md`](addons/godot_ai_animation/README.md) —
   addon-level notes.
 

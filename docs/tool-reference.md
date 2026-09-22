@@ -7,11 +7,15 @@ Exposed to agents as the promoted first-class tool **`custom_animation_presets`*
 
 | Param | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `op` | `"pulse" \| "bounce" \| "orbit" \| "sweep" \| "drift"` | yes | Which preset to build. |
-| `player_path` | string | yes | Scene path to an existing `AnimationPlayer` (presets never auto-create one). |
-| `target_path` | string | yes | Node to animate: relative to the player's `root_node` (e.g. `"Button"`) or scene-absolute (e.g. `"/Main/Button"`). Must be a `Control`, `Node2D`, or `Node3D`. |
+| `op` | `"pulse" \| "bounce" \| "orbit" \| "sweep" \| "drift" \| "spin" \| "showcase"` | yes | Which preset to build. |
+| `player_path` | string | yes\* | Scene path to an existing `AnimationPlayer` (presets never auto-create one). |
+| `target_path` | string | yes\* | Node to animate: relative to the player's `root_node` (e.g. `"Button"`) or scene-absolute (e.g. `"/Main/Button"`). Must be a `Control`, `Node2D`, or `Node3D`. |
+| `parent_path` | string | no | `showcase` only: parent for the demo subtree (default: the edited scene root). |
+| `name` | string | no | `showcase` only: subtree name (default `"AnimationShowcase"`). |
 | `animation_name` | string | no | Clip name; defaults to the preset name. |
 | `overwrite` | bool | no | `false` (default) refuses an existing clip with the same name. |
+
+\* Not used by `showcase`, which builds its own nodes and players.
 
 ## Per-op parameters
 
@@ -25,9 +29,25 @@ Exposed to agents as the promoted first-class tool **`custom_animation_presets`*
 | `intensity` | bounce | `0.15` | Peak overshoot fraction (`peak = 1 + intensity`, `dip = 1 - intensity/4`). |
 | `radius` | orbit | `1.0` (3D) / `100.0` (2D) | Circle radius; 16 linear segments trace the circle (chord error ≈ 2%). |
 | `clockwise` | orbit, sweep | `true` | Direction of travel / rotation. |
-| `turns` | sweep | `1.0` | Full turns; 3D rotates around local Y, Control/Node2D in-plane. |
+| `turns` | sweep, spin | `1.0` | Full turns; `sweep` rotates in-plane (or local Y for 3D), `spin` is a 3D quaternion turn around local Y. |
 | `axis` | drift | `"x"` | `"x" \| "y" \| "z"` (3D), `"x" \| "y"` (2D/Control). |
 | `distance` | orbit, sweep, drift | by dimension | Offset magnitude (orbit uses `radius`). |
+
+## Showcase
+
+`op="showcase"` ignores `player_path`/`target_path` and builds a runnable demo
+subtree in one undo action:
+
+| Node | Clip |
+| --- | --- |
+| `BounceButton` (Control) | `bounce` |
+| `OrbitDot` (ColorRect) | `orbit`, radius 60 px |
+| `SweepPivot`/`SweepBar` | `sweep`, linear loop |
+| `DriftLine` (ColorRect) | `drift`, ping-pong |
+| `PulseLabel` (Label) | `pulse` on `modulate:a`, ping-pong |
+
+Five `AnimationPlayer`s autoplay their clip; run the current scene (F6) to
+watch it. `test_project/showcase.tscn` is the committed output.
 
 ## Behaviour
 

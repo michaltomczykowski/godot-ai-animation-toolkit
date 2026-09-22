@@ -1,0 +1,176 @@
+[gd_scene format=3 uid="uid://b8u8r17tw0lnf"]
+
+[sub_resource type="Animation" id="Animation_nha35"]
+length = 0.4
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("BounceButton:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.14, 0.26, 0.4),
+"transitions": PackedFloat32Array(1, 0.5, -2, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1.15, 1.15), Vector2(0.9625, 0.9625), Vector2(1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_ewnj5"]
+_data = {
+&"bounce": SubResource("Animation_nha35")
+}
+
+[sub_resource type="Animation" id="Animation_lou5n"]
+length = 3.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("OrbitDot:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1875, 0.375, 0.5625, 0.75, 0.9375, 1.125, 1.3125, 1.5, 1.6875, 1.875, 2.0625, 2.25, 2.4375, 2.625, 2.8125, 3),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(960, 150), Vector2(955.4328, 172.961), Vector2(942.4264, 192.4264), Vector2(922.961, 205.43277), Vector2(900, 210), Vector2(877.039, 205.43277), Vector2(857.5736, 192.4264), Vector2(844.5672, 172.961), Vector2(840, 150), Vector2(844.5672, 127.038994), Vector2(857.5736, 107.57359), Vector2(877.039, 94.56723), Vector2(900, 90), Vector2(922.961, 94.56723), Vector2(942.4264, 107.57359), Vector2(955.4328, 127.038994), Vector2(960, 150)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_a77a3"]
+_data = {
+&"orbit": SubResource("Animation_lou5n")
+}
+
+[sub_resource type="Animation" id="Animation_ga7p2"]
+length = 2.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("SweepPivot:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 6.283185307179586]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_mjats"]
+_data = {
+&"sweep": SubResource("Animation_ga7p2")
+}
+
+[sub_resource type="Animation" id="Animation_dxr3f"]
+length = 2.0
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("DriftLine:position:x")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [620.0, 1100.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_wc4cy"]
+_data = {
+&"drift": SubResource("Animation_dxr3f")
+}
+
+[sub_resource type="Animation" id="Animation_76duf"]
+length = 1.2
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("PulseLabel:modulate:a")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.6, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [0.2, 1.0, 0.2]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_6ebgk"]
+_data = {
+&"pulse": SubResource("Animation_76duf")
+}
+
+[node name="PresetShowcaseDemo" type="Node2D" unique_id=717920701]
+
+[node name="Presets" type="Node2D" parent="." unique_id=1105842358]
+
+[node name="Title" type="Label" parent="Presets" unique_id=587311856]
+offset_left = 40.0
+offset_top = 24.0
+offset_right = 40.0
+offset_bottom = 24.0
+theme_override_font_sizes/font_size = 24
+text = "Godot AI Animation Toolkit - presets"
+
+[node name="BounceButton" type="Button" parent="Presets" unique_id=772049135]
+offset_left = 620.0
+offset_top = 110.0
+offset_right = 840.0
+offset_bottom = 174.0
+pivot_offset = Vector2(110, 32)
+text = "BOUNCE"
+
+[node name="OrbitDot" type="ColorRect" parent="Presets" unique_id=1885500220]
+offset_left = 892.0
+offset_top = 142.0
+offset_right = 908.0
+offset_bottom = 158.0
+color = Color(0.35, 0.6, 1, 1)
+
+[node name="SweepPivot" type="Node2D" parent="Presets" unique_id=613072340]
+position = Vector2(700, 420)
+
+[node name="SweepBar" type="ColorRect" parent="Presets/SweepPivot" unique_id=58180699]
+offset_left = -6.0
+offset_top = -80.0
+offset_right = 6.0
+color = Color(0.13, 0.83, 0.93, 1)
+
+[node name="DriftLine" type="ColorRect" parent="Presets" unique_id=1944830722]
+offset_left = 620.0
+offset_top = 560.0
+offset_right = 920.0
+offset_bottom = 564.0
+color = Color(0.29, 0.87, 0.5, 1)
+
+[node name="PulseLabel" type="Label" parent="Presets" unique_id=1250796297]
+offset_left = 620.0
+offset_top = 300.0
+offset_right = 620.0
+offset_bottom = 300.0
+theme_override_font_sizes/font_size = 36
+text = "PRESETS"
+
+[node name="AnimBounce" type="AnimationPlayer" parent="Presets" unique_id=1603728607]
+libraries/ = SubResource("AnimationLibrary_ewnj5")
+autoplay = &"bounce"
+
+[node name="AnimOrbit" type="AnimationPlayer" parent="Presets" unique_id=1784623208]
+libraries/ = SubResource("AnimationLibrary_a77a3")
+autoplay = &"orbit"
+
+[node name="AnimSweep" type="AnimationPlayer" parent="Presets" unique_id=2078069796]
+libraries/ = SubResource("AnimationLibrary_mjats")
+autoplay = &"sweep"
+
+[node name="AnimDrift" type="AnimationPlayer" parent="Presets" unique_id=89461346]
+libraries/ = SubResource("AnimationLibrary_wc4cy")
+autoplay = &"drift"
+
+[node name="AnimPulse" type="AnimationPlayer" parent="Presets" unique_id=1744364903]
+libraries/ = SubResource("AnimationLibrary_6ebgk")
+autoplay = &"pulse"

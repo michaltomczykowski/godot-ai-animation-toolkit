@@ -1,0 +1,142 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+env:
+  GODOT_VERSION: "4.7.0"
+  # Pinned Godot AI release the toolkit is validated against.
+  CORE_REF: "v4.2.1"
+
+jobs:
+  tier1:
+    name: Tier 1 / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout toolkit
+        uses: actions/checkout@v4
+
+      - name: Checkout Godot AI (pinned)
+        uses: actions/checkout@v4
+        with:
+          repository: hi-godot/godot-ai
+          ref: ${{ env.CORE_REF }}
+          path: .ci/godot-ai
+
+      - name: Set up Godot
+        uses: chickensoft-games/setup-godot@c233594225991af5aec714e52457cc76d6df8fa2 # v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+
+      - name: Link addons (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          ln -s "$PWD/.ci/godot-ai/plugin/addons/godot_ai" test_project/addons/godot_ai
+          ln -s "$PWD/addons/godot_ai_animation" test_project/addons/godot_ai_animation
+
+      - name: Link addons (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cmd /c mklink /J "$PWD\test_project\addons\godot_ai" "$PWD\.ci\godot-ai\plugin\addons\godot_ai"
+          cmd /c mklink /J "$PWD\test_project\addons\godot_ai_animation" "$PWD\addons\godot_ai_animation"
+
+      - name: Tier-1 checks
+        run: godot --headless --path test_project --script res://tests/tier1_value_codec.gd
+
+  editor-suite:
+    name: Editor suite / core ${{ matrix.core-ref }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The pinned release is the gate; `main` is informational drift detection.
+        core-ref: ["v4.2.1", "main"]
+    continue-on-error: ${{ matrix.core-ref == 'main' }}
+    steps:
+      - name: Checkout toolkit
+        uses: actions/checkout@v4
+
+      - name: Checkout Godot AI
+        uses: actions/checkout@v4
+        with:
+          repository: hi-godot/godot-ai
+          ref: ${{ matrix.core-ref }}
+          path: .ci/godot-ai
+
+      - name: Set up Godot
+        uses: chickensoft-games/setup-godot@c233594225991af5aec714e52457cc76d6df8fa2 # v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+
+      - name: Link addons
+        run: |
+          ln -s "$PWD/.ci/godot-ai/plugin/addons/godot_ai" test_project/addons/godot_ai
+          ln -s "$PWD/addons/godot_ai_animation" test_project/addons/godot_ai_animation
+
+      - name: Import project
+        run: godot --headless --path test_project --import
+
+      - name: Run animation_presets suite (headless editor)
+        env:
+          ANIMATION_TOOLKIT_CI: "1"
+          GODOT_AI_ALLOW_HEADLESS: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path test_project --editor 2>&1 | tee editor.log
+
+      - name: Fail on parse errors
+        if: always()
+        run: |
+          if [ -f editor.log ] && grep -q "Parse Error" editor.log; then
+            echo "GDScript parse errors found:"
+            grep -n "Parse Error" editor.log
+            exit 1
+          fi
+
+  version-check:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout toolkit
+        uses: actions/checkout@v4
+
+      - name: plugin.cfg version must match the tag
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version=$(sed -n 's/^version="\(.*\)"$/\1/p' addons/godot_ai_animation/plugin.cfg)
+          echo "tag=$tag plugin.cfg=$version"
+          [ "$tag" = "$version" ]
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [tier1, editor-suite, version-check]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout toolkit
+        uses: actions/checkout@v4
+
+      - name: Build release zip
+        run: |
+          mkdir -p dist
+          git archive --format=zip \
+            --output "dist/godot-ai-animation-toolkit-${GITHUB_REF_NAME#v}.zip" \
+            HEAD addons/godot_ai_animation
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/*.zip \
+            --title "$GITHUB_REF_NAME" --generate-notes

@@ -45,8 +45,12 @@ func run(params: Dictionary, _ctx) -> Dictionary:
 			return preset_sweep(params)
 		"drift":
 			return preset_drift(params)
+		"spin":
+			return preset_spin(params)
+		"showcase":
+			return preset_showcase(params)
 	return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
-		"Unknown op '%s'. Valid: pulse, bounce, orbit, sweep, drift" % op)
+		"Unknown op '%s'. Valid: pulse, bounce, orbit, sweep, drift, spin, showcase" % op)
 
 
 ## Every preset needs the editor undo manager (injected by the addon's
@@ -163,11 +167,7 @@ func preset_pulse(params: Dictionary) -> Dictionary:
 	anim.length = duration
 	anim.loop_mode = loop_mode
 
-	_add_property_track(anim, track_path, [
-		{"time": 0.0, "value": from_vec, "transition": "linear"},
-		{"time": duration * 0.5, "value": to_vec, "transition": "linear"},
-		{"time": duration, "value": from_vec, "transition": "linear"},
-	])
+	_add_property_track(anim, track_path, build_pulse_keys(from_vec, to_vec, duration))
 
 	_commit_animation_add(
 		"MCP: Create animation %s" % anim_name,
@@ -247,31 +247,16 @@ func preset_bounce(params: Dictionary) -> Dictionary:
 		return existing.error
 	var old_anim: Animation = existing.old_anim
 
-	var peak := 1.0 + intensity
-	var dip := 1.0 - intensity * 0.25
 	## Pop from the target's current scale, not identity: a widget that is
 	## already scaled must not snap to 1.0 when the animation starts.
 	var at_rest: Variant = target.scale
-	var at_peak: Variant
-	var at_dip: Variant
-	if kind == "3d":
-		at_peak = at_rest * Vector3(peak, peak, peak)
-		at_dip = at_rest * Vector3(dip, dip, dip)
-	else:
-		at_peak = at_rest * Vector2(peak, peak)
-		at_dip = at_rest * Vector2(dip, dip)
 
 	var anim := Animation.new()
 	anim.length = duration
 	anim.loop_mode = Animation.LOOP_NONE
 
 	var track_path := "%s:scale" % track_target
-	_add_property_track(anim, track_path, [
-		{"time": 0.0, "value": at_rest, "transition": "linear"},
-		{"time": duration * 0.35, "value": at_peak, "transition": "ease_out"},
-		{"time": duration * 0.65, "value": at_dip, "transition": "ease_in_out"},
-		{"time": duration, "value": at_rest, "transition": "linear"},
-	])
+	_add_property_track(anim, track_path, build_bounce_keys(at_rest, kind, intensity, duration))
 
 	var extra_props := _control_pivot_props(target)
 	_commit_animation_add(
@@ -357,23 +342,7 @@ func preset_orbit(params: Dictionary) -> Dictionary:
 	var old_anim: Animation = existing.old_anim
 
 	var center: Variant = target.position
-	var direction := 1.0 if clockwise else -1.0
-	## Linear interpolation between keyframes is straight, so four quarter-turn
-	## keys trace a diamond. Sixteen segments keep the chord error under ~2% of
-	## the radius while staying cheap to evaluate.
-	var keyframes: Array = []
-	for step in range(_ORBIT_SEGMENTS + 1):
-		var angle := direction * TAU * float(step) / float(_ORBIT_SEGMENTS)
-		var offset: Variant
-		if kind == "3d":
-			offset = Vector3(cos(angle) * radius, 0.0, sin(angle) * radius)
-		else:
-			offset = Vector2(cos(angle) * radius, sin(angle) * radius)
-		keyframes.append({
-			"time": duration * float(step) / float(_ORBIT_SEGMENTS),
-			"value": center + offset,
-			"transition": "linear",
-		})
+	var keyframes := build_orbit_keys(center, kind, radius, clockwise, duration)
 
 	var anim := Animation.new()
 	anim.length = duration
@@ -463,8 +432,6 @@ func preset_sweep(params: Dictionary) -> Dictionary:
 		return existing.error
 	var old_anim: Animation = existing.old_anim
 
-	var direction := 1.0 if clockwise else -1.0
-	var total_radians := direction * TAU * turns
 	## Sweep from the target's current orientation instead of snapping it to 0.
 	var start_rotation: float = float(target.rotation.y) if kind == "3d" else float(target.rotation)
 
@@ -475,10 +442,7 @@ func preset_sweep(params: Dictionary) -> Dictionary:
 	## 3D nodes rotate around their local Y axis; Control/Node2D have a single
 	## `rotation` property.
 	var track_path := "%s:rotation:y" % track_target if kind == "3d" else "%s:rotation" % track_target
-	_add_property_track(anim, track_path, [
-		{"time": 0.0, "value": start_rotation, "transition": "linear"},
-		{"time": duration, "value": start_rotation + total_radians, "transition": "linear"},
-	])
+	_add_property_track(anim, track_path, build_sweep_keys(start_rotation, turns, clockwise, duration))
 
 	var extra_props := _control_pivot_props(target)
 	_commit_animation_add(
@@ -594,10 +558,7 @@ func preset_drift(params: Dictionary) -> Dictionary:
 	anim.loop_mode = loop_mode
 
 	var track_path := "%s:position" % track_target
-	_add_property_track(anim, track_path, [
-		{"time": 0.0, "value": start_pos, "transition": "linear"},
-		{"time": duration, "value": start_pos + offset, "transition": "linear"},
-	])
+	_add_property_track(anim, track_path, build_drift_keys(start_pos, offset, duration))
 
 	_commit_animation_add(
 		"MCP: Create animation %s" % anim_name,
@@ -797,3 +758,320 @@ func _create_scene_pinned_action(action_label: String) -> void:
 	ToolContext.undo_redo.create_action(
 		action_label, UndoRedo.MERGE_DISABLE, EditorInterface.get_edited_scene_root(),
 	)
+
+
+# ============================================================================
+# animation_presets spin — 3D quaternion turn
+# ============================================================================
+
+## Continuous local-Y turn for 3D targets (quarter-turn quaternion keys).
+## Control/2D targets use `sweep` instead.
+func preset_spin(params: Dictionary) -> Dictionary:
+	var player_path: String = params.get("player_path", "")
+	var target_path: String = params.get("target_path", "")
+	var clockwise: bool = params.get("clockwise", true)
+	var turns: float = float(params.get("turns", 1.0))
+	var duration: float = float(params.get("duration", 3.0))
+	var anim_name: String = params.get("animation_name", "")
+	var overwrite: bool = params.get("overwrite", false)
+
+	if player_path.is_empty():
+		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM, "Missing required param: player_path")
+	if target_path.is_empty():
+		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM, "Missing required param: target_path")
+	if duration <= 0.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'duration' must be > 0")
+	if turns <= 0.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'turns' must be > 0")
+	var loop_result := _resolve_loop_mode(params)
+	if loop_result.has("error"):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, loop_result.error)
+	var loop_mode: int = loop_result.ok
+
+	var context_error := _context_error()
+	if not context_error.is_empty():
+		return context_error
+	var resolved: Dictionary = _resolve_player(player_path)
+	if resolved.has("error"):
+		return resolved
+	var player: AnimationPlayer = resolved.player
+	var library: AnimationLibrary = resolved.library
+	var created_library := false
+	if library == null:
+		library = AnimationLibrary.new()
+		created_library = true
+
+	var target_resolved := _resolve_preset_target(player, target_path)
+	if target_resolved.has("error"):
+		return target_resolved
+	var kind: String = target_resolved.kind
+	var track_target: String = target_resolved.track_path_root
+	if kind != "3d":
+		return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
+			"spin rotates a Node3D around its local Y axis; use 'sweep' for Control/2D targets")
+
+	if anim_name.is_empty():
+		anim_name = "spin"
+
+	var existing := _existing_animation(library, anim_name, overwrite)
+	if existing.has("error"):
+		return existing.error
+	var old_anim: Animation = existing.old_anim
+
+	var keyframes := build_spin_keys(turns, clockwise, duration)
+	var anim := Animation.new()
+	anim.length = duration
+	anim.loop_mode = loop_mode
+	_add_property_track(anim, "%s:quaternion" % track_target, keyframes)
+
+	_commit_animation_add(
+		"MCP: Create animation %s" % anim_name,
+		player, library, created_library, anim_name, anim, old_anim,
+	)
+
+	return {
+		"data": {
+			"player_path": player_path,
+			"animation_name": anim_name,
+			"clockwise": clockwise,
+			"turns": turns,
+			"length": duration,
+			"loop_mode": ValueCodec.loop_mode_to_string(loop_mode),
+			"keyframe_count": keyframes.size(),
+			"track_count": anim.get_track_count(),
+			"library_created": created_library,
+			"overwritten": old_anim != null,
+			"undoable": true,
+		}
+	}
+
+
+# ============================================================================
+# animation_presets showcase — build a runnable demo scene
+# ============================================================================
+
+## Build a runnable demo of every preset as one undoable subtree: five nodes,
+## five AnimationPlayers with autoplaying clips (bounce/orbit/sweep/drift/
+## pulse). Press F6 (Run Current Scene) to watch it.
+func preset_showcase(params: Dictionary) -> Dictionary:
+	var context_error := _context_error()
+	if not context_error.is_empty():
+		return context_error
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		return ErrorCodes.make(ErrorCodes.EDITOR_NOT_READY, "No edited scene open")
+	var parent_path: String = params.get("parent_path", "")
+	var parent: Node = scene_root
+	if not parent_path.is_empty():
+		parent = ValueCodec.resolve_scene_path(parent_path, scene_root)
+		if parent == null:
+			return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND, ValueCodec.format_node_error(parent_path, scene_root))
+	var root_name: String = params.get("name", "AnimationShowcase")
+	if parent.has_node(NodePath(root_name)):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"%s already has a child named '%s'" % [parent.name, root_name])
+
+	var showcase := Node2D.new()
+	showcase.name = root_name
+
+	var title := Label.new()
+	title.name = "Title"
+	title.position = Vector2(40, 24)
+	title.text = "Godot AI Animation Toolkit - presets"
+	title.add_theme_font_size_override("font_size", 24)
+	showcase.add_child(title)
+
+	var bounce_button := Button.new()
+	bounce_button.name = "BounceButton"
+	bounce_button.position = Vector2(620, 110)
+	bounce_button.size = Vector2(220, 64)
+	bounce_button.pivot_offset = bounce_button.size * 0.5
+	bounce_button.text = "BOUNCE"
+	showcase.add_child(bounce_button)
+
+	var orbit_dot := ColorRect.new()
+	orbit_dot.name = "OrbitDot"
+	orbit_dot.position = Vector2(892, 142)
+	orbit_dot.size = Vector2(16, 16)
+	orbit_dot.color = Color(0.35, 0.6, 1.0)
+	showcase.add_child(orbit_dot)
+
+	var sweep_pivot := Node2D.new()
+	sweep_pivot.name = "SweepPivot"
+	sweep_pivot.position = Vector2(700, 420)
+	showcase.add_child(sweep_pivot)
+	var sweep_bar := ColorRect.new()
+	sweep_bar.name = "SweepBar"
+	sweep_bar.position = Vector2(-6, -80)
+	sweep_bar.size = Vector2(12, 80)
+	sweep_bar.color = Color(0.13, 0.83, 0.93)
+	sweep_pivot.add_child(sweep_bar)
+
+	var drift_line := ColorRect.new()
+	drift_line.name = "DriftLine"
+	drift_line.position = Vector2(620, 560)
+	drift_line.size = Vector2(300, 4)
+	drift_line.color = Color(0.29, 0.87, 0.5)
+	showcase.add_child(drift_line)
+
+	var pulse_label := Label.new()
+	pulse_label.name = "PulseLabel"
+	pulse_label.position = Vector2(620, 300)
+	pulse_label.text = "PRESETS"
+	pulse_label.add_theme_font_size_override("font_size", 36)
+	showcase.add_child(pulse_label)
+
+	var animations: Array[Animation] = []
+	var players: Array[String] = []
+	_add_showcase_player(showcase, "AnimBounce", "bounce", "BounceButton:scale",
+		build_bounce_keys(Vector2.ONE, "control", 0.15, 0.4), Animation.LOOP_NONE, animations, players)
+	_add_showcase_player(showcase, "AnimOrbit", "orbit", "OrbitDot:position",
+		build_orbit_keys(Vector2(900, 150), "2d", 60.0, true, 3.0), Animation.LOOP_LINEAR, animations, players)
+	_add_showcase_player(showcase, "AnimSweep", "sweep", "SweepPivot:rotation",
+		build_sweep_keys(0.0, 1.0, true, 2.0), Animation.LOOP_LINEAR, animations, players)
+	_add_showcase_player(showcase, "AnimDrift", "drift", "DriftLine:position:x",
+		build_drift_keys(620.0, 480.0, 2.0), Animation.LOOP_PINGPONG, animations, players)
+	_add_showcase_player(showcase, "AnimPulse", "pulse", "PulseLabel:modulate:a",
+		build_pulse_keys(0.2, 1.0, 1.2), Animation.LOOP_PINGPONG, animations, players)
+
+	_create_scene_pinned_action("MCP: Create animation showcase")
+	var undo := ToolContext.undo_redo
+	undo.add_do_method(parent, "add_child", showcase, true)
+	undo.add_undo_method(parent, "remove_child", showcase)
+	undo.add_do_reference(showcase)
+	for anim in animations:
+		undo.add_do_reference(anim)
+	undo.commit_action()
+	## Owners are set after the commit (redo re-adds the same node instances,
+	## so the assignment persists) — a Callable bound to this lazily loaded
+	## handler must not sit inside a long-lived undo action.
+	_assign_owners(showcase, scene_root)
+
+	return {
+		"data": {
+			"path": ValueCodec.from_node(showcase, scene_root),
+			"players": players,
+			"animations": animations.size(),
+			"undoable": true,
+		}
+	}
+
+
+func _add_showcase_player(
+	showcase: Node2D, player_name: String, clip_name: String, track_path: String,
+	keyframes: Array, loop_mode: int, animations: Array[Animation], players: Array[String],
+) -> void:
+	var anim := Animation.new()
+	anim.length = _last_key_time(keyframes)
+	anim.loop_mode = loop_mode
+	_add_property_track(anim, track_path, keyframes)
+	var player := AnimationPlayer.new()
+	player.name = player_name
+	var library := AnimationLibrary.new()
+	library.add_animation(clip_name, anim)
+	player.add_animation_library("", library)
+	player.autoplay = clip_name
+	showcase.add_child(player)
+	animations.append(anim)
+	players.append(player_name)
+
+
+static func _last_key_time(keyframes: Array) -> float:
+	var last := 0.0
+	for keyframe in keyframes:
+		last = maxf(last, float(keyframe.get("time", 0.0)))
+	return last
+
+
+## Owner every node in a freshly built subtree so the scene can save it.
+static func _assign_owners(node: Node, owner: Node) -> void:
+	node.set_owner(owner)
+	for child in node.get_children():
+		_assign_owners(child, owner)
+
+
+# ============================================================================
+# Helpers — keyframe builders (shared by the presets and the showcase)
+# ============================================================================
+
+## Three keys: rest -> peak (midpoint) -> rest.
+static func build_pulse_keys(from_vec: Variant, to_vec: Variant, duration: float) -> Array:
+	return [
+		{"time": 0.0, "value": from_vec, "transition": "linear"},
+		{"time": duration * 0.5, "value": to_vec, "transition": "linear"},
+		{"time": duration, "value": from_vec, "transition": "linear"},
+	]
+
+
+## Four keys: rest -> overshoot -> dip -> rest, from the target's baseline.
+static func build_bounce_keys(at_rest: Variant, kind: String, intensity: float, duration: float) -> Array:
+	var peak := 1.0 + intensity
+	var dip := 1.0 - intensity * 0.25
+	var at_peak: Variant
+	var at_dip: Variant
+	if kind == "3d":
+		at_peak = at_rest * Vector3(peak, peak, peak)
+		at_dip = at_rest * Vector3(dip, dip, dip)
+	else:
+		at_peak = at_rest * Vector2(peak, peak)
+		at_dip = at_rest * Vector2(dip, dip)
+	return [
+		{"time": 0.0, "value": at_rest, "transition": "linear"},
+		{"time": duration * 0.35, "value": at_peak, "transition": "ease_out"},
+		{"time": duration * 0.65, "value": at_dip, "transition": "ease_in_out"},
+		{"time": duration, "value": at_rest, "transition": "linear"},
+	]
+
+
+## Seamless circle: `_ORBIT_SEGMENTS` linear segments (chord error under ~2%).
+static func build_orbit_keys(
+	center: Variant, kind: String, radius: float, clockwise: bool, duration: float
+) -> Array:
+	var direction := 1.0 if clockwise else -1.0
+	var keyframes: Array = []
+	for step in range(_ORBIT_SEGMENTS + 1):
+		var angle := direction * TAU * float(step) / float(_ORBIT_SEGMENTS)
+		var offset: Variant
+		if kind == "3d":
+			offset = Vector3(cos(angle) * radius, 0.0, sin(angle) * radius)
+		else:
+			offset = Vector2(cos(angle) * radius, sin(angle) * radius)
+		keyframes.append({
+			"time": duration * float(step) / float(_ORBIT_SEGMENTS),
+			"value": center + offset,
+			"transition": "linear",
+		})
+	return keyframes
+
+
+## Two keys: current rotation -> current rotation + turns * TAU.
+static func build_sweep_keys(start_rotation: float, turns: float, clockwise: bool, duration: float) -> Array:
+	var direction := 1.0 if clockwise else -1.0
+	var total_radians := direction * TAU * turns
+	return [
+		{"time": 0.0, "value": start_rotation, "transition": "linear"},
+		{"time": duration, "value": start_rotation + total_radians, "transition": "linear"},
+	]
+
+
+## Two keys: current position -> current position + one-axis offset.
+static func build_drift_keys(start_pos: Variant, offset: Variant, duration: float) -> Array:
+	return [
+		{"time": 0.0, "value": start_pos, "transition": "linear"},
+		{"time": duration, "value": start_pos + offset, "transition": "linear"},
+	]
+
+
+## Quarter-turn quaternion keys around local Y (3D spin).
+static func build_spin_keys(turns: float, clockwise: bool, duration: float) -> Array:
+	var direction := 1.0 if clockwise else -1.0
+	var steps := maxi(4, int(round(turns * 4.0)))
+	var keyframes: Array = []
+	for step in range(steps + 1):
+		var angle := direction * TAU * float(step) / float(steps)
+		keyframes.append({
+			"time": duration * float(step) / float(steps),
+			"value": Quaternion(Vector3.UP, angle),
+			"transition": "linear",
+		})
+	return keyframes
