@@ -1,0 +1,282 @@
+[gd_scene format=3 uid="uid://ctimyfpcyvovd"]
+
+[ext_resource type="Script" uid="uid://cj8xlswoqlb4g" path="res://demo_edit_replay.gd" id="1_ktjbv"]
+
+[sub_resource type="Animation" id="Animation_g0pgm"]
+length = 1.6
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("TypeLabel:visible_ratio")
+tracks/0/interp = 0
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.06666667, 0.13333334, 0.2, 0.26666668, 0.33333334, 0.4, 0.46666667, 0.53333336, 0.6, 0.6666667, 0.73333335, 0.8, 0.8666667, 0.93333334, 1, 1.0666667, 1.1333333, 1.2, 1.2666667, 1.3333334, 1.4, 1.4666667, 1.5333333, 1.6),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [0.0, 0.041666666666666664, 0.08333333333333333, 0.125, 0.16666666666666666, 0.20833333333333334, 0.25, 0.2916666666666667, 0.3333333333333333, 0.375, 0.4166666666666667, 0.4583333333333333, 0.5, 0.5416666666666666, 0.5833333333333334, 0.625, 0.6666666666666666, 0.7083333333333334, 0.75, 0.7916666666666666, 0.8333333333333334, 0.875, 0.9166666666666666, 0.9583333333333334, 1.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_fdbh7"]
+_data = {
+&"typewriter": SubResource("Animation_g0pgm")
+}
+
+[sub_resource type="Animation" id="Animation_0vp3u"]
+length = 1.6
+tracks/0/type = "method"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("CounterLabel")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.053333335, 0.10666667, 0.16, 0.21333334, 0.26666668, 0.32, 0.37333333, 0.42666668, 0.48, 0.53333336, 0.58666664, 0.64, 0.6933333, 0.74666667, 0.8, 0.85333335, 0.9066667, 0.96, 1.0133333, 1.0666667, 1.12, 1.1733333, 1.2266667, 1.28, 1.3333334, 1.3866667, 1.44, 1.4933333, 1.5466666, 1.6),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"values": [{
+"args": ["$0"],
+"method": &"set_text"
+}, {
+"args": ["$42"],
+"method": &"set_text"
+}, {
+"args": ["$83"],
+"method": &"set_text"
+}, {
+"args": ["$125"],
+"method": &"set_text"
+}, {
+"args": ["$167"],
+"method": &"set_text"
+}, {
+"args": ["$208"],
+"method": &"set_text"
+}, {
+"args": ["$250"],
+"method": &"set_text"
+}, {
+"args": ["$292"],
+"method": &"set_text"
+}, {
+"args": ["$333"],
+"method": &"set_text"
+}, {
+"args": ["$375"],
+"method": &"set_text"
+}, {
+"args": ["$417"],
+"method": &"set_text"
+}, {
+"args": ["$458"],
+"method": &"set_text"
+}, {
+"args": ["$500"],
+"method": &"set_text"
+}, {
+"args": ["$542"],
+"method": &"set_text"
+}, {
+"args": ["$583"],
+"method": &"set_text"
+}, {
+"args": ["$625"],
+"method": &"set_text"
+}, {
+"args": ["$667"],
+"method": &"set_text"
+}, {
+"args": ["$708"],
+"method": &"set_text"
+}, {
+"args": ["$750"],
+"method": &"set_text"
+}, {
+"args": ["$792"],
+"method": &"set_text"
+}, {
+"args": ["$833"],
+"method": &"set_text"
+}, {
+"args": ["$875"],
+"method": &"set_text"
+}, {
+"args": ["$917"],
+"method": &"set_text"
+}, {
+"args": ["$958"],
+"method": &"set_text"
+}, {
+"args": ["$1000"],
+"method": &"set_text"
+}, {
+"args": ["$1042"],
+"method": &"set_text"
+}, {
+"args": ["$1083"],
+"method": &"set_text"
+}, {
+"args": ["$1125"],
+"method": &"set_text"
+}, {
+"args": ["$1167"],
+"method": &"set_text"
+}, {
+"args": ["$1208"],
+"method": &"set_text"
+}, {
+"args": ["$1250"],
+"method": &"set_text"
+}]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_keesc"]
+_data = {
+&"counter": SubResource("Animation_0vp3u")
+}
+
+[sub_resource type="Animation" id="Animation_i06kv"]
+length = 0.45
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("FrontBar:value")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.45),
+"transitions": PackedFloat32Array(1, 1, 0.5),
+"update": 0,
+"values": [100.0, 100.0, 35.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_qmjl8"]
+_data = {
+&"progress_fill": SubResource("Animation_i06kv")
+}
+
+[sub_resource type="Animation" id="Animation_l5r5f"]
+length = 1.25
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("GhostBar:value")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.55, 1.25),
+"transitions": PackedFloat32Array(1, 1, 0.5),
+"update": 0,
+"values": [100.0, 100.0, 35.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_g1b6a"]
+_data = {
+&"damage_bar": SubResource("Animation_l5r5f")
+}
+
+[sub_resource type="Animation" id="Animation_qd1nj"]
+length = 0.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("DialogPanel:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.3, 0.5),
+"transitions": PackedFloat32Array(1, 0.5, 1),
+"update": 0,
+"values": [Vector2(0.85, 0.85), Vector2(1.06, 1.06), Vector2(1, 1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("DialogPanel:modulate:a")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_hg84g"]
+_data = {
+&"dialog_pop": SubResource("Animation_qd1nj")
+}
+
+[node name="FxUi" type="Node2D" unique_id=1444581350]
+script = ExtResource("1_ktjbv")
+
+[node name="Title" type="Label" parent="." unique_id=1057649346]
+offset_left = 60.0
+offset_top = 30.0
+offset_right = 61.0
+offset_bottom = 53.0
+theme_override_font_sizes/font_size = 32
+text = "typewriter - counter - progress_fill - damage_bar - dialog_pop"
+
+[node name="TypeLabel" type="Label" parent="." unique_id=434177719]
+offset_left = 100.0
+offset_top = 140.0
+offset_right = 101.0
+offset_bottom = 163.0
+theme_override_font_sizes/font_size = 34
+text = "Loading the next area..."
+
+[node name="TypePlayer" type="AnimationPlayer" parent="." unique_id=1221157888]
+libraries/ = SubResource("AnimationLibrary_fdbh7")
+autoplay = &"typewriter"
+
+[node name="CounterLabel" type="Label" parent="." unique_id=583548138]
+offset_left = 700.0
+offset_top = 140.0
+offset_right = 701.0
+offset_bottom = 163.0
+theme_override_font_sizes/font_size = 34
+
+[node name="CounterPlayer" type="AnimationPlayer" parent="." unique_id=1103601554]
+libraries/ = SubResource("AnimationLibrary_keesc")
+autoplay = &"counter"
+
+[node name="FrontBar" type="ProgressBar" parent="." unique_id=1783443571]
+offset_left = 100.0
+offset_top = 260.0
+offset_right = 520.0
+offset_bottom = 290.0
+value = 100.0
+
+[node name="FrontPlayer" type="AnimationPlayer" parent="." unique_id=364225061]
+libraries/ = SubResource("AnimationLibrary_qmjl8")
+autoplay = &"progress_fill"
+
+[node name="GhostBar" type="ProgressBar" parent="." unique_id=1836005635]
+offset_left = 100.0
+offset_top = 300.0
+offset_right = 520.0
+offset_bottom = 330.0
+value = 100.0
+
+[node name="GhostPlayer" type="AnimationPlayer" parent="." unique_id=126878377]
+libraries/ = SubResource("AnimationLibrary_g1b6a")
+autoplay = &"damage_bar"
+
+[node name="DialogPanel" type="Panel" parent="." unique_id=854469103]
+offset_left = 700.0
+offset_top = 250.0
+offset_right = 1040.0
+offset_bottom = 420.0
+
+[node name="DialogLabel" type="Label" parent="DialogPanel" unique_id=409423987]
+layout_mode = 0
+offset_left = 40.0
+offset_top = 60.0
+offset_right = 41.0
+offset_bottom = 83.0
+theme_override_font_sizes/font_size = 30
+text = "Dialog"
+
+[node name="DialogPlayer" type="AnimationPlayer" parent="." unique_id=2020888038]
+libraries/ = SubResource("AnimationLibrary_hg84g")
+autoplay = &"dialog_pop"

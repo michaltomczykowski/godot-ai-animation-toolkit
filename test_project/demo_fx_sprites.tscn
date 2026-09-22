@@ -1,0 +1,131 @@
+[gd_scene format=3 uid="uid://b2e25lqov2c1s"]
+
+[ext_resource type="Texture2D" uid="uid://c0rp528foxnu0" path="res://art/demo_sheet.png" id="1_ludig"]
+
+[sub_resource type="Animation" id="Animation_tpoqy"]
+length = 0.8
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("FlipSprite:frame")
+tracks/0/interp = 0
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [0, 1, 2, 3, 4, 5, 6, 7]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_ui5i6"]
+_data = {
+&"flipbook": SubResource("Animation_tpoqy")
+}
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xb2nk"]
+atlas = ExtResource("1_ludig")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hhj8e"]
+atlas = ExtResource("1_ludig")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_53ppi"]
+atlas = ExtResource("1_ludig")
+region = Rect2(64, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ktjfy"]
+atlas = ExtResource("1_ludig")
+region = Rect2(96, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_8sp0b"]
+atlas = ExtResource("1_ludig")
+region = Rect2(128, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fdtx1"]
+atlas = ExtResource("1_ludig")
+region = Rect2(160, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6u6yn"]
+atlas = ExtResource("1_ludig")
+region = Rect2(192, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jstfu"]
+atlas = ExtResource("1_ludig")
+region = Rect2(224, 0, 32, 32)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_uhecu"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xb2nk")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hhj8e")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_53ppi")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ktjfy")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_8sp0b")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fdtx1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_6u6yn")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jstfu")
+}],
+"loop": 1,
+"name": &"bounce",
+"speed": 10.0
+}]
+
+[node name="FxSprites" type="Node2D" unique_id=624765664]
+
+[node name="Title" type="Label" parent="." unique_id=1653475600]
+offset_left = 60.0
+offset_top = 30.0
+offset_right = 61.0
+offset_bottom = 53.0
+theme_override_font_sizes/font_size = 36
+text = "flipbook - sprite_frames"
+
+[node name="FlipLabel" type="Label" parent="." unique_id=1364657443]
+offset_left = 180.0
+offset_top = 200.0
+offset_right = 181.0
+offset_bottom = 223.0
+theme_override_font_sizes/font_size = 26
+text = "Sprite2D.frame"
+
+[node name="FlipSprite" type="Sprite2D" parent="." unique_id=1010533809]
+position = Vector2(260, 380)
+scale = Vector2(4, 4)
+texture = ExtResource("1_ludig")
+hframes = 8
+
+[node name="FlipPlayer" type="AnimationPlayer" parent="." unique_id=596853762]
+libraries/ = SubResource("AnimationLibrary_ui5i6")
+autoplay = &"flipbook"
+
+[node name="SheetLabel" type="Label" parent="." unique_id=1263941083]
+offset_left = 700.0
+offset_top = 200.0
+offset_right = 701.0
+offset_bottom = 223.0
+theme_override_font_sizes/font_size = 26
+text = "AnimatedSprite2D"
+
+[node name="SheetSprite" type="AnimatedSprite2D" parent="." unique_id=238407186]
+position = Vector2(800, 380)
+scale = Vector2(4, 4)
+sprite_frames = SubResource("SpriteFrames_uhecu")
+animation = &"bounce"
+frame_progress = 0.59999996

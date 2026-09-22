@@ -1,0 +1,167 @@
+[gd_scene format=3 uid="uid://5n0axdu11my7"]
+
+[ext_resource type="Script" uid="uid://cj8xlswoqlb4g" path="res://demo_edit_replay.gd" id="1_akxfe"]
+
+[sub_resource type="Animation" id="Animation_4q4xf"]
+length = 1.4
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Wave0")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.0875, 0.175, 0.2625, 0.35, 0.4375, 0.525, 0.6125, 0.7, 0.7875, 0.875, 0.9625, 1.05, 1.1375, 1.225, 1.3125, 1.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(120, 430), Vector2(120, 439.94977), Vector2(120, 448.38477), Vector2(120, 454.02087), Vector2(120, 456), Vector2(120, 454.02087), Vector2(120, 448.38477), Vector2(120, 439.94977), Vector2(120, 430), Vector2(120, 420.05023), Vector2(120, 411.61523), Vector2(120, 405.97913), Vector2(120, 404), Vector2(120, 405.97913), Vector2(120, 411.61523), Vector2(120, 420.05023), Vector2(120, 430)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Wave1")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.0875, 0.175, 0.2625, 0.35, 0.4375, 0.525, 0.6125, 0.7, 0.7875, 0.875, 0.9625, 1.05, 1.1375, 1.225, 1.3125, 1.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(230, 448.79266), Vector2(230, 454.23807), Vector2(230, 455.99347), Vector2(230, 453.79156), Vector2(230, 447.96762), Vector2(230, 439.4083), Vector2(230, 429.4166), Vector2(230, 419.51376), Vector2(230, 411.20734), Vector2(230, 405.76193), Vector2(230, 404.00653), Vector2(230, 406.20844), Vector2(230, 412.03238), Vector2(230, 420.5917), Vector2(230, 430.5834), Vector2(230, 440.48624), Vector2(230, 448.79266)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Wave2")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.0875, 0.175, 0.2625, 0.35, 0.4375, 0.525, 0.6125, 0.7, 0.7875, 0.875, 0.9625, 1.05, 1.1375, 1.225, 1.3125, 1.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(340, 455.97382), Vector2(340, 453.5503), Vector2(340, 447.54144), Vector2(340, 438.86206), Vector2(340, 428.83353), Vector2(340, 418.98254), Vector2(340, 410.8089), Vector2(340, 405.55692), Vector2(340, 404.02618), Vector2(340, 406.4497), Vector2(340, 412.45856), Vector2(340, 421.13794), Vector2(340, 431.16647), Vector2(340, 441.01746), Vector2(340, 449.1911), Vector2(340, 454.44308), Vector2(340, 455.97382)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Wave3")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.0875, 0.175, 0.2625, 0.35, 0.4375, 0.525, 0.6125, 0.7, 0.7875, 0.875, 0.9625, 1.05, 1.1375, 1.225, 1.3125, 1.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(450, 447.1064), Vector2(450, 438.31137), Vector2(450, 428.251), Vector2(450, 418.4569), Vector2(450, 410.42014), Vector2(450, 405.36423), Vector2(450, 404.0589), Vector2(450, 406.70285), Vector2(450, 412.8936), Vector2(450, 421.68863), Vector2(450, 431.749), Vector2(450, 441.5431), Vector2(450, 449.57986), Vector2(450, 454.63577), Vector2(450, 455.9411), Vector2(450, 453.29715), Vector2(450, 447.1064)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_6ely3"]
+_data = {
+&"wave": SubResource("Animation_4q4xf")
+}
+
+[sub_resource type="Animation" id="Animation_b7sub"]
+length = 2.8
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("PendPivot:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.0875, 0.175, 0.2625, 0.35, 0.4375, 0.525, 0.6125, 0.7, 0.7875, 0.875, 0.9625, 1.05, 1.1375, 1.225, 1.3125, 1.4, 1.4875, 1.575, 1.6625, 1.75, 1.8375, 1.925, 2.0125, 2.1, 2.1875, 2.275, 2.3625, 2.45, 2.5375, 2.625, 2.7125, 2.8),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [0.4188790204786391, 0.38699375361859084, 0.29619219587722445, 0.16029806130249238, 2.5648095498051757e-17, -0.16029806130249238, -0.2961921958772244, -0.38699375361859084, -0.4188790204786391, -0.38699375361859084, -0.29619219587722434, -0.16029806130249258, -7.694428649415528e-17, 0.16029806130249244, 0.29619219587722434, 0.38699375361859084, 0.4188790204786391, 0.38699375361859084, 0.2961921958772245, 0.16029806130249263, -2.437988289639953e-16, -0.16029806130249238, -0.29619219587722406, -0.3869937536185907, -0.4188790204786391, -0.38699375361859084, -0.2961921958772243, -0.1602980613024927, -1.795366684863623e-16, 0.16029806130249166, 0.29619219587722456, 0.38699375361859095, 0.4188790204786391]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_l70un"]
+_data = {
+&"pendulum": SubResource("Animation_b7sub")
+}
+
+[sub_resource type="Animation" id="Animation_xhpj6"]
+length = 1.4
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("SpringDot:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.046666667, 0.093333334, 0.14, 0.18666667, 0.23333333, 0.28, 0.32666665, 0.37333333, 0.42, 0.46666667, 0.5133333, 0.56, 0.6066667, 0.6533333, 0.7, 0.74666667, 0.79333335, 0.84, 0.88666666, 0.93333334, 0.98, 1.0266666, 1.0733334, 1.12, 1.1666666, 1.2133334, 1.26, 1.3066666, 1.3533334, 1.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(990, 470), Vector2(990, 419.25397), Vector2(990, 339.32007), Vector2(990, 265.38013), Vector2(990, 221.82497), Vector2(990, 216.38641), Vector2(990, 241.54855), Vector2(990, 280.9454), Vector2(990, 317.27432), Vector2(990, 338.58173), Vector2(990, 341.12396), Vector2(990, 328.64856), Vector2(990, 309.2316), Vector2(990, 291.38257), Vector2(990, 280.9594), Vector2(990, 279.7743), Vector2(990, 285.9591), Vector2(990, 295.52856), Vector2(990, 304.29794), Vector2(990, 309.39645), Vector2(990, 309.9472), Vector2(990, 306.8813), Vector2(990, 302.1652), Vector2(990, 297.85687), Vector2(990, 295.36304), Vector2(990, 295.10797), Vector2(990, 296.62762), Vector2(990, 298.95184), Vector2(990, 301.06842), Vector2(990, 302.28815), Vector2(990, 300)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_8g5sk"]
+_data = {
+&"spring": SubResource("Animation_xhpj6")
+}
+
+[node name="FxMotion" type="Node2D" unique_id=804205662]
+script = ExtResource("1_akxfe")
+
+[node name="Title" type="Label" parent="." unique_id=850405423]
+offset_left = 60.0
+offset_top = 30.0
+offset_right = 61.0
+offset_bottom = 53.0
+theme_override_font_sizes/font_size = 36
+text = "wave - pendulum - spring"
+
+[node name="Wave0" type="ColorRect" parent="." unique_id=1004419969]
+offset_left = 120.0
+offset_top = 430.0
+offset_right = 210.0
+offset_bottom = 520.0
+color = Color(0.13, 0.83, 0.93, 1)
+
+[node name="Wave1" type="ColorRect" parent="." unique_id=584433393]
+offset_left = 230.0
+offset_top = 430.0
+offset_right = 320.0
+offset_bottom = 520.0
+color = Color(0.17, 0.84, 0.82, 1)
+
+[node name="Wave2" type="ColorRect" parent="." unique_id=1024822738]
+offset_left = 340.0
+offset_top = 430.0
+offset_right = 430.0
+offset_bottom = 520.0
+color = Color(0.21, 0.85, 0.71, 1)
+
+[node name="Wave3" type="ColorRect" parent="." unique_id=1117755257]
+offset_left = 450.0
+offset_top = 430.0
+offset_right = 540.0
+offset_bottom = 520.0
+color = Color(0.29, 0.87, 0.5, 1)
+
+[node name="WavePlayer" type="AnimationPlayer" parent="." unique_id=138116499]
+libraries/ = SubResource("AnimationLibrary_6ely3")
+autoplay = &"wave"
+
+[node name="PendPivot" type="Node2D" parent="." unique_id=2048935244]
+position = Vector2(800, 160)
+
+[node name="PendArm" type="ColorRect" parent="PendPivot" unique_id=938923389]
+offset_left = -12.0
+offset_right = 12.0
+offset_bottom = 190.0
+color = Color(0.35, 0.6, 1, 1)
+
+[node name="PendPlayer" type="AnimationPlayer" parent="." unique_id=2090044495]
+libraries/ = SubResource("AnimationLibrary_l70un")
+autoplay = &"pendulum"
+
+[node name="SpringDot" type="ColorRect" parent="." unique_id=1610212992]
+offset_left = 990.0
+offset_top = 470.0
+offset_right = 1070.0
+offset_bottom = 550.0
+color = Color(0.98, 0.75, 0.35, 1)
+
+[node name="SpringPlayer" type="AnimationPlayer" parent="." unique_id=641874748]
+libraries/ = SubResource("AnimationLibrary_8g5sk")
+autoplay = &"spring"

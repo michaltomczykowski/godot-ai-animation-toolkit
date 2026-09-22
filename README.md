@@ -105,6 +105,11 @@ are refused with a clear error rather than rewritten lossily.
 
 ## Game feel, UI, sprites and audio
 
+[**Video: generators demo (1:00)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v0.5.0/animation_toolkit_fx_demo.mp4)
+— four groups on one stage: feedback (shake/zoom_punch/hit_flash/damage_bar),
+UI (typewriter/counter/progress_fill/dialog_pop), motion (wave/pendulum/spring)
+and sprites (flipbook/sprite_frames).
+
 `animation_fx` covers the rest of the everyday animation work: camera shake and
 punches, hit flashes, delayed damage bars, typewriter text, progress fills,
 rolling counters, dialog entrances, screen transitions, cascading waves, springs,

@@ -1,0 +1,102 @@
+[gd_scene format=3 uid="uid://b1r875fk2o6hi"]
+
+[ext_resource type="Script" uid="uid://cj8xlswoqlb4g" path="res://demo_edit_replay.gd" id="1_kub72"]
+
+[sub_resource type="Animation" id="Animation_50dhq"]
+length = 0.4
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Cam:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.022222223, 0.044444446, 0.06666667, 0.08888889, 0.11111111, 0.13333334, 0.15555556, 0.17777778, 0.2, 0.22222222, 0.24444444, 0.26666668, 0.2888889, 0.31111112, 0.33333334, 0.35555556, 0.37777779, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(577.7017, 333.38147), Vector2(570.4837, 336.1133), Vector2(584.0135, 329.04385), Vector2(582.3507, 315.22656), Vector2(577.3979, 325.71255), Vector2(584.0325, 318.8941), Vector2(571.1835, 326.25677), Vector2(582.3426, 320.42697), Vector2(574.0242, 327.3587), Vector2(579.2079, 327.523), Vector2(576.9485, 326.46365), Vector2(580.388, 326.80246), Vector2(573.05505, 323.38245), Vector2(573.5944, 327.2768), Vector2(576.1937, 321.33667), Vector2(575.24677, 323.70013), Vector2(575.7383, 322.28284), Vector2(575.4412, 323.1848), Vector2(576, 324)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_xsodm"]
+_data = {
+&"shake": SubResource("Animation_50dhq")
+}
+
+[sub_resource type="Animation" id="Animation_l6nk2"]
+length = 0.4
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Cam:zoom")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.12, 0.4),
+"transitions": PackedFloat32Array(1, 0.5, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1.12, 1.12), Vector2(1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_hql8o"]
+_data = {
+&"zoom_punch": SubResource("Animation_l6nk2")
+}
+
+[sub_resource type="Animation" id="Animation_x75ec"]
+length = 0.4
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Subject:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4),
+"transitions": PackedFloat32Array(1, 0.5, 0.5, 0.5, 0.5),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_8xegr"]
+_data = {
+&"hit_flash": SubResource("Animation_x75ec")
+}
+
+[node name="FxFeedback" type="Node2D" unique_id=266874826]
+script = ExtResource("1_kub72")
+
+[node name="Title" type="Label" parent="." unique_id=391097460]
+offset_left = 60.0
+offset_top = 30.0
+offset_right = 61.0
+offset_bottom = 53.0
+theme_override_font_sizes/font_size = 36
+text = "shake - hit_flash - zoom_punch"
+
+[node name="Subject" type="ColorRect" parent="." unique_id=1287126585]
+offset_left = 476.0
+offset_top = 274.0
+offset_right = 676.0
+offset_bottom = 374.0
+color = Color(0.29, 0.87, 0.5, 1)
+
+[node name="Ground" type="ColorRect" parent="." unique_id=1018548239]
+offset_top = 520.0
+offset_right = 1152.0
+offset_bottom = 526.0
+color = Color(0.2, 0.2, 0.24, 1)
+
+[node name="Cam" type="Camera2D" parent="." unique_id=1606302632]
+position = Vector2(576, 324)
+
+[node name="ShakePlayer" type="AnimationPlayer" parent="." unique_id=1590059555]
+libraries/ = SubResource("AnimationLibrary_xsodm")
+autoplay = &"shake"
+
+[node name="ZoomPlayer" type="AnimationPlayer" parent="." unique_id=1213777167]
+libraries/ = SubResource("AnimationLibrary_hql8o")
+autoplay = &"zoom_punch"
+
+[node name="FlashPlayer" type="AnimationPlayer" parent="." unique_id=419683021]
+libraries/ = SubResource("AnimationLibrary_8xegr")
+autoplay = &"hit_flash"
