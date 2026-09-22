@@ -690,7 +690,7 @@ func test_preset_showcase_builds_and_undoes_a_runnable_demo() -> void:
 	_undo_redo.clear_history()
 	var result := _handler.preset_showcase({"name": "PresetShowcase"})
 	assert_has_key(result, "data")
-	assert_eq(result.data.animations, 6, "the demo must build one clip per preset")
+	assert_eq(result.data.animations, 7, "the demo must build one clip per preset")
 	var showcase := ValueCodec.resolve_scene_path(result.data.path, scene_root)
 	assert_true(showcase != null, "the demo subtree must exist")
 	assert_eq(showcase.owner, scene_root, "the subtree must be owned so the scene can save it")
@@ -699,6 +699,11 @@ func test_preset_showcase_builds_and_undoes_a_runnable_demo() -> void:
 	var float_player := showcase.get_node_or_null("AnimFloat") as AnimationPlayer
 	assert_true(float_player != null and float_player.has_animation("float"),
 		"the demo must autoplay the float clip")
+	var spin_cube := showcase.get_node_or_null("World3D/SpinCube") as MeshInstance3D
+	assert_true(spin_cube != null, "the demo must include the 3D spin cube")
+	var spin_player := showcase.get_node_or_null("AnimSpin") as AnimationPlayer
+	assert_true(spin_player != null and spin_player.has_animation("spin"),
+		"the demo must autoplay the spin clip")
 	for player_name in result.data.players:
 		var player := showcase.get_node_or_null(str(player_name)) as AnimationPlayer
 		assert_true(player != null, "%s must exist" % player_name)

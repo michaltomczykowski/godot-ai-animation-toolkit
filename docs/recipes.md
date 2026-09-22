@@ -90,6 +90,7 @@ Builds under the edited scene root (or `parent_path`):
 - `PulseLabel` — `pulse` clip on `modulate:a` (ping-pong)
 - `World3D` + `FloatCube` — Camera3D, light and a cube with the `float` clip
   (bob + scale + half turn, ping-pong)
+- `World3D` + `SpinCube` — a second cube with the `spin` clip (linear loop)
 
-Six `AnimationPlayer`s autoplay, the whole subtree is one undo step, and
+Seven `AnimationPlayer`s autoplay, the whole subtree is one undo step, and
 `test_project/showcase.tscn` in this repository is exactly this output.

@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.2.0 — unreleased
+## 0.2.1 — unreleased
+
+- The `showcase` op now also demos the `spin` preset (a second 3D cube), so the
+  generated demo covers all seven clip presets; `test_project/showcase.tscn`
+  and the README GIF regenerated.
+- Tests: 27 editor rows, 40 tier-1 checks.
+
+## 0.2.0
 
 - New `float` preset: 3D bob through the target's transform (rise + scale +
   optional turn); refuses `loop_mode="linear"` like `drift` (the clip ends at a

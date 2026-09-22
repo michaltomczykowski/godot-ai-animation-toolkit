@@ -854,9 +854,9 @@ func preset_spin(params: Dictionary) -> Dictionary:
 # animation_presets showcase — build a runnable demo scene
 # ============================================================================
 
-## Build a runnable demo of every preset as one undoable subtree: five nodes,
-## five AnimationPlayers with autoplaying clips (bounce/orbit/sweep/drift/
-## pulse). Press F6 (Run Current Scene) to watch it.
+## Build a runnable demo of every preset as one undoable subtree: seven nodes,
+## seven AnimationPlayers with autoplaying clips (bounce/orbit/sweep/drift/
+## pulse/spin/float). Press F6 (Run Current Scene) to watch it.
 func preset_showcase(params: Dictionary) -> Dictionary:
 	var context_error := _context_error()
 	if not context_error.is_empty():
@@ -943,6 +943,13 @@ func preset_showcase(params: Dictionary) -> Dictionary:
 	float_cube.position = Vector3(-3.4, 0.0, 0.0)
 	float_cube.mesh = BoxMesh.new()
 	world.add_child(float_cube)
+	var spin_cube := MeshInstance3D.new()
+	spin_cube.name = "SpinCube"
+	spin_cube.position = Vector3(-1.7, 0.0, 0.0)
+	var spin_mesh := BoxMesh.new()
+	spin_mesh.size = Vector3(1.4, 1.4, 1.4)
+	spin_cube.mesh = spin_mesh
+	world.add_child(spin_cube)
 
 	var animations: Array[Animation] = []
 	var players: Array[String] = []
@@ -958,6 +965,8 @@ func preset_showcase(params: Dictionary) -> Dictionary:
 		build_pulse_keys(0.2, 1.0, 1.2), Animation.LOOP_PINGPONG, animations, players)
 	_add_showcase_player(showcase, "AnimFloat", "float", "World3D/FloatCube:transform",
 		build_float_keys(float_cube.transform, 0.7, 1.25, 0.5, 2.4), Animation.LOOP_PINGPONG, animations, players)
+	_add_showcase_player(showcase, "AnimSpin", "spin", "World3D/SpinCube:quaternion",
+		build_spin_keys(1.0, true, 3.0), Animation.LOOP_LINEAR, animations, players)
 
 	_create_scene_pinned_action("MCP: Create animation showcase")
 	var undo := ToolContext.undo_redo

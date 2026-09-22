@@ -63,8 +63,9 @@ Exposed to agents as the promoted first-class tool **`custom_animation_presets`*
 | `DriftLine` (ColorRect) | `drift`, ping-pong |
 | `PulseLabel` (Label) | `pulse` on `modulate:a`, ping-pong |
 | `World3D/FloatCube` (MeshInstance3D) | `float`, 3D bob + scale + turn, ping-pong |
+| `World3D/SpinCube` (MeshInstance3D) | `spin`, 3D quaternion turn, linear loop |
 
-Six `AnimationPlayer`s autoplay their clip; run the current scene (F6) to
+Seven `AnimationPlayer`s autoplay their clip; run the current scene (F6) to
 watch it. `test_project/showcase.tscn` is the committed output.
 
 ## Behaviour
