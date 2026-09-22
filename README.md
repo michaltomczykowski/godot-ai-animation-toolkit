@@ -10,11 +10,15 @@ A standalone [Godot](https://godotengine.org) addon that gives
 - **`animation_edit`** — edit any existing clip in place: `retime`, `retarget`,
   `reverse`, `mirror`, `offset`, `ease_range`, `set_interp`, `trim`, `split_at`,
   `merge`, `amplitude`, `loop`, `key_edit`, `cleanup`.
+- **`animation_fx`** — one-call generators for game feel, UI, sprites and
+  audio: `shake`, `zoom_punch`, `hit_flash`, `damage_bar`, `typewriter`,
+  `progress_fill`, `counter`, `dialog_pop`, `transition`, `wave`, `spring`,
+  `pendulum`, `path_follow`, `flipbook`, `sprite_frames`, `audio_cue`.
 - **`animation_inspect`** — read-only reasoning and QA: `describe`, `timeline`,
   `audit` (broken paths, dead clips, loop seams, autoplay conflicts),
   `compare`, `stats`, `dry_run` (run any op without committing), `help`.
 
-All three sit on one declarative clip-spec engine, so every op is a pure
+All four sit on one declarative clip-spec engine, so every op is a pure
 spec → spec transform and each mutating call is one scene-pinned undo action.
 
 ```json
@@ -99,6 +103,24 @@ hand-authored ones — and commits one scene-pinned undo action per call.
 Clips containing bezier / blend-shape / animation tracks (or compressed tracks)
 are refused with a clear error rather than rewritten lossily.
 
+## Game feel, UI, sprites and audio
+
+`animation_fx` covers the rest of the everyday animation work: camera shake and
+punches, hit flashes, delayed damage bars, typewriter text, progress fills,
+rolling counters, dialog entrances, screen transitions, cascading waves, springs,
+pendulums, path following, sprite flipbooks, spritesheet slicing and audio cues.
+Same contract as the presets — one undo action per call, `dry_run` supported.
+
+```json
+{"tool": "custom_animation_fx", "params": {
+  "op": "shake",
+  "player_path": "/Main",
+  "target_path": "Camera2D",
+  "intensity": 10,
+  "seed": 7
+}}
+```
+
 ## Inspecting and auditing
 
 [**Video: inspection demo (0:55)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v0.4.0/animation_toolkit_inspect_demo.mp4)
@@ -157,9 +179,10 @@ warning) when Godot AI is absent.
 ```
 
 `test_project/` is a Godot project wired to both addons; `tests/` holds the
-editor suites (61 rows across `animation_presets`, `animation_edit` and
-`animation_inspect`) and the headless checks (`tier1_value_codec.gd` +
-`tier1_spec_modifiers.gd`, 518 checks). The `demo_*.tscn` scenes are the ones recorded for the walkthrough
+editor suites (81 rows across `animation_presets`, `animation_fx`,
+`animation_edit` and `animation_inspect`) and the headless checks
+(`tier1_value_codec.gd`, `tier1_spec_modifiers.gd`, `tier1_fx_specs.gd`, 800
+checks). The `demo_*.tscn` scenes are the ones recorded for the walkthrough
 video — each is one preset call plus autoplay.
 
 ```powershell

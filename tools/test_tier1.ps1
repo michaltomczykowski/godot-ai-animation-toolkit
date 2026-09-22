@@ -11,7 +11,8 @@ $root = Split-Path -Parent $PSScriptRoot
 $project = Join-Path $root "test_project"
 $scripts = @(
 	"res://tests/tier1_value_codec.gd",
-	"res://tests/tier1_spec_modifiers.gd"
+	"res://tests/tier1_spec_modifiers.gd",
+	"res://tests/tier1_fx_specs.gd"
 )
 foreach ($script in $scripts) {
 	Write-Output "== $script"

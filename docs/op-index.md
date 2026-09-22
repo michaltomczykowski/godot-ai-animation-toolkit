@@ -160,6 +160,115 @@ Required: `op`, `player_path`, `animation_name`.
 {"animation_name":"walk","min_gap":0.01,"op":"cleanup","player_path":"/Main","tolerance":0.0001}
 ```
 
+## `animation_fx`
+
+One-call generators for game feel, UI, sprites and audio.
+
+Handler: `res://addons/godot_ai_animation/handlers/fx.gd`
+
+| op | What it does | Params |
+| --- | --- | --- |
+| `shake` | Seeded decaying screen shake on a camera/control position. | `player_path`, `target_path`, `intensity`, `duration`, `frequency`, `decay`, `seed`, `axis`, `property`, `animation_name`, `overwrite`, `dry_run` |
+| `zoom_punch` | Camera punch: overshoot then settle (Camera2D zoom / Camera3D fov). | `player_path`, `target_path`, `amount`, `duration`, `peak_ratio`, `animation_name`, `overwrite`, `dry_run` |
+| `hit_flash` | Flash a CanvasItem's modulate and back (damage feedback). | `player_path`, `target_path`, `color`, `duration`, `count`, `animation_name`, `overwrite`, `dry_run` |
+| `damage_bar` | Delayed follow-up bar: hold, then ease to the new value. | `player_path`, `target_path`, `property`, `from`, `to`, `delay`, `duration`, `animation_name`, `overwrite`, `dry_run` |
+| `typewriter` | Reveal text with visible_ratio, smoothly or in character steps. | `player_path`, `target_path`, `property`, `duration`, `steps`, `delay`, `from_ratio`, `to_ratio`, `animation_name`, `overwrite`, `dry_run` |
+| `progress_fill` | Fill a numeric property (ProgressBar value, modulate:a, custom float). | `player_path`, `target_path`, `property`, `from`, `to`, `duration`, `delay`, `animation_name`, `overwrite`, `dry_run` |
+| `counter` | Rolling numbers via a method track calling a setter with formatted text. | `player_path`, `target_path`, `from`, `to`, `steps`, `duration`, `format`, `prefix`, `suffix`, `method`, `animation_name`, `overwrite`, `dry_run` |
+| `dialog_pop` | Modal entrance: scale through an overshoot, optionally fading in. | `player_path`, `target_path`, `from_scale`, `overshoot`, `duration`, `fade`, `animation_name`, `overwrite`, `dry_run` |
+| `transition` | Full-screen fade or wipe on an overlay Control. | `player_path`, `target_path`, `mode`, `duration`, `animation_name`, `overwrite`, `dry_run` |
+| `wave` | Cascading sine bob for a list of targets (or the editor selection). | `player_path`, `target_paths`, `use_selection`, `axis`, `amplitude`, `period`, `phase_step`, `cycles`, `loop_mode`, `animation_name`, `overwrite`, `dry_run` |
+| `spring` | Damped spring settle from the current position to position + offset. | `player_path`, `target_path`, `offset`, `frequency`, `damping`, `duration`, `samples`, `animation_name`, `overwrite`, `dry_run` |
+| `pendulum` | Swinging rotation with optional decay (2D rotation, 3D local Z). | `player_path`, `target_path`, `amplitude`, `period`, `duration`, `decay`, `animation_name`, `overwrite`, `dry_run` |
+| `path_follow` | Follow a Path2D/Path3D curve by sampling it into position keys. | `player_path`, `target_path`, `path_node`, `duration`, `samples`, `loop_mode`, `animation_name`, `overwrite`, `dry_run` |
+| `flipbook` | Step a Sprite2D's frame through a range with nearest interpolation. | `player_path`, `target_path`, `property`, `frames`, `fps`, `from_frame`, `loop_mode`, `animation_name`, `overwrite`, `dry_run` |
+| `sprite_frames` | Slice a spritesheet into a SpriteFrames resource and assign it to an AnimatedSprite2D. | `sprite_path`, `texture`, `hframes`, `vframes`, `fps`, `loop`, `from_frame`, `to_frame`, `play`, `animation_name`, `overwrite`, `dry_run` |
+| `audio_cue` | Schedule an audio stream as a one-key audio clip on the player. | `player_path`, `target_path`, `stream`, `time`, `start_offset`, `end_offset`, `animation_name`, `overwrite`, `dry_run` |
+
+### `animation_fx` parameters
+
+| Param | Type | Notes |
+| --- | --- | --- |
+| `op` | string: shake \| zoom_punch \| hit_flash \| damage_bar \| typewriter \| progress_fill \| counter \| dialog_pop \| transition \| wave \| spring \| pendulum \| path_follow \| flipbook \| sprite_frames \| audio_cue | Which generator to run. |
+| `player_path` | string | Scene path to the AnimationPlayer (not used by sprite_frames). |
+| `target_path` | string | Node to animate, relative to the player's root_node or scene-absolute. |
+| `animation_name` | string | Clip name; defaults to the op name. |
+| `overwrite` | boolean (default `false`) | Replace an existing clip with the same name. |
+| `property` | string | Property to animate when the op allows one (shake: position; typewriter: visible_ratio; damage_bar/progress_fill: value; flipbook: frame). |
+| `duration` | number | Clip length in seconds (defaults per op: 0.4 shake, 0.25 zoom_punch, 0.18 hit_flash, 0.4 damage_bar, 1.5 typewriter, 0.8 progress_fill, 1.0 counter, 0.35 dialog_pop, 0.5 transition, 1.0 spring, 2.0 pendulum, 2.0 path_follow). |
+| `intensity` | number | shake: peak offset in pixels/units (default 8). |
+| `frequency` | number | shake/spring: oscillations per second (default 20 / 2). |
+| `decay` | number | shake/pendulum: falloff per clip (1.0 = none, 0.1 = settled; default 0.15 / 1.0). |
+| `seed` | integer | shake: deterministic noise seed (default 0). |
+| `axis` | string | shake/wave: axes to move along, any of "x", "y", "z" (default xy for 2D, xyz for 3D). |
+| `amount` | number | zoom_punch: fractional punch (0.08 = +8%). |
+| `peak_ratio` | number | zoom_punch: when the peak happens, 0-1 (default 0.3). |
+| `color` | any | hit_flash: flash color (hex string or {r,g,b[,a]}); transition: overlay color. |
+| `count` | integer | hit_flash: number of flashes (default 1). |
+| `steps` | integer | typewriter: discrete characters (0 = smooth). counter: number of increments. |
+| `delay` | number | typewriter/progress_fill/damage_bar: seconds to hold before the motion. |
+| `from_ratio` | number | typewriter: starting visible_ratio (default 0). |
+| `to_ratio` | number | typewriter: ending visible_ratio (default 1). |
+| `from` | number | progress_fill/counter/damage_bar: starting value (default: the property's current value). |
+| `to` | number | progress_fill/counter/damage_bar: ending value. |
+| `format` | string | counter: printf format for the number (default "%d"). |
+| `prefix` | string | counter: text before the number. |
+| `suffix` | string | counter: text after the number. |
+| `method` | string | counter: setter called with the formatted string (default "set_text"). |
+| `target_paths` | array | wave: ordered targets to bob (relative to the player's root_node or scene-absolute). |
+| `use_selection` | boolean (default `false`) | wave: use the editor's selection instead of target_paths. |
+| `amplitude` | number | wave: bob height (default 12). pendulum: swing in degrees (default 18). |
+| `period` | number | wave/pendulum: seconds per cycle (default 1.2 / 1.0). |
+| `phase_step` | number | wave: seconds each following target lags (default 0.12). |
+| `cycles` | integer | wave: loops of the sine in the clip (default 1). |
+| `offset` | any | spring: travel offset as {x,y[,z]} matching the target's position type. |
+| `damping` | number | spring: 0-1 damping ratio (default 0.35; >= 1 is critically damped). |
+| `samples` | integer | spring/path_follow: key samples (default 30 / 24). |
+| `path_node` | string | path_follow: scene path to the Path2D/Path3D to follow. |
+| `frames` | integer | flipbook: number of frames to step through. |
+| `fps` | number | flipbook/sprite_frames: frames per second (default 12). |
+| `from_frame` | integer | flipbook/sprite_frames: first frame index (default 0). |
+| `to_frame` | integer | sprite_frames: last frame index (default: the last cell). |
+| `sprite_path` | string | sprite_frames: scene path to the AnimatedSprite2D. |
+| `texture` | string | sprite_frames: res:// path of the spritesheet texture. |
+| `hframes` | integer | sprite_frames: sheet columns (default 4). |
+| `vframes` | integer | sprite_frames: sheet rows (default 1). |
+| `loop` | boolean (default `true`) | sprite_frames: loop the animation. |
+| `play` | boolean (default `true`) | sprite_frames: start playing after assigning. |
+| `stream` | string | audio_cue: res:// path of the audio stream. |
+| `time` | number | audio_cue: when the cue fires (default 0). |
+| `start_offset` | number | audio_cue: trim from the start of the stream. |
+| `end_offset` | number | audio_cue: trim from the end of the stream. |
+| `mode` | string: fade_in \| fade_out \| wipe_right \| wipe_left \| wipe_up \| wipe_down | transition: which effect to build. |
+| `from_scale` | number | dialog_pop: starting scale factor (default 0.85). |
+| `overshoot` | number | dialog_pop: peak scale factor (default 1.06). |
+| `fade` | boolean (default `true`) | dialog_pop: also fade the alpha in. |
+| `loop_mode` | string: none \| linear \| pingpong | wave/path_follow/flipbook: loop mode (default linear / none / linear). |
+| `dry_run` | boolean (default `false`) | Report what the call would build without committing anything (no undo action). |
+
+Required: `op`.
+
+### Examples
+
+```json
+{"duration":0.4,"intensity":10,"op":"shake","player_path":"/Main","seed":7,"target_path":"Camera2D"}
+{"amount":0.12,"op":"zoom_punch","player_path":"/Main","target_path":"Camera2D"}
+{"color":"#ffffff","count":2,"op":"hit_flash","player_path":"/Main","target_path":"Player"}
+{"delay":0.3,"op":"damage_bar","player_path":"/Main/HUD","target_path":"GhostBar","to":40}
+{"duration":1.6,"op":"typewriter","player_path":"/Main/HUD","steps":40,"target_path":"DialogLabel"}
+{"duration":0.6,"op":"progress_fill","player_path":"/Main/HUD","target_path":"HealthBar","to":100}
+{"from":0,"op":"counter","player_path":"/Main/HUD","prefix":"$","target_path":"ScoreLabel","to":1250}
+{"duration":0.35,"op":"dialog_pop","player_path":"/Main/HUD","target_path":"DialogPanel"}
+{"duration":0.5,"mode":"fade_out","op":"transition","player_path":"/Main","target_path":"FadeOverlay"}
+{"amplitude":10,"op":"wave","phase_step":0.15,"player_path":"/Main/HUD","target_paths":["Card1","Card2","Card3"]}
+{"damping":0.3,"frequency":2.5,"offset":{"x":0,"y":-60},"op":"spring","player_path":"/Main","target_path":"Player"}
+{"amplitude":22,"duration":3.0,"op":"pendulum","period":1.4,"player_path":"/Main","target_path":"Sign"}
+{"duration":4.0,"loop_mode":"linear","op":"path_follow","path_node":"/Main/PatrolPath","player_path":"/Main","target_path":"Drone"}
+{"fps":12,"frames":8,"op":"flipbook","player_path":"/Main","target_path":"Sprite2D"}
+{"fps":12,"hframes":6,"op":"sprite_frames","sprite_path":"/Main/Player","texture":"res://art/run.png","vframes":1}
+{"op":"audio_cue","player_path":"/Main","stream":"res://sfx/land.wav","target_path":"Player","time":0.2}
+```
+
 ## `animation_inspect`
 
 Read-only inspection, auditing and dry runs.
@@ -192,8 +301,8 @@ Handler: `res://addons/godot_ai_animation/handlers/inspect.gd`
 | `severity` | string: all \| error \| warning \| info | audit: only findings of this severity (default all). |
 | `include_info` | boolean (default `true`) | audit: include info-level findings (unused clips, constant tracks). |
 | `tolerance` | number | compare: value comparison tolerance (default 0.0001). |
-| `tool` | string: animation_presets \| animation_edit | dry_run: which tool to run. help: which tool's ops to list (omit for all). |
-| `forward_op` | string | dry_run: the presets/edit op to run (e.g. "retime"); its own params go in the same call. |
+| `tool` | string: animation_presets \| animation_fx \| animation_edit | dry_run: which tool to run. help: which tool's ops to list (omit for all). |
+| `forward_op` | string | dry_run: the presets/fx/edit op to run (e.g. "retime"); its own params go in the same call. |
 | `op_name` | string | help: only this op (omit to list the tool's whole index). |
 
 Required: `op`.

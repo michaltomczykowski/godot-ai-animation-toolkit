@@ -11,6 +11,7 @@ const ClipSpec := preload("res://addons/godot_ai_animation/spec/clip_spec.gd")
 const SpecIO := preload("res://addons/godot_ai_animation/spec/spec_io.gd")
 const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
 const GenerateHandler := preload("res://addons/godot_ai_animation/handlers/generate.gd")
+const FxHandler := preload("res://addons/godot_ai_animation/handlers/fx.gd")
 const EditHandler := preload("res://addons/godot_ai_animation/handlers/edit.gd")
 
 const _SEVERITIES := ["all", "error", "warning", "info"]
@@ -569,12 +570,14 @@ func inspect_dry_run(params: Dictionary) -> Dictionary:
 	var handler
 	if tool == OpRegistry.FAMILY_PRESETS:
 		handler = GenerateHandler.new()
+	elif tool == OpRegistry.FAMILY_FX:
+		handler = FxHandler.new()
 	elif tool == OpRegistry.FAMILY_EDIT:
 		handler = EditHandler.new()
 	else:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-			"dry_run supports %s and %s (inspect ops are already read-only)"
-			% [OpRegistry.FAMILY_PRESETS, OpRegistry.FAMILY_EDIT])
+			"dry_run supports %s, %s and %s (inspect ops are already read-only)"
+			% [OpRegistry.FAMILY_PRESETS, OpRegistry.FAMILY_FX, OpRegistry.FAMILY_EDIT])
 	var result: Dictionary = handler.run(forwarded, null)
 	if result.has("data"):
 		result.data["dry_run"] = true

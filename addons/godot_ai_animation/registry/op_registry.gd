@@ -14,6 +14,7 @@ extends RefCounted
 const FAMILY_PRESETS := "animation_presets"
 const FAMILY_EDIT := "animation_edit"
 const FAMILY_INSPECT := "animation_inspect"
+const FAMILY_FX := "animation_fx"
 
 const MAX_DESCRIPTION_CHARS := 600
 
@@ -47,11 +48,20 @@ static func families() -> Dictionary:
 			"requires_writable": false,
 			"undoable": false,
 		},
+		FAMILY_FX: {
+			"handler": "res://addons/godot_ai_animation/handlers/fx.gd",
+			"summary": "One-call generators for game feel, UI, sprites and audio.",
+			"description": _fx_description(),
+			"schema": _fx_schema(),
+			"ops": _fx_ops(),
+			"requires_writable": true,
+			"undoable": true,
+		},
 	}
 
 
 static func family_names() -> Array:
-	return [FAMILY_PRESETS, FAMILY_EDIT, FAMILY_INSPECT]
+	return [FAMILY_PRESETS, FAMILY_EDIT, FAMILY_FX, FAMILY_INSPECT]
 
 
 static func family(name: String) -> Dictionary:
@@ -528,7 +538,7 @@ static func _inspect_description() -> String:
 		+ "summary), timeline (per-track key table), audit (broken paths, "
 		+ "zero-length clips, duplicate keys, loop seams, autoplay conflicts, "
 		+ "unused clips), compare (diff two clips), stats (scene-wide numbers), "
-		+ "dry_run (run any animation_presets / animation_edit op without "
+		+ "dry_run (run any generator or edit op without "
 		+ "committing), help (op index with params and examples). Never mutates "
 		+ "the scene or the undo stack. Requires the Godot AI addon."
 	)
@@ -589,12 +599,12 @@ static func _inspect_schema() -> Dictionary:
 			},
 			"tool": {
 				"type": "string",
-				"enum": ["animation_presets", "animation_edit"],
+				"enum": ["animation_presets", "animation_fx", "animation_edit"],
 				"description": "dry_run: which tool to run. help: which tool's ops to list (omit for all).",
 			},
 			"forward_op": {
 				"type": "string",
-				"description": "dry_run: the presets/edit op to run (e.g. \"retime\"); its own params go in the same call.",
+				"description": "dry_run: the presets/fx/edit op to run (e.g. \"retime\"); its own params go in the same call.",
 			},
 			"op_name": {
 				"type": "string",
@@ -660,6 +670,237 @@ static func _with_dry_run(ops: Array) -> Array:
 		if not params.has("dry_run"):
 			params.append("dry_run")
 	return ops
+
+
+# ============================================================================
+# animation_fx
+# ============================================================================
+
+static func _fx_description() -> String:
+	return (
+		"One-call animation generators for game feel, UI, sprites and audio. Ops: "
+		+ "shake, zoom_punch, hit_flash, damage_bar (feedback); typewriter, "
+		+ "progress_fill, counter, dialog_pop, transition (UI); wave, spring, "
+		+ "pendulum, path_follow (motion); flipbook, sprite_frames, audio_cue "
+		+ "(sprites/audio). Each commits one scene-pinned undo action with typed "
+		+ "keys and named transitions. Requires the Godot AI addon."
+	)
+
+
+static func _fx_schema() -> Dictionary:
+	return {
+		"type": "object",
+		"properties": {
+			"op": {
+				"type": "string",
+				"enum": [
+					"shake", "zoom_punch", "hit_flash", "damage_bar",
+					"typewriter", "progress_fill", "counter", "dialog_pop", "transition",
+					"wave", "spring", "pendulum", "path_follow",
+					"flipbook", "sprite_frames", "audio_cue",
+				],
+				"description": "Which generator to run.",
+			},
+			"player_path": {
+				"type": "string",
+				"description": "Scene path to the AnimationPlayer (not used by sprite_frames).",
+			},
+			"target_path": {
+				"type": "string",
+				"description": "Node to animate, relative to the player's root_node or scene-absolute.",
+			},
+			"animation_name": {
+				"type": "string",
+				"description": "Clip name; defaults to the op name.",
+			},
+			"overwrite": {
+				"type": "boolean",
+				"default": false,
+				"description": "Replace an existing clip with the same name.",
+			},
+			"property": {
+				"type": "string",
+				"description": "Property to animate when the op allows one (shake: position; typewriter: visible_ratio; damage_bar/progress_fill: value; flipbook: frame).",
+			},
+			"duration": {"type": "number", "description": "Clip length in seconds (defaults per op: 0.4 shake, 0.25 zoom_punch, 0.18 hit_flash, 0.4 damage_bar, 1.5 typewriter, 0.8 progress_fill, 1.0 counter, 0.35 dialog_pop, 0.5 transition, 1.0 spring, 2.0 pendulum, 2.0 path_follow)."},
+			"intensity": {"type": "number", "description": "shake: peak offset in pixels/units (default 8)."},
+			"frequency": {"type": "number", "description": "shake/spring: oscillations per second (default 20 / 2)."},
+			"decay": {
+				"type": "number",
+				"description": "shake/pendulum: falloff per clip (1.0 = none, 0.1 = settled; default 0.15 / 1.0).",
+			},
+			"seed": {"type": "integer", "description": "shake: deterministic noise seed (default 0)."},
+			"axis": {
+				"type": "string",
+				"description": "shake/wave: axes to move along, any of \"x\", \"y\", \"z\" (default xy for 2D, xyz for 3D).",
+			},
+			"amount": {"type": "number", "description": "zoom_punch: fractional punch (0.08 = +8%)."},
+			"peak_ratio": {"type": "number", "description": "zoom_punch: when the peak happens, 0-1 (default 0.3)."},
+			"color": {"description": "hit_flash: flash color (hex string or {r,g,b[,a]}); transition: overlay color."},
+			"count": {"type": "integer", "description": "hit_flash: number of flashes (default 1)."},
+			"steps": {
+				"type": "integer",
+				"description": "typewriter: discrete characters (0 = smooth). counter: number of increments.",
+			},
+			"delay": {"type": "number", "description": "typewriter/progress_fill/damage_bar: seconds to hold before the motion."},
+			"from_ratio": {"type": "number", "description": "typewriter: starting visible_ratio (default 0)."},
+			"to_ratio": {"type": "number", "description": "typewriter: ending visible_ratio (default 1)."},
+			"from": {"type": "number", "description": "progress_fill/counter/damage_bar: starting value (default: the property's current value)."},
+			"to": {"type": "number", "description": "progress_fill/counter/damage_bar: ending value."},
+			"format": {"type": "string", "description": "counter: printf format for the number (default \"%d\")."},
+			"prefix": {"type": "string", "description": "counter: text before the number."},
+			"suffix": {"type": "string", "description": "counter: text after the number."},
+			"method": {"type": "string", "description": "counter: setter called with the formatted string (default \"set_text\")."},
+			"target_paths": {
+				"type": "array",
+				"items": {"type": "string"},
+				"description": "wave: ordered targets to bob (relative to the player's root_node or scene-absolute).",
+			},
+			"use_selection": {"type": "boolean", "default": false, "description": "wave: use the editor's selection instead of target_paths."},
+			"amplitude": {"type": "number", "description": "wave: bob height (default 12). pendulum: swing in degrees (default 18)."},
+			"period": {"type": "number", "description": "wave/pendulum: seconds per cycle (default 1.2 / 1.0)."},
+			"phase_step": {"type": "number", "description": "wave: seconds each following target lags (default 0.12)."},
+			"cycles": {"type": "integer", "description": "wave: loops of the sine in the clip (default 1)."},
+			"offset": {"description": "spring: travel offset as {x,y[,z]} matching the target's position type."},
+			"damping": {"type": "number", "description": "spring: 0-1 damping ratio (default 0.35; >= 1 is critically damped)."},
+			"samples": {"type": "integer", "description": "spring/path_follow: key samples (default 30 / 24)."},
+			"path_node": {"type": "string", "description": "path_follow: scene path to the Path2D/Path3D to follow."},
+			"frames": {"type": "integer", "description": "flipbook: number of frames to step through."},
+			"fps": {"type": "number", "description": "flipbook/sprite_frames: frames per second (default 12)."},
+			"from_frame": {"type": "integer", "description": "flipbook/sprite_frames: first frame index (default 0)."},
+			"to_frame": {"type": "integer", "description": "sprite_frames: last frame index (default: the last cell)."},
+			"sprite_path": {"type": "string", "description": "sprite_frames: scene path to the AnimatedSprite2D."},
+			"texture": {"type": "string", "description": "sprite_frames: res:// path of the spritesheet texture."},
+			"hframes": {"type": "integer", "description": "sprite_frames: sheet columns (default 4)."},
+			"vframes": {"type": "integer", "description": "sprite_frames: sheet rows (default 1)."},
+			"loop": {"type": "boolean", "default": true, "description": "sprite_frames: loop the animation."},
+			"play": {"type": "boolean", "default": true, "description": "sprite_frames: start playing after assigning."},
+			"stream": {"type": "string", "description": "audio_cue: res:// path of the audio stream."},
+			"time": {"type": "number", "description": "audio_cue: when the cue fires (default 0)."},
+			"start_offset": {"type": "number", "description": "audio_cue: trim from the start of the stream."},
+			"end_offset": {"type": "number", "description": "audio_cue: trim from the end of the stream."},
+			"mode": {
+				"type": "string",
+				"enum": ["fade_in", "fade_out", "wipe_right", "wipe_left", "wipe_up", "wipe_down"],
+				"description": "transition: which effect to build.",
+			},
+			"from_scale": {"type": "number", "description": "dialog_pop: starting scale factor (default 0.85)."},
+			"overshoot": {"type": "number", "description": "dialog_pop: peak scale factor (default 1.06)."},
+			"fade": {"type": "boolean", "default": true, "description": "dialog_pop: also fade the alpha in."},
+			"loop_mode": {
+				"type": "string",
+				"enum": ["none", "linear", "pingpong"],
+				"description": "wave/path_follow/flipbook: loop mode (default linear / none / linear).",
+			},
+			"dry_run": {
+				"type": "boolean",
+				"default": false,
+				"description": "Report what the call would build without committing anything (no undo action).",
+			},
+		},
+		"required": ["op"],
+	}
+
+
+static func _fx_ops() -> Array:
+	return _with_dry_run([
+		{
+			"name": "shake",
+			"summary": "Seeded decaying screen shake on a camera/control position.",
+			"params": ["player_path", "target_path", "intensity", "duration", "frequency", "decay", "seed", "axis", "property", "animation_name", "overwrite"],
+			"example": {"op": "shake", "player_path": "/Main", "target_path": "Camera2D", "intensity": 10, "duration": 0.4, "seed": 7},
+		},
+		{
+			"name": "zoom_punch",
+			"summary": "Camera punch: overshoot then settle (Camera2D zoom / Camera3D fov).",
+			"params": ["player_path", "target_path", "amount", "duration", "peak_ratio", "animation_name", "overwrite"],
+			"example": {"op": "zoom_punch", "player_path": "/Main", "target_path": "Camera2D", "amount": 0.12},
+		},
+		{
+			"name": "hit_flash",
+			"summary": "Flash a CanvasItem's modulate and back (damage feedback).",
+			"params": ["player_path", "target_path", "color", "duration", "count", "animation_name", "overwrite"],
+			"example": {"op": "hit_flash", "player_path": "/Main", "target_path": "Player", "color": "#ffffff", "count": 2},
+		},
+		{
+			"name": "damage_bar",
+			"summary": "Delayed follow-up bar: hold, then ease to the new value.",
+			"params": ["player_path", "target_path", "property", "from", "to", "delay", "duration", "animation_name", "overwrite"],
+			"example": {"op": "damage_bar", "player_path": "/Main/HUD", "target_path": "GhostBar", "to": 40, "delay": 0.3},
+		},
+		{
+			"name": "typewriter",
+			"summary": "Reveal text with visible_ratio, smoothly or in character steps.",
+			"params": ["player_path", "target_path", "property", "duration", "steps", "delay", "from_ratio", "to_ratio", "animation_name", "overwrite"],
+			"example": {"op": "typewriter", "player_path": "/Main/HUD", "target_path": "DialogLabel", "steps": 40, "duration": 1.6},
+		},
+		{
+			"name": "progress_fill",
+			"summary": "Fill a numeric property (ProgressBar value, modulate:a, custom float).",
+			"params": ["player_path", "target_path", "property", "from", "to", "duration", "delay", "animation_name", "overwrite"],
+			"example": {"op": "progress_fill", "player_path": "/Main/HUD", "target_path": "HealthBar", "to": 100, "duration": 0.6},
+		},
+		{
+			"name": "counter",
+			"summary": "Rolling numbers via a method track calling a setter with formatted text.",
+			"params": ["player_path", "target_path", "from", "to", "steps", "duration", "format", "prefix", "suffix", "method", "animation_name", "overwrite"],
+			"example": {"op": "counter", "player_path": "/Main/HUD", "target_path": "ScoreLabel", "from": 0, "to": 1250, "prefix": "$"},
+		},
+		{
+			"name": "dialog_pop",
+			"summary": "Modal entrance: scale through an overshoot, optionally fading in.",
+			"params": ["player_path", "target_path", "from_scale", "overshoot", "duration", "fade", "animation_name", "overwrite"],
+			"example": {"op": "dialog_pop", "player_path": "/Main/HUD", "target_path": "DialogPanel", "duration": 0.35},
+		},
+		{
+			"name": "transition",
+			"summary": "Full-screen fade or wipe on an overlay Control.",
+			"params": ["player_path", "target_path", "mode", "duration", "animation_name", "overwrite"],
+			"example": {"op": "transition", "player_path": "/Main", "target_path": "FadeOverlay", "mode": "fade_out", "duration": 0.5},
+		},
+		{
+			"name": "wave",
+			"summary": "Cascading sine bob for a list of targets (or the editor selection).",
+			"params": ["player_path", "target_paths", "use_selection", "axis", "amplitude", "period", "phase_step", "cycles", "loop_mode", "animation_name", "overwrite"],
+			"example": {"op": "wave", "player_path": "/Main/HUD", "target_paths": ["Card1", "Card2", "Card3"], "amplitude": 10, "phase_step": 0.15},
+		},
+		{
+			"name": "spring",
+			"summary": "Damped spring settle from the current position to position + offset.",
+			"params": ["player_path", "target_path", "offset", "frequency", "damping", "duration", "samples", "animation_name", "overwrite"],
+			"example": {"op": "spring", "player_path": "/Main", "target_path": "Player", "offset": {"x": 0, "y": -60}, "frequency": 2.5, "damping": 0.3},
+		},
+		{
+			"name": "pendulum",
+			"summary": "Swinging rotation with optional decay (2D rotation, 3D local Z).",
+			"params": ["player_path", "target_path", "amplitude", "period", "duration", "decay", "animation_name", "overwrite"],
+			"example": {"op": "pendulum", "player_path": "/Main", "target_path": "Sign", "amplitude": 22, "period": 1.4, "duration": 3.0},
+		},
+		{
+			"name": "path_follow",
+			"summary": "Follow a Path2D/Path3D curve by sampling it into position keys.",
+			"params": ["player_path", "target_path", "path_node", "duration", "samples", "loop_mode", "animation_name", "overwrite"],
+			"example": {"op": "path_follow", "player_path": "/Main", "target_path": "Drone", "path_node": "/Main/PatrolPath", "duration": 4.0, "loop_mode": "linear"},
+		},
+		{
+			"name": "flipbook",
+			"summary": "Step a Sprite2D's frame through a range with nearest interpolation.",
+			"params": ["player_path", "target_path", "property", "frames", "fps", "from_frame", "loop_mode", "animation_name", "overwrite"],
+			"example": {"op": "flipbook", "player_path": "/Main", "target_path": "Sprite2D", "frames": 8, "fps": 12},
+		},
+		{
+			"name": "sprite_frames",
+			"summary": "Slice a spritesheet into a SpriteFrames resource and assign it to an AnimatedSprite2D.",
+			"params": ["sprite_path", "texture", "hframes", "vframes", "fps", "loop", "from_frame", "to_frame", "play", "animation_name", "overwrite"],
+			"example": {"op": "sprite_frames", "sprite_path": "/Main/Player", "texture": "res://art/run.png", "hframes": 6, "vframes": 1, "fps": 12},
+		},
+		{
+			"name": "audio_cue",
+			"summary": "Schedule an audio stream as a one-key audio clip on the player.",
+			"params": ["player_path", "target_path", "stream", "time", "start_offset", "end_offset", "animation_name", "overwrite"],
+			"example": {"op": "audio_cue", "player_path": "/Main", "target_path": "Player", "stream": "res://sfx/land.wav", "time": 0.2},
+		},
+	])
 
 
 # ============================================================================

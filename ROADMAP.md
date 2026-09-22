@@ -1,7 +1,12 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **Phase 0, 1 and 2 done** (v0.4.0). Phase 3 (more generators) next.
+Status: **Phase 0-3 done** (v0.5.0). Phase 4 (animation graphs) next.
 Last updated: 2026-09-22.
+
+Phase 3 note: the generators landed as their own family, `animation_fx`, instead
+of growing the `animation_presets` schema to ~60 params. The "one tool per
+family" rule from the decisions section still holds — there is just one more
+family than originally planned, and the released presets tool is unchanged.
 
 The addon started as nine one-call presets (`animation_presets`). This is the plan
 to grow it into a full, agent-native animation toolkit: declarative clip specs,
@@ -83,12 +88,17 @@ Read-only, so it never touches the undo stack; findings carry a `fix` hint namin
 the op that resolves them. `dry_run` is also available as a param on the presets
 and edit tools themselves.
 
-## Phase 3 — more generators → v0.5.0
+## Phase 3 — `animation_fx` generators (done)
 
-`shake` (2D/3D, decay, seeded), `zoom_punch`, `hit_flash`, `typewriter`,
-`progress_fill`, `counter`, `wave`, `spring`, `pendulum`, `path_follow`,
-`flipbook`, `sprite_frames`, `audio_cue`, `transition`, `dialog_pop`,
-`damage_bar`.
+16 ops across four groups, on the same spec engine:
+
+- feedback: `shake` (seeded, decaying), `zoom_punch`, `hit_flash`, `damage_bar`
+- UI: `typewriter`, `progress_fill`, `counter` (method track), `dialog_pop`,
+  `transition` (fade/wipe, pivot recentered)
+- motion: `wave` (per-target phase), `spring` (damped step response),
+  `pendulum`, `path_follow` (Path2D/Path3D sampling)
+- sprites/audio: `flipbook`, `sprite_frames` (spritesheet -> SpriteFrames),
+  `audio_cue`
 
 ## Phase 4 — `animation_graph` → v0.6.0
 

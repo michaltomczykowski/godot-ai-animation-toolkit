@@ -1,12 +1,16 @@
 # Godot AI Animation Toolkit (addon)
 
-Three custom MCP tools for Godot AI agents, built on one declarative clip-spec
+Four custom MCP tools for Godot AI agents, built on one declarative clip-spec
 engine:
 
 - **`animation_presets`** (promoted to `custom_animation_presets`) — build clips
   in one call.
 - **`animation_edit`** (promoted to `custom_animation_edit`) — edit any existing
   clip in place, hand-authored ones included.
+- **`animation_fx`** (promoted to `custom_animation_fx`) — generators for game
+  feel, UI, sprites and audio: shake, zoom_punch, hit_flash, damage_bar,
+  typewriter, progress_fill, counter, dialog_pop, transition, wave, spring,
+  pendulum, path_follow, flipbook, sprite_frames, audio_cue.
 - **`animation_inspect`** (promoted to `custom_animation_inspect`) — read-only
   inspection, auditing and dry runs.
 
@@ -49,6 +53,27 @@ Every preset commits **one scene-pinned undo action**; Controls get
 Edit ops refuse clips with bezier / blend-shape / animation tracks or
 compressed tracks rather than rewriting them lossily.
 
+## `animation_fx`
+
+| op | What it builds |
+| --- | --- |
+| `shake` | Seeded decaying positional noise (deterministic per seed). |
+| `zoom_punch` | Camera punch on `Camera2D.zoom` / `Camera3D.fov`. |
+| `hit_flash` | `modulate` flash and back, N times. |
+| `damage_bar` | Hold, then ease to the new value (delayed ghost bar). |
+| `typewriter` | `visible_ratio` reveal, smooth or character-stepped. |
+| `progress_fill` | Numeric fill for ProgressBar `value` or any float. |
+| `counter` | Rolling numbers through a method track with formatted text. |
+| `dialog_pop` | Scale through an overshoot with an optional fade. |
+| `transition` | Full-screen fade or wipe (pivot recentered). |
+| `wave` | Cascading sine bob, one track per target. |
+| `spring` | Damped spring settle to position + offset. |
+| `pendulum` | Swinging rotation with optional decay. |
+| `path_follow` | Follow a Path2D/Path3D curve. |
+| `flipbook` | Step a Sprite2D's `frame`. |
+| `sprite_frames` | Slice a spritesheet into a SpriteFrames resource. |
+| `audio_cue` | Schedule an audio stream as a one-key audio clip. |
+
 ## `animation_inspect`
 
 | op | What it reports |
@@ -71,9 +96,11 @@ undoable commands) rejects it — call it directly.
 - `spec/spec_modifiers.gd` — pure spec → spec transforms (tier-1 tested).
 - `registry/op_registry.gd` — single source of truth for tool descriptions,
   params schemas, op metadata, and `docs/op-index.md`.
-- `handlers/generate.gd`, `handlers/edit.gd`, `handlers/inspect.gd` — tool entry
-  points sharing `handlers/animation_tool_base.gd` (one undo action per mutating
-  call; `dry_run` skips the commit).
+- `spec/fx_specs.gd` — pure spec builders for the `animation_fx` generators.
+- `handlers/generate.gd`, `handlers/fx.gd`, `handlers/edit.gd`,
+  `handlers/inspect.gd` — tool entry points sharing
+  `handlers/animation_tool_base.gd` (one undo action per mutating call;
+  `dry_run` skips the commit).
 
 ## Requirements
 

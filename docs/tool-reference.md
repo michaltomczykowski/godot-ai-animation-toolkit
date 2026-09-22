@@ -1,10 +1,10 @@
 # Toolkit tool reference
 
 Exposed to agents as the promoted first-class tools
-**`custom_animation_presets`** (create clips), **`custom_animation_edit`**
+**`custom_animation_presets`** (create clips), **`custom_animation_fx`**
+(generators for game feel, UI, sprites and audio), **`custom_animation_edit`**
 (edit existing clips) and **`custom_animation_inspect`** (read-only inspection),
-all reachable through `custom_manage(op="invoke", tool_name="animation_presets"
-| "animation_edit" | "animation_inspect")`.
+all reachable through `custom_manage(op="invoke", tool_name=...)`.
 
 A generated per-op index with every parameter lives in
 [`op-index.md`](op-index.md) — it is rendered from
@@ -199,4 +199,57 @@ directly, or through `custom_manage(op="invoke")`.
 
 {"op": "animation_inspect", "params": {"op": "dry_run", "tool": "animation_edit",
   "forward_op": "retime", "player_path": "/Main", "animation_name": "walk", "factor": 0.5}}
+```
+
+## `animation_fx`
+
+One-call generators for game feel, UI, sprites and audio. Same contract as the
+presets: one scene-pinned undo action per call, typed keys, `dry_run` supported
+and `animation_name` defaulting to the op name.
+
+| op | What it builds | Key params |
+| --- | --- | --- |
+| `shake` | Seeded decaying positional noise (camera/control) | `intensity`, `frequency`, `decay`, `seed`, `axis` |
+| `zoom_punch` | Camera punch: overshoot then settle (`Camera2D.zoom`, `Camera3D.fov`) | `amount`, `peak_ratio` |
+| `hit_flash` | `modulate` flash and back, N times | `color`, `count` |
+| `damage_bar` | Delayed follow-up bar: hold, then ease | `from`, `to`, `delay` |
+| `typewriter` | Text reveal via `visible_ratio`, smooth or stepped | `steps`, `delay`, `from_ratio`, `to_ratio` |
+| `progress_fill` | Numeric fill (ProgressBar `value`, custom float) | `from`, `to`, `delay` |
+| `counter` | Rolling numbers: method track calling a setter with formatted text | `from`, `to`, `steps`, `format`, `prefix`, `suffix`, `method` |
+| `dialog_pop` | Modal entrance: scale through an overshoot, optional fade | `from_scale`, `overshoot`, `fade` |
+| `transition` | Full-screen fade or wipe (pivot recentered for wipes) | `mode`, `duration` |
+| `wave` | Cascading sine bob, one track per target | `target_paths`/`use_selection`, `amplitude`, `period`, `phase_step`, `cycles` |
+| `spring` | Damped spring settle to position + offset | `offset`, `frequency`, `damping`, `samples` |
+| `pendulum` | Swinging rotation with optional decay (2D float, 3D local Z) | `amplitude`, `period`, `decay` |
+| `path_follow` | Follow a `Path2D`/`Path3D` curve, sampled into position keys | `path_node`, `samples`, `loop_mode` |
+| `flipbook` | Step a `Sprite2D.frame` with nearest interpolation | `frames`, `fps`, `from_frame` |
+| `sprite_frames` | Slice a spritesheet into a `SpriteFrames` resource and assign it | `sprite_path`, `texture`, `hframes`, `vframes`, `fps`, `loop` |
+| `audio_cue` | Schedule a stream as a one-key audio clip | `stream`, `time`, `start_offset`, `end_offset` |
+
+Notes:
+
+- **`shake`** is deterministic for a given `seed`, samples at 2x the frequency,
+  and always settles exactly on the original position.
+- **`counter`** uses a method track: the node needs a setter that takes the
+  formatted string (a `Label`'s `set_text` works out of the box).
+- **`transition`** wipes recenter the Control's `pivot_offset` inside the same
+  undo action, like `bounce`/`sweep` do.
+- **`sprite_frames`** replaces the node's `sprite_frames` resource and (by
+  default) starts playing; it targets an `AnimatedSprite2D` — for a `Sprite2D`
+  sheet use `flipbook` plus `hframes`/`vframes` on the node.
+
+### Examples
+
+```json
+{"op": "animation_fx", "params": {"op": "shake", "player_path": "/Main",
+  "target_path": "Camera2D", "intensity": 10, "duration": 0.4, "seed": 7}}
+
+{"op": "animation_fx", "params": {"op": "typewriter", "player_path": "/Main/HUD",
+  "target_path": "DialogLabel", "steps": 40, "duration": 1.6}}
+
+{"op": "animation_fx", "params": {"op": "wave", "player_path": "/Main/HUD",
+  "target_paths": ["Card1", "Card2", "Card3"], "amplitude": 10, "phase_step": 0.15}}
+
+{"op": "animation_fx", "params": {"op": "sprite_frames", "sprite_path": "/Main/Player",
+  "texture": "res://art/run.png", "hframes": 6, "vframes": 1, "fps": 12}}
 ```

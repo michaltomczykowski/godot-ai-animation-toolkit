@@ -410,7 +410,7 @@ func test_help_lists_ops_and_params() -> void:
 	assert_has_key(single, "data")
 	assert_eq((single.data.tools[0].ops as Array).size(), 1)
 	var everything := _handler.run({"op": "help"}, null)
-	assert_eq(everything.data.tool_count, 3, "help lists every tool")
+	assert_eq(everything.data.tool_count, OpRegistry.family_names().size(), "help lists every tool")
 	var unknown := _handler.run({"op": "help", "tool": "animation_edit", "op_name": "wobble"}, null)
 	assert_is_error(unknown, ErrorCodes.VALUE_OUT_OF_RANGE)
 	assert_contains(unknown.error.message, "retime")
