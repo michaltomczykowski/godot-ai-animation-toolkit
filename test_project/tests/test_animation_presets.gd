@@ -5,7 +5,7 @@ const ErrorCodes := preload("res://addons/godot_ai_animation/utils/error_codes.g
 const ToolContext := preload("res://addons/godot_ai_animation/utils/tool_context.gd")
 const ValueCodec := preload("res://addons/godot_ai_animation/utils/value_codec.gd")
 
-const PresetsHandler := preload("res://addons/godot_ai_animation/handlers/presets.gd")
+const PresetsHandler := preload("res://addons/godot_ai_animation/handlers/generate.gd")
 
 ## Tests for the animation toolkit presets (pulse/bounce/orbit/sweep/drift).
 ##

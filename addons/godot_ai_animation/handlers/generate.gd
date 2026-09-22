@@ -1,8 +1,8 @@
 @tool
-extends RefCounted
+extends "res://addons/godot_ai_animation/handlers/animation_tool_base.gd"
 
 ## One-call motion presets for the AnimationPlayer surface, exposed as the
-## Godot AI custom tool `animation_presets` (op = pulse/bounce/orbit/sweep/drift).
+## Godot AI custom tool `animation_presets`.
 ##
 ## Each preset_* method:
 ##   1. Validates params + resolves the player (auto-creating its default lib).
@@ -13,11 +13,7 @@ extends RefCounted
 ##
 ## Self-contained by design: no core animation-handler internals are used, so
 ## the addon only depends on the Godot AI custom-tools registration API.
-
-
-const ErrorCodes := preload("res://addons/godot_ai_animation/utils/error_codes.gd")
-const ToolContext := preload("res://addons/godot_ai_animation/utils/tool_context.gd")
-const ValueCodec := preload("res://addons/godot_ai_animation/utils/value_codec.gd")
+## `ErrorCodes` / `ValueCodec` / `ToolContext` come from animation_tool_base.gd.
 
 ## Loop modes the continuous presets (pulse/orbit/sweep/drift) accept.
 const _LOOP_MODES := {
@@ -58,25 +54,7 @@ func run(params: Dictionary, _ctx) -> Dictionary:
 
 
 ## Every preset needs the editor undo manager (injected by the addon's
-## EditorPlugin, or by the test suite).
-func _context_error() -> Dictionary:
-	if ToolContext.undo_redo == null:
-		return ErrorCodes.make(ErrorCodes.EDITOR_NOT_READY,
-			"Godot AI Animation Toolkit is not initialized - enable the 'Godot AI Animation Toolkit' plugin")
-	return {}
-
-
-## Resolve the existing animation a preset would replace. Returns
-## `{old_anim: Animation|null}` when the name is free or `overwrite` is set,
-## or `{error: <error dict>}` when the name is taken and overwrite is off.
-## One site for the duplicate-detection error keeps every preset consistent.
-static func _existing_animation(library: AnimationLibrary, anim_name: String, overwrite: bool) -> Dictionary:
-	if not library.has_animation(anim_name):
-		return {"old_anim": null}
-	if not overwrite:
-		return {"error": ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-			"Animation '%s' already exists. Pass overwrite=true or delete it first." % anim_name)}
-	return {"old_anim": library.get_animation(anim_name)}
+## EditorPlugin, or by the test suite); `_context_error` lives in the base.
 
 
 # ============================================================================
@@ -682,29 +660,8 @@ static func _control_pivot_props(target: Node) -> Array:
 
 
 # ============================================================================
-# Helpers — player + commit
+# Helpers — player + commit (shared plumbing lives in animation_tool_base.gd)
 # ============================================================================
-
-## Resolve an AnimationPlayer and its default library for a preset. Returns
-## `{player, library}` (library null when the player has no default library
-## yet) or an error dict. Unlike the core ops, presets require an existing
-## player — they never auto-create one.
-func _resolve_player(player_path: String) -> Dictionary:
-	var scene_root := EditorInterface.get_edited_scene_root()
-	if scene_root == null:
-		return ErrorCodes.make(ErrorCodes.EDITOR_NOT_READY, "No edited scene open")
-	var node := ValueCodec.resolve_scene_path(player_path, scene_root)
-	if node == null:
-		return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND, ValueCodec.format_node_error(player_path, scene_root))
-	if not node is AnimationPlayer:
-		return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
-			"Node at %s is not an AnimationPlayer (got %s)" % [player_path, node.get_class()])
-	var player := node as AnimationPlayer
-	var library: AnimationLibrary = null
-	if player.has_animation_library(""):
-		library = player.get_animation_library("")
-	return {"player": player, "library": library}
-
 
 ## Add one linear value track built from `[{time, value, transition?}]`.
 static func _add_property_track(anim: Animation, track_path: String, keyframes: Array) -> void:
@@ -718,50 +675,6 @@ static func _add_property_track(anim: Animation, track_path: String, keyframes: 
 			keyframe.get("value"),
 			ValueCodec.parse_transition(keyframe.get("transition", "linear")),
 		)
-
-
-## Commit one scene-pinned undo action: optional library creation, the clip
-## (replacing the old one when overwriting), and any bundled property changes
-## (Control pivot recentering) so a single Ctrl-Z reverts all of it.
-func _commit_animation_add(
-	action_label: String,
-	player: AnimationPlayer,
-	library: AnimationLibrary,
-	created_library: bool,
-	anim_name: String,
-	anim: Animation,
-	old_anim: Animation,
-	extra_props: Array = [],
-) -> void:
-	_create_scene_pinned_action(action_label)
-	var undo := ToolContext.undo_redo
-	if created_library:
-		undo.add_do_method(player, "add_animation_library", "", library)
-		undo.add_undo_method(player, "remove_animation_library", "")
-		undo.add_do_reference(library)
-	if old_anim != null:
-		undo.add_do_method(library, "remove_animation", anim_name)
-	undo.add_do_method(library, "add_animation", anim_name, anim)
-	if old_anim != null:
-		undo.add_undo_method(library, "remove_animation", anim_name)
-		undo.add_undo_method(library, "add_animation", anim_name, old_anim)
-		undo.add_do_reference(old_anim)
-	else:
-		undo.add_undo_method(library, "remove_animation", anim_name)
-	for entry in extra_props:
-		undo.add_do_property(entry.object, entry.property, entry.value)
-		undo.add_undo_property(entry.object, entry.property, entry.old)
-	undo.add_do_reference(anim)
-	undo.commit_action()
-
-
-## Open an action pinned to the edited scene's history. The first do-targets
-## are scene-owned (player/library/control), and the explicit context keeps the
-## action out of GLOBAL_HISTORY so a scene undo finds it.
-func _create_scene_pinned_action(action_label: String) -> void:
-	ToolContext.undo_redo.create_action(
-		action_label, UndoRedo.MERGE_DISABLE, EditorInterface.get_edited_scene_root(),
-	)
 
 
 # ============================================================================

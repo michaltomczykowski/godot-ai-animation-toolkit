@@ -86,7 +86,7 @@ jobs:
       - name: Import project
         run: godot --headless --path test_project --import
 
-      - name: Run animation_presets suite (headless editor)
+      - name: Run toolkit suites (headless editor)
         env:
           ANIMATION_TOOLKIT_CI: "1"
           GODOT_AI_ALLOW_HEADLESS: "1"

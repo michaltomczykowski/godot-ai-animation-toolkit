@@ -1,151 +1,24 @@
 @tool
 extends EditorPlugin
 
-## Registers the animation presets as a Godot AI custom tool
-## (`animation_presets`, promoted to the first-class `custom_animation_presets`).
+## Registers the animation toolkit's tools with Godot AI (>= 4.1.0):
+## `animation_presets` (create clips) and `animation_edit` (edit existing
+## clips). Both are promoted to first-class `custom_*` tools and are declared
+## in `registry/op_registry.gd` — the single source of truth for descriptions,
+## params schemas and the generated docs.
 ##
-## Requires the Godot AI addon (>= 4.1.0) in the same project. Registration is
-## defensive: when Godot AI is absent this plugin loads cleanly, retries for a
-## while (the other plugin may be enabled later in the same session), then
-## warns instead of failing.
+## Registration is defensive: when Godot AI is absent this plugin loads cleanly,
+## retries for a while (the other plugin may be enabled later in the same
+## session), then warns instead of failing.
 
 const ToolContext := preload("res://addons/godot_ai_animation/utils/tool_context.gd")
+const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
 
 const REGISTRY_SCRIPT := "res://addons/godot_ai/custom_tools/mcp_tool_registry.gd"
 const SPEC_SCRIPT := "res://addons/godot_ai/custom_tools/mcp_custom_tool_spec.gd"
-const HANDLER_SCRIPT := "res://addons/godot_ai_animation/handlers/presets.gd"
 const SOURCE_CFG := "res://addons/godot_ai_animation/plugin.cfg"
-
-const TOOL_NAME := "animation_presets"
 const RETRY_INTERVAL_SEC := 0.5
 const RETRY_WINDOW_SEC := 30.0
-
-const DESCRIPTION := (
-	"One-call animation presets for an AnimationPlayer. Ops: pulse (breathing / "
-	+ "ping-pong on any property), bounce (press feedback), orbit (circular "
-	+ "position), sweep (full-turn rotation), drift (one-axis offset), spin (3D "
-	+ "quaternion turn), float (3D bob), stagger (reveal a list of targets in "
-	+ "order), showcase (build a runnable demo). Each preset commits one "
-	+ "undoable action with typed keys and named transitions; Controls get "
-	+ "their pivot recentered for bounce/sweep. Requires the Godot AI addon."
-)
-
-const PARAMS_SCHEMA := {
-	"type": "object",
-	"properties": {
-		"op": {
-			"type": "string",
-			"enum": [
-				"pulse", "bounce", "orbit", "sweep", "drift",
-				"spin", "float", "stagger", "showcase",
-			],
-			"description": "Which preset to build.",
-		},
-		"player_path": {
-			"type": "string",
-			"description": "Scene path to the AnimationPlayer (it must already exist). Not used by showcase.",
-		},
-		"target_path": {
-			"type": "string",
-			"description": (
-				"Node to animate: relative to the player's root_node "
-				+ "(e.g. \"Button\") or scene-absolute (e.g. \"/Main/Button\"). "
-				+ "Not used by showcase."
-			),
-		},
-		"parent_path": {
-			"type": "string",
-			"description": "showcase: parent node for the demo subtree (default: the edited scene root).",
-		},
-		"name": {
-			"type": "string",
-			"description": "showcase: name for the demo subtree (default \"AnimationShowcase\").",
-		},
-		"animation_name": {
-			"type": "string",
-			"description": "Clip name; defaults to the preset name.",
-		},
-		"overwrite": {
-			"type": "boolean",
-			"default": false,
-			"description": "Replace an existing clip with the same name.",
-		},
-		"property": {
-			"type": "string",
-			"description": "pulse: property to breathe (default \"scale\").",
-		},
-		"from_scale": {"type": "number", "default": 1.0},
-		"to_scale": {"type": "number", "default": 1.1},
-		"from_value": {
-			"description": "pulse: start value for a non-scale property (typed to the property).",
-		},
-		"to_value": {"description": "pulse: end value."},
-		"intensity": {
-			"type": "number",
-			"description": "bounce: peak overshoot fraction (default 0.15).",
-		},
-		"radius": {
-			"type": "number",
-			"description": "orbit: circle radius (default 1.0 for 3D, 100.0 for 2D).",
-		},
-		"clockwise": {"type": "boolean", "default": true},
-		"turns": {
-			"type": "number",
-			"description": "sweep/spin/float: full turns (spin/sweep default 1.0; float default 0.0).",
-		},
-		"height": {
-			"type": "number",
-			"description": "float: vertical offset (default 0.7; negative bobs down).",
-		},
-		"scale": {
-			"type": "number",
-			"description": "float: peak scale factor (default 1.25).",
-		},
-		"target_paths": {
-			"type": "array",
-			"items": {"type": "string"},
-			"description": (
-				"stagger: ordered targets to reveal, each relative to the player's "
-				+ "root_node or scene-absolute."
-			),
-		},
-		"use_selection": {
-			"type": "boolean",
-			"default": false,
-			"description": "stagger: use the editor's selection (in selection order) instead of target_paths.",
-		},
-		"effect": {
-			"type": "string",
-			"enum": ["fade_in", "slide_in", "pop_in"],
-			"description": "stagger: reveal effect applied to every target.",
-		},
-		"stagger": {
-			"type": "number",
-			"description": "stagger: seconds between targets (default 0.06).",
-		},
-		"direction": {
-			"type": "string",
-			"enum": ["left", "right", "up", "down"],
-			"description": "stagger slide_in: direction the items travel from (default left).",
-		},
-		"axis": {
-			"type": "string",
-			"enum": ["x", "y", "z"],
-			"description": "drift: axis to offset along (z only for 3D targets).",
-		},
-		"distance": {
-			"type": "number",
-			"description": "orbit/sweep/drift distance (defaults by dimension).",
-		},
-		"duration": {"type": "number", "description": "Clip length in seconds."},
-		"loop_mode": {
-			"type": "string",
-			"enum": ["none", "linear", "pingpong"],
-			"description": "Drift refuses \"linear\" (the clip ends at a net offset).",
-		},
-	},
-	"required": ["op", "player_path", "target_path"],
-}
 
 var _retry_left := 0.0
 var _registered := false
@@ -179,7 +52,7 @@ func _process(delta: float) -> void:
 		set_process(false)
 		push_warning(
 			"Godot AI Animation Toolkit: Godot AI (>= 4.1.0) not found - "
-			+ "animation_presets was not registered."
+			+ "animation_presets and animation_edit were not registered."
 		)
 		return
 	_try_register()
@@ -202,19 +75,24 @@ func _register() -> void:
 	var spec_script = load(SPEC_SCRIPT)
 	if spec_script == null:
 		return
-	var spec = spec_script.new()
-	spec.name = TOOL_NAME
-	spec.description = DESCRIPTION
-	spec.params_schema = PARAMS_SCHEMA
-	spec.script_path = HANDLER_SCRIPT
-	spec.method = &"run"
-	spec.source_path = SOURCE_CFG
-	spec.promoted = true
-	spec.requires_writable = true
-	spec.undoable = true
-	spec.timeout_ms = 5000
-	if registry.call("register", spec):
-		_registered = true
+	var registered_all := true
+	for family_name in OpRegistry.family_names():
+		var info: Dictionary = OpRegistry.family(family_name)
+		var spec = spec_script.new()
+		spec.name = family_name
+		spec.description = str(info.get("description", ""))
+		spec.params_schema = info.get("schema", {})
+		spec.script_path = str(info.get("handler", ""))
+		spec.method = &"run"
+		spec.source_path = SOURCE_CFG
+		spec.promoted = true
+		spec.requires_writable = true
+		spec.undoable = true
+		spec.timeout_ms = 5000
+		if not registry.call("register", spec):
+			registered_all = false
+	_registered = registered_all
+	if registered_all:
 		set_process(false)
 
 

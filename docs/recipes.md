@@ -94,3 +94,31 @@ Builds under the edited scene root (or `parent_path`):
 
 Seven `AnimationPlayer`s autoplay, the whole subtree is one undo step, and
 `test_project/showcase.tscn` in this repository is exactly this output.
+
+## Editing recipes (`animation_edit`)
+
+```json
+// The node was renamed: fix every track in one call
+{"op": "animation_edit", "params": {"op": "retarget", "player_path": "/Main/HUD",
+  "animation_name": "open", "from_path": "Panel", "to_path": "Popup/Panel",
+  "mode": "prefix"}}
+
+// The animation feels sluggish: play it twice as fast
+{"op": "animation_edit", "params": {"op": "retime", "player_path": "/Main/HUD",
+  "animation_name": "open", "factor": 0.5}}
+
+// A walk cycle pops at the loop seam: copy the first pose onto the last key
+{"op": "animation_edit", "params": {"op": "loop", "player_path": "/Main",
+  "animation_name": "walk", "loop_mode": "linear", "make_seamless": true}}
+
+// The bounce is too aggressive for a small button: halve every delta
+{"op": "animation_edit", "params": {"op": "amplitude", "player_path": "/Main/HUD",
+  "animation_name": "bounce", "factor": 0.5}}
+
+// Split an intro into a hold + a loop, then stitch them back with a beat
+{"op": "animation_edit", "params": {"op": "split_at", "player_path": "/Main",
+  "animation_name": "intro", "time": 0.8, "head_name": "intro_head"}}
+```
+
+Every call is one undo step, and clips the toolkit cannot represent (bezier /
+blend-shape / compressed tracks) are refused instead of being rewritten.

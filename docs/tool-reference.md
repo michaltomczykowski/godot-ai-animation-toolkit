@@ -1,9 +1,15 @@
-# `animation_presets` — tool reference
+# Toolkit tool reference
 
-Exposed to agents as the promoted first-class tool **`custom_animation_presets`**
-(and reachable through `custom_manage(op="invoke", tool_name="animation_presets")`).
+Exposed to agents as the promoted first-class tools
+**`custom_animation_presets`** (create clips) and **`custom_animation_edit`**
+(edit existing clips), both reachable through
+`custom_manage(op="invoke", tool_name="animation_presets" | "animation_edit")`.
 
-## Common parameters
+A generated per-op index with every parameter lives in
+[`op-index.md`](op-index.md) — it is rendered from
+`registry/op_registry.gd` and checked for freshness by the tier-1 suite.
+
+## `animation_presets` — common parameters
 
 | Param | Type | Required | Notes |
 | --- | --- | --- | --- |
@@ -20,7 +26,7 @@ Exposed to agents as the promoted first-class tool **`custom_animation_presets`*
 \* Not used by `showcase`, which builds its own nodes and players.
 \*\* `stagger` needs exactly one of `target_paths` or `use_selection`.
 
-## Per-op parameters
+## Per-op parameters (presets)
 
 | Param | Applies to | Default | Notes |
 | --- | --- | --- | --- |
@@ -103,4 +109,51 @@ watch it. `test_project/showcase.tscn` is the committed output.
 {"op": "stagger", "params": {"op": "stagger", "player_path": "/Main/HUD",
   "target_paths": ["Item1", "Item2", "Item3"], "effect": "slide_in",
   "direction": "left", "stagger": 0.08, "duration": 0.3}}
+```
+
+## `animation_edit`
+
+Edits an existing clip in place. Requires `player_path` + `animation_name`; every
+call commits **one scene-pinned undo action** and returns
+`keys_before` / `keys_after` / `length_before` / `length_after` so a caller can
+see exactly what changed. Hand-authored clips are supported; clips containing
+bezier / blend-shape / animation tracks, or compressed tracks, are refused with
+a `WRONG_TYPE` / `INVALID_PARAMS` error instead of being rewritten lossily.
+
+| op | Notes |
+| --- | --- |
+| `retime` | `factor` (multiplier) or `length` (seconds). `keys_only=true` changes the clip length but leaves key times alone — handy for re-phasing loops. |
+| `retarget` | `mode="node"` swaps the node part and keeps the property; `"prefix"` rewrites a node path or whole subtree (segment-aware, so `Sprite` never matches `SpriteExtra`); `"exact"` matches the full track path including the property. `paths:[{from,to,mode}]` applies a batch. |
+| `reverse` | Mirrors key times about the clip length (markers too), then sorts. |
+| `mirror` | `axis` is any combination of `x`/`y`/`z`. Position components flip about `pivot` (default origin); quaternion and euler rotation tracks are mirrored as proper rotations; `scale` is only touched with `include_scale=true`; `modulate` and custom properties pass through. |
+| `offset` | `wrap=true` rotates the shift inside the clip length (loop phase shift) and dedupes keys that land on the same time; `wrap=false` clamps at 0 and grows the length to fit the last key. |
+| `ease_range` | Sets the per-key transition (`linear`/`ease_in`/`ease_out`/`ease_in_out` or a number) on every value key in `[from, to]`. |
+| `set_interp` | Track-level interpolation. `cubic` is only accepted for position/rotation/scale 3D tracks; value tracks use `linear`/`nearest`. Optional `track_path` narrows it to one track. |
+| `trim` | Keeps `[from, to]`, shifted to 0, length `to - from`. With `keep_bounds=true` (default) value tracks get boundary keys sampled by linear interpolation so the motion at the edges survives. |
+| `split_at` | Cuts at `time`; the tail keeps `animation_name`, the head becomes `head_name` (default `<name>_a`). |
+| `merge` | Concatenates `sources` (each `{animation_name, player_path?}`, same player by default) with an optional `gap`. Tracks that share (type, path) are merged; the result is always `LOOP_NONE`. |
+| `amplitude` | `factor` scales each key's distance from a baseline (default: the track's first key). `factor=0` flattens onto the baseline, `2.0` doubles the motion. Quaternions slerp from identity. |
+| `loop` | Sets `loop_mode`; `make_seamless=true` appends (or rewrites) a final key equal to the first value so a linear loop wraps without a jump. |
+| `key_edit` | `action` is `add` / `set` / `remove` / `move`; the track is selected by `track_path` (e.g. `"Sprite:position"`) or `track_index`; keys are matched within `tolerance`. `value` is coerced against the target property's real type (or the track's existing key type), so `{"x": 10, "y": 0}` works for a `Vector2` track. |
+| `cleanup` | Collapses consecutive equal keys to the last one (so holds keep their end), optionally drops keys closer than `min_gap`, removes empty tracks, and preserves the clip length. |
+
+### Examples
+
+```json
+{"op": "animation_edit", "params": {"op": "retime", "player_path": "/Main/HUD",
+  "animation_name": "open", "factor": 0.5}}
+
+{"op": "animation_edit", "params": {"op": "retarget", "player_path": "/Main/HUD",
+  "animation_name": "open", "from_path": "Panel", "to_path": "Popup/Panel",
+  "mode": "prefix"}}
+
+{"op": "animation_edit", "params": {"op": "mirror", "player_path": "/Main",
+  "animation_name": "walk", "axis": "x", "pivot": {"x": 0, "y": 0}}}
+
+{"op": "animation_edit", "params": {"op": "merge", "player_path": "/Main",
+  "animation_name": "intro", "new_name": "intro_loop", "gap": 0.1,
+  "sources": [{"animation_name": "intro"}, {"animation_name": "loop"}]}}
+
+{"op": "animation_edit", "params": {"op": "loop", "player_path": "/Main",
+  "animation_name": "walk", "loop_mode": "linear", "make_seamless": true}}
 ```

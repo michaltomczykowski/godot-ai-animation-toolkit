@@ -8,5 +8,16 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
-& $Godot --headless --path (Join-Path $root "test_project") --script res://tests/tier1_value_codec.gd
-exit $LASTEXITCODE
+$project = Join-Path $root "test_project"
+$scripts = @(
+	"res://tests/tier1_value_codec.gd",
+	"res://tests/tier1_spec_modifiers.gd"
+)
+foreach ($script in $scripts) {
+	Write-Output "== $script"
+	& $Godot --headless --path $project --script $script
+	if ($LASTEXITCODE -ne 0) {
+		exit $LASTEXITCODE
+	}
+}
+exit 0

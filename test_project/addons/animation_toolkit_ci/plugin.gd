@@ -2,13 +2,13 @@
 extends EditorPlugin
 
 ## CI-only harness. When ANIMATION_TOOLKIT_CI=1 this opens the test scene, runs
-## the animation_presets suite through the Godot AI test runner, prints a
+## every toolkit suite through the Godot AI test runner, prints a
 ## machine-readable result, and quits the editor with a non-zero exit code on
 ## failure. Gated by the environment variable, so normal editor sessions are
 ## untouched.
 
 const ENV_FLAG := "ANIMATION_TOOLKIT_CI"
-const SUITE := "animation_presets"
+const SUITE_FILTER := ""
 const TEST_SCENE := "res://main.tscn"
 
 
@@ -32,7 +32,7 @@ func _run() -> void:
 	var suites := _discover_suites()
 	var runner = runner_script.new()
 	var results: Dictionary = runner.run_suites(
-		suites, SUITE, "", {"undo_redo": get_undo_redo()}, true,
+		suites, SUITE_FILTER, "", {"undo_redo": get_undo_redo()}, true,
 	)
 	print("CI_SUITE_RESULTS=" + JSON.stringify(results))
 

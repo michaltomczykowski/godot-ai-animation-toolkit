@@ -8,7 +8,7 @@ extends SceneTree
 ## (Named without the `test_` prefix so the editor suite runner ignores it.)
 
 const ValueCodec := preload("res://addons/godot_ai_animation/utils/value_codec.gd")
-const Presets := preload("res://addons/godot_ai_animation/handlers/presets.gd")
+const Presets := preload("res://addons/godot_ai_animation/handlers/generate.gd")
 
 var _checks := 0
 var _failures := 0

@@ -1,10 +1,18 @@
 # Godot AI Animation Toolkit
 
-A standalone [Godot](https://godotengine.org) addon that adds one-call
-**animation presets** to [Godot AI](https://github.com/hi-godot/godot-ai) as a
-custom MCP tool — **no core patches**. The presets are the ones scoped out of
-core during the animation PR review: a generalized `pulse` plus `bounce`,
-`orbit`, `sweep`, and `drift`.
+A standalone [Godot](https://godotengine.org) addon that gives
+[Godot AI](https://github.com/hi-godot/godot-ai) agents two animation tools —
+**no core patches**:
+
+- **`animation_presets`** — build clips in one call (the presets scoped out of
+  core during the animation PR review: a generalized `pulse` plus `bounce`,
+  `orbit`, `sweep`, `drift`, `spin`, `float`, `stagger`, `showcase`).
+- **`animation_edit`** — edit any existing clip in place: `retime`, `retarget`,
+  `reverse`, `mirror`, `offset`, `ease_range`, `set_interp`, `trim`, `split_at`,
+  `merge`, `amplitude`, `loop`, `key_edit`, `cleanup`.
+
+Both sit on one declarative clip-spec engine, so every op is a pure
+spec → spec transform, one scene-pinned undo action per call.
 
 ```json
 {"tool": "custom_animation_presets", "params": {
@@ -12,6 +20,15 @@ core during the animation PR review: a generalized `pulse` plus `bounce`,
   "player_path": "/Main/HUD",
   "target_path": "Button",
   "intensity": 0.2
+}}
+```
+
+```json
+{"tool": "custom_animation_edit", "params": {
+  "op": "retime",
+  "player_path": "/Main/HUD",
+  "animation_name": "open",
+  "factor": 0.5
 }}
 ```
 
@@ -49,6 +66,31 @@ Every preset:
 
 (`showcase` is the exception: it builds a whole demo subtree in one action
 instead of a single clip.)
+
+## Editing existing clips
+
+`animation_edit` works on any clip in any `AnimationPlayer` — including
+hand-authored ones — and commits one scene-pinned undo action per call.
+
+| op | What it does |
+| --- | --- |
+| `retime` | Scale the timeline by `factor` or to `length` (optionally `keys_only`). |
+| `retarget` | Rename a node's tracks, or bulk-remap a subtree prefix after a refactor. |
+| `reverse` | Play the clip backwards. |
+| `mirror` | Mirror position/rotation (optionally scale) across a plane, about a pivot. |
+| `offset` | Shift every key in time, optionally wrapping inside the loop. |
+| `ease_range` | Set per-key transitions inside a time range. |
+| `set_interp` | Track-level interpolation (linear / nearest / cubic for 3D transform tracks). |
+| `trim` | Keep a time range, with sampled boundary keys. |
+| `split_at` | Cut one clip into two. |
+| `merge` | Concatenate clips (optionally across players) into one. |
+| `amplitude` | Scale key deltas about a baseline. |
+| `loop` | Set the loop mode, optionally making a linear loop seamless. |
+| `key_edit` | Add / set / remove / move a single key. |
+| `cleanup` | Drop redundant keys and empty tracks. |
+
+Clips containing bezier / blend-shape / animation tracks (or compressed tracks)
+are refused with a clear error rather than rewritten lossily.
 
 ## Install
 
@@ -88,17 +130,27 @@ warning) when Godot AI is absent.
 ```
 
 `test_project/` is a Godot project wired to both addons; `tests/` holds the
-editor suite (27 rows) and `tests/tier1_value_codec.gd` the headless checks
-(40 checks). The `demo_*.tscn` scenes are the ones recorded for the walkthrough
+editor suites (47 rows across `animation_presets` and `animation_edit`) and the
+headless checks (`tier1_value_codec.gd` + `tier1_spec_modifiers.gd`, 463
+checks). The `demo_*.tscn` scenes are the ones recorded for the walkthrough
 video — each is one preset call plus autoplay.
+
+```powershell
+# Regenerate docs/op-index.md from the op registry (the single source of truth)
+./tools/gen_docs.ps1
+```
 
 ## Documentation
 
-- [`docs/tool-reference.md`](docs/tool-reference.md) — every parameter.
+- [`docs/tool-reference.md`](docs/tool-reference.md) — curated reference for both
+  tools, with semantics per op.
+- [`docs/op-index.md`](docs/op-index.md) — generated per-op parameter index
+  (freshness-checked by the tier-1 suite).
 - [`docs/recipes.md`](docs/recipes.md) — core recipes → preset calls, with the
   demo GIFs.
+- [`ROADMAP.md`](ROADMAP.md) — the plan from presets to a full animation toolkit.
 - [`addons/godot_ai_animation/README.md`](addons/godot_ai_animation/README.md) —
-  addon-level notes.
+  addon-level notes and architecture.
 
 ## Licence
 
