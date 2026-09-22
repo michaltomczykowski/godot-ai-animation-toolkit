@@ -1,12 +1,14 @@
 # Godot AI Animation Toolkit (addon)
 
-Two custom MCP tools for Godot AI agents, built on one declarative clip-spec
+Three custom MCP tools for Godot AI agents, built on one declarative clip-spec
 engine:
 
 - **`animation_presets`** (promoted to `custom_animation_presets`) — build clips
   in one call.
 - **`animation_edit`** (promoted to `custom_animation_edit`) — edit any existing
   clip in place, hand-authored ones included.
+- **`animation_inspect`** (promoted to `custom_animation_inspect`) — read-only
+  inspection, auditing and dry runs.
 
 ## `animation_presets`
 
@@ -47,6 +49,21 @@ Every preset commits **one scene-pinned undo action**; Controls get
 Edit ops refuse clips with bezier / blend-shape / animation tracks or
 compressed tracks rather than rewriting them lossily.
 
+## `animation_inspect`
+
+| op | What it reports |
+| --- | --- |
+| `describe` | Human-readable summary per clip (tracks, keys, length, loop, autoplay, broken paths). |
+| `timeline` | Per-track key table with serialized values and transitions. |
+| `audit` | Scene/player health check: broken paths, zero-length clips, duplicate keys, loop seams, autoplay conflicts, unused clips. |
+| `compare` | Diff two clips (length, loop mode, track paths, key deltas). |
+| `stats` | Clip/track/key totals, track-type histogram, loop-mode breakdown. |
+| `dry_run` | Run any presets/edit op and report the result without committing. |
+| `help` | Op index from the registry. |
+
+Read-only: it never touches the undo stack, so `batch_execute` (which requires
+undoable commands) rejects it — call it directly.
+
 ## Architecture
 
 - `spec/clip_spec.gd` — declarative clip data (tracks, typed keys, markers).
@@ -54,8 +71,9 @@ compressed tracks rather than rewriting them lossily.
 - `spec/spec_modifiers.gd` — pure spec → spec transforms (tier-1 tested).
 - `registry/op_registry.gd` — single source of truth for tool descriptions,
   params schemas, op metadata, and `docs/op-index.md`.
-- `handlers/generate.gd`, `handlers/edit.gd` — tool entry points sharing
-  `handlers/animation_tool_base.gd` (one undo action per call).
+- `handlers/generate.gd`, `handlers/edit.gd`, `handlers/inspect.gd` — tool entry
+  points sharing `handlers/animation_tool_base.gd` (one undo action per mutating
+  call; `dry_run` skips the commit).
 
 ## Requirements
 

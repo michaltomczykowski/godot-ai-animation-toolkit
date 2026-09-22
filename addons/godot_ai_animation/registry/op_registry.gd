@@ -13,6 +13,7 @@ extends RefCounted
 
 const FAMILY_PRESETS := "animation_presets"
 const FAMILY_EDIT := "animation_edit"
+const FAMILY_INSPECT := "animation_inspect"
 
 const MAX_DESCRIPTION_CHARS := 600
 
@@ -25,6 +26,8 @@ static func families() -> Dictionary:
 			"description": _presets_description(),
 			"schema": _presets_schema(),
 			"ops": _presets_ops(),
+			"requires_writable": true,
+			"undoable": true,
 		},
 		FAMILY_EDIT: {
 			"handler": "res://addons/godot_ai_animation/handlers/edit.gd",
@@ -32,12 +35,23 @@ static func families() -> Dictionary:
 			"description": _edit_description(),
 			"schema": _edit_schema(),
 			"ops": _edit_ops(),
+			"requires_writable": true,
+			"undoable": true,
+		},
+		FAMILY_INSPECT: {
+			"handler": "res://addons/godot_ai_animation/handlers/inspect.gd",
+			"summary": "Read-only inspection, auditing and dry runs.",
+			"description": _inspect_description(),
+			"schema": _inspect_schema(),
+			"ops": _inspect_ops(),
+			"requires_writable": false,
+			"undoable": false,
 		},
 	}
 
 
 static func family_names() -> Array:
-	return [FAMILY_PRESETS, FAMILY_EDIT]
+	return [FAMILY_PRESETS, FAMILY_EDIT, FAMILY_INSPECT]
 
 
 static func family(name: String) -> Dictionary:
@@ -192,13 +206,18 @@ static func _presets_schema() -> Dictionary:
 				"enum": ["none", "linear", "pingpong"],
 				"description": "Drift refuses \"linear\" (the clip ends at a net offset).",
 			},
+			"dry_run": {
+				"type": "boolean",
+				"default": false,
+				"description": "Report what the call would build without committing anything (no undo action).",
+			},
 		},
 		"required": ["op", "player_path", "target_path"],
 	}
 
 
 static func _presets_ops() -> Array:
-	return [
+	return _with_dry_run([
 		{
 			"name": "pulse",
 			"summary": "Breathing / ping-pong on any property (scale shortcut, or typed from_value/to_value).",
@@ -253,7 +272,7 @@ static func _presets_ops() -> Array:
 			"params": ["parent_path", "name", "overwrite"],
 			"example": {"op": "showcase", "parent_path": "/Main"},
 		},
-	]
+	])
 
 
 # ============================================================================
@@ -400,13 +419,18 @@ static func _edit_schema() -> Dictionary:
 				"default": true,
 				"description": "cleanup: remove tracks that end up with no keys.",
 			},
+			"dry_run": {
+				"type": "boolean",
+				"default": false,
+				"description": "Report what the edit would produce without committing anything (no undo action).",
+			},
 		},
 		"required": ["op", "player_path", "animation_name"],
 	}
 
 
 static func _edit_ops() -> Array:
-	return [
+	return _with_dry_run([
 		{
 			"name": "retime",
 			"summary": "Scale the clip's timeline by `factor` or to `length` (optionally keys_only).",
@@ -491,7 +515,151 @@ static func _edit_ops() -> Array:
 			"params": ["player_path", "animation_name", "tolerance", "min_gap", "drop_empty_tracks"],
 			"example": {"op": "cleanup", "player_path": "/Main", "animation_name": "walk", "tolerance": 0.0001, "min_gap": 0.01},
 		},
+	])
+
+
+# ============================================================================
+# animation_inspect
+# ============================================================================
+
+static func _inspect_description() -> String:
+	return (
+		"Read-only inspection for animation work: describe (human-readable clip "
+		+ "summary), timeline (per-track key table), audit (broken paths, "
+		+ "zero-length clips, duplicate keys, loop seams, autoplay conflicts, "
+		+ "unused clips), compare (diff two clips), stats (scene-wide numbers), "
+		+ "dry_run (run any animation_presets / animation_edit op without "
+		+ "committing), help (op index with params and examples). Never mutates "
+		+ "the scene or the undo stack. Requires the Godot AI addon."
+	)
+
+
+static func _inspect_schema() -> Dictionary:
+	return {
+		"type": "object",
+		"properties": {
+			"op": {
+				"type": "string",
+				"enum": ["describe", "timeline", "audit", "compare", "stats", "dry_run", "help"],
+				"description": "Which inspection to run.",
+			},
+			"player_path": {
+				"type": "string",
+				"description": "Scene path to an AnimationPlayer. Omit for audit/stats to scan every player in the edited scene.",
+			},
+			"animation_name": {
+				"type": "string",
+				"description": "Clip to inspect (describe/timeline/compare). Omit for describe to summarise every clip on the player.",
+			},
+			"other_animation_name": {"type": "string", "description": "compare: the clip to diff against."},
+			"other_player_path": {
+				"type": "string",
+				"description": "compare: player holding the other clip (default: the same player).",
+			},
+			"track_path": {
+				"type": "string",
+				"description": "timeline: only this track (e.g. \"Sprite:position\").",
+			},
+			"include_values": {
+				"type": "boolean",
+				"default": true,
+				"description": "timeline: include each key's value.",
+			},
+			"max_keys": {
+				"type": "integer",
+				"description": "timeline/compare: cap on returned keys (default 200).",
+			},
+			"max_tracks": {
+				"type": "integer",
+				"description": "describe: cap on returned tracks per clip (default 64).",
+			},
+			"severity": {
+				"type": "string",
+				"enum": ["all", "error", "warning", "info"],
+				"description": "audit: only findings of this severity (default all).",
+			},
+			"include_info": {
+				"type": "boolean",
+				"default": true,
+				"description": "audit: include info-level findings (unused clips, constant tracks).",
+			},
+			"tolerance": {
+				"type": "number",
+				"description": "compare: value comparison tolerance (default 0.0001).",
+			},
+			"tool": {
+				"type": "string",
+				"enum": ["animation_presets", "animation_edit"],
+				"description": "dry_run: which tool to run. help: which tool's ops to list (omit for all).",
+			},
+			"forward_op": {
+				"type": "string",
+				"description": "dry_run: the presets/edit op to run (e.g. \"retime\"); its own params go in the same call.",
+			},
+			"op_name": {
+				"type": "string",
+				"description": "help: only this op (omit to list the tool's whole index).",
+			},
+		},
+		"required": ["op"],
+	}
+
+
+static func _inspect_ops() -> Array:
+	return [
+		{
+			"name": "describe",
+			"summary": "Human-readable summary of one clip or every clip on a player.",
+			"params": ["player_path", "animation_name", "max_tracks"],
+			"example": {"op": "describe", "player_path": "/Main/HUD", "animation_name": "open"},
+		},
+		{
+			"name": "timeline",
+			"summary": "Per-track key table (times, values, transitions) for one clip.",
+			"params": ["player_path", "animation_name", "track_path", "include_values", "max_keys"],
+			"example": {"op": "timeline", "player_path": "/Main", "animation_name": "walk", "max_keys": 50},
+		},
+		{
+			"name": "audit",
+			"summary": "Scene or player health check: broken paths, dead clips, loop seams, autoplay conflicts.",
+			"params": ["player_path", "severity", "include_info"],
+			"example": {"op": "audit", "severity": "warning"},
+		},
+		{
+			"name": "compare",
+			"summary": "Diff two clips: length, loop mode, track paths, key counts and value deltas.",
+			"params": ["player_path", "animation_name", "other_animation_name", "other_player_path", "tolerance", "max_keys"],
+			"example": {"op": "compare", "player_path": "/Main", "animation_name": "walk", "other_animation_name": "walk_fast"},
+		},
+		{
+			"name": "stats",
+			"summary": "Clip/track/key totals, track-type histogram and loop-mode breakdown.",
+			"params": ["player_path"],
+			"example": {"op": "stats"},
+		},
+		{
+			"name": "dry_run",
+			"summary": "Run any presets/edit op and report the result without committing.",
+			"params": ["tool", "forward_op", "player_path", "animation_name"],
+			"example": {"op": "dry_run", "tool": "animation_edit", "forward_op": "retime", "player_path": "/Main", "animation_name": "walk", "factor": 0.5},
+		},
+		{
+			"name": "help",
+			"summary": "Op index from the registry: names, summaries, params and examples.",
+			"params": ["tool", "op_name"],
+			"example": {"op": "help", "tool": "animation_edit"},
+		},
 	]
+
+
+## Every generate/edit op also accepts dry_run; declared once here so the
+## descriptors, schema and generated docs stay in sync.
+static func _with_dry_run(ops: Array) -> Array:
+	for descriptor in ops:
+		var params: Array = descriptor.get("params", [])
+		if not params.has("dry_run"):
+			params.append("dry_run")
+	return ops
 
 
 # ============================================================================

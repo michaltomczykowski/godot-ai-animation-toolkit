@@ -12,6 +12,11 @@ const ErrorCodes := preload("res://addons/godot_ai_animation/utils/error_codes.g
 const ToolContext := preload("res://addons/godot_ai_animation/utils/tool_context.gd")
 const ValueCodec := preload("res://addons/godot_ai_animation/utils/value_codec.gd")
 
+## Set from the `dry_run` param at the start of `run()`: when true the commit
+## helpers skip the undo action, so an op can report what it *would* produce
+## (used by `animation_inspect(op="dry_run")` and the tools' own `dry_run`).
+var _dry_run := false
+
 
 ## Every tool needs the editor undo manager (injected by the addon's
 ## EditorPlugin, or by the test suite).
@@ -70,6 +75,8 @@ func _commit_animation_changes(
 	added: Dictionary,
 	extra_props: Array = [],
 ) -> void:
+	if _dry_run:
+		return
 	_create_scene_pinned_action(action_label)
 	var undo := ToolContext.undo_redo
 	if created_library:

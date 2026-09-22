@@ -10,9 +10,12 @@ A standalone [Godot](https://godotengine.org) addon that gives
 - **`animation_edit`** — edit any existing clip in place: `retime`, `retarget`,
   `reverse`, `mirror`, `offset`, `ease_range`, `set_interp`, `trim`, `split_at`,
   `merge`, `amplitude`, `loop`, `key_edit`, `cleanup`.
+- **`animation_inspect`** — read-only reasoning and QA: `describe`, `timeline`,
+  `audit` (broken paths, dead clips, loop seams, autoplay conflicts),
+  `compare`, `stats`, `dry_run` (run any op without committing), `help`.
 
-Both sit on one declarative clip-spec engine, so every op is a pure
-spec → spec transform, one scene-pinned undo action per call.
+All three sit on one declarative clip-spec engine, so every op is a pure
+spec → spec transform and each mutating call is one scene-pinned undo action.
 
 ```json
 {"tool": "custom_animation_presets", "params": {
@@ -96,6 +99,22 @@ hand-authored ones — and commits one scene-pinned undo action per call.
 Clips containing bezier / blend-shape / animation tracks (or compressed tracks)
 are refused with a clear error rather than rewritten lossily.
 
+## Inspecting and auditing
+
+`animation_inspect` is read-only, so an agent can look before it edits — and
+`dry_run` shows exactly what a presets/edit call would produce without
+committing it. `audit` scans a player or the whole scene and reports findings
+with a severity, a code and a `fix` hint naming the op that resolves them
+(e.g. a linear loop that pops at the seam → `animation_edit loop
+make_seamless=true`).
+
+```json
+{"tool": "custom_animation_inspect", "params": {
+  "op": "audit",
+  "severity": "warning"
+}}
+```
+
 ## Install
 
 1. Copy `addons/godot_ai_animation/` into your project's `addons/` folder.
@@ -134,9 +153,9 @@ warning) when Godot AI is absent.
 ```
 
 `test_project/` is a Godot project wired to both addons; `tests/` holds the
-editor suites (47 rows across `animation_presets` and `animation_edit`) and the
-headless checks (`tier1_value_codec.gd` + `tier1_spec_modifiers.gd`, 463
-checks). The `demo_*.tscn` scenes are the ones recorded for the walkthrough
+editor suites (61 rows across `animation_presets`, `animation_edit` and
+`animation_inspect`) and the headless checks (`tier1_value_codec.gd` +
+`tier1_spec_modifiers.gd`, 518 checks). The `demo_*.tscn` scenes are the ones recorded for the walkthrough
 video — each is one preset call plus autoplay.
 
 ```powershell

@@ -1,9 +1,10 @@
 # Toolkit tool reference
 
 Exposed to agents as the promoted first-class tools
-**`custom_animation_presets`** (create clips) and **`custom_animation_edit`**
-(edit existing clips), both reachable through
-`custom_manage(op="invoke", tool_name="animation_presets" | "animation_edit")`.
+**`custom_animation_presets`** (create clips), **`custom_animation_edit`**
+(edit existing clips) and **`custom_animation_inspect`** (read-only inspection),
+all reachable through `custom_manage(op="invoke", tool_name="animation_presets"
+| "animation_edit" | "animation_inspect")`.
 
 A generated per-op index with every parameter lives in
 [`op-index.md`](op-index.md) — it is rendered from
@@ -156,4 +157,46 @@ a `WRONG_TYPE` / `INVALID_PARAMS` error instead of being rewritten lossily.
 
 {"op": "animation_edit", "params": {"op": "loop", "player_path": "/Main",
   "animation_name": "walk", "loop_mode": "linear", "make_seamless": true}}
+```
+
+## `animation_inspect`
+
+Read-only: it never mutates the scene or the undo stack, so the core's
+`batch_execute` (which requires undoable commands) does not accept it — call it
+directly, or through `custom_manage(op="invoke")`.
+
+| op | What it reports |
+| --- | --- |
+| `describe` | A human-readable summary per clip: tracks, keys, length, loop mode, autoplay, broken paths. Omit `animation_name` to summarise every clip on the player. |
+| `timeline` | The key table for one clip: per track, each key's time, value (serialized) and transition; `track_path` filters, `max_keys` caps. |
+| `audit` | Scene- or player-wide health check. Findings carry a `severity`, a `code` and a `fix` hint. |
+| `compare` | Diff two clips (same player by default): length, loop mode, added/removed tracks, changed key counts and max value delta. |
+| `stats` | Clip/track/key totals, track-type histogram, loop-mode breakdown, longest/shortest clip. |
+| `dry_run` | Runs any `animation_presets` / `animation_edit` op (`forward_op`) and reports what it *would* produce — nothing is committed. |
+| `help` | The op index straight from the registry: names, summaries, params and examples. |
+
+### Audit findings
+
+| code | severity | meaning | suggested fix |
+| --- | --- | --- | --- |
+| `broken_path` | error | the track path does not resolve against the player's root node | `animation_edit retarget` |
+| `zero_length` | error | the clip has no length (Godot clamps to 0.001s) and will not play | rebuild the clip |
+| `autoplay_missing` | error | `autoplay` names a clip that does not exist | clear autoplay or create the clip |
+| `duplicate_keys` | warning | two keys share a time | `animation_edit key_edit remove` |
+| `loop_snap` | warning | a linear loop starts and ends on different values, so it pops at the seam | `animation_edit loop make_seamless=true` |
+| `autoplay_conflict` | warning | two autoplaying players write the same track path | keep one autoplaying |
+| `compressed_track` | warning | the track is compressed; edit ops refuse it | re-save uncompressed |
+| `no_keys` | warning | the track has no keys | remove it or add keys |
+| `single_key`, `constant_track` | info | the track holds one constant value | `animation_edit cleanup` |
+| `unused_clip` | info | no autoplay and no AnimationTree references the clip | may be played from script |
+
+### Examples
+
+```json
+{"op": "animation_inspect", "params": {"op": "describe", "player_path": "/Main/HUD"}}
+
+{"op": "animation_inspect", "params": {"op": "audit", "severity": "warning"}}
+
+{"op": "animation_inspect", "params": {"op": "dry_run", "tool": "animation_edit",
+  "forward_op": "retime", "player_path": "/Main", "animation_name": "walk", "factor": 0.5}}
 ```

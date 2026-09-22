@@ -32,6 +32,15 @@ const _KEY_ACTIONS := ["add", "set", "remove", "move"]
 
 ## Rollup entry registered with the Godot AI tool registry.
 func run(params: Dictionary, _ctx) -> Dictionary:
+	_dry_run = bool(params.get("dry_run", false))
+	var result := _dispatch(params)
+	if _dry_run and result.has("data"):
+		result.data["dry_run"] = true
+		result.data["undoable"] = false
+	return result
+
+
+func _dispatch(params: Dictionary) -> Dictionary:
 	var op: String = params.get("op", "")
 	match op:
 		"retime":

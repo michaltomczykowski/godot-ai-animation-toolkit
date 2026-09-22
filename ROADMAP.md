@@ -1,6 +1,6 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **Phase 0 + Phase 1 done** (v0.3.0). Phase 2 (`animation_inspect`) next.
+Status: **Phase 0, 1 and 2 done** (v0.4.0). Phase 3 (more generators) next.
 Last updated: 2026-09-22.
 
 The addon started as nine one-call presets (`animation_presets`). This is the plan
@@ -74,11 +74,14 @@ Operates on any clip in any AnimationPlayer, including hand-authored ones.
 
 All: one undo action, existing loop mode and autoplay preserved.
 
-## Phase 2 — `animation_inspect` → v0.4.0
+## Phase 2 — `animation_inspect` (done)
 
-`describe`, `timeline`, `audit` (broken paths, zero-length, single-key, autoplay
-conflicts, duplicate names, unused clips), `compare`, `stats`, `dry_run`
-(any op returns its spec without committing).
+`describe`, `timeline`, `audit` (broken paths, zero-length, duplicate keys, loop
+seams, autoplay conflicts, unused clips, constant tracks), `compare`, `stats`,
+`dry_run` (any presets/edit op reports its result without committing), `help`.
+Read-only, so it never touches the undo stack; findings carry a `fix` hint naming
+the op that resolves them. `dry_run` is also available as a param on the presets
+and edit tools themselves.
 
 ## Phase 3 — more generators → v0.5.0
 

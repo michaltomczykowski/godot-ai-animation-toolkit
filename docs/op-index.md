@@ -14,15 +14,15 @@ Handler: `res://addons/godot_ai_animation/handlers/generate.gd`
 
 | op | What it does | Params |
 | --- | --- | --- |
-| `pulse` | Breathing / ping-pong on any property (scale shortcut, or typed from_value/to_value). | `player_path`, `target_path`, `property`, `from_scale`, `to_scale`, `from_value`, `to_value`, `duration`, `loop_mode`, `animation_name`, `overwrite` |
-| `bounce` | Center-pivot scale overshoot with settle-back — UI press feedback. | `player_path`, `target_path`, `intensity`, `duration`, `animation_name`, `overwrite` |
-| `orbit` | Circular position orbit (XZ plane for 3D, screen space for 2D/Control). | `player_path`, `target_path`, `radius`, `clockwise`, `duration`, `loop_mode`, `animation_name`, `overwrite` |
-| `sweep` | Full-turn rotation sweep — radar scans, cooldown rings. | `player_path`, `target_path`, `turns`, `clockwise`, `duration`, `loop_mode`, `animation_name`, `overwrite` |
-| `drift` | One-axis position offset — scanlines, marquee, conveyor. | `player_path`, `target_path`, `axis`, `distance`, `duration`, `loop_mode`, `animation_name`, `overwrite` |
-| `spin` | 3D quaternion turn around local Y. | `player_path`, `target_path`, `turns`, `clockwise`, `duration`, `loop_mode`, `animation_name`, `overwrite` |
-| `float` | 3D bob: rise + scale + turn through the transform. | `player_path`, `target_path`, `height`, `scale`, `turns`, `duration`, `loop_mode`, `animation_name`, `overwrite` |
-| `stagger` | Reveal a list of targets one after another in one clip. | `player_path`, `target_paths`, `use_selection`, `effect`, `direction`, `distance`, `stagger`, `duration`, `animation_name`, `overwrite` |
-| `showcase` | Build a runnable demo of every preset (7 nodes + 7 autoplaying clips). | `parent_path`, `name`, `overwrite` |
+| `pulse` | Breathing / ping-pong on any property (scale shortcut, or typed from_value/to_value). | `player_path`, `target_path`, `property`, `from_scale`, `to_scale`, `from_value`, `to_value`, `duration`, `loop_mode`, `animation_name`, `overwrite`, `dry_run` |
+| `bounce` | Center-pivot scale overshoot with settle-back — UI press feedback. | `player_path`, `target_path`, `intensity`, `duration`, `animation_name`, `overwrite`, `dry_run` |
+| `orbit` | Circular position orbit (XZ plane for 3D, screen space for 2D/Control). | `player_path`, `target_path`, `radius`, `clockwise`, `duration`, `loop_mode`, `animation_name`, `overwrite`, `dry_run` |
+| `sweep` | Full-turn rotation sweep — radar scans, cooldown rings. | `player_path`, `target_path`, `turns`, `clockwise`, `duration`, `loop_mode`, `animation_name`, `overwrite`, `dry_run` |
+| `drift` | One-axis position offset — scanlines, marquee, conveyor. | `player_path`, `target_path`, `axis`, `distance`, `duration`, `loop_mode`, `animation_name`, `overwrite`, `dry_run` |
+| `spin` | 3D quaternion turn around local Y. | `player_path`, `target_path`, `turns`, `clockwise`, `duration`, `loop_mode`, `animation_name`, `overwrite`, `dry_run` |
+| `float` | 3D bob: rise + scale + turn through the transform. | `player_path`, `target_path`, `height`, `scale`, `turns`, `duration`, `loop_mode`, `animation_name`, `overwrite`, `dry_run` |
+| `stagger` | Reveal a list of targets one after another in one clip. | `player_path`, `target_paths`, `use_selection`, `effect`, `direction`, `distance`, `stagger`, `duration`, `animation_name`, `overwrite`, `dry_run` |
+| `showcase` | Build a runnable demo of every preset (7 nodes + 7 autoplaying clips). | `parent_path`, `name`, `overwrite`, `dry_run` |
 
 ### `animation_presets` parameters
 
@@ -55,6 +55,7 @@ Handler: `res://addons/godot_ai_animation/handlers/generate.gd`
 | `distance` | number | orbit/sweep/drift distance (defaults by dimension). |
 | `duration` | number | Clip length in seconds. |
 | `loop_mode` | string: none \| linear \| pingpong | Drift refuses "linear" (the clip ends at a net offset). |
+| `dry_run` | boolean (default `false`) | Report what the call would build without committing anything (no undo action). |
 
 Required: `op`, `player_path`, `target_path`.
 
@@ -80,20 +81,20 @@ Handler: `res://addons/godot_ai_animation/handlers/edit.gd`
 
 | op | What it does | Params |
 | --- | --- | --- |
-| `retime` | Scale the clip's timeline by `factor` or to `length` (optionally keys_only). | `player_path`, `animation_name`, `factor`, `length`, `keys_only` |
-| `retarget` | Rewrite track paths — rename a node, or bulk-remap a subtree prefix after a refactor. | `player_path`, `animation_name`, `from_path`, `to_path`, `mode`, `paths` |
-| `reverse` | Mirror every key time about the length so the clip plays backwards. | `player_path`, `animation_name` |
-| `mirror` | Mirror position/rotation (and optionally scale) across a plane, about an optional pivot. | `player_path`, `animation_name`, `axis`, `pivot`, `include_scale` |
-| `offset` | Shift every key in time (optionally wrapping inside the clip length). | `player_path`, `animation_name`, `delta`, `wrap` |
-| `ease_range` | Set the per-key transition on every value key inside a time range. | `player_path`, `animation_name`, `from`, `to`, `transition` |
-| `set_interp` | Set track-level interpolation (linear/nearest/cubic) on value tracks, optionally one track. | `player_path`, `animation_name`, `interpolation`, `track_path` |
-| `trim` | Keep only a time range, shifted to 0, with optional sampled boundary keys. | `player_path`, `animation_name`, `from`, `to`, `keep_bounds` |
-| `split_at` | Cut one clip into two at a time; the tail keeps the name, the head gets head_name. | `player_path`, `animation_name`, `time`, `head_name`, `overwrite` |
-| `merge` | Concatenate clips (optionally across players) into one, with an optional gap. | `player_path`, `animation_name`, `sources`, `new_name`, `gap`, `overwrite` |
-| `amplitude` | Scale key deltas about a baseline — soften or exaggerate a clip without rebuilding it. | `player_path`, `animation_name`, `factor`, `baseline` |
-| `loop` | Set the loop mode, optionally making a linear loop seamless. | `player_path`, `animation_name`, `loop_mode`, `make_seamless` |
-| `key_edit` | Add, set, remove or move a single key on a track. | `player_path`, `animation_name`, `action`, `track_path`, `track_index`, `time`, `value`, `transition`, `new_time`, `tolerance` |
-| `cleanup` | Drop redundant keys and empty tracks (dedupe holds, optional minimum gap). | `player_path`, `animation_name`, `tolerance`, `min_gap`, `drop_empty_tracks` |
+| `retime` | Scale the clip's timeline by `factor` or to `length` (optionally keys_only). | `player_path`, `animation_name`, `factor`, `length`, `keys_only`, `dry_run` |
+| `retarget` | Rewrite track paths — rename a node, or bulk-remap a subtree prefix after a refactor. | `player_path`, `animation_name`, `from_path`, `to_path`, `mode`, `paths`, `dry_run` |
+| `reverse` | Mirror every key time about the length so the clip plays backwards. | `player_path`, `animation_name`, `dry_run` |
+| `mirror` | Mirror position/rotation (and optionally scale) across a plane, about an optional pivot. | `player_path`, `animation_name`, `axis`, `pivot`, `include_scale`, `dry_run` |
+| `offset` | Shift every key in time (optionally wrapping inside the clip length). | `player_path`, `animation_name`, `delta`, `wrap`, `dry_run` |
+| `ease_range` | Set the per-key transition on every value key inside a time range. | `player_path`, `animation_name`, `from`, `to`, `transition`, `dry_run` |
+| `set_interp` | Set track-level interpolation (linear/nearest/cubic) on value tracks, optionally one track. | `player_path`, `animation_name`, `interpolation`, `track_path`, `dry_run` |
+| `trim` | Keep only a time range, shifted to 0, with optional sampled boundary keys. | `player_path`, `animation_name`, `from`, `to`, `keep_bounds`, `dry_run` |
+| `split_at` | Cut one clip into two at a time; the tail keeps the name, the head gets head_name. | `player_path`, `animation_name`, `time`, `head_name`, `overwrite`, `dry_run` |
+| `merge` | Concatenate clips (optionally across players) into one, with an optional gap. | `player_path`, `animation_name`, `sources`, `new_name`, `gap`, `overwrite`, `dry_run` |
+| `amplitude` | Scale key deltas about a baseline — soften or exaggerate a clip without rebuilding it. | `player_path`, `animation_name`, `factor`, `baseline`, `dry_run` |
+| `loop` | Set the loop mode, optionally making a linear loop seamless. | `player_path`, `animation_name`, `loop_mode`, `make_seamless`, `dry_run` |
+| `key_edit` | Add, set, remove or move a single key on a track. | `player_path`, `animation_name`, `action`, `track_path`, `track_index`, `time`, `value`, `transition`, `new_time`, `tolerance`, `dry_run` |
+| `cleanup` | Drop redundant keys and empty tracks (dedupe holds, optional minimum gap). | `player_path`, `animation_name`, `tolerance`, `min_gap`, `drop_empty_tracks`, `dry_run` |
 
 ### `animation_edit` parameters
 
@@ -136,6 +137,7 @@ Handler: `res://addons/godot_ai_animation/handlers/edit.gd`
 | `tolerance` | number | key_edit/cleanup: match/equality tolerance in seconds or units (default 0.001 / 0.0001). |
 | `min_gap` | number | cleanup: drop keys closer than this to the previous kept key (default 0 = keep all). |
 | `drop_empty_tracks` | boolean (default `true`) | cleanup: remove tracks that end up with no keys. |
+| `dry_run` | boolean (default `false`) | Report what the edit would produce without committing anything (no undo action). |
 
 Required: `op`, `player_path`, `animation_name`.
 
@@ -156,4 +158,54 @@ Required: `op`, `player_path`, `animation_name`.
 {"animation_name":"walk","loop_mode":"linear","make_seamless":true,"op":"loop","player_path":"/Main"}
 {"action":"set","animation_name":"open","op":"key_edit","player_path":"/Main/HUD","time":0.2,"track_path":"Panel:position","value":{"x":10,"y":0}}
 {"animation_name":"walk","min_gap":0.01,"op":"cleanup","player_path":"/Main","tolerance":0.0001}
+```
+
+## `animation_inspect`
+
+Read-only inspection, auditing and dry runs.
+
+Handler: `res://addons/godot_ai_animation/handlers/inspect.gd`
+
+| op | What it does | Params |
+| --- | --- | --- |
+| `describe` | Human-readable summary of one clip or every clip on a player. | `player_path`, `animation_name`, `max_tracks` |
+| `timeline` | Per-track key table (times, values, transitions) for one clip. | `player_path`, `animation_name`, `track_path`, `include_values`, `max_keys` |
+| `audit` | Scene or player health check: broken paths, dead clips, loop seams, autoplay conflicts. | `player_path`, `severity`, `include_info` |
+| `compare` | Diff two clips: length, loop mode, track paths, key counts and value deltas. | `player_path`, `animation_name`, `other_animation_name`, `other_player_path`, `tolerance`, `max_keys` |
+| `stats` | Clip/track/key totals, track-type histogram and loop-mode breakdown. | `player_path` |
+| `dry_run` | Run any presets/edit op and report the result without committing. | `tool`, `forward_op`, `player_path`, `animation_name` |
+| `help` | Op index from the registry: names, summaries, params and examples. | `tool`, `op_name` |
+
+### `animation_inspect` parameters
+
+| Param | Type | Notes |
+| --- | --- | --- |
+| `op` | string: describe \| timeline \| audit \| compare \| stats \| dry_run \| help | Which inspection to run. |
+| `player_path` | string | Scene path to an AnimationPlayer. Omit for audit/stats to scan every player in the edited scene. |
+| `animation_name` | string | Clip to inspect (describe/timeline/compare). Omit for describe to summarise every clip on the player. |
+| `other_animation_name` | string | compare: the clip to diff against. |
+| `other_player_path` | string | compare: player holding the other clip (default: the same player). |
+| `track_path` | string | timeline: only this track (e.g. "Sprite:position"). |
+| `include_values` | boolean (default `true`) | timeline: include each key's value. |
+| `max_keys` | integer | timeline/compare: cap on returned keys (default 200). |
+| `max_tracks` | integer | describe: cap on returned tracks per clip (default 64). |
+| `severity` | string: all \| error \| warning \| info | audit: only findings of this severity (default all). |
+| `include_info` | boolean (default `true`) | audit: include info-level findings (unused clips, constant tracks). |
+| `tolerance` | number | compare: value comparison tolerance (default 0.0001). |
+| `tool` | string: animation_presets \| animation_edit | dry_run: which tool to run. help: which tool's ops to list (omit for all). |
+| `forward_op` | string | dry_run: the presets/edit op to run (e.g. "retime"); its own params go in the same call. |
+| `op_name` | string | help: only this op (omit to list the tool's whole index). |
+
+Required: `op`.
+
+### Examples
+
+```json
+{"animation_name":"open","op":"describe","player_path":"/Main/HUD"}
+{"animation_name":"walk","max_keys":50,"op":"timeline","player_path":"/Main"}
+{"op":"audit","severity":"warning"}
+{"animation_name":"walk","op":"compare","other_animation_name":"walk_fast","player_path":"/Main"}
+{"op":"stats"}
+{"animation_name":"walk","factor":0.5,"forward_op":"retime","op":"dry_run","player_path":"/Main","tool":"animation_edit"}
+{"op":"help","tool":"animation_edit"}
 ```

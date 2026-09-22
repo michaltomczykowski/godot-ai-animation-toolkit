@@ -86,9 +86,9 @@ func _register() -> void:
 		spec.method = &"run"
 		spec.source_path = SOURCE_CFG
 		spec.promoted = true
-		spec.requires_writable = true
-		spec.undoable = true
-		spec.timeout_ms = 5000
+		spec.requires_writable = bool(info.get("requires_writable", true))
+		spec.undoable = bool(info.get("undoable", true))
+		spec.timeout_ms = int(info.get("timeout_ms", 5000))
 		if not registry.call("register", spec):
 			registered_all = false
 	_registered = registered_all
