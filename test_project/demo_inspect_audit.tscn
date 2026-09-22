@@ -1,0 +1,147 @@
+[gd_scene format=3 uid="uid://txd7vu1ly057"]
+
+[sub_resource type="Animation" id="Animation_mkhq5"]
+length = 2.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("BarSeam:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(140, 340), Vector2(520, 340)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_uehvv"]
+_data = {
+&"drift": SubResource("Animation_mkhq5")
+}
+
+[sub_resource type="Animation" id="Animation_7akxs"]
+length = 1.2
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("BarConflict:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1.2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(620, 340), Vector2(920, 340)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_464km"]
+_data = {
+&"drift": SubResource("Animation_7akxs")
+}
+
+[sub_resource type="Animation" id="Animation_djogb"]
+length = 0.8
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("BarConflict:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.8),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(620, 340), Vector2(800, 340)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_dfhja"]
+_data = {
+&"drift": SubResource("Animation_djogb")
+}
+
+[sub_resource type="Animation" id="Animation_eb3rr"]
+length = 0.001
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("GhostTarget:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.0005, 0.001),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1.1, 1.1), Vector2(1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_6d7sr"]
+_data = {
+&"pulse": SubResource("Animation_eb3rr")
+}
+
+[node name="InspectAudit" type="Node2D" unique_id=390810507]
+
+[node name="Title" type="Label" parent="." unique_id=266890974]
+offset_left = 60.0
+offset_top = 30.0
+offset_right = 61.0
+offset_bottom = 53.0
+theme_override_font_sizes/font_size = 36
+text = "audit - this scene has problems"
+
+[node name="Divider" type="ColorRect" parent="." unique_id=1298053358]
+offset_left = 574.0
+offset_top = 130.0
+offset_right = 578.0
+offset_bottom = 560.0
+color = Color(0.25, 0.25, 0.28, 1)
+
+[node name="SeamLabel" type="Label" parent="." unique_id=1184541838]
+offset_left = 150.0
+offset_top = 140.0
+offset_right = 151.0
+offset_bottom = 163.0
+theme_override_font_sizes/font_size = 26
+text = "LOOP SEAM"
+
+[node name="ConflictLabel" type="Label" parent="." unique_id=265374757]
+offset_left = 700.0
+offset_top = 140.0
+offset_right = 701.0
+offset_bottom = 163.0
+theme_override_font_sizes/font_size = 26
+text = "TWO PLAYERS, ONE NODE"
+
+[node name="BarSeam" type="ColorRect" parent="." unique_id=46321780]
+offset_left = 140.0
+offset_top = 340.0
+offset_right = 360.0
+offset_bottom = 364.0
+color = Color(0.29, 0.87, 0.5, 1)
+
+[node name="SeamPlayer" type="AnimationPlayer" parent="." unique_id=486840235]
+libraries/ = SubResource("AnimationLibrary_uehvv")
+autoplay = &"drift"
+
+[node name="BarConflict" type="ColorRect" parent="." unique_id=614341602]
+offset_left = 620.0
+offset_top = 340.0
+offset_right = 840.0
+offset_bottom = 364.0
+color = Color(0.13, 0.83, 0.93, 1)
+
+[node name="ConflictPlayerA" type="AnimationPlayer" parent="." unique_id=96726217]
+libraries/ = SubResource("AnimationLibrary_464km")
+autoplay = &"drift"
+
+[node name="ConflictPlayerB" type="AnimationPlayer" parent="." unique_id=1117044848]
+libraries/ = SubResource("AnimationLibrary_dfhja")
+autoplay = &"drift"
+
+[node name="GhostPlayer" type="AnimationPlayer" parent="." unique_id=521992479]
+libraries/ = SubResource("AnimationLibrary_6d7sr")

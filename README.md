@@ -101,6 +101,10 @@ are refused with a clear error rather than rewritten lossily.
 
 ## Inspecting and auditing
 
+[**Video: inspection demo (0:55)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v0.4.0/animation_toolkit_inspect_demo.mp4)
+— `audit` finding five real problems in one scene, `dry_run` previewing the fix,
+and `compare` explaining a `retime`.
+
 `animation_inspect` is read-only, so an agent can look before it edits — and
 `dry_run` shows exactly what a presets/edit call would produce without
 committing it. `audit` scans a player or the whole scene and reports findings
