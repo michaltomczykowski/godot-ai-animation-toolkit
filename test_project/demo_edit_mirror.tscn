@@ -1,0 +1,112 @@
+[gd_scene format=3 uid="uid://drs8pyrin4ley"]
+
+[sub_resource type="Animation" id="Animation_gtdrl"]
+length = 3.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("BeforeTarget:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1875, 0.375, 0.5625, 0.75, 0.9375, 1.125, 1.3125, 1.5, 1.6875, 1.875, 2.0625, 2.25, 2.4375, 2.625, 2.8125, 3),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(398, 358), Vector2(388.86554, 403.922), Vector2(362.8528, 442.8528), Vector2(323.922, 468.86554), Vector2(278, 478), Vector2(232.07799, 468.86554), Vector2(193.14719, 442.8528), Vector2(167.13446, 403.922), Vector2(158, 358), Vector2(167.13446, 312.078), Vector2(193.14719, 273.1472), Vector2(232.07799, 247.13446), Vector2(278, 238), Vector2(323.922, 247.13446), Vector2(362.8528, 273.1472), Vector2(388.86554, 312.078), Vector2(398, 358)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_r8j3s"]
+_data = {
+&"orbit": SubResource("Animation_gtdrl")
+}
+
+[sub_resource type="Animation" id="Animation_oipya"]
+length = 3.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("AfterTarget:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1875, 0.375, 0.5625, 0.75, 0.9375, 1.125, 1.3125, 1.5, 1.6875, 1.875, 2.0625, 2.25, 2.4375, 2.625, 2.8125, 3),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(762, 358), Vector2(771.13446, 403.922), Vector2(797.1472, 442.8528), Vector2(836.078, 468.86554), Vector2(882, 478), Vector2(927.922, 468.86554), Vector2(966.8528, 442.8528), Vector2(992.86554, 403.922), Vector2(1002, 358), Vector2(992.86554, 312.078), Vector2(966.8528, 273.1472), Vector2(927.922, 247.13446), Vector2(882, 238), Vector2(836.078, 247.13446), Vector2(797.1472, 273.1472), Vector2(771.13446, 312.078), Vector2(762, 358)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_5stef"]
+_data = {
+&"orbit": SubResource("Animation_oipya")
+}
+
+[node name="EditDemoMirror" type="Node2D" unique_id=1081794439]
+
+[node name="Title" type="Label" parent="." unique_id=435055781]
+offset_left = 60.0
+offset_top = 30.0
+offset_right = 61.0
+offset_bottom = 53.0
+theme_override_font_sizes/font_size = 36
+text = "mirror - axis x"
+
+[node name="Divider" type="ColorRect" parent="." unique_id=1033846480]
+offset_left = 574.0
+offset_top = 130.0
+offset_right = 578.0
+offset_bottom = 560.0
+color = Color(0.25, 0.25, 0.28, 1)
+
+[node name="BeforeLabel" type="Label" parent="." unique_id=1632506964]
+offset_left = 150.0
+offset_top = 140.0
+offset_right = 151.0
+offset_bottom = 163.0
+theme_override_font_sizes/font_size = 26
+text = "BEFORE"
+
+[node name="AfterLabel" type="Label" parent="." unique_id=1334787579]
+offset_left = 700.0
+offset_top = 140.0
+offset_right = 701.0
+offset_bottom = 163.0
+theme_override_font_sizes/font_size = 26
+text = "AFTER"
+
+[node name="BeforeCenter" type="ColorRect" parent="." unique_id=1806205439]
+offset_left = 295.0
+offset_top = 375.0
+offset_right = 305.0
+offset_bottom = 385.0
+color = Color(0.4, 0.4, 0.45, 1)
+
+[node name="BeforeTarget" type="ColorRect" parent="." unique_id=600094509]
+offset_left = 278.0
+offset_top = 358.0
+offset_right = 322.0
+offset_bottom = 402.0
+color = Color(0.35, 0.6, 1, 1)
+
+[node name="BeforePlayer" type="AnimationPlayer" parent="." unique_id=1447194002]
+libraries/ = SubResource("AnimationLibrary_r8j3s")
+autoplay = &"orbit"
+
+[node name="AfterCenter" type="ColorRect" parent="." unique_id=806874981]
+offset_left = 855.0
+offset_top = 375.0
+offset_right = 865.0
+offset_bottom = 385.0
+color = Color(0.4, 0.4, 0.45, 1)
+
+[node name="AfterTarget" type="ColorRect" parent="." unique_id=1742364577]
+offset_left = 838.0
+offset_top = 358.0
+offset_right = 882.0
+offset_bottom = 402.0
+color = Color(0.13, 0.83, 0.93, 1)
+
+[node name="AfterPlayer" type="AnimationPlayer" parent="." unique_id=1795886893]
+libraries/ = SubResource("AnimationLibrary_5stef")
+autoplay = &"orbit"

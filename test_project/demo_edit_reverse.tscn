@@ -1,0 +1,100 @@
+[gd_scene format=3 uid="uid://ov072m7e2nb0"]
+
+[sub_resource type="Animation" id="Animation_tls04"]
+length = 2.0
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("BeforeTarget:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(140, 340), Vector2(520, 340)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_7iucg"]
+_data = {
+&"drift": SubResource("Animation_tls04")
+}
+
+[sub_resource type="Animation" id="Animation_xplvu"]
+length = 2.0
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("AfterTarget:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(1000, 340), Vector2(620, 340)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_5sg5g"]
+_data = {
+&"drift": SubResource("Animation_xplvu")
+}
+
+[node name="EditDemoReverse" type="Node2D" unique_id=226650099]
+
+[node name="Title" type="Label" parent="." unique_id=1913610222]
+offset_left = 60.0
+offset_top = 30.0
+offset_right = 61.0
+offset_bottom = 53.0
+theme_override_font_sizes/font_size = 36
+text = "reverse"
+
+[node name="Divider" type="ColorRect" parent="." unique_id=158146106]
+offset_left = 574.0
+offset_top = 130.0
+offset_right = 578.0
+offset_bottom = 560.0
+color = Color(0.25, 0.25, 0.28, 1)
+
+[node name="BeforeLabel" type="Label" parent="." unique_id=500613753]
+offset_left = 150.0
+offset_top = 140.0
+offset_right = 151.0
+offset_bottom = 163.0
+theme_override_colors/font_color = Color(0.6, 0.6, 0.65, 1)
+theme_override_font_sizes/font_size = 26
+text = "BEFORE"
+
+[node name="AfterLabel" type="Label" parent="." unique_id=1782649922]
+offset_left = 700.0
+offset_top = 140.0
+offset_right = 701.0
+offset_bottom = 163.0
+theme_override_colors/font_color = Color(0.13, 0.83, 0.93, 1)
+theme_override_font_sizes/font_size = 26
+text = "AFTER"
+
+[node name="BeforeTarget" type="ColorRect" parent="." unique_id=736321185]
+offset_left = 140.0
+offset_top = 340.0
+offset_right = 360.0
+offset_bottom = 364.0
+color = Color(0.29, 0.87, 0.5, 1)
+
+[node name="BeforePlayer" type="AnimationPlayer" parent="." unique_id=843126863]
+libraries/ = SubResource("AnimationLibrary_7iucg")
+autoplay = &"drift"
+
+[node name="AfterTarget" type="ColorRect" parent="." unique_id=749632061]
+offset_left = 620.0
+offset_top = 340.0
+offset_right = 840.0
+offset_bottom = 364.0
+color = Color(0.13, 0.83, 0.93, 1)
+
+[node name="AfterPlayer" type="AnimationPlayer" parent="." unique_id=1329668933]
+libraries/ = SubResource("AnimationLibrary_5sg5g")
+autoplay = &"drift"

@@ -1,0 +1,99 @@
+[gd_scene format=3 uid="uid://be3qmdhy4ecv"]
+
+[sub_resource type="Animation" id="Animation_todge"]
+length = 2.0
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("BeforeTarget:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(140, 340), Vector2(520, 340)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_rruik"]
+_data = {
+&"drift": SubResource("Animation_todge")
+}
+
+[sub_resource type="Animation" id="Animation_jttti"]
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("AfterTarget:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(620, 340), Vector2(1000, 340)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_sqrij"]
+_data = {
+&"drift": SubResource("Animation_jttti")
+}
+
+[node name="EditDemoRetime" type="Node2D" unique_id=536429188]
+
+[node name="Title" type="Label" parent="." unique_id=659220060]
+offset_left = 60.0
+offset_top = 30.0
+offset_right = 61.0
+offset_bottom = 53.0
+theme_override_font_sizes/font_size = 36
+text = "retime - factor 0.5"
+
+[node name="Divider" type="ColorRect" parent="." unique_id=1961241411]
+offset_left = 574.0
+offset_top = 130.0
+offset_right = 578.0
+offset_bottom = 560.0
+color = Color(0.25, 0.25, 0.28, 1)
+
+[node name="BeforeLabel" type="Label" parent="." unique_id=123380249]
+offset_left = 150.0
+offset_top = 140.0
+offset_right = 151.0
+offset_bottom = 163.0
+theme_override_colors/font_color = Color(0.6, 0.6, 0.65, 1)
+theme_override_font_sizes/font_size = 26
+text = "BEFORE"
+
+[node name="AfterLabel" type="Label" parent="." unique_id=1467443573]
+offset_left = 700.0
+offset_top = 140.0
+offset_right = 701.0
+offset_bottom = 163.0
+theme_override_colors/font_color = Color(0.13, 0.83, 0.93, 1)
+theme_override_font_sizes/font_size = 26
+text = "AFTER"
+
+[node name="BeforeTarget" type="ColorRect" parent="." unique_id=1285626358]
+offset_left = 140.0
+offset_top = 340.0
+offset_right = 360.0
+offset_bottom = 364.0
+color = Color(0.29, 0.87, 0.5, 1)
+
+[node name="BeforePlayer" type="AnimationPlayer" parent="." unique_id=707394553]
+libraries/ = SubResource("AnimationLibrary_rruik")
+autoplay = &"drift"
+
+[node name="AfterTarget" type="ColorRect" parent="." unique_id=1823096038]
+offset_left = 620.0
+offset_top = 340.0
+offset_right = 840.0
+offset_bottom = 364.0
+color = Color(0.13, 0.83, 0.93, 1)
+
+[node name="AfterPlayer" type="AnimationPlayer" parent="." unique_id=1555498618]
+libraries/ = SubResource("AnimationLibrary_sqrij")
+autoplay = &"drift"

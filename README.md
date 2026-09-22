@@ -72,6 +72,10 @@ instead of a single clip.)
 `animation_edit` works on any clip in any `AnimationPlayer` — including
 hand-authored ones — and commits one scene-pinned undo action per call.
 
+[**Video: editing demo (1:21)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v0.3.0/animation_toolkit_edit_demo.mp4)
+— before/after clips for `retime`, `reverse`, `mirror`, `trim`, `amplitude` and
+`key_edit`.
+
 | op | What it does |
 | --- | --- |
 | `retime` | Scale the timeline by `factor` or to `length` (optionally `keys_only`). |
