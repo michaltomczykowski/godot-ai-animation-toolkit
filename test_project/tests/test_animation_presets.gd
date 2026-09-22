@@ -690,10 +690,15 @@ func test_preset_showcase_builds_and_undoes_a_runnable_demo() -> void:
 	_undo_redo.clear_history()
 	var result := _handler.preset_showcase({"name": "PresetShowcase"})
 	assert_has_key(result, "data")
-	assert_eq(result.data.animations, 5, "the demo must build one clip per preset")
+	assert_eq(result.data.animations, 6, "the demo must build one clip per preset")
 	var showcase := ValueCodec.resolve_scene_path(result.data.path, scene_root)
 	assert_true(showcase != null, "the demo subtree must exist")
 	assert_eq(showcase.owner, scene_root, "the subtree must be owned so the scene can save it")
+	var float_cube := showcase.get_node_or_null("World3D/FloatCube") as MeshInstance3D
+	assert_true(float_cube != null, "the demo must include the 3D float cube")
+	var float_player := showcase.get_node_or_null("AnimFloat") as AnimationPlayer
+	assert_true(float_player != null and float_player.has_animation("float"),
+		"the demo must autoplay the float clip")
 	for player_name in result.data.players:
 		var player := showcase.get_node_or_null(str(player_name)) as AnimationPlayer
 		assert_true(player != null, "%s must exist" % player_name)
@@ -713,3 +718,243 @@ func test_preset_showcase_builds_and_undoes_a_runnable_demo() -> void:
 	var duplicate := _handler.preset_showcase({"name": "PresetShowcase"})
 	assert_is_error(duplicate, ErrorCodes.INVALID_PARAMS)
 	_remove_node(again.data.path)
+
+
+# --- float -----------------------------------------------------------------
+
+func test_preset_float_bob_scale_and_turn() -> void:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		skip("No scene root")
+		return
+	var node: Node3D = _add_sibling(Node3D.new(), "Float3D") as Node3D
+	node.position = Vector3(1.0, 2.0, 3.0)
+	node.scale = Vector3(2.0, 2.0, 2.0)
+	var player_path := _add_player("TestPresetFloat")
+	if player_path.is_empty():
+		_remove_node("/" + scene_root.name + "/Float3D")
+		skip("Scene not ready")
+		return
+	var result := _handler.preset_float({
+		"player_path": player_path,
+		"target_path": "Float3D",
+		"height": 0.5,
+		"scale": 1.5,
+		"turns": 0.5,
+		"duration": 2.0,
+		"loop_mode": "pingpong",
+	})
+	assert_has_key(result, "data")
+	assert_eq(result.data.loop_mode, "pingpong")
+	var anim := _fetch_anim(player_path, "float")
+	assert_eq(anim.track_get_key_count(0), 2)
+	assert_eq(String(anim.track_get_path(0)), "Float3D:transform")
+	var first = anim.track_get_key_value(0, 0)
+	var last = anim.track_get_key_value(0, 1)
+	assert_true(first is Transform3D and last is Transform3D, "float keys must be Transform3D")
+	assert_true((first as Transform3D).origin.is_equal_approx(Vector3(1.0, 2.0, 3.0)),
+		"the first key must be the baseline transform, got %s" % str(first))
+	assert_true((last as Transform3D).origin.is_equal_approx(Vector3(1.0, 2.5, 3.0)),
+		"the last key must rise by 'height', got %s" % str(last))
+	assert_true(absf((last as Transform3D).basis.get_scale().x - 3.0) < 0.001,
+		"the last key must scale the baseline by 'scale', got %s" % str((last as Transform3D).basis.get_scale()))
+	## Midpoint through the engine's own interpolation: half the rise, half the
+	## scale, half the turn.
+	var mid: Transform3D = anim.value_track_interpolate(0, 1.0)
+	assert_true(absf(mid.origin.y - 2.25) < 0.001, "midpoint must be half-raised, got %s" % str(mid.origin))
+	assert_true(absf(mid.basis.get_scale().x - 2.5) < 0.001,
+		"midpoint must be half-scaled, got %s" % str(mid.basis.get_scale()))
+	_remove_node(player_path)
+	_remove_node("/" + scene_root.name + "/Float3D")
+
+
+func test_preset_float_rejects_2d_and_linear_loop() -> void:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		skip("No scene root")
+		return
+	_add_sibling(Node2D.new(), "Float2D")
+	var player_path := _add_player("TestPresetFloatBad")
+	if player_path.is_empty():
+		_remove_node("/" + scene_root.name + "/Float2D")
+		skip("Scene not ready")
+		return
+	var wrong_kind := _handler.preset_float({"player_path": player_path, "target_path": "Float2D"})
+	assert_is_error(wrong_kind, ErrorCodes.WRONG_TYPE)
+	assert_contains(wrong_kind.error.message, "pulse")
+	var linear_loop := _handler.preset_float({
+		"player_path": player_path, "target_path": "Float2D", "loop_mode": "linear",
+	})
+	assert_is_error(linear_loop, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_contains(linear_loop.error.message, "pingpong")
+	_remove_node(player_path)
+	_remove_node("/" + scene_root.name + "/Float2D")
+
+
+# --- stagger ---------------------------------------------------------------
+
+func test_preset_stagger_offsets_and_length() -> void:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		skip("No scene root")
+		return
+	var first: Node2D = _add_sibling(Node2D.new(), "StaggerA") as Node2D
+	var second: Node2D = _add_sibling(Node2D.new(), "StaggerB") as Node2D
+	var third: Node2D = _add_sibling(Node2D.new(), "StaggerC") as Node2D
+	second.position = Vector2(10.0, 0.0)
+	var player_path := _add_player("TestPresetStagger")
+	if player_path.is_empty():
+		for name in ["StaggerA", "StaggerB", "StaggerC"]:
+			_remove_node("/" + scene_root.name + "/" + name)
+		skip("Scene not ready")
+		return
+	var result := _handler.preset_stagger({
+		"player_path": player_path,
+		"target_paths": ["StaggerA", "StaggerB", "StaggerC"],
+		"effect": "slide_in",
+		"direction": "left",
+		"distance": 50.0,
+		"stagger": 0.1,
+		"duration": 0.3,
+	})
+	assert_has_key(result, "data")
+	assert_eq(result.data.target_count, 3)
+	assert_true(absf(float(result.data.length) - 0.5) < 0.0001,
+		"length must be (n-1)*stagger + duration, got %s" % str(result.data.length))
+	var anim := _fetch_anim(player_path, "stagger")
+	assert_eq(anim.get_track_count(), 3)
+	assert_eq(anim.loop_mode, Animation.LOOP_NONE)
+	assert_eq(String(anim.track_get_path(0)), "StaggerA:position")
+	assert_true(absf(anim.track_get_key_time(0, 0) - 0.0) < 0.0001)
+	assert_true(absf(anim.track_get_key_time(0, 1) - 0.3) < 0.0001)
+	assert_true((anim.track_get_key_value(0, 0) as Vector2).is_equal_approx(Vector2(-50.0, 0.0)),
+		"slide_in must start one distance to the left, got %s" % str(anim.track_get_key_value(0, 0)))
+	assert_true((anim.track_get_key_value(0, 1) as Vector2).is_equal_approx(Vector2.ZERO))
+	assert_true(absf(anim.track_get_key_time(1, 0) - 0.1) < 0.0001,
+		"the second target must be delayed by 'stagger'")
+	assert_true((anim.track_get_key_value(1, 1) as Vector2).is_equal_approx(Vector2(10.0, 0.0)),
+		"each target must land on its own baseline")
+	assert_true(absf(anim.track_get_key_time(2, 0) - 0.2) < 0.0001,
+		"the third target must be delayed by 2 * stagger")
+	_remove_node(player_path)
+	_remove_node("/" + scene_root.name + "/StaggerA")
+	_remove_node("/" + scene_root.name + "/StaggerB")
+	_remove_node("/" + scene_root.name + "/StaggerC")
+
+
+func test_preset_stagger_effects_fade_and_pop() -> void:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		skip("No scene root")
+		return
+	var sprite: Sprite2D = _add_sibling(Sprite2D.new(), "StaggerFade") as Sprite2D
+	sprite.modulate = Color(1.0, 1.0, 1.0, 0.5)
+	var popper: Node2D = _add_sibling(Node2D.new(), "StaggerPop") as Node2D
+	popper.scale = Vector2(2.0, 2.0)
+	var player_path := _add_player("TestPresetStaggerEffects")
+	if player_path.is_empty():
+		_remove_node("/" + scene_root.name + "/StaggerFade")
+		_remove_node("/" + scene_root.name + "/StaggerPop")
+		skip("Scene not ready")
+		return
+	var fade := _handler.preset_stagger({
+		"player_path": player_path,
+		"target_paths": ["StaggerFade"],
+		"effect": "fade_in",
+	})
+	assert_has_key(fade, "data")
+	var fade_anim := _fetch_anim(player_path, "stagger")
+	assert_eq(String(fade_anim.track_get_path(0)), "StaggerFade:modulate:a")
+	assert_eq(fade_anim.track_get_key_value(0, 0), 0.0)
+	assert_true(absf(float(fade_anim.track_get_key_value(0, 1)) - 0.5) < 0.0001,
+		"fade_in must land on the target's current alpha")
+	var pop := _handler.preset_stagger({
+		"player_path": player_path,
+		"target_paths": ["StaggerPop"],
+		"effect": "pop_in",
+		"overwrite": true,
+	})
+	assert_has_key(pop, "data")
+	assert_eq(pop.data.overwritten, true)
+	var pop_anim := _fetch_anim(player_path, "stagger")
+	assert_eq(String(pop_anim.track_get_path(0)), "StaggerPop:scale")
+	assert_true((pop_anim.track_get_key_value(0, 0) as Vector2).is_equal_approx(Vector2(1.2, 1.2)),
+		"pop_in must start at 0.6x the baseline, got %s" % str(pop_anim.track_get_key_value(0, 0)))
+	assert_true((pop_anim.track_get_key_value(0, 1) as Vector2).is_equal_approx(Vector2(2.0, 2.0)))
+	_remove_node(player_path)
+	_remove_node("/" + scene_root.name + "/StaggerFade")
+	_remove_node("/" + scene_root.name + "/StaggerPop")
+
+
+func test_preset_stagger_rejects_bad_input() -> void:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		skip("No scene root")
+		return
+	_add_sibling(Node3D.new(), "Stagger3D")
+	var player_path := _add_player("TestPresetStaggerBad")
+	if player_path.is_empty():
+		_remove_node("/" + scene_root.name + "/Stagger3D")
+		skip("Scene not ready")
+		return
+	_undo_redo.clear_history()
+	var empty := _handler.preset_stagger({"player_path": player_path, "target_paths": []})
+	assert_is_error(empty, ErrorCodes.MISSING_REQUIRED_PARAM)
+	var duplicate := _handler.preset_stagger({
+		"player_path": player_path, "target_paths": ["Stagger3D", "Stagger3D"],
+	})
+	assert_is_error(duplicate, ErrorCodes.INVALID_PARAMS)
+	assert_contains(duplicate.error.message, "Duplicate")
+	var bad_effect := _handler.preset_stagger({
+		"player_path": player_path, "target_paths": ["Stagger3D"], "effect": "explode",
+	})
+	assert_is_error(bad_effect, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_contains(bad_effect.error.message, "fade_in")
+	var fade_on_3d := _handler.preset_stagger({
+		"player_path": player_path, "target_paths": ["Stagger3D"], "effect": "fade_in",
+	})
+	assert_is_error(fade_on_3d, ErrorCodes.WRONG_TYPE)
+	assert_contains(fade_on_3d.error.message, "CanvasItem")
+	var bad_direction := _handler.preset_stagger({
+		"player_path": player_path, "target_paths": ["Stagger3D"],
+		"effect": "slide_in", "direction": "sideways",
+	})
+	assert_is_error(bad_direction, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_false(editor_undo(_undo_redo), "a refused stagger must not commit an undo action")
+	_remove_node(player_path)
+	_remove_node("/" + scene_root.name + "/Stagger3D")
+
+
+func test_preset_stagger_from_selection() -> void:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		skip("No scene root")
+		return
+	var first: Node2D = _add_sibling(Node2D.new(), "SelA") as Node2D
+	var second: Node2D = _add_sibling(Node2D.new(), "SelB") as Node2D
+	var player_path := _add_player("TestPresetStaggerSel")
+	if player_path.is_empty():
+		_remove_node("/" + scene_root.name + "/SelA")
+		_remove_node("/" + scene_root.name + "/SelB")
+		skip("Scene not ready")
+		return
+	var selection := EditorInterface.get_selection()
+	selection.clear()
+	selection.add_node(first)
+	selection.add_node(second)
+	var result := _handler.preset_stagger({
+		"player_path": player_path,
+		"use_selection": true,
+		"effect": "pop_in",
+	})
+	selection.clear()
+	assert_has_key(result, "data")
+	assert_eq(result.data.target_count, 2)
+	var anim := _fetch_anim(player_path, "stagger")
+	assert_eq(anim.get_track_count(), 2)
+	var targets: Array = result.data.targets
+	assert_true(targets.has("SelA") and targets.has("SelB"),
+		"both selected nodes must be animated, got %s" % str(targets))
+	_remove_node(player_path)
+	_remove_node("/" + scene_root.name + "/SelA")
+	_remove_node("/" + scene_root.name + "/SelB")

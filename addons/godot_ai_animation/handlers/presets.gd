@@ -47,10 +47,14 @@ func run(params: Dictionary, _ctx) -> Dictionary:
 			return preset_drift(params)
 		"spin":
 			return preset_spin(params)
+		"float":
+			return preset_float(params)
+		"stagger":
+			return preset_stagger(params)
 		"showcase":
 			return preset_showcase(params)
 	return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
-		"Unknown op '%s'. Valid: pulse, bounce, orbit, sweep, drift, spin, showcase" % op)
+		"Unknown op '%s'. Valid: pulse, bounce, orbit, sweep, drift, spin, float, stagger, showcase" % op)
 
 
 ## Every preset needs the editor undo manager (injected by the addon's
@@ -921,6 +925,25 @@ func preset_showcase(params: Dictionary) -> Dictionary:
 	pulse_label.add_theme_font_size_override("font_size", 36)
 	showcase.add_child(pulse_label)
 
+	## A small 3D island so the typed Transform3D float preset is demoed too.
+	var world := Node3D.new()
+	world.name = "World3D"
+	showcase.add_child(world)
+	var cam := Camera3D.new()
+	cam.name = "Cam"
+	cam.position = Vector3(0.0, 0.0, 6.0)
+	cam.current = true
+	world.add_child(cam)
+	var light := DirectionalLight3D.new()
+	light.name = "Light"
+	light.rotation_degrees = Vector3(-45.0, -30.0, 0.0)
+	world.add_child(light)
+	var float_cube := MeshInstance3D.new()
+	float_cube.name = "FloatCube"
+	float_cube.position = Vector3(-3.4, 0.0, 0.0)
+	float_cube.mesh = BoxMesh.new()
+	world.add_child(float_cube)
+
 	var animations: Array[Animation] = []
 	var players: Array[String] = []
 	_add_showcase_player(showcase, "AnimBounce", "bounce", "BounceButton:scale",
@@ -933,6 +956,8 @@ func preset_showcase(params: Dictionary) -> Dictionary:
 		build_drift_keys(620.0, 480.0, 2.0), Animation.LOOP_PINGPONG, animations, players)
 	_add_showcase_player(showcase, "AnimPulse", "pulse", "PulseLabel:modulate:a",
 		build_pulse_keys(0.2, 1.0, 1.2), Animation.LOOP_PINGPONG, animations, players)
+	_add_showcase_player(showcase, "AnimFloat", "float", "World3D/FloatCube:transform",
+		build_float_keys(float_cube.transform, 0.7, 1.25, 0.5, 2.4), Animation.LOOP_PINGPONG, animations, players)
 
 	_create_scene_pinned_action("MCP: Create animation showcase")
 	var undo := ToolContext.undo_redo
@@ -988,6 +1013,327 @@ static func _assign_owners(node: Node, owner: Node) -> void:
 	node.set_owner(owner)
 	for child in node.get_children():
 		_assign_owners(child, owner)
+
+
+# ============================================================================
+# animation_presets float — 3D bob with a scale/turn flourish
+# ============================================================================
+
+## Vertical bob for 3D targets (hovering pickups, floating platforms). The clip
+## ends at a net offset, so loop_mode "linear" is refused — use "pingpong" for
+## a hover loop or "none" for a one-shot.
+func preset_float(params: Dictionary) -> Dictionary:
+	var player_path: String = params.get("player_path", "")
+	var target_path: String = params.get("target_path", "")
+	var height: float = float(params.get("height", 0.7))
+	var scale_factor: float = float(params.get("scale", 1.25))
+	var turns: float = float(params.get("turns", 0.0))
+	var duration: float = float(params.get("duration", 2.4))
+	var anim_name: String = params.get("animation_name", "")
+	var overwrite: bool = params.get("overwrite", false)
+
+	if player_path.is_empty():
+		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM, "Missing required param: player_path")
+	if target_path.is_empty():
+		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM, "Missing required param: target_path")
+	if duration <= 0.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'duration' must be > 0")
+	if height == 0.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'height' must be non-zero")
+	if scale_factor <= 0.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'scale' must be > 0")
+	var loop_result := _resolve_loop_mode(params)
+	if loop_result.has("error"):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, loop_result.error)
+	var loop_mode: int = loop_result.ok
+	if loop_mode == Animation.LOOP_LINEAR:
+		return ErrorCodes.make(
+			ErrorCodes.VALUE_OUT_OF_RANGE,
+			(
+				"float ends at a net offset from its start, so loop_mode 'linear' would "
+				+ "snap the target back each cycle — use 'pingpong' or 'none'"
+			),
+		)
+
+	var context_error := _context_error()
+	if not context_error.is_empty():
+		return context_error
+	var resolved: Dictionary = _resolve_player(player_path)
+	if resolved.has("error"):
+		return resolved
+	var player: AnimationPlayer = resolved.player
+	var library: AnimationLibrary = resolved.library
+	var created_library := false
+	if library == null:
+		library = AnimationLibrary.new()
+		created_library = true
+
+	var target_resolved := _resolve_preset_target(player, target_path)
+	if target_resolved.has("error"):
+		return target_resolved
+	## Untyped: `transform` lives on Node3D, not on the Node base.
+	var target = target_resolved.node
+	var kind: String = target_resolved.kind
+	var track_target: String = target_resolved.track_path_root
+	if kind != "3d":
+		return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
+			"float bobs a Node3D through its transform; use 'pulse' or 'drift' for Control/2D targets")
+
+	if anim_name.is_empty():
+		anim_name = "float"
+
+	var existing := _existing_animation(library, anim_name, overwrite)
+	if existing.has("error"):
+		return existing.error
+	var old_anim: Animation = existing.old_anim
+
+	var baseline: Transform3D = target.transform
+	var keyframes := build_float_keys(baseline, height, scale_factor, turns, duration)
+	var anim := Animation.new()
+	anim.length = duration
+	anim.loop_mode = loop_mode
+	_add_property_track(anim, "%s:transform" % track_target, keyframes)
+
+	_commit_animation_add(
+		"MCP: Create animation %s" % anim_name,
+		player, library, created_library, anim_name, anim, old_anim,
+	)
+
+	return {
+		"data": {
+			"player_path": player_path,
+			"animation_name": anim_name,
+			"height": height,
+			"scale": scale_factor,
+			"turns": turns,
+			"length": duration,
+			"loop_mode": ValueCodec.loop_mode_to_string(loop_mode),
+			"keyframe_count": keyframes.size(),
+			"track_count": anim.get_track_count(),
+			"library_created": created_library,
+			"overwritten": old_anim != null,
+			"undoable": true,
+		}
+	}
+
+
+# ============================================================================
+# animation_presets stagger — reveal a list of targets in one clip
+# ============================================================================
+
+## Cap on targets per stagger call: one track each, built in a single frame.
+const _STAGGER_MAX_TARGETS := 64
+
+## Reveal many targets one after another in a single clip: one track per target,
+## key times offset by `stagger`. Effects start from each target's baseline
+## (fade_in: modulate:a 0 -> 1; slide_in: position offset -> baseline;
+## pop_in: scale 0.6x -> baseline). One undo action; loop_mode is "none".
+func preset_stagger(params: Dictionary) -> Dictionary:
+	var player_path: String = params.get("player_path", "")
+	var use_selection: bool = params.get("use_selection", false)
+	var effect: String = params.get("effect", "fade_in")
+	var stagger: float = float(params.get("stagger", 0.06))
+	var duration: float = float(params.get("duration", 0.3))
+	var direction: String = params.get("direction", "left")
+	var distance_param = params.get("distance", null)
+	var anim_name: String = params.get("animation_name", "")
+	var overwrite: bool = params.get("overwrite", false)
+
+	if player_path.is_empty():
+		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM, "Missing required param: player_path")
+	if not ["fade_in", "slide_in", "pop_in"].has(effect):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Invalid effect '%s'. Valid: fade_in, slide_in, pop_in" % effect)
+	if duration <= 0.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'duration' must be > 0")
+	if stagger < 0.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'stagger' must be >= 0")
+	if effect == "slide_in" and not ["left", "right", "up", "down"].has(direction):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Invalid direction '%s'. Valid: left, right, up, down" % direction)
+
+	var context_error := _context_error()
+	if not context_error.is_empty():
+		return context_error
+	var resolved: Dictionary = _resolve_player(player_path)
+	if resolved.has("error"):
+		return resolved
+	var player: AnimationPlayer = resolved.player
+	var library: AnimationLibrary = resolved.library
+	var created_library := false
+	if library == null:
+		library = AnimationLibrary.new()
+		created_library = true
+
+	var collected := _stagger_target_paths(player, params, use_selection)
+	if collected.has("error"):
+		return collected
+	var target_paths: Array = collected.paths
+	## Refuse a malformed list before any per-target work (a duplicate would
+	## otherwise surface as whatever error the first target hits).
+	var seen := {}
+	for path in target_paths:
+		if seen.has(path):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"Duplicate stagger target '%s' — each target gets one track" % path)
+		seen[path] = true
+
+	if anim_name.is_empty():
+		anim_name = "stagger"
+
+	var existing := _existing_animation(library, anim_name, overwrite)
+	if existing.has("error"):
+		return existing.error
+	var old_anim: Animation = existing.old_anim
+
+	var anim := Animation.new()
+	anim.length = stagger_length(target_paths.size(), stagger, duration)
+	anim.loop_mode = Animation.LOOP_NONE
+
+	for index in target_paths.size():
+		var path: String = target_paths[index]
+		var target_resolved := _resolve_preset_target(player, path)
+		if target_resolved.has("error"):
+			return target_resolved
+		var built := _stagger_track(
+			target_resolved.node, target_resolved.kind, target_resolved.track_path_root,
+			effect, direction, distance_param, float(index) * stagger, duration,
+		)
+		if built.has("error"):
+			return built
+		_add_property_track(anim, built.track_path, built.keys)
+
+	_commit_animation_add(
+		"MCP: Create animation %s" % anim_name,
+		player, library, created_library, anim_name, anim, old_anim,
+	)
+
+	return {
+		"data": {
+			"player_path": player_path,
+			"animation_name": anim_name,
+			"effect": effect,
+			"target_count": target_paths.size(),
+			"targets": target_paths,
+			"stagger": stagger,
+			"duration": duration,
+			"length": anim.length,
+			"track_count": anim.get_track_count(),
+			"library_created": created_library,
+			"overwritten": old_anim != null,
+			"undoable": true,
+		}
+	}
+
+
+## Ordered target paths for a stagger call: the explicit `target_paths` array,
+## or the editor selection converted to root_node-relative paths.
+func _stagger_target_paths(player: AnimationPlayer, params: Dictionary, use_selection: bool) -> Dictionary:
+	if use_selection:
+		var selected := EditorInterface.get_selection().get_selected_nodes()
+		if selected.is_empty():
+			return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM,
+				"use_selection is true but nothing is selected in the editor")
+		if selected.size() > _STAGGER_MAX_TARGETS:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+				"Too many selected nodes (%d); the limit is %d" % [selected.size(), _STAGGER_MAX_TARGETS])
+		var root_node := ValueCodec.player_root_node(player)
+		if root_node == null:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"AnimationPlayer at %s has no resolvable root_node (is the scene open?)" % str(player.get_path()))
+		var selected_paths: Array = []
+		for node in selected:
+			if not node.is_inside_tree():
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+					"Selected node '%s' is not in the edited scene" % node.name)
+			selected_paths.append(str(root_node.get_path_to(node)))
+		return {"paths": selected_paths}
+
+	var raw = params.get("target_paths", [])
+	if typeof(raw) != TYPE_ARRAY or raw.is_empty():
+		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM,
+			"Missing required param: target_paths (ordered list), or pass use_selection=true")
+	if raw.size() > _STAGGER_MAX_TARGETS:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Too many targets (%d); the limit is %d" % [raw.size(), _STAGGER_MAX_TARGETS])
+	var paths: Array = []
+	for entry in raw:
+		if typeof(entry) != TYPE_STRING or (entry as String).is_empty():
+			return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
+				"target_paths entries must be non-empty strings (got %s)" % type_string(typeof(entry)))
+		paths.append(entry)
+	return {"paths": paths}
+
+
+## One track spec for a stagger target: {track_path, keys} or an error dict.
+## `target` is untyped because `position`/`scale`/`modulate` live on subclasses.
+func _stagger_track(
+	target, kind: String, track_target: String, effect: String,
+	direction: String, distance_param: Variant, start_time: float, duration: float,
+) -> Dictionary:
+	var end_time := start_time + duration
+	match effect:
+		"fade_in":
+			if not target is CanvasItem:
+				return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
+					"fade_in needs a CanvasItem/Control target (got %s)" % target.get_class())
+			var current_alpha: float = (target as CanvasItem).modulate.a
+			return {
+				"track_path": "%s:modulate:a" % track_target,
+				"keys": [
+					{"time": start_time, "value": 0.0, "transition": "ease_out"},
+					{"time": end_time, "value": current_alpha, "transition": "linear"},
+				],
+			}
+		"slide_in":
+			var default_distance: float = 1.0 if kind == "3d" else 100.0
+			var distance: float = float(distance_param) if distance_param != null else default_distance
+			if distance == 0.0:
+				return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'distance' must be non-zero")
+			var offset: Variant = _direction_offset(kind, direction, distance)
+			var baseline: Variant = target.position
+			return {
+				"track_path": "%s:position" % track_target,
+				"keys": [
+					{"time": start_time, "value": baseline + offset, "transition": "ease_out"},
+					{"time": end_time, "value": baseline, "transition": "linear"},
+				],
+			}
+		"pop_in":
+			var baseline_scale: Variant = target.scale
+			var start_scale: Variant
+			if kind == "3d":
+				start_scale = baseline_scale * Vector3(0.6, 0.6, 0.6)
+			else:
+				start_scale = baseline_scale * Vector2(0.6, 0.6)
+			return {
+				"track_path": "%s:scale" % track_target,
+				"keys": [
+					{"time": start_time, "value": start_scale, "transition": "ease_out"},
+					{"time": end_time, "value": baseline_scale, "transition": "linear"},
+				],
+			}
+	return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "Unknown effect '%s'" % effect)
+
+
+## Build a directional offset for slide effects.
+## Axis conventions:
+##   Control + Node2D (screen-space, y-down): left/right = ∓x, up = -y, down = +y
+##   Node3D (world-up): left/right = ∓x, up = +y, down = -y
+static func _direction_offset(kind: String, direction: String, distance: float) -> Variant:
+	if kind == "3d":
+		match direction:
+			"left": return Vector3(-distance, 0.0, 0.0)
+			"right": return Vector3(distance, 0.0, 0.0)
+			"up": return Vector3(0.0, distance, 0.0)
+			"down": return Vector3(0.0, -distance, 0.0)
+	else:
+		match direction:
+			"left": return Vector2(-distance, 0.0)
+			"right": return Vector2(distance, 0.0)
+			"up": return Vector2(0.0, -distance)
+			"down": return Vector2(0.0, distance)
+	return null
 
 
 # ============================================================================
@@ -1075,3 +1421,35 @@ static func build_spin_keys(turns: float, clockwise: bool, duration: float) -> A
 			"transition": "linear",
 		})
 	return keyframes
+
+
+## Two Transform3D keys: baseline -> raised by `height`, scaled by
+## `scale_factor` and turned `turns` full turns about local Y.
+static func build_float_keys(
+	baseline: Transform3D, height: float, scale_factor: float, turns: float, duration: float
+) -> Array:
+	var raised := Transform3D(
+		Basis(Vector3.UP, turns * TAU)
+			* baseline.basis.scaled(Vector3(scale_factor, scale_factor, scale_factor)),
+		baseline.origin + Vector3.UP * height,
+	)
+	return [
+		{"time": 0.0, "value": baseline, "transition": "linear"},
+		{"time": duration, "value": raised, "transition": "linear"},
+	]
+
+
+## Per-index `[start, end]` key times for a stagger clip.
+static func stagger_key_times(count: int, stagger: float, duration: float) -> Array:
+	var times: Array = []
+	for index in count:
+		var start := float(index) * stagger
+		times.append([start, start + duration])
+	return times
+
+
+## Total clip length for a stagger reveal of `count` targets.
+static func stagger_length(count: int, stagger: float, duration: float) -> float:
+	if count <= 0:
+		return 0.0
+	return float(count - 1) * stagger + duration

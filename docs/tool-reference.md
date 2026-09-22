@@ -12,10 +12,13 @@ Exposed to agents as the promoted first-class tool **`custom_animation_presets`*
 | `target_path` | string | yes\* | Node to animate: relative to the player's `root_node` (e.g. `"Button"`) or scene-absolute (e.g. `"/Main/Button"`). Must be a `Control`, `Node2D`, or `Node3D`. |
 | `parent_path` | string | no | `showcase` only: parent for the demo subtree (default: the edited scene root). |
 | `name` | string | no | `showcase` only: subtree name (default `"AnimationShowcase"`). |
+| `target_paths` | array of strings | no\*\* | `stagger` only: ordered targets to reveal (each relative to `root_node` or scene-absolute). |
+| `use_selection` | bool | no\*\* | `stagger` only: use the editor's current selection, in selection order, instead of `target_paths`. |
 | `animation_name` | string | no | Clip name; defaults to the preset name. |
 | `overwrite` | bool | no | `false` (default) refuses an existing clip with the same name. |
 
 \* Not used by `showcase`, which builds its own nodes and players.
+\*\* `stagger` needs exactly one of `target_paths` or `use_selection`.
 
 ## Per-op parameters
 
@@ -29,14 +32,28 @@ Exposed to agents as the promoted first-class tool **`custom_animation_presets`*
 | `intensity` | bounce | `0.15` | Peak overshoot fraction (`peak = 1 + intensity`, `dip = 1 - intensity/4`). |
 | `radius` | orbit | `1.0` (3D) / `100.0` (2D) | Circle radius; 16 linear segments trace the circle (chord error ≈ 2%). |
 | `clockwise` | orbit, sweep | `true` | Direction of travel / rotation. |
-| `turns` | sweep, spin | `1.0` | Full turns; `sweep` rotates in-plane (or local Y for 3D), `spin` is a 3D quaternion turn around local Y. |
+| `turns` | sweep, spin, float | `1.0` (float: `0.0`) | Full turns; `sweep` rotates in-plane (or local Y for 3D), `spin` is a 3D quaternion turn, `float` adds a turn to the bob. |
+| `height` | float | `0.7` | Vertical offset (negative bobs down). |
+| `scale` | float | `1.25` | Peak scale factor relative to the target's baseline. |
 | `axis` | drift | `"x"` | `"x" \| "y" \| "z"` (3D), `"x" \| "y"` (2D/Control). |
-| `distance` | orbit, sweep, drift | by dimension | Offset magnitude (orbit uses `radius`). |
+| `distance` | orbit, sweep, drift, stagger | by dimension | Offset magnitude (orbit uses `radius`; stagger `slide_in` uses it for the travel distance). |
+| `effect` | stagger | `"fade_in"` | `"fade_in"` (CanvasItem `modulate:a`), `"slide_in"` (position), `"pop_in"` (scale from 0.6×). |
+| `stagger` | stagger | `0.06` | Seconds between consecutive targets. |
+| `direction` | stagger | `"left"` | `slide_in` travel direction: `left \| right \| up \| down`. |
 
-## Showcase
+## Float, stagger and the showcase
 
-`op="showcase"` ignores `player_path`/`target_path` and builds a runnable demo
-subtree in one undo action:
+- **`float`** (3D only) bobs a `Node3D` through its `transform`: two keys from
+  the target's current transform, raised by `height`, scaled by `scale`, turned
+  `turns` full turns about local Y. The clip ends at a net offset, so
+  `loop_mode="linear"` is refused — pass `"pingpong"` for a hover loop.
+- **`stagger`** reveals many targets in **one clip** (one track per target, key
+  times offset by `stagger`, length `(n-1)*stagger + duration`, `loop_mode`
+  fixed to `"none"`), one undo action. Targets are ordered: the `target_paths`
+  order, or the editor's selection order. Duplicates are refused, and `fade_in`
+  needs a `CanvasItem`/`Control` target.
+- **`showcase`** ignores `player_path`/`target_path` and builds a runnable demo
+  subtree in one undo action:
 
 | Node | Clip |
 | --- | --- |
@@ -45,8 +62,9 @@ subtree in one undo action:
 | `SweepPivot`/`SweepBar` | `sweep`, linear loop |
 | `DriftLine` (ColorRect) | `drift`, ping-pong |
 | `PulseLabel` (Label) | `pulse` on `modulate:a`, ping-pong |
+| `World3D/FloatCube` (MeshInstance3D) | `float`, 3D bob + scale + turn, ping-pong |
 
-Five `AnimationPlayer`s autoplay their clip; run the current scene (F6) to
+Six `AnimationPlayer`s autoplay their clip; run the current scene (F6) to
 watch it. `test_project/showcase.tscn` is the committed output.
 
 ## Behaviour
@@ -76,4 +94,12 @@ watch it. `test_project/showcase.tscn` is the committed output.
 {"op": "drift", "params": {"op": "drift", "player_path": "/Main",
   "target_path": "Scanline", "axis": "x", "distance": 480.0,
   "loop_mode": "pingpong", "duration": 2.0}}
+
+{"op": "float", "params": {"op": "float", "player_path": "/Main",
+  "target_path": "Pickup", "height": 0.4, "scale": 1.1,
+  "loop_mode": "pingpong", "duration": 2.4}}
+
+{"op": "stagger", "params": {"op": "stagger", "player_path": "/Main/HUD",
+  "target_paths": ["Item1", "Item2", "Item3"], "effect": "slide_in",
+  "direction": "left", "stagger": 0.08, "duration": 0.3}}
 ```

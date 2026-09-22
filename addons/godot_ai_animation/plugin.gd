@@ -21,13 +21,13 @@ const RETRY_INTERVAL_SEC := 0.5
 const RETRY_WINDOW_SEC := 30.0
 
 const DESCRIPTION := (
-	"One-call animation presets for an AnimationPlayer: pulse (breathing / "
+	"One-call animation presets for an AnimationPlayer. Ops: pulse (breathing / "
 	+ "ping-pong on any property), bounce (press feedback), orbit (circular "
-	+ "position), sweep (full-turn rotation), drift (one-axis offset), spin "
-	+ "(3D quaternion turn), and showcase (build a runnable demo of every "
-	+ "preset). Each preset builds one Animation clip with typed keys and "
-	+ "commits a single undoable action; Controls get their pivot recentered "
-	+ "for bounce/sweep. Requires the Godot AI addon."
+	+ "position), sweep (full-turn rotation), drift (one-axis offset), spin (3D "
+	+ "quaternion turn), float (3D bob), stagger (reveal a list of targets in "
+	+ "order), showcase (build a runnable demo). Each preset commits one "
+	+ "undoable action with typed keys and named transitions; Controls get "
+	+ "their pivot recentered for bounce/sweep. Requires the Godot AI addon."
 )
 
 const PARAMS_SCHEMA := {
@@ -35,7 +35,10 @@ const PARAMS_SCHEMA := {
 	"properties": {
 		"op": {
 			"type": "string",
-			"enum": ["pulse", "bounce", "orbit", "sweep", "drift", "spin", "showcase"],
+			"enum": [
+				"pulse", "bounce", "orbit", "sweep", "drift",
+				"spin", "float", "stagger", "showcase",
+			],
 			"description": "Which preset to build.",
 		},
 		"player_path": {
@@ -88,7 +91,42 @@ const PARAMS_SCHEMA := {
 		"clockwise": {"type": "boolean", "default": true},
 		"turns": {
 			"type": "number",
-			"description": "sweep/spin: full turns (default 1.0).",
+			"description": "sweep/spin/float: full turns (spin/sweep default 1.0; float default 0.0).",
+		},
+		"height": {
+			"type": "number",
+			"description": "float: vertical offset (default 0.7; negative bobs down).",
+		},
+		"scale": {
+			"type": "number",
+			"description": "float: peak scale factor (default 1.25).",
+		},
+		"target_paths": {
+			"type": "array",
+			"items": {"type": "string"},
+			"description": (
+				"stagger: ordered targets to reveal, each relative to the player's "
+				+ "root_node or scene-absolute."
+			),
+		},
+		"use_selection": {
+			"type": "boolean",
+			"default": false,
+			"description": "stagger: use the editor's selection (in selection order) instead of target_paths.",
+		},
+		"effect": {
+			"type": "string",
+			"enum": ["fade_in", "slide_in", "pop_in"],
+			"description": "stagger: reveal effect applied to every target.",
+		},
+		"stagger": {
+			"type": "number",
+			"description": "stagger: seconds between targets (default 0.06).",
+		},
+		"direction": {
+			"type": "string",
+			"enum": ["left", "right", "up", "down"],
+			"description": "stagger slide_in: direction the items travel from (default left).",
 		},
 		"axis": {
 			"type": "string",

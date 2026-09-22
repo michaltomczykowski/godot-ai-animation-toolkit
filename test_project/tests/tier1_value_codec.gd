@@ -8,6 +8,7 @@ extends SceneTree
 ## (Named without the `test_` prefix so the editor suite runner ignores it.)
 
 const ValueCodec := preload("res://addons/godot_ai_animation/utils/value_codec.gd")
+const Presets := preload("res://addons/godot_ai_animation/handlers/presets.gd")
 
 var _checks := 0
 var _failures := 0
@@ -19,6 +20,7 @@ func _init() -> void:
 	_check_serialize()
 	_check_paths()
 	_check_coercion()
+	_check_builders()
 	if _failures == 0:
 		print("TIER1 PASS (%d checks)" % _checks)
 	else:
@@ -124,3 +126,25 @@ func _check_coercion() -> void:
 	sprite.free()
 	node2d.free()
 	node3d.free()
+
+
+func _check_builders() -> void:
+	## float: two Transform3D keys from the baseline, rising and scaling.
+	var baseline := Transform3D(Basis(), Vector3(1.0, 2.0, 3.0))
+	var float_keys: Array = Presets.build_float_keys(baseline, 0.5, 1.5, 0.5, 2.0)
+	_expect(float_keys.size() == 2, "float builds two keys")
+	_expect((float_keys[0].value as Transform3D).origin.is_equal_approx(Vector3(1.0, 2.0, 3.0)),
+		"float starts at the baseline")
+	var raised: Transform3D = float_keys[1].value
+	_expect(raised.origin.is_equal_approx(Vector3(1.0, 2.5, 3.0)), "float rises by 'height'")
+	_expect(absf(raised.basis.get_scale().x - 1.5) < 0.001, "float scales the baseline")
+
+	## stagger: one [start, end] pair per target, length = (n-1)*stagger + duration.
+	var times: Array = Presets.stagger_key_times(3, 0.1, 0.3)
+	_expect(times.size() == 3, "stagger builds one time pair per target")
+	_expect(absf(times[0][0]) < 1e-9 and absf(times[0][1] - 0.3) < 1e-9, "first target starts at 0")
+	_expect(absf(times[1][0] - 0.1) < 1e-9, "second target is delayed by stagger")
+	_expect(absf(times[2][0] - 0.2) < 1e-9, "third target is delayed by 2 * stagger")
+	_expect(absf(Presets.stagger_length(3, 0.1, 0.3) - 0.5) < 1e-9,
+		"stagger length is (n-1)*stagger + duration")
+	_expect(Presets.stagger_length(0, 0.1, 0.3) == 0.0, "an empty stagger has zero length")

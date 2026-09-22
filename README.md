@@ -17,7 +17,7 @@ core during the animation PR review: a generalized `pulse` plus `bounce`,
 
 ![The generated demo scene running](docs/images/presets-showcase.gif)
 
-*`op="showcase"` builds the scene above — five nodes, five autoplaying clips, one undo step.*
+*`op="showcase"` builds the scene above — six nodes, six autoplaying clips, one undo step.*
 
 ## Presets
 
@@ -29,7 +29,9 @@ core during the animation PR review: a generalized `pulse` plus `bounce`,
 | `sweep` | Full-turn rotation sweep — radar scans, cooldown rings | `turns=1.0`, `duration=1.0` |
 | `drift` | One-axis position offset — scanlines, marquee, conveyor | `axis="x"`, `duration=1.0` |
 | `spin` | 3D quaternion turn around local Y | `turns=1.0`, `duration=3.0` |
-| `showcase` | Builds a runnable demo of every preset (5 nodes + 5 autoplaying clips) | `name="AnimationShowcase"` |
+| `float` | 3D bob: rise + scale + turn through the transform | `height=0.7`, `scale=1.25`, `duration=2.4` |
+| `stagger` | Reveal a list of targets one after another in **one clip** | `effect="fade_in"`, `stagger=0.06`, `duration=0.3` |
+| `showcase` | Builds a runnable demo of every preset (6 nodes + 6 autoplaying clips) | `name="AnimationShowcase"` |
 
 Every preset:
 

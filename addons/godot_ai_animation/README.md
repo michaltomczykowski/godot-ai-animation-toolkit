@@ -12,7 +12,9 @@ as a custom MCP tool: `animation_presets` (promoted to
 | `sweep` | Full-turn rotation sweep (radar / cooldown ring). |
 | `drift` | One-axis position offset (scanlines, marquee, conveyor). |
 | `spin` | 3D quaternion turn around local Y. |
-| `showcase` | Builds a runnable demo of every preset (5 nodes + 5 autoplaying clips). |
+| `float` | 3D bob: rise + scale + turn through the transform. |
+| `stagger` | Reveal a list of targets one after another in one clip (`target_paths` or the editor selection). |
+| `showcase` | Builds a runnable demo of every preset (6 nodes + 6 autoplaying clips). |
 
 Every preset commits **one scene-pinned undo action**; Controls get
 `pivot_offset` recentered inside the same action for `bounce`/`sweep`.

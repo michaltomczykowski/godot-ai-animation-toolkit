@@ -1,6 +1,20 @@
 # Changelog
 
-## 0.1.0 — unreleased
+## 0.2.0 — unreleased
+
+- New `float` preset: 3D bob through the target's transform (rise + scale +
+  optional turn); refuses `loop_mode="linear"` like `drift` (the clip ends at a
+  net offset).
+- New `stagger` op: reveal an ordered list of targets in **one clip** (one
+  track per target, key times offset by `stagger`, one undo action) with
+  `fade_in` / `slide_in` / `pop_in` effects, from `target_paths` or the editor
+  selection (`use_selection`).
+- The `showcase` op now also builds a small 3D island (camera, light, cube) so
+  the `float` preset is demoed; `test_project/showcase.tscn` regenerated and the
+  README GIF re-recorded.
+- Tests: 27 editor rows (6 new) + 40 tier-1 checks (10 new).
+
+## 0.1.0
 
 - Initial release: `animation_presets` custom tool with seven ops —
   `pulse`, `bounce`, `orbit`, `sweep`, `drift`, `spin` (3D quaternion turn),
