@@ -958,7 +958,11 @@ static func _graph_schema() -> Dictionary:
 				"type": "string",
 				"description": "Where to create a new AnimationTree (default: the player's parent).",
 			},
-			"active": {"type": "boolean", "default": true, "description": "Activate the tree when wiring."},
+			"active": {
+				"type": "boolean",
+				"default": false,
+				"description": "Activate the tree. Off by default because an active AnimationTree also drives the scene while you edit it - turn it on when the scene is ready to play.",
+			},
 			"create": {"type": "boolean", "default": true, "description": "wire: create the tree when missing."},
 			"parameter_path": {"type": "string", "description": "wire: tree parameter to set (e.g. \"parameters/conditions/walking\")."},
 			"parameter_value": {"description": "wire: value for parameter_path."},
@@ -966,6 +970,11 @@ static func _graph_schema() -> Dictionary:
 				"type": "array",
 				"items": {"type": "object"},
 				"description": "state_machine: [{name, animation, position?}] — one AnimationNodeAnimation per state.",
+			},
+			"advance_mode": {
+				"type": "string",
+				"enum": ["auto", "enabled", "disabled"],
+				"description": "Per transition: \"auto\" fires when its condition/expression is true (Godot only evaluates conditions in auto mode), \"enabled\" is reachable by travel() only, \"disabled\" blocks it.",
 			},
 			"transitions": {
 				"type": "array",
@@ -1033,19 +1042,19 @@ static func _graph_ops() -> Array:
 		{
 			"name": "state_machine",
 			"summary": "Build a state machine (states + transitions with xfade, conditions and modes) as the tree root.",
-			"params": ["player_path", "tree_path", "name", "parent_path", "states", "transitions", "allow_transition_to_self", "reset_ends", "state_machine_type", "start"],
+			"params": ["player_path", "tree_path", "name", "parent_path", "active", "states", "transitions", "advance_mode", "allow_transition_to_self", "reset_ends", "state_machine_type", "start"],
 			"example": {"op": "state_machine", "player_path": "/Main", "states": [{"name": "idle", "animation": "idle"}, {"name": "walk", "animation": "walk"}], "transitions": [{"from": "idle", "to": "walk", "xfade": 0.2, "condition": "walking"}, {"from": "walk", "to": "idle", "xfade": 0.2, "advance_expression": "!walking"}]},
 		},
 		{
 			"name": "blend_space",
 			"summary": "Build a 1D or 2D blend space from clips at positions (speed, direction, ...).",
-			"params": ["player_path", "tree_path", "name", "parent_path", "dimensions", "points", "min", "max", "snap", "sync"],
+			"params": ["player_path", "tree_path", "name", "parent_path", "active", "dimensions", "points", "min", "max", "snap", "sync"],
 			"example": {"op": "blend_space", "player_path": "/Main", "dimensions": 1, "points": [{"animation": "idle", "position": 0}, {"animation": "walk", "position": 1}, {"animation": "run", "position": 2}], "min": 0, "max": 2},
 		},
 		{
 			"name": "blend_tree",
 			"summary": "Build a blend tree from a recursive spec (blend2/blend3/add2/add3/one_shot/time_scale/animation).",
-			"params": ["player_path", "tree_path", "name", "parent_path", "root"],
+			"params": ["player_path", "tree_path", "name", "parent_path", "active", "root"],
 			"example": {"op": "blend_tree", "player_path": "/Main", "root": {"type": "blend2", "inputs": [{"type": "animation", "animation": "walk"}, {"type": "animation", "animation": "run"}]}},
 		},
 		{
@@ -1063,19 +1072,19 @@ static func _graph_ops() -> Array:
 		{
 			"name": "locomotion",
 			"summary": "Ready-made idle/walk/run setup: a speed blend space or a walking/running state machine.",
-			"params": ["player_path", "tree_path", "name", "parent_path", "mode", "idle", "walk", "run", "start"],
+			"params": ["player_path", "tree_path", "name", "parent_path", "active", "mode", "idle", "walk", "run", "start"],
 			"example": {"op": "locomotion", "player_path": "/Main", "mode": "state_machine", "start": "idle"},
 		},
 		{
 			"name": "one_shot_layer",
 			"summary": "Layer a one-shot clip (jump/attack/hit) on top of the existing tree root.",
-			"params": ["player_path", "tree_path", "name", "parent_path", "animation", "base", "fadein", "fadeout", "autorestart", "mix_mode"],
+			"params": ["player_path", "tree_path", "name", "parent_path", "active", "animation", "base", "fadein", "fadeout", "autorestart", "mix_mode"],
 			"example": {"op": "one_shot_layer", "player_path": "/Main", "animation": "jump", "fadein": 0.1, "fadeout": 0.2},
 		},
 		{
 			"name": "additive_lean",
 			"summary": "Additively layer a clip (lean/tilt) on top of the existing tree root.",
-			"params": ["player_path", "tree_path", "name", "parent_path", "animation", "base"],
+			"params": ["player_path", "tree_path", "name", "parent_path", "active", "animation", "base"],
 			"example": {"op": "additive_lean", "player_path": "/Main", "animation": "lean", "name": "Lean"},
 		},
 	])

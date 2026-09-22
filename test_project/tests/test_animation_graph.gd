@@ -142,7 +142,7 @@ func test_state_machine_creates_tree_and_parameters() -> void:
 	assert_has_key(result, "data")
 	var tree := _find_tree()
 	assert_true(tree != null, "the AnimationTree is created")
-	assert_true(tree.active, "the tree is active")
+	assert_false(tree.active, "the tree stays inactive by default (an active tree drives the scene at edit time)")
 	assert_true(tree.get_node_or_null(tree.anim_player) is AnimationPlayer, "anim_player resolves")
 	assert_true(tree.tree_root is AnimationNodeStateMachine, "the root is a state machine")
 	var machine := tree.tree_root as AnimationNodeStateMachine
@@ -265,6 +265,13 @@ func test_wire_creates_tree_and_sets_parameter() -> void:
 	}, null)
 	assert_has_key(wired, "data")
 	assert_true(bool(_find_tree().get(condition_path)), "the parameter value is applied")
+	assert_false(_find_tree().active, "wire leaves the tree inactive by default")
+	var activated := _handler.run({
+		"op": "wire", "player_path": rig.player_path, "active": true,
+	}, null)
+	assert_has_key(activated, "data")
+	assert_true(_find_tree().active, "active=true opts in")
+	_find_tree().active = false
 	var extra_path := "/" + _scene_root_name() + "/ExtraTree"
 	var extra := _handler.run({
 		"op": "wire", "player_path": rig.player_path, "tree_path": extra_path,
@@ -293,7 +300,9 @@ func test_graph_get_dumps_and_flags() -> void:
 	assert_eq(int(dump.data.root.state_count), 2)
 	assert_eq(int(dump.data.root.transition_count), 2)
 	assert_true((dump.data.animations as Array).has("idle"), "referenced clips are listed")
-	assert_true((dump.data.issues as Array).is_empty(), "a healthy graph has no issues")
+	var healthy_codes := _codes(dump.data.issues)
+	assert_true(healthy_codes.is_empty() or healthy_codes == ["inactive_tree"],
+		"a healthy graph only reports the inactive-tree info (%s)" % str(healthy_codes))
 	# An inactive tree is reported.
 	_find_tree().active = false
 	var inactive := _handler.run({"op": "graph_get", "player_path": rig.player_path}, null)
@@ -336,6 +345,13 @@ func test_locomotion_blend_space_and_state_machine() -> void:
 	assert_has_key(machine, "data")
 	assert_eq(str(machine.data.mode), "state_machine")
 	assert_eq(int(machine.data.transition_count), 4)
+	var root_machine := _find_tree().tree_root as AnimationNodeStateMachine
+	var auto_modes := 0
+	for index in root_machine.get_transition_count():
+		if root_machine.get_transition(index).advance_mode == AnimationNodeStateMachineTransition.ADVANCE_MODE_AUTO:
+			auto_modes += 1
+	assert_eq(auto_modes, 4,
+		"condition transitions must be AUTO: Godot only evaluates conditions in auto mode")
 	assert_true((machine.data.conditions as Array).has("walking") and (machine.data.conditions as Array).has("running"),
 		"the walking/running conditions exist")
 	assert_contains(str(machine.data.start_hint), "idle")
@@ -362,6 +378,10 @@ func test_one_shot_layer_wraps_the_root() -> void:
 	var shot := tree.get_node(StringName("OneShot")) as AnimationNodeOneShot
 	assert_true(shot != null and is_equal_approx(shot.fadeout_time, 0.25), "the shot keeps its fade settings")
 	assert_true(_has_param_ending(result.data.parameters, "/request"), "the request parameter is exposed")
+	assert_true(tree.get_node(StringName("Shot")) is AnimationNodeAnimation,
+		"the shot clip is wired as the one-shot's child node")
+	assert_true(str((tree.get_node(StringName("Shot")) as AnimationNodeAnimation).animation) == "run",
+		"the shot child carries the requested clip")
 	var layered := _handler.run({"op": "additive_lean", "player_path": rig.player_path, "animation": "walk"}, null)
 	assert_has_key(layered, "data")
 	assert_true(_has_param_ending(layered.data.parameters, "/add_amount"), "the additive amount is exposed")

@@ -1,0 +1,137 @@
+[gd_scene format=3 uid="uid://dyy17ampa4fed"]
+
+[ext_resource type="Script" uid="uid://cnsmm8g2treen" path="res://demo_graph_driver.gd" id="1_fwyo5"]
+
+[sub_resource type="Animation" id="Animation_jsv5o"]
+length = 1.6
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Character:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1.6),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(220, 410), Vector2(234, 410)]
+}
+
+[sub_resource type="Animation" id="Animation_ul828"]
+length = 0.6
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Character:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.6),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(220, 410), Vector2(430, 410)]
+}
+
+[sub_resource type="Animation" id="Animation_r1erh"]
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Character:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(220, 410), Vector2(310, 410)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_4ocld"]
+_data = {
+&"idle": SubResource("Animation_jsv5o"),
+&"run": SubResource("Animation_ul828"),
+&"walk": SubResource("Animation_r1erh")
+}
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_fwyo5"]
+animation = &"idle"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_jsv5o"]
+animation = &"run"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_ul828"]
+animation = &"walk"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_r1erh"]
+xfade_time = 0.2
+advance_mode = 2
+advance_condition = &"walking"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_4ocld"]
+xfade_time = 0.2
+advance_mode = 2
+advance_expression = "!walking"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_dgru8"]
+xfade_time = 0.2
+advance_mode = 2
+advance_condition = &"running"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_8443v"]
+xfade_time = 0.2
+advance_mode = 2
+advance_expression = "!running"
+
+[sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_um188"]
+states/idle/node = SubResource("AnimationNodeAnimation_fwyo5")
+states/idle/position = Vector2(0, 0)
+states/run/node = SubResource("AnimationNodeAnimation_jsv5o")
+states/run/position = Vector2(480, 0)
+states/walk/node = SubResource("AnimationNodeAnimation_ul828")
+states/walk/position = Vector2(240, 0)
+transitions = ["idle", "walk", SubResource("AnimationNodeStateMachineTransition_r1erh"), "walk", "idle", SubResource("AnimationNodeStateMachineTransition_4ocld"), "walk", "run", SubResource("AnimationNodeStateMachineTransition_dgru8"), "run", "walk", SubResource("AnimationNodeStateMachineTransition_8443v")]
+
+[node name="GraphStates" type="Node2D" unique_id=375409201]
+script = ExtResource("1_fwyo5")
+
+[node name="Title" type="Label" parent="." unique_id=909257686]
+offset_left = 60.0
+offset_top = 30.0
+offset_right = 61.0
+offset_bottom = 53.0
+theme_override_font_sizes/font_size = 34
+text = "state_machine - idle / walk / run"
+
+[node name="Readout" type="Label" parent="." unique_id=1413517354]
+offset_left = 60.0
+offset_top = 90.0
+offset_right = 61.0
+offset_bottom = 113.0
+theme_override_colors/font_color = Color(0.13, 0.83, 0.93, 1)
+theme_override_font_sizes/font_size = 28
+
+[node name="Ground" type="ColorRect" parent="." unique_id=1252230485]
+offset_top = 500.0
+offset_right = 1152.0
+offset_bottom = 506.0
+color = Color(0.2, 0.2, 0.24, 1)
+
+[node name="Character" type="ColorRect" parent="." unique_id=611165097]
+offset_left = 220.0
+offset_top = 410.0
+offset_right = 310.0
+offset_bottom = 500.0
+color = Color(0.29, 0.87, 0.5, 1)
+
+[node name="GraphPlayer" type="AnimationPlayer" parent="." unique_id=405025913]
+libraries/ = SubResource("AnimationLibrary_4ocld")
+
+[node name="AnimationTree" type="AnimationTree" parent="." unique_id=1821212979]
+active = false
+tree_root = SubResource("AnimationNodeStateMachine_um188")
+anim_player = NodePath("../GraphPlayer")
+parameters/conditions/running = false
+parameters/conditions/walking = false

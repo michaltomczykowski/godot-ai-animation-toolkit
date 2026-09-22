@@ -207,10 +207,10 @@ func graph_locomotion(params: Dictionary) -> Dictionary:
 				{"name": "run", "animation": run, "position": {"x": 480, "y": 0}},
 			],
 			"transitions": [
-				{"from": "idle", "to": "walk", "xfade": 0.2, "advance_mode": "enabled", "condition": "walking"},
-				{"from": "walk", "to": "idle", "xfade": 0.2, "advance_mode": "enabled", "advance_expression": "!walking"},
-				{"from": "walk", "to": "run", "xfade": 0.2, "advance_mode": "enabled", "condition": "running"},
-				{"from": "run", "to": "walk", "xfade": 0.2, "advance_mode": "enabled", "advance_expression": "!running"},
+				{"from": "idle", "to": "walk", "xfade": 0.2, "advance_mode": "auto", "condition": "walking"},
+				{"from": "walk", "to": "idle", "xfade": 0.2, "advance_mode": "auto", "advance_expression": "!walking"},
+				{"from": "walk", "to": "run", "xfade": 0.2, "advance_mode": "auto", "condition": "running"},
+				{"from": "run", "to": "walk", "xfade": 0.2, "advance_mode": "auto", "advance_expression": "!running"},
 			],
 		})
 		if built.has("error"):
@@ -336,11 +336,11 @@ func _wrap_root(context: Dictionary, layer_node: AnimationNode, combiner: Animat
 	var layer_name := str(context.get("layer_name", "Layer"))
 	var combiner_name := "Blend2" if combiner is AnimationNodeBlend2 else "Add2"
 	tree.add_node(StringName(base_name), base_node, Vector2(0.0, 0.0))
+	tree.add_node(StringName(layer_name), layer_node, Vector2(220.0, 0.0))
 	var layer_child: AnimationNode = options.get("layer_child")
 	if layer_child != null:
 		tree.add_node(StringName("Shot"), layer_child, Vector2(220.0, 140.0))
 		tree.connect_node(StringName(layer_name), 0, StringName("Shot"))
-	tree.add_node(StringName(layer_name), layer_node, Vector2(220.0, 0.0))
 	tree.add_node(StringName(combiner_name), combiner, Vector2(440.0, 0.0))
 	tree.connect_node(StringName(combiner_name), 0, StringName(base_name))
 	tree.connect_node(StringName(combiner_name), 1, StringName(layer_name))
@@ -404,6 +404,7 @@ func _graph_context(params: Dictionary) -> Dictionary:
 		"tree": tree,
 		"tree_parent": tree_parent,
 		"tree_created": tree_parent != null,
+		"active": bool(params.get("active", false)),
 		"clips": _clip_names(player),
 		"layer_name": str(params.get("name", "OneShot" if str(params.get("op", "")) == "one_shot_layer" else "Lean")),
 	}
@@ -570,8 +571,9 @@ func _commit_graph(context: Dictionary, root: AnimationNode, action_label: Strin
 		if tree.anim_player != wanted_player:
 			undo.add_do_property(tree, "anim_player", wanted_player)
 			undo.add_undo_property(tree, "anim_player", old_anim_player)
-		if not tree.active:
-			undo.add_do_property(tree, "active", true)
+		var want_active := bool(context.get("active", false))
+		if tree.active != want_active:
+			undo.add_do_property(tree, "active", want_active)
 			undo.add_undo_property(tree, "active", old_active)
 		if not parameter_path.is_empty():
 			var old_value = tree.get(parameter_path)
@@ -588,7 +590,8 @@ func _commit_graph(context: Dictionary, root: AnimationNode, action_label: Strin
 		"tree_path": tree_label,
 		"created": created,
 		"tree_root": _root_label(root) if root != null else _root_label(tree.tree_root),
-		"active": true,
+		"active": bool(context.get("active", false)),
+		"active_note": "an active AnimationTree also drives the scene while you edit it" if bool(context.get("active", false)) else "inactive: pass active=true (or enable the tree) when the scene is ready",
 		"animations": GraphBuilders.animations_in(root) if root != null else GraphBuilders.animations_in(tree.tree_root),
 		"issues": extra.get("issues", []),
 		"undoable": true,

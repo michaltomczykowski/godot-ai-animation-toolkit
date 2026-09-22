@@ -1,0 +1,165 @@
+[gd_scene format=3 uid="uid://c7k03a4n5iv6e"]
+
+[ext_resource type="Script" uid="uid://cnsmm8g2treen" path="res://demo_graph_driver.gd" id="1_cuxii"]
+
+[sub_resource type="Animation" id="Animation_n8cv8"]
+length = 1.6
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Character:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1.6),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(260, 410), Vector2(274, 410)]
+}
+
+[sub_resource type="Animation" id="Animation_x8ne5"]
+length = 0.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Character:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(260, 410), Vector2(260, 260)]
+}
+
+[sub_resource type="Animation" id="Animation_hwgpx"]
+length = 0.6
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Character:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.6),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(260, 410), Vector2(470, 410)]
+}
+
+[sub_resource type="Animation" id="Animation_jv64d"]
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Character:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(260, 410), Vector2(350, 410)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_b2nx8"]
+_data = {
+&"idle": SubResource("Animation_n8cv8"),
+&"jump": SubResource("Animation_x8ne5"),
+&"run": SubResource("Animation_hwgpx"),
+&"walk": SubResource("Animation_jv64d")
+}
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_cuxii"]
+animation = &"idle"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_n8cv8"]
+animation = &"run"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_x8ne5"]
+animation = &"walk"
+
+[sub_resource type="AnimationNodeBlendSpace1D" id="AnimationNodeBlendSpace1D_hwgpx"]
+min_space = 0.0
+max_space = 2.0
+snap = 0.01
+sync_mode = 1
+blend_point_0/node = SubResource("AnimationNodeAnimation_cuxii")
+blend_point_0/pos = 0.0
+blend_point_0/name = &"idle"
+blend_point_1/node = SubResource("AnimationNodeAnimation_n8cv8")
+blend_point_1/pos = 2.0
+blend_point_1/name = &"run"
+blend_point_2/node = SubResource("AnimationNodeAnimation_x8ne5")
+blend_point_2/pos = 1.0
+blend_point_2/name = &"walk"
+
+[sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_jv64d"]
+
+[sub_resource type="AnimationNodeOneShot" id="AnimationNodeOneShot_b2nx8"]
+fadein_time = 0.1
+fadeout_time = 0.25
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_xlvgk"]
+animation = &"jump"
+
+[sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_b30pe"]
+nodes/Base/node = SubResource("AnimationNodeBlendSpace1D_hwgpx")
+nodes/Base/position = Vector2(0, 0)
+nodes/Jump/node = SubResource("AnimationNodeOneShot_b2nx8")
+nodes/Jump/position = Vector2(220, 0)
+nodes/Shot/node = SubResource("AnimationNodeAnimation_xlvgk")
+nodes/Shot/position = Vector2(220, 140)
+nodes/Blend2/node = SubResource("AnimationNodeBlend2_jv64d")
+nodes/Blend2/position = Vector2(440, 0)
+node_connections = [&"output", 0, &"Blend2", &"Jump", 0, &"Shot", &"Blend2", 0, &"Base", &"Blend2", 1, &"Jump"]
+
+[node name="GraphBlend" type="Node2D" unique_id=1987333252]
+script = ExtResource("1_cuxii")
+mode = "blend"
+tree_path = NodePath("AnimationTree")
+readout_path = NodePath("Readout")
+
+[node name="Title" type="Label" parent="." unique_id=2103479146]
+offset_left = 60.0
+offset_top = 30.0
+offset_right = 61.0
+offset_bottom = 53.0
+theme_override_font_sizes/font_size = 34
+text = "blend_space + one_shot_layer"
+
+[node name="Readout" type="Label" parent="." unique_id=614206899]
+offset_left = 60.0
+offset_top = 90.0
+offset_right = 61.0
+offset_bottom = 113.0
+theme_override_colors/font_color = Color(0.13, 0.83, 0.93, 1)
+theme_override_font_sizes/font_size = 28
+
+[node name="Ground" type="ColorRect" parent="." unique_id=1055568444]
+offset_top = 500.0
+offset_right = 1152.0
+offset_bottom = 506.0
+color = Color(0.2, 0.2, 0.24, 1)
+
+[node name="Character" type="ColorRect" parent="." unique_id=917720201]
+offset_left = 260.0
+offset_top = 410.0
+offset_right = 350.0
+offset_bottom = 500.0
+color = Color(0.98, 0.75, 0.35, 1)
+
+[node name="GraphPlayer" type="AnimationPlayer" parent="." unique_id=328762886]
+libraries/ = SubResource("AnimationLibrary_b2nx8")
+
+[node name="AnimationTree" type="AnimationTree" parent="." unique_id=838809906]
+active = false
+tree_root = SubResource("AnimationNodeBlendTree_b30pe")
+anim_player = NodePath("../GraphPlayer")
+parameters/Base/blend_position = 0.0
+parameters/Jump/active = false
+parameters/Jump/internal_active = false
+parameters/Jump/request = 0
+parameters/Blend2/blend_amount = 0.0

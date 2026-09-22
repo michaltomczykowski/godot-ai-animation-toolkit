@@ -190,14 +190,14 @@ Handler: `res://addons/godot_ai_animation/handlers/graph.gd`
 
 | op | What it does | Params |
 | --- | --- | --- |
-| `state_machine` | Build a state machine (states + transitions with xfade, conditions and modes) as the tree root. | `player_path`, `tree_path`, `name`, `parent_path`, `states`, `transitions`, `allow_transition_to_self`, `reset_ends`, `state_machine_type`, `start`, `dry_run` |
-| `blend_space` | Build a 1D or 2D blend space from clips at positions (speed, direction, ...). | `player_path`, `tree_path`, `name`, `parent_path`, `dimensions`, `points`, `min`, `max`, `snap`, `sync`, `dry_run` |
-| `blend_tree` | Build a blend tree from a recursive spec (blend2/blend3/add2/add3/one_shot/time_scale/animation). | `player_path`, `tree_path`, `name`, `parent_path`, `root`, `dry_run` |
+| `state_machine` | Build a state machine (states + transitions with xfade, conditions and modes) as the tree root. | `player_path`, `tree_path`, `name`, `parent_path`, `active`, `states`, `transitions`, `advance_mode`, `allow_transition_to_self`, `reset_ends`, `state_machine_type`, `start`, `dry_run` |
+| `blend_space` | Build a 1D or 2D blend space from clips at positions (speed, direction, ...). | `player_path`, `tree_path`, `name`, `parent_path`, `active`, `dimensions`, `points`, `min`, `max`, `snap`, `sync`, `dry_run` |
+| `blend_tree` | Build a blend tree from a recursive spec (blend2/blend3/add2/add3/one_shot/time_scale/animation). | `player_path`, `tree_path`, `name`, `parent_path`, `active`, `root`, `dry_run` |
 | `wire` | Ensure an AnimationTree exists for the player, is active, and optionally set a parameter. | `player_path`, `tree_path`, `name`, `parent_path`, `active`, `create`, `parameter_path`, `parameter_value`, `dry_run` |
 | `graph_get` | Dump a graph: states, transitions, blend points, tree structure, parameters, and missing-clip issues. | `player_path`, `tree_path`, `dry_run` |
-| `locomotion` | Ready-made idle/walk/run setup: a speed blend space or a walking/running state machine. | `player_path`, `tree_path`, `name`, `parent_path`, `mode`, `idle`, `walk`, `run`, `start`, `dry_run` |
-| `one_shot_layer` | Layer a one-shot clip (jump/attack/hit) on top of the existing tree root. | `player_path`, `tree_path`, `name`, `parent_path`, `animation`, `base`, `fadein`, `fadeout`, `autorestart`, `mix_mode`, `dry_run` |
-| `additive_lean` | Additively layer a clip (lean/tilt) on top of the existing tree root. | `player_path`, `tree_path`, `name`, `parent_path`, `animation`, `base`, `dry_run` |
+| `locomotion` | Ready-made idle/walk/run setup: a speed blend space or a walking/running state machine. | `player_path`, `tree_path`, `name`, `parent_path`, `active`, `mode`, `idle`, `walk`, `run`, `start`, `dry_run` |
+| `one_shot_layer` | Layer a one-shot clip (jump/attack/hit) on top of the existing tree root. | `player_path`, `tree_path`, `name`, `parent_path`, `active`, `animation`, `base`, `fadein`, `fadeout`, `autorestart`, `mix_mode`, `dry_run` |
+| `additive_lean` | Additively layer a clip (lean/tilt) on top of the existing tree root. | `player_path`, `tree_path`, `name`, `parent_path`, `active`, `animation`, `base`, `dry_run` |
 
 ### `animation_graph` parameters
 
@@ -208,11 +208,12 @@ Handler: `res://addons/godot_ai_animation/handlers/graph.gd`
 | `tree_path` | string | Scene path to the AnimationTree. Missing trees are created at that path; omit to reuse or create one next to the player. |
 | `name` | string | Name for a created tree (default "AnimationTree"), or for the layer node in one_shot_layer/additive_lean. |
 | `parent_path` | string | Where to create a new AnimationTree (default: the player's parent). |
-| `active` | boolean (default `true`) | Activate the tree when wiring. |
+| `active` | boolean (default `false`) | Activate the tree. Off by default because an active AnimationTree also drives the scene while you edit it - turn it on when the scene is ready to play. |
 | `create` | boolean (default `true`) | wire: create the tree when missing. |
 | `parameter_path` | string | wire: tree parameter to set (e.g. "parameters/conditions/walking"). |
 | `parameter_value` | any | wire: value for parameter_path. |
 | `states` | array | state_machine: [{name, animation, position?}] — one AnimationNodeAnimation per state. |
+| `advance_mode` | string: auto \| enabled \| disabled | Per transition: "auto" fires when its condition/expression is true (Godot only evaluates conditions in auto mode), "enabled" is reachable by travel() only, "disabled" blocks it. |
 | `transitions` | array | state_machine: [{from, to, xfade?, advance_mode?, switch_mode?, condition?, advance_expression?, priority?, reset?}]. |
 | `allow_transition_to_self` | boolean (default `false`) |  |
 | `reset_ends` | boolean (default `false`) |  |
