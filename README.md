@@ -131,6 +131,10 @@ Same contract as the presets — one undo action per call, `dry_run` supported.
 
 ## AnimationTree graphs
 
+[**Video: graph demo (0:38)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v0.6.0/animation_toolkit_graph_demo.mp4)
+— a locomotion state machine following `walking`/`running` conditions with
+cross-fades, then a speed blend space with a one-shot jump layer.
+
 `animation_graph` builds and inspects the graph layer: state machines with
 conditions and cross-fades, 1D/2D blend spaces, recursive blend trees, and
 ready-made locomotion / one-shot / additive layer setups. It creates and wires
