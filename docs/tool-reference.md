@@ -2,9 +2,10 @@
 
 Exposed to agents as the promoted first-class tools
 **`custom_animation_presets`** (create clips), **`custom_animation_fx`**
-(generators for game feel, UI, sprites and audio), **`custom_animation_edit`**
-(edit existing clips) and **`custom_animation_inspect`** (read-only inspection),
-all reachable through `custom_manage(op="invoke", tool_name=...)`.
+(generators for game feel, UI, sprites and audio), **`custom_animation_graph`**
+(AnimationTree authoring), **`custom_animation_edit`** (edit existing clips) and
+**`custom_animation_inspect`** (read-only inspection), all reachable through
+`custom_manage(op="invoke", tool_name=...)`.
 
 A generated per-op index with every parameter lives in
 [`op-index.md`](op-index.md) — it is rendered from
@@ -252,4 +253,55 @@ Notes:
 
 {"op": "animation_fx", "params": {"op": "sprite_frames", "sprite_path": "/Main/Player",
   "texture": "res://art/run.png", "hframes": 6, "vframes": 1, "fps": 12}}
+```
+
+## `animation_graph`
+
+Authors `AnimationTree` graphs on top of an `AnimationPlayer`. The tree is
+created next to the player (or at `tree_path`), pointed at the player, activated,
+and committed as ONE scene-pinned undo action.
+
+| op | What it builds |
+| --- | --- |
+| `state_machine` | An `AnimationNodeStateMachine` root from `states` + `transitions` (xfade, advance/switch modes, conditions, expressions, priority). |
+| `blend_space` | A 1D or 2D `AnimationNodeBlendSpace` from clips at positions. |
+| `blend_tree` | A recursive blend tree spec: `blend2`/`blend3`/`add2`/`add3`/`one_shot`/`time_scale`/`animation`, with nested state machines and blend spaces. |
+| `wire` | Ensures the tree exists, is active and pointed at the player; optionally sets a parameter. |
+| `graph_get` | Dumps a graph: states, transitions, blend points, tree nodes, parameters, playback paths, and issues (missing clips, inactive tree, unresolved player). |
+| `locomotion` | Ready-made idle/walk/run: a speed blend space (default) or a state machine driven by `walking`/`running`. |
+| `one_shot_layer` | Layers a one-shot (jump/attack/hit) over the existing tree root, exposing `parameters/.../request`. |
+| `additive_lean` | Layers a clip additively over the existing root, exposing `parameters/.../add_amount`. |
+
+Notes:
+
+- Godot adds `Start`/`End` markers to state machines and an `output` port to
+  blend trees; the ops ignore them in counts and dumps.
+- State machines have no persisted start state: the ops report a `start_hint`
+  with the playback path to call at runtime
+  (`tree.get("parameters/<name>/playback").start("idle")`).
+- Conditions become bool parameters: `parameters/conditions/<name>`.
+- Blend amounts / one-shot requests are parameters on the tree
+  (`parameters/<node>/blend_amount`, `/request`, `/add_amount`).
+- `graph_get` reports `missing_clip` when the graph references a clip the player
+  does not have, instead of failing the build.
+
+### Examples
+
+```json
+{"op": "animation_graph", "params": {"op": "state_machine", "player_path": "/Main",
+  "states": [{"name": "idle", "animation": "idle"}, {"name": "walk", "animation": "walk"}],
+  "transitions": [
+    {"from": "idle", "to": "walk", "xfade": 0.2, "condition": "walking"},
+    {"from": "walk", "to": "idle", "xfade": 0.2, "advance_expression": "!walking"}]}}
+
+{"op": "animation_graph", "params": {"op": "blend_space", "player_path": "/Main",
+  "dimensions": 1, "min": 0, "max": 2,
+  "points": [{"animation": "idle", "position": 0}, {"animation": "walk", "position": 1},
+             {"animation": "run", "position": 2}]}}
+
+{"op": "animation_graph", "params": {"op": "locomotion", "player_path": "/Main",
+  "mode": "state_machine", "start": "idle"}}
+
+{"op": "animation_graph", "params": {"op": "one_shot_layer", "player_path": "/Main",
+  "animation": "jump", "fadein": 0.1, "fadeout": 0.2}}
 ```

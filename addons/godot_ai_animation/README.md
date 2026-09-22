@@ -1,6 +1,6 @@
 # Godot AI Animation Toolkit (addon)
 
-Four custom MCP tools for Godot AI agents, built on one declarative clip-spec
+Five custom MCP tools for Godot AI agents, built on one declarative clip-spec
 engine:
 
 - **`animation_presets`** (promoted to `custom_animation_presets`) — build clips
@@ -11,6 +11,9 @@ engine:
   feel, UI, sprites and audio: shake, zoom_punch, hit_flash, damage_bar,
   typewriter, progress_fill, counter, dialog_pop, transition, wave, spring,
   pendulum, path_follow, flipbook, sprite_frames, audio_cue.
+- **`animation_graph`** (promoted to `custom_animation_graph`) — AnimationTree
+  authoring: state machines, blend spaces, blend trees, `wire`, `graph_get`,
+  `locomotion`, `one_shot_layer`, `additive_lean`.
 - **`animation_inspect`** (promoted to `custom_animation_inspect`) — read-only
   inspection, auditing and dry runs.
 
@@ -74,6 +77,19 @@ compressed tracks rather than rewriting them lossily.
 | `sprite_frames` | Slice a spritesheet into a SpriteFrames resource. |
 | `audio_cue` | Schedule an audio stream as a one-key audio clip. |
 
+## `animation_graph`
+
+| op | What it builds |
+| --- | --- |
+| `state_machine` | State machine root: states, transitions, xfade, conditions, advance/switch modes. |
+| `blend_space` | 1D/2D blend space from clips at positions. |
+| `blend_tree` | Recursive blend tree (blend2/blend3/add2/add3/one_shot/time_scale). |
+| `wire` | Ensure the tree exists, is active, and optionally set a parameter. |
+| `graph_get` | Dump a graph + flag missing clips / inactive trees. |
+| `locomotion` | Ready-made idle/walk/run blend space or `walking`/`running` state machine. |
+| `one_shot_layer` | Layer a one-shot (jump/attack) over the current root. |
+| `additive_lean` | Additively layer a lean/tilt clip over the current root. |
+
 ## `animation_inspect`
 
 | op | What it reports |
@@ -97,8 +113,9 @@ undoable commands) rejects it — call it directly.
 - `registry/op_registry.gd` — single source of truth for tool descriptions,
   params schemas, op metadata, and `docs/op-index.md`.
 - `spec/fx_specs.gd` — pure spec builders for the `animation_fx` generators.
-- `handlers/generate.gd`, `handlers/fx.gd`, `handlers/edit.gd`,
-  `handlers/inspect.gd` — tool entry points sharing
+- `spec/graph_builders.gd` — pure AnimationNode* graph builders + dumps.
+- `handlers/generate.gd`, `handlers/fx.gd`, `handlers/graph.gd`,
+  `handlers/edit.gd`, `handlers/inspect.gd` — tool entry points sharing
   `handlers/animation_tool_base.gd` (one undo action per mutating call;
   `dry_run` skips the commit).
 

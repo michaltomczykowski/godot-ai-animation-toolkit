@@ -1,6 +1,6 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **Phase 0-3 done** (v0.5.0). Phase 4 (animation graphs) next.
+Status: **Phase 0-4 done** (v0.6.0). Phase 5 (project library) next.
 Last updated: 2026-09-22.
 
 Phase 3 note: the generators landed as their own family, `animation_fx`, instead
@@ -100,12 +100,15 @@ and edit tools themselves.
 - sprites/audio: `flipbook`, `sprite_frames` (spritesheet -> SpriteFrames),
   `audio_cue`
 
-## Phase 4 — `animation_graph` → v0.6.0
+## Phase 4 — `animation_graph` (done)
 
-State machine build (states, transitions, xfade, conditions, advance modes),
-blend space 1D/2D, blend tree (`blend2` / `one_shot` / `time_scale`), `wire`
-(AnimationTree → player), `graph_get` dump, plus `locomotion`, `one_shot_layer`,
-`additive_lean` presets.
+State machine build (states, transitions, xfade, conditions, advance/switch
+modes), blend space 1D/2D, recursive blend trees (`blend2`/`blend3`/`add2`/
+`add3`/`one_shot`/`time_scale`), `wire` (create/configure the AnimationTree,
+set parameters), `graph_get` (dump + missing-clip/inactive-tree issues), plus
+`locomotion`, `one_shot_layer` and `additive_lean` setups. Godot's implicit
+`Start`/`End`/`output` nodes are filtered from counts and dumps; state machines
+report a `start_hint` because the start state is not persisted.
 
 ## Phase 5 — project library → v0.7.0
 

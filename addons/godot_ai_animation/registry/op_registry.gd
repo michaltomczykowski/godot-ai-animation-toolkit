@@ -15,6 +15,7 @@ const FAMILY_PRESETS := "animation_presets"
 const FAMILY_EDIT := "animation_edit"
 const FAMILY_INSPECT := "animation_inspect"
 const FAMILY_FX := "animation_fx"
+const FAMILY_GRAPH := "animation_graph"
 
 const MAX_DESCRIPTION_CHARS := 600
 
@@ -57,11 +58,20 @@ static func families() -> Dictionary:
 			"requires_writable": true,
 			"undoable": true,
 		},
+		FAMILY_GRAPH: {
+			"handler": "res://addons/godot_ai_animation/handlers/graph.gd",
+			"summary": "AnimationTree authoring: state machines, blend spaces, blend trees.",
+			"description": _graph_description(),
+			"schema": _graph_schema(),
+			"ops": _graph_ops(),
+			"requires_writable": true,
+			"undoable": true,
+		},
 	}
 
 
 static func family_names() -> Array:
-	return [FAMILY_PRESETS, FAMILY_EDIT, FAMILY_FX, FAMILY_INSPECT]
+	return [FAMILY_PRESETS, FAMILY_FX, FAMILY_GRAPH, FAMILY_EDIT, FAMILY_INSPECT]
 
 
 static func family(name: String) -> Dictionary:
@@ -599,7 +609,7 @@ static func _inspect_schema() -> Dictionary:
 			},
 			"tool": {
 				"type": "string",
-				"enum": ["animation_presets", "animation_fx", "animation_edit"],
+				"enum": ["animation_presets", "animation_fx", "animation_graph", "animation_edit"],
 				"description": "dry_run: which tool to run. help: which tool's ops to list (omit for all).",
 			},
 			"forward_op": {
@@ -899,6 +909,174 @@ static func _fx_ops() -> Array:
 			"summary": "Schedule an audio stream as a one-key audio clip on the player.",
 			"params": ["player_path", "target_path", "stream", "time", "start_offset", "end_offset", "animation_name", "overwrite"],
 			"example": {"op": "audio_cue", "player_path": "/Main", "target_path": "Player", "stream": "res://sfx/land.wav", "time": 0.2},
+		},
+	])
+
+
+# ============================================================================
+# animation_graph
+# ============================================================================
+
+static func _graph_description() -> String:
+	return (
+		"Author AnimationTree graphs on top of an AnimationPlayer: state_machine "
+		+ "(states, transitions, xfade, conditions, advance/switch modes), "
+		+ "blend_space (1D/2D), blend_tree (recursive blend2/blend3/add2/add3/"
+		+ "one_shot/time_scale), wire (create or configure the tree, set "
+		+ "parameters), graph_get (dump a graph, flag missing clips), plus "
+		+ "locomotion, one_shot_layer and additive_lean setups. One scene-pinned "
+		+ "undo action per call; every op accepts dry_run. Requires the Godot AI "
+		+ "addon."
+	)
+
+
+static func _graph_schema() -> Dictionary:
+	return {
+		"type": "object",
+		"properties": {
+			"op": {
+				"type": "string",
+				"enum": [
+					"state_machine", "blend_space", "blend_tree", "wire", "graph_get",
+					"locomotion", "one_shot_layer", "additive_lean",
+				],
+				"description": "Which graph op to run.",
+			},
+			"player_path": {
+				"type": "string",
+				"description": "Scene path to the AnimationPlayer that owns the clips (graph_get: optional, used to validate references).",
+			},
+			"tree_path": {
+				"type": "string",
+				"description": "Scene path to the AnimationTree. Missing trees are created at that path; omit to reuse or create one next to the player.",
+			},
+			"name": {
+				"type": "string",
+				"description": "Name for a created tree (default \"AnimationTree\"), or for the layer node in one_shot_layer/additive_lean.",
+			},
+			"parent_path": {
+				"type": "string",
+				"description": "Where to create a new AnimationTree (default: the player's parent).",
+			},
+			"active": {"type": "boolean", "default": true, "description": "Activate the tree when wiring."},
+			"create": {"type": "boolean", "default": true, "description": "wire: create the tree when missing."},
+			"parameter_path": {"type": "string", "description": "wire: tree parameter to set (e.g. \"parameters/conditions/walking\")."},
+			"parameter_value": {"description": "wire: value for parameter_path."},
+			"states": {
+				"type": "array",
+				"items": {"type": "object"},
+				"description": "state_machine: [{name, animation, position?}] — one AnimationNodeAnimation per state.",
+			},
+			"transitions": {
+				"type": "array",
+				"items": {"type": "object"},
+				"description": "state_machine: [{from, to, xfade?, advance_mode?, switch_mode?, condition?, advance_expression?, priority?, reset?}].",
+			},
+			"allow_transition_to_self": {"type": "boolean", "default": false},
+			"reset_ends": {"type": "boolean", "default": false},
+			"state_machine_type": {
+				"type": "string",
+				"enum": ["root", "nested", "grouped"],
+				"description": "state_machine: graph role (default root).",
+			},
+			"start": {"type": "string", "description": "state_machine/locomotion: start state to report a runtime hint for."},
+			"dimensions": {"type": "integer", "description": "blend_space: 1 (float axis) or 2 (Vector2 axis)."},
+			"points": {
+				"type": "array",
+				"items": {"type": "object"},
+				"description": "blend_space: [{animation, position, name?}] — position is a float (1D) or {x,y} (2D).",
+			},
+			"min": {"description": "blend_space: minimum space (number for 1D, {x,y} for 2D)."},
+			"max": {"description": "blend_space: maximum space (number for 1D, {x,y} for 2D)."},
+			"snap": {"description": "blend_space: snap step (number for 1D, {x,y} for 2D)."},
+			"sync": {"type": "boolean", "default": true, "description": "blend_space: sync the blended clips' time."},
+			"root": {
+				"type": "object",
+				"description": "blend_tree: recursive node spec, e.g. {type: \"blend2\", inputs: [{type: \"animation\", animation: \"walk\"}, ...]}.",
+			},
+			"animation": {
+				"type": "string",
+				"description": "one_shot_layer/additive_lean: the clip to layer (jump/attack/lean).",
+			},
+			"base": {
+				"type": "string",
+				"description": "one_shot_layer/additive_lean: clip to layer onto when the tree has no root yet.",
+			},
+			"fadein": {"type": "number", "description": "one_shot_layer: fade-in seconds (default 0.1)."},
+			"fadeout": {"type": "number", "description": "one_shot_layer: fade-out seconds (default 0.2)."},
+			"autorestart": {"type": "boolean", "default": false, "description": "one_shot_layer: restart automatically."},
+			"mix_mode": {
+				"type": "string",
+				"enum": ["blend", "add"],
+				"description": "one_shot_layer: blend the shot over the base or add it (default blend).",
+			},
+			"mode": {
+				"type": "string",
+				"enum": ["blend_space", "state_machine"],
+				"description": "locomotion: how to blend idle/walk/run (default blend_space on speed 0-2).",
+			},
+			"idle": {"type": "string", "description": "locomotion: idle clip name (default \"idle\")."},
+			"walk": {"type": "string", "description": "locomotion: walk clip name (default \"walk\")."},
+			"run": {"type": "string", "description": "locomotion: run clip name (default \"run\")."},
+			"dry_run": {
+				"type": "boolean",
+				"default": false,
+				"description": "Report what the graph would look like without committing anything (no undo action).",
+			},
+		},
+		"required": ["op", "player_path"],
+	}
+
+
+static func _graph_ops() -> Array:
+	return _with_dry_run([
+		{
+			"name": "state_machine",
+			"summary": "Build a state machine (states + transitions with xfade, conditions and modes) as the tree root.",
+			"params": ["player_path", "tree_path", "name", "parent_path", "states", "transitions", "allow_transition_to_self", "reset_ends", "state_machine_type", "start"],
+			"example": {"op": "state_machine", "player_path": "/Main", "states": [{"name": "idle", "animation": "idle"}, {"name": "walk", "animation": "walk"}], "transitions": [{"from": "idle", "to": "walk", "xfade": 0.2, "condition": "walking"}, {"from": "walk", "to": "idle", "xfade": 0.2, "advance_expression": "!walking"}]},
+		},
+		{
+			"name": "blend_space",
+			"summary": "Build a 1D or 2D blend space from clips at positions (speed, direction, ...).",
+			"params": ["player_path", "tree_path", "name", "parent_path", "dimensions", "points", "min", "max", "snap", "sync"],
+			"example": {"op": "blend_space", "player_path": "/Main", "dimensions": 1, "points": [{"animation": "idle", "position": 0}, {"animation": "walk", "position": 1}, {"animation": "run", "position": 2}], "min": 0, "max": 2},
+		},
+		{
+			"name": "blend_tree",
+			"summary": "Build a blend tree from a recursive spec (blend2/blend3/add2/add3/one_shot/time_scale/animation).",
+			"params": ["player_path", "tree_path", "name", "parent_path", "root"],
+			"example": {"op": "blend_tree", "player_path": "/Main", "root": {"type": "blend2", "inputs": [{"type": "animation", "animation": "walk"}, {"type": "animation", "animation": "run"}]}},
+		},
+		{
+			"name": "wire",
+			"summary": "Ensure an AnimationTree exists for the player, is active, and optionally set a parameter.",
+			"params": ["player_path", "tree_path", "name", "parent_path", "active", "create", "parameter_path", "parameter_value"],
+			"example": {"op": "wire", "player_path": "/Main", "parameter_path": "parameters/conditions/walking", "parameter_value": true},
+		},
+		{
+			"name": "graph_get",
+			"summary": "Dump a graph: states, transitions, blend points, tree structure, parameters, and missing-clip issues.",
+			"params": ["player_path", "tree_path"],
+			"example": {"op": "graph_get", "tree_path": "/Main/AnimationTree"},
+		},
+		{
+			"name": "locomotion",
+			"summary": "Ready-made idle/walk/run setup: a speed blend space or a walking/running state machine.",
+			"params": ["player_path", "tree_path", "name", "parent_path", "mode", "idle", "walk", "run", "start"],
+			"example": {"op": "locomotion", "player_path": "/Main", "mode": "state_machine", "start": "idle"},
+		},
+		{
+			"name": "one_shot_layer",
+			"summary": "Layer a one-shot clip (jump/attack/hit) on top of the existing tree root.",
+			"params": ["player_path", "tree_path", "name", "parent_path", "animation", "base", "fadein", "fadeout", "autorestart", "mix_mode"],
+			"example": {"op": "one_shot_layer", "player_path": "/Main", "animation": "jump", "fadein": 0.1, "fadeout": 0.2},
+		},
+		{
+			"name": "additive_lean",
+			"summary": "Additively layer a clip (lean/tilt) on top of the existing tree root.",
+			"params": ["player_path", "tree_path", "name", "parent_path", "animation", "base"],
+			"example": {"op": "additive_lean", "player_path": "/Main", "animation": "lean", "name": "Lean"},
 		},
 	])
 

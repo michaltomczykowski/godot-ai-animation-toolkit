@@ -73,93 +73,6 @@ Required: `op`, `player_path`, `target_path`.
 {"op":"showcase","parent_path":"/Main"}
 ```
 
-## `animation_edit`
-
-Edit an existing Animation clip in place.
-
-Handler: `res://addons/godot_ai_animation/handlers/edit.gd`
-
-| op | What it does | Params |
-| --- | --- | --- |
-| `retime` | Scale the clip's timeline by `factor` or to `length` (optionally keys_only). | `player_path`, `animation_name`, `factor`, `length`, `keys_only`, `dry_run` |
-| `retarget` | Rewrite track paths — rename a node, or bulk-remap a subtree prefix after a refactor. | `player_path`, `animation_name`, `from_path`, `to_path`, `mode`, `paths`, `dry_run` |
-| `reverse` | Mirror every key time about the length so the clip plays backwards. | `player_path`, `animation_name`, `dry_run` |
-| `mirror` | Mirror position/rotation (and optionally scale) across a plane, about an optional pivot. | `player_path`, `animation_name`, `axis`, `pivot`, `include_scale`, `dry_run` |
-| `offset` | Shift every key in time (optionally wrapping inside the clip length). | `player_path`, `animation_name`, `delta`, `wrap`, `dry_run` |
-| `ease_range` | Set the per-key transition on every value key inside a time range. | `player_path`, `animation_name`, `from`, `to`, `transition`, `dry_run` |
-| `set_interp` | Set track-level interpolation (linear/nearest/cubic) on value tracks, optionally one track. | `player_path`, `animation_name`, `interpolation`, `track_path`, `dry_run` |
-| `trim` | Keep only a time range, shifted to 0, with optional sampled boundary keys. | `player_path`, `animation_name`, `from`, `to`, `keep_bounds`, `dry_run` |
-| `split_at` | Cut one clip into two at a time; the tail keeps the name, the head gets head_name. | `player_path`, `animation_name`, `time`, `head_name`, `overwrite`, `dry_run` |
-| `merge` | Concatenate clips (optionally across players) into one, with an optional gap. | `player_path`, `animation_name`, `sources`, `new_name`, `gap`, `overwrite`, `dry_run` |
-| `amplitude` | Scale key deltas about a baseline — soften or exaggerate a clip without rebuilding it. | `player_path`, `animation_name`, `factor`, `baseline`, `dry_run` |
-| `loop` | Set the loop mode, optionally making a linear loop seamless. | `player_path`, `animation_name`, `loop_mode`, `make_seamless`, `dry_run` |
-| `key_edit` | Add, set, remove or move a single key on a track. | `player_path`, `animation_name`, `action`, `track_path`, `track_index`, `time`, `value`, `transition`, `new_time`, `tolerance`, `dry_run` |
-| `cleanup` | Drop redundant keys and empty tracks (dedupe holds, optional minimum gap). | `player_path`, `animation_name`, `tolerance`, `min_gap`, `drop_empty_tracks`, `dry_run` |
-
-### `animation_edit` parameters
-
-| Param | Type | Notes |
-| --- | --- | --- |
-| `op` | string: retime \| retarget \| reverse \| mirror \| offset \| ease_range \| set_interp \| trim \| split_at \| merge \| amplitude \| loop \| key_edit \| cleanup | Which edit to apply. |
-| `player_path` | string | Scene path to the AnimationPlayer that owns the clip. |
-| `animation_name` | string | Name of the clip to edit (merge: the default player for sources without one). |
-| `factor` | number | retime: time multiplier (>0). amplitude: value multiplier (1.0 = unchanged, 0.0 = flat). |
-| `length` | number | retime: target clip length in seconds (alternative to factor). |
-| `keys_only` | boolean (default `false`) | retime: change the clip length but leave key times alone. |
-| `from_path` | string | retarget: track path (mode=exact) or node path (mode=node/prefix) to rewrite. |
-| `to_path` | string | retarget: replacement path. |
-| `mode` | string: node \| prefix \| exact | retarget: node = same node part, property kept; prefix = node path or subtree; exact = whole track path. |
-| `paths` | array | retarget: batch of {from, to, mode} remaps applied in order (alternative to from_path/to_path). |
-| `axis` | string | mirror: plane(s) to mirror across — any of "x", "y", "z" (e.g. "x" or "xy"). |
-| `pivot` | any | mirror: pivot for position tracks ({x,y[,z]}); default origin. |
-| `include_scale` | boolean (default `false`) | mirror: also negate scale components on the mirrored axes. |
-| `delta` | number | offset: seconds to shift every key (may be negative). |
-| `wrap` | boolean (default `false`) | offset: rotate the shift inside the clip length (loop phase shift) instead of extending it. |
-| `from` | number | ease_range/trim: start of the time range (default 0). |
-| `to` | number | ease_range/trim: end of the time range (default clip length). |
-| `transition` | any | ease_range/key_edit: per-key transition — "linear", "ease_in", "ease_out", "ease_in_out", or a number. |
-| `interpolation` | string: linear \| nearest \| cubic | set_interp: track interpolation (cubic only for position/rotation/scale 3D tracks). |
-| `track_path` | string | set_interp/key_edit: track to target (e.g. "Sprite:position"). key_edit also accepts track_index. |
-| `track_index` | integer | key_edit: track index (alternative to track_path). |
-| `keep_bounds` | boolean (default `true`) | trim: sample keys at both cut edges so the motion at the edges survives. |
-| `time` | number | split_at: cut time. key_edit: key time to add/set/remove/move. |
-| `head_name` | string | split_at: name for the head clip (default "<name>_a"; the tail keeps the original name). |
-| `sources` | array | merge: clips to concatenate as {animation_name, player_path?}; defaults to the edited player. |
-| `new_name` | string | merge/split_at: name for the produced clip (merge default "<first>_merged"). |
-| `gap` | number | merge: seconds of silence inserted between clips. |
-| `overwrite` | boolean (default `false`) | merge/split_at: replace an existing clip with the produced name. |
-| `baseline` | any | amplitude: value the deltas are measured from (default: each track's first key). |
-| `loop_mode` | string: none \| linear \| pingpong | loop: new loop mode. |
-| `make_seamless` | boolean (default `false`) | loop: append a final key equal to the first so a linear loop wraps without a jump. |
-| `action` | string: add \| set \| remove \| move | key_edit: what to do with the key. |
-| `value` | any | key_edit add/set: new key value (typed to the track); for method tracks, the method name. |
-| `new_time` | number | key_edit move: new key time. |
-| `tolerance` | number | key_edit/cleanup: match/equality tolerance in seconds or units (default 0.001 / 0.0001). |
-| `min_gap` | number | cleanup: drop keys closer than this to the previous kept key (default 0 = keep all). |
-| `drop_empty_tracks` | boolean (default `true`) | cleanup: remove tracks that end up with no keys. |
-| `dry_run` | boolean (default `false`) | Report what the edit would produce without committing anything (no undo action). |
-
-Required: `op`, `player_path`, `animation_name`.
-
-### Examples
-
-```json
-{"animation_name":"open","factor":0.5,"op":"retime","player_path":"/Main/HUD"}
-{"animation_name":"open","from_path":"Panel","mode":"prefix","op":"retarget","player_path":"/Main/HUD","to_path":"Popup/Panel"}
-{"animation_name":"open","op":"reverse","player_path":"/Main/HUD"}
-{"animation_name":"walk","axis":"x","op":"mirror","pivot":{"x":0,"y":0},"player_path":"/Main"}
-{"animation_name":"pulse","delta":0.3,"op":"offset","player_path":"/Main/HUD","wrap":true}
-{"animation_name":"open","from":0.0,"op":"ease_range","player_path":"/Main/HUD","to":0.4,"transition":"ease_out"}
-{"animation_name":"walk","interpolation":"nearest","op":"set_interp","player_path":"/Main","track_path":"Sprite:frame"}
-{"animation_name":"walk","from":0.2,"op":"trim","player_path":"/Main","to":0.8}
-{"animation_name":"walk","op":"split_at","player_path":"/Main","time":0.5}
-{"animation_name":"intro","gap":0.1,"new_name":"full","op":"merge","player_path":"/Main","sources":[{"animation_name":"intro"},{"animation_name":"loop"}]}
-{"animation_name":"bounce","factor":0.5,"op":"amplitude","player_path":"/Main/HUD"}
-{"animation_name":"walk","loop_mode":"linear","make_seamless":true,"op":"loop","player_path":"/Main"}
-{"action":"set","animation_name":"open","op":"key_edit","player_path":"/Main/HUD","time":0.2,"track_path":"Panel:position","value":{"x":10,"y":0}}
-{"animation_name":"walk","min_gap":0.01,"op":"cleanup","player_path":"/Main","tolerance":0.0001}
-```
-
 ## `animation_fx`
 
 One-call generators for game feel, UI, sprites and audio.
@@ -269,6 +182,163 @@ Required: `op`.
 {"op":"audio_cue","player_path":"/Main","stream":"res://sfx/land.wav","target_path":"Player","time":0.2}
 ```
 
+## `animation_graph`
+
+AnimationTree authoring: state machines, blend spaces, blend trees.
+
+Handler: `res://addons/godot_ai_animation/handlers/graph.gd`
+
+| op | What it does | Params |
+| --- | --- | --- |
+| `state_machine` | Build a state machine (states + transitions with xfade, conditions and modes) as the tree root. | `player_path`, `tree_path`, `name`, `parent_path`, `states`, `transitions`, `allow_transition_to_self`, `reset_ends`, `state_machine_type`, `start`, `dry_run` |
+| `blend_space` | Build a 1D or 2D blend space from clips at positions (speed, direction, ...). | `player_path`, `tree_path`, `name`, `parent_path`, `dimensions`, `points`, `min`, `max`, `snap`, `sync`, `dry_run` |
+| `blend_tree` | Build a blend tree from a recursive spec (blend2/blend3/add2/add3/one_shot/time_scale/animation). | `player_path`, `tree_path`, `name`, `parent_path`, `root`, `dry_run` |
+| `wire` | Ensure an AnimationTree exists for the player, is active, and optionally set a parameter. | `player_path`, `tree_path`, `name`, `parent_path`, `active`, `create`, `parameter_path`, `parameter_value`, `dry_run` |
+| `graph_get` | Dump a graph: states, transitions, blend points, tree structure, parameters, and missing-clip issues. | `player_path`, `tree_path`, `dry_run` |
+| `locomotion` | Ready-made idle/walk/run setup: a speed blend space or a walking/running state machine. | `player_path`, `tree_path`, `name`, `parent_path`, `mode`, `idle`, `walk`, `run`, `start`, `dry_run` |
+| `one_shot_layer` | Layer a one-shot clip (jump/attack/hit) on top of the existing tree root. | `player_path`, `tree_path`, `name`, `parent_path`, `animation`, `base`, `fadein`, `fadeout`, `autorestart`, `mix_mode`, `dry_run` |
+| `additive_lean` | Additively layer a clip (lean/tilt) on top of the existing tree root. | `player_path`, `tree_path`, `name`, `parent_path`, `animation`, `base`, `dry_run` |
+
+### `animation_graph` parameters
+
+| Param | Type | Notes |
+| --- | --- | --- |
+| `op` | string: state_machine \| blend_space \| blend_tree \| wire \| graph_get \| locomotion \| one_shot_layer \| additive_lean | Which graph op to run. |
+| `player_path` | string | Scene path to the AnimationPlayer that owns the clips (graph_get: optional, used to validate references). |
+| `tree_path` | string | Scene path to the AnimationTree. Missing trees are created at that path; omit to reuse or create one next to the player. |
+| `name` | string | Name for a created tree (default "AnimationTree"), or for the layer node in one_shot_layer/additive_lean. |
+| `parent_path` | string | Where to create a new AnimationTree (default: the player's parent). |
+| `active` | boolean (default `true`) | Activate the tree when wiring. |
+| `create` | boolean (default `true`) | wire: create the tree when missing. |
+| `parameter_path` | string | wire: tree parameter to set (e.g. "parameters/conditions/walking"). |
+| `parameter_value` | any | wire: value for parameter_path. |
+| `states` | array | state_machine: [{name, animation, position?}] — one AnimationNodeAnimation per state. |
+| `transitions` | array | state_machine: [{from, to, xfade?, advance_mode?, switch_mode?, condition?, advance_expression?, priority?, reset?}]. |
+| `allow_transition_to_self` | boolean (default `false`) |  |
+| `reset_ends` | boolean (default `false`) |  |
+| `state_machine_type` | string: root \| nested \| grouped | state_machine: graph role (default root). |
+| `start` | string | state_machine/locomotion: start state to report a runtime hint for. |
+| `dimensions` | integer | blend_space: 1 (float axis) or 2 (Vector2 axis). |
+| `points` | array | blend_space: [{animation, position, name?}] — position is a float (1D) or {x,y} (2D). |
+| `min` | any | blend_space: minimum space (number for 1D, {x,y} for 2D). |
+| `max` | any | blend_space: maximum space (number for 1D, {x,y} for 2D). |
+| `snap` | any | blend_space: snap step (number for 1D, {x,y} for 2D). |
+| `sync` | boolean (default `true`) | blend_space: sync the blended clips' time. |
+| `root` | object | blend_tree: recursive node spec, e.g. {type: "blend2", inputs: [{type: "animation", animation: "walk"}, ...]}. |
+| `animation` | string | one_shot_layer/additive_lean: the clip to layer (jump/attack/lean). |
+| `base` | string | one_shot_layer/additive_lean: clip to layer onto when the tree has no root yet. |
+| `fadein` | number | one_shot_layer: fade-in seconds (default 0.1). |
+| `fadeout` | number | one_shot_layer: fade-out seconds (default 0.2). |
+| `autorestart` | boolean (default `false`) | one_shot_layer: restart automatically. |
+| `mix_mode` | string: blend \| add | one_shot_layer: blend the shot over the base or add it (default blend). |
+| `mode` | string: blend_space \| state_machine | locomotion: how to blend idle/walk/run (default blend_space on speed 0-2). |
+| `idle` | string | locomotion: idle clip name (default "idle"). |
+| `walk` | string | locomotion: walk clip name (default "walk"). |
+| `run` | string | locomotion: run clip name (default "run"). |
+| `dry_run` | boolean (default `false`) | Report what the graph would look like without committing anything (no undo action). |
+
+Required: `op`, `player_path`.
+
+### Examples
+
+```json
+{"op":"state_machine","player_path":"/Main","states":[{"animation":"idle","name":"idle"},{"animation":"walk","name":"walk"}],"transitions":[{"condition":"walking","from":"idle","to":"walk","xfade":0.2},{"advance_expression":"!walking","from":"walk","to":"idle","xfade":0.2}]}
+{"dimensions":1,"max":2,"min":0,"op":"blend_space","player_path":"/Main","points":[{"animation":"idle","position":0},{"animation":"walk","position":1},{"animation":"run","position":2}]}
+{"op":"blend_tree","player_path":"/Main","root":{"inputs":[{"animation":"walk","type":"animation"},{"animation":"run","type":"animation"}],"type":"blend2"}}
+{"op":"wire","parameter_path":"parameters/conditions/walking","parameter_value":true,"player_path":"/Main"}
+{"op":"graph_get","tree_path":"/Main/AnimationTree"}
+{"mode":"state_machine","op":"locomotion","player_path":"/Main","start":"idle"}
+{"animation":"jump","fadein":0.1,"fadeout":0.2,"op":"one_shot_layer","player_path":"/Main"}
+{"animation":"lean","name":"Lean","op":"additive_lean","player_path":"/Main"}
+```
+
+## `animation_edit`
+
+Edit an existing Animation clip in place.
+
+Handler: `res://addons/godot_ai_animation/handlers/edit.gd`
+
+| op | What it does | Params |
+| --- | --- | --- |
+| `retime` | Scale the clip's timeline by `factor` or to `length` (optionally keys_only). | `player_path`, `animation_name`, `factor`, `length`, `keys_only`, `dry_run` |
+| `retarget` | Rewrite track paths — rename a node, or bulk-remap a subtree prefix after a refactor. | `player_path`, `animation_name`, `from_path`, `to_path`, `mode`, `paths`, `dry_run` |
+| `reverse` | Mirror every key time about the length so the clip plays backwards. | `player_path`, `animation_name`, `dry_run` |
+| `mirror` | Mirror position/rotation (and optionally scale) across a plane, about an optional pivot. | `player_path`, `animation_name`, `axis`, `pivot`, `include_scale`, `dry_run` |
+| `offset` | Shift every key in time (optionally wrapping inside the clip length). | `player_path`, `animation_name`, `delta`, `wrap`, `dry_run` |
+| `ease_range` | Set the per-key transition on every value key inside a time range. | `player_path`, `animation_name`, `from`, `to`, `transition`, `dry_run` |
+| `set_interp` | Set track-level interpolation (linear/nearest/cubic) on value tracks, optionally one track. | `player_path`, `animation_name`, `interpolation`, `track_path`, `dry_run` |
+| `trim` | Keep only a time range, shifted to 0, with optional sampled boundary keys. | `player_path`, `animation_name`, `from`, `to`, `keep_bounds`, `dry_run` |
+| `split_at` | Cut one clip into two at a time; the tail keeps the name, the head gets head_name. | `player_path`, `animation_name`, `time`, `head_name`, `overwrite`, `dry_run` |
+| `merge` | Concatenate clips (optionally across players) into one, with an optional gap. | `player_path`, `animation_name`, `sources`, `new_name`, `gap`, `overwrite`, `dry_run` |
+| `amplitude` | Scale key deltas about a baseline — soften or exaggerate a clip without rebuilding it. | `player_path`, `animation_name`, `factor`, `baseline`, `dry_run` |
+| `loop` | Set the loop mode, optionally making a linear loop seamless. | `player_path`, `animation_name`, `loop_mode`, `make_seamless`, `dry_run` |
+| `key_edit` | Add, set, remove or move a single key on a track. | `player_path`, `animation_name`, `action`, `track_path`, `track_index`, `time`, `value`, `transition`, `new_time`, `tolerance`, `dry_run` |
+| `cleanup` | Drop redundant keys and empty tracks (dedupe holds, optional minimum gap). | `player_path`, `animation_name`, `tolerance`, `min_gap`, `drop_empty_tracks`, `dry_run` |
+
+### `animation_edit` parameters
+
+| Param | Type | Notes |
+| --- | --- | --- |
+| `op` | string: retime \| retarget \| reverse \| mirror \| offset \| ease_range \| set_interp \| trim \| split_at \| merge \| amplitude \| loop \| key_edit \| cleanup | Which edit to apply. |
+| `player_path` | string | Scene path to the AnimationPlayer that owns the clip. |
+| `animation_name` | string | Name of the clip to edit (merge: the default player for sources without one). |
+| `factor` | number | retime: time multiplier (>0). amplitude: value multiplier (1.0 = unchanged, 0.0 = flat). |
+| `length` | number | retime: target clip length in seconds (alternative to factor). |
+| `keys_only` | boolean (default `false`) | retime: change the clip length but leave key times alone. |
+| `from_path` | string | retarget: track path (mode=exact) or node path (mode=node/prefix) to rewrite. |
+| `to_path` | string | retarget: replacement path. |
+| `mode` | string: node \| prefix \| exact | retarget: node = same node part, property kept; prefix = node path or subtree; exact = whole track path. |
+| `paths` | array | retarget: batch of {from, to, mode} remaps applied in order (alternative to from_path/to_path). |
+| `axis` | string | mirror: plane(s) to mirror across — any of "x", "y", "z" (e.g. "x" or "xy"). |
+| `pivot` | any | mirror: pivot for position tracks ({x,y[,z]}); default origin. |
+| `include_scale` | boolean (default `false`) | mirror: also negate scale components on the mirrored axes. |
+| `delta` | number | offset: seconds to shift every key (may be negative). |
+| `wrap` | boolean (default `false`) | offset: rotate the shift inside the clip length (loop phase shift) instead of extending it. |
+| `from` | number | ease_range/trim: start of the time range (default 0). |
+| `to` | number | ease_range/trim: end of the time range (default clip length). |
+| `transition` | any | ease_range/key_edit: per-key transition — "linear", "ease_in", "ease_out", "ease_in_out", or a number. |
+| `interpolation` | string: linear \| nearest \| cubic | set_interp: track interpolation (cubic only for position/rotation/scale 3D tracks). |
+| `track_path` | string | set_interp/key_edit: track to target (e.g. "Sprite:position"). key_edit also accepts track_index. |
+| `track_index` | integer | key_edit: track index (alternative to track_path). |
+| `keep_bounds` | boolean (default `true`) | trim: sample keys at both cut edges so the motion at the edges survives. |
+| `time` | number | split_at: cut time. key_edit: key time to add/set/remove/move. |
+| `head_name` | string | split_at: name for the head clip (default "<name>_a"; the tail keeps the original name). |
+| `sources` | array | merge: clips to concatenate as {animation_name, player_path?}; defaults to the edited player. |
+| `new_name` | string | merge/split_at: name for the produced clip (merge default "<first>_merged"). |
+| `gap` | number | merge: seconds of silence inserted between clips. |
+| `overwrite` | boolean (default `false`) | merge/split_at: replace an existing clip with the produced name. |
+| `baseline` | any | amplitude: value the deltas are measured from (default: each track's first key). |
+| `loop_mode` | string: none \| linear \| pingpong | loop: new loop mode. |
+| `make_seamless` | boolean (default `false`) | loop: append a final key equal to the first so a linear loop wraps without a jump. |
+| `action` | string: add \| set \| remove \| move | key_edit: what to do with the key. |
+| `value` | any | key_edit add/set: new key value (typed to the track); for method tracks, the method name. |
+| `new_time` | number | key_edit move: new key time. |
+| `tolerance` | number | key_edit/cleanup: match/equality tolerance in seconds or units (default 0.001 / 0.0001). |
+| `min_gap` | number | cleanup: drop keys closer than this to the previous kept key (default 0 = keep all). |
+| `drop_empty_tracks` | boolean (default `true`) | cleanup: remove tracks that end up with no keys. |
+| `dry_run` | boolean (default `false`) | Report what the edit would produce without committing anything (no undo action). |
+
+Required: `op`, `player_path`, `animation_name`.
+
+### Examples
+
+```json
+{"animation_name":"open","factor":0.5,"op":"retime","player_path":"/Main/HUD"}
+{"animation_name":"open","from_path":"Panel","mode":"prefix","op":"retarget","player_path":"/Main/HUD","to_path":"Popup/Panel"}
+{"animation_name":"open","op":"reverse","player_path":"/Main/HUD"}
+{"animation_name":"walk","axis":"x","op":"mirror","pivot":{"x":0,"y":0},"player_path":"/Main"}
+{"animation_name":"pulse","delta":0.3,"op":"offset","player_path":"/Main/HUD","wrap":true}
+{"animation_name":"open","from":0.0,"op":"ease_range","player_path":"/Main/HUD","to":0.4,"transition":"ease_out"}
+{"animation_name":"walk","interpolation":"nearest","op":"set_interp","player_path":"/Main","track_path":"Sprite:frame"}
+{"animation_name":"walk","from":0.2,"op":"trim","player_path":"/Main","to":0.8}
+{"animation_name":"walk","op":"split_at","player_path":"/Main","time":0.5}
+{"animation_name":"intro","gap":0.1,"new_name":"full","op":"merge","player_path":"/Main","sources":[{"animation_name":"intro"},{"animation_name":"loop"}]}
+{"animation_name":"bounce","factor":0.5,"op":"amplitude","player_path":"/Main/HUD"}
+{"animation_name":"walk","loop_mode":"linear","make_seamless":true,"op":"loop","player_path":"/Main"}
+{"action":"set","animation_name":"open","op":"key_edit","player_path":"/Main/HUD","time":0.2,"track_path":"Panel:position","value":{"x":10,"y":0}}
+{"animation_name":"walk","min_gap":0.01,"op":"cleanup","player_path":"/Main","tolerance":0.0001}
+```
+
 ## `animation_inspect`
 
 Read-only inspection, auditing and dry runs.
@@ -301,7 +371,7 @@ Handler: `res://addons/godot_ai_animation/handlers/inspect.gd`
 | `severity` | string: all \| error \| warning \| info | audit: only findings of this severity (default all). |
 | `include_info` | boolean (default `true`) | audit: include info-level findings (unused clips, constant tracks). |
 | `tolerance` | number | compare: value comparison tolerance (default 0.0001). |
-| `tool` | string: animation_presets \| animation_fx \| animation_edit | dry_run: which tool to run. help: which tool's ops to list (omit for all). |
+| `tool` | string: animation_presets \| animation_fx \| animation_graph \| animation_edit | dry_run: which tool to run. help: which tool's ops to list (omit for all). |
 | `forward_op` | string | dry_run: the presets/fx/edit op to run (e.g. "retime"); its own params go in the same call. |
 | `op_name` | string | help: only this op (omit to list the tool's whole index). |
 
