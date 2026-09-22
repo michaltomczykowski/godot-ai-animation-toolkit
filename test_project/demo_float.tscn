@@ -1,0 +1,43 @@
+[gd_scene format=3 uid="uid://k7jao2p00joe"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_kjykw"]
+size = Vector3(2, 2, 2)
+
+[sub_resource type="Animation" id="Animation_y2wvy"]
+length = 2.4
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("World/Cube:transform")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 2.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0), Transform3D(-1.25, 0, -1.09278474e-07, 0, 1.25, 0, 1.09278474e-07, 0, -1.25, 0, 0.8, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_0b5mw"]
+_data = {
+&"float": SubResource("Animation_y2wvy")
+}
+
+[node name="DemoFloat" type="Node2D" unique_id=1825795707]
+
+[node name="World" type="Node3D" parent="." unique_id=1678905292]
+
+[node name="Cam" type="Camera3D" parent="World" unique_id=330642063]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 4.5)
+current = true
+
+[node name="Light" type="DirectionalLight3D" parent="World" unique_id=1037594870]
+transform = Transform3D(0.8660254, 0.35355338, -0.35355338, 0, 0.70710677, 0.70710677, 0.5, -0.6123724, 0.6123724, 0, 0, 0)
+
+[node name="Cube" type="MeshInstance3D" parent="World" unique_id=1014993477]
+mesh = SubResource("BoxMesh_kjykw")
+
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=307082809]
+libraries/ = SubResource("AnimationLibrary_0b5mw")
+autoplay = &"float"

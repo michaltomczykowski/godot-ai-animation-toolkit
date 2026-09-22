@@ -1,0 +1,42 @@
+[gd_scene format=3 uid="uid://i8kknp1rfg21"]
+
+[sub_resource type="Animation" id="Animation_ganu4"]
+length = 2.0
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Target:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(126, 313), Vector2(806, 313)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_htm25"]
+_data = {
+&"drift": SubResource("Animation_ganu4")
+}
+
+[node name="DemoDrift" type="Node2D" unique_id=1073296240]
+
+[node name="Track" type="ColorRect" parent="." unique_id=2056820479]
+offset_left = 126.0
+offset_top = 317.0
+offset_right = 1026.0
+offset_bottom = 331.0
+color = Color(0.3, 0.3, 0.34, 1)
+
+[node name="Target" type="ColorRect" parent="." unique_id=416914689]
+offset_left = 126.0
+offset_top = 313.0
+offset_right = 346.0
+offset_bottom = 335.0
+color = Color(0.29, 0.87, 0.5, 1)
+
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=1350429831]
+libraries/ = SubResource("AnimationLibrary_htm25")
+autoplay = &"drift"

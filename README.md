@@ -19,6 +19,9 @@ core during the animation PR review: a generalized `pulse` plus `bounce`,
 
 *`op="showcase"` builds the scene above — seven nodes, seven autoplaying clips, one undo step.*
 
+[**Video walkthrough (2 min)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v0.2.1/animation_toolkit_presets_walkthrough.mp4)
+— every preset card-by-card, with the exact call and the recorded clip it builds.
+
 ## Presets
 
 | op | What it builds | Defaults |
@@ -85,8 +88,9 @@ warning) when Godot AI is absent.
 ```
 
 `test_project/` is a Godot project wired to both addons; `tests/` holds the
-editor suite (19 rows) and `tests/tier1_value_codec.gd` the headless checks
-(30 checks).
+editor suite (27 rows) and `tests/tier1_value_codec.gd` the headless checks
+(40 checks). The `demo_*.tscn` scenes are the ones recorded for the walkthrough
+video — each is one preset call plus autoplay.
 
 ## Documentation
 

@@ -1,0 +1,36 @@
+[gd_scene format=3 uid="uid://xlpwmky76aed"]
+
+[sub_resource type="Animation" id="Animation_hute4"]
+length = 1.2
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Target:modulate:a")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.6, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [0.15, 1.0, 0.15]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_temxp"]
+_data = {
+&"pulse": SubResource("Animation_hute4")
+}
+
+[node name="DemoPulse" type="Node2D" unique_id=216509074]
+
+[node name="Target" type="Label" parent="." unique_id=1349293623]
+offset_left = 340.0
+offset_top = 240.0
+offset_right = 341.0
+offset_bottom = 263.0
+theme_override_font_sizes/font_size = 140
+text = "PULSE"
+
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=1994322664]
+libraries/ = SubResource("AnimationLibrary_temxp")
+autoplay = &"pulse"

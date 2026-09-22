@@ -1,0 +1,113 @@
+[gd_scene format=3 uid="uid://b3nb2m0dlywvn"]
+
+[ext_resource type="Script" uid="uid://cyeesnkenhaat" path="res://demo_replay.gd" id="1_k4wfx"]
+
+[sub_resource type="Animation" id="Animation_vrngi"]
+length = 1.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Item1:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(0.5, 1),
+"update": 0,
+"values": [Vector2(-224, 284), Vector2(36, 284)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Item2:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.25, 0.75),
+"transitions": PackedFloat32Array(0.5, 1),
+"update": 0,
+"values": [Vector2(-4, 284), Vector2(256, 284)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Item3:position")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.5, 1),
+"transitions": PackedFloat32Array(0.5, 1),
+"update": 0,
+"values": [Vector2(216, 284), Vector2(476, 284)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Item4:position")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.75, 1.25),
+"transitions": PackedFloat32Array(0.5, 1),
+"update": 0,
+"values": [Vector2(436, 284), Vector2(696, 284)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Item5:position")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(1, 1.5),
+"transitions": PackedFloat32Array(0.5, 1),
+"update": 0,
+"values": [Vector2(656, 284), Vector2(916, 284)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_wbjmy"]
+_data = {
+&"stagger": SubResource("Animation_vrngi")
+}
+
+[node name="StaggerDemo" type="Node2D" unique_id=1832092844]
+script = ExtResource("1_k4wfx")
+
+[node name="Item1" type="ColorRect" parent="." unique_id=1081681290]
+offset_left = 36.0
+offset_top = 284.0
+offset_right = 236.0
+offset_bottom = 364.0
+color = Color(0.13, 0.83, 0.93, 1)
+
+[node name="Item2" type="ColorRect" parent="." unique_id=495203918]
+offset_left = 256.0
+offset_top = 284.0
+offset_right = 456.0
+offset_bottom = 364.0
+color = Color(0.17, 0.84, 0.82, 1)
+
+[node name="Item3" type="ColorRect" parent="." unique_id=480230471]
+offset_left = 476.0
+offset_top = 284.0
+offset_right = 676.0
+offset_bottom = 364.0
+color = Color(0.21, 0.85, 0.71, 1)
+
+[node name="Item4" type="ColorRect" parent="." unique_id=1263576372]
+offset_left = 696.0
+offset_top = 284.0
+offset_right = 896.0
+offset_bottom = 364.0
+color = Color(0.25, 0.86, 0.61, 1)
+
+[node name="Item5" type="ColorRect" parent="." unique_id=15382940]
+offset_left = 916.0
+offset_top = 284.0
+offset_right = 1116.0
+offset_bottom = 364.0
+color = Color(0.29, 0.87, 0.5, 1)
+
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=1360549407]
+libraries/ = SubResource("AnimationLibrary_wbjmy")
+autoplay = &"stagger"

@@ -1,0 +1,42 @@
+[gd_scene format=3 uid="uid://ii1sxq6l2iak"]
+
+[sub_resource type="Animation" id="Animation_k0ser"]
+length = 3.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Target:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1875, 0.375, 0.5625, 0.75, 0.9375, 1.125, 1.3125, 1.5, 1.6875, 1.875, 2.0625, 2.25, 2.4375, 2.625, 2.8125, 3),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(752, 300), Vector2(736.7759, 376.53668), Vector2(693.4214, 441.42136), Vector2(628.5367, 484.7759), Vector2(552, 500), Vector2(475.46332, 484.7759), Vector2(410.57864, 441.42136), Vector2(367.2241, 376.53668), Vector2(352, 300), Vector2(367.2241, 223.46332), Vector2(410.57864, 158.57864), Vector2(475.46332, 115.22409), Vector2(552, 100), Vector2(628.5367, 115.22409), Vector2(693.4214, 158.57864), Vector2(736.7759, 223.46332), Vector2(752, 300)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_vwxbq"]
+_data = {
+&"orbit": SubResource("Animation_k0ser")
+}
+
+[node name="DemoOrbit" type="Node2D" unique_id=1062518661]
+
+[node name="Center" type="ColorRect" parent="." unique_id=95263928]
+offset_left = 570.0
+offset_top = 318.0
+offset_right = 582.0
+offset_bottom = 330.0
+color = Color(0.4, 0.4, 0.45, 1)
+
+[node name="Target" type="ColorRect" parent="." unique_id=12302265]
+offset_left = 552.0
+offset_top = 300.0
+offset_right = 600.0
+offset_bottom = 348.0
+color = Color(0.35, 0.6, 1, 1)
+
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=964667689]
+libraries/ = SubResource("AnimationLibrary_vwxbq")
+autoplay = &"orbit"

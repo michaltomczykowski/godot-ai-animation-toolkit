@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://bu2klcv6cd2it"]
+
+[ext_resource type="Script" uid="uid://cyeesnkenhaat" path="res://demo_replay.gd" id="1_xaun6"]
+
+[sub_resource type="Animation" id="Animation_prdft"]
+length = 0.6
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Target:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.21, 0.39, 0.6),
+"transitions": PackedFloat32Array(1, 0.5, -2, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1.25, 1.25), Vector2(0.9375, 0.9375), Vector2(1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_8axtv"]
+_data = {
+&"bounce": SubResource("Animation_prdft")
+}
+
+[node name="DemoBounce" type="Node2D" unique_id=145378069]
+script = ExtResource("1_xaun6")
+
+[node name="Target" type="Button" parent="." unique_id=593572573]
+offset_left = 376.0
+offset_top = 264.0
+offset_right = 776.0
+offset_bottom = 384.0
+pivot_offset = Vector2(200, 60)
+theme_override_font_sizes/font_size = 40
+text = "BOUNCE"
+
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=864394617]
+libraries/ = SubResource("AnimationLibrary_8axtv")
+autoplay = &"bounce"

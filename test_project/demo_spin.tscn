@@ -1,0 +1,43 @@
+[gd_scene format=3 uid="uid://irkc0nodwub3"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_4yprj"]
+size = Vector3(3, 3, 3)
+
+[sub_resource type="Animation" id="Animation_g48wp"]
+length = 3.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("World/Cube:quaternion")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.75, 1.5, 2.25, 3),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Quaternion(0, 0, 0, 1), Quaternion(0, 0.70710677, 0, 0.70710677), Quaternion(0, 1, 0, -4.371139e-08), Quaternion(0, 0.70710677, 0, -0.70710677), Quaternion(0, -8.742278e-08, 0, -1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_dtsdm"]
+_data = {
+&"spin": SubResource("Animation_g48wp")
+}
+
+[node name="DemoSpin" type="Node2D" unique_id=1399819360]
+
+[node name="World" type="Node3D" parent="." unique_id=785213989]
+
+[node name="Cam" type="Camera3D" parent="World" unique_id=859352015]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 4)
+current = true
+
+[node name="Light" type="DirectionalLight3D" parent="World" unique_id=1387705170]
+transform = Transform3D(0.8660254, 0.35355338, -0.35355338, 0, 0.70710677, 0.70710677, 0.5, -0.6123724, 0.6123724, 0, 0, 0)
+
+[node name="Cube" type="MeshInstance3D" parent="World" unique_id=776147537]
+mesh = SubResource("BoxMesh_4yprj")
+
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=1907541989]
+libraries/ = SubResource("AnimationLibrary_dtsdm")
+autoplay = &"spin"

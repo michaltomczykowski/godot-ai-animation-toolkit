@@ -1,0 +1,37 @@
+[gd_scene format=3 uid="uid://5w2o1v535r6w"]
+
+[sub_resource type="Animation" id="Animation_v60nq"]
+length = 2.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Pivot:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 6.283185307179586]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_xwbdx"]
+_data = {
+&"sweep": SubResource("Animation_v60nq")
+}
+
+[node name="DemoSweep" type="Node2D" unique_id=361913144]
+
+[node name="Pivot" type="Node2D" parent="." unique_id=1710588704]
+position = Vector2(576, 324)
+
+[node name="Bar" type="ColorRect" parent="Pivot" unique_id=653369657]
+offset_left = -12.0
+offset_top = -260.0
+offset_right = 12.0
+color = Color(0.13, 0.83, 0.93, 1)
+
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=790429378]
+libraries/ = SubResource("AnimationLibrary_xwbdx")
+autoplay = &"sweep"
