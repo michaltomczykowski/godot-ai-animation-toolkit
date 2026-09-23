@@ -1,8 +1,8 @@
 # Godot AI Animation Toolkit
 
 A standalone [Godot](https://godotengine.org) addon that gives
-[Godot AI](https://github.com/hi-godot/godot-ai) agents eight animation tools —
-**no core patches**:
+[Godot AI](https://github.com/hi-godot/godot-ai) agents eight animation tools
+(90 ops) — **no core patches**:
 
 - **`animation_presets`** — build clips in one call (the presets scoped out of
   core during the animation PR review: a generalized `pulse` plus `bounce`,
@@ -29,12 +29,14 @@ A standalone [Godot](https://godotengine.org) addon that gives
 - **`animation_motion`** — procedural humanoid locomotion and idle:
   `walk_cycle`, `run_cycle`, `idle_cycle` and a generic `cycle` build densely
   sampled clips with two-bone IK leg solves (planted feet), pelvis
-  bob/sway/yaw/roll, counter-rotating torso and follow-through arms;
+  bob/sway/yaw/roll, counter-rotating torso, proper arm swing with forward
+  elbow follow-through, and an idle that looks around and twists the torso;
   `style`/`overrides` tune the motion, `root_motion` keys forward travel, and
   `secondary_motion` bakes offline spring bones (hair/tail/cloth) into a clip.
 - **`animation_inspect`** — read-only reasoning and QA: `describe`, `timeline`,
   `audit` (broken paths, dead clips, loop seams, autoplay conflicts),
-  `compare`, `stats`, `dry_run` (run any op without committing), `help`.
+  `compare`, `stats`, `motion_report` (key density, peaks, seam pops,
+  hemisphere flips), `dry_run` (run any op without committing), `help`.
 
 All eight sit on one declarative clip-spec engine, so every op is a pure
 spec → spec transform and each mutating call is one scene-pinned undo action.
@@ -117,6 +119,11 @@ hand-authored ones — and commits one scene-pinned undo action per call.
 | `loop` | Set the loop mode, optionally making a linear loop seamless. |
 | `key_edit` | Add / set / remove / move a single key. |
 | `cleanup` | Drop redundant keys and empty tracks. |
+| `smooth` | Soften key values toward their neighbours — noise/follow-through cleanup. |
+| `resample` | Rebuild value tracks at a fixed fps through the engine's interpolator (transitions and cubic preserved). |
+| `add_noise` | Seeded smooth micro-motion on value keys (breathing, tremor). |
+| `overlap` | Delay one node/subtree's tracks by `delay` seconds — per-limb follow-through. |
+| `layer` | Combine another clip: `add` its delta from its first key, or `mix` toward it by `weight`. |
 
 Clips containing bezier / blend-shape / animation tracks (or compressed tracks)
 are refused with a clear error rather than rewritten lossily.
@@ -193,10 +200,11 @@ targets with overrides, and move whole clips in and out of a typed JSON format
 `animation_rig` builds and drives skeletons: bones from a spec or a node
 subtree (`rig_chain`), IK (`ik_setup` — two-bone and chain solvers), spring
 bones, look-at and retargeting modifiers, and skeleton poses as portable
-rest-relative data. On top of that sit seven procedural recipes — `walk_cycle`
+rest-relative data. On top of that sit seven sparse rig recipes — `walk_cycle`
 (with `arm_down` for T-pose rigs), `idle_breathing`, `blink`, `jumping_jack`,
 `squat`, `punch` and `bake_pose_sequence`, which samples a source clip with the
-active modifiers running and keys the final pose into a new clip.
+active modifiers running and keys the final pose into a new clip. (For smooth
+character locomotion, see `animation_motion` below.)
 
 Bone clips are ordinary transform tracks, so everything else in the toolkit
 works on them — `retime`, `mirror`, `reverse`, `amplitude`, JSON export,
@@ -280,9 +288,9 @@ make_seamless=true`).
 3. Enable **Godot AI Animation Toolkit** in *Project → Project Settings →
    Plugins* (either order works).
 
-Agents reach the tool as `custom_animation_presets` (promoted first-class tool)
-or through `custom_manage(op="list"/"invoke")`. The Godot AI dock's Tools tab
-lists it with an enable/disable toggle.
+Agents reach each tool as a promoted first-class tool (e.g.
+`custom_animation_motion`) or through `custom_manage(op="list"/"invoke")`. The
+Godot AI dock's Tools tab lists them with enable/disable toggles.
 
 ## Requirements
 
@@ -324,8 +332,8 @@ toolkit call (plus autoplay) or one built demo subtree.
 
 ## Documentation
 
-- [`docs/tool-reference.md`](docs/tool-reference.md) — curated reference for both
-  tools, with semantics per op.
+- [`docs/tool-reference.md`](docs/tool-reference.md) — curated reference for
+  every tool, with semantics per op.
 - [`docs/op-index.md`](docs/op-index.md) — generated per-op parameter index
   (freshness-checked by the tier-1 suite).
 - [`docs/recipes.md`](docs/recipes.md) — core recipes → preset calls, with the

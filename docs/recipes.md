@@ -1,9 +1,9 @@
 # Recipes and presets
 
-![The generated demo scene running: bounce button, orbiting dot, sweeping bar, drifting line, pulsing label](images/presets-showcase.gif)
+![The generated demo scene running: bounce button, orbiting dot, sweeping bar, drifting line, pulsing label, spinning cube, floating pickup](images/presets-showcase.gif)
 
-*`animation_presets(op="showcase")` builds the scene above in one call — five
-nodes and five autoplaying clips, one undo step. Run the current scene (F6) to
+*`animation_presets(op="showcase")` builds the scene above in one call — seven
+nodes and seven autoplaying clips, one undo step. Run the current scene (F6) to
 watch it.*
 
 ## Recipe → preset

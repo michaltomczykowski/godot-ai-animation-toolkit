@@ -4,10 +4,11 @@ Exposed to agents as the promoted first-class tools
 **`custom_animation_presets`** (create clips), **`custom_animation_fx`**
 (generators for game feel, UI, sprites and audio), **`custom_animation_graph`**
 (AnimationTree authoring), **`custom_animation_edit`** (edit existing clips),
-**`custom_animation_inspect`** (read-only inspection) and
-**`custom_animation_library`** (reusable templates + JSON clip specs) and
-**`custom_animation_rig`** (skeleton poses and pose-driven clips), all reachable
-through `custom_manage(op="invoke", tool_name=...)`.
+**`custom_animation_inspect`** (read-only inspection), **`custom_animation_library`**
+(reusable templates + JSON clip specs), **`custom_animation_rig`** (skeleton
+poses and pose-driven clips) and **`custom_animation_motion`** (procedural
+humanoid cycles and secondary spring bones), all reachable through
+`custom_manage(op="invoke", tool_name=...)`.
 
 A generated per-op index with every parameter lives in
 [`op-index.md`](op-index.md) — it is rendered from
