@@ -171,6 +171,33 @@ auto-mapped bone names with overrides; the target skeleton must be a child of
 the source). All modifiers are created **inactive** (opt-in), and rig ops warn
 about scaled skeletons.
 
+#### 6b verified API (4.7.2 ClassDB, checked before coding)
+
+- `SkeletonModifier3D` (base, Node3D): `active`, `influence`, `bone`,
+  `set_bone_name()`; enums `BoneDirection`, `SecondaryDirection`, `RotationAxis`.
+- `IKModifier3D` (abstract): `set_setting_count(n)` / `get_setting_count()` /
+  `clear_settings()` / `set_mutable_bone_axes(b)` / `reset()` - solvers are
+  indexed slots, so `ik_setup` grows one slot per spec entry.
+- `TwoBoneIK3D` (instantiable): `set_root_bone_name(i, s)`,
+  `set_middle_bone_name(i, s)`, `set_end_bone_name(i, s)`,
+  `set_target_node(i, NodePath)`, `set_pole_node(i, NodePath)`,
+  `set_pole_direction(i, SecondaryDirection)`, `set_pole_direction_vector(i, v)`,
+  `set_use_virtual_end(i, b)`, `set_extend_end_bone(i, b)`,
+  `set_end_bone_length(i, f)`, `set_end_bone_direction(i, BoneDirection)`.
+  `ChainIK3D` is abstract; its joints derive from root -> end, readable via
+  `get_joint_count(i)` / `get_joint_bone_name(i, j)`.
+- `SpringBoneSimulator3D`: `set_setting_count(n)`; per setting
+  `set_root_bone_name`, `set_end_bone_name`, `set_stiffness/drag/gravity/radius(i, f)`,
+  `set_rotation_axis(i, RotationAxis)`, `set_rotation_axis_vector(i, v)`,
+  `set_gravity_direction(i, v)`, `set_center_from(i, CenterFrom)`,
+  `set_center_node(i, NodePath)`, `set_center_bone_name(i, s)`,
+  `set_enable_all_child_collisions(i, b)`, `set_collision_count/path`,
+  `set_exclude_collision_*`, per-joint `set_joint_*` (enabled by
+  `set_individual_config`), `set_external_force(v)`, `set_mutable_bone_axes(b)`.
+- Still to verify before their ops: `LookAtModifier3D`, `RetargetModifier3D`
+  (+ profile classes), `SkeletonModificationStack2D` and the 2D modification
+  classes, `Skeleton3D`/`Skeleton2D`/`Bone2D` bone-authoring calls for `rig_chain`.
+
 ### 6c - procedural recipes -> v1.0.0
 
 `walk_cycle` (phase-offset legs/arms + hip bob, explicit role mapping with
