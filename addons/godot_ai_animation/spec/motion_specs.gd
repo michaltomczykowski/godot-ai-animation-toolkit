@@ -47,7 +47,8 @@ static func walk_config(style: String, overrides: Dictionary = {}) -> Dictionary
 		"chest_yaw": 5.0,
 		"lean": 3.0,
 		"foot_lift": 0.05,
-		"elbow": 18.0,
+		"elbow": 8.0,
+		"elbow_swing": 12.0,
 		"lag": 0.06,
 		"stance": 0.62,
 		"crouch": 0.0,
@@ -66,7 +67,8 @@ static func run_config(style: String, overrides: Dictionary = {}) -> Dictionary:
 		"chest_yaw": 7.0,
 		"lean": 9.0,
 		"foot_lift": 0.12,
-		"elbow": 60.0,
+		"elbow": 65.0,
+		"elbow_swing": 12.0,
 		"lag": 0.08,
 		"stance": 0.36,
 		"crouch": 0.0,
@@ -77,9 +79,11 @@ static func idle_config(style: String, overrides: Dictionary = {}) -> Dictionary
 	return _resolve_config({
 		"amplitude": 1.6,
 		"head_amplitude": 0.8,
+		"look": 18.0,
+		"twist": 12.0,
 		"bob": 0.006,
-		"sway": 0.012,
-		"shift": 1.2,
+		"sway": 0.018,
+		"shift": 1.4,
 		"noise": 0.35,
 		"lean": 1.5,
 		"arm_sway": 1.4,
@@ -177,7 +181,7 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 		if not head.is_empty():
 			var world := MotionDrivers.compose_rotation(head_rotation, t)
 			_append_rotation(keys, head, time, MotionDrivers.rotation_delta(_rest_basis(ctx, head), world))
-		_solve_arms(ctx, keys, time, t, float(signs.swing))
+		_solve_arms(ctx, keys, time, t)
 
 	# A rooted cycle ends further forward than it started: the hips travel must
 	# survive the loop-closing pass, so opt the hips position track out of it.
@@ -219,30 +223,65 @@ static func _solve_leg(
 		_append_rotation(keys, foot_bone, time, Quaternion.IDENTITY.slerp(flat, weight))
 
 
-static func _solve_arms(ctx: Dictionary, keys: Dictionary, time: float, t: float, swing_sign: float) -> void:
-	var roles: Dictionary = ctx.roles
-	var lateral: Vector3 = ctx.lateral
+static func _solve_arms(ctx: Dictionary, keys: Dictionary, time: float, t: float) -> void:
 	var config: Dictionary = ctx.config
 	var arm_swing := float(config.arm_swing)
 	var elbow := float(config.elbow)
+	var elbow_swing := float(config.get("elbow_swing", 0.6 * arm_swing))
 	var lag := float(config.lag)
-	var arm_down: Dictionary = ctx.get("arm_down", {})
-	var elbow_swing := 0.5 * arm_swing
+	var phase := cos(TAU * (t - lag))
 	for side in ["l", "r"]:
-		var arm := str(roles.get("arm_" + side, ""))
-		var forearm := str(roles.get("forearm_" + side, ""))
 		var sign := -1.0 if side == "l" else 1.0
-		if not arm.is_empty():
-			var degrees := MotionDrivers.channel_value(
-				_channel(lateral, sign * arm_swing * swing_sign, 1.0, 0.0, 0.0, "cosine"), t)
-			var swing := MotionDrivers.rotation_delta(_rest_basis(ctx, arm), Quaternion(lateral, deg_to_rad(degrees)))
-			var down: Quaternion = arm_down.get(side, Quaternion.IDENTITY)
-			_append_rotation(keys, arm, time, (swing * down).normalized())
-		if not forearm.is_empty():
-			var bend := MotionDrivers.channel_value(
-				_channel(lateral, -sign * elbow_swing * swing_sign, 1.0, 0.0, lag, "cosine", elbow + elbow_swing), t)
-			var bend_delta := MotionDrivers.rotation_delta(_rest_basis(ctx, forearm), Quaternion(lateral, deg_to_rad(bend)))
-			_append_rotation(keys, forearm, time, bend_delta)
+		# `_solve_arm_chain`'s hinge is positive-forward by construction, so the
+		# side sign alone phases the swing: left arm back at t=0, forward at t=0.5
+		# (same side leg forward). The elbow straightens at the back and bends as
+		# the arm comes forward.
+		var swing_degrees := sign * arm_swing * phase
+		var forward_weight := (1.0 - phase) * 0.5 if side == "l" else (1.0 + phase) * 0.5
+		var bend_degrees := elbow + elbow_swing * forward_weight
+		_solve_arm_chain(ctx, keys, side, time, swing_degrees, bend_degrees)
+
+
+## One arm from the shoulder down: lower it by the rig's `arm_down`, swing it
+## about a sagittal hinge (so the hand travels forward/back, never sideways),
+## then flex the elbow about that same world hinge using the animated shoulder
+## basis. Conjugating the bend by the rest frame - as this used to - turned the
+## hinge with the lowered arm and curled the forearm across the body.
+static func _solve_arm_chain(
+	ctx: Dictionary, keys: Dictionary, side: String, time: float,
+	swing_degrees: float, bend_degrees: float,
+) -> void:
+	var roles: Dictionary = ctx.roles
+	var forward: Vector3 = ctx.forward
+	var arm := str(roles.get("arm_" + side, ""))
+	if arm.is_empty():
+		return
+	var g_arm := _rest_basis(ctx, arm)
+	var down_delta: Quaternion = (ctx.get("arm_down", {}) as Dictionary).get(side, Quaternion.IDENTITY)
+	var down_world := (g_arm * Basis(down_delta) * g_arm.inverse()).get_rotation_quaternion()
+	var hang_dir := ((Basis(down_world) * g_arm) * Vector3.UP).normalized()
+	var hinge := hang_dir.cross(forward)
+	if hinge.length_squared() < 0.000001:
+		hinge = ctx.lateral
+	hinge = hinge.normalized()
+	if hinge.cross(hang_dir).dot(forward) < 0.0:
+		hinge = -hinge
+	var twist := 0.0
+	var config: Dictionary = ctx.get("config", {})
+	if config.has("arm_twist"):
+		twist = float(config.arm_twist)
+	var arm_world := (
+		Quaternion(hinge, deg_to_rad(swing_degrees))
+		* Quaternion(hang_dir, deg_to_rad(twist))
+		* down_world
+	)
+	_append_rotation(keys, arm, time, MotionDrivers.rotation_delta(g_arm, arm_world))
+	var forearm := str(roles.get("forearm_" + side, ""))
+	if forearm.is_empty():
+		return
+	var arm_animated := Basis(arm_world) * g_arm
+	_append_rotation(keys, forearm, time, MotionDrivers.world_delta(
+		arm_animated, g_arm, _rest_basis(ctx, forearm), Quaternion(hinge, deg_to_rad(bend_degrees))))
 
 
 ## Relative forward/height motion of one ankle over a cycle. `p` is the foot's
@@ -289,29 +328,49 @@ static func idle_keys(ctx: Dictionary) -> Dictionary:
 	var hips := str(ctx.get("hips", ""))
 	var signs := _axis_signs(ctx)
 	var scale := float(signs.lean)
+	var look := float(config.look)
+	var twist := float(config.twist)
+	# Breathing is the under-layer; the visible motion is the look-around and
+	# the torso twist. Every channel is integer-frequency, so the loop closes.
 	var breath := [_channel(lateral, -float(config.amplitude) * scale, 1.0, 0.0, 0.0, "sine")]
-	var spine_breath := [_channel(lateral, -0.6 * float(config.amplitude) * scale, 1.0, 0.0, 0.03, "sine")]
-	var head_breath := [
-		_channel(lateral, 0.4 * float(config.amplitude) * scale, 1.0, 0.0, 0.06, "sine"),
-		_channel(up, float(config.head_amplitude), 0.5, 0.25, 0.0, "sine"),
+	var spine_motion := [
+		_channel(lateral, -0.6 * float(config.amplitude) * scale, 1.0, 0.0, 0.03, "sine"),
+		_channel(up, 0.5 * twist, 1.0, 0.25, 0.05, "sine"),
+		_channel(up, 0.15 * twist, 2.0, 0.62, 0.05, "sine"),
+		_channel(lateral, 0.15 * twist, 1.0, 0.25, 0.08, "sine"),
+	]
+	var chest_motion := [
+		_channel(up, twist, 1.0, 0.25, 0.0, "sine"),
+		_channel(up, 0.3 * twist, 2.0, 0.62, 0.0, "sine"),
+		_channel(lateral, 0.25 * twist, 1.0, 0.25, 0.05, "sine"),
+	]
+	var head_motion := [
+		_channel(up, look, 1.0, 0.25, 0.02, "sine"),
+		_channel(up, 0.3 * look, 2.0, 0.62, 0.02, "sine"),
+		_channel(lateral, -0.35 * float(config.head_amplitude), 1.0, 0.0, 0.06, "sine"),
+		_channel(forward, 0.12 * look, 1.0, 0.25, 0.05, "sine"),
 	]
 	var noise_amount := float(config.noise)
 	if not is_zero_approx(noise_amount):
-		spine_breath.append(_channel(up, noise_amount * scale, 1.0, 0.0, 0.0, "noise", 0.0, 21, 3))
-		spine_breath.append(_channel(lateral, noise_amount * scale, 1.0, 0.35, 0.0, "noise", 0.0, 22, 3))
-		head_breath.append(_channel(up, 0.8 * noise_amount * scale, 1.0, 0.0, 0.0, "noise", 0.0, 23, 3))
-		head_breath.append(_channel(lateral, 0.6 * noise_amount * scale, 1.0, 0.5, 0.0, "noise", 0.0, 24, 3))
+		spine_motion.append(_channel(up, noise_amount * scale, 1.0, 0.0, 0.0, "noise", 0.0, 21, 3))
+		spine_motion.append(_channel(lateral, noise_amount * scale, 1.0, 0.35, 0.0, "noise", 0.0, 22, 3))
+		head_motion.append(_channel(up, 0.8 * noise_amount * scale, 1.0, 0.0, 0.0, "noise", 0.0, 23, 3))
+		head_motion.append(_channel(lateral, 0.6 * noise_amount * scale, 1.0, 0.5, 0.0, "noise", 0.0, 24, 3))
 	var lean := float(config.lean)
 	var sway_channel := _channel(lateral, -float(config.sway), 1.0, 0.0, 0.0, "sine")
 	var bob_channel := _channel(up, -0.5 * float(config.bob), 2.0, 0.0, 0.0, "cosine")
 	var roll_channel := _channel(forward, float(config.shift) * float(signs.roll), 1.0, 0.0, 0.0, "sine")
+	var hips_yaw_channel := _channel(up, -0.2 * twist, 1.0, 0.25, 0.03, "sine")
 
 	for index in times.size():
 		var t := float(index) / float(steps)
 		var time := float(times[index])
 		if not hips.is_empty():
-			var world := Quaternion(lateral, deg_to_rad(-lean * 0.35 * scale)) * Quaternion(
-				forward, deg_to_rad(MotionDrivers.channel_value(roll_channel, t)))
+			var world := (
+				Quaternion(lateral, deg_to_rad(-lean * 0.35 * scale))
+				* Quaternion(forward, deg_to_rad(MotionDrivers.channel_value(roll_channel, t)))
+				* Quaternion(up, deg_to_rad(MotionDrivers.channel_value(hips_yaw_channel, t)))
+			)
 			_append_rotation(keys, hips, time, MotionDrivers.rotation_delta(_rest_basis(ctx, hips), world))
 			_append_position(keys, hips, time,
 				lateral * MotionDrivers.channel_value(sway_channel, t)
@@ -320,41 +379,34 @@ static func idle_keys(ctx: Dictionary) -> Dictionary:
 		var chest := str(roles.get("chest", ""))
 		var head := str(roles.get("head", ""))
 		if not spine.is_empty() and spine != chest:
-			var world := MotionDrivers.compose_rotation(spine_breath, t) * Quaternion(lateral, deg_to_rad(-lean * 0.5 * scale))
+			var world := MotionDrivers.compose_rotation(spine_motion, t) * Quaternion(lateral, deg_to_rad(-lean * 0.5 * scale))
 			_append_rotation(keys, spine, time, MotionDrivers.rotation_delta(_rest_basis(ctx, spine), world))
 		if not chest.is_empty():
-			var world := MotionDrivers.compose_rotation(breath, t) * Quaternion(lateral, deg_to_rad(-lean * 0.5 * scale))
+			var world := (
+				MotionDrivers.compose_rotation(chest_motion, t)
+				* MotionDrivers.compose_rotation(breath, t)
+				* Quaternion(lateral, deg_to_rad(-lean * 0.5 * scale))
+			)
 			_append_rotation(keys, chest, time, MotionDrivers.rotation_delta(_rest_basis(ctx, chest), world))
 		if not head.is_empty():
-			var world := MotionDrivers.compose_rotation(head_breath, t) * Quaternion(lateral, deg_to_rad(lean * 0.4 * scale))
+			var world := MotionDrivers.compose_rotation(head_motion, t) * Quaternion(lateral, deg_to_rad(lean * 0.4 * scale))
 			_append_rotation(keys, head, time, MotionDrivers.rotation_delta(_rest_basis(ctx, head), world))
-		_solve_idle_arms(ctx, keys, time, t, float(signs.swing))
+		_solve_idle_arms(ctx, keys, time, t)
 	return keys
 
 
 ## Idle arms: the static arm-down offset (so T-pose rests hang naturally) plus a
-## small swing that follows the weight shift, with a light elbow bend.
-static func _solve_idle_arms(ctx: Dictionary, keys: Dictionary, time: float, t: float, swing_sign: float) -> void:
-	var roles: Dictionary = ctx.roles
-	var lateral: Vector3 = ctx.lateral
+## small swing that follows the weight shift, with a light elbow bend - all on
+## the same sagittal hinge the gait uses.
+static func _solve_idle_arms(ctx: Dictionary, keys: Dictionary, time: float, t: float) -> void:
 	var config: Dictionary = ctx.config
 	var arm_sway := float(config.arm_sway)
 	var elbow := float(config.elbow)
-	var arm_down: Dictionary = ctx.get("arm_down", {})
 	for side in ["l", "r"]:
-		var arm := str(roles.get("arm_" + side, ""))
-		var forearm := str(roles.get("forearm_" + side, ""))
 		var sign := -1.0 if side == "l" else 1.0
-		if not arm.is_empty():
-			var degrees := MotionDrivers.channel_value(
-				_channel(lateral, sign * arm_sway * swing_sign, 1.0, 0.0, 0.1, "sine"), t)
-			var swing := MotionDrivers.rotation_delta(_rest_basis(ctx, arm), Quaternion(lateral, deg_to_rad(degrees)))
-			var down: Quaternion = arm_down.get(side, Quaternion.IDENTITY)
-			_append_rotation(keys, arm, time, (swing * down).normalized())
-		if not forearm.is_empty():
-			var bend_delta := MotionDrivers.rotation_delta(
-				_rest_basis(ctx, forearm), Quaternion(lateral, deg_to_rad(elbow * swing_sign)))
-			_append_rotation(keys, forearm, time, bend_delta)
+		var sway := MotionDrivers.channel_value(
+			_channel(ctx.lateral, sign * arm_sway, 1.0, 0.0, 0.1, "sine"), t)
+		_solve_arm_chain(ctx, keys, side, time, sway, elbow)
 
 
 # --- helpers ----------------------------------------------------------------

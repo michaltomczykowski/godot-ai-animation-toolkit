@@ -227,20 +227,23 @@ templates.
 
 ## Procedural motion (3D character cycles)
 
-[**Video: dummy motion showcase (0:44)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v1.2.0/animation_toolkit_motion_demo.mp4)
+[**Video: dummy motion showcase (0:44)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v1.2.1/animation_toolkit_motion_demo.mp4)
 — `walk_cycle`, `run_cycle` and `idle_cycle` recorded on the bundled human
 dummy: densely sampled curves, two-bone IK leg solves with planted feet,
-counter-rotating torso, arm follow-through and loops that close by construction.
+proper arm swing with forward elbow follow-through, and an idle that looks
+around and twists the torso.
 
 `animation_motion` is the character-motion family: `walk_cycle`, `run_cycle`,
 `idle_cycle` and a generic `cycle` build smooth clips from analytic drivers
 instead of a handful of hand-tuned keys. Legs are solved per sample by a
 two-bone IK so the stance foot stays planted and slides back at the cycle's
 ground speed; the pelvis bobs/sways/yaws/rolls, the chest counter-rotates and
-the arms swing with elbow lag. `style` (`relaxed` / `heavy` / `sneaky`) and
-`overrides` tune everything, `root_motion` keys the hips forward at the implied
-`speed`, and `secondary_motion` bakes offline spring bones (hair, tails, cloth)
-into any clip. T-pose rigs get their arms lowered automatically.
+the arms swing about a sagittal hinge with forward elbow follow-through.
+`idle_cycle` adds a pronounced look-around and torso twist over subtle
+breathing. `style` (`relaxed` / `heavy` / `sneaky`) and `overrides` tune
+everything, `root_motion` keys the hips forward at the implied `speed`, and
+`secondary_motion` bakes offline spring bones (hair, tails, cloth) into any
+clip. T-pose rigs get their arms lowered automatically.
 
 ```json
 {"tool": "custom_animation_motion", "params": {

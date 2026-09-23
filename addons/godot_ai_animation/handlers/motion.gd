@@ -23,9 +23,9 @@ const _CYCLE_KINDS := {
 }
 
 const _OVERRIDE_KEYS := {
-	"walk": ["stride", "knee_bend", "arm_swing", "bob", "sway", "hip_yaw", "hip_roll", "chest_yaw", "lean", "foot_lift", "elbow", "lag", "stance", "crouch"],
-	"run": ["stride", "knee_bend", "arm_swing", "bob", "sway", "hip_yaw", "hip_roll", "chest_yaw", "lean", "foot_lift", "elbow", "lag", "stance", "crouch"],
-	"idle": ["amplitude", "head_amplitude", "bob", "sway", "shift", "noise", "lean", "arm_sway", "elbow"],
+	"walk": ["stride", "knee_bend", "arm_swing", "arm_twist", "bob", "sway", "hip_yaw", "hip_roll", "chest_yaw", "lean", "foot_lift", "elbow", "elbow_swing", "lag", "stance", "crouch"],
+	"run": ["stride", "knee_bend", "arm_swing", "arm_twist", "bob", "sway", "hip_yaw", "hip_roll", "chest_yaw", "lean", "foot_lift", "elbow", "elbow_swing", "lag", "stance", "crouch"],
+	"idle": ["amplitude", "head_amplitude", "look", "twist", "bob", "sway", "shift", "noise", "lean", "arm_sway", "elbow", "arm_twist"],
 }
 
 
@@ -381,7 +381,7 @@ func _default_arm_down(skeleton: Skeleton3D, roles: Dictionary) -> float:
 			continue
 		var rest_dir := (skeleton.get_bone_global_rest(index).basis * Vector3.UP).normalized()
 		if absf(rest_dir.dot(Vector3.UP)) < 0.5:
-			return 70.0
+			return 78.0
 	return 0.0
 
 

@@ -127,6 +127,15 @@ func _range_of(anim: Animation, track: int, component: int) -> float:
 	return hi - lo
 
 
+## Largest rotation angle any key reaches from the first key of a rotation track.
+func _spread(anim: Animation, track: int) -> float:
+	var first: Quaternion = anim.track_get_key_value(track, 0)
+	var spread := 0.0
+	for key in anim.track_get_key_count(track):
+		spread = maxf(spread, first.angle_to(anim.track_get_key_value(track, key)))
+	return spread
+
+
 # --- rollup -----------------------------------------------------------------
 
 func test_rollup_rejects_unknown_op() -> void:
@@ -276,6 +285,34 @@ func test_root_motion_keys_travel() -> void:
 	_teardown(rig)
 
 
+func test_walk_arms_swing_forward_with_forward_elbow() -> void:
+	var rig := _rig("MotionArms")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "walk",
+		"duration": 1.0, "loop_mode": "linear",
+	}, null)
+	assert_true(result.has("data"), "the walk builds, got: %s" % str(result))
+	var anim: Animation = rig.player.get_animation("walk")
+	var roles := MotionHandler._resolve_roles({}, rig.skeleton)
+	var forward := MotionHandler._forward_dir(rig.skeleton, roles)
+	# The left arm is fully forward at t=0.5. The hand must lead the elbow: the
+	# old rest-frame elbow conversion curled the forearm across the body instead.
+	var elbow := _pose_of(rig, anim, 0.5, "B-forearm.L")
+	var hand := _pose_of(rig, anim, 0.5, "B-hand.L")
+	assert_gt((hand.origin - elbow.origin).dot(forward), 0.02,
+		"the hand leads the elbow at the front of the swing")
+	var hand_back := _pose_of(rig, anim, 0.0, "B-hand.L")
+	assert_gt((hand.origin - hand_back.origin).dot(forward), 0.05,
+		"the hand travels forward between the back and front of the swing")
+	var arm_down := _handler._default_arm_down(rig.skeleton, roles)
+	assert_gt(arm_down, 0.0, "the T-pose rest is detected and the arms lowered")
+	_teardown(rig)
+
+
 # --- idle -------------------------------------------------------------------
 
 func test_idle_cycle_breathing_shift_and_loop() -> void:
@@ -293,13 +330,16 @@ func test_idle_cycle_breathing_shift_and_loop() -> void:
 	assert_true(anim != null, "the idle clip exists")
 	assert_eq(anim.track_get_key_count(0), 73, "3s at 24 samples/s gives 73 keys")
 	var chest := _track_index(anim, ":B-chest", Animation.TYPE_ROTATION_3D)
-	assert_true(chest >= 0, "the chest breathes")
-	var first_key: Quaternion = anim.track_get_key_value(chest, 0)
-	var spread := 0.0
-	for key in anim.track_get_key_count(chest):
-		spread = maxf(spread, first_key.angle_to(anim.track_get_key_value(chest, key)))
-	assert_gt(spread, 0.01, "breathing moves the chest")
-	assert_true(spread < 0.15, "breathing stays subtle (%s rad)" % spread)
+	assert_true(chest >= 0, "the chest twists")
+	var chest_spread := _spread(anim, chest)
+	assert_gt(chest_spread, 0.15, "the torso twist is pronounced (%s rad)" % chest_spread)
+	assert_true(chest_spread < 0.6, "the twist stays a twist (%s rad)" % chest_spread)
+	var head := _track_index(anim, ":B-head", Animation.TYPE_ROTATION_3D)
+	assert_true(head >= 0, "the head looks around")
+	var head_spread := _spread(anim, head)
+	assert_gt(head_spread, 0.25, "the look-around is pronounced (%s rad)" % head_spread)
+	assert_true(head_spread < 1.0, "the head does not spin (%s rad)" % head_spread)
+	assert_true(_track_index(anim, ":B-jaw", Animation.TYPE_ROTATION_3D) < 0, "the idle never touches the jaw")
 	var hips := _track_index(anim, ":B-hips", Animation.TYPE_POSITION_3D)
 	assert_true(hips >= 0, "the idle shifts the hips")
 	assert_true(_range_of(anim, hips, 0) < 0.1, "the weight shift stays subtle")

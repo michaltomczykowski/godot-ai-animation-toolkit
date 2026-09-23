@@ -1642,7 +1642,7 @@ static func _motion_schema() -> Dictionary:
 			},
 			"overrides": {
 				"type": "object",
-				"description": "Deep tuning, e.g. {\"stride\": 18, \"lag\": 0.1}; walk/run keys: stride, knee_bend, arm_swing, bob, sway, hip_yaw, hip_roll, chest_yaw, lean, foot_lift, elbow, lag, stance, crouch; idle keys: amplitude, head_amplitude, bob, sway, shift, noise, lean, arm_sway, elbow.",
+				"description": "Deep tuning, e.g. {\"stride\": 18, \"lag\": 0.1}; walk/run keys: stride, knee_bend, arm_swing, arm_twist, bob, sway, hip_yaw, hip_roll, chest_yaw, lean, foot_lift, elbow, elbow_swing, lag, stance, crouch; idle keys: amplitude, head_amplitude, look, twist, bob, sway, shift, noise, lean, arm_sway, elbow, arm_twist.",
 			},
 			"samples": {
 				"type": "number",
@@ -1686,7 +1686,7 @@ static func _motion_schema() -> Dictionary:
 			},
 			"head_amplitude": {
 				"type": "number",
-				"description": "idle_cycle: head drift, degrees (0.8).",
+				"description": "idle_cycle: head nod/drift, degrees (0.8).",
 			},
 			"roles": {
 				"type": "object",
@@ -1749,7 +1749,7 @@ static func _motion_ops() -> Array:
 		},
 		{
 			"name": "idle_cycle",
-			"summary": "Build a subtle looping idle: two-frequency breathing, weight shift, seeded micro-motion and head drift.",
+			"summary": "Build a looping idle: a pronounced look-around and torso twist over subtle breathing, weight shift and seeded micro-motion.",
 			"params": idle_params,
 			"example": {"op": "idle_cycle", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "idle", "duration": 3.0, "loop_mode": "linear"},
 		},

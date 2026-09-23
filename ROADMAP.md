@@ -1,6 +1,6 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **phases 0–8 done** — v1.2.0 (8 tools, 90 ops) released 2026-09-23,
+Status: **phases 0–8 done** — v1.2.1 (8 tools, 90 ops) released 2026-09-23,
 with demo scenes and the dummy motion showcase video on the release.
 Last updated: 2026-09-23.
 
@@ -324,6 +324,16 @@ as pure analysis).
 `animation_toolkit_motion_demo.mp4` (walk / run / idle recorded on the dummy).
 README and the Discord post now link only three videos: the full 3:12 showcase,
 the menu demo and the dummy motion showcase.
+
+**Refinement (v1.2.1, shipped):** the arm chain got a proper **sagittal hinge**
+(`motion_drivers.world_delta` conjugates by the *animated* rest basis) - the
+elbow now flexes forward instead of curling across the body, which the old
+rest-frame conversion caused once `arm_down` had rolled the arm. Walk/run elbow
+tuning was reworked (straight at the back, bending at the front), the auto
+arm-down is 78°, and `idle_cycle` was rebuilt around a pronounced look-around
+and torso twist (`look` / `twist` overrides, defaults 18° / 12°) over the
+breathing layer; the jaw-blink player was removed from the idle demo. The
+motion showcase video was re-recorded on v1.2.1.
 
 **Coverage:** tier-1 grew from ~1815 to 2138 checks (motion drivers, quality
 modifiers, typed-track transitions, sampler); the editor suites gained

@@ -20,6 +20,7 @@ func _init() -> void:
 	_check_channels()
 	_check_rotation_conversion()
 	_check_aim()
+	_check_world_delta()
 	_check_knee()
 	_check_spring()
 	_check_smoothing()
@@ -125,6 +126,19 @@ func _check_aim() -> void:
 	var rest_dir := (bone_rest * Vector3.UP).normalized()
 	var no_op := MotionDrivers.aim_delta(parent_rest, parent_rest, bone_rest, rest_dir)
 	_expect(no_op.delta.is_equal_approx(Quaternion.IDENTITY), "aiming at the rest direction is identity")
+
+
+func _check_world_delta() -> void:
+	var parent_rest := Basis.from_euler(Vector3(0.0, 0.4, 0.0))
+	var parent_animated := Basis(Quaternion(Vector3.UP, PI / 3.0)) * parent_rest
+	var bone_rest := Basis.from_euler(Vector3(0.2, 0.4, -0.1))
+	var world_rotation := Quaternion(Vector3.RIGHT, 0.5)
+	var delta := MotionDrivers.world_delta(parent_animated, parent_rest, bone_rest, world_rotation)
+	var animated_rest := parent_animated * parent_rest.inverse() * bone_rest
+	_expect((animated_rest * Basis(delta)).is_equal_approx(Basis(world_rotation) * animated_rest),
+		"world_delta applies its rotation in world space around the animated rest")
+	_expect(MotionDrivers.world_delta(parent_rest, parent_rest, bone_rest, Quaternion.IDENTITY)
+		.is_equal_approx(Quaternion.IDENTITY), "world_delta with an identity rotation is a no-op")
 
 
 func _check_knee() -> void:

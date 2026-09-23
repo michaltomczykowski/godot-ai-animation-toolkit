@@ -494,7 +494,7 @@ follow-through, and the result looks smooth at any playback rate.
 | --- | --- |
 | `walk_cycle` | Full gait: contact/passing timing, pelvis bob (2x) + sway + yaw + roll, counter-rotating spine/chest, arm swing with elbow lag, head stabilisation, planted feet with a flat-stance foot. `stride`, `knee_bend` (a planted crouch), `arm_swing`, `bob`, `sway`, `lean`, `arm_down`. |
 | `run_cycle` | Same engine with a flight phase, a forward lean, a wider stride, bent elbows and a bigger bob. Use a shorter `duration` (0.5-0.7 s). |
-| `idle_cycle` | Two-frequency breathing (chest, spine with lag), weight shift (sway + roll + bob), seeded micro-noise and head drift. `amplitude`, `head_amplitude`, `bob`, `sway`, `lean`. |
+| `idle_cycle` | A loopable idle with presence: a pronounced look-around (head yaw, with a second harmonic so it lingers left/right) and torso twist (chest, spine at half with lag, hips counter) over breathing, weight shift and seeded micro-noise. `look`, `twist`, `amplitude`, `head_amplitude`, `bob`, `sway`, `lean`. |
 | `cycle` | Generic entry point: `preset` = `walk` / `run` / `idle`, same params as the dedicated ops. |
 | `secondary_motion` | Bakes **offline spring bones** into an existing clip: each name in `bones` (hair, tail, cloth root — must be unkeyed in the clip) lags behind its animated parent with a damped angular spring (`stiffness` 1/s², `damping` 1/s, 120/12 = snappy hair), keyed as ordinary rotation tracks. Deterministic; no live modifier needed. |
 
@@ -533,7 +533,7 @@ How motion is generated:
 {"op": "animation_motion", "params": {"op": "idle_cycle",
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
   "animation_name": "idle", "duration": 3.0, "loop_mode": "linear",
-  "overrides": {"sway": 0.02, "noise": 0.6}}}
+  "overrides": {"look": 18, "twist": 12}}}
 
 {"op": "animation_motion", "params": {"op": "secondary_motion",
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",

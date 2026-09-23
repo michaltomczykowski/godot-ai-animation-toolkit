@@ -137,6 +137,17 @@ static func aim_delta(
 	return {"delta": delta.get_rotation_quaternion().normalized(), "global": global_basis}
 
 
+## Pose delta for a rotation about a **world axis** applied to a bone whose
+## parent is animated. Unlike `rotation_delta`, the conjugation uses the bone's
+## *animated* rest basis, so a world hinge stays a world hinge - this is what
+## keeps an elbow flexing forward after its shoulder has been lowered.
+static func world_delta(
+	parent_animated: Basis, parent_global_rest: Basis, bone_global_rest: Basis, world_rotation: Quaternion,
+) -> Quaternion:
+	var animated_rest := parent_animated * parent_global_rest.orthonormalized().inverse() * bone_global_rest.orthonormalized()
+	return (animated_rest.inverse() * Basis(world_rotation) * animated_rest).get_rotation_quaternion().normalized()
+
+
 ## Pose delta that puts a bone at `target_global` orientation regardless of the
 ## parent's animation (used to keep a foot flat while the shin swings).
 static func hold_global_delta(

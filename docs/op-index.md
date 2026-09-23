@@ -600,7 +600,7 @@ Handler: `res://addons/godot_ai_animation/handlers/motion.gd`
 | --- | --- | --- |
 | `walk_cycle` | Build a looping walk with planted feet: pelvis bob/sway/yaw/roll, counter-rotating torso, arm swing with elbow follow-through, head stabilisation. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `root_motion`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `sway`, `lean`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
 | `run_cycle` | Build a looping run: flight phase, forward lean, bigger stride and arm swing, bent elbows. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `root_motion`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `sway`, `lean`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
-| `idle_cycle` | Build a subtle looping idle: two-frequency breathing, weight shift, seeded micro-motion and head drift. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `amplitude`, `head_amplitude`, `bob`, `sway`, `lean`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
+| `idle_cycle` | Build a looping idle: a pronounced look-around and torso twist over subtle breathing, weight shift and seeded micro-motion. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `amplitude`, `head_amplitude`, `bob`, `sway`, `lean`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
 | `cycle` | Generic entry point: build the cycle named by `preset` (walk, run or idle) with the same parameters as the dedicated ops. | `preset`, `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `root_motion`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `sway`, `lean`, `roles`, `loop_mode`, `overwrite`, `amplitude`, `head_amplitude`, `dry_run` |
 | `secondary_motion` | Bake offline spring bones into an existing clip: hair/tail/cloth roots lag behind their animated parent, deterministically. | `player_path`, `skeleton_path`, `animation_name`, `bones`, `stiffness`, `damping`, `samples`, `dry_run` |
 
@@ -615,7 +615,7 @@ Handler: `res://addons/godot_ai_animation/handlers/motion.gd`
 | `animation_name` | string | Clip name (default: the cycle name). |
 | `duration` | number | Clip length in seconds; one gait cycle fits in it. |
 | `style` | string: default \| relaxed \| heavy \| sneaky | Motion style preset, applied before overrides. |
-| `overrides` | object | Deep tuning, e.g. {"stride": 18, "lag": 0.1}; walk/run keys: stride, knee_bend, arm_swing, bob, sway, hip_yaw, hip_roll, chest_yaw, lean, foot_lift, elbow, lag, stance, crouch; idle keys: amplitude, head_amplitude, bob, sway, shift, noise, lean, arm_sway, elbow. |
+| `overrides` | object | Deep tuning, e.g. {"stride": 18, "lag": 0.1}; walk/run keys: stride, knee_bend, arm_swing, arm_twist, bob, sway, hip_yaw, hip_roll, chest_yaw, lean, foot_lift, elbow, elbow_swing, lag, stance, crouch; idle keys: amplitude, head_amplitude, look, twist, bob, sway, shift, noise, lean, arm_sway, elbow, arm_twist. |
 | `samples` | number | Keys per second of clip (24; clamped to 4-120). |
 | `root_motion` | boolean | Also key the hips forward at the cycle's implied speed (off; set player.root_motion_track to the returned track). |
 | `stride` | number | Gait: leg swing, degrees (walk 24, run 34). |
@@ -626,7 +626,7 @@ Handler: `res://addons/godot_ai_animation/handlers/motion.gd`
 | `sway` | number | Pelvis lateral sway, metres (walk 0.02; idle 0.012). |
 | `lean` | number | Forward lean, degrees (walk 3, run 9; idle slouch 1.5). |
 | `amplitude` | number | idle_cycle: breathing chest rotation, degrees (1.6). |
-| `head_amplitude` | number | idle_cycle: head drift, degrees (0.8). |
+| `head_amplitude` | number | idle_cycle: head nod/drift, degrees (0.8). |
 | `roles` | object | Bone roles, e.g. {"thigh_l": "B-thigh.L"}; missing ones auto-detect. |
 | `bones` | array | secondary_motion: jiggle bones to bake (must be unkeyed in the clip). |
 | `stiffness` | number | secondary_motion: spring stiffness, 1/s^2 (120; hair ~120, heavy tail ~30). |

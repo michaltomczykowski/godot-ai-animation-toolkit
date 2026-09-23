@@ -142,7 +142,7 @@ compressed tracks rather than rewriting them lossily.
 | --- | --- |
 | `walk_cycle` | Dense procedural walk: planted feet (two-bone IK leg solve), pelvis bob/sway/yaw/roll, counter-rotating torso, arm swing with elbow lag, head stabilisation. |
 | `run_cycle` | Same engine with a flight phase, forward lean, wider stride and bent elbows. |
-| `idle_cycle` | Looping idle: two-frequency breathing, weight shift, seeded micro-noise, arms hanging with a subtle sway. |
+| `idle_cycle` | Looping idle with a look-around and torso twist over breathing, weight shift and seeded micro-noise; arms hang and sway. |
 | `cycle` | Generic entry: `preset` = walk / run / idle. |
 | `secondary_motion` | Bake offline spring bones (hair/tail/cloth) into an existing clip, deterministically. |
 
