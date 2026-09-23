@@ -1,0 +1,1184 @@
+{
+  "bones": {
+    "B-chest": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.0,
+        "y": 0.999999582767487,
+        "z": 0.999999582767487
+      }
+    },
+    "B-foot.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000011920929,
+        "y": 0.999999642372131,
+        "z": 0.999999701976776
+      }
+    },
+    "B-foot.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.0,
+        "y": 0.999999225139618,
+        "z": 0.999999940395355
+      }
+    },
+    "B-forearm.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.99999988079071,
+        "y": 1.00000035762787,
+        "z": 1.00000011920929
+      }
+    },
+    "B-forearm.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000011920929,
+        "y": 0.999999582767487,
+        "z": 0.999999582767487
+      }
+    },
+    "B-hand.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.999999940395355,
+        "y": 0.999999165534973,
+        "z": 0.999999582767487
+      }
+    },
+    "B-hand.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.99999988079071,
+        "y": 1.00000023841858,
+        "z": 1.00000047683716
+      }
+    },
+    "B-handProp.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.999999582767487,
+        "y": 1.00000047683716,
+        "z": 1.00000059604645
+      }
+    },
+    "B-handProp.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.999999642372131,
+        "y": 1.00000047683716,
+        "z": 0.999999523162842
+      }
+    },
+    "B-head": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.0,
+        "y": 1.00000059604645,
+        "z": 0.999999642372131
+      }
+    },
+    "B-hips": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.0,
+        "y": 1.00000035762787,
+        "z": 1.00000035762787
+      }
+    },
+    "B-indexFinger01.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000035762787,
+        "y": 0.999999821186066,
+        "z": 1.00000023841858
+      }
+    },
+    "B-indexFinger01.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000023841858,
+        "y": 0.999999642372131,
+        "z": 0.999999284744263
+      }
+    },
+    "B-indexFinger02.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000011920929,
+        "y": 1.00000023841858,
+        "z": 1.00000023841858
+      }
+    },
+    "B-indexFinger02.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.0,
+        "y": 1.00000035762787,
+        "z": 1.00000023841858
+      }
+    },
+    "B-indexFinger03.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.999999761581421,
+        "y": 1.00000083446503,
+        "z": 0.999999523162842
+      }
+    },
+    "B-indexFinger03.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.999999821186066,
+        "y": 0.999999940395355,
+        "z": 0.999999642372131
+      }
+    },
+    "B-jaw": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.0,
+        "y": 0.999999940395355,
+        "z": 0.999999940395355
+      }
+    },
+    "B-middleFinger01.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000071525574,
+        "y": 0.99999988079071,
+        "z": 1.00000011920929
+      }
+    },
+    "B-middleFinger01.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000059604645,
+        "y": 0.999999701976776,
+        "z": 0.999999165534973
+      }
+    },
+    "B-middleFinger02.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.999999761581421,
+        "y": 1.00000095367432,
+        "z": 1.00000059604645
+      }
+    },
+    "B-middleFinger02.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.999999701976776,
+        "y": 1.00000035762787,
+        "z": 1.0
+      }
+    },
+    "B-middleFinger03.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.999999582767487,
+        "y": 0.999999046325684,
+        "z": 0.999999344348907
+      }
+    },
+    "B-middleFinger03.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.999999642372131,
+        "y": 0.999999940395355,
+        "z": 1.00000023841858
+      }
+    },
+    "B-neck": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.0,
+        "y": 0.999999701976776,
+        "z": 1.00000071525574
+      }
+    },
+    "B-pinky01.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000023841858,
+        "y": 1.00000035762787,
+        "z": 1.00000023841858
+      }
+    },
+    "B-pinky01.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000023841858,
+        "y": 0.999999403953552,
+        "z": 0.999999105930328
+      }
+    },
+    "B-pinky02.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000023841858,
+        "y": 0.999999463558197,
+        "z": 1.00000011920929
+      }
+    },
+    "B-pinky02.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000023841858,
+        "y": 1.00000059604645,
+        "z": 1.00000023841858
+      }
+    },
+    "B-pinky03.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.999999523162842,
+        "y": 1.0,
+        "z": 0.999999642372131
+      }
+    },
+    "B-pinky03.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000047683716,
+        "y": 0.99999988079071,
+        "z": 1.00000071525574
+      }
+    },
+    "B-ringFinger01.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000047683716,
+        "y": 1.00000023841858,
+        "z": 1.00000059604645
+      }
+    },
+    "B-ringFinger01.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000047683716,
+        "y": 0.999999225139618,
+        "z": 0.999999582767487
+      }
+    },
+    "B-ringFinger02.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.999999463558197,
+        "y": 0.999999582767487,
+        "z": 0.999999582767487
+      }
+    },
+    "B-ringFinger02.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.999999403953552,
+        "y": 1.00000047683716,
+        "z": 0.999999642372131
+      }
+    },
+    "B-ringFinger03.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000011920929,
+        "y": 1.00000047683716,
+        "z": 0.999999642372131
+      }
+    },
+    "B-ringFinger03.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000023841858,
+        "y": 0.999999761581421,
+        "z": 0.999999701976776
+      }
+    },
+    "B-root": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      }
+    },
+    "B-shin.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.999999701976776,
+        "y": 1.00000023841858,
+        "z": 0.999999642372131
+      }
+    },
+    "B-shin.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.999999701976776,
+        "y": 1.00000023841858,
+        "z": 1.00000071525574
+      }
+    },
+    "B-shoulder.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.99999988079071,
+        "y": 0.999999523162842,
+        "z": 1.00000023841858
+      }
+    },
+    "B-shoulder.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000083446503,
+        "y": 1.00000059604645,
+        "z": 1.00000023841858
+      }
+    },
+    "B-spine": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.0,
+        "y": 0.999999701976776,
+        "z": 0.999999701976776
+      }
+    },
+    "B-spineProxy": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.0,
+        "y": 1.00000011920929,
+        "z": 1.00000011920929
+      }
+    },
+    "B-thigh.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000011920929,
+        "y": 0.999999761581421,
+        "z": 1.00000107288361
+      }
+    },
+    "B-thigh.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000035762787,
+        "y": 0.99999988079071,
+        "z": 1.00000810623169
+      }
+    },
+    "B-thumb01.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000047683716,
+        "y": 1.0,
+        "z": 1.00000047683716
+      }
+    },
+    "B-thumb01.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.999999523162842,
+        "y": 1.00000023841858,
+        "z": 1.00000047683716
+      }
+    },
+    "B-thumb02.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000035762787,
+        "y": 1.0,
+        "z": 0.999999403953552
+      }
+    },
+    "B-thumb02.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.00000071525574,
+        "y": 0.999999701976776,
+        "z": 0.99999988079071
+      }
+    },
+    "B-thumb03.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.999999225139618,
+        "y": 0.999999940395355,
+        "z": 1.00000011920929
+      }
+    },
+    "B-thumb03.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.999999523162842,
+        "y": 1.00000035762787,
+        "z": 1.0
+      }
+    },
+    "B-toe.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.999999940395355,
+        "y": 1.00000178813934,
+        "z": 0.999998986721039
+      }
+    },
+    "B-toe.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 1.0,
+        "y": 1.00000286102295,
+        "z": 0.999997079372406
+      }
+    },
+    "B-upperArm.L": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.999999821186066,
+        "y": 1.00000023841858,
+        "z": 0.999999940395355
+      }
+    },
+    "B-upperArm.R": {
+      "position": {
+        "kind": "vector3",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "kind": "quaternion",
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "kind": "vector3",
+        "x": 0.999999821186066,
+        "y": 1.0,
+        "z": 0.999999463558197
+      }
+    }
+  },
+  "format": "godot-ai-animation-pose",
+  "rest_relative": true,
+  "source": "/PoseDemo/Dummy/Skeleton3D",
+  "version": 1
+}

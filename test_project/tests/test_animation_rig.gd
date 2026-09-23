@@ -372,6 +372,53 @@ func test_pose_to_clip_positions_and_validation() -> void:
 	_teardown(rig)
 
 
+## A player inside a scene instance is saved as an override of the source
+## scene, and the editor drops overrides inside a non-editable instance. The
+## toolkit turns Editable Children on for those levels and swaps in a
+## scene-local library copy so the new clip survives the scene save.
+func test_pose_to_clip_inside_a_scene_instance() -> void:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null or not ResourceLoader.exists(DUMMY):
+		skip("no edited scene or missing dummy")
+		return
+	var root: Node = (load(DUMMY) as PackedScene).instantiate()
+	root.name = "InstDummy"
+	scene_root.add_child(root)
+	var skeleton := _find_of_type(root, "Skeleton3D") as Skeleton3D
+	var player := _find_of_type(root, "AnimationPlayer") as AnimationPlayer
+	assert_true(skeleton != null and player != null, "the dummy has a skeleton/player")
+	var instance_path := "/" + scene_root.name + "/" + str(root.name)
+	assert_true(not scene_root.is_editable_instance(root),
+		"a fresh instance starts out non-editable")
+	var library_before := player.get_animation_library("")
+	_handler.run({"op": "pose_save", "skeleton_path": instance_path + "/Skeleton3D",
+		"pose_dir": POSE_DIR, "name": "inst_rest", "overwrite": true}, null)
+	_rotate_bone(skeleton, "B-upperArm.L", PI / 3.0)
+	_handler.run({"op": "pose_save", "skeleton_path": instance_path + "/Skeleton3D",
+		"pose_dir": POSE_DIR, "name": "inst_up", "overwrite": true}, null)
+	var result := _handler.run({
+		"op": "pose_to_clip", "pose_dir": POSE_DIR,
+		"player_path": instance_path + "/AnimationPlayer",
+		"skeleton_path": instance_path + "/Skeleton3D",
+		"animation_name": "inst_wave",
+		"keys": [
+			{"name": "inst_rest", "time": 0.0},
+			{"name": "inst_up", "time": 0.5},
+		],
+	}, null)
+	assert_true(result.has("data"), "expected data, got: %s" % str(result))
+	assert_true(scene_root.is_editable_instance(root),
+		"the instance was made editable so the clip survives the save")
+	var library_after := player.get_animation_library("")
+	assert_true(library_after != library_before,
+		"the library was swapped for a scene-local copy")
+	assert_true(library_after.resource_local_to_scene, "the copy is local to the scene")
+	assert_true(library_after.has_animation("inst_wave"), "the clip landed in the copy")
+	assert_true(library_after.has_animation("Untitled"), "the imported clips came along")
+	_remove_node(instance_path)
+	_cleanup_files()
+
+
 # --- 2D --------------------------------------------------------------------
 
 func test_pose_round_trip_on_a_2d_rig() -> void:

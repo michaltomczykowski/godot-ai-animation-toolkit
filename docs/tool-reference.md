@@ -392,6 +392,12 @@ Notes:
   L/R bones swap by name (`.L`/`.R`, `_L`/`_R`, `-L`/`-R`, `Left`/`Right`).
 - **Rest-relative** storage means a pose saved from one rig applies to any rig
   with the same bone names — including the F/M human dummy pair.
+- **Players inside scene instances**: writing a clip to an AnimationPlayer that
+  lives inside an instanced scene (a character scene dropped in a level, an
+  imported FBX) only survives the scene save because the toolkit turns
+  **Editable Children** on for those instance levels and swaps in a
+  scene-local copy of the animation library. Both happen inside the same undo
+  action; without them the editor silently drops the new clip on save.
 - `rig_get` flags scaled skeletons (spring bones and IK assume unit scale) and
   clips that animate bones the skeleton does not have.
 
