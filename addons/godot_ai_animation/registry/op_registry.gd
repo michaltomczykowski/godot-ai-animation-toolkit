@@ -17,6 +17,7 @@ const FAMILY_INSPECT := "animation_inspect"
 const FAMILY_FX := "animation_fx"
 const FAMILY_GRAPH := "animation_graph"
 const FAMILY_LIBRARY := "animation_library"
+const FAMILY_RIG := "animation_rig"
 
 const MAX_DESCRIPTION_CHARS := 600
 
@@ -77,11 +78,20 @@ static func families() -> Dictionary:
 			"requires_writable": true,
 			"undoable": true,
 		},
+		FAMILY_RIG: {
+			"handler": "res://addons/godot_ai_animation/handlers/rig.gd",
+			"summary": "Rig authoring: poses, clips from poses, rig inspection.",
+			"description": _rig_description(),
+			"schema": _rig_schema(),
+			"ops": _rig_ops(),
+			"requires_writable": true,
+			"undoable": true,
+		},
 	}
 
 
 static func family_names() -> Array:
-	return [FAMILY_PRESETS, FAMILY_FX, FAMILY_GRAPH, FAMILY_EDIT, FAMILY_INSPECT, FAMILY_LIBRARY]
+	return [FAMILY_PRESETS, FAMILY_FX, FAMILY_GRAPH, FAMILY_EDIT, FAMILY_INSPECT, FAMILY_LIBRARY, FAMILY_RIG]
 
 
 static func family(name: String) -> Dictionary:
@@ -619,7 +629,7 @@ static func _inspect_schema() -> Dictionary:
 			},
 			"tool": {
 				"type": "string",
-				"enum": ["animation_presets", "animation_fx", "animation_graph", "animation_edit", "animation_library"],
+				"enum": ["animation_presets", "animation_fx", "animation_graph", "animation_edit", "animation_library", "animation_rig"],
 				"description": "dry_run: which tool to run. help: which tool's ops to list (omit for all).",
 			},
 			"forward_op": {
@@ -1218,6 +1228,145 @@ static func _library_ops() -> Array:
 			"example": {"op": "spec_apply", "player_path": "/Main/HUD", "path": "res://animation_toolkit/clips/open.json", "target_path": "/Main/HUD/Panel2", "animation_name": "open_2"},
 		},
 	]
+
+
+# ============================================================================
+# animation_rig
+# ============================================================================
+
+static func _rig_description() -> String:
+	return (
+		"Rig authoring for skeletons. Poses are portable rest-relative data: "
+		+ "pose_save captures a skeleton's pose (inline and/or "
+		+ "res://animation_toolkit/poses/<name>.json), pose_apply writes it back "
+		+ "with blend/mirror/reset options, pose_blend mixes two poses, "
+		+ "pose_to_clip keyframes a pose sequence into a clip, and pose_list "
+		+ "lists saved poses. rig_get dumps bones, rests, poses, modifiers and "
+		+ "springs, and flags issues. Bone clips are ordinary transform tracks, "
+		+ "so every other toolkit op works on them. Requires the Godot AI addon."
+	)
+
+
+static func _rig_schema() -> Dictionary:
+	return {
+		"type": "object",
+		"properties": {
+			"op": {
+				"type": "string",
+				"enum": ["pose_save", "pose_apply", "pose_blend", "pose_to_clip", "pose_list", "rig_get"],
+				"description": "Which rig op to run.",
+			},
+			"skeleton_path": {
+				"type": "string",
+				"description": "Scene path to a Skeleton3D or Skeleton2D. Omit to use the first skeleton in the edited scene.",
+			},
+			"name": {
+				"type": "string",
+				"description": "Pose name (res://animation_toolkit/poses/<name>.json) to save to or load from.",
+			},
+			"path": {"type": "string", "description": "Explicit pose JSON file path."},
+			"pose": {"type": "object", "description": "Inline pose (as returned by pose_save)."},
+			"bones": {
+				"type": "array",
+				"items": {"type": "string"},
+				"description": "Restrict the capture/apply to these bones.",
+			},
+			"from": {"description": "pose_blend: the first pose (inline object, or a saved pose name)."},
+			"to": {"description": "pose_blend: the second pose (inline object, or a saved pose name)."},
+			"factor": {"type": "number", "description": "pose_blend: 0 = from, 1 = to (default 0.5)."},
+			"mirror": {
+				"type": "boolean",
+				"default": false,
+				"description": "Mirror the pose(s) across X before applying/blending (L/R bones swap).",
+			},
+			"blend": {
+				"type": "number",
+				"description": "pose_apply: 0-1 blend from the current pose toward the target (default 1).",
+			},
+			"reset_first": {
+				"type": "boolean",
+				"default": false,
+				"description": "pose_apply: reset every bone pose before applying.",
+			},
+			"player_path": {"type": "string", "description": "pose_to_clip: AnimationPlayer that receives the clip."},
+			"animation_name": {"type": "string", "description": "pose_to_clip: clip name (default \"pose_clip\")."},
+			"keys": {
+				"type": "array",
+				"items": {"type": "object"},
+				"description": "pose_to_clip: [{pose|name|path, time, transition?, mirror?}] pose keyframes.",
+			},
+			"positions": {
+				"type": "boolean",
+				"default": false,
+				"description": "pose_to_clip: also key bone positions (hips/root motion).",
+			},
+			"scales": {"type": "boolean", "default": false, "description": "pose_to_clip: also key bone scales."},
+			"loop_mode": {
+				"type": "string",
+				"enum": ["none", "linear", "pingpong"],
+				"description": "pose_to_clip: loop mode (default none).",
+			},
+			"directory": {"type": "string", "description": "pose_list: directory to scan (default res://animation_toolkit/poses)."},
+			"pose_dir": {"type": "string", "description": "Directory for named pose files (default res://animation_toolkit/poses)."},
+			"include_pose": {
+				"type": "boolean",
+				"default": true,
+				"description": "rig_get: include each bone's current pose delta.",
+			},
+			"overwrite": {
+				"type": "boolean",
+				"default": false,
+				"description": "Replace an existing pose file or clip.",
+			},
+			"dry_run": {
+				"type": "boolean",
+				"default": false,
+				"description": "Report what the call would do without writing anything.",
+			},
+		},
+		"required": ["op"],
+	}
+
+
+static func _rig_ops() -> Array:
+	return _with_dry_run([
+		{
+			"name": "pose_save",
+			"summary": "Capture a skeleton's pose as portable rest-relative data (inline and/or a pose file).",
+			"params": ["skeleton_path", "name", "path", "pose_dir", "bones", "overwrite"],
+			"example": {"op": "pose_save", "skeleton_path": "/Main/Rig/Skeleton3D", "name": "wave_mid"},
+		},
+		{
+			"name": "pose_apply",
+			"summary": "Write a saved or inline pose onto a skeleton, with blend / mirror / reset options.",
+			"params": ["skeleton_path", "name", "path", "pose_dir", "pose", "blend", "mirror", "reset_first", "bones"],
+			"example": {"op": "pose_apply", "skeleton_path": "/Main/Rig/Skeleton3D", "name": "wave_mid", "blend": 0.5},
+		},
+		{
+			"name": "pose_blend",
+			"summary": "Blend two poses (slerp rotations, lerp positions) into a new pose.",
+			"params": ["from", "to", "factor", "mirror", "name", "path", "pose_dir", "overwrite"],
+			"example": {"op": "pose_blend", "from": "idle", "to": "wave_mid", "factor": 0.35, "name": "wave_low"},
+		},
+		{
+			"name": "pose_to_clip",
+			"summary": "Keyframe a pose sequence into an Animation clip (one rotation track per bone).",
+			"params": ["player_path", "skeleton_path", "animation_name", "keys", "positions", "scales", "loop_mode", "pose_dir", "overwrite"],
+			"example": {"op": "pose_to_clip", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "wave", "loop_mode": "linear", "keys": [{"name": "idle", "time": 0.0}, {"name": "wave_mid", "time": 0.5, "transition": "ease_in_out"}, {"name": "idle", "time": 1.0}]},
+		},
+		{
+			"name": "pose_list",
+			"summary": "List the pose files saved in the project's pose directory.",
+			"params": ["directory"],
+			"example": {"op": "pose_list"},
+		},
+		{
+			"name": "rig_get",
+			"summary": "Dump a skeleton's bones, rests, pose, modifiers and springs, plus issues.",
+			"params": ["skeleton_path", "include_pose"],
+			"example": {"op": "rig_get", "skeleton_path": "/Main/Rig/Skeleton3D"},
+		},
+	])
 
 
 # ============================================================================

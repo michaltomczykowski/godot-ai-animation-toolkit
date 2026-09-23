@@ -372,7 +372,7 @@ Handler: `res://addons/godot_ai_animation/handlers/inspect.gd`
 | `severity` | string: all \| error \| warning \| info | audit: only findings of this severity (default all). |
 | `include_info` | boolean (default `true`) | audit: include info-level findings (unused clips, constant tracks). |
 | `tolerance` | number | compare: value comparison tolerance (default 0.0001). |
-| `tool` | string: animation_presets \| animation_fx \| animation_graph \| animation_edit \| animation_library | dry_run: which tool to run. help: which tool's ops to list (omit for all). |
+| `tool` | string: animation_presets \| animation_fx \| animation_graph \| animation_edit \| animation_library \| animation_rig | dry_run: which tool to run. help: which tool's ops to list (omit for all). |
 | `forward_op` | string | dry_run: the presets/fx/edit op to run (e.g. "retime"); its own params go in the same call. |
 | `op_name` | string | help: only this op (omit to list the tool's whole index). |
 
@@ -436,4 +436,60 @@ Required: `op`.
 {"animation_name":"open","op":"spec_export","player_path":"/Main/HUD"}
 {"op":"spec_import","path":"res://animation_toolkit/clips/open.json"}
 {"animation_name":"open_2","op":"spec_apply","path":"res://animation_toolkit/clips/open.json","player_path":"/Main/HUD","target_path":"/Main/HUD/Panel2"}
+```
+
+## `animation_rig`
+
+Rig authoring: poses, clips from poses, rig inspection.
+
+Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
+
+| op | What it does | Params |
+| --- | --- | --- |
+| `pose_save` | Capture a skeleton's pose as portable rest-relative data (inline and/or a pose file). | `skeleton_path`, `name`, `path`, `pose_dir`, `bones`, `overwrite`, `dry_run` |
+| `pose_apply` | Write a saved or inline pose onto a skeleton, with blend / mirror / reset options. | `skeleton_path`, `name`, `path`, `pose_dir`, `pose`, `blend`, `mirror`, `reset_first`, `bones`, `dry_run` |
+| `pose_blend` | Blend two poses (slerp rotations, lerp positions) into a new pose. | `from`, `to`, `factor`, `mirror`, `name`, `path`, `pose_dir`, `overwrite`, `dry_run` |
+| `pose_to_clip` | Keyframe a pose sequence into an Animation clip (one rotation track per bone). | `player_path`, `skeleton_path`, `animation_name`, `keys`, `positions`, `scales`, `loop_mode`, `pose_dir`, `overwrite`, `dry_run` |
+| `pose_list` | List the pose files saved in the project's pose directory. | `directory`, `dry_run` |
+| `rig_get` | Dump a skeleton's bones, rests, pose, modifiers and springs, plus issues. | `skeleton_path`, `include_pose`, `dry_run` |
+
+### `animation_rig` parameters
+
+| Param | Type | Notes |
+| --- | --- | --- |
+| `op` | string: pose_save \| pose_apply \| pose_blend \| pose_to_clip \| pose_list \| rig_get | Which rig op to run. |
+| `skeleton_path` | string | Scene path to a Skeleton3D or Skeleton2D. Omit to use the first skeleton in the edited scene. |
+| `name` | string | Pose name (res://animation_toolkit/poses/<name>.json) to save to or load from. |
+| `path` | string | Explicit pose JSON file path. |
+| `pose` | object | Inline pose (as returned by pose_save). |
+| `bones` | array | Restrict the capture/apply to these bones. |
+| `from` | any | pose_blend: the first pose (inline object, or a saved pose name). |
+| `to` | any | pose_blend: the second pose (inline object, or a saved pose name). |
+| `factor` | number | pose_blend: 0 = from, 1 = to (default 0.5). |
+| `mirror` | boolean (default `false`) | Mirror the pose(s) across X before applying/blending (L/R bones swap). |
+| `blend` | number | pose_apply: 0-1 blend from the current pose toward the target (default 1). |
+| `reset_first` | boolean (default `false`) | pose_apply: reset every bone pose before applying. |
+| `player_path` | string | pose_to_clip: AnimationPlayer that receives the clip. |
+| `animation_name` | string | pose_to_clip: clip name (default "pose_clip"). |
+| `keys` | array | pose_to_clip: [{pose|name|path, time, transition?, mirror?}] pose keyframes. |
+| `positions` | boolean (default `false`) | pose_to_clip: also key bone positions (hips/root motion). |
+| `scales` | boolean (default `false`) | pose_to_clip: also key bone scales. |
+| `loop_mode` | string: none \| linear \| pingpong | pose_to_clip: loop mode (default none). |
+| `directory` | string | pose_list: directory to scan (default res://animation_toolkit/poses). |
+| `pose_dir` | string | Directory for named pose files (default res://animation_toolkit/poses). |
+| `include_pose` | boolean (default `true`) | rig_get: include each bone's current pose delta. |
+| `overwrite` | boolean (default `false`) | Replace an existing pose file or clip. |
+| `dry_run` | boolean (default `false`) | Report what the call would do without writing anything. |
+
+Required: `op`.
+
+### Examples
+
+```json
+{"name":"wave_mid","op":"pose_save","skeleton_path":"/Main/Rig/Skeleton3D"}
+{"blend":0.5,"name":"wave_mid","op":"pose_apply","skeleton_path":"/Main/Rig/Skeleton3D"}
+{"factor":0.35,"from":"idle","name":"wave_low","op":"pose_blend","to":"wave_mid"}
+{"animation_name":"wave","keys":[{"name":"idle","time":0.0},{"name":"wave_mid","time":0.5,"transition":"ease_in_out"},{"name":"idle","time":1.0}],"loop_mode":"linear","op":"pose_to_clip","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
+{"op":"pose_list"}
+{"op":"rig_get","skeleton_path":"/Main/Rig/Skeleton3D"}
 ```

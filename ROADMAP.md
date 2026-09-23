@@ -1,6 +1,6 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **Phase 0-5 done** (v0.7.0). Phase 6 (rigs) is in progress: 6a (poses) first.
+Status: **Phase 0-5 done** (v0.7.0); **6a poses done** (v0.8.0). Next: 6b (rigs/IK/springs/retargeting).
 Last updated: 2026-09-23.
 
 Phase 3 note: the generators landed as their own family, `animation_fx`, instead
@@ -152,7 +152,7 @@ Verified API surface (Godot 4.7 docs + the dummy import):
 | Retargeting | `RetargetModifier3D` (child of the *target* skeleton; the source skeleton must be its parent node), `profile` (`SkeletonProfileHumanoid`), `enable` flags, `use_global_pose` |
 | 2D rig | `Bone2D` (`rest`, `apply_rest`, `set_bone_angle`, `set_length`, autocalculate), `SkeletonModificationStack2D` + `SkeletonModification2DTwoBoneIK`/`CCDIK`/`FABRIK`/`Jiggle` (**Experimental**) |
 
-### 6a - poses -> v0.8.0
+### 6a - poses (done, v0.8.0)
 
 | op | What it does |
 | --- | --- |

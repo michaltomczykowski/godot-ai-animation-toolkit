@@ -1,6 +1,6 @@
 # Godot AI Animation Toolkit (addon)
 
-Six custom MCP tools for Godot AI agents, built on one declarative clip-spec
+Seven custom MCP tools for Godot AI agents, built on one declarative clip-spec
 engine:
 
 - **`animation_presets`** (promoted to `custom_animation_presets`) — build clips
@@ -16,6 +16,8 @@ engine:
   `locomotion`, `one_shot_layer`, `additive_lean`.
 - **`animation_library`** (promoted to `custom_animation_library`) — named
   templates and JSON clip specs for reuse and interchange.
+- **`animation_rig`** (promoted to `custom_animation_rig`) — skeleton poses:
+  capture, apply, blend, keyframe into clips, inspect rigs.
 - **`animation_inspect`** (promoted to `custom_animation_inspect`) — read-only
   inspection, auditing and dry runs.
 
@@ -103,6 +105,17 @@ compressed tracks rather than rewriting them lossily.
 | `spec_import` | Validate/report a spec file or inline spec. |
 | `spec_apply` | Build a clip from a spec, optionally remapping tracks onto another node. |
 
+## `animation_rig`
+
+| op | What it does |
+| --- | --- |
+| `pose_save` | Capture a skeleton pose as portable rest-relative data. |
+| `pose_apply` | Write a pose back (blend / mirror / reset options). |
+| `pose_blend` | Blend two poses (slerp rotations, lerp positions). |
+| `pose_to_clip` | Keyframe a pose sequence into a clip (lean: only moving bones). |
+| `pose_list` | List saved pose files. |
+| `rig_get` | Dump bones, rests, pose, modifiers, springs + issues. |
+
 ## `animation_inspect`
 
 | op | What it reports |
@@ -128,9 +141,10 @@ undoable commands) rejects it — call it directly.
 - `spec/fx_specs.gd` — pure spec builders for the `animation_fx` generators.
 - `spec/graph_builders.gd` — pure AnimationNode* graph builders + dumps.
 - `spec/spec_json.gd` — typed JSON clip-spec codec (export/import interchange).
+- `spec/pose_math.gd` — pure pose math (rest deltas, mirroring, blending).
 - `handlers/generate.gd`, `handlers/fx.gd`, `handlers/graph.gd`,
-  `handlers/edit.gd`, `handlers/inspect.gd`, `handlers/library.gd` — tool entry
-  points sharing
+  `handlers/edit.gd`, `handlers/inspect.gd`, `handlers/library.gd`,
+  `handlers/rig.gd` — tool entry points sharing
   `handlers/animation_tool_base.gd` (one undo action per mutating call;
   `dry_run` skips the commit).
 

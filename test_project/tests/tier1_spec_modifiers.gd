@@ -367,7 +367,7 @@ func _check_roundtrip() -> void:
 
 func _check_registry() -> void:
 	var families := OpRegistry.families()
-	_expect_eq(families.size(), 6, "six tool families are registered")
+	_expect_eq(families.size(), 7, "seven tool families are registered")
 	for family_name in OpRegistry.family_names():
 		var info: Dictionary = families[family_name]
 		var description := str(info.get("description", ""))

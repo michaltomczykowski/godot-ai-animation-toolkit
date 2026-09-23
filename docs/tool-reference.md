@@ -5,8 +5,9 @@ Exposed to agents as the promoted first-class tools
 (generators for game feel, UI, sprites and audio), **`custom_animation_graph`**
 (AnimationTree authoring), **`custom_animation_edit`** (edit existing clips),
 **`custom_animation_inspect`** (read-only inspection) and
-**`custom_animation_library`** (reusable templates + JSON clip specs), all
-reachable through `custom_manage(op="invoke", tool_name=...)`.
+**`custom_animation_library`** (reusable templates + JSON clip specs) and
+**`custom_animation_rig`** (skeleton poses and pose-driven clips), all reachable
+through `custom_manage(op="invoke", tool_name=...)`.
 
 A generated per-op index with every parameter lives in
 [`op-index.md`](op-index.md) — it is rendered from
@@ -361,4 +362,55 @@ Notes:
 {"op": "animation_library", "params": {"op": "spec_apply", "player_path": "/Main/HUD",
   "path": "res://animation_toolkit/clips/open.json",
   "target_path": "/Main/HUD/Panel2", "animation_name": "open_2"}}
+```
+
+## `animation_rig`
+
+Phase 6a: **poses**. A pose is portable, rest-relative data — `{bone: {rotation
+delta, position delta, scale}}` — so it survives rig changes, blends, mirrors and
+JSON round-trips, and so the same pose applies to both human-dummy variants.
+
+| op | What it does |
+| --- | --- |
+| `pose_save` | Capture a Skeleton3D/Skeleton2D pose (inline and/or `res://animation_toolkit/poses/<name>.json`). |
+| `pose_apply` | Write a pose back: `blend` 0-1 toward it, `mirror` (L/R swap), `reset_first`, `bones` subset. One undo action. |
+| `pose_blend` | Slerp/lerp two poses into a third (optionally mirrored and/or saved). |
+| `pose_to_clip` | Keyframe a `[{pose, time, transition?}]` sequence into an Animation clip. |
+| `pose_list` | List saved pose files with their bone counts. |
+| `rig_get` | Dump bones (index/parent/rest), the current pose, modifiers, spring settings, and issues. |
+
+Notes:
+
+- **Bone clips are ordinary clips.** 3D bones key `TYPE_ROTATION_3D` tracks at
+  paths like `Skeleton3D:B-thigh.R`; 2D bones key `Skeleton2D/Bone:rotation`
+  value tracks. Every other toolkit op therefore works on them: `retime`,
+  `mirror`, `reverse`, `amplitude`, `spec_export`, templates.
+- **Lean clips**: `pose_to_clip` only emits tracks for bones that actually move,
+  so a pose pair that waves an arm produces one track, not one per bone.
+- **Mirroring** follows the reflection rule: a rotation keeps its angle and
+  mirrors its axis (`q = (x, -y, -z, w)`), positions negate X, scale is kept.
+  L/R bones swap by name (`.L`/`.R`, `_L`/`_R`, `-L`/`-R`, `Left`/`Right`).
+- **Rest-relative** storage means a pose saved from one rig applies to any rig
+  with the same bone names — including the F/M human dummy pair.
+- `rig_get` flags scaled skeletons (spring bones and IK assume unit scale) and
+  clips that animate bones the skeleton does not have.
+
+### Examples
+
+```json
+{"op": "animation_rig", "params": {"op": "pose_save",
+  "skeleton_path": "/Main/Rig/Skeleton3D", "name": "wave_mid"}}
+
+{"op": "animation_rig", "params": {"op": "pose_apply",
+  "skeleton_path": "/Main/Rig/Skeleton3D", "name": "wave_mid", "blend": 0.5}}
+
+{"op": "animation_rig", "params": {"op": "pose_blend",
+  "from": "idle", "to": "wave_mid", "factor": 0.35, "name": "wave_low"}}
+
+{"op": "animation_rig", "params": {"op": "pose_to_clip",
+  "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
+  "animation_name": "wave", "loop_mode": "linear",
+  "keys": [{"name": "idle", "time": 0.0},
+           {"name": "wave_mid", "time": 0.5, "transition": "ease_in_out"},
+           {"name": "idle", "time": 1.0}]}}
 ```

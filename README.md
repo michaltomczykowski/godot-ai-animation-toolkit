@@ -19,11 +19,13 @@ A standalone [Godot](https://godotengine.org) addon that gives
   `additive_lean` setups.
 - **`animation_library`** — reusable templates (`template_save/apply/list/delete`)
   and JSON clip specs (`spec_export/import/apply`).
+- **`animation_rig`** — skeleton poses: `pose_save`, `pose_apply`, `pose_blend`,
+  `pose_to_clip` (pose sequences into clips), `pose_list`, `rig_get`.
 - **`animation_inspect`** — read-only reasoning and QA: `describe`, `timeline`,
   `audit` (broken paths, dead clips, loop seams, autoplay conflicts),
   `compare`, `stats`, `dry_run` (run any op without committing), `help`.
 
-All six sit on one declarative clip-spec engine, so every op is a pure
+All seven sit on one declarative clip-spec engine, so every op is a pure
 spec → spec transform and each mutating call is one scene-pinned undo action.
 
 ```json
@@ -172,6 +174,24 @@ targets with overrides, and move whole clips in and out of a typed JSON format
 }}
 ```
 
+## Rig poses
+
+`animation_rig` captures and applies skeleton poses as portable rest-relative
+data, and keyframes pose sequences into clips. Bone clips are ordinary transform
+tracks, so everything else in the toolkit works on them — `retime`, `mirror`,
+`reverse`, `amplitude`, JSON export, templates.
+
+```json
+{"tool": "custom_animation_rig", "params": {
+  "op": "pose_to_clip",
+  "player_path": "/Main/Rig/AnimationPlayer",
+  "skeleton_path": "/Main/Rig/Skeleton3D",
+  "animation_name": "wave",
+  "loop_mode": "linear",
+  "keys": [{"name": "idle", "time": 0.0}, {"name": "wave_mid", "time": 0.5}, {"name": "idle", "time": 1.0}]
+}}
+```
+
 ## Inspecting and auditing
 
 [**Video: inspection demo (0:55)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v0.4.0/animation_toolkit_inspect_demo.mp4)
@@ -230,9 +250,10 @@ warning) when Godot AI is absent.
 ```
 
 `test_project/` is a Godot project wired to both addons; `tests/` holds the
-editor suites (102 rows across all six tools) and the headless checks
+editor suites (114 rows across all seven tools) and the headless checks
 (`tier1_value_codec.gd`, `tier1_spec_modifiers.gd`, `tier1_fx_specs.gd`,
-`tier1_graph_builders.gd`, `tier1_spec_json.gd`, 1423 checks). The `demo_*.tscn` scenes are the ones recorded for the walkthrough
+`tier1_graph_builders.gd`, `tier1_spec_json.gd`, `tier1_pose_math.gd`, 1574
+checks). The `demo_*.tscn` scenes are the ones recorded for the walkthrough
 video — each is one preset call plus autoplay.
 
 ```powershell
