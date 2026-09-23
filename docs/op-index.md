@@ -457,12 +457,31 @@ Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 | `spring_setup` | Attach spring bones (SpringBoneSimulator3D) to a skeleton, one spring setting per entry. | `skeleton_path`, `springs`, `name`, `active`, `mutable_bone_axes`, `dry_run` |
 | `look_at_setup` | Attach a look-at modifier so one bone tracks a target node (created in front of the bone when omitted). | `skeleton_path`, `bone`, `target_path`, `target_name`, `forward_axis`, `origin_from`, `origin_bone`, `origin_node`, `origin_offset`, `origin_safe_margin`, `use_angle_limitation`, `primary_limit_angle`, `secondary_limit_angle`, `use_secondary_rotation`, `primary_axis`, `relative`, `duration`, `name`, `active`, `dry_run` |
 | `retarget_setup` | Retarget a source skeleton's poses onto a child target skeleton through a RetargetModifier3D and a bone-name profile. | `skeleton_path`, `target_path`, `profile`, `position`, `rotation`, `scale`, `use_global_pose`, `move_target`, `name`, `active`, `dry_run` |
+| `walk_cycle` | Build a looping in-place walk cycle (legs, knees, counter-swinging arms, hip bob) from bone roles. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `stride`, `knee_bend`, `arm_swing`, `bob`, `swing_axis`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
+| `idle_breathing` | Build a subtle looping idle: chest/spine breathing, a light head counter-move and an optional hip bob. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `amplitude`, `head_amplitude`, `bob`, `axis`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
+| `blink` | Build a quick blink clip on the eye/eyelid bones, scale or rotate, optionally several blinks. | `player_path`, `skeleton_path`, `animation_name`, `bones`, `mode`, `closed_scale`, `angle`, `axis`, `blinks`, `duration`, `loop_mode`, `overwrite`, `dry_run` |
+| `bake_pose_sequence` | Sample a skeleton over time into a clip - seek the player, advance the skeleton so IK/springs/retarget run, then key the result. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `fps`, `bones`, `positions`, `scales`, `source_animation`, `loop_mode`, `overwrite`, `dry_run` |
 
 ### `animation_rig` parameters
 
 | Param | Type | Notes |
 | --- | --- | --- |
-| `op` | string: pose_save \| pose_apply \| pose_blend \| pose_to_clip \| pose_list \| rig_get \| rig_chain \| ik_setup \| spring_setup \| look_at_setup \| retarget_setup | Which rig op to run. |
+| `op` | string: pose_save \| pose_apply \| pose_blend \| pose_to_clip \| pose_list \| rig_get \| rig_chain \| ik_setup \| spring_setup \| look_at_setup \| retarget_setup \| walk_cycle \| idle_breathing \| blink \| bake_pose_sequence | Which rig op to run. |
+| `roles` | object | walk_cycle / idle_breathing / blink: explicit bone roles, e.g. {"thigh_l": "B-thigh.L", "chest": "B-chest"}. Missing roles are auto-detected from bone names. |
+| `stride` | number | walk_cycle: leg swing in degrees (default 25). |
+| `knee_bend` | number | walk_cycle: knee bend in degrees (default 30). |
+| `arm_swing` | number | walk_cycle: arm counter-swing in degrees (default 20). |
+| `bob` | number | walk_cycle / idle_breathing: vertical hip bob in metres. |
+| `swing_axis` | string: x \| y \| z | walk_cycle: bone-local axis the limbs swing around (default x). |
+| `axis` | string: x \| y \| z | idle_breathing / blink: bone-local axis to rotate around (default x). |
+| `amplitude` | number | idle_breathing: chest rotation in degrees (default 2). |
+| `head_amplitude` | number | idle_breathing: head counter-rotation in degrees (default 1). |
+| `mode` | string: scale \| rotate | blink: how the lid closes (default scale). |
+| `closed_scale` | number | blink scale mode: Y scale of the closed lid (default 0.05). |
+| `angle` | number | blink rotate mode: closing rotation in degrees (default 25). |
+| `blinks` | integer | blink: how many blinks fit in the clip (default 1). |
+| `fps` | integer | bake_pose_sequence: samples per second (default 30). |
+| `source_animation` | string | bake_pose_sequence: animation to seek while sampling (default: whatever the player is playing). |
 | `skeleton_path` | string | Scene path to a Skeleton3D or Skeleton2D. Omit to use the first skeleton in the edited scene. |
 | `bones` | array | rig_chain: [{name, parent?, position?, rotation?, scale?, length?}] rest transforms, rotation in degrees. Pose ops: restrict capture/apply to these bone names. |
 | `node_path` | string | rig_chain: a Node3D/Node2D subtree to convert into a new skeleton (its local transforms become bone rests). |
@@ -533,4 +552,8 @@ Required: `op`.
 {"op":"spring_setup","skeleton_path":"/Main/Rig/Skeleton3D","springs":[{"drag":0.2,"gravity":0.1,"radius":0.05,"root_bone":"B-hair01","stiffness":0.3}]}
 {"bone":"B-head","forward_axis":"+z","op":"look_at_setup","skeleton_path":"/Main/Rig/Skeleton3D","target_name":"HeadTarget"}
 {"op":"retarget_setup","profile":"auto","skeleton_path":"/Main/Source/Skeleton3D","target_path":"/Main/Target/Skeleton3D"}
+{"animation_name":"walk","duration":1.0,"loop_mode":"linear","op":"walk_cycle","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
+{"animation_name":"idle","duration":3.0,"loop_mode":"linear","op":"idle_breathing","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
+{"animation_name":"blink","bones":["eyelid.L","eyelid.R"],"op":"blink","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
+{"animation_name":"walk_baked","duration":1.0,"loop_mode":"linear","op":"bake_pose_sequence","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
 ```

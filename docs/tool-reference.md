@@ -378,6 +378,10 @@ both human-dummy variants.
 | `spring_setup` | Attach a `SpringBoneSimulator3D` with one spring per `springs` entry (root/end bone, stiffness, drag, gravity, radius, rotation axis, centre, collisions). `end_bone` defaults to the root's leaf. |
 | `look_at_setup` | Attach a `LookAtModifier3D` so one bone tracks a target node (created a metre in front of the bone when omitted), with origin, limits, secondary rotation and turn duration. |
 | `retarget_setup` | Attach a `RetargetModifier3D` under a source Skeleton3D so a child target skeleton follows it in model space, with an `auto` bone-name profile (built from the source), `humanoid`, or a `res://` profile. Reports mapped/unmapped bones. |
+| `walk_cycle` | Build a looping in-place walk from bone roles (auto-detected by name or given in `roles`): thigh swing, knee bend, counter-swinging arms and a hip bob. |
+| `idle_breathing` | Build a subtle looping idle: chest (then spine) breathing, a light head counter-move and an optional hip bob. |
+| `blink` | Build a quick blink on the eye/eyelid bones - `scale` (default) or `rotate` - with an optional number of blinks per clip. |
+| `bake_pose_sequence` | Sample a skeleton into a clip: seek its AnimationPlayer to each sample, `advance()` the skeleton so IK/springs/retarget run, then key the result. Restores the pose afterwards, so IK can be baked off at runtime. |
 | `pose_save` | Capture a Skeleton3D/Skeleton2D pose (inline and/or `res://animation_toolkit/poses/<name>.json`). |
 | `pose_apply` | Write a pose back: `blend` 0-1 toward it, `mirror` (L/R swap), `reset_first`, `bones` subset. One undo action. |
 | `pose_blend` | Slerp/lerp two poses into a third (optionally mirrored and/or saved). |

@@ -56,6 +56,14 @@ func _dispatch(params: Dictionary) -> Dictionary:
 			return look_at_setup(params)
 		"retarget_setup":
 			return retarget_setup(params)
+		"walk_cycle":
+			return walk_cycle(params)
+		"idle_breathing":
+			return idle_breathing(params)
+		"blink":
+			return blink(params)
+		"bake_pose_sequence":
+			return bake_pose_sequence(params)
 	return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 		"Unknown op '%s'. Valid: %s" % [op, ", ".join(OpRegistry.op_names(OpRegistry.FAMILY_RIG))])
 
@@ -1207,6 +1215,340 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 
 
 # ============================================================================
+# walk_cycle / idle_breathing / blink
+# ============================================================================
+
+## Procedural recipes: build a looping clip on a skeleton from bone roles.
+func walk_cycle(params: Dictionary) -> Dictionary:
+	var resolved := _resolve_skeleton(params)
+	if resolved.has("error"):
+		return resolved
+	if resolved.kind != "3d":
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"walk_cycle needs a Skeleton3D (bone roles are matched by name)")
+	var skeleton: Skeleton3D = resolved.node
+	var roles := _resolve_roles(params, skeleton)
+	var missing: Array = []
+	for role in ["thigh_l", "thigh_r", "shin_l", "shin_r", "arm_l", "arm_r"]:
+		if not roles.has(role):
+			missing.append(role)
+	if not missing.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"Cannot find bones for: %s. Pass 'roles' to name them explicitly (e.g. {\"thigh_l\": \"B-thigh.L\"})." % ", ".join(missing))
+	var length := float(params.get("duration", 1.0))
+	if length <= 0.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "duration must be > 0")
+	var loop_result := _loop_mode(params)
+	if loop_result.has("error"):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, loop_result.error)
+	var stride := float(params.get("stride", 25.0))
+	var knee := float(params.get("knee_bend", 30.0))
+	var arm := float(params.get("arm_swing", 20.0))
+	var bob := float(params.get("bob", 0.05))
+	var axis_name := str(params.get("swing_axis", "x"))
+	var axis := _spec_vector3(axis_name_to_vector(axis_name))
+	if axis == Vector3.ZERO:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Invalid swing_axis '%s'. Valid: x, y, z" % axis_name)
+	var half := length * 0.5
+	var keys := {}
+	keys[roles.thigh_l] = {"rotation": [
+		{"time": 0.0, "delta": Quaternion(axis, deg_to_rad(stride))},
+		{"time": half, "delta": Quaternion(axis, deg_to_rad(-stride))},
+		{"time": length, "delta": Quaternion(axis, deg_to_rad(stride))},
+	]}
+	keys[roles.thigh_r] = {"rotation": [
+		{"time": 0.0, "delta": Quaternion(axis, deg_to_rad(-stride))},
+		{"time": half, "delta": Quaternion(axis, deg_to_rad(stride))},
+		{"time": length, "delta": Quaternion(axis, deg_to_rad(-stride))},
+	]}
+	keys[roles.shin_l] = {"rotation": [
+		{"time": 0.0, "delta": Quaternion(axis, deg_to_rad(-knee * 0.15))},
+		{"time": length * 0.4, "delta": Quaternion(axis, deg_to_rad(-knee))},
+		{"time": length * 0.6, "delta": Quaternion(axis, deg_to_rad(-knee * 0.35))},
+		{"time": length, "delta": Quaternion(axis, deg_to_rad(-knee * 0.15))},
+	]}
+	keys[roles.shin_r] = {"rotation": [
+		{"time": 0.0, "delta": Quaternion(axis, deg_to_rad(-knee * 0.35))},
+		{"time": length * 0.4, "delta": Quaternion(axis, deg_to_rad(-knee * 0.15))},
+		{"time": length * 0.6, "delta": Quaternion(axis, deg_to_rad(-knee))},
+		{"time": length, "delta": Quaternion(axis, deg_to_rad(-knee * 0.35))},
+	]}
+	keys[roles.arm_l] = {"rotation": [
+		{"time": 0.0, "delta": Quaternion(axis, deg_to_rad(-arm))},
+		{"time": half, "delta": Quaternion(axis, deg_to_rad(arm))},
+		{"time": length, "delta": Quaternion(axis, deg_to_rad(-arm))},
+	]}
+	keys[roles.arm_r] = {"rotation": [
+		{"time": 0.0, "delta": Quaternion(axis, deg_to_rad(arm))},
+		{"time": half, "delta": Quaternion(axis, deg_to_rad(-arm))},
+		{"time": length, "delta": Quaternion(axis, deg_to_rad(arm))},
+	]}
+	if roles.has("hips"):
+		keys[roles.hips] = {"position": [
+			{"time": 0.0, "delta": Vector3.ZERO},
+			{"time": length * 0.25, "delta": Vector3(0, bob, 0)},
+			{"time": length * 0.5, "delta": Vector3.ZERO},
+			{"time": length * 0.75, "delta": Vector3(0, bob, 0)},
+			{"time": length, "delta": Vector3.ZERO},
+		]}
+	var committed := _commit_procedural_clip(params, resolved,
+		str(params.get("animation_name", "walk")), length, loop_result.ok, keys)
+	if committed.has("error"):
+		return committed
+	committed.data["roles"] = roles
+	committed.data["note"] = "in-place cycle: no root motion is keyed"
+	return committed
+
+
+## A subtle looping idle: chest/spine breathing, a light head counter-move and
+## an optional hip bob.
+func idle_breathing(params: Dictionary) -> Dictionary:
+	var resolved := _resolve_skeleton(params)
+	if resolved.has("error"):
+		return resolved
+	if resolved.kind != "3d":
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "idle_breathing needs a Skeleton3D")
+	var skeleton: Skeleton3D = resolved.node
+	var roles := _resolve_roles(params, skeleton)
+	var chest := str(roles.get("chest", ""))
+	if chest.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"Cannot find a chest/spine bone. Pass 'roles': {\"chest\": \"B-chest\"}.")
+	var length := float(params.get("duration", 3.0))
+	if length <= 0.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "duration must be > 0")
+	var loop_result := _loop_mode(params)
+	if loop_result.has("error"):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, loop_result.error)
+	var amplitude := deg_to_rad(float(params.get("amplitude", 2.0)))
+	var head_amplitude := deg_to_rad(float(params.get("head_amplitude", 1.0)))
+	var bob := float(params.get("bob", 0.01))
+	var axis := _spec_vector3(axis_name_to_vector(str(params.get("axis", "x"))))
+	if axis == Vector3.ZERO:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Invalid axis '%s'. Valid: x, y, z" % str(params.get("axis", "x")))
+	var breathe := func(amount: float) -> Array:
+		return [
+			{"time": 0.0, "delta": Quaternion(axis, 0.0)},
+			{"time": length * 0.35, "delta": Quaternion(axis, amount)},
+			{"time": length * 0.6, "delta": Quaternion(axis, amount * 0.85)},
+			{"time": length, "delta": Quaternion(axis, 0.0)},
+		]
+	var keys := {chest: {"rotation": breathe.call(amplitude)}}
+	if roles.has("spine") and str(roles.spine) != chest:
+		keys[str(roles.spine)] = {"rotation": breathe.call(amplitude * 0.6)}
+	if roles.has("head"):
+		keys[str(roles.head)] = {"rotation": [
+			{"time": 0.0, "delta": Quaternion(axis, 0.0)},
+			{"time": length * 0.35, "delta": Quaternion(axis, -head_amplitude)},
+			{"time": length, "delta": Quaternion(axis, 0.0)},
+		]}
+	if roles.has("hips") and not is_zero_approx(bob):
+		keys[str(roles.hips)] = {"position": [
+			{"time": 0.0, "delta": Vector3.ZERO},
+			{"time": length * 0.5, "delta": Vector3(0, bob, 0)},
+			{"time": length, "delta": Vector3.ZERO},
+		]}
+	var committed := _commit_procedural_clip(params, resolved,
+		str(params.get("animation_name", "idle")), length, loop_result.ok, keys)
+	if committed.has("error"):
+		return committed
+	committed.data["roles"] = roles
+	return committed
+
+
+## A quick eye blink: scale (default) or rotate the eyelid/eye bones closed and
+## back, optionally several blinks per clip.
+func blink(params: Dictionary) -> Dictionary:
+	var resolved := _resolve_skeleton(params)
+	if resolved.has("error"):
+		return resolved
+	if resolved.kind != "3d":
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "blink needs a Skeleton3D")
+	var skeleton: Skeleton3D = resolved.node
+	var roles := _resolve_roles(params, skeleton)
+	var eye_bones: Array = params.get("bones", [])
+	if eye_bones.is_empty():
+		for role in ["eye_l", "eye_r", "eyelid_l", "eyelid_r"]:
+			if roles.has(role):
+				eye_bones.append(str(roles[role]))
+	if eye_bones.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"Cannot find eye/eyelid bones. Pass 'bones': [\"eyelid.L\", \"eyelid.R\"].")
+	var mode := str(params.get("mode", "scale"))
+	if mode != "scale" and mode != "rotate":
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Invalid mode '%s'. Valid: scale, rotate" % mode)
+	var length := float(params.get("duration", 0.18))
+	if length <= 0.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "duration must be > 0")
+	var loop_result := _loop_mode(params)
+	if loop_result.has("error"):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, loop_result.error)
+	var blinks := maxi(1, int(params.get("blinks", 1)))
+	var closed_scale := float(params.get("closed_scale", 0.05))
+	var angle := deg_to_rad(float(params.get("angle", 25.0)))
+	var axis := _spec_vector3(axis_name_to_vector(str(params.get("axis", "x"))))
+	if axis == Vector3.ZERO:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Invalid axis '%s'. Valid: x, y, z" % str(params.get("axis", "x")))
+	var keys := {}
+	for bone_name in eye_bones:
+		var span := length / float(blinks)
+		var rotation_keys: Array = []
+		var scale_keys: Array = []
+		for index in blinks:
+			var start := index * span
+			rotation_keys.append({"time": start, "delta": Quaternion(axis, 0.0)})
+			rotation_keys.append({"time": start + span * 0.4, "delta": Quaternion(axis, angle)})
+			rotation_keys.append({"time": start + span * 0.55, "delta": Quaternion(axis, angle)})
+			rotation_keys.append({"time": start + span, "delta": Quaternion(axis, 0.0)})
+			scale_keys.append({"time": start, "value": Vector3.ONE})
+			scale_keys.append({"time": start + span * 0.4, "value": Vector3(1.0, closed_scale, 1.0)})
+			scale_keys.append({"time": start + span * 0.55, "value": Vector3(1.0, closed_scale, 1.0)})
+			scale_keys.append({"time": start + span, "value": Vector3.ONE})
+		if mode == "scale":
+			keys[str(bone_name)] = {"scale": scale_keys}
+		else:
+			keys[str(bone_name)] = {"rotation": rotation_keys}
+	var committed := _commit_procedural_clip(params, resolved,
+		str(params.get("animation_name", "blink")), length, loop_result.ok, keys)
+	if committed.has("error"):
+		return committed
+	committed.data["bones"] = eye_bones
+	committed.data["mode"] = mode
+	return committed
+
+
+# ============================================================================
+# bake_pose_sequence
+# ============================================================================
+
+## Sample a skeleton over time into a clip. Any AnimationPlayer on the skeleton
+## is seeked to each sample first, then the skeleton is advanced so modifiers
+## (IK, springs, retarget) run - the baked clip plays without them.
+func bake_pose_sequence(params: Dictionary) -> Dictionary:
+	var resolved := _resolve_skeleton(params)
+	if resolved.has("error"):
+		return resolved
+	if resolved.kind != "3d":
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"bake_pose_sequence needs a Skeleton3D")
+	var skeleton: Skeleton3D = resolved.node
+	var length := float(params.get("duration", 1.0))
+	if length <= 0.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "duration must be > 0")
+	var fps := maxi(1, int(params.get("fps", 30)))
+	var loop_result := _loop_mode(params)
+	if loop_result.has("error"):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, loop_result.error)
+	var include_positions := bool(params.get("positions", true))
+	var include_scales := bool(params.get("scales", false))
+	var bones_filter: Array = params.get("bones", [])
+	var player_resolved := _resolve_player(str(params.get("player_path", "")))
+	if player_resolved.has("error"):
+		return player_resolved
+	var player: AnimationPlayer = player_resolved.player
+	var library: AnimationLibrary = player_resolved.library
+	var created_library := false
+	if library == null:
+		library = AnimationLibrary.new()
+		created_library = true
+	var root_node := ValueCodec.player_root_node(player)
+	if root_node == null:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"The AnimationPlayer has no resolvable root_node")
+	var track_root := str(root_node.get_path_to(skeleton))
+	if track_root.is_empty() or track_root == ".":
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"The skeleton must live under the player's root_node")
+	# Remember the current pose so the bake leaves the scene as it found it.
+	var restore: Array = []
+	for index in skeleton.get_bone_count():
+		restore.append({
+			"rotation": skeleton.get_bone_pose_rotation(index),
+			"position": skeleton.get_bone_pose_position(index),
+			"scale": skeleton.get_bone_pose_scale(index),
+		})
+	var indices: Array = []
+	for index in skeleton.get_bone_count():
+		var bone_name := skeleton.get_bone_name(index)
+		if not bones_filter.is_empty() and not bones_filter.has(bone_name):
+			continue
+		indices.append(index)
+	if indices.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "No bones to bake")
+	var samples := int(ceil(length * float(fps))) + 1
+	var step := 1.0 / float(fps)
+	var keys := {}
+	for index in indices:
+		keys[skeleton.get_bone_name(index)] = {"rotation": [], "position": [], "scale": []}
+	for sample in samples:
+		var time := minf(sample * step, length)
+		if player.current_animation != "" or player.has_animation(str(params.get("source_animation", ""))):
+			var source := str(params.get("source_animation", player.current_animation))
+			if not source.is_empty():
+				player.seek(time, true)
+		skeleton.advance(step)
+		for index in indices:
+			var bone_name := skeleton.get_bone_name(index)
+			var entry: Dictionary = keys[bone_name]
+			(entry.rotation as Array).append({"time": time, "value": skeleton.get_bone_pose_rotation(index), "transition": "linear"})
+			if include_positions:
+				(entry.position as Array).append({"time": time, "value": skeleton.get_bone_pose_position(index), "transition": "linear"})
+			if include_scales:
+				(entry.scale as Array).append({"time": time, "value": skeleton.get_bone_pose_scale(index), "transition": "linear"})
+	for index in skeleton.get_bone_count():
+		skeleton.set_bone_pose_rotation(index, restore[index].rotation)
+		skeleton.set_bone_pose_position(index, restore[index].position)
+		skeleton.set_bone_pose_scale(index, restore[index].scale)
+	var anim_name := str(params.get("animation_name", "baked"))
+	var spec := ClipSpec.make(length, loop_result.ok)
+	for bone_name in keys:
+		var entry: Dictionary = keys[bone_name]
+		var rotation_keys: Array = entry.rotation
+		if not rotation_keys.is_empty():
+			ClipSpec.add_value_track(spec, "%s:%s" % [track_root, bone_name], rotation_keys,
+				Animation.INTERPOLATION_LINEAR, Animation.TYPE_ROTATION_3D)
+		var position_keys: Array = entry.position
+		if include_positions and not position_keys.is_empty():
+			ClipSpec.add_value_track(spec, "%s:%s" % [track_root, bone_name], position_keys,
+				Animation.INTERPOLATION_LINEAR, Animation.TYPE_POSITION_3D)
+		var scale_keys: Array = entry.scale
+		if include_scales and not scale_keys.is_empty():
+			ClipSpec.add_value_track(spec, "%s:%s" % [track_root, bone_name], scale_keys,
+				Animation.INTERPOLATION_LINEAR, Animation.TYPE_SCALE_3D)
+	var valid := SpecBuilder.validate(spec)
+	if valid.has("error"):
+		return valid
+	var overwrite := bool(params.get("overwrite", false))
+	var existing := _existing_animation(library, anim_name, overwrite)
+	if existing.has("error"):
+		return existing.error
+	var anim := SpecBuilder.to_animation(spec)
+	_commit_animation_add("MCP: Baked clip %s" % anim_name, player, library,
+		created_library, anim_name, anim, existing.old_anim)
+	return {"data": {
+		"player_path": str(params.get("player_path", "")),
+		"skeleton_path": resolved.path,
+		"animation_name": anim_name,
+		"length": length,
+		"fps": fps,
+		"samples": samples,
+		"bone_count": indices.size(),
+		"track_count": (spec.tracks as Array).size(),
+		"positions": include_positions,
+		"scales": include_scales,
+		"loop_mode": ValueCodec.loop_mode_to_string(int(spec.loop_mode)),
+		"library_created": created_library,
+		"overwritten": existing.old_anim != null,
+		"undoable": true,
+		"note": "the skeleton's pose was restored after sampling; disable the source modifiers once you play the baked clip",
+	}}
+
+
+# ============================================================================
 # Helpers
 # ============================================================================
 
@@ -1760,3 +2102,153 @@ func _resolve_retarget_profile(params: Dictionary, source: Skeleton3D, target: S
 		else:
 			unmapped.append(bone_name)
 	return {"profile": profile, "source": profile_source, "mapped": mapped, "unmapped": unmapped}
+
+
+# --- procedural clip helpers ------------------------------------------------
+
+static func axis_name_to_vector(axis: String) -> Vector3:
+	match axis.to_lower():
+		"x": return Vector3.RIGHT
+		"y": return Vector3.UP
+		"z": return Vector3.BACK
+	return Vector3.ZERO
+
+
+## Bone roles for the procedural recipes: explicit `roles` overrides first,
+## then name-based auto-detection (thigh/shin/arm/hips/chest/head/eye...).
+static func _resolve_roles(params: Dictionary, skeleton: Skeleton3D) -> Dictionary:
+	var roles := {}
+	for index in skeleton.get_bone_count():
+		var name := skeleton.get_bone_name(index)
+		var lower := name.to_lower()
+		var side := ""
+		if lower.ends_with(".l") or lower.ends_with("_l") or lower.ends_with("-l") or lower.contains("left"):
+			side = "l"
+		elif lower.ends_with(".r") or lower.ends_with("_r") or lower.ends_with("-r") or lower.contains("right"):
+			side = "r"
+		if not side.is_empty():
+			if lower.contains("thigh") or lower.contains("upperleg") or lower.contains("upleg"):
+				roles["thigh_" + side] = name
+			elif lower.contains("shin") or lower.contains("calf") or lower.contains("lowerleg"):
+				roles["shin_" + side] = name
+			elif lower.contains("upperarm") or lower.contains("shoulder") \
+					or (lower.contains("arm") and not lower.contains("fore")):
+				roles["arm_" + side] = name
+			elif lower.contains("foot") or lower.contains("ankle"):
+				roles["foot_" + side] = name
+			elif lower.contains("eye") or lower.contains("lid"):
+				roles["eye_" + side] = name
+		if not roles.has("hips") and (lower.contains("hips") or lower.contains("pelvis")):
+			roles["hips"] = name
+		if not roles.has("head") and lower.contains("head"):
+			roles["head"] = name
+	# Chest: prefer a bone that says "chest" over spine/torso fallbacks.
+	if not roles.has("chest"):
+		for want in ["chest", "spine", "torso"]:
+			for index in skeleton.get_bone_count():
+				var candidate := skeleton.get_bone_name(index)
+				if candidate.to_lower().contains(want):
+					roles["chest"] = candidate
+					break
+			if roles.has("chest"):
+				break
+	var overrides = params.get("roles", {})
+	if overrides is Dictionary:
+		for role in overrides:
+			roles[str(role)] = str((overrides as Dictionary)[role])
+	return roles
+
+
+## Commit a procedurally built bone clip. `keys` maps bone names to
+## {"rotation": [{time, delta}], "position": [{time, delta}], "scale": [{time, value}]}
+## where rotation/position deltas are rest-relative.
+func _commit_procedural_clip(
+	params: Dictionary, resolved: Dictionary, anim_name: String, length: float,
+	loop_mode: int, keys: Dictionary,
+) -> Dictionary:
+	var player_resolved := _resolve_player(str(params.get("player_path", "")))
+	if player_resolved.has("error"):
+		return player_resolved
+	var player: AnimationPlayer = player_resolved.player
+	var library: AnimationLibrary = player_resolved.library
+	var created_library := false
+	if library == null:
+		library = AnimationLibrary.new()
+		created_library = true
+	var root_node := ValueCodec.player_root_node(player)
+	if root_node == null:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"The AnimationPlayer has no resolvable root_node")
+	var track_root := str(root_node.get_path_to(resolved.node))
+	if track_root.is_empty() or track_root == ".":
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"The skeleton must live under the player's root_node")
+	var skeleton: Skeleton3D = resolved.node
+	var spec := ClipSpec.make(length, loop_mode)
+	var used: Array = []
+	for bone_name in keys:
+		var index := skeleton.find_bone(str(bone_name))
+		if index < 0:
+			continue
+		var entry: Dictionary = keys[bone_name]
+		var rest := skeleton.get_bone_rest(index)
+		var rest_rotation := rest.basis.get_rotation_quaternion()
+		var wrote := false
+		if entry.has("rotation"):
+			var rotation_keys: Array = []
+			for key in entry.rotation:
+				rotation_keys.append({
+					"time": float(key.time),
+					"value": (rest_rotation * (key.delta as Quaternion)).normalized(),
+					"transition": str(key.get("transition", "ease_in_out")),
+				})
+			ClipSpec.add_value_track(spec, "%s:%s" % [track_root, bone_name], rotation_keys,
+				Animation.INTERPOLATION_LINEAR, Animation.TYPE_ROTATION_3D)
+			wrote = true
+		if entry.has("position"):
+			var position_keys: Array = []
+			for key in entry.position:
+				position_keys.append({
+					"time": float(key.time),
+					"value": rest.origin + (key.delta as Vector3),
+					"transition": str(key.get("transition", "ease_in_out")),
+				})
+			ClipSpec.add_value_track(spec, "%s:%s" % [track_root, bone_name], position_keys,
+				Animation.INTERPOLATION_LINEAR, Animation.TYPE_POSITION_3D)
+			wrote = true
+		if entry.has("scale"):
+			var scale_keys: Array = []
+			for key in entry.scale:
+				scale_keys.append({
+					"time": float(key.time),
+					"value": key.value,
+					"transition": str(key.get("transition", "ease_in_out")),
+				})
+			ClipSpec.add_value_track(spec, "%s:%s" % [track_root, bone_name], scale_keys,
+				Animation.INTERPOLATION_LINEAR, Animation.TYPE_SCALE_3D)
+			wrote = true
+		if wrote:
+			used.append(str(bone_name))
+	var valid := SpecBuilder.validate(spec)
+	if valid.has("error"):
+		return valid
+	var overwrite := bool(params.get("overwrite", false))
+	var existing := _existing_animation(library, anim_name, overwrite)
+	if existing.has("error"):
+		return existing.error
+	var anim := SpecBuilder.to_animation(spec)
+	_commit_animation_add("MCP: %s" % anim_name, player, library, created_library,
+		anim_name, anim, existing.old_anim)
+	return {"data": {
+		"player_path": str(params.get("player_path", "")),
+		"skeleton_path": resolved.path,
+		"animation_name": anim_name,
+		"length": length,
+		"loop_mode": ValueCodec.loop_mode_to_string(int(spec.loop_mode)),
+		"track_count": (spec.tracks as Array).size(),
+		"key_count": ClipSpec.total_key_count(spec),
+		"bones": used,
+		"library_created": created_library,
+		"overwritten": existing.old_anim != null,
+		"undoable": true,
+	}}

@@ -947,11 +947,108 @@ func test_retarget_setup_moves_instanced_targets_whole() -> void:
 	_remove_node(source_path)
 
 
+# --- procedural recipes ----------------------------------------------------
+
+func test_walk_cycle_builds_roles_and_clip() -> void:
+	var rig := _rig("RigWalk")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "walk",
+		"duration": 1.0, "loop_mode": "linear",
+	}, null)
+	assert_true(result.has("data"), "expected data, got: %s" % str(result))
+	assert_eq(int(result.data.track_count), 7, "two thighs, two shins, two arms and the hip bob")
+	var roles: Dictionary = result.data.roles
+	for role in ["thigh_l", "thigh_r", "shin_l", "shin_r", "arm_l", "arm_r", "hips"]:
+		assert_true(roles.has(role), "%s was auto-detected (%s)" % [role, str(roles.get(role, "<missing>"))])
+	var anim: Animation = rig.player.get_animation("walk")
+	assert_true(anim != null, "the clip exists")
+	assert_true(absf(anim.length - 1.0) < 0.001, "length follows duration")
+	assert_eq(anim.loop_mode, Animation.LOOP_LINEAR, "loop mode is applied")
+	var thigh_index := -1
+	for index in anim.get_track_count():
+		if str(anim.track_get_path(index)).ends_with(":B-thigh.L"):
+			thigh_index = index
+	assert_true(thigh_index >= 0, "the left thigh has a track")
+	assert_eq(anim.track_get_key_count(thigh_index), 3, "three keys per swing")
+	var rest: Quaternion = rig.skeleton.get_bone_rest(rig.skeleton.find_bone("B-thigh.L")).basis.get_rotation_quaternion()
+	var first: Quaternion = anim.track_get_key_value(thigh_index, 0)
+	assert_true((rest.inverse() * first).get_angle() > 0.2, "the thigh actually swings")
+	var undone := editor_undo(_undo_redo)
+	assert_true(undone, "undo should succeed")
+	assert_true(rig.player.get_animation("walk") == null, "one undo removes the cycle")
+	_teardown(rig)
+
+
+func test_idle_breathing_and_blink() -> void:
+	var rig := _rig("RigIdle")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var idle := _handler.run({
+		"op": "idle_breathing", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "idle",
+		"duration": 3.0, "loop_mode": "linear",
+	}, null)
+	assert_true(idle.has("data"), "expected data, got: %s" % str(idle))
+	assert_eq(str(idle.data.roles.chest), "B-chest", "the chest is auto-detected")
+	assert_true(int(idle.data.track_count) >= 2, "chest plus at least one more bone")
+	var blink := _handler.run({
+		"op": "blink", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "blink",
+		"bones": ["B-jaw"], "duration": 0.2, "blinks": 2,
+	}, null)
+	assert_true(blink.has("data"), "expected data, got: %s" % str(blink))
+	assert_eq(str(blink.data.mode), "scale")
+	var anim: Animation = rig.player.get_animation("blink")
+	assert_true(anim != null, "the blink clip exists")
+	assert_eq(anim.track_get_type(0), Animation.TYPE_SCALE_3D, "scale mode keys scale tracks")
+	assert_true(anim.track_get_key_count(0) >= 7,
+		"two blinks keep a key per pose (the shared boundary merges): %d" % anim.track_get_key_count(0))
+	assert_true((anim.track_get_key_value(0, 0) as Vector3).is_equal_approx(Vector3.ONE),
+		"the clip starts with the eye open")
+	assert_true((anim.track_get_key_value(0, 1) as Vector3).y < 0.5,
+		"the second key is the closed lid")
+	_teardown(rig)
+
+
+func test_bake_pose_sequence_samples_and_restores() -> void:
+	var rig := _rig("RigBake")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var built := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "walk_src",
+		"duration": 0.5, "loop_mode": "linear",
+	}, null)
+	assert_true(built.has("data"), "the source cycle builds, got: %s" % str(built))
+	var before: Quaternion = rig.skeleton.get_bone_pose_rotation(rig.skeleton.find_bone("B-thigh.L"))
+	var result := _handler.run({
+		"op": "bake_pose_sequence", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "walk_baked",
+		"source_animation": "walk_src", "duration": 0.5, "fps": 10,
+		"loop_mode": "linear", "scales": true,
+	}, null)
+	assert_true(result.has("data"), "expected data, got: %s" % str(result))
+	assert_eq(int(result.data.samples), 6, "duration * fps + 1 samples")
+	assert_eq(int(result.data.bone_count), 56, "every bone is baked by default")
+	var anim: Animation = rig.player.get_animation("walk_baked")
+	assert_true(anim != null, "the baked clip exists")
+	assert_eq(anim.track_get_key_count(0), 6, "one key per sample")
+	var after: Quaternion = rig.skeleton.get_bone_pose_rotation(rig.skeleton.find_bone("B-thigh.L"))
+	assert_true(before.is_equal_approx(after), "the skeleton pose is restored after sampling")
+	_teardown(rig)
+
+
 func test_registry_matches_rig_schema() -> void:
 	var info := OpRegistry.family(OpRegistry.FAMILY_RIG)
 	assert_false(info.is_empty(), "the rig family is registered")
 	var op_enum: Array = info.schema.properties.op.enum
-	assert_eq(op_enum.size(), 11, "the rig schema lists every op")
+	assert_eq(op_enum.size(), 15, "the rig schema lists every op")
 	for descriptor in info.ops:
 		assert_true(op_enum.has(descriptor.name), "%s is in the schema enum" % descriptor.name)
 		for param in descriptor.params:

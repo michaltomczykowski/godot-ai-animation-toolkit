@@ -211,10 +211,15 @@ while 2D chains still work through `rig_chain` + poses.
 
 ### 6c - procedural recipes -> v1.0.0
 
-`walk_cycle` (phase-offset legs/arms + hip bob, explicit role mapping with
-name-based auto-detect), `idle_breathing`, `blink`, and `bake_pose_sequence`
-(step the skeleton with `advance()` and sample IK results into a clip so IK can
-be baked off at runtime).
+**Done (code):** `walk_cycle` (thigh swing, knee bend, counter-swinging arms and
+a hip bob, roles auto-detected from bone names or given explicitly),
+`idle_breathing` (chest/spine breathing, head counter-move, hip bob), `blink`
+(scale or rotate, several blinks per clip) and `bake_pose_sequence` (seeks the
+player, advances the skeleton so IK/springs/retarget run, keys the result and
+restores the pose). Covered by 3 new editor rows (128 total) and 1761 tier-1
+checks.
+
+**Left:** the 6c demo scene, video and the v1.0.0 release.
 
 ### Risks / mitigations
 

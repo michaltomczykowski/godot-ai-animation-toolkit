@@ -1236,15 +1236,13 @@ static func _library_ops() -> Array:
 
 static func _rig_description() -> String:
 	return (
-		"Rig authoring. rig_chain builds bones from a spec or a Node3D/Node2D "
-		+ "subtree; ik_setup attaches a 3D IK modifier; spring_setup adds spring "
-		+ "bones; look_at_setup tracks a target; retarget_setup retargets onto a "
-		+ "child skeleton. pose_save captures a pose (inline or "
-		+ "res://animation_toolkit/poses/<name>.json), pose_apply writes it back "
-		+ "with blend/mirror/reset, pose_blend mixes two, pose_to_clip keyframes a "
-		+ "sequence into a clip, pose_list lists saved poses. rig_get dumps bones, "
-		+ "rests, poses, modifiers and springs. Bone clips are ordinary transform "
-		+ "tracks: every other op works on them."
+		"Rig authoring: bones (rig_chain), poses (pose_save/pose_apply/pose_blend/"
+		+ "pose_to_clip/pose_list), rig dumps (rig_get), modifiers (ik_setup, "
+		+ "spring_setup, look_at_setup, retarget_setup) and procedural recipes "
+		+ "(walk_cycle, idle_breathing, blink, bake_pose_sequence). Modifiers are "
+		+ "created inactive because an active one also drives the scene while you "
+		+ "edit it. Clips are ordinary transform tracks, so every other op works "
+		+ "on them."
 	)
 
 
@@ -1254,9 +1252,27 @@ static func _rig_schema() -> Dictionary:
 		"properties": {
 			"op": {
 				"type": "string",
-				"enum": ["pose_save", "pose_apply", "pose_blend", "pose_to_clip", "pose_list", "rig_get", "rig_chain", "ik_setup", "spring_setup", "look_at_setup", "retarget_setup"],
+				"enum": ["pose_save", "pose_apply", "pose_blend", "pose_to_clip", "pose_list", "rig_get", "rig_chain", "ik_setup", "spring_setup", "look_at_setup", "retarget_setup", "walk_cycle", "idle_breathing", "blink", "bake_pose_sequence"],
 				"description": "Which rig op to run.",
 			},
+			"roles": {
+				"type": "object",
+				"description": "walk_cycle / idle_breathing / blink: explicit bone roles, e.g. {\"thigh_l\": \"B-thigh.L\", \"chest\": \"B-chest\"}. Missing roles are auto-detected from bone names.",
+			},
+			"stride": {"type": "number", "description": "walk_cycle: leg swing in degrees (default 25)."},
+			"knee_bend": {"type": "number", "description": "walk_cycle: knee bend in degrees (default 30)."},
+			"arm_swing": {"type": "number", "description": "walk_cycle: arm counter-swing in degrees (default 20)."},
+			"bob": {"type": "number", "description": "walk_cycle / idle_breathing: vertical hip bob in metres."},
+			"swing_axis": {"type": "string", "enum": ["x", "y", "z"], "description": "walk_cycle: bone-local axis the limbs swing around (default x)."},
+			"axis": {"type": "string", "enum": ["x", "y", "z"], "description": "idle_breathing / blink: bone-local axis to rotate around (default x)."},
+			"amplitude": {"type": "number", "description": "idle_breathing: chest rotation in degrees (default 2)."},
+			"head_amplitude": {"type": "number", "description": "idle_breathing: head counter-rotation in degrees (default 1)."},
+			"mode": {"type": "string", "enum": ["scale", "rotate"], "description": "blink: how the lid closes (default scale)."},
+			"closed_scale": {"type": "number", "description": "blink scale mode: Y scale of the closed lid (default 0.05)."},
+			"angle": {"type": "number", "description": "blink rotate mode: closing rotation in degrees (default 25)."},
+			"blinks": {"type": "integer", "description": "blink: how many blinks fit in the clip (default 1)."},
+			"fps": {"type": "integer", "description": "bake_pose_sequence: samples per second (default 30)."},
+			"source_animation": {"type": "string", "description": "bake_pose_sequence: animation to seek while sampling (default: whatever the player is playing)."},
 			"skeleton_path": {
 				"type": "string",
 				"description": "Scene path to a Skeleton3D or Skeleton2D. Omit to use the first skeleton in the edited scene.",
@@ -1453,6 +1469,30 @@ static func _rig_ops() -> Array:
 			"summary": "Retarget a source skeleton's poses onto a child target skeleton through a RetargetModifier3D and a bone-name profile.",
 			"params": ["skeleton_path", "target_path", "profile", "position", "rotation", "scale", "use_global_pose", "move_target", "name", "active"],
 			"example": {"op": "retarget_setup", "skeleton_path": "/Main/Source/Skeleton3D", "target_path": "/Main/Target/Skeleton3D", "profile": "auto"},
+		},
+		{
+			"name": "walk_cycle",
+			"summary": "Build a looping in-place walk cycle (legs, knees, counter-swinging arms, hip bob) from bone roles.",
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "stride", "knee_bend", "arm_swing", "bob", "swing_axis", "roles", "loop_mode", "overwrite"],
+			"example": {"op": "walk_cycle", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "walk", "duration": 1.0, "loop_mode": "linear"},
+		},
+		{
+			"name": "idle_breathing",
+			"summary": "Build a subtle looping idle: chest/spine breathing, a light head counter-move and an optional hip bob.",
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "amplitude", "head_amplitude", "bob", "axis", "roles", "loop_mode", "overwrite"],
+			"example": {"op": "idle_breathing", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "idle", "duration": 3.0, "loop_mode": "linear"},
+		},
+		{
+			"name": "blink",
+			"summary": "Build a quick blink clip on the eye/eyelid bones, scale or rotate, optionally several blinks.",
+			"params": ["player_path", "skeleton_path", "animation_name", "bones", "mode", "closed_scale", "angle", "axis", "blinks", "duration", "loop_mode", "overwrite"],
+			"example": {"op": "blink", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "bones": ["eyelid.L", "eyelid.R"], "animation_name": "blink"},
+		},
+		{
+			"name": "bake_pose_sequence",
+			"summary": "Sample a skeleton over time into a clip - seek the player, advance the skeleton so IK/springs/retarget run, then key the result.",
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "fps", "bones", "positions", "scales", "source_animation", "loop_mode", "overwrite"],
+			"example": {"op": "bake_pose_sequence", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "walk_baked", "duration": 1.0, "loop_mode": "linear"},
 		},
 	])
 
