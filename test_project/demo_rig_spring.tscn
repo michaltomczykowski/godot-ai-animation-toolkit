@@ -1,0 +1,78 @@
+[gd_scene format=3 uid="uid://byvl801igycxp"]
+
+[ext_resource type="PackedScene" uid="uid://cpu8s2lb7o6qr" path="res://models/human_dummy/HumanCharacterDummy_F.fbx" id="1_tdera"]
+
+[sub_resource type="Animation" id="Animation_cpu6s"]
+length = 1.1
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Dummy:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(0, 0, 0), Vector3(0, 0.3, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_aprh0"]
+_data = {
+&"body_bob": SubResource("Animation_cpu6s")
+}
+
+[node name="RigSpring" type="Node3D" unique_id=1841798930]
+
+[node name="Dummy" parent="." unique_id=1602649457 instance=ExtResource("1_tdera")]
+
+[node name="SpringBones" type="SpringBoneSimulator3D" parent="Dummy/Skeleton3D" parent_id_path=PackedInt32Array(1602649457, 120107459) index="1" unique_id=1137111268]
+setting_count = 1
+settings/0/root_bone_name = "B-upperArm.L"
+settings/0/root_bone = 28
+settings/0/end_bone_name = "B-hand.L"
+settings/0/end_bone = 30
+settings/0/extend_end_bone = false
+settings/0/center_from = 0
+settings/0/individual_config = false
+settings/0/rotation_axis = 3
+settings/0/radius/value = 0.05
+settings/0/radius/damping_curve = null
+settings/0/stiffness/value = 0.02
+settings/0/stiffness/damping_curve = null
+settings/0/drag/value = 0.05
+settings/0/drag/damping_curve = null
+settings/0/gravity/value = 0.6
+settings/0/gravity/damping_curve = null
+settings/0/gravity/direction = Vector3(0, -1, 0)
+settings/0/joints/0/bone_name = "B-upperArm.L"
+settings/0/joints/0/bone = 28
+settings/0/joints/1/bone_name = "B-forearm.L"
+settings/0/joints/1/bone = 29
+settings/0/joints/2/bone_name = "B-hand.L"
+settings/0/joints/2/bone = 30
+settings/0/enable_all_child_collisions = true
+settings/0/exclude_collision_count = 0
+
+[node name="Cam" type="Camera3D" parent="." unique_id=1010987722]
+transform = Transform3D(1, 0, 0, 0, 0.997551, 0.06994285, 0, -0.06994285, 0.997551, 0, 1.15, 3.1)
+current = true
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=1767367711]
+transform = Transform3D(0.8658247, 0.35365817, -0.3539399, 0, 0.7073882, 0.7068252, 0.50034744, -0.6119867, 0.6124742, 0, 0, 0)
+light_energy = 1.2
+
+[node name="BodyAnim" type="AnimationPlayer" parent="." unique_id=339227533]
+libraries/ = SubResource("AnimationLibrary_aprh0")
+autoplay = &"body_bob"
+
+[node name="Ui" type="CanvasLayer" parent="." unique_id=1437043364]
+
+[node name="Title" type="Label" parent="Ui" unique_id=74745823]
+offset_left = 40.0
+offset_top = 24.0
+theme_override_font_sizes/font_size = 34
+text = "spring_setup  active: true"
+
+[editable path="Dummy"]

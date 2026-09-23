@@ -2,6 +2,22 @@
 
 [ext_resource type="PackedScene" uid="uid://cpu8s2lb7o6qr" path="res://models/human_dummy/HumanCharacterDummy_F.fbx" id="1_pc4fg"]
 
+[sub_resource type="Animation" id="Animation_2fuy6"]
+length = 1.6
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("HandTarget:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1.6),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(0.53, 1.95, 0.14), Vector3(0.53, 2.3, 0.14)]
+}
+
 [sub_resource type="Animation" id="Animation_pc4fg"]
 length = 3.0
 loop_mode = 1
@@ -20,6 +36,7 @@ tracks/0/keys = {
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_2fuy6"]
 _data = {
+&"target_bob": SubResource("Animation_2fuy6"),
 &"target_orbit": SubResource("Animation_pc4fg")
 }
 
@@ -52,7 +69,7 @@ light_energy = 1.2
 
 [node name="TargetAnim" type="AnimationPlayer" parent="." unique_id=1663181949]
 libraries/ = SubResource("AnimationLibrary_2fuy6")
-autoplay = &"target_orbit"
+autoplay = &"target_bob"
 
 [node name="Ui" type="CanvasLayer" parent="." unique_id=1169073578]
 
@@ -63,7 +80,7 @@ theme_override_font_sizes/font_size = 34
 text = "ik_setup  two_bone  active: true"
 
 [node name="HandTarget" type="Marker3D" parent="." unique_id=1783629998]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.71762, 1.3851087, 0.03738314)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.53, 1.95, 0.14)
 
 [node name="IKPole" type="Marker3D" parent="." unique_id=1101321872]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.40268052, 1.3997661, -0.51366603)

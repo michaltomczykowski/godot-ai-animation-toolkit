@@ -1,0 +1,59 @@
+[gd_scene format=3 uid="uid://c8uc4824dkboa"]
+
+[ext_resource type="PackedScene" uid="uid://cpu8s2lb7o6qr" path="res://models/human_dummy/HumanCharacterDummy_F.fbx" id="1_tairn"]
+
+[sub_resource type="Animation" id="Animation_ug7l6"]
+length = 4.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("LookTarget:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.25, 3.5, 3.75, 4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0.55, 1.5700618, 1.016833), Vector3(0.50813377, 1.5700618, 1.2273089), Vector3(0.38890874, 1.5700618, 1.4057417), Vector3(0.21047589, 1.5700618, 1.5249667), Vector3(3.3676673e-17, 1.5700618, 1.566833), Vector3(-0.21047589, 1.5700618, 1.5249667), Vector3(-0.38890874, 1.5700618, 1.4057417), Vector3(-0.50813377, 1.5700618, 1.2273089), Vector3(-0.55, 1.5700618, 1.016833), Vector3(-0.50813377, 1.5700618, 0.806357), Vector3(-0.38890874, 1.5700618, 0.6279242), Vector3(-0.21047589, 1.5700618, 0.5086992), Vector3(-1.0103003e-16, 1.5700618, 0.46683294), Vector3(0.21047589, 1.5700618, 0.5086992), Vector3(0.38890874, 1.5700618, 0.6279242), Vector3(0.50813377, 1.5700618, 0.806357), Vector3(0.55, 1.5700618, 1.016833)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_gjvdb"]
+_data = {
+&"look_orbit": SubResource("Animation_ug7l6")
+}
+
+[node name="RigLook" type="Node3D" unique_id=1825809430]
+
+[node name="Dummy" parent="." unique_id=1602649457 instance=ExtResource("1_tairn")]
+
+[node name="LookAt" type="LookAtModifier3D" parent="Dummy/Skeleton3D" parent_id_path=PackedInt32Array(1602649457, 120107459) index="1" unique_id=1112362437]
+target_node = NodePath("../../../LookTarget")
+bone_name = "B-head"
+bone = 25
+duration = 0.15
+
+[node name="Cam" type="Camera3D" parent="." unique_id=256588171]
+transform = Transform3D(1, 0, 0, 0, 0.99820054, 0.059964005, 0, -0.059964005, 0.99820054, 0, 1.25, 2.9)
+current = true
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=1795195981]
+transform = Transform3D(0.8658247, 0.35365817, -0.3539399, 0, 0.7073882, 0.7068252, 0.50034744, -0.6119867, 0.6124742, 0, 0, 0)
+light_energy = 1.2
+
+[node name="LookAnim" type="AnimationPlayer" parent="." unique_id=1988114118]
+libraries/ = SubResource("AnimationLibrary_gjvdb")
+autoplay = &"look_orbit"
+
+[node name="Ui" type="CanvasLayer" parent="." unique_id=103179305]
+
+[node name="Title" type="Label" parent="Ui" unique_id=917271149]
+offset_left = 40.0
+offset_top = 24.0
+theme_override_font_sizes/font_size = 34
+text = "look_at_setup  bone: B-head"
+
+[node name="LookTarget" type="Marker3D" parent="." unique_id=1729577000]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5700618, 1.016833)
+
+[editable path="Dummy"]
