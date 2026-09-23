@@ -176,10 +176,11 @@ modifier, mapped/unmapped bone report). All modifiers are created **inactive**
 in one scene-pinned undo action. Covered by 10 new editor rows (125 total) and
 1680 tier-1 checks.
 
-**Left:** the demo scene, video and v0.9.0 release. 2D IK/spring/look-at stay
-unsupported on purpose: the `SkeletonModificationStack2D` path is Experimental
-in Godot 4.7, so those ops refuse 2D skeletons with a clear error while 2D
-chains still work through `rig_chain` + poses.
+**Done (v0.9.0):** demo scenes (IK reach, spring arm, head look-at), the 0:49
+video, and the release with the zip and all eight demo videos. 2D IK/spring/
+look-at stay unsupported on purpose: the `SkeletonModificationStack2D` path is
+Experimental in Godot 4.7, so those ops refuse 2D skeletons with a clear error
+while 2D chains still work through `rig_chain` + poses.
 
 #### 6b verified API (4.7.2 ClassDB, checked before coding)
 
