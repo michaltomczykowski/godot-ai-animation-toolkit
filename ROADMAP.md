@@ -1,8 +1,7 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **phases 0–8 done** — v1.2.1 (8 tools, 90 ops) released 2026-09-23.
-Phase 9 (motion pack) and Phase 10 (agent ergonomics) are in progress toward
-v1.3.0 / v1.4.0; see below.
+Status: **phases 0–9 done** — v1.3.0 (8 tools, 95 ops) released 2026-09-23.
+Phase 10 (agent ergonomics) is next, toward v1.4.0; see below.
 Last updated: 2026-09-23.
 
 Phase 3 note: the generators landed as their own family, `animation_fx`, instead
@@ -342,7 +341,7 @@ modifiers, typed-track transitions, sampler); the editor suites gained
 (144 rows). New demos: `demo_motion_walk`, `demo_motion_run`,
 `demo_motion_idle`.
 
-### Phase 9 - the motion pack -> v1.3.0 (in progress)
+### Phase 9 - the motion pack -> v1.3.0 (done)
 
 Goal: more moves, smoother gaits and a motion pipeline that is genuinely useful
 for agents generating character animation in Godot - not just one-shot presets.
@@ -376,6 +375,13 @@ for agents generating character animation in Godot - not just one-shot presets.
 
 Demos: jump, turn, strafe scenes, a re-recorded walk/run with toe+shoulders,
 and a new video.
+
+**Done (v1.3.0):** speed-driven gaits with stride solving and warnings, `jump`,
+`turn_cycle`, `strafe_cycle`, `walk_start`/`walk_stop`, heel/toe roll with the
+toe held through toe-off, a clavicle role, phase markers on every gait, and
+root-motion wiring inside the same undo action. 7 new editor rows (152 total),
+tier-1 at 2241 checks; demos `demo_motion_jump`/`turn`/`strafe` and the 0:40
+`animation_toolkit_motion_pack.mp4` on the release.
 
 ### Phase 10 - understand & drive -> v1.4.0 (planned)
 

@@ -235,11 +235,10 @@ templates.
 
 ## Procedural motion (3D character cycles)
 
-[**Video: dummy motion showcase (0:44)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v1.2.1/animation_toolkit_motion_demo.mp4)
-— `walk_cycle`, `run_cycle` and `idle_cycle` recorded on the bundled human
-dummy: densely sampled curves, two-bone IK leg solves with planted feet,
-proper arm swing with forward elbow follow-through, and an idle that looks
-around and twists the torso.
+[**Video: dummy motion pack (0:40)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v1.3.0/animation_toolkit_motion_pack.mp4)
+— jump, turn, strafe and a speed-driven walk recorded on the bundled human
+dummy: one-shot moves with phase markers, planted feet, toe roll and shoulder
+follow-through, all from one call each.
 
 `animation_motion` is the character-motion family: gaits (`walk_cycle`,
 `run_cycle`, `strafe_cycle`), an `idle_cycle`, one-shots (`jump`,
