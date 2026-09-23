@@ -148,14 +148,16 @@ Same contract as the presets — one undo action per call, `dry_run` supported.
 
 [**Video: menu demo (0:47)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v1.1.0/animation_toolkit_menu_demo.mp4)
 — a game menu whose every reaction is an ordinary toolkit clip, driven by
-synthetic mouse input: an entry `stagger`, a hover pop from a saved
-`template_apply`, `bounce` + `hit_flash` on press, a `transition` wipe into a
-`progress_fill`/`counter` loading screen, a `dialog_pop` options panel (closed
-by replaying the clip reversed with `animation_edit reverse`), and a quit that
-`shake`s the screen.
+synthetic mouse input: an aurora shader and GPU motes for the backdrop, an
+entry `stagger`, a sliding selection highlight, hover pops from a saved
+`template_apply`, `bounce` + `hit_flash` with a camera `zoom_punch` on press, a
+`transition` wipe into a `progress_fill`/`counter` loading screen, `dialog_pop`
+options and credits cards over a dimming scrim (the cards close by replaying
+their clip reversed with `animation_edit reverse`), and a quit that `shake`s
+the screen.
 
 The scene ships in the test project: open `test_project/demo_menu.tscn` and run
-it — 17 animation players, every clip authored with the toolkit, plus one small
+it — 24 animation players, every clip authored with the toolkit, plus one small
 driver that replays the interaction timeline.
 
 ## AnimationTree graphs

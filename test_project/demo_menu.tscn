@@ -1,9 +1,10 @@
 [gd_scene format=3 uid="uid://q7a6houc3d1a"]
 
 [ext_resource type="Theme" uid="uid://bajkrjf2vrn2m" path="res://art/menu_theme.tres" id="1_f6tgb"]
-[ext_resource type="Texture2D" uid="uid://cli7htuohr12a" path="res://art/menu_bg.tres" id="2_0oyqe"]
+[ext_resource type="Material" uid="uid://bdb14tbfjp87p" path="res://art/menu_bg_material.tres" id="2_kje7e"]
 [ext_resource type="Script" uid="uid://da3fqfqv6gtgm" path="res://addons/godot_ai/runtime/draw_recipe.gd" id="3_kje7e"]
 [ext_resource type="Script" uid="uid://b44hs5ms8mwcw" path="res://demo_menu_driver.gd" id="4_0oyqe"]
+[ext_resource type="Texture2D" uid="uid://uiep3puo3sqq" path="res://art/mote_dot.png" id="5_kje7e"]
 
 [sub_resource type="Animation" id="Animation_kje7e"]
 length = 0.8800000000000001
@@ -800,6 +801,255 @@ _data = {
 &"flash_white": SubResource("Animation_e5ot7")
 }
 
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_bjmqx"]
+particle_flag_disable_z = true
+emission_shape = 3
+emission_box_extents = Vector3(620, 360, 1)
+direction = Vector3(0, -1, 0)
+initial_velocity_min = 3.0
+initial_velocity_max = 12.0
+gravity = Vector3(0, -6, 0)
+scale_min = 0.15
+scale_max = 0.5
+
+[sub_resource type="Animation" id="Animation_g5mh8"]
+length = 0.22
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Cam:zoom")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.066, 0.22),
+"transitions": PackedFloat32Array(1, 0.5, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1.035, 1.035), Vector2(1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_bjmqx"]
+_data = {
+&"punch": SubResource("Animation_g5mh8")
+}
+
+[sub_resource type="Animation" id="Animation_ar0wg"]
+length = 1.1
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Highlight:modulate:a")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.55, 1.1),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [0.55, 1.0, 0.55]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_aaoth"]
+_data = {
+&"glow": SubResource("Animation_ar0wg")
+}
+
+[sub_resource type="Animation" id="Animation_molic"]
+length = 2.6
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Loading/Tip:visible_ratio")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 2.6),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_coieu"]
+_data = {
+&"type": SubResource("Animation_molic")
+}
+
+[sub_resource type="Animation" id="Animation_1kho5"]
+length = 0.4
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("CreditsPanel:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.24, 0.4),
+"transitions": PackedFloat32Array(1, 0.5, 1),
+"update": 0,
+"values": [Vector2(0.9, 0.9), Vector2(1.03, 1.03), Vector2(1, 1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("CreditsPanel:modulate:a")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.24),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+
+[sub_resource type="Animation" id="Animation_uas8m"]
+length = 0.4
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("CreditsPanel:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.16, 0.4),
+"transitions": PackedFloat32Array(1, 0.5, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1.03, 1.03), Vector2(0.9, 0.9)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("CreditsPanel:modulate:a")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.16, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.0, 0.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_ni4kv"]
+_data = {
+&"in": SubResource("Animation_1kho5"),
+&"out": SubResource("Animation_uas8m")
+}
+
+[sub_resource type="Animation" id="Animation_saa2h"]
+length = 0.45
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Outro:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.27, 0.45),
+"transitions": PackedFloat32Array(1, 0.5, 1),
+"update": 0,
+"values": [Vector2(0.92, 0.92), Vector2(1.03, 1.03), Vector2(1, 1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Outro:modulate:a")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.27),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+
+[sub_resource type="Animation" id="Animation_i2qmb"]
+length = 0.45
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Outro:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.18, 0.45),
+"transitions": PackedFloat32Array(1, 0.5, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1.03, 1.03), Vector2(0.92, 0.92)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Outro:modulate:a")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.18, 0.45),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.0, 0.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_41q5u"]
+_data = {
+&"in": SubResource("Animation_saa2h"),
+&"out": SubResource("Animation_i2qmb")
+}
+
+[sub_resource type="Animation" id="Animation_s517e"]
+length = 0.25
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Scrim:modulate:a")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.25),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.0, 0.0]
+}
+
+[sub_resource type="Animation" id="Animation_uda1r"]
+length = 0.25
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Scrim:modulate:a")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.25),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_ut1pc"]
+_data = {
+&"hide": SubResource("Animation_s517e"),
+&"show": SubResource("Animation_uda1r")
+}
+
+[sub_resource type="Animation" id="Animation_im2gp"]
+length = 1.4
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Loading/LoadingTitle:modulate:a")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.7, 1.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [0.62, 1.0, 0.62]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_1krxr"]
+_data = {
+&"pulse": SubResource("Animation_im2gp")
+}
+
 [node name="MenuDemo" type="Control" unique_id=598602496]
 layout_mode = 3
 anchors_preset = 15
@@ -807,12 +1057,20 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 theme = ExtResource("1_f6tgb")
 
-[node name="Bg" type="TextureRect" parent="." unique_id=391066605]
+[node name="ShaderBg" type="ColorRect" parent="." unique_id=560420991]
+material = ExtResource("2_kje7e")
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-texture = ExtResource("2_0oyqe")
+
+[node name="Bg" type="TextureRect" parent="." unique_id=391066605]
+visible = false
+material = ExtResource("2_kje7e")
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
 expand_mode = 1
 stretch_mode = 6
 
@@ -821,7 +1079,7 @@ layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-color = Color(0.13, 0.83, 0.93, 0.05)
+color = Color(0.13, 0.83, 0.93, 0.04)
 
 [node name="BlobA" type="Control" parent="." unique_id=84820498]
 anchors_preset = 0
@@ -833,12 +1091,12 @@ mouse_filter = 2
 script = ExtResource("3_kje7e")
 metadata/_ops = [{
 "center": Vector2(210, 210),
-"color": Color(0.12941177, 0.83137256, 0.92941177, 0.10980392),
+"color": Color(0.12941177, 0.83137256, 0.92941177, 0.078431375),
 "draw": "circle",
 "radius": 200.0
 }, {
 "center": Vector2(250, 190),
-"color": Color(0.05882353, 0.43529412, 0.5019608, 0.14901961),
+"color": Color(0.05882353, 0.43529412, 0.5019608, 0.09411765),
 "draw": "circle",
 "radius": 120.0
 }]
@@ -853,7 +1111,7 @@ mouse_filter = 2
 script = ExtResource("3_kje7e")
 metadata/_ops = [{
 "center": Vector2(180, 180),
-"color": Color(0.9843137, 0.7490196, 0.14117648, 0.09411765),
+"color": Color(0.9843137, 0.7490196, 0.14117648, 0.0627451),
 "draw": "circle",
 "radius": 170.0
 }]
@@ -868,7 +1126,7 @@ mouse_filter = 2
 script = ExtResource("3_kje7e")
 metadata/_ops = [{
 "center": Vector2(130, 130),
-"color": Color(0.95686275, 0.44705883, 0.7137255, 0.13333334),
+"color": Color(0.95686275, 0.44705883, 0.7137255, 0.078431375),
 "draw": "circle",
 "radius": 120.0
 }]
@@ -941,6 +1199,23 @@ metadata/_ops = [{
 "width": 2.0
 }]
 
+[node name="Highlight" type="Panel" parent="." unique_id=812290722]
+visible = false
+z_index = 1
+layout_mode = 0
+offset_right = 364.0
+offset_bottom = 78.0
+mouse_filter = 2
+
+[node name="Scrim" type="ColorRect" parent="." unique_id=1486497750]
+modulate = Color(1, 1, 1, 0)
+z_index = 1
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.01, 0.02, 0.035, 1)
+
 [node name="Menu" type="VBoxContainer" parent="." unique_id=1254562056]
 layout_mode = 0
 anchor_left = 0.5
@@ -1007,6 +1282,7 @@ horizontal_alignment = 1
 
 [node name="OptionsPanel" type="PanelContainer" parent="." unique_id=1239191180]
 visible = false
+z_index = 2
 layout_mode = 0
 anchor_left = 0.5
 anchor_top = 0.5
@@ -1031,10 +1307,12 @@ horizontal_alignment = 1
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "master volume"
+horizontal_alignment = 1
 
 [node name="VolumeBar" type="ProgressBar" parent="OptionsPanel/OptionsBox" unique_id=1781206938]
 custom_minimum_size = Vector2(300, 16)
 layout_mode = 2
+size_flags_horizontal = 3
 value = 80.0
 show_percentage = false
 
@@ -1042,7 +1320,7 @@ show_percentage = false
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "80"
-horizontal_alignment = 2
+horizontal_alignment = 1
 
 [node name="BackButton" type="Button" parent="OptionsPanel/OptionsBox" unique_id=604091806]
 custom_minimum_size = Vector2(300, 46)
@@ -1050,6 +1328,7 @@ layout_mode = 2
 text = "BACK"
 
 [node name="Overlay" type="ColorRect" parent="." unique_id=95590504]
+z_index = 5
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -1060,6 +1339,7 @@ color = Color(0.02, 0.03, 0.05, 1)
 
 [node name="Loading" type="VBoxContainer" parent="." unique_id=1582474222]
 visible = false
+z_index = 6
 layout_mode = 0
 anchor_left = 0.5
 anchor_top = 0.5
@@ -1069,6 +1349,7 @@ offset_left = -240.0
 offset_top = -70.0
 offset_right = 240.0
 offset_bottom = 70.0
+theme_override_constants/separation = 12
 
 [node name="LoadingTitle" type="Label" parent="Loading" unique_id=178652980]
 layout_mode = 2
@@ -1087,8 +1368,15 @@ theme_override_font_sizes/font_size = 20
 text = "0%"
 horizontal_alignment = 1
 
+[node name="Tip" type="Label" parent="Loading" unique_id=877064698]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.7, 0.75, 1)
+theme_override_font_sizes/font_size = 17
+horizontal_alignment = 1
+
 [node name="Cursor" type="Control" parent="." unique_id=751328778]
 modulate = Color(1, 1, 1, 0)
+z_index = 3
 anchors_preset = 0
 offset_right = 26.0
 offset_bottom = 26.0
@@ -1105,6 +1393,7 @@ metadata/_ops = [{
 }]
 
 [node name="Readout" type="Label" parent="." unique_id=1188184851]
+z_index = 3
 layout_mode = 0
 anchor_top = 1.0
 anchor_bottom = 1.0
@@ -1167,3 +1456,136 @@ libraries/ = SubResource("AnimationLibrary_g4uwp")
 
 [node name="FxAnim" type="AnimationPlayer" parent="." unique_id=569704567]
 libraries/ = SubResource("AnimationLibrary_n4amx")
+
+[node name="Motes" type="GPUParticles2D" parent="." unique_id=427828430]
+modulate = Color(0.62, 0.92, 1, 0.32)
+position = Vector2(576, 324)
+amount = 70
+texture = ExtResource("5_kje7e")
+lifetime = 12.0
+preprocess = 10.0
+randomness = 0.8
+process_material = SubResource("ParticleProcessMaterial_bjmqx")
+
+[node name="Cam" type="Camera2D" parent="." unique_id=1617939852]
+position = Vector2(576, 324)
+
+[node name="CamAnim" type="AnimationPlayer" parent="." unique_id=207025636]
+libraries/ = SubResource("AnimationLibrary_bjmqx")
+
+[node name="HighlightAnim" type="AnimationPlayer" parent="." unique_id=601788349]
+libraries/ = SubResource("AnimationLibrary_aaoth")
+
+[node name="TipAnim" type="AnimationPlayer" parent="." unique_id=1471626626]
+libraries/ = SubResource("AnimationLibrary_coieu")
+
+[node name="CreditsPanel" type="PanelContainer" parent="." unique_id=1350730458]
+visible = false
+z_index = 2
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -160.0
+offset_right = 260.0
+offset_bottom = 160.0
+
+[node name="CreditsBox" type="VBoxContainer" parent="CreditsPanel" unique_id=217784091]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="CreditsTitle" type="Label" parent="CreditsPanel/CreditsBox" unique_id=492087155]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "CREDITS"
+horizontal_alignment = 1
+
+[node name="CreditsBody" type="Label" parent="CreditsPanel/CreditsBox" unique_id=1671774776]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.84, 0.88, 1)
+theme_override_font_sizes/font_size = 17
+text = "built with the
+GODOT AI ANIMATION TOOLKIT
+
+entry stagger - animation_presets stagger
+hover pop - library template_apply
+press bounce - animation_presets bounce
+wipe + loader - animation_fx transition, progress_fill, counter
+panel - animation_fx dialog_pop + animation_edit reverse
+idle life - animation_presets pulse + animation_fx wave"
+horizontal_alignment = 1
+
+[node name="CreditsAnim2" type="AnimationPlayer" parent="." unique_id=1947528451]
+libraries/ = SubResource("AnimationLibrary_ni4kv")
+
+[node name="Outro" type="VBoxContainer" parent="." unique_id=1163966523]
+visible = false
+z_index = 6
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -380.0
+offset_top = -160.0
+offset_right = 380.0
+offset_bottom = 160.0
+theme_override_constants/separation = 8
+
+[node name="OutroLogo" type="Control" parent="Outro" unique_id=430274039]
+custom_minimum_size = Vector2(110, 110)
+layout_mode = 2
+size_flags_horizontal = 4
+script = ExtResource("3_kje7e")
+metadata/_ops = [{
+"antialiased": true,
+"center": Vector2(55, 55),
+"color": Color(0.12941177, 0.83137256, 0.92941177, 0.4),
+"draw": "arc",
+"end_angle": 6.2,
+"point_count": 48,
+"radius": 46.0,
+"start_angle": 0.0,
+"width": 3.0
+}, {
+"color": Color(0.12941177, 0.83137256, 0.92941177, 1),
+"draw": "polygon",
+"points": PackedVector2Array(44, 30, 44, 80, 84, 55)
+}, {
+"color": Color(0.95686275, 0.44705883, 0.7137255, 0.6666667),
+"draw": "line",
+"from": Vector2(26, 100),
+"to": Vector2(84, 100),
+"width": 3.0
+}]
+
+[node name="OutroTitle" type="Label" parent="Outro" unique_id=1977067810]
+layout_mode = 2
+theme_override_font_sizes/font_size = 44
+text = "THANKS FOR WATCHING"
+horizontal_alignment = 1
+
+[node name="OutroSub" type="Label" parent="Outro" unique_id=2017324397]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.8, 0.88, 1)
+theme_override_font_sizes/font_size = 22
+text = "seven tools · one spec engine · 79 ops"
+horizontal_alignment = 1
+
+[node name="OutroUrl" type="Label" parent="Outro" unique_id=9198292]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 0.8, 0.5, 1)
+theme_override_font_sizes/font_size = 19
+text = "github.com/michaltomczykowski/godot-ai-animation-toolkit"
+horizontal_alignment = 1
+
+[node name="OutroAnim" type="AnimationPlayer" parent="." unique_id=968305064]
+libraries/ = SubResource("AnimationLibrary_41q5u")
+
+[node name="ScrimAnim" type="AnimationPlayer" parent="." unique_id=1769310109]
+libraries/ = SubResource("AnimationLibrary_ut1pc")
+
+[node name="LoadTitleAnim" type="AnimationPlayer" parent="." unique_id=1566856517]
+libraries/ = SubResource("AnimationLibrary_1krxr")
