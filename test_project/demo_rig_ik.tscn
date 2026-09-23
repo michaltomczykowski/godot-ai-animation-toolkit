@@ -27,15 +27,16 @@ _data = {
 
 [node name="Dummy" parent="." unique_id=1602649457 instance=ExtResource("1_pc4fg")]
 
-[node name="IKTwo Bone" type="TwoBoneIK3D" parent="Dummy/Skeleton3D" parent_id_path=PackedInt32Array(1602649457, 120107459) index="1" unique_id=1723824690]
+[node name="IKTwo Bone" type="TwoBoneIK3D" parent="Dummy/Skeleton3D" parent_id_path=PackedInt32Array(1602649457, 120107459) index="1" unique_id=1191700005]
 setting_count = 1
-settings/0/target_node = NodePath("../../HandTarget")
-settings/0/pole_node = NodePath("")
+settings/0/target_node = NodePath("../../../HandTarget")
+settings/0/pole_node = NodePath("../../../IKPole")
 settings/0/root_bone_name = "B-upperArm.L"
 settings/0/root_bone = 28
 settings/0/middle_bone_name = "B-forearm.L"
 settings/0/middle_bone = 29
-settings/0/pole_direction = 0
+settings/0/pole_direction = 7
+settings/0/pole_direction_vector = Vector3(0.008208518, -0.0019248815, -0.9999645)
 settings/0/end_bone_name = "B-hand.L"
 settings/0/end_bone = 30
 settings/0/use_virtual_end = false
@@ -61,7 +62,10 @@ offset_top = 24.0
 theme_override_font_sizes/font_size = 34
 text = "ik_setup  two_bone  active: true"
 
-[node name="HandTarget" type="Marker3D" parent="." unique_id=1747741078]
+[node name="HandTarget" type="Marker3D" parent="." unique_id=1783629998]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.71762, 1.3851087, 0.03738314)
+
+[node name="IKPole" type="Marker3D" parent="." unique_id=1101321872]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.40268052, 1.3997661, -0.51366603)
 
 [editable path="Dummy"]
