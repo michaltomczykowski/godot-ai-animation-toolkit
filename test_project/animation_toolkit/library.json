@@ -1,0 +1,15 @@
+{
+  "format": "godot-ai-animation-library",
+  "templates": {
+    "demo_pop": {
+      "description": "",
+      "op": "bounce",
+      "params": {
+        "duration": 0.6,
+        "intensity": 0.35
+      },
+      "tool": "animation_presets"
+    }
+  },
+  "version": 1
+}

@@ -153,6 +153,10 @@ graphs that reference clips the player does not have.
 
 ## Reuse and interchange
 
+[**Video: library demo (0:38)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v0.7.0/animation_toolkit_library_demo.mp4)
+— one saved template driving five squares at five durations, then one exported
+clip replayed on three nodes via track remapping.
+
 `animation_library` turns one-off calls into project knowledge: save any
 presets/fx call as a named template and apply it later to other players or
 targets with overrides, and move whole clips in and out of a typed JSON format

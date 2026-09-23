@@ -1,0 +1,45 @@
+{
+  "format": "godot-ai-animation-clip",
+  "length": 0.8,
+  "loop_mode": 2,
+  "markers": [],
+  "tracks": [
+    {
+      "enabled": true,
+      "interp": 1,
+      "keys": [
+        {
+          "time": 0.0,
+          "transition": 1.0,
+          "value": {
+            "kind": "vector2",
+            "x": 1.0,
+            "y": 1.0
+          }
+        },
+        {
+          "time": 0.4,
+          "transition": 1.0,
+          "value": {
+            "kind": "vector2",
+            "x": 1.39999997615814,
+            "y": 1.39999997615814
+          }
+        },
+        {
+          "time": 0.8,
+          "transition": 1.0,
+          "value": {
+            "kind": "vector2",
+            "x": 1.0,
+            "y": 1.0
+          }
+        }
+      ],
+      "path": "S1:scale",
+      "type": 0,
+      "update_mode": 0
+    }
+  ],
+  "version": 1
+}

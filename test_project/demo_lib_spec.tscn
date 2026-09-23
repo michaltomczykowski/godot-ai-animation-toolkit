@@ -1,0 +1,116 @@
+[gd_scene format=3 uid="uid://dmlhuwky35xln"]
+
+[sub_resource type="Animation" id="Animation_h43th"]
+length = 0.8
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("S1:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.4, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1.4, 1.4), Vector2(1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_hl2ju"]
+_data = {
+&"pulse_src": SubResource("Animation_h43th")
+}
+
+[sub_resource type="Animation" id="Animation_1kc0d"]
+length = 0.8
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("S2:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.4, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1.4, 1.4), Vector2(1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_npr3a"]
+_data = {
+&"pulse_copy": SubResource("Animation_1kc0d")
+}
+
+[sub_resource type="Animation" id="Animation_1awmn"]
+length = 0.8
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("S3:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.4, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1.4, 1.4), Vector2(1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_30qnq"]
+_data = {
+&"pulse_copy": SubResource("Animation_1awmn")
+}
+
+[node name="LibSpec" type="Node2D" unique_id=9376420]
+
+[node name="Title" type="Label" parent="." unique_id=1999739521]
+offset_left = 60.0
+offset_top = 30.0
+offset_right = 61.0
+offset_bottom = 53.0
+theme_override_font_sizes/font_size = 34
+text = "spec_export + spec_apply"
+
+[node name="Note" type="Label" parent="." unique_id=1988810597]
+offset_left = 60.0
+offset_top = 90.0
+offset_right = 61.0
+offset_bottom = 113.0
+theme_override_colors/font_color = Color(0.13, 0.83, 0.93, 1)
+theme_override_font_sizes/font_size = 26
+text = "one exported clip - replayed on three nodes (tracks remapped)"
+
+[node name="S1" type="ColorRect" parent="." unique_id=1252662925]
+offset_left = 200.0
+offset_top = 320.0
+offset_right = 380.0
+offset_bottom = 500.0
+color = Color(0.29, 0.87, 0.5, 1)
+
+[node name="S2" type="ColorRect" parent="." unique_id=365435796]
+offset_left = 500.0
+offset_top = 320.0
+offset_right = 680.0
+offset_bottom = 500.0
+color = Color(0.13, 0.83, 0.93, 1)
+
+[node name="S3" type="ColorRect" parent="." unique_id=219245228]
+offset_left = 800.0
+offset_top = 320.0
+offset_right = 980.0
+offset_bottom = 500.0
+color = Color(0.98, 0.75, 0.35, 1)
+
+[node name="SrcPlayer" type="AnimationPlayer" parent="." unique_id=2030086462]
+libraries/ = SubResource("AnimationLibrary_hl2ju")
+autoplay = &"pulse_src"
+
+[node name="Copy2Player" type="AnimationPlayer" parent="." unique_id=486234667]
+libraries/ = SubResource("AnimationLibrary_npr3a")
+autoplay = &"pulse_copy"
+
+[node name="Copy3Player" type="AnimationPlayer" parent="." unique_id=446247713]
+libraries/ = SubResource("AnimationLibrary_30qnq")
+autoplay = &"pulse_copy"
