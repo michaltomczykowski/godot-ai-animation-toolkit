@@ -1,6 +1,6 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **all phases done** — v1.0.0 (7 tools, 76 ops) released 2026-09-23.
+Status: **all planned phases done** — v1.1.0 (7 tools, 79 ops) released 2026-09-23.
 Last updated: 2026-09-23.
 
 Phase 3 note: the generators landed as their own family, `animation_fx`, instead
@@ -240,6 +240,32 @@ Godot's compact `JSON.stringify`), and one over-cap definition drops the whole
 catalog entry for that session - `animation_rig` was silently absent. The
 schema is trimmed under the cap and the tier-1 registry check now measures with
 the server's separators.
+
+### Phase 7 - exercise recipes -> v1.1.0 (done)
+
+Requested after 1.0.0, shipped as a small feature release on top of 6c:
+
+- `jumping_jack` — arms from the rest pose to overhead (`amplitude`), thighs
+  spread (`stride`), hips rise (`bob`).
+- `squat` — the hips drop by `bob` metres while each leg is solved with the law
+  of cosines so the ankles stay at their rest positions (planted feet, knee
+  forward), arms easing forward.
+- `punch` — guard, `cycles` alternating straight punches along the rig's own
+  facing direction (ankle -> toe), a per-punch chest/spine twist and a slight
+  crouch.
+
+Shared machinery: `_arm_down_delta` grew into a general aim helper (rotate a
+bone from its rest direction toward a world direction, clamped so it never
+rotates past the target — T-pose and A-pose rests both work), role detection
+learned `forearm_`/`toe_`/`spine` and now prefers the upper arm over a shoulder
+bone deterministically, and the rig schema was trimmed again to stay under the
+server's 8192-byte cap. Audit fixes folded in: `bake_pose_sequence` refuses
+bakes past 1200 samples and the rig tool allows 30 s calls; the tool reference
+documents the bake side effects.
+
+Covered by 3 editor rows (133 total) and 1815 tier-1 checks; video
+`animation_toolkit_exercises_demo.mp4` (0:49) on the v1.1.0 release, plus the
+3:12 `animation_toolkit_full_showcase.mp4` compilation for the repo page.
 
 ### Risks / mitigations
 

@@ -125,6 +125,22 @@ func _bone_angle(skeleton: Skeleton3D, bone: String) -> float:
 	return (rest.inverse() * skeleton.get_bone_pose_rotation(index)).get_angle()
 
 
+## Index of the first track with this bone suffix and type, or -1.
+func _track_index(anim: Animation, suffix: String, type: int) -> int:
+	for index in anim.get_track_count():
+		if anim.track_get_type(index) == type and str(anim.track_get_path(index)).ends_with(suffix):
+			return index
+	return -1
+
+
+## Direction of a bone's local Y (skeleton space) for a full local pose value.
+func _dir_of(skeleton: Skeleton3D, parent: int, value: Quaternion) -> Vector3:
+	var parent_basis := Basis.IDENTITY
+	if parent >= 0:
+		parent_basis = skeleton.get_bone_global_rest(parent).basis
+	return (parent_basis * Basis(value) * Vector3.UP).normalized()
+
+
 ## Rotate a bone relative to its rest (so the rest-relative angle equals `angle`).
 func _rotate_bone(skeleton: Skeleton3D, bone: String, angle: float) -> void:
 	var index := skeleton.find_bone(bone)
@@ -1011,6 +1027,108 @@ func test_walk_cycle_arm_down_lowers_the_arms() -> void:
 	_teardown(rig)
 
 
+func test_jumping_jack_raises_arms_and_spreads_legs() -> void:
+	var rig := _rig("RigJack")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "jumping_jack", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "jack",
+		"duration": 1.0, "loop_mode": "linear",
+	}, null)
+	assert_true(result.has("data"), "expected data, got: %s" % str(result))
+	var skeleton: Skeleton3D = rig.skeleton
+	var anim: Animation = rig.player.get_animation("jack")
+	assert_true(anim != null, "the clip exists")
+	var arm_index := _track_index(anim, ":B-upperArm.L", Animation.TYPE_ROTATION_3D)
+	var thigh_index := _track_index(anim, ":B-thigh.L", Animation.TYPE_ROTATION_3D)
+	assert_true(arm_index >= 0 and thigh_index >= 0, "arms and thighs have tracks")
+	assert_eq(anim.track_get_key_count(arm_index), 3, "three keys per jack")
+	var arm_bone := skeleton.find_bone("B-upperArm.L")
+	var arm_parent := skeleton.get_bone_parent(arm_bone)
+	var down_dir := _dir_of(skeleton, arm_parent, anim.track_get_key_value(arm_index, 0))
+	var up_dir := _dir_of(skeleton, arm_parent, anim.track_get_key_value(arm_index, 1))
+	assert_true(down_dir.y < -0.5, "the arms start down (y=%.2f)" % down_dir.y)
+	assert_true(up_dir.y > 0.5, "the arms swing overhead (y=%.2f)" % up_dir.y)
+	var thigh_bone := skeleton.find_bone("B-thigh.L")
+	var thigh_parent := skeleton.get_bone_parent(thigh_bone)
+	var spread_dir := _dir_of(skeleton, thigh_parent, anim.track_get_key_value(thigh_index, 1))
+	assert_true(spread_dir.x > 0.2, "the left leg spreads outward (x=%.2f)" % spread_dir.x)
+	_teardown(rig)
+
+
+func test_squat_keeps_the_feet_planted() -> void:
+	var rig := _rig("RigSquat")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var depth := 0.25
+	var result := _handler.run({
+		"op": "squat", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "squat",
+		"duration": 2.0, "bob": depth, "loop_mode": "linear",
+	}, null)
+	assert_true(result.has("data"), "expected data, got: %s" % str(result))
+	var skeleton: Skeleton3D = rig.skeleton
+	var anim: Animation = rig.player.get_animation("squat")
+	assert_true(anim != null, "the clip exists")
+	var bottom := 1
+	var hips_index := _track_index(anim, ":B-hips", Animation.TYPE_POSITION_3D)
+	assert_true(hips_index >= 0, "the hips have a position track")
+	var hips_key: Vector3 = anim.track_get_key_value(hips_index, bottom)
+	var hips_rest: Vector3 = skeleton.get_bone_rest(skeleton.find_bone("B-hips")).origin
+	assert_true(hips_key.y < hips_rest.y - depth * 0.8, "the hips drop (%.2f -> %.2f)" % [hips_rest.y, hips_key.y])
+	for bone_name in ["B-thigh.L", "B-shin.L", "B-thigh.R", "B-shin.R"]:
+		var track := _track_index(anim, ":" + bone_name, Animation.TYPE_ROTATION_3D)
+		assert_true(track >= 0, "%s has a rotation track" % bone_name)
+		skeleton.set_bone_pose_rotation(skeleton.find_bone(bone_name), anim.track_get_key_value(track, bottom))
+	skeleton.set_bone_pose_position(skeleton.find_bone("B-hips"), hips_key)
+	for side in ["L", "R"]:
+		var foot := skeleton.find_bone("B-foot." + side)
+		var rest_ankle: Vector3 = skeleton.get_bone_global_rest(foot).origin
+		var posed_ankle: Vector3 = skeleton.get_bone_global_pose(foot).origin
+		assert_true(posed_ankle.distance_to(rest_ankle) < 0.02,
+			"the %s ankle stays planted (moved %.3f m)" % [side, posed_ankle.distance_to(rest_ankle)])
+	_teardown(rig)
+
+
+func test_punch_extends_the_arm_forward() -> void:
+	var rig := _rig("RigPunch")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "punch", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "boxing",
+		"duration": 0.8, "cycles": 2, "loop_mode": "linear",
+	}, null)
+	assert_true(result.has("data"), "expected data, got: %s" % str(result))
+	assert_eq(str(result.data.roles.forearm_l), "B-forearm.L", "the forearm is detected")
+	assert_eq(str(result.data.roles.spine), "B-spine", "the spine is detected")
+	var skeleton: Skeleton3D = rig.skeleton
+	var anim: Animation = rig.player.get_animation("boxing")
+	assert_true(anim != null, "the clip exists")
+	var arm_index := _track_index(anim, ":B-upperArm.L", Animation.TYPE_ROTATION_3D)
+	var forearm_index := _track_index(anim, ":B-forearm.L", Animation.TYPE_ROTATION_3D)
+	var chest_index := _track_index(anim, ":B-chest", Animation.TYPE_ROTATION_3D)
+	assert_true(arm_index >= 0 and forearm_index >= 0 and chest_index >= 0, "arm, forearm and chest have tracks")
+	var arm_parent := skeleton.get_bone_parent(skeleton.find_bone("B-upperArm.L"))
+	var guard_dir := _dir_of(skeleton, arm_parent, anim.track_get_key_value(arm_index, 0))
+	var punch_dir := _dir_of(skeleton, arm_parent, anim.track_get_key_value(arm_index, 1))
+	var forward := (skeleton.get_bone_global_rest(skeleton.find_bone("B-toe.L")).origin
+		- skeleton.get_bone_global_rest(skeleton.find_bone("B-foot.L")).origin)
+	forward.y = 0.0
+	forward = forward.normalized()
+	assert_true(guard_dir.dot(Vector3.DOWN) > 0.4, "the guard keeps the arm low (y=%.2f)" % guard_dir.y)
+	assert_true(punch_dir.dot(forward) > guard_dir.dot(forward) + 0.3,
+		"the punch extends forward (%.2f -> %.2f)" % [guard_dir.dot(forward), punch_dir.dot(forward)])
+	var twist := (anim.track_get_key_value(chest_index, 1) as Quaternion).angle_to(
+		anim.track_get_key_value(chest_index, 0) as Quaternion)
+	assert_true(twist > 0.05, "the torso twists with the punch (%.2f rad)" % twist)
+	_teardown(rig)
+
+
 func test_idle_breathing_and_blink() -> void:
 	var rig := _rig("RigIdle")
 	if rig.has("error"):
@@ -1146,7 +1264,7 @@ func test_registry_matches_rig_schema() -> void:
 	var info := OpRegistry.family(OpRegistry.FAMILY_RIG)
 	assert_false(info.is_empty(), "the rig family is registered")
 	var op_enum: Array = info.schema.properties.op.enum
-	assert_eq(op_enum.size(), 15, "the rig schema lists every op")
+	assert_eq(op_enum.size(), 18, "the rig schema lists every op")
 	for descriptor in info.ops:
 		assert_true(op_enum.has(descriptor.name), "%s is in the schema enum" % descriptor.name)
 		for param in descriptor.params:

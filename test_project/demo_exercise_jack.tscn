@@ -1,0 +1,70 @@
+[gd_scene format=3 uid="uid://dn8e5bipp6lum"]
+
+[ext_resource type="PackedScene" uid="uid://cpu8s2lb7o6qr" path="res://models/human_dummy/HumanCharacterDummy_F.fbx" id="1_ngqcb"]
+
+[sub_resource type="Animation" id="Animation_s6ooc"]
+length = 1.1
+loop_mode = 1
+tracks/0/type = "rotation_3d"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Dummy/Skeleton3D:B-upperArm.L")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = PackedFloat32Array(0, 1, -0.45025924, 0.5452823, -0.5377087, 0.4591333, 0.55, 1, 0.50031865, 0.5003061, 0.414817, 0.572103, 1.1, 1, -0.45025924, 0.5452823, -0.5377087, 0.4591333)
+tracks/1/type = "rotation_3d"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Dummy/Skeleton3D:B-thigh.L")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = PackedFloat32Array(0, 1, 0.99774414, -0.01111015, 0.003962087, 0.06608847, 0.55, 1, 0.9816138, 0.17947353, -0.008707074, 0.0644043, 1.1, 1, 0.99774414, -0.01111015, 0.003962087, 0.06608847)
+tracks/2/type = "rotation_3d"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Dummy/Skeleton3D:B-upperArm.R")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = PackedFloat32Array(0, 1, -0.45017642, -0.5453504, 0.5377791, 0.4590511, 0.55, 1, 0.50040466, -0.5002184, -0.41471773, 0.57217664, 1.1, 1, -0.45017642, -0.5453504, 0.5377791, 0.4590511)
+tracks/3/type = "rotation_3d"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Dummy/Skeleton3D:B-thigh.R")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = PackedFloat32Array(0, 1, 0.99774414, 0.011109486, -0.003967069, 0.06608829, 0.55, 1, 0.98161376, -0.17947417, 0.008702128, 0.064403154, 1.1, 1, 0.99774414, 0.011109486, -0.003967069, 0.06608829)
+tracks/4/type = "position_3d"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Dummy/Skeleton3D:B-hips")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = PackedFloat32Array(0, 1, 0, 0.967712, 0.016772, 0.55, 1, 0, 1.017712, 0.016772, 1.1, 1, 0, 0.967712, 0.016772)
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_gnb0p"]
+_data = {
+&"jack": SubResource("Animation_s6ooc")
+}
+
+[node name="RecipeJack" type="Node3D" unique_id=84162307]
+
+[node name="Dummy" parent="." unique_id=1602649457 instance=ExtResource("1_ngqcb")]
+
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=1272552681]
+libraries/ = SubResource("AnimationLibrary_gnb0p")
+autoplay = &"jack"
+
+[node name="Cam" type="Camera3D" parent="." unique_id=1913798451]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.45, 3.4)
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=1325831409]
+transform = Transform3D(0.8658247, 0, 0.50034744, 0.35365817, 0.7073882, -0.6119867, -0.3539399, 0.7068252, 0.6124742, 0, 0, 0)
+light_energy = 1.2
+
+[node name="Ui" type="CanvasLayer" parent="." unique_id=117935415]
+
+[node name="Title" type="Label" parent="Ui" unique_id=873278436]
+offset_left = 40.0
+offset_top = 24.0
+theme_override_font_sizes/font_size = 34
+text = "jumping_jack"

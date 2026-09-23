@@ -1,0 +1,84 @@
+[gd_scene format=3 uid="uid://bb4ilbqhvf78b"]
+
+[ext_resource type="PackedScene" uid="uid://cpu8s2lb7o6qr" path="res://models/human_dummy/HumanCharacterDummy_F.fbx" id="1_sa3xs"]
+
+[sub_resource type="Animation" id="Animation_sa3xs"]
+length = 2.0
+loop_mode = 1
+tracks/0/type = "position_3d"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Dummy/Skeleton3D:B-hips")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = PackedFloat32Array(0, 1, 0, 0.967712, 0.016772, 0.7, 1, 0, 0.647712, 0.016772, 1.3, 1, 0, 0.647712, 0.016772, 2, 1, 0, 0.967712, 0.016772)
+tracks/1/type = "rotation_3d"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Dummy/Skeleton3D:B-thigh.L")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = PackedFloat32Array(0, 1, 0.9977599, -0.005227775, 0.0035668365, 0.06659832, 0.7, 1, 0.8919585, -0.0073409867, -0.0010055096, 0.4520568, 1.3, 1, 0.8919585, -0.0073409867, -0.0010055096, 0.4520568, 2, 1, 0.9977599, -0.005227775, 0.0035668365, 0.06659832)
+tracks/2/type = "rotation_3d"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Dummy/Skeleton3D:B-shin.L")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = PackedFloat32Array(0, 1, 0.06805551, -0.00024396568, 0.00044523252, 0.99768144, 0.7, 1, 0.80205715, -0.008502808, -0.0073026908, 0.5971421, 1.3, 1, 0.80205715, -0.008502808, -0.0073026908, 0.5971421, 2, 1, 0.06805551, -0.00024396568, 0.00044523252, 0.99768144)
+tracks/3/type = "rotation_3d"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Dummy/Skeleton3D:B-upperArm.L")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = PackedFloat32Array(0, 1, 0.033948887, 0.70908755, -0.083341494, 0.6993544, 0.7, 1, 0.23750083, 0.5445003, -0.59964037, 0.53623164, 1.3, 1, 0.23750083, 0.5445003, -0.59964037, 0.53623164, 2, 1, 0.033948887, 0.70908755, -0.083341494, 0.6993544)
+tracks/4/type = "rotation_3d"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Dummy/Skeleton3D:B-thigh.R")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = PackedFloat32Array(0, 1, 0.9977598, 0.005226546, -0.0035717767, 0.066598736, 0.7, 1, 0.8919582, 0.0073272395, 0.0010016736, 0.45205733, 1.3, 1, 0.8919582, 0.0073272395, 0.0010016736, 0.45205733, 2, 1, 0.9977598, 0.005226546, -0.0035717767, 0.066598736)
+tracks/5/type = "rotation_3d"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Dummy/Skeleton3D:B-shin.R")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = PackedFloat32Array(0, 1, 0.06805552, 0.00024398632, -0.00044775612, 0.99768144, 0.7, 1, 0.80205745, 0.008503485, 0.007274512, 0.59714204, 1.3, 1, 0.80205745, 0.008503485, 0.007274512, 0.59714204, 2, 1, 0.06805552, 0.00024398632, -0.00044775612, 0.99768144)
+tracks/6/type = "rotation_3d"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("Dummy/Skeleton3D:B-upperArm.R")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = PackedFloat32Array(0, 1, 0.034063213, -0.70907426, 0.08345665, 0.69934857, 0.7, 1, 0.23759244, -0.5444544, 0.59972715, 0.5361405, 1.3, 1, 0.23759244, -0.5444544, 0.59972715, 0.5361405, 2, 1, 0.034063213, -0.70907426, 0.08345665, 0.69934857)
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_vq0ti"]
+_data = {
+&"squat": SubResource("Animation_sa3xs")
+}
+
+[node name="RecipeSquat" type="Node3D" unique_id=2049791801]
+
+[node name="Dummy" parent="." unique_id=1602649457 instance=ExtResource("1_sa3xs")]
+
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=1439848794]
+libraries/ = SubResource("AnimationLibrary_vq0ti")
+autoplay = &"squat"
+
+[node name="Cam" type="Camera3D" parent="." unique_id=773908679]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 3)
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=1885230159]
+transform = Transform3D(0.8658247, 0, 0.50034744, 0.35365817, 0.7073882, -0.6119867, -0.3539399, 0.7068252, 0.6124742, 0, 0, 0)
+light_energy = 1.2
+
+[node name="Ui" type="CanvasLayer" parent="." unique_id=1680925204]
+
+[node name="Title" type="Label" parent="Ui" unique_id=1584816814]
+offset_left = 40.0
+offset_top = 24.0
+theme_override_font_sizes/font_size = 34
+text = "squat"

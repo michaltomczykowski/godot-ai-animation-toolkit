@@ -117,6 +117,9 @@ compressed tracks rather than rewriting them lossily.
 | `walk_cycle` | Looping in-place walk: thigh swing, knee bend, counter-swinging arms (`arm_down` for T-pose rigs), hip bob. |
 | `idle_breathing` | Subtle idle: chest/spine breathing, head counter-move, hip bob. |
 | `blink` | Scale/rotate lid bones closed, N blinks per clip. |
+| `jumping_jack` | Looping jack: arms down to overhead, legs spread, rise. |
+| `squat` | Looping squat with the ankles planted by a two-bone solve. |
+| `punch` | Boxing combo: guard, alternating straight punches, torso twist. |
 | `bake_pose_sequence` | Sample a clip and the active modifiers into a new keyed clip (final pose captured at `modification_processed`). |
 | `pose_save` | Capture a skeleton pose as portable rest-relative data. |
 | `pose_apply` | Write a pose back (blend / mirror / reset options). |

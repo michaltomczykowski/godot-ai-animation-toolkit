@@ -381,6 +381,9 @@ both human-dummy variants.
 | `walk_cycle` | Build a looping in-place walk from bone roles (auto-detected by name or given in `roles`): thigh swing, knee bend, counter-swinging arms and a hip bob. `arm_down` lowers the arms from the rest pose for T-pose rigs. |
 | `idle_breathing` | Build a subtle looping idle: chest (then spine) breathing, a light head counter-move and an optional hip bob. |
 | `blink` | Build a quick blink on the eye/eyelid bones - `scale` (default) or `rotate` - with an optional number of blinks per clip. |
+| `jumping_jack` | Build a looping jack: arms swing from the rest pose to overhead (`amplitude`), thighs spread (`stride`), hips rise (`bob`). |
+| `squat` | Build a looping squat with planted feet: the hips drop by `bob` metres and a two-bone solve bends each leg so the ankles stay at their rest positions (`amplitude` eases the arms forward). |
+| `punch` | Build a looping boxing combo: guard, `cycles` alternating straight punches along the rig's facing direction (ankle -> toe), `amplitude` torso twist, `bob` crouch. |
 | `bake_pose_sequence` | Sample a skeleton into a clip: seek the source clip on its AnimationPlayer, run the active modifiers (IK, springs, retarget) through the skeleton's update, then key the final pose (captured at `modification_processed`). Restores the pose afterwards, so the modifiers can be switched off once the baked clip plays. |
 | `pose_save` | Capture a Skeleton3D/Skeleton2D pose (inline and/or `res://animation_toolkit/poses/<name>.json`). |
 | `pose_apply` | Write a pose back: `blend` 0-1 toward it, `mirror` (L/R swap), `reset_first`, `bones` subset. One undo action. |
@@ -421,6 +424,20 @@ Notes:
   L/R bones swap by name (`.L`/`.R`, `_L`/`_R`, `-L`/`-R`, `Left`/`Right`).
 - **Rest-relative** storage means a pose saved from one rig applies to any rig
   with the same bone names — including the F/M human dummy pair.
+- **Recipes aim bones at world directions.** `arm_down`, the arm raises in
+  `jumping_jack`, the leg spread, the `squat` arms and the `punch` extension all
+  rotate a bone from its rest direction toward a target direction, clamped so
+  it never rotates past the target — so T-pose and A-pose rests both work.
+  `squat` additionally solves each leg analytically (law of cosines in the
+  sagittal plane) so the ankles stay at their rest positions, and `punch`
+  derives the character's facing direction from the feet (ankle to toe), so the
+  punches follow the rig instead of an assumed +Z.
+- **`bake_pose_sequence` side effects**: it plays the source clip on the player
+  and stops it afterwards (unless it was already playing); nodes other than the
+  skeleton that the source clip animates are left at the last sampled time; and
+  spring bones integrate with the frame delta rather than the sample step, so
+  baked springs are approximate. Bakes are capped at 1200 samples
+  (`duration x fps`) and the rig tool allows 30 s per call.
 - **Players inside scene instances**: writing a clip to an AnimationPlayer that
   lives inside an instanced scene (a character scene dropped in a level, an
   imported FBX) only survives the scene save because the toolkit turns
