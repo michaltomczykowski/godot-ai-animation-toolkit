@@ -1,6 +1,6 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **Phase 0-5 done** (v0.7.0); **6a poses done** (v0.8.0). Next: 6b (rigs/IK/springs/retargeting).
+Status: **all phases done** — v1.0.0 (7 tools, 76 ops) released 2026-09-23.
 Last updated: 2026-09-23.
 
 Phase 3 note: the generators landed as their own family, `animation_fx`, instead
@@ -124,7 +124,7 @@ Skeleton2D/Bone2D chains from a node tree, IK (CCDIK/FABRIK/two-bone), spring
 bones, pose save/apply/blend, then procedural character recipes (`walk_cycle`,
 `idle_breathing`, `blink`).
 
-## Phase 6 - `animation_rig` (in progress)
+## Phase 6 - `animation_rig` (done)
 
 The last roadmap item, deliberately split into three releases. **Locked
 decisions**: three sub-phases; 3D-first (2D IK is *Experimental* in Godot 4.7);
@@ -209,17 +209,37 @@ while 2D chains still work through `rig_chain` + poses.
   (+ profile classes), `SkeletonModificationStack2D` and the 2D modification
   classes, `Skeleton3D`/`Skeleton2D`/`Bone2D` bone-authoring calls for `rig_chain`.
 
-### 6c - procedural recipes -> v1.0.0
+### 6c - procedural recipes -> v1.0.0 (done)
 
-**Done (code):** `walk_cycle` (thigh swing, knee bend, counter-swinging arms and
+**Done:** `walk_cycle` (thigh swing, knee bend, counter-swinging arms and
 a hip bob, roles auto-detected from bone names or given explicitly),
 `idle_breathing` (chest/spine breathing, head counter-move, hip bob), `blink`
 (scale or rotate, several blinks per clip) and `bake_pose_sequence` (seeks the
-player, advances the skeleton so IK/springs/retarget run, keys the result and
-restores the pose). Covered by 3 new editor rows (128 total) and 1761 tier-1
-checks.
+player, runs the active modifiers through the skeleton update, keys the final
+pose and restores the skeleton afterwards). Covered by 5 editor rows (130
+total) and 1770 tier-1 checks.
 
-**Left:** the 6c demo scene, video and the v1.0.0 release.
+**Done (v1.0.0):** the demo scenes (`demo_recipe_walk`, `demo_recipe_idle`,
+`demo_recipe_bake`), the 0:49 video, and the release with the zip. Recording
+the demos surfaced three fixes, all shipped in the same release:
+
+- `walk_cycle` gained `arm_down` - a T-pose rig otherwise walks with its arms
+  horizontal.
+- `bake_pose_sequence` never actually sampled the source clip: `seek()` on a
+  player that was never played does nothing, so every bake was the rest pose.
+  It now resolves the source (param/current/assigned), plays it and seeks.
+- the same op now captures the *final* pose: modifiers only run in the
+  skeleton's deferred update and their result is readable only inside
+  `modification_processed`, so each sample nudges
+  `NOTIFICATION_UPDATE_SKELETON` and keys what the signal handler captured
+  (`Skeleton3D.advance()` does not run modifiers).
+
+One release-blocking find: the rig family's `params_schema` had grown past the
+Godot AI server's 8192-byte cap (python `json.dumps` measures ~5% larger than
+Godot's compact `JSON.stringify`), and one over-cap definition drops the whole
+catalog entry for that session - `animation_rig` was silently absent. The
+schema is trimmed under the cap and the tier-1 registry check now measures with
+the server's separators.
 
 ### Risks / mitigations
 
