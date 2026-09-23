@@ -13,6 +13,7 @@ const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registr
 const GenerateHandler := preload("res://addons/godot_ai_animation/handlers/generate.gd")
 const FxHandler := preload("res://addons/godot_ai_animation/handlers/fx.gd")
 const GraphHandler := preload("res://addons/godot_ai_animation/handlers/graph.gd")
+const LibraryHandler := preload("res://addons/godot_ai_animation/handlers/library.gd")
 const EditHandler := preload("res://addons/godot_ai_animation/handlers/edit.gd")
 
 const _SEVERITIES := ["all", "error", "warning", "info"]
@@ -577,6 +578,8 @@ func inspect_dry_run(params: Dictionary) -> Dictionary:
 		handler = GraphHandler.new()
 	elif tool == OpRegistry.FAMILY_EDIT:
 		handler = EditHandler.new()
+	elif tool == OpRegistry.FAMILY_LIBRARY:
+		handler = LibraryHandler.new()
 	else:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"dry_run supports %s, %s, %s and %s (inspect ops are already read-only)"

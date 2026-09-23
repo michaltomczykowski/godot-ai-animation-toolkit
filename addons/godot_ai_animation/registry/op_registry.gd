@@ -16,6 +16,7 @@ const FAMILY_EDIT := "animation_edit"
 const FAMILY_INSPECT := "animation_inspect"
 const FAMILY_FX := "animation_fx"
 const FAMILY_GRAPH := "animation_graph"
+const FAMILY_LIBRARY := "animation_library"
 
 const MAX_DESCRIPTION_CHARS := 600
 
@@ -67,11 +68,20 @@ static func families() -> Dictionary:
 			"requires_writable": true,
 			"undoable": true,
 		},
+		FAMILY_LIBRARY: {
+			"handler": "res://addons/godot_ai_animation/handlers/library.gd",
+			"summary": "Project library: reusable templates and JSON clip specs.",
+			"description": _library_description(),
+			"schema": _library_schema(),
+			"ops": _library_ops(),
+			"requires_writable": true,
+			"undoable": true,
+		},
 	}
 
 
 static func family_names() -> Array:
-	return [FAMILY_PRESETS, FAMILY_FX, FAMILY_GRAPH, FAMILY_EDIT, FAMILY_INSPECT]
+	return [FAMILY_PRESETS, FAMILY_FX, FAMILY_GRAPH, FAMILY_EDIT, FAMILY_INSPECT, FAMILY_LIBRARY]
 
 
 static func family(name: String) -> Dictionary:
@@ -609,7 +619,7 @@ static func _inspect_schema() -> Dictionary:
 			},
 			"tool": {
 				"type": "string",
-				"enum": ["animation_presets", "animation_fx", "animation_graph", "animation_edit"],
+				"enum": ["animation_presets", "animation_fx", "animation_graph", "animation_edit", "animation_library"],
 				"description": "dry_run: which tool to run. help: which tool's ops to list (omit for all).",
 			},
 			"forward_op": {
@@ -1088,6 +1098,126 @@ static func _graph_ops() -> Array:
 			"example": {"op": "additive_lean", "player_path": "/Main", "animation": "lean", "name": "Lean"},
 		},
 	])
+
+
+# ============================================================================
+# animation_library
+# ============================================================================
+
+static func _library_description() -> String:
+	return (
+		"Project library for reuse and interchange. Templates: save any "
+		+ "presets/fx call as a named recipe in res://animation_toolkit/"
+		+ "library.json, then apply it later (with per-call overrides) to other "
+		+ "players or targets. Clip specs: export a clip to JSON, import/validate "
+		+ "one, or build a clip from a spec file or inline spec (optionally "
+		+ "remapping every track onto another node). File writes are not part of "
+		+ "the undo stack; clip creation is one scene-pinned undo action. "
+		+ "Requires the Godot AI addon."
+	)
+
+
+static func _library_schema() -> Dictionary:
+	return {
+		"type": "object",
+		"properties": {
+			"op": {
+				"type": "string",
+				"enum": [
+					"template_save", "template_apply", "template_list", "template_delete",
+					"spec_export", "spec_import", "spec_apply",
+				],
+				"description": "Which library op to run.",
+			},
+			"name": {"type": "string", "description": "Template name (save/apply/delete)."},
+			"tool": {
+				"type": "string",
+				"enum": ["animation_presets", "animation_fx"],
+				"description": "template_save: which tool the stored op belongs to.",
+			},
+			"forward_op": {
+				"type": "string",
+				"description": "template_save: the presets/fx op to store (e.g. \"bounce\"); its params go in the same call.",
+			},
+			"description": {"type": "string", "description": "template_save: a note for other agents/users."},
+			"library_path": {
+				"type": "string",
+				"description": "Template library file (default res://animation_toolkit/library.json).",
+			},
+			"path": {
+				"type": "string",
+				"description": "spec_export/import/apply: JSON spec file. Export defaults to res://animation_toolkit/clips/<clip>.json.",
+			},
+			"spec": {
+				"type": "object",
+				"description": "spec_import/spec_apply: an inline clip spec instead of a file.",
+			},
+			"player_path": {"type": "string", "description": "Scene path to the AnimationPlayer (spec_export/apply)."},
+			"animation_name": {"type": "string", "description": "Clip to export, or the name to create when applying."},
+			"target_path": {
+				"type": "string",
+				"description": "spec_apply: rewrite every track's node part to this node (apply a spec to another node).",
+			},
+			"overwrite": {
+				"type": "boolean",
+				"default": false,
+				"description": "Replace an existing template/clip/file with the same name.",
+			},
+			"dry_run": {
+				"type": "boolean",
+				"default": false,
+				"description": "Report what the call would do without writing anything.",
+			},
+		},
+		"required": ["op"],
+	}
+
+
+static func _library_ops() -> Array:
+	return [
+		{
+			"name": "template_save",
+			"summary": "Save a presets/fx call (its op and params) as a named template in the project library.",
+			"params": ["name", "tool", "forward_op", "description", "library_path", "overwrite", "dry_run"],
+			"example": {"op": "template_save", "name": "button_pop", "tool": "animation_presets", "forward_op": "bounce", "intensity": 0.2, "duration": 0.5},
+		},
+		{
+			"name": "template_apply",
+			"summary": "Apply a saved template through its original tool, with per-call overrides.",
+			"params": ["name", "library_path", "player_path", "target_path", "animation_name", "overwrite", "dry_run"],
+			"example": {"op": "template_apply", "name": "button_pop", "player_path": "/Main/HUD", "target_path": "MenuButton"},
+		},
+		{
+			"name": "template_list",
+			"summary": "List the saved templates with their tool, op, description and params.",
+			"params": ["library_path"],
+			"example": {"op": "template_list"},
+		},
+		{
+			"name": "template_delete",
+			"summary": "Remove a template from the library file.",
+			"params": ["name", "library_path"],
+			"example": {"op": "template_delete", "name": "button_pop"},
+		},
+		{
+			"name": "spec_export",
+			"summary": "Write a clip to a JSON spec file (typed values, method and audio tracks included).",
+			"params": ["player_path", "animation_name", "path", "overwrite"],
+			"example": {"op": "spec_export", "player_path": "/Main/HUD", "animation_name": "open"},
+		},
+		{
+			"name": "spec_import",
+			"summary": "Read and validate a spec file or inline spec, reporting tracks, keys and issues.",
+			"params": ["path", "spec"],
+			"example": {"op": "spec_import", "path": "res://animation_toolkit/clips/open.json"},
+		},
+		{
+			"name": "spec_apply",
+			"summary": "Build a clip from a spec file or inline spec, optionally remapping every track onto another node.",
+			"params": ["player_path", "animation_name", "path", "spec", "target_path", "overwrite", "dry_run"],
+			"example": {"op": "spec_apply", "player_path": "/Main/HUD", "path": "res://animation_toolkit/clips/open.json", "target_path": "/Main/HUD/Panel2", "animation_name": "open_2"},
+		},
+	]
 
 
 # ============================================================================

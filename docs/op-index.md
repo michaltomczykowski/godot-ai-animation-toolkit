@@ -372,7 +372,7 @@ Handler: `res://addons/godot_ai_animation/handlers/inspect.gd`
 | `severity` | string: all \| error \| warning \| info | audit: only findings of this severity (default all). |
 | `include_info` | boolean (default `true`) | audit: include info-level findings (unused clips, constant tracks). |
 | `tolerance` | number | compare: value comparison tolerance (default 0.0001). |
-| `tool` | string: animation_presets \| animation_fx \| animation_graph \| animation_edit | dry_run: which tool to run. help: which tool's ops to list (omit for all). |
+| `tool` | string: animation_presets \| animation_fx \| animation_graph \| animation_edit \| animation_library | dry_run: which tool to run. help: which tool's ops to list (omit for all). |
 | `forward_op` | string | dry_run: the presets/fx/edit op to run (e.g. "retime"); its own params go in the same call. |
 | `op_name` | string | help: only this op (omit to list the tool's whole index). |
 
@@ -388,4 +388,52 @@ Required: `op`.
 {"op":"stats"}
 {"animation_name":"walk","factor":0.5,"forward_op":"retime","op":"dry_run","player_path":"/Main","tool":"animation_edit"}
 {"op":"help","tool":"animation_edit"}
+```
+
+## `animation_library`
+
+Project library: reusable templates and JSON clip specs.
+
+Handler: `res://addons/godot_ai_animation/handlers/library.gd`
+
+| op | What it does | Params |
+| --- | --- | --- |
+| `template_save` | Save a presets/fx call (its op and params) as a named template in the project library. | `name`, `tool`, `forward_op`, `description`, `library_path`, `overwrite`, `dry_run` |
+| `template_apply` | Apply a saved template through its original tool, with per-call overrides. | `name`, `library_path`, `player_path`, `target_path`, `animation_name`, `overwrite`, `dry_run` |
+| `template_list` | List the saved templates with their tool, op, description and params. | `library_path` |
+| `template_delete` | Remove a template from the library file. | `name`, `library_path` |
+| `spec_export` | Write a clip to a JSON spec file (typed values, method and audio tracks included). | `player_path`, `animation_name`, `path`, `overwrite` |
+| `spec_import` | Read and validate a spec file or inline spec, reporting tracks, keys and issues. | `path`, `spec` |
+| `spec_apply` | Build a clip from a spec file or inline spec, optionally remapping every track onto another node. | `player_path`, `animation_name`, `path`, `spec`, `target_path`, `overwrite`, `dry_run` |
+
+### `animation_library` parameters
+
+| Param | Type | Notes |
+| --- | --- | --- |
+| `op` | string: template_save \| template_apply \| template_list \| template_delete \| spec_export \| spec_import \| spec_apply | Which library op to run. |
+| `name` | string | Template name (save/apply/delete). |
+| `tool` | string: animation_presets \| animation_fx | template_save: which tool the stored op belongs to. |
+| `forward_op` | string | template_save: the presets/fx op to store (e.g. "bounce"); its params go in the same call. |
+| `description` | string | template_save: a note for other agents/users. |
+| `library_path` | string | Template library file (default res://animation_toolkit/library.json). |
+| `path` | string | spec_export/import/apply: JSON spec file. Export defaults to res://animation_toolkit/clips/<clip>.json. |
+| `spec` | object | spec_import/spec_apply: an inline clip spec instead of a file. |
+| `player_path` | string | Scene path to the AnimationPlayer (spec_export/apply). |
+| `animation_name` | string | Clip to export, or the name to create when applying. |
+| `target_path` | string | spec_apply: rewrite every track's node part to this node (apply a spec to another node). |
+| `overwrite` | boolean (default `false`) | Replace an existing template/clip/file with the same name. |
+| `dry_run` | boolean (default `false`) | Report what the call would do without writing anything. |
+
+Required: `op`.
+
+### Examples
+
+```json
+{"duration":0.5,"forward_op":"bounce","intensity":0.2,"name":"button_pop","op":"template_save","tool":"animation_presets"}
+{"name":"button_pop","op":"template_apply","player_path":"/Main/HUD","target_path":"MenuButton"}
+{"op":"template_list"}
+{"name":"button_pop","op":"template_delete"}
+{"animation_name":"open","op":"spec_export","player_path":"/Main/HUD"}
+{"op":"spec_import","path":"res://animation_toolkit/clips/open.json"}
+{"animation_name":"open_2","op":"spec_apply","path":"res://animation_toolkit/clips/open.json","player_path":"/Main/HUD","target_path":"/Main/HUD/Panel2"}
 ```

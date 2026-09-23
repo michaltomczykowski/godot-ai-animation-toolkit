@@ -3,9 +3,10 @@
 Exposed to agents as the promoted first-class tools
 **`custom_animation_presets`** (create clips), **`custom_animation_fx`**
 (generators for game feel, UI, sprites and audio), **`custom_animation_graph`**
-(AnimationTree authoring), **`custom_animation_edit`** (edit existing clips) and
-**`custom_animation_inspect`** (read-only inspection), all reachable through
-`custom_manage(op="invoke", tool_name=...)`.
+(AnimationTree authoring), **`custom_animation_edit`** (edit existing clips),
+**`custom_animation_inspect`** (read-only inspection) and
+**`custom_animation_library`** (reusable templates + JSON clip specs), all
+reachable through `custom_manage(op="invoke", tool_name=...)`.
 
 A generated per-op index with every parameter lives in
 [`op-index.md`](op-index.md) — it is rendered from
@@ -304,4 +305,60 @@ Notes:
 
 {"op": "animation_graph", "params": {"op": "one_shot_layer", "player_path": "/Main",
   "animation": "jump", "fadein": 0.1, "fadeout": 0.2}}
+```
+
+## `animation_library`
+
+Reuse and interchange. Templates store a presets/fx call (its op and params) as
+a named recipe in a project file; clip specs are a typed JSON format for whole
+clips. File writes are **not** part of the undo stack (like the core's
+`scene_save`); clip creation through `template_apply` / `spec_apply` is one
+scene-pinned undo action.
+
+| op | What it does |
+| --- | --- |
+| `template_save` | Store `{tool, forward_op, ...params}` under a name in `res://animation_toolkit/library.json`. |
+| `template_apply` | Run the stored op again, with per-call overrides (`player_path`, `target_path`, `animation_name`, any op param). `dry_run` works. |
+| `template_list` | List templates with tool, op, description and params. |
+| `template_delete` | Remove a template. |
+| `spec_export` | Write a clip to JSON (`res://animation_toolkit/clips/<clip>.json` by default) — typed values, method and audio tracks, markers. |
+| `spec_import` | Read and validate a spec file or inline spec; reports tracks, keys, paths and issues. |
+| `spec_apply` | Build a clip from a spec file or inline spec, optionally remapping every track onto `target_path`. |
+
+Spec format (versioned, values tagged by kind):
+
+```json
+{ "format": "godot-ai-animation-clip", "version": 1,
+  "length": 1.0, "loop_mode": 2,
+  "markers": [{"name": "peak", "time": 0.5, "color": {"kind": "color", "r": 1, "g": 1, "b": 1, "a": 1}}],
+  "tracks": [{
+    "type": 0, "path": "Sprite:position", "enabled": true, "interp": 0, "update_mode": 0,
+    "keys": [{"time": 0.0, "value": {"kind": "vector2", "x": 0, "y": 0}, "transition": 1.0}]
+  }] }
+```
+
+Notes:
+
+- `spec_apply` resolves `target_path` the way the presets do: scene-absolute
+  paths become root_node-relative track paths, relative paths are used as-is.
+- Audio keys reference streams by `res://` path (resources cannot be inlined);
+  a missing file is an error.
+- The library file and spec files are project data - commit them if you want
+  the recipes shared with the team.
+
+### Examples
+
+```json
+{"op": "animation_library", "params": {"op": "template_save", "name": "button_pop",
+  "tool": "animation_presets", "forward_op": "bounce", "intensity": 0.2, "duration": 0.5}}
+
+{"op": "animation_library", "params": {"op": "template_apply", "name": "button_pop",
+  "player_path": "/Main/HUD", "target_path": "MenuButton"}}
+
+{"op": "animation_library", "params": {"op": "spec_export", "player_path": "/Main/HUD",
+  "animation_name": "open"}}
+
+{"op": "animation_library", "params": {"op": "spec_apply", "player_path": "/Main/HUD",
+  "path": "res://animation_toolkit/clips/open.json",
+  "target_path": "/Main/HUD/Panel2", "animation_name": "open_2"}}
 ```

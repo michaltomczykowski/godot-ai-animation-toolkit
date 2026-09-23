@@ -17,11 +17,13 @@ A standalone [Godot](https://godotengine.org) addon that gives
 - **`animation_graph`** — AnimationTree authoring: `state_machine`, `blend_space`,
   `blend_tree`, `wire`, `graph_get`, plus `locomotion`, `one_shot_layer` and
   `additive_lean` setups.
+- **`animation_library`** — reusable templates (`template_save/apply/list/delete`)
+  and JSON clip specs (`spec_export/import/apply`).
 - **`animation_inspect`** — read-only reasoning and QA: `describe`, `timeline`,
   `audit` (broken paths, dead clips, loop seams, autoplay conflicts),
   `compare`, `stats`, `dry_run` (run any op without committing), `help`.
 
-All five sit on one declarative clip-spec engine, so every op is a pure
+All six sit on one declarative clip-spec engine, so every op is a pure
 spec → spec transform and each mutating call is one scene-pinned undo action.
 
 ```json
@@ -149,6 +151,23 @@ graphs that reference clips the player does not have.
 }}
 ```
 
+## Reuse and interchange
+
+`animation_library` turns one-off calls into project knowledge: save any
+presets/fx call as a named template and apply it later to other players or
+targets with overrides, and move whole clips in and out of a typed JSON format
+(`spec_export` / `spec_import` / `spec_apply`, with optional track remapping).
+
+```json
+{"tool": "custom_animation_library", "params": {
+  "op": "template_save",
+  "name": "button_pop",
+  "tool": "animation_presets",
+  "forward_op": "bounce",
+  "intensity": 0.2
+}}
+```
+
 ## Inspecting and auditing
 
 [**Video: inspection demo (0:55)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v0.4.0/animation_toolkit_inspect_demo.mp4)
@@ -207,10 +226,9 @@ warning) when Godot AI is absent.
 ```
 
 `test_project/` is a Godot project wired to both addons; `tests/` holds the
-editor suites (93 rows across `animation_presets`, `animation_fx`,
-`animation_graph`, `animation_edit` and `animation_inspect`) and the headless
-checks (`tier1_value_codec.gd`, `tier1_spec_modifiers.gd`, `tier1_fx_specs.gd`,
-`tier1_graph_builders.gd`, 1210 checks). The `demo_*.tscn` scenes are the ones recorded for the walkthrough
+editor suites (102 rows across all six tools) and the headless checks
+(`tier1_value_codec.gd`, `tier1_spec_modifiers.gd`, `tier1_fx_specs.gd`,
+`tier1_graph_builders.gd`, `tier1_spec_json.gd`, 1423 checks). The `demo_*.tscn` scenes are the ones recorded for the walkthrough
 video — each is one preset call plus autoplay.
 
 ```powershell

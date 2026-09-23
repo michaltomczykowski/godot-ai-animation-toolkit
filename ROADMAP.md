@@ -1,6 +1,6 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **Phase 0-4 done** (v0.6.0). Phase 5 (project library) next.
+Status: **Phase 0-5 done** (v0.7.0). Phase 6 (rigs) is the remaining roadmap item.
 Last updated: 2026-09-22.
 
 Phase 3 note: the generators landed as their own family, `animation_fx`, instead
@@ -110,11 +110,13 @@ set parameters), `graph_get` (dump + missing-clip/inactive-tree issues), plus
 `Start`/`End`/`output` nodes are filtered from counts and dumps; state machines
 report a `start_hint` because the start state is not persisted.
 
-## Phase 5 — project library → v0.7.0
+## Phase 5 — `animation_library` (done)
 
-`template save/apply/list/delete` on `res://animation_toolkit/library.json`,
-`spec_export/import`, `spec_apply` (build a clip from a spec file — the general
-escape hatch).
+`template_save/apply/list/delete` on `res://animation_toolkit/library.json`
+(templates store a presets/fx op + params, applied later with overrides), and
+`spec_export/import/apply` for a versioned, typed JSON clip format - including
+track remapping so a spec can be applied to another node. File writes stay out
+of the undo stack; clip creation is one undo action.
 
 ## Phase 6 — rigs (later) → v0.8+
 
