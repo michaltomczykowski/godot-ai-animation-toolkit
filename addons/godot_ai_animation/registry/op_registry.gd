@@ -1594,14 +1594,15 @@ static func _rig_ops() -> Array:
 
 static func _motion_description() -> String:
 	return (
-		"Procedural locomotion and idle for a humanoid skeleton: walk_cycle, "
-		+ "run_cycle, idle_cycle and a generic cycle (preset) build dense, smoothly "
-		+ "sampled clips with the legs solved by a two-bone IK (planted feet), "
-		+ "pelvis bob/sway/yaw/roll, counter-rotating torso and follow-through "
-		+ "arms. secondary_motion bakes offline spring bones (hair/tail/cloth) "
-		+ "into an existing clip. style (default/relaxed/heavy/sneaky) or overrides "
-		+ "tune the motion; root_motion keys the hips forward at the cycle's "
-		+ "implied speed. Needs a Skeleton3D with humanoid bone roles."
+		"Procedural humanoid motion: walk_cycle, run_cycle, strafe_cycle, "
+		+ "idle_cycle and a generic cycle build dense, smoothly sampled clips "
+		+ "with two-bone IK leg solves (planted feet, toe roll), pelvis bob/sway/"
+		+ "yaw/roll, counter-rotating torso and forward elbow follow-through; "
+		+ "jump and turn_cycle are one-shots, walk_start/walk_stop blend in and "
+		+ "out of a gait, and secondary_motion bakes offline spring bones. "
+		+ "`speed` solves the stride from a target m/s; style/overrides tune the "
+		+ "motion; root_motion keys and wires forward travel. Needs a Skeleton3D "
+		+ "with humanoid bone roles."
 	)
 
 
@@ -1611,8 +1612,8 @@ static func _motion_schema() -> Dictionary:
 		"properties": {
 			"op": {
 				"type": "string",
-				"enum": ["walk_cycle", "run_cycle", "idle_cycle", "cycle", "secondary_motion"],
-				"description": "Cycle to build, or secondary_motion to bake spring bones into an existing clip.",
+				"enum": ["walk_cycle", "run_cycle", "idle_cycle", "cycle", "jump", "turn_cycle", "strafe_cycle", "walk_start", "walk_stop", "secondary_motion"],
+				"description": "Cycle/move to build, or secondary_motion to bake spring bones into an existing clip.",
 			},
 			"preset": {
 				"type": "string",
@@ -1650,7 +1651,40 @@ static func _motion_schema() -> Dictionary:
 			},
 			"root_motion": {
 				"type": "boolean",
-				"description": "Also key the hips forward at the cycle's implied speed (off; set player.root_motion_track to the returned track).",
+				"description": "Also key the hips forward at the cycle's implied speed (off); wires player.root_motion_track unless set_root_motion=false.",
+			},
+			"set_root_motion": {
+				"type": "boolean",
+				"description": "root_motion: also set AnimationPlayer.root_motion_track in the same action (on).",
+			},
+			"speed": {
+				"type": "number",
+				"description": "Gait: target ground speed in m/s; solves the stride and warns when unreachable at this duration.",
+			},
+			"direction": {
+				"type": "string",
+				"enum": ["left", "right"],
+				"description": "turn_cycle / strafe_cycle: which way to turn or step (left).",
+			},
+			"angle": {
+				"type": "number",
+				"description": "turn_cycle: turn angle in degrees (90).",
+			},
+			"height": {
+				"type": "number",
+				"description": "jump: apex height in metres (0.5).",
+			},
+			"crouch": {
+				"type": "number",
+				"description": "jump: anticipation/landing crouch depth in metres (0.24).",
+			},
+			"distance": {
+				"type": "number",
+				"description": "jump: forward travel in metres over the clip (0 = in place).",
+			},
+			"phase": {
+				"type": "number",
+				"description": "walk_start/walk_stop: gait phase (0-1) the transition meets, e.g. 0 = left contact (0).",
 			},
 			"stride": {
 				"type": "number",
@@ -1726,8 +1760,9 @@ static func _motion_schema() -> Dictionary:
 static func _motion_ops() -> Array:
 	var gait_params := [
 		"player_path", "skeleton_path", "animation_name", "duration", "style",
-		"overrides", "samples", "root_motion", "stride", "knee_bend", "arm_swing",
-		"arm_down", "bob", "sway", "lean", "roles", "loop_mode", "overwrite",
+		"overrides", "samples", "root_motion", "set_root_motion", "speed", "stride",
+		"knee_bend", "arm_swing", "arm_down", "bob", "sway", "lean", "roles",
+		"loop_mode", "overwrite",
 	]
 	var idle_params := [
 		"player_path", "skeleton_path", "animation_name", "duration", "style",
@@ -1764,6 +1799,36 @@ static func _motion_ops() -> Array:
 			"summary": "Bake offline spring bones into an existing clip: hair/tail/cloth roots lag behind their animated parent, deterministically.",
 			"params": ["player_path", "skeleton_path", "animation_name", "bones", "stiffness", "damping", "samples"],
 			"example": {"op": "secondary_motion", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "walk", "bones": ["B-hair01", "B-hair02"], "stiffness": 120.0, "damping": 12.0},
+		},
+		{
+			"name": "jump",
+			"summary": "Build a one-shot jump: anticipation crouch, launch, air arc, landing absorb and recovery; feet planted before takeoff and after landing.",
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "height", "crouch", "distance", "style", "overrides", "samples", "roles", "loop_mode", "overwrite"],
+			"example": {"op": "jump", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "jump", "duration": 1.2, "height": 0.6, "crouch": 0.25},
+		},
+		{
+			"name": "turn_cycle",
+			"summary": "Build an in-place pivot turn with anticipation, a stepping foot and a settle; one-shot, direction left/right.",
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "angle", "direction", "style", "overrides", "samples", "roles", "loop_mode", "overwrite"],
+			"example": {"op": "turn_cycle", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "turn_left", "duration": 0.7, "angle": 90, "direction": "left"},
+		},
+		{
+			"name": "strafe_cycle",
+			"summary": "Build a looping sideways gait (leading foot steps out, trailing closes) with the knees still facing forward; speed-driven like the walk.",
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "direction", "speed", "stride", "style", "overrides", "samples", "root_motion", "set_root_motion", "roles", "loop_mode", "overwrite"],
+			"example": {"op": "strafe_cycle", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "strafe_left", "duration": 0.9, "direction": "left", "speed": 0.8, "loop_mode": "linear"},
+		},
+		{
+			"name": "walk_start",
+			"summary": "Build a short blend into a gait: rest -> the walk pose at `phase`, so it matches the cycle frame-for-frame.",
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "phase", "style", "overrides", "samples", "roles", "loop_mode", "overwrite"],
+			"example": {"op": "walk_start", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "walk_start", "duration": 0.35, "phase": 0.0},
+		},
+		{
+			"name": "walk_stop",
+			"summary": "Build a short blend out of a gait: the walk pose at `phase` -> rest with a settle.",
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "phase", "style", "overrides", "samples", "roles", "loop_mode", "overwrite"],
+			"example": {"op": "walk_stop", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "walk_stop", "duration": 0.35, "phase": 0.5},
 		},
 	])
 

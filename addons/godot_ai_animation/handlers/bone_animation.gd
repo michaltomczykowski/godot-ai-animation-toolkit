@@ -79,7 +79,9 @@ static func _resolve_roles(params: Dictionary, skeleton: Skeleton3D) -> Dictiona
 				roles["forearm_" + side] = name
 			elif lower.contains("upperarm"):
 				roles["arm_" + side] = name
-			elif lower.contains("shoulder") or (lower.contains("arm") and not lower.contains("fore")):
+			elif lower.contains("shoulder") or lower.contains("clavicle"):
+				roles["shoulder_" + side] = name
+			elif lower.contains("arm") and not lower.contains("fore"):
 				arm_fallback["arm_" + side] = name
 			elif lower.contains("foot") or lower.contains("ankle"):
 				roles["foot_" + side] = name
@@ -257,10 +259,11 @@ static func _pose_restore(skeleton: Skeleton3D, snapshot: Array) -> void:
 
 ## Commit a procedurally built bone clip. `keys` maps bone names to
 ## {"rotation": [{time, delta}], "position": [{time, delta}], "scale": [{time, value}]}
-## where rotation/position deltas are rest-relative.
+## where rotation/position deltas are rest-relative. `markers` is an optional
+## list of {name, time, color?} cues (footsteps, jump phases, ...).
 func _commit_procedural_clip(
 	params: Dictionary, resolved: Dictionary, anim_name: String, length: float,
-	loop_mode: int, keys: Dictionary,
+	loop_mode: int, keys: Dictionary, markers: Array = [], extra_props: Array = [],
 ) -> Dictionary:
 	var player_resolved := _resolve_player(str(params.get("player_path", "")))
 	if player_resolved.has("error"):
@@ -281,6 +284,12 @@ func _commit_procedural_clip(
 			"The skeleton must live under the player's root_node")
 	var skeleton: Skeleton3D = resolved.node
 	var spec := ClipSpec.make(length, loop_mode)
+	for marker in markers:
+		var marker_name := str(marker.get("name", ""))
+		if marker_name.is_empty():
+			continue
+		ClipSpec.add_marker(spec, marker_name, clampf(float(marker.get("time", 0.0)), 0.0, length),
+			marker.get("color", Color(1, 1, 1, 1)))
 	var used: Array = []
 	for bone_name in keys:
 		var index := skeleton.find_bone(str(bone_name))
@@ -342,7 +351,7 @@ func _commit_procedural_clip(
 		return existing.error
 	var anim := SpecBuilder.to_animation(spec)
 	_commit_animation_add("MCP: %s" % anim_name, player, library, created_library,
-		anim_name, anim, existing.old_anim)
+		anim_name, anim, existing.old_anim, extra_props)
 	return {"data": {
 		"player_path": str(params.get("player_path", "")),
 		"skeleton_path": resolved.path,

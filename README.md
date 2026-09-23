@@ -241,17 +241,19 @@ dummy: densely sampled curves, two-bone IK leg solves with planted feet,
 proper arm swing with forward elbow follow-through, and an idle that looks
 around and twists the torso.
 
-`animation_motion` is the character-motion family: `walk_cycle`, `run_cycle`,
-`idle_cycle` and a generic `cycle` build smooth clips from analytic drivers
-instead of a handful of hand-tuned keys. Legs are solved per sample by a
-two-bone IK so the stance foot stays planted and slides back at the cycle's
-ground speed; the pelvis bobs/sways/yaws/rolls, the chest counter-rotates and
-the arms swing about a sagittal hinge with forward elbow follow-through.
-`idle_cycle` adds a pronounced look-around and torso twist over subtle
-breathing. `style` (`relaxed` / `heavy` / `sneaky`) and `overrides` tune
-everything, `root_motion` keys the hips forward at the implied `speed`, and
-`secondary_motion` bakes offline spring bones (hair, tails, cloth) into any
-clip. T-pose rigs get their arms lowered automatically.
+`animation_motion` is the character-motion family: gaits (`walk_cycle`,
+`run_cycle`, `strafe_cycle`), an `idle_cycle`, one-shots (`jump`,
+`turn_cycle`), gait transitions (`walk_start` / `walk_stop`) and `cycle` build
+smooth clips from analytic drivers instead of a handful of hand-tuned keys.
+Legs are solved per sample by a two-bone IK so the stance foot stays planted and
+rolls heel-to-toe; the pelvis bobs/sways/yaws/rolls, the chest counter-rotates
+and the arms swing about a sagittal hinge with elbow and clavicle
+follow-through. Pass `speed` (m/s) and the stride is solved for you; `style`
+(`relaxed` / `heavy` / `sneaky`) and `overrides` tune everything; gaits emit
+`contact`/`toe_off`/`passing` phase markers for footsteps and blends;
+`root_motion` keys forward travel and wires `AnimationPlayer.root_motion_track`
+in the same undo action; `secondary_motion` bakes offline spring bones (hair,
+tails, cloth) into any clip. T-pose rigs get their arms lowered automatically.
 
 ```json
 {"tool": "custom_animation_motion", "params": {

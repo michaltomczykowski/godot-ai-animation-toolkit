@@ -493,9 +493,13 @@ follow-through, and the result looks smooth at any playback rate.
 
 | op | Notes |
 | --- | --- |
-| `walk_cycle` | Full gait: contact/passing timing, pelvis bob (2x) + sway + yaw + roll, counter-rotating spine/chest, arm swing with elbow lag, head stabilisation, planted feet with a flat-stance foot. `stride`, `knee_bend` (a planted crouch), `arm_swing`, `bob`, `sway`, `lean`, `arm_down`. |
+| `walk_cycle` | Full gait: contact/passing timing, pelvis bob (2x) + sway + yaw + roll, counter-rotating spine/chest, arm swing with elbow and clavicle follow-through, head stabilisation, planted feet with heel-strike/toe-off roll. `speed` solves the stride from a target m/s. `stride`, `knee_bend` (a planted crouch), `arm_swing`, `bob`, `sway`, `lean`, `arm_down`. |
 | `run_cycle` | Same engine with a flight phase, a forward lean, a wider stride, bent elbows and a bigger bob. Use a shorter `duration` (0.5-0.7 s). |
+| `strafe_cycle` | Looping sideways gait: the leading foot steps out, the trailing foot closes, the knees still bend forward and the pelvis shifts along the travel axis. `direction` left/right, `speed`-driven like the walk. |
 | `idle_cycle` | A loopable idle with presence: a pronounced look-around (head yaw, with a second harmonic so it lingers left/right) and torso twist (chest, spine at half with lag, hips counter) over breathing, weight shift and seeded micro-noise. `look`, `twist`, `amplitude`, `head_amplitude`, `bob`, `sway`, `lean`. |
+| `jump` | One-shot jump: anticipation crouch, launch, air arc, descend, landing absorb and recovery. Feet are planted before takeoff and after landing; `height`, `crouch`, `distance` (forward travel). Emits `takeoff` / `apex` / `land` markers. |
+| `turn_cycle` | One-shot in-place pivot turn: anticipation, a stepping foot, stance feet held at their rest orientation, overshoot settle. `angle`, `direction`. Emits `anticipate` / `step` / `settle`. |
+| `walk_start` / `walk_stop` | Short blend in/out of a gait. The gait-facing end is sampled from the cycle at `phase`, so it matches frame-for-frame and can be concatenated or cross-faded. |
 | `cycle` | Generic entry point: `preset` = `walk` / `run` / `idle`, same params as the dedicated ops. |
 | `secondary_motion` | Bakes **offline spring bones** into an existing clip: each name in `bones` (hair, tail, cloth root — must be unkeyed in the clip) lags behind its animated parent with a damped angular spring (`stiffness` 1/s², `damping` 1/s, 120/12 = snappy hair), keyed as ordinary rotation tracks. Deterministic; no live modifier needed. |
 
@@ -507,16 +511,26 @@ How motion is generated:
 - **Planted feet.** Per sample the hips and pelvis motion are applied, then each
   leg is solved (law of cosines in the sagittal plane) so the ankle follows its
   trajectory: the stance foot slides back at the cycle's ground speed, the swing
-  foot arcs forward and up. The returned `speed` is the implied m/s.
+  foot arcs forward and up. The ankle is pitched through heel strike and toe-off
+  and the toe bone is held on the ground while the foot rolls over it.
+- **Speed-driven.** Pass `speed` (m/s) and the stride is solved from
+  `speed * stance * duration / (2 * leg_length)`; unreachable speeds are clamped
+  and reported in `warnings` with the duration that would work. `speed`,
+  `stride_used` and `cadence` come back in the result.
+- **Phase markers.** Gaits emit `contact.L/R`, `toe_off.L/R` and `passing.L/R`;
+  jump and turn emit their phase cues. Hook footstep audio or gameplay events on
+  them, or use them to phase-sync blends.
 - **Loop closure by construction.** Integer frequencies and a final sample that
   re-evaluates phase 0 make every track close exactly; the commit pass also
   aligns quaternion hemispheres and snaps the loop seam.
 - **Styles.** `style` = `default` / `relaxed` / `heavy` / `sneaky` scales the
   config before `overrides` (e.g. `{"stride": 18, "lag": 0.1}`), so one call can
   produce very different characters.
-- **Root motion.** `root_motion=true` also keys the hips forward at the implied
-  speed and returns `root_motion_track`; point `AnimationPlayer.root_motion_track`
-  at it to move the character.
+- **Root motion.** `root_motion=true` keys the hips forward at the implied speed
+  and wires `AnimationPlayer.root_motion_track` in the same undo action (set
+  `set_root_motion=false` to skip). Apply it in game code with
+  `get_root_motion_position()` / `get_root_motion_rotation()` — and the
+  `*_accumulator()` variants when the node itself rotates.
 - T-pose rigs are detected: the arms are lowered automatically so the swing has
   a real axis (an explicit `arm_down` always wins). A-pose rigs are untouched.
 
@@ -540,4 +554,17 @@ How motion is generated:
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
   "animation_name": "walk", "bones": ["B-hair01", "B-hair02"],
   "stiffness": 120.0, "damping": 12.0}}
+
+{"op": "animation_motion", "params": {"op": "jump",
+  "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
+  "animation_name": "jump", "duration": 1.2, "height": 0.6, "crouch": 0.25}}
+
+{"op": "animation_motion", "params": {"op": "strafe_cycle",
+  "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
+  "animation_name": "strafe_left", "duration": 0.9, "direction": "left",
+  "speed": 1.0, "loop_mode": "linear"}}
+
+{"op": "animation_motion", "params": {"op": "walk_start",
+  "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
+  "animation_name": "walk_start", "duration": 0.35, "phase": 0.0}}
 ```

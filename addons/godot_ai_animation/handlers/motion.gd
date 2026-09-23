@@ -20,12 +20,24 @@ const _CYCLE_KINDS := {
 	"run_cycle": "run",
 	"idle_cycle": "idle",
 	"cycle": "walk",
+	"jump": "jump",
+	"turn_cycle": "turn",
+	"strafe_cycle": "strafe",
+	"walk_start": "walk_start",
+	"walk_stop": "walk_stop",
 }
 
+const _GAIT_KEYS := ["stride", "knee_bend", "arm_swing", "arm_twist", "bob", "sway", "hip_yaw", "hip_roll", "chest_yaw", "lean", "foot_lift", "elbow", "elbow_swing", "lag", "stance", "crouch", "toe_roll"]
+
 const _OVERRIDE_KEYS := {
-	"walk": ["stride", "knee_bend", "arm_swing", "arm_twist", "bob", "sway", "hip_yaw", "hip_roll", "chest_yaw", "lean", "foot_lift", "elbow", "elbow_swing", "lag", "stance", "crouch"],
-	"run": ["stride", "knee_bend", "arm_swing", "arm_twist", "bob", "sway", "hip_yaw", "hip_roll", "chest_yaw", "lean", "foot_lift", "elbow", "elbow_swing", "lag", "stance", "crouch"],
+	"walk": _GAIT_KEYS,
+	"run": _GAIT_KEYS,
+	"strafe": _GAIT_KEYS,
+	"walk_start": _GAIT_KEYS,
+	"walk_stop": _GAIT_KEYS,
 	"idle": ["amplitude", "head_amplitude", "look", "twist", "bob", "sway", "shift", "noise", "lean", "arm_sway", "elbow", "arm_twist"],
+	"jump": ["jump_height", "jump_crouch", "jump_distance", "arm_swing", "elbow", "lean", "foot_lift"],
+	"turn": ["turn_angle", "arm_swing", "elbow", "lean", "foot_lift", "toe_roll"],
 }
 
 
@@ -50,6 +62,16 @@ func _dispatch(params: Dictionary) -> Dictionary:
 			return _run_cycle(params, "idle")
 		"cycle":
 			return _run_cycle(params, str(params.get("preset", "walk")))
+		"jump":
+			return _run_cycle(params, "jump")
+		"turn_cycle":
+			return _run_cycle(params, "turn")
+		"strafe_cycle":
+			return _run_cycle(params, "strafe")
+		"walk_start":
+			return _run_cycle(params, "walk_start")
+		"walk_stop":
+			return _run_cycle(params, "walk_stop")
 		"secondary_motion":
 			return motion_secondary(params)
 	return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
@@ -61,7 +83,7 @@ func _dispatch(params: Dictionary) -> Dictionary:
 func _run_cycle(params: Dictionary, kind: String) -> Dictionary:
 	if not _CYCLE_KINDS.values().has(kind):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
-			"Invalid preset '%s'. Valid: walk, run, idle" % kind)
+			"Invalid preset '%s'. Valid: walk, run, idle, jump, turn, strafe" % kind)
 	var style := str(params.get("style", "default"))
 	if style != "default" and not MotionSpecs._STYLE_MULTIPLIERS.has(style):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
@@ -83,41 +105,99 @@ func _run_cycle(params: Dictionary, kind: String) -> Dictionary:
 			config = MotionSpecs.run_config(style, {})
 		"idle":
 			config = MotionSpecs.idle_config(style, {})
+		"jump":
+			config = MotionSpecs.jump_config(style, {})
+		"turn":
+			config = MotionSpecs.turn_config(style, {})
+		"strafe":
+			config = MotionSpecs.strafe_config(style, {})
 	for key in overrides:
 		config[str(key)] = overrides[key]
 	for key in valid_keys:
 		if params.has(key):
 			config[key] = float(params[key])
+	# Friendly top-level params map onto the per-move config keys.
+	if params.has("height"):
+		config["jump_height"] = float(params["height"])
+	if params.has("distance"):
+		config["jump_distance"] = float(params["distance"])
+	if params.has("crouch"):
+		config["jump_crouch"] = float(params["crouch"])
+	if params.has("angle"):
+		config["turn_angle"] = float(params["angle"])
 	var length := float(built.length)
 	var rate := float(built.rate)
 	var ctx: Dictionary = built.ctx
 	ctx["config"] = config
-	var keys: Dictionary = MotionSpecs.idle_keys(ctx) if kind == "idle" else MotionSpecs.gait_keys(ctx, kind == "run")
+	ctx["speed"] = maxf(float(params.get("speed", 0.0)), 0.0)
+	var direction := str(params.get("direction", "left"))
+	if direction != "left" and direction != "right":
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'direction' must be 'left' or 'right'")
+	ctx["direction"] = direction
+	ctx["phase"] = clampf(float(params.get("phase", 0.0)), 0.0, 0.999)
+	if kind == "strafe":
+		ctx["step_axis"] = (built.ctx.lateral as Vector3) * (1.0 if direction == "left" else -1.0)
+		ctx["knee_hint"] = built.ctx.forward
+	var result: Dictionary
+	match kind:
+		"idle":
+			result = MotionSpecs.idle_keys(ctx)
+		"jump":
+			result = MotionSpecs.jump_keys(ctx)
+		"turn":
+			result = MotionSpecs.turn_keys(ctx)
+		"strafe":
+			result = MotionSpecs.strafe_keys(ctx, direction)
+		"walk_start", "walk_stop":
+			result = MotionSpecs.transition_keys(ctx, kind == "walk_stop")
+		_:
+			result = MotionSpecs.gait_keys(ctx, kind == "run")
+	var keys: Dictionary = result.get("keys", {})
 	if keys.is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"No bones could be keyed - check the skeleton's bone roles")
+	var markers: Array = result.get("markers", [])
+	var meta: Dictionary = result.get("meta", {})
+	# Root motion: wire the player's root_motion_track inside the same action so
+	# the clip actually drives the character.
+	var extra_props: Array = []
+	var root_motion_track := ""
+	var rooted := bool(built.ctx.get("root_motion", false)) and not str(built.ctx.get("hips", "")).is_empty()
+	if rooted and bool(params.get("set_root_motion", true)):
+		var player_resolved := _resolve_player(str(params.get("player_path", "")))
+		if not player_resolved.has("error"):
+			var root_node := ValueCodec.player_root_node(player_resolved.player)
+			if root_node != null:
+				root_motion_track = "%s:%s" % [str(root_node.get_path_to(built.skeleton)), str(built.ctx.hips)]
+				extra_props.append({
+					"object": player_resolved.player,
+					"property": "root_motion_track",
+					"value": NodePath(root_motion_track),
+					"old": player_resolved.player.root_motion_track,
+				})
 	var anim_name := str(params.get("animation_name", kind))
-	var committed := _commit_procedural_clip(params, built.resolved, anim_name, length, int(built.loop_mode), keys)
+	var committed := _commit_procedural_clip(params, built.resolved, anim_name, length,
+		int(built.loop_mode), keys, markers, extra_props)
 	if committed.has("error"):
 		return committed
 	committed.data["style"] = style
 	committed.data["samples"] = rate
 	committed.data["roles"] = built.ctx.roles
 	committed.data["root_motion"] = bool(built.ctx.get("root_motion", false))
-	committed.data["speed"] = _implied_speed(kind, config, built.ctx, length)
-	if bool(built.ctx.get("root_motion", false)) and not str(built.ctx.get("hips", "")).is_empty():
-		var player_resolved := _resolve_player(str(params.get("player_path", "")))
-		if not player_resolved.has("error"):
-			var root_node := ValueCodec.player_root_node(player_resolved.player)
-			if root_node != null:
-				committed.data["root_motion_track"] = "%s:%s" % [
-					str(root_node.get_path_to(built.skeleton)), str(built.ctx.hips)]
+	committed.data["root_motion_track"] = root_motion_track
+	committed.data["speed"] = float(meta.get("speed", _implied_speed(kind, config, built.ctx, length)))
+	for key in meta:
+		if key != "warnings":
+			committed.data[key] = meta[key]
+	if meta.has("warnings") and not (meta.get("warnings") as Array).is_empty():
+		committed.data["warnings"] = meta.get("warnings")
+	committed.data["markers"] = markers.size()
 	return committed
 
 
-## Ground speed the cycle represents, in metres per second (0 for idle).
+## Ground speed a gaits represent, in metres per second (0 for everything else).
 static func _implied_speed(kind: String, config: Dictionary, ctx: Dictionary, length: float) -> float:
-	if kind == "idle":
+	if kind != "walk" and kind != "run" and kind != "strafe":
 		return 0.0
 	var leg: Dictionary = ctx.legs.l
 	var span := 2.0 * (float(leg.upper) + float(leg.lower)) * sin(deg_to_rad(float(config.stride)))
@@ -401,6 +481,7 @@ func _leg_map(skeleton: Skeleton3D, roles: Dictionary, rest: Dictionary) -> Dict
 			"thigh": thigh,
 			"shin": shin,
 			"foot": foot,
+			"toe": str(roles.get("toe_" + side, "")),
 			"hip": rest[thigh].origin,
 			"ankle": ankle,
 			"upper": (rest[shin].origin - rest[thigh].origin).length(),

@@ -140,9 +140,13 @@ compressed tracks rather than rewriting them lossily.
 
 | op | What it builds |
 | --- | --- |
-| `walk_cycle` | Dense procedural walk: planted feet (two-bone IK leg solve), pelvis bob/sway/yaw/roll, counter-rotating torso, arm swing with elbow lag, head stabilisation. |
+| `walk_cycle` | Dense procedural walk: planted feet (two-bone IK leg solve, heel-to-toe roll), pelvis bob/sway/yaw/roll, counter-rotating torso, arm swing with elbow/clavicle follow-through; `speed` solves the stride. |
 | `run_cycle` | Same engine with a flight phase, forward lean, wider stride and bent elbows. |
+| `strafe_cycle` | Looping sideways gait (leading foot out, trailing closes) with the knees facing forward; `direction`, `speed`. |
 | `idle_cycle` | Looping idle with a look-around and torso twist over breathing, weight shift and seeded micro-noise; arms hang and sway. |
+| `jump` | One-shot jump: anticipation, launch, air arc, landing absorb, recovery; `height`, `crouch`, `distance`; phase markers. |
+| `turn_cycle` | One-shot in-place pivot turn with anticipation and settle; `angle`, `direction`. |
+| `walk_start` / `walk_stop` | Short blends in/out of a gait, sampled at `phase` so they match the cycle frame-for-frame. |
 | `cycle` | Generic entry: `preset` = walk / run / idle. |
 | `secondary_motion` | Bake offline spring bones (hair/tail/cloth) into an existing clip, deterministically. |
 

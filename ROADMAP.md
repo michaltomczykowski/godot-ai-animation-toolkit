@@ -1,7 +1,8 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **phases 0–8 done** — v1.2.1 (8 tools, 90 ops) released 2026-09-23,
-with demo scenes and the dummy motion showcase video on the release.
+Status: **phases 0–8 done** — v1.2.1 (8 tools, 90 ops) released 2026-09-23.
+Phase 9 (motion pack) and Phase 10 (agent ergonomics) are in progress toward
+v1.3.0 / v1.4.0; see below.
 Last updated: 2026-09-23.
 
 Phase 3 note: the generators landed as their own family, `animation_fx`, instead
@@ -340,6 +341,66 @@ modifiers, typed-track transitions, sampler); the editor suites gained
 `animation_motion` (9 tests) plus quality-pass and motion-report tests
 (144 rows). New demos: `demo_motion_walk`, `demo_motion_run`,
 `demo_motion_idle`.
+
+### Phase 9 - the motion pack -> v1.3.0 (in progress)
+
+Goal: more moves, smoother gaits and a motion pipeline that is genuinely useful
+for agents generating character animation in Godot - not just one-shot presets.
+
+- **Speed-driven gait.** `walk_cycle` / `run_cycle` / `strafe_cycle` accept a
+  target `speed` (m/s) and solve stride from it
+  (`stride = asin(speed * stance * duration / (2 * leg_length))`), clamp at a
+  safe stride cap, scale foot lift, and return `speed`, `stride_used`,
+  `cadence` and `warnings` (with a suggested duration when the speed is
+  unreachable at the requested duration).
+- **`jump`** - anticipation, launch, air arc, descend, land absorb, recover;
+  feet planted before takeoff and after landing; optional `distance` travel;
+  `takeoff` / `apex` / `land` markers.
+- **`turn_cycle`** - in-place turn (`angle`, direction) with anticipation, a
+  stepping foot, stance feet held at their rest orientation, slight overshoot
+  settle; `anticipate` / `step` / `settle` markers; optional rotation root
+  motion.
+- **`walk_start` / `walk_stop`** - short transitions whose end/start pose is
+  sampled from the cycle at `phase`, so they blend frame-for-frame into a gait.
+- **`strafe_cycle`** - sideways gait (leading foot steps out, trailing closes)
+  with the knees still facing forward, pelvis shifting along the travel axis.
+- **Toe roll + shoulders.** Ankle pitch curve (heel strike toe-up -> flat ->
+  toe-off toe-down) and a world-held toe bone during toe-off; new
+  `shoulder_l/r` role with a small clavicle swing synced to the arm.
+- **Phase markers.** Cycles emit `contact.L/R`, `toe_off.L/R`, `passing.L/R`;
+  new `animation_edit marker` op (add/remove/move/clear) so agents can hook
+  gameplay events and phase-sync blends.
+- **Root-motion polish.** `root_motion=true` also sets
+  `AnimationPlayer.root_motion_track` inside the same undo action and returns
+  the apply snippet (`get_root_motion_position/rotation` + accumulators).
+
+Demos: jump, turn, strafe scenes, a re-recorded walk/run with toe+shoulders,
+and a new video.
+
+### Phase 10 - understand & drive -> v1.4.0 (planned)
+
+Make agents effective on the *first* try: understand a rig, verify motion
+numerically, and get a playable character in one call.
+
+- **`animation_inspect rig_profile`** - detected roles with candidates, T/A
+  pose, limb lengths/reach, facing and lateral axes, capabilities (walk, run,
+  jump, turn, strafe, blink, secondary, IK, springs), missing roles, warnings
+  (scaled skeleton, zero-length bones) and suggested next ops. `save=true`
+  writes `res://animation_toolkit/rig_profiles/<name>.json`; rig/motion ops
+  accept a `profile` param so role detection is never guessed twice.
+- **`animation_motion character_setup`** - one call, one undo: build idle +
+  walk + run (optionally jump/turn), wire the locomotion AnimationTree, set
+  root-motion tracks, and return the speed parameter path plus a game-side
+  apply snippet.
+- **`animation_inspect sample`** - FK probe: world positions (and optional
+  euler rotations) of requested bones at N times, plus derived foot heights and
+  contact windows, so an agent can verify motion without rendering.
+- **Library templates for motion/rig** - `template_save/apply` extended to
+  `animation_motion` and `animation_rig` calls (save a tuned style or recipe).
+
+Deferred (candidate v1.5): `crouch_walk`, gesture pack, foot ground-lock for
+imported clips, twist dispersion (BoneTwistDisperser3D), gaze baking,
+angular-velocity limiting, preview-scene builder.
 
 ### Risks / mitigations
 

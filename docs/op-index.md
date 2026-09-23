@@ -598,17 +598,22 @@ Handler: `res://addons/godot_ai_animation/handlers/motion.gd`
 
 | op | What it does | Params |
 | --- | --- | --- |
-| `walk_cycle` | Build a looping walk with planted feet: pelvis bob/sway/yaw/roll, counter-rotating torso, arm swing with elbow follow-through, head stabilisation. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `root_motion`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `sway`, `lean`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
-| `run_cycle` | Build a looping run: flight phase, forward lean, bigger stride and arm swing, bent elbows. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `root_motion`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `sway`, `lean`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
+| `walk_cycle` | Build a looping walk with planted feet: pelvis bob/sway/yaw/roll, counter-rotating torso, arm swing with elbow follow-through, head stabilisation. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `root_motion`, `set_root_motion`, `speed`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `sway`, `lean`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
+| `run_cycle` | Build a looping run: flight phase, forward lean, bigger stride and arm swing, bent elbows. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `root_motion`, `set_root_motion`, `speed`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `sway`, `lean`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
 | `idle_cycle` | Build a looping idle: a pronounced look-around and torso twist over subtle breathing, weight shift and seeded micro-motion. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `amplitude`, `head_amplitude`, `bob`, `sway`, `lean`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
-| `cycle` | Generic entry point: build the cycle named by `preset` (walk, run or idle) with the same parameters as the dedicated ops. | `preset`, `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `root_motion`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `sway`, `lean`, `roles`, `loop_mode`, `overwrite`, `amplitude`, `head_amplitude`, `dry_run` |
+| `cycle` | Generic entry point: build the cycle named by `preset` (walk, run or idle) with the same parameters as the dedicated ops. | `preset`, `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `root_motion`, `set_root_motion`, `speed`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `sway`, `lean`, `roles`, `loop_mode`, `overwrite`, `amplitude`, `head_amplitude`, `dry_run` |
 | `secondary_motion` | Bake offline spring bones into an existing clip: hair/tail/cloth roots lag behind their animated parent, deterministically. | `player_path`, `skeleton_path`, `animation_name`, `bones`, `stiffness`, `damping`, `samples`, `dry_run` |
+| `jump` | Build a one-shot jump: anticipation crouch, launch, air arc, landing absorb and recovery; feet planted before takeoff and after landing. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `height`, `crouch`, `distance`, `style`, `overrides`, `samples`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
+| `turn_cycle` | Build an in-place pivot turn with anticipation, a stepping foot and a settle; one-shot, direction left/right. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `angle`, `direction`, `style`, `overrides`, `samples`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
+| `strafe_cycle` | Build a looping sideways gait (leading foot steps out, trailing closes) with the knees still facing forward; speed-driven like the walk. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `direction`, `speed`, `stride`, `style`, `overrides`, `samples`, `root_motion`, `set_root_motion`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
+| `walk_start` | Build a short blend into a gait: rest -> the walk pose at `phase`, so it matches the cycle frame-for-frame. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `phase`, `style`, `overrides`, `samples`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
+| `walk_stop` | Build a short blend out of a gait: the walk pose at `phase` -> rest with a settle. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `phase`, `style`, `overrides`, `samples`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
 
 ### `animation_motion` parameters
 
 | Param | Type | Notes |
 | --- | --- | --- |
-| `op` | string: walk_cycle \| run_cycle \| idle_cycle \| cycle \| secondary_motion | Cycle to build, or secondary_motion to bake spring bones into an existing clip. |
+| `op` | string: walk_cycle \| run_cycle \| idle_cycle \| cycle \| jump \| turn_cycle \| strafe_cycle \| walk_start \| walk_stop \| secondary_motion | Cycle/move to build, or secondary_motion to bake spring bones into an existing clip. |
 | `preset` | string: walk \| run \| idle | cycle: which cycle to build (walk). |
 | `player_path` | string | Scene path to the AnimationPlayer that receives the clip. |
 | `skeleton_path` | string | Scene path to the Skeleton3D (default: the first one). |
@@ -617,7 +622,15 @@ Handler: `res://addons/godot_ai_animation/handlers/motion.gd`
 | `style` | string: default \| relaxed \| heavy \| sneaky | Motion style preset, applied before overrides. |
 | `overrides` | object | Deep tuning, e.g. {"stride": 18, "lag": 0.1}; walk/run keys: stride, knee_bend, arm_swing, arm_twist, bob, sway, hip_yaw, hip_roll, chest_yaw, lean, foot_lift, elbow, elbow_swing, lag, stance, crouch; idle keys: amplitude, head_amplitude, look, twist, bob, sway, shift, noise, lean, arm_sway, elbow, arm_twist. |
 | `samples` | number | Keys per second of clip (24; clamped to 4-120). |
-| `root_motion` | boolean | Also key the hips forward at the cycle's implied speed (off; set player.root_motion_track to the returned track). |
+| `root_motion` | boolean | Also key the hips forward at the cycle's implied speed (off); wires player.root_motion_track unless set_root_motion=false. |
+| `set_root_motion` | boolean | root_motion: also set AnimationPlayer.root_motion_track in the same action (on). |
+| `speed` | number | Gait: target ground speed in m/s; solves the stride and warns when unreachable at this duration. |
+| `direction` | string: left \| right | turn_cycle / strafe_cycle: which way to turn or step (left). |
+| `angle` | number | turn_cycle: turn angle in degrees (90). |
+| `height` | number | jump: apex height in metres (0.5). |
+| `crouch` | number | jump: anticipation/landing crouch depth in metres (0.24). |
+| `distance` | number | jump: forward travel in metres over the clip (0 = in place). |
+| `phase` | number | walk_start/walk_stop: gait phase (0-1) the transition meets, e.g. 0 = left contact (0). |
 | `stride` | number | Gait: leg swing, degrees (walk 24, run 34). |
 | `knee_bend` | number | Gait: planted crouch, degrees (walk 30, run 55). |
 | `arm_swing` | number | Gait: arm counter-swing, degrees (walk 20, run 34). |
@@ -645,4 +658,9 @@ Required: `op`.
 {"animation_name":"idle","duration":3.0,"loop_mode":"linear","op":"idle_cycle","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"animation_name":"run","duration":0.6,"loop_mode":"linear","op":"cycle","player_path":"/Main/Rig/AnimationPlayer","preset":"run","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"animation_name":"walk","bones":["B-hair01","B-hair02"],"damping":12.0,"op":"secondary_motion","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D","stiffness":120.0}
+{"animation_name":"jump","crouch":0.25,"duration":1.2,"height":0.6,"op":"jump","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
+{"angle":90,"animation_name":"turn_left","direction":"left","duration":0.7,"op":"turn_cycle","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
+{"animation_name":"strafe_left","direction":"left","duration":0.9,"loop_mode":"linear","op":"strafe_cycle","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D","speed":0.8}
+{"animation_name":"walk_start","duration":0.35,"op":"walk_start","phase":0.0,"player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
+{"animation_name":"walk_stop","duration":0.35,"op":"walk_stop","phase":0.5,"player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
 ```
