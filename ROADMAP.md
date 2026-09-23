@@ -1,8 +1,7 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **phases 0–7 done** — v1.1.0 (7 tools, 79 ops) released 2026-09-23.
-Phase 8 (motion and clip quality) is implemented on `main`, tested, and has
-committed demos; it is not released yet (8 tools, 87 ops).
+Status: **phases 0–8 done** — v1.2.0 (8 tools, 90 ops) released 2026-09-23,
+with demo scenes and the dummy motion showcase video on the release.
 Last updated: 2026-09-23.
 
 Phase 3 note: the generators landed as their own family, `animation_fx`, instead
@@ -277,7 +276,7 @@ ordinary toolkit clip on one of 24 animation players over a procedural aurora
 shader and GPU motes, driven by synthetic mouse input from a small script.
 Video: `animation_toolkit_menu_demo.mp4` (0:47).
 
-### Phase 8 - motion and clip quality (implemented, unreleased)
+### Phase 8 - motion and clip quality -> v1.2.0 (done)
 
 Requested after v1.1.0: the procedural dummy animations were stiff (every bone
 key was linear because `spec_builder` silently dropped per-key transitions on
@@ -316,10 +315,21 @@ clip-quality passes.
 layering and engine-exact resampling, all pure spec transforms in
 `spec/quality_modifiers.gd`.
 
-**Coverage:** tier-1 grew from ~1815 to ~2000 checks (motion drivers,
-quality modifiers, typed-track transitions, sampler); the editor suites gained
-`animation_motion` (9 tests) and four quality-pass tests. New demos:
-`demo_motion_walk`, `demo_motion_run`, `demo_motion_idle`.
+**`animation_inspect`:`motion_report`** — per-track key density, peak
+speed/acceleration, loop-seam pops, quaternion hemisphere flips and constant
+tracks, each finding carrying a `fix` hint (added to `spec/quality_modifiers.gd`
+as pure analysis).
+
+**Release:** v1.2.0 ships the zip plus the 0:44
+`animation_toolkit_motion_demo.mp4` (walk / run / idle recorded on the dummy).
+README and the Discord post now link only three videos: the full 3:12 showcase,
+the menu demo and the dummy motion showcase.
+
+**Coverage:** tier-1 grew from ~1815 to 2138 checks (motion drivers, quality
+modifiers, typed-track transitions, sampler); the editor suites gained
+`animation_motion` (9 tests) plus quality-pass and motion-report tests
+(144 rows). New demos: `demo_motion_walk`, `demo_motion_run`,
+`demo_motion_idle`.
 
 ### Risks / mitigations
 
