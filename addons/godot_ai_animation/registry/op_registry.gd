@@ -1236,14 +1236,15 @@ static func _library_ops() -> Array:
 
 static func _rig_description() -> String:
 	return (
-		"Rig authoring for skeletons. Poses are portable rest-relative data: "
-		+ "pose_save captures a skeleton's pose (inline and/or "
+		"Rig authoring. rig_chain builds bones from a spec or a Node3D/Node2D "
+		+ "subtree; ik_setup attaches a 3D IK modifier "
+		+ "(two_bone/ccdik/fabrik/jacobian/spline) to a target node. Poses are "
+		+ "portable rest-relative data: pose_save captures one (inline and/or "
 		+ "res://animation_toolkit/poses/<name>.json), pose_apply writes it back "
-		+ "with blend/mirror/reset options, pose_blend mixes two poses, "
-		+ "pose_to_clip keyframes a pose sequence into a clip, and pose_list "
-		+ "lists saved poses. rig_get dumps bones, rests, poses, modifiers and "
-		+ "springs, and flags issues. Bone clips are ordinary transform tracks, "
-		+ "so every other toolkit op works on them. Requires the Godot AI addon."
+		+ "with blend/mirror/reset, pose_blend mixes two, pose_to_clip keyframes a "
+		+ "sequence into a clip, pose_list lists saved poses. rig_get dumps bones, "
+		+ "rests, poses, modifiers and springs, and flags issues. Bone clips are "
+		+ "ordinary transform tracks, so every other toolkit op works on them."
 	)
 
 
@@ -1253,12 +1254,45 @@ static func _rig_schema() -> Dictionary:
 		"properties": {
 			"op": {
 				"type": "string",
-				"enum": ["pose_save", "pose_apply", "pose_blend", "pose_to_clip", "pose_list", "rig_get"],
+				"enum": ["pose_save", "pose_apply", "pose_blend", "pose_to_clip", "pose_list", "rig_get", "rig_chain", "ik_setup"],
 				"description": "Which rig op to run.",
 			},
 			"skeleton_path": {
 				"type": "string",
 				"description": "Scene path to a Skeleton3D or Skeleton2D. Omit to use the first skeleton in the edited scene.",
+			},
+			"bones": {
+				"type": "array",
+				"items": {"type": ["string", "object"]},
+				"description": "rig_chain: [{name, parent?, position?, rotation?, scale?, length?}] rest transforms, rotation in degrees. Pose ops: restrict capture/apply to these bone names.",
+			},
+			"node_path": {
+				"type": "string",
+				"description": "rig_chain: a Node3D/Node2D subtree to convert into a new skeleton (its local transforms become bone rests).",
+			},
+			"kind": {
+				"type": "string",
+				"enum": ["3d", "2d", "two_bone", "ccdik", "fabrik", "jacobian", "spline"],
+				"description": "rig_chain: 3d or 2d (default 3d). ik_setup: the solver kind (default two_bone).",
+			},
+			"chain": {
+				"type": "array",
+				"items": {"type": "string"},
+				"description": "ik_setup: bone names from the chain root to the effector.",
+			},
+			"target_path": {"type": "string", "description": "ik_setup: existing target node (a Node3D). Created at the chain tip when omitted."},
+			"target_name": {"type": "string", "description": "ik_setup: name for the created target node (default IKTarget)."},
+			"pole_path": {"type": "string", "description": "ik_setup two_bone: optional pole node for the bend direction."},
+			"use_virtual_end": {
+				"type": "boolean",
+				"default": false,
+				"description": "ik_setup two_bone: treat the chain's last bone as the effector (chain [root, middle]) instead of requiring an end bone.",
+			},
+			"end_bone_length": {"type": "number", "description": "ik_setup two_bone with use_virtual_end: virtual end bone length (default 0.1)."},
+			"active": {
+				"type": "boolean",
+				"default": false,
+				"description": "ik_setup: enable the modifier right away (default false - an active modifier also drives the scene while you edit it).",
 			},
 			"name": {
 				"type": "string",
@@ -1266,11 +1300,6 @@ static func _rig_schema() -> Dictionary:
 			},
 			"path": {"type": "string", "description": "Explicit pose JSON file path."},
 			"pose": {"type": "object", "description": "Inline pose (as returned by pose_save)."},
-			"bones": {
-				"type": "array",
-				"items": {"type": "string"},
-				"description": "Restrict the capture/apply to these bones.",
-			},
 			"from": {"description": "pose_blend: the first pose (inline object, or a saved pose name)."},
 			"to": {"description": "pose_blend: the second pose (inline object, or a saved pose name)."},
 			"factor": {"type": "number", "description": "pose_blend: 0 = from, 1 = to (default 0.5)."},
@@ -1365,6 +1394,18 @@ static func _rig_ops() -> Array:
 			"summary": "Dump a skeleton's bones, rests, pose, modifiers and springs, plus issues.",
 			"params": ["skeleton_path", "include_pose"],
 			"example": {"op": "rig_get", "skeleton_path": "/Main/Rig/Skeleton3D"},
+		},
+		{
+			"name": "rig_chain",
+			"summary": "Build bones on a skeleton from a bone spec, or turn a Node3D/Node2D subtree into a skeleton.",
+			"params": ["skeleton_path", "bones", "node_path", "kind", "name", "overwrite"],
+			"example": {"op": "rig_chain", "skeleton_path": "/Main/Rig/Skeleton3D", "bones": [{"name": "spine", "position": [0, 0.2, 0]}, {"name": "chest", "parent": "spine", "position": [0, 0.3, 0]}]},
+		},
+		{
+			"name": "ik_setup",
+			"summary": "Attach a 3D IK modifier (two-bone or chain solver) to a skeleton and wire it to a target node.",
+			"params": ["skeleton_path", "kind", "chain", "target_path", "target_name", "pole_path", "use_virtual_end", "end_bone_length", "name", "active"],
+			"example": {"op": "ik_setup", "skeleton_path": "/Main/Rig/Skeleton3D", "kind": "two_bone", "chain": ["B-upperArm.L", "B-forearm.L", "B-hand.L"], "target_name": "HandTarget"},
 		},
 	])
 

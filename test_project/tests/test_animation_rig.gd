@@ -543,11 +543,221 @@ func test_rig_get_2d_reports_modification_stack() -> void:
 	_remove_node(rig.root_path)
 
 
+# --- rig_chain -------------------------------------------------------------
+
+func test_rig_chain_builds_3d_bones() -> void:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		skip("no edited scene")
+		return
+	var path := "/" + scene_root.name + "/ChainSkeleton3D"
+	var result := _handler.run({
+		"op": "rig_chain", "skeleton_path": path, "name": "ChainSkeleton3D",
+		"bones": [
+			{"name": "spine", "position": [0, 0.2, 0]},
+			{"name": "chest", "parent": "spine", "position": [0, 0.3, 0], "rotation": [10, 0, 0]},
+			{"name": "head", "parent": "chest", "position": [0, 0.25, 0]},
+		],
+	}, null)
+	assert_true(result.has("data"), "expected data, got: %s" % str(result))
+	assert_eq(int(result.data.bones_created), 3)
+	assert_true(bool(result.data.skeleton_created), "the skeleton was created")
+	var skeleton := ValueCodec.resolve_scene_path(path, scene_root) as Skeleton3D
+	assert_true(skeleton != null, "the skeleton exists")
+	assert_eq(skeleton.get_bone_count(), 3)
+	assert_eq(skeleton.get_bone_name(1), "chest")
+	assert_eq(skeleton.get_bone_parent(1), skeleton.find_bone("spine"), "parents follow the spec")
+	assert_true(skeleton.get_bone_rest(0).origin.is_equal_approx(Vector3(0, 0.2, 0)),
+		"rest positions come from the spec")
+	var chest_angle := rad_to_deg(skeleton.get_bone_rest(1).basis.get_rotation_quaternion().get_euler().x)
+	assert_true(absf(chest_angle - 10.0) < 0.01, "rest rotation is in degrees about X (%s)" % chest_angle)
+	assert_true(skeleton.get_bone_pose_position(0).is_equal_approx(skeleton.get_bone_rest(0).origin),
+		"the default pose equals the rest")
+	var undone := editor_undo(_undo_redo)
+	assert_true(undone, "undo should succeed")
+	assert_true(ValueCodec.resolve_scene_path(path, scene_root) == null,
+		"one undo removes the created skeleton")
+
+
+func test_rig_chain_appends_and_validates() -> void:
+	var rig := _rig("RigChainAppend")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var before: int = rig.skeleton.get_bone_count()
+	var appended := _handler.run({
+		"op": "rig_chain", "skeleton_path": rig.skeleton_path,
+		"bones": [{"name": "tool_tip", "parent": "B-hand.R", "position": [0, 0.05, 0]}],
+	}, null)
+	assert_true(appended.has("data"), "expected data, got: %s" % str(appended))
+	assert_eq(rig.skeleton.get_bone_count(), before + 1, "the bone is appended")
+	var index: int = rig.skeleton.find_bone("tool_tip")
+	assert_true(index >= 0, "the new bone is found")
+	assert_eq(rig.skeleton.get_bone_parent(index), rig.skeleton.find_bone("B-hand.R"),
+		"it can parent to an existing bone")
+	var duplicate := _handler.run({
+		"op": "rig_chain", "skeleton_path": rig.skeleton_path, "bones": [{"name": "tool_tip"}],
+	}, null)
+	assert_is_error(duplicate, ErrorCodes.INVALID_PARAMS)
+	var unknown := _handler.run({
+		"op": "rig_chain", "skeleton_path": rig.skeleton_path, "bones": [{"name": "x", "parent": "ghost"}],
+	}, null)
+	assert_is_error(unknown, ErrorCodes.INVALID_PARAMS)
+	assert_contains(unknown.error.message, "ghost")
+	var cycle := _handler.run({
+		"op": "rig_chain", "skeleton_path": rig.skeleton_path,
+		"bones": [{"name": "a", "parent": "b"}, {"name": "b", "parent": "a"}],
+	}, null)
+	assert_is_error(cycle, ErrorCodes.INVALID_PARAMS)
+	assert_contains(cycle.error.message, "cycle")
+	_teardown(rig)
+
+
+func test_rig_chain_from_subtree() -> void:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		skip("no edited scene")
+		return
+	var root := Node3D.new()
+	root.name = "ChainTree"
+	var arm := Node3D.new()
+	arm.name = "arm"
+	arm.position = Vector3(0, 0.5, 0)
+	var hand := Node3D.new()
+	hand.name = "hand"
+	hand.position = Vector3(0, 0.4, 0)
+	hand.rotation_degrees = Vector3(0, 0, 15)
+	arm.add_child(hand)
+	root.add_child(arm)
+	scene_root.add_child(root)
+	_assign_owners(root, scene_root)
+	var tree_path := "/" + scene_root.name + "/ChainTree"
+	var result := _handler.run({"op": "rig_chain", "node_path": tree_path}, null)
+	assert_true(result.has("data"), "expected data, got: %s" % str(result))
+	assert_eq(int(result.data.bones_created), 3, "root + arm + hand become bones")
+	assert_eq(str(result.data.mode), "subtree")
+	var skeleton := ValueCodec.resolve_scene_path(str(result.data.skeleton_path), scene_root) as Skeleton3D
+	assert_true(skeleton != null, "the skeleton exists")
+	assert_true(skeleton.get_parent() == root, "the skeleton sits under the subtree root")
+	var hand_index := skeleton.find_bone("hand")
+	assert_eq(skeleton.get_bone_parent(hand_index), skeleton.find_bone("arm"), "the hierarchy is preserved")
+	assert_true(skeleton.get_bone_rest(hand_index).origin.is_equal_approx(Vector3(0, 0.4, 0)),
+		"rests come from the local transforms")
+	assert_true(absf(rad_to_deg(skeleton.get_bone_rest(hand_index).basis.get_rotation_quaternion().get_euler().z) - 15.0) < 0.01,
+		"local rotations carry over")
+	_remove_node(tree_path)
+
+
+func test_rig_chain_2d_bones() -> void:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		skip("no edited scene")
+		return
+	var skeleton := Skeleton2D.new()
+	skeleton.name = "Chain2DSkeleton"
+	scene_root.add_child(skeleton)
+	skeleton.owner = scene_root
+	var path := "/" + scene_root.name + "/Chain2DSkeleton"
+	var result := _handler.run({
+		"op": "rig_chain", "skeleton_path": path, "kind": "2d",
+		"bones": [
+			{"name": "root_bone", "position": [0, 0], "length": 40},
+			{"name": "tip_bone", "parent": "root_bone", "position": [40, 0], "rotation": 90, "length": 25},
+		],
+	}, null)
+	assert_true(result.has("data"), "expected data, got: %s" % str(result))
+	var tip: Bone2D = null
+	for index in skeleton.get_bone_count():
+		if str(skeleton.get_bone(index).name) == "tip_bone":
+			tip = skeleton.get_bone(index)
+	assert_true(tip != null, "tip_bone exists (%d bones)" % skeleton.get_bone_count())
+	assert_true(tip.rest.get_origin().is_equal_approx(Vector2(40, 0)), "the 2D rest comes from the spec")
+	assert_true(absf(tip.rest.get_rotation() - PI / 2.0) < 0.001, "2D rotation is degrees about Z")
+	assert_true(is_equal_approx(tip.get_length(), 25.0), "the bone length is set")
+	_remove_node(path)
+
+
+# --- ik_setup --------------------------------------------------------------
+
+func test_ik_setup_two_bone() -> void:
+	var rig := _rig("RigIK")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "two_bone",
+		"chain": ["B-upperArm.L", "B-forearm.L", "B-hand.L"],
+		"target_name": "HandTarget",
+	}, null)
+	assert_true(result.has("data"), "expected data, got: %s" % str(result))
+	assert_true(bool(result.data.target_created), "the target marker was created")
+	assert_true(not bool(result.data.active), "the modifier starts inactive")
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var modifier := ValueCodec.resolve_scene_path(str(result.data.modifier_path), scene_root)
+	assert_true(modifier is TwoBoneIK3D, "a TwoBoneIK3D was added (%s)" % str(result.data.modifier_class))
+	assert_true(modifier.get_parent() == rig.skeleton, "the modifier is a child of the skeleton")
+	assert_eq((modifier as IKModifier3D).get_setting_count(), 1)
+	assert_eq((modifier as TwoBoneIK3D).get_root_bone_name(0), "B-upperArm.L")
+	assert_eq((modifier as TwoBoneIK3D).get_middle_bone_name(0), "B-forearm.L")
+	assert_eq((modifier as TwoBoneIK3D).get_end_bone_name(0), "B-hand.L")
+	assert_true(not str((modifier as TwoBoneIK3D).get_target_node(0)).is_empty(), "the target is wired")
+	var target := ValueCodec.resolve_scene_path(str(result.data.target_path), scene_root)
+	assert_true(target is Marker3D, "the target is a Marker3D")
+	var undone := editor_undo(_undo_redo)
+	assert_true(undone, "undo should succeed")
+	assert_true(ValueCodec.resolve_scene_path(str(result.data.modifier_path), scene_root) == null,
+		"one undo removes the modifier")
+	assert_true(ValueCodec.resolve_scene_path(str(result.data.target_path), scene_root) == null,
+		"one undo removes the target too")
+	_teardown(rig)
+
+
+func test_ik_setup_chain_kinds_and_validation() -> void:
+	var rig := _rig("RigIK2")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "ccdik",
+		"chain": ["B-upperArm.R", "B-hand.R"],
+	}, null)
+	assert_true(result.has("data"), "expected data, got: %s" % str(result))
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var modifier := ValueCodec.resolve_scene_path(str(result.data.modifier_path), scene_root)
+	assert_true(modifier is CCDIK3D, "a CCDIK3D was added (%s)" % str(result.data.modifier_class))
+	assert_eq((modifier as ChainIK3D).get_root_bone_name(0), "B-upperArm.R")
+	assert_eq((modifier as ChainIK3D).get_end_bone_name(0), "B-hand.R")
+	var bad_kind := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "levitate", "chain": ["B-hand.R"],
+	}, null)
+	assert_is_error(bad_kind, ErrorCodes.VALUE_OUT_OF_RANGE)
+	var bad_bone := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "two_bone",
+		"chain": ["ghost", "B-forearm.R", "B-hand.R"],
+	}, null)
+	assert_is_error(bad_bone, ErrorCodes.INVALID_PARAMS)
+	var short_chain := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "two_bone",
+		"chain": ["B-upperArm.R"],
+	}, null)
+	assert_is_error(short_chain, ErrorCodes.INVALID_PARAMS)
+	var rig_2d := _rig_2d("RigIK2D")
+	if not rig_2d.has("error"):
+		var unsupported := _handler.run({
+			"op": "ik_setup", "skeleton_path": rig_2d.skeleton_path,
+			"chain": ["bone_upper", "bone_lower"],
+		}, null)
+		assert_is_error(unsupported, ErrorCodes.INVALID_PARAMS)
+		assert_contains(unsupported.error.message, "Experimental")
+		_remove_node(rig_2d.root_path)
+	_teardown(rig)
+
+
 func test_registry_matches_rig_schema() -> void:
 	var info := OpRegistry.family(OpRegistry.FAMILY_RIG)
 	assert_false(info.is_empty(), "the rig family is registered")
 	var op_enum: Array = info.schema.properties.op.enum
-	assert_eq(op_enum.size(), 6, "the rig schema lists every 6a op")
+	assert_eq(op_enum.size(), 8, "the rig schema lists every op")
 	for descriptor in info.ops:
 		assert_true(op_enum.has(descriptor.name), "%s is in the schema enum" % descriptor.name)
 		for param in descriptor.params:

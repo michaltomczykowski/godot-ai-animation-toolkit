@@ -176,3 +176,74 @@ func _create_scene_pinned_action(action_label: String) -> void:
 	ToolContext.undo_redo.create_action(
 		action_label, UndoRedo.MERGE_DISABLE, EditorInterface.get_edited_scene_root(),
 	)
+
+
+## Queue a method call with an argument array (UndoRedo wants varargs). Takes
+## the editor's undo manager untyped: EditorUndoRedoManager keeps the
+## (object, method, ...) signature while the UndoRedo base takes a Callable.
+func _add_do_call(undo: Object, target: Object, method: String, args: Array = []) -> void:
+	match args.size():
+		0: undo.add_do_method(target, method)
+		1: undo.add_do_method(target, method, args[0])
+		2: undo.add_do_method(target, method, args[0], args[1])
+		3: undo.add_do_method(target, method, args[0], args[1], args[2])
+		_: undo.add_do_method(target, method, args[0], args[1], args[2], args[3])
+
+
+## Add nodes in one scene-pinned undo action, each owned by the edited scene
+## root so the scene save keeps them, then run their setup calls
+## ([{method, args?} | {property, value}]). Entries are
+## {parent, node, setup?, existing?} and are added in order (parents before
+## children); `existing: true` skips the add and only runs the setup calls, so
+## a call list can target a node that is already in the scene. Instance levels
+## between a parent and the scene root get Editable Children turned on, because
+## the editor only serializes overrides inside an editable instance. Undo
+## removes the added nodes, so the setup calls need no undo counterparts.
+func _commit_node_add_many(action_label: String, entries: Array) -> void:
+	if _dry_run:
+		return
+	_create_scene_pinned_action(action_label)
+	var undo := ToolContext.undo_redo
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var seen_levels := {}
+	for entry in entries:
+		if entry.get("existing", false):
+			continue
+		for level in _instance_levels(entry.parent):
+			var key := str(level.instance.get_path())
+			if seen_levels.has(key):
+				continue
+			seen_levels[key] = true
+			undo.add_do_method(level.parent, "set_editable_instance", level.instance, true)
+			undo.add_undo_method(level.parent, "set_editable_instance", level.instance, false)
+	for entry in entries:
+		var node: Node = entry.node
+		if not entry.get("existing", false):
+			undo.add_do_method(entry.parent, "add_child", node, true)
+			undo.add_undo_method(entry.parent, "remove_child", node)
+			if scene_root != null:
+				undo.add_do_method(node, "set_owner", scene_root)
+			undo.add_do_reference(node)
+		for call in entry.get("setup", []):
+			if call.has("property"):
+				undo.add_do_property(node, call.property, call.value)
+			else:
+				_add_do_call(undo, node, call.method, call.get("args", []))
+	undo.commit_action()
+
+
+## Single-node convenience wrapper around `_commit_node_add_many`.
+func _commit_node_add(action_label: String, parent: Node, node: Node, setup: Array = []) -> void:
+	_commit_node_add_many(action_label, [{"parent": parent, "node": node, "setup": setup}])
+
+
+## Global scale of a skeleton's owning node, for the "springs and IK assume unit
+## scale" warnings. Returns 1.0 when it cannot be measured.
+static func _skeleton_scale(node: Node) -> float:
+	if node is Node3D:
+		var scale := (node as Node3D).global_transform.basis.get_scale()
+		return maxf(maxf(absf(scale.x), absf(scale.y)), absf(scale.z))
+	if node is Node2D:
+		var scale_2d := (node as Node2D).global_transform.get_scale()
+		return maxf(absf(scale_2d.x), absf(scale_2d.y))
+	return 1.0

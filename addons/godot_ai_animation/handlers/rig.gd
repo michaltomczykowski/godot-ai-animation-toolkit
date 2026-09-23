@@ -46,6 +46,10 @@ func _dispatch(params: Dictionary) -> Dictionary:
 			return rig_pose_list(params)
 		"rig_get":
 			return rig_get(params)
+		"rig_chain":
+			return rig_chain(params)
+		"ik_setup":
+			return ik_setup(params)
 	return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 		"Unknown op '%s'. Valid: %s" % [op, ", ".join(OpRegistry.op_names(OpRegistry.FAMILY_RIG))])
 
@@ -457,6 +461,325 @@ func rig_get(params: Dictionary) -> Dictionary:
 
 
 # ============================================================================
+# rig_chain
+# ============================================================================
+
+const IK_3D_KINDS := {
+	"two_bone": "TwoBoneIK3D",
+	"ccdik": "CCDIK3D",
+	"fabrik": "FABRIK3D",
+	"jacobian": "JacobianIK3D",
+	"spline": "SplineIK3D",
+}
+
+## Build bones on a skeleton: from a bone spec (`bones`), or by turning a
+## Node3D / Node2D subtree into a skeleton (`node_path`).
+func rig_chain(params: Dictionary) -> Dictionary:
+	var from_node := str(params.get("node_path", ""))
+	if not from_node.is_empty():
+		return _rig_chain_from_subtree(params, from_node)
+	return _rig_chain_from_spec(params)
+
+
+## `rig_chain` from a bone spec. The skeleton is created at `skeleton_path`
+## when nothing is there yet, otherwise the bones are appended to it.
+func _rig_chain_from_spec(params: Dictionary) -> Dictionary:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		return ErrorCodes.make(ErrorCodes.EDITOR_NOT_READY, "No edited scene open")
+	var spec: Array = params.get("bones", [])
+	if spec.is_empty():
+		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM,
+			"rig_chain needs 'bones': [{name, parent?, position?, rotation?, scale?, length?}]")
+	var skeleton_path := str(params.get("skeleton_path", ""))
+	if skeleton_path.is_empty():
+		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM,
+			"rig_chain needs 'skeleton_path' (where the skeleton is, or should be)")
+	var existing := ValueCodec.resolve_scene_path(skeleton_path, scene_root)
+	var kind := str(params.get("kind", "3d"))
+	if existing is Skeleton2D:
+		kind = "2d"
+	elif existing is Skeleton3D:
+		kind = "3d"
+	elif existing != null:
+		return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
+			"Node at %s is not a Skeleton3D or Skeleton2D (got %s)" % [skeleton_path, existing.get_class()])
+	if kind != "2d" and kind != "3d":
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Invalid kind '%s'. Valid: 3d, 2d" % kind)
+	var holder: Node = null
+	if existing == null:
+		holder = ValueCodec.resolve_scene_path(skeleton_path.get_base_dir(), scene_root)
+		if holder == null:
+			return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
+				"Cannot create a skeleton at %s: its parent does not exist" % skeleton_path)
+	return _build_chain(params, spec, kind, existing, holder,
+		str(params.get("name", "Skeleton3D" if kind == "3d" else "Skeleton2D")), "spec", "")
+
+
+## `rig_chain` from a Node3D / Node2D subtree: the subtree's local transforms
+## become bone rests on a new skeleton placed under the subtree root.
+func _rig_chain_from_subtree(params: Dictionary, from_node: String) -> Dictionary:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		return ErrorCodes.make(ErrorCodes.EDITOR_NOT_READY, "No edited scene open")
+	var root := ValueCodec.resolve_scene_path(from_node, scene_root)
+	if root == null:
+		return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND, ValueCodec.format_node_error(from_node, scene_root))
+	if not (root is Node3D) and not (root is Node2D):
+		return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
+			"Node at %s is not a Node3D or Node2D (got %s)" % [from_node, root.get_class()])
+	var kind := "3d" if root is Node3D else "2d"
+	var spec: Array = [{"name": str(root.name), "parent": ""}]
+	var seen := {str(root.name): true}
+	var duplicates: Array = []
+	var queue: Array = []
+	for child in root.get_children():
+		queue.append({"node": child, "parent": str(root.name)})
+	while not queue.is_empty():
+		var item: Dictionary = queue.pop_front()
+		var node: Node = item.node
+		if node is Node3D or node is Node2D:
+			var name := str(node.name)
+			if seen.has(name):
+				duplicates.append(name)
+			else:
+				seen[name] = true
+				spec.append({
+					"name": name,
+					"parent": str(item.parent),
+					"position": _node_offset(node, kind),
+					"rotation": _node_rotation(node, kind),
+				})
+		for child in node.get_children():
+			queue.append({"node": child, "parent": str(node.name)})
+	if not duplicates.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"Duplicate node names cannot become bones: %s" % ", ".join(duplicates))
+	return _build_chain(params, spec, kind, null, root,
+		str(params.get("name", "%sSkeleton" % root.name)), "subtree",
+		ValueCodec.from_node(root, scene_root))
+
+
+## Shared chain build: append bones to `existing`, or create the skeleton under
+## `holder` first. One undo action either way.
+func _build_chain(
+	params: Dictionary, spec: Array, kind: String, existing: Node, holder: Node,
+	default_name: String, mode: String, source_path: String,
+) -> Dictionary:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var occupied := {}
+	var offset := 0
+	if existing is Skeleton3D:
+		var skeleton_3d: Skeleton3D = existing
+		offset = skeleton_3d.get_bone_count()
+		for index in offset:
+			occupied[skeleton_3d.get_bone_name(index)] = true
+	elif existing is Skeleton2D:
+		var skeleton_2d: Skeleton2D = existing
+		offset = skeleton_2d.get_bone_count()
+		for index in offset:
+			occupied[str(skeleton_2d.get_bone(index).name)] = true
+	var validated := _validate_bone_spec(spec, occupied)
+	if validated.has("error"):
+		return validated
+	for bone in spec:
+		var bone_name := str((bone as Dictionary).name)
+		if occupied.has(bone_name):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"Bone '%s' already exists on the skeleton" % bone_name)
+	var skeleton_node: Node = existing
+	var created := false
+	if skeleton_node == null:
+		skeleton_node = Skeleton3D.new() if kind == "3d" else Skeleton2D.new()
+		skeleton_node.name = default_name
+		created = true
+	var warnings: Array = []
+	var scale := _skeleton_scale(existing if existing != null else holder)
+	if not is_equal_approx(scale, 1.0):
+		warnings.append("the skeleton is scaled (%.2f): springs and IK assume unit scale" % scale)
+	var label := "MCP: Rig chain (%d bones)" % spec.size()
+	if kind == "3d":
+		var skeleton_3d_new: Skeleton3D = skeleton_node
+		var by_name := {}
+		for index in spec.size():
+			by_name[str((spec[index] as Dictionary).name)] = offset + index
+		var calls: Array = []
+		for index in spec.size():
+			var bone: Dictionary = spec[index]
+			var rest := _spec_rest_3d(bone)
+			var bone_index := offset + index
+			calls.append({"method": "add_bone", "args": [str(bone.name)]})
+			calls.append({"method": "set_bone_rest", "args": [bone_index, rest]})
+			calls.append({"method": "set_bone_pose_position", "args": [bone_index, rest.origin]})
+			calls.append({"method": "set_bone_pose_rotation", "args": [bone_index, rest.basis.get_rotation_quaternion()]})
+			calls.append({"method": "set_bone_pose_scale", "args": [bone_index, rest.basis.get_scale()]})
+		for index in spec.size():
+			var parent_name := str((spec[index] as Dictionary).get("parent", ""))
+			if not parent_name.is_empty():
+				var parent_index: int = by_name[parent_name] if by_name.has(parent_name) \
+					else skeleton_3d_new.find_bone(parent_name)
+				calls.append({"method": "set_bone_parent", "args": [offset + index, parent_index]})
+		var entries: Array = []
+		if created:
+			entries.append({"parent": holder, "node": skeleton_3d_new, "setup": []})
+		entries.append({"parent": skeleton_3d_new, "node": skeleton_3d_new,
+			"existing": true, "setup": calls})
+		_commit_node_add_many(label, entries)
+	else:
+		var entries_2d: Array = []
+		if created:
+			entries_2d.append({"parent": holder, "node": skeleton_node, "setup": []})
+		var bone_nodes := {}
+		for index in spec.size():
+			var bone_node := Bone2D.new()
+			bone_node.name = str((spec[index] as Dictionary).name)
+			bone_nodes[str((spec[index] as Dictionary).name)] = bone_node
+		for index in spec.size():
+			var bone_spec: Dictionary = spec[index]
+			var parent_name := str(bone_spec.get("parent", ""))
+			var bone_holder: Node = skeleton_node if parent_name.is_empty() else bone_nodes[parent_name]
+			entries_2d.append({"parent": bone_holder, "node": bone_nodes[str(bone_spec.name)],
+				"setup": _bone_2d_setup(bone_spec)})
+		_commit_node_add_many(label, entries_2d)
+	var data := {
+		"skeleton_path": ValueCodec.from_node(skeleton_node, scene_root),
+		"kind": kind,
+		"skeleton_created": created,
+		"mode": mode,
+		"bones_created": spec.size(),
+		"bones": spec.map(func(entry): return str((entry as Dictionary).name)),
+		"warnings": warnings,
+		"undoable": true,
+	}
+	if not source_path.is_empty():
+		data["source_path"] = source_path
+		data["note"] = "bone rests mirror the subtree's local transforms"
+	else:
+		data["note"] = "pose these bones with pose_apply and key them with pose_to_clip, or drive them with ik_setup"
+	return {"data": data}
+
+
+# ============================================================================
+# ik_setup
+# ============================================================================
+
+## Attach an IK modifier to a Skeleton3D and point it at a target node. The
+## modifier is created inactive unless active=true.
+func ik_setup(params: Dictionary) -> Dictionary:
+	var resolved := _resolve_skeleton(params)
+	if resolved.has("error"):
+		return resolved
+	if resolved.kind != "3d":
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"ik_setup supports Skeleton3D for now: the 2D skeleton modification stack is Experimental in Godot 4.7. Build 2D chains with rig_chain and pose them with pose_apply / pose_to_clip.")
+	var kind := str(params.get("kind", "two_bone"))
+	if not IK_3D_KINDS.has(kind):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Invalid kind '%s'. Valid: %s" % [kind, ", ".join(IK_3D_KINDS.keys())])
+	var chain: Array = params.get("chain", [])
+	if chain.is_empty():
+		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM,
+			"ik_setup needs 'chain': bone names from the chain root to the effector")
+	var use_virtual_end := bool(params.get("use_virtual_end", false))
+	if kind == "two_bone":
+		if chain.size() < (2 if use_virtual_end else 3):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"two_bone IK needs chain [root, middle, end] (or [root, middle] with use_virtual_end=true)")
+	elif chain.size() < 2:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"%s IK needs a chain with at least a root and an end bone" % kind)
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var skeleton: Skeleton3D = resolved.node
+	for bone_name in chain:
+		if skeleton.find_bone(str(bone_name)) < 0:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"Bone '%s' not found on %s" % [str(bone_name), resolved.path])
+	var warnings: Array = []
+	var scale := _skeleton_scale(skeleton)
+	if not is_equal_approx(scale, 1.0):
+		warnings.append("the skeleton is scaled (%.2f): IK assumes unit scale" % scale)
+	var target_path := str(params.get("target_path", ""))
+	var target: Node3D = null
+	if not target_path.is_empty():
+		var found := ValueCodec.resolve_scene_path(target_path, scene_root)
+		if found == null:
+			return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND, ValueCodec.format_node_error(target_path, scene_root))
+		if not (found is Node3D):
+			return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
+				"The IK target must be a Node3D (got %s)" % found.get_class())
+		target = found
+	var pole: Node3D = null
+	var pole_path := str(params.get("pole_path", ""))
+	if kind == "two_bone" and not pole_path.is_empty():
+		var found_pole := ValueCodec.resolve_scene_path(pole_path, scene_root)
+		if found_pole == null:
+			return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND, ValueCodec.format_node_error(pole_path, scene_root))
+		if not (found_pole is Node3D):
+			return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
+				"The IK pole must be a Node3D (got %s)" % found_pole.get_class())
+		pole = found_pole
+	var end_index := skeleton.find_bone(str(chain[chain.size() - 1]))
+	var tip := _bone_tip_3d(skeleton, end_index)
+	if tip.get("warning") != null:
+		warnings.append(str(tip.warning))
+	var modifier: SkeletonModifier3D = ClassDB.instantiate(IK_3D_KINDS[kind])
+	if modifier == null:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"%s is not available in this Godot build" % IK_3D_KINDS[kind])
+	modifier.name = str(params.get("name", "IK%s" % kind.capitalize()))
+	var active := bool(params.get("active", false))
+	var entries: Array = []
+	var target_created := false
+	var target_node: Node3D = target
+	if target_node == null:
+		var marker := Marker3D.new()
+		marker.name = str(params.get("target_name", "IKTarget"))
+		entries.append({"parent": scene_root, "node": marker,
+			"setup": [{"method": "set_global_position", "args": [tip.position]}]})
+		target_node = marker
+		target_created = true
+	var setup: Array = [{"property": "active", "value": active}]
+	var target_rel := str(skeleton.get_path_to(target_node))
+	if target_rel.is_empty():
+		target_rel = "."
+	setup.append({"method": "set_setting_count", "args": [1]})
+	setup.append({"method": "set_root_bone_name", "args": [0, str(chain[0])]})
+	if kind == "two_bone":
+		setup.append({"method": "set_middle_bone_name", "args": [0, str(chain[1])]})
+		if chain.size() >= 3:
+			setup.append({"method": "set_end_bone_name", "args": [0, str(chain[2])]})
+		else:
+			setup.append({"method": "set_use_virtual_end", "args": [0, true]})
+			setup.append({"method": "set_extend_end_bone", "args": [0, true]})
+			setup.append({"method": "set_end_bone_length", "args": [0, float(params.get("end_bone_length", 0.1))]})
+		if pole != null:
+			setup.append({"method": "set_pole_node", "args": [0, str(skeleton.get_path_to(pole))]})
+	else:
+		setup.append({"method": "set_end_bone_name", "args": [0, str(chain[chain.size() - 1])]})
+	setup.append({"method": "set_target_node", "args": [0, NodePath(target_rel)]})
+	entries.append({"parent": skeleton, "node": modifier, "setup": setup})
+	_commit_node_add_many("MCP: IK setup (%s)" % kind, entries)
+	var data := {
+		"skeleton_path": resolved.path,
+		"kind": resolved.kind,
+		"ik_kind": kind,
+		"modifier_class": IK_3D_KINDS[kind],
+		"modifier_path": ValueCodec.from_node(modifier, scene_root),
+		"target_path": ValueCodec.from_node(target_node, scene_root),
+		"target_created": target_created,
+		"chain": chain,
+		"pole_path": "" if pole == null else ValueCodec.from_node(pole, scene_root),
+		"active": active,
+		"warnings": warnings,
+		"undoable": true,
+	}
+	if not active:
+		data["active_note"] = "inactive: an active IK modifier also drives the skeleton while you edit the scene - pass active=true (or enable the modifier) when it is ready"
+	return {"data": data}
+
+
+# ============================================================================
 # Helpers
 # ============================================================================
 
@@ -728,3 +1051,150 @@ static func _loop_mode(params: Dictionary) -> Dictionary:
 	if not _LOOP_MODES.has(mode):
 		return {"error": "Invalid loop_mode '%s'. Valid: %s" % [mode, ", ".join(_LOOP_MODES.keys())]}
 	return {"ok": _LOOP_MODES[mode]}
+
+
+# --- chain spec helpers -----------------------------------------------------
+
+## Validate a bone spec: unique names, known parents (in the spec or already on
+## the skeleton), no parent cycles.
+static func _validate_bone_spec(spec: Array, existing_names: Dictionary = {}) -> Dictionary:
+	var names: Array = []
+	for index in spec.size():
+		if not (spec[index] is Dictionary):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "bones[%d] must be an object" % index)
+		var name := str((spec[index] as Dictionary).get("name", ""))
+		if name.is_empty():
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "bones[%d] needs a 'name'" % index)
+		if names.has(name):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Duplicate bone name '%s'" % name)
+		names.append(name)
+	for index in spec.size():
+		var bone: Dictionary = spec[index]
+		var bone_name := str(bone.name)
+		var parent_name := str(bone.get("parent", ""))
+		if parent_name.is_empty():
+			continue
+		if not names.has(parent_name) and not existing_names.has(parent_name):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"bones[%d] ('%s') has unknown parent '%s'" % [index, bone_name, parent_name])
+		var cursor := parent_name
+		var hops := 0
+		while not cursor.is_empty() and hops <= names.size():
+			if cursor == bone_name:
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+					"bones[%d] ('%s') has a parent cycle" % [index, bone_name])
+			if existing_names.has(cursor):
+				break
+			var entry := _spec_entry(spec, cursor)
+			cursor = str(entry.get("parent", "")) if not entry.is_empty() else ""
+			hops += 1
+	return {"names": names}
+
+
+static func _spec_entry(spec: Array, name: String) -> Dictionary:
+	for entry in spec:
+		if str((entry as Dictionary).get("name", "")) == name:
+			return entry
+	return {}
+
+
+## Bone rest from a spec entry: position/scale as arrays or dicts, rotation in
+## degrees (3D: XYZ euler, 2D: about Z).
+static func _spec_rest_3d(bone: Dictionary) -> Transform3D:
+	var origin := _spec_vector3(bone.get("position", null))
+	var rotation := _spec_vector3(bone.get("rotation", null))
+	var scale := _spec_vector3(bone.get("scale", null), Vector3.ONE)
+	return Transform3D(Basis.from_euler(rotation * (PI / 180.0)).scaled(scale), origin)
+
+
+static func _spec_rest_2d(bone: Dictionary) -> Transform2D:
+	return Transform2D(deg_to_rad(_spec_rotation_2d(bone)), _spec_vector2(bone.get("position", null)))
+
+
+static func _spec_rotation_2d(bone: Dictionary) -> float:
+	var value = bone.get("rotation", null)
+	if value == null:
+		return 0.0
+	if value is float or value is int:
+		return float(value)
+	return _spec_vector3(value).z
+
+
+static func _spec_vector3(value, fallback := Vector3.ZERO) -> Vector3:
+	if value == null:
+		return fallback
+	if value is Vector3:
+		return value
+	if value is Array:
+		var parts: Array = value
+		return Vector3(
+			float(parts[0]) if parts.size() > 0 else fallback.x,
+			float(parts[1]) if parts.size() > 1 else fallback.y,
+			float(parts[2]) if parts.size() > 2 else fallback.z)
+	if value is Dictionary:
+		return Vector3(
+			float((value as Dictionary).get("x", fallback.x)),
+			float((value as Dictionary).get("y", fallback.y)),
+			float((value as Dictionary).get("z", fallback.z)))
+	return fallback
+
+
+static func _spec_vector2(value, fallback := Vector2.ZERO) -> Vector2:
+	if value == null:
+		return fallback
+	if value is Vector2:
+		return value
+	if value is Array:
+		var parts: Array = value
+		return Vector2(
+			float(parts[0]) if parts.size() > 0 else fallback.x,
+			float(parts[1]) if parts.size() > 1 else fallback.y)
+	if value is Dictionary:
+		return Vector2(
+			float((value as Dictionary).get("x", fallback.x)),
+			float((value as Dictionary).get("y", fallback.y)))
+	return fallback
+
+
+## Setup calls for one Bone2D: rest (and its pose), manual length.
+static func _bone_2d_setup(bone: Dictionary) -> Array:
+	var rest := _spec_rest_2d(bone)
+	return [
+		{"property": "rest", "value": rest},
+		{"property": "position", "value": rest.get_origin()},
+		{"property": "rotation", "value": rest.get_rotation()},
+		{"method": "set_autocalculate_length_and_angle", "args": [false]},
+		{"method": "set_length", "args": [float(bone.get("length", 32.0))]},
+	]
+
+
+## Local transform of a subtree node, in the shape the bone spec takes.
+static func _node_offset(node: Node, kind: String) -> Variant:
+	if kind == "2d" and node is Node2D:
+		return (node as Node2D).position
+	if node is Node3D:
+		return (node as Node3D).position
+	return Vector3.ZERO
+
+
+static func _node_rotation(node: Node, kind: String) -> Variant:
+	if kind == "2d" and node is Node2D:
+		return (node as Node2D).rotation_degrees
+	if node is Node3D:
+		return (node as Node3D).rotation_degrees
+	return Vector3.ZERO
+
+
+## World position of a 3D chain's tip: the end bone's first child, or a 10 cm
+## virtual tip along the bone when it has no child.
+func _bone_tip_3d(skeleton: Skeleton3D, bone_index: int) -> Dictionary:
+	var children := skeleton.get_bone_children(bone_index)
+	if not children.is_empty():
+		var child_pose := skeleton.get_bone_global_pose(children[0])
+		return {"position": skeleton.global_transform * child_pose.origin, "warning": null}
+	var pose := skeleton.get_bone_global_pose(bone_index)
+	var tip := pose.origin + pose.basis.y.normalized() * 0.1
+	return {
+		"position": skeleton.global_transform * tip,
+		"warning": "the end bone '%s' has no child bone, so the target uses a 10 cm virtual tip - move it where it belongs" % skeleton.get_bone_name(bone_index),
+	}

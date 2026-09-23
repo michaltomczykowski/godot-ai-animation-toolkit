@@ -452,17 +452,28 @@ Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 | `pose_to_clip` | Keyframe a pose sequence into an Animation clip (one rotation track per bone). | `player_path`, `skeleton_path`, `animation_name`, `keys`, `positions`, `scales`, `loop_mode`, `pose_dir`, `overwrite`, `dry_run` |
 | `pose_list` | List the pose files saved in the project's pose directory. | `directory`, `dry_run` |
 | `rig_get` | Dump a skeleton's bones, rests, pose, modifiers and springs, plus issues. | `skeleton_path`, `include_pose`, `dry_run` |
+| `rig_chain` | Build bones on a skeleton from a bone spec, or turn a Node3D/Node2D subtree into a skeleton. | `skeleton_path`, `bones`, `node_path`, `kind`, `name`, `overwrite`, `dry_run` |
+| `ik_setup` | Attach a 3D IK modifier (two-bone or chain solver) to a skeleton and wire it to a target node. | `skeleton_path`, `kind`, `chain`, `target_path`, `target_name`, `pole_path`, `use_virtual_end`, `end_bone_length`, `name`, `active`, `dry_run` |
 
 ### `animation_rig` parameters
 
 | Param | Type | Notes |
 | --- | --- | --- |
-| `op` | string: pose_save \| pose_apply \| pose_blend \| pose_to_clip \| pose_list \| rig_get | Which rig op to run. |
+| `op` | string: pose_save \| pose_apply \| pose_blend \| pose_to_clip \| pose_list \| rig_get \| rig_chain \| ik_setup | Which rig op to run. |
 | `skeleton_path` | string | Scene path to a Skeleton3D or Skeleton2D. Omit to use the first skeleton in the edited scene. |
+| `bones` | array | rig_chain: [{name, parent?, position?, rotation?, scale?, length?}] rest transforms, rotation in degrees. Pose ops: restrict capture/apply to these bone names. |
+| `node_path` | string | rig_chain: a Node3D/Node2D subtree to convert into a new skeleton (its local transforms become bone rests). |
+| `kind` | string: 3d \| 2d \| two_bone \| ccdik \| fabrik \| jacobian \| spline | rig_chain: 3d or 2d (default 3d). ik_setup: the solver kind (default two_bone). |
+| `chain` | array | ik_setup: bone names from the chain root to the effector. |
+| `target_path` | string | ik_setup: existing target node (a Node3D). Created at the chain tip when omitted. |
+| `target_name` | string | ik_setup: name for the created target node (default IKTarget). |
+| `pole_path` | string | ik_setup two_bone: optional pole node for the bend direction. |
+| `use_virtual_end` | boolean (default `false`) | ik_setup two_bone: treat the chain's last bone as the effector (chain [root, middle]) instead of requiring an end bone. |
+| `end_bone_length` | number | ik_setup two_bone with use_virtual_end: virtual end bone length (default 0.1). |
+| `active` | boolean (default `false`) | ik_setup: enable the modifier right away (default false - an active modifier also drives the scene while you edit it). |
 | `name` | string | Pose name (res://animation_toolkit/poses/<name>.json) to save to or load from. |
 | `path` | string | Explicit pose JSON file path. |
 | `pose` | object | Inline pose (as returned by pose_save). |
-| `bones` | array | Restrict the capture/apply to these bones. |
 | `from` | any | pose_blend: the first pose (inline object, or a saved pose name). |
 | `to` | any | pose_blend: the second pose (inline object, or a saved pose name). |
 | `factor` | number | pose_blend: 0 = from, 1 = to (default 0.5). |
@@ -492,4 +503,6 @@ Required: `op`.
 {"animation_name":"wave","keys":[{"name":"idle","time":0.0},{"name":"wave_mid","time":0.5,"transition":"ease_in_out"},{"name":"idle","time":1.0}],"loop_mode":"linear","op":"pose_to_clip","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"op":"pose_list"}
 {"op":"rig_get","skeleton_path":"/Main/Rig/Skeleton3D"}
+{"bones":[{"name":"spine","position":[0,0.2,0]},{"name":"chest","parent":"spine","position":[0,0.3,0]}],"op":"rig_chain","skeleton_path":"/Main/Rig/Skeleton3D"}
+{"chain":["B-upperArm.L","B-forearm.L","B-hand.L"],"kind":"two_bone","op":"ik_setup","skeleton_path":"/Main/Rig/Skeleton3D","target_name":"HandTarget"}
 ```

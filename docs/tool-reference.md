@@ -366,12 +366,15 @@ Notes:
 
 ## `animation_rig`
 
-Phase 6a: **poses**. A pose is portable, rest-relative data — `{bone: {rotation
-delta, position delta, scale}}` — so it survives rig changes, blends, mirrors and
-JSON round-trips, and so the same pose applies to both human-dummy variants.
+Phase 6a/6b: **poses and rig building**. A pose is portable, rest-relative data
+— `{bone: {rotation delta, position delta, scale}}` — so it survives rig
+changes, blends, mirrors and JSON round-trips, and so the same pose applies to
+both human-dummy variants.
 
 | op | What it does |
 | --- | --- |
+| `rig_chain` | Build bones from a spec (`bones`: name/parent/rest, rotation in degrees) or turn a Node3D/Node2D subtree into a skeleton. Creates the skeleton when `skeleton_path` is empty. |
+| `ik_setup` | Attach a 3D IK modifier (`two_bone`, `ccdik`, `fabrik`, `jacobian`, `spline`) to a Skeleton3D, wire it to a target node and (optionally) a pole. Creates the target marker at the chain tip when none is given. |
 | `pose_save` | Capture a Skeleton3D/Skeleton2D pose (inline and/or `res://animation_toolkit/poses/<name>.json`). |
 | `pose_apply` | Write a pose back: `blend` 0-1 toward it, `mirror` (L/R swap), `reset_first`, `bones` subset. One undo action. |
 | `pose_blend` | Slerp/lerp two poses into a third (optionally mirrored and/or saved). |
@@ -381,6 +384,18 @@ JSON round-trips, and so the same pose applies to both human-dummy variants.
 
 Notes:
 
+- **Modifiers are created inactive** (`active` defaults to false), because an
+  active `SkeletonModifier3D` also drives the skeleton while you edit the scene.
+  Pass `active=true` (or enable the modifier) when the scene is ready.
+- **IK is 3D-only for now.** The 2D skeleton modification stack is Experimental
+  in Godot 4.7, so `ik_setup` refuses 2D skeletons with a clear error; 2D chains
+  can still be built with `rig_chain` and posed with `pose_apply` /
+  `pose_to_clip`.
+- **`rig_chain` bone specs** take `{name, parent?, position?, rotation?,
+  scale?, length?}`. `position`/`scale` accept `[x, y, z]` or `{x, y, z}`,
+  `rotation` is in degrees (XYZ euler for 3D, about Z for 2D), and `length` is
+  the Bone2D length. Parents may be bones from the same spec or bones that
+  already exist on the skeleton; cycles and unknown parents are refused.
 - **Bone clips are ordinary clips.** 3D bones key `TYPE_ROTATION_3D` tracks at
   paths like `Skeleton3D:B-thigh.R`; 2D bones key `Skeleton2D/Bone:rotation`
   value tracks. Every other toolkit op therefore works on them: `retime`,
