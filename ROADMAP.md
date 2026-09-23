@@ -165,17 +165,21 @@ Verified API surface (Godot 4.7 docs + the dummy import):
 ### 6b - rigs, IK, springs, retargeting -> v0.9.0
 
 **Done:** `rig_chain` (bones from a spec or a Node3D/Node2D subtree, on a new or
-existing skeleton) and `ik_setup` (3D `two_bone`/`ccdik`/`fabrik`/`jacobian`/
-`spline`, target marker created at the chain tip, optional pole, inactive by
-default). Covered by 6 new editor rows (121 total).
+existing skeleton), `ik_setup` (3D `two_bone`/`ccdik`/`fabrik`/`jacobian`/
+`spline`, target marker created at the chain tip, optional pole), `spring_setup`
+(SpringBoneSimulator3D, one setting per spring entry, `end_bone` defaults to the
+root's leaf), `look_at_setup` (LookAtModifier3D: bone, target, forward axis,
+origin, limits, secondary rotation, duration) and `retarget_setup`
+(RetargetModifier3D + `auto`/`humanoid`/`res://` profile, target moved under the
+modifier, mapped/unmapped bone report). All modifiers are created **inactive**
+(opt-in), rig ops warn about scaled skeletons, and the new nodes are committed
+in one scene-pinned undo action. Covered by 10 new editor rows (125 total) and
+1680 tier-1 checks.
 
-**Left:** `spring_setup` (SpringBoneSimulator3D), `look_at_setup`
-(LookAtModifier3D), `retarget_setup` (RetargetModifier3D + SkeletonProfile /
-BoneMap mapping). 2D IK stays unsupported on purpose: the
-`SkeletonModificationStack2D` path is Experimental in Godot 4.7, so `ik_setup`
-refuses 2D skeletons with a clear error while 2D chains still work through
-`rig_chain` + poses. All modifiers are created **inactive** (opt-in), and rig
-ops warn about scaled skeletons.
+**Left:** the demo scene, video and v0.9.0 release. 2D IK/spring/look-at stay
+unsupported on purpose: the `SkeletonModificationStack2D` path is Experimental
+in Godot 4.7, so those ops refuse 2D skeletons with a clear error while 2D
+chains still work through `rig_chain` + poses.
 
 #### 6b verified API (4.7.2 ClassDB, checked before coding)
 

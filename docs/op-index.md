@@ -454,12 +454,15 @@ Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 | `rig_get` | Dump a skeleton's bones, rests, pose, modifiers and springs, plus issues. | `skeleton_path`, `include_pose`, `dry_run` |
 | `rig_chain` | Build bones on a skeleton from a bone spec, or turn a Node3D/Node2D subtree into a skeleton. | `skeleton_path`, `bones`, `node_path`, `kind`, `name`, `overwrite`, `dry_run` |
 | `ik_setup` | Attach a 3D IK modifier (two-bone or chain solver) to a skeleton and wire it to a target node. | `skeleton_path`, `kind`, `chain`, `target_path`, `target_name`, `pole_path`, `use_virtual_end`, `end_bone_length`, `name`, `active`, `dry_run` |
+| `spring_setup` | Attach spring bones (SpringBoneSimulator3D) to a skeleton, one spring setting per entry. | `skeleton_path`, `springs`, `name`, `active`, `mutable_bone_axes`, `dry_run` |
+| `look_at_setup` | Attach a look-at modifier so one bone tracks a target node (created in front of the bone when omitted). | `skeleton_path`, `bone`, `target_path`, `target_name`, `forward_axis`, `origin_from`, `origin_bone`, `origin_node`, `origin_offset`, `origin_safe_margin`, `use_angle_limitation`, `primary_limit_angle`, `secondary_limit_angle`, `use_secondary_rotation`, `primary_axis`, `relative`, `duration`, `name`, `active`, `dry_run` |
+| `retarget_setup` | Retarget a source skeleton's poses onto a child target skeleton through a RetargetModifier3D and a bone-name profile. | `skeleton_path`, `target_path`, `profile`, `position`, `rotation`, `scale`, `use_global_pose`, `move_target`, `name`, `active`, `dry_run` |
 
 ### `animation_rig` parameters
 
 | Param | Type | Notes |
 | --- | --- | --- |
-| `op` | string: pose_save \| pose_apply \| pose_blend \| pose_to_clip \| pose_list \| rig_get \| rig_chain \| ik_setup | Which rig op to run. |
+| `op` | string: pose_save \| pose_apply \| pose_blend \| pose_to_clip \| pose_list \| rig_get \| rig_chain \| ik_setup \| spring_setup \| look_at_setup \| retarget_setup | Which rig op to run. |
 | `skeleton_path` | string | Scene path to a Skeleton3D or Skeleton2D. Omit to use the first skeleton in the edited scene. |
 | `bones` | array | rig_chain: [{name, parent?, position?, rotation?, scale?, length?}] rest transforms, rotation in degrees. Pose ops: restrict capture/apply to these bone names. |
 | `node_path` | string | rig_chain: a Node3D/Node2D subtree to convert into a new skeleton (its local transforms become bone rests). |
@@ -470,7 +473,29 @@ Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 | `pole_path` | string | ik_setup two_bone: optional pole node for the bend direction. |
 | `use_virtual_end` | boolean (default `false`) | ik_setup two_bone: treat the chain's last bone as the effector (chain [root, middle]) instead of requiring an end bone. |
 | `end_bone_length` | number | ik_setup two_bone with use_virtual_end: virtual end bone length (default 0.1). |
-| `active` | boolean (default `false`) | ik_setup: enable the modifier right away (default false - an active modifier also drives the scene while you edit it). |
+| `active` | boolean (default `false`) | ik_setup / spring_setup / look_at_setup / retarget_setup: enable the modifier right away (default false - an active modifier also drives the scene while you edit it). |
+| `springs` | array | spring_setup: [{root_bone, end_bone?, stiffness?, drag?, gravity?, radius?, rotation_axis?, rotation_axis_vector?, gravity_direction?, center_from?, center_bone?, center_node?, enable_all_child_collisions?, collisions?, exclude_collisions?}] - one spring per entry, end_bone defaults to the root's leaf. |
+| `mutable_bone_axes` | boolean | spring_setup: let the springs rotate bones on any axis (default off). |
+| `bone` | string | look_at_setup: the bone that should track the target. |
+| `forward_axis` | string: +x \| -x \| +y \| -y \| +z \| -z | look_at_setup: which way the bone looks (default +z). |
+| `origin_from` | string: self \| bone \| external_node | look_at_setup: what the look direction is measured from (default self). |
+| `origin_bone` | string | look_at_setup: bone the origin comes from when origin_from=bone. |
+| `origin_node` | string | look_at_setup: scene path the origin comes from when origin_from=external_node. |
+| `origin_offset` | any | look_at_setup: origin offset (Vector3). |
+| `origin_safe_margin` | number | look_at_setup: dead zone around the origin, in metres. |
+| `use_angle_limitation` | boolean (default `false`) | look_at_setup: clamp how far the bone can rotate. |
+| `primary_limit_angle` | number | look_at_setup: primary axis limit in degrees. |
+| `secondary_limit_angle` | number | look_at_setup: secondary axis limit in degrees. |
+| `use_secondary_rotation` | boolean (default `false`) | look_at_setup: also rotate around the secondary axis. |
+| `primary_axis` | string: x \| y \| z | look_at_setup: primary rotation axis (default y). |
+| `relative` | boolean (default `false`) | look_at_setup: track the target relative to the bone's initial orientation. |
+| `duration` | number | look_at_setup: seconds the bone takes to turn toward the target (0 = instant). |
+| `profile` | string | retarget_setup: bone-name profile - auto (built from the source skeleton), humanoid (SkeletonProfileHumanoid) or a res:// path to a SkeletonProfile. |
+| `position` | boolean (default `false`) | retarget_setup: retarget bone positions. |
+| `rotation` | boolean (default `true`) | retarget_setup: retarget bone rotations. |
+| `scale` | boolean (default `false`) | retarget_setup: retarget bone scales. |
+| `use_global_pose` | boolean (default `false`) | retarget_setup: retarget global poses instead of parent-relative ones (bone lengths must match exactly). |
+| `move_target` | boolean (default `true`) | retarget_setup: move the target skeleton under the modifier (required by RetargetModifier3D). |
 | `name` | string | Pose name (res://animation_toolkit/poses/<name>.json) to save to or load from. |
 | `path` | string | Explicit pose JSON file path. |
 | `pose` | object | Inline pose (as returned by pose_save). |
@@ -505,4 +530,7 @@ Required: `op`.
 {"op":"rig_get","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"bones":[{"name":"spine","position":[0,0.2,0]},{"name":"chest","parent":"spine","position":[0,0.3,0]}],"op":"rig_chain","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"chain":["B-upperArm.L","B-forearm.L","B-hand.L"],"kind":"two_bone","op":"ik_setup","skeleton_path":"/Main/Rig/Skeleton3D","target_name":"HandTarget"}
+{"op":"spring_setup","skeleton_path":"/Main/Rig/Skeleton3D","springs":[{"drag":0.2,"gravity":0.1,"radius":0.05,"root_bone":"B-hair01","stiffness":0.3}]}
+{"bone":"B-head","forward_axis":"+z","op":"look_at_setup","skeleton_path":"/Main/Rig/Skeleton3D","target_name":"HeadTarget"}
+{"op":"retarget_setup","profile":"auto","skeleton_path":"/Main/Source/Skeleton3D","target_path":"/Main/Target/Skeleton3D"}
 ```

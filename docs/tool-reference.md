@@ -375,6 +375,9 @@ both human-dummy variants.
 | --- | --- |
 | `rig_chain` | Build bones from a spec (`bones`: name/parent/rest, rotation in degrees) or turn a Node3D/Node2D subtree into a skeleton. Creates the skeleton when `skeleton_path` is empty. |
 | `ik_setup` | Attach a 3D IK modifier (`two_bone`, `ccdik`, `fabrik`, `jacobian`, `spline`) to a Skeleton3D, wire it to a target node and (optionally) a pole. Creates the target marker at the chain tip when none is given. |
+| `spring_setup` | Attach a `SpringBoneSimulator3D` with one spring per `springs` entry (root/end bone, stiffness, drag, gravity, radius, rotation axis, centre, collisions). `end_bone` defaults to the root's leaf. |
+| `look_at_setup` | Attach a `LookAtModifier3D` so one bone tracks a target node (created a metre in front of the bone when omitted), with origin, limits, secondary rotation and turn duration. |
+| `retarget_setup` | Attach a `RetargetModifier3D` under a source Skeleton3D so a child target skeleton follows it in model space, with an `auto` bone-name profile (built from the source), `humanoid`, or a `res://` profile. Reports mapped/unmapped bones. |
 | `pose_save` | Capture a Skeleton3D/Skeleton2D pose (inline and/or `res://animation_toolkit/poses/<name>.json`). |
 | `pose_apply` | Write a pose back: `blend` 0-1 toward it, `mirror` (L/R swap), `reset_first`, `bones` subset. One undo action. |
 | `pose_blend` | Slerp/lerp two poses into a third (optionally mirrored and/or saved). |
@@ -391,6 +394,13 @@ Notes:
   in Godot 4.7, so `ik_setup` refuses 2D skeletons with a clear error; 2D chains
   can still be built with `rig_chain` and posed with `pose_apply` /
   `pose_to_clip`.
+- **`retarget_setup` moves the target under the modifier** (`move_target`, on by
+  default), because `RetargetModifier3D` only drives skeletons that are its own
+  children. It refuses skeletons inside a non-editable scene instance, where the
+  move (and the modifier itself) would not survive the scene save. `profile:
+  "auto"` builds a profile from the source skeleton, so two rigs with the same
+  bone names but different rests retarget without any setup; the response lists
+  which profile bones mapped and which did not.
 - **`rig_chain` bone specs** take `{name, parent?, position?, rotation?,
   scale?, length?}`. `position`/`scale` accept `[x, y, z]` or `{x, y, z}`,
   `rotation` is in degrees (XYZ euler for 3D, about Z for 2D), and `length` is

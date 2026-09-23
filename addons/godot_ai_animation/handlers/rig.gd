@@ -50,6 +50,12 @@ func _dispatch(params: Dictionary) -> Dictionary:
 			return rig_chain(params)
 		"ik_setup":
 			return ik_setup(params)
+		"spring_setup":
+			return spring_setup(params)
+		"look_at_setup":
+			return look_at_setup(params)
+		"retarget_setup":
+			return retarget_setup(params)
 	return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 		"Unknown op '%s'. Valid: %s" % [op, ", ".join(OpRegistry.op_names(OpRegistry.FAMILY_RIG))])
 
@@ -780,6 +786,386 @@ func ik_setup(params: Dictionary) -> Dictionary:
 
 
 # ============================================================================
+# spring_setup
+# ============================================================================
+
+## Attach a SpringBoneSimulator3D to a Skeleton3D, one spring setting per entry
+## in `springs`. Created inactive unless active=true.
+func spring_setup(params: Dictionary) -> Dictionary:
+	var resolved := _resolve_skeleton(params)
+	if resolved.has("error"):
+		return resolved
+	if resolved.kind != "3d":
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"spring_setup supports Skeleton3D (SpringBoneSimulator3D); 2D jiggle bones live on the Experimental SkeletonModificationStack2D and are not supported yet")
+	var springs: Array = params.get("springs", [])
+	if springs.is_empty():
+		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM,
+			"spring_setup needs 'springs': [{root_bone, end_bone?, stiffness?, drag?, gravity?, radius?, rotation_axis?, collisions?}]")
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var skeleton: Skeleton3D = resolved.node
+	var warnings: Array = []
+	var scale := _skeleton_scale(skeleton)
+	if not is_equal_approx(scale, 1.0):
+		warnings.append("the skeleton is scaled (%.2f): spring bones assume unit scale and may misbehave" % scale)
+	var planned: Array = []
+	for index in springs.size():
+		if not (springs[index] is Dictionary):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "springs[%d] must be an object" % index)
+		var spring: Dictionary = springs[index]
+		var root_name := str(spring.get("root_bone", ""))
+		if root_name.is_empty():
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "springs[%d] needs 'root_bone'" % index)
+		var root_index := skeleton.find_bone(root_name)
+		if root_index < 0:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"springs[%d]: bone '%s' not found" % [index, root_name])
+		var end_name := str(spring.get("end_bone", ""))
+		if end_name.is_empty():
+			end_name = _last_descendant(skeleton, root_index)
+			warnings.append("springs[%d]: no end_bone, using the leaf '%s'" % [index, end_name])
+		elif skeleton.find_bone(end_name) < 0:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"springs[%d]: end bone '%s' not found" % [index, end_name])
+		if spring.has("rotation_axis"):
+			var axis := _rotation_axis(str(spring.rotation_axis))
+			if axis < 0:
+				return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+					"springs[%d]: invalid rotation_axis '%s'. Valid: x, y, z, all, custom" % [index, str(spring.rotation_axis)])
+		if spring.has("center_from"):
+			var center := _spring_center_from(str(spring.center_from))
+			if center < 0:
+				return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+					"springs[%d]: invalid center_from '%s'. Valid: world_origin, node, bone" % [index, str(spring.center_from)])
+		var collisions: Array = []
+		for path in spring.get("collisions", []):
+			var collider := ValueCodec.resolve_scene_path(str(path), scene_root)
+			if collider == null:
+				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
+					"springs[%d]: collision %s" % [index, ValueCodec.format_node_error(str(path), scene_root)])
+			collisions.append(str(skeleton.get_path_to(collider)))
+		var exclude: Array = []
+		for path in spring.get("exclude_collisions", []):
+			var excluded := ValueCodec.resolve_scene_path(str(path), scene_root)
+			if excluded == null:
+				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
+					"springs[%d]: exclude collision %s" % [index, ValueCodec.format_node_error(str(path), scene_root)])
+			exclude.append(str(skeleton.get_path_to(excluded)))
+		planned.append({
+			"spec": spring, "root": root_name, "end": end_name,
+			"collisions": collisions, "exclude": exclude,
+		})
+	var active := bool(params.get("active", false))
+	var simulator := SpringBoneSimulator3D.new()
+	simulator.name = str(params.get("name", "SpringBones"))
+	var setup: Array = [{"property": "active", "value": active}]
+	setup.append({"method": "set_setting_count", "args": [planned.size()]})
+	if params.has("mutable_bone_axes"):
+		setup.append({"method": "set_mutable_bone_axes", "args": [bool(params.mutable_bone_axes)]})
+	for index in planned.size():
+		var entry: Dictionary = planned[index]
+		var spec: Dictionary = entry.spec
+		setup.append({"method": "set_root_bone_name", "args": [index, str(entry.root)]})
+		setup.append({"method": "set_end_bone_name", "args": [index, str(entry.end)]})
+		if spec.has("stiffness"):
+			setup.append({"method": "set_stiffness", "args": [index, float(spec.stiffness)]})
+		if spec.has("drag"):
+			setup.append({"method": "set_drag", "args": [index, float(spec.drag)]})
+		if spec.has("gravity"):
+			setup.append({"method": "set_gravity", "args": [index, float(spec.gravity)]})
+		if spec.has("radius"):
+			setup.append({"method": "set_radius", "args": [index, float(spec.radius)]})
+		if spec.has("rotation_axis"):
+			setup.append({"method": "set_rotation_axis", "args": [index, _rotation_axis(str(spec.rotation_axis))]})
+		if spec.has("rotation_axis_vector"):
+			setup.append({"method": "set_rotation_axis_vector", "args": [index, _spec_vector3(spec.rotation_axis_vector, Vector3.UP)]})
+		if spec.has("gravity_direction"):
+			setup.append({"method": "set_gravity_direction", "args": [index, _spec_vector3(spec.gravity_direction, Vector3.DOWN)]})
+		if spec.has("center_from"):
+			setup.append({"method": "set_center_from", "args": [index, _spring_center_from(str(spec.center_from))]})
+		if spec.has("center_bone"):
+			setup.append({"method": "set_center_bone_name", "args": [index, str(spec.center_bone)]})
+		if spec.has("center_node"):
+			var center_node := ValueCodec.resolve_scene_path(str(spec.center_node), scene_root)
+			if center_node == null:
+				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
+					"springs[%d]: center node %s" % [index, ValueCodec.format_node_error(str(spec.center_node), scene_root)])
+			setup.append({"method": "set_center_node", "args": [index, NodePath(str(skeleton.get_path_to(center_node)))]})
+		if spec.has("enable_all_child_collisions"):
+			setup.append({"method": "set_enable_all_child_collisions", "args": [index, bool(spec.enable_all_child_collisions)]})
+		if not entry.collisions.is_empty():
+			setup.append({"method": "set_collision_count", "args": [index, (entry.collisions as Array).size()]})
+			for collision_index in (entry.collisions as Array).size():
+				setup.append({"method": "set_collision_path", "args": [index, collision_index, NodePath(str(entry.collisions[collision_index]))]})
+		if not entry.exclude.is_empty():
+			setup.append({"method": "set_exclude_collision_count", "args": [index, (entry.exclude as Array).size()]})
+			for collision_index in (entry.exclude as Array).size():
+				setup.append({"method": "set_exclude_collision_path", "args": [index, collision_index, NodePath(str(entry.exclude[collision_index]))]})
+	_commit_node_add("MCP: Spring bones (%d)" % planned.size(), skeleton, simulator, setup)
+	var data := {
+		"skeleton_path": resolved.path,
+		"kind": resolved.kind,
+		"modifier_class": "SpringBoneSimulator3D",
+		"modifier_path": ValueCodec.from_node(simulator, scene_root),
+		"spring_count": planned.size(),
+		"springs": planned.map(func(entry): return {"root_bone": str(entry.root), "end_bone": str(entry.end)}),
+		"active": active,
+		"warnings": warnings,
+		"undoable": true,
+	}
+	if not active:
+		data["active_note"] = "inactive: an active spring simulator also drives the skeleton while you edit the scene - pass active=true (or enable the modifier) when it is ready"
+	return {"data": data}
+
+
+# ============================================================================
+# look_at_setup
+# ============================================================================
+
+## Attach a LookAtModifier3D to a Skeleton3D so one bone tracks a target node.
+func look_at_setup(params: Dictionary) -> Dictionary:
+	var resolved := _resolve_skeleton(params)
+	if resolved.has("error"):
+		return resolved
+	if resolved.kind != "3d":
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"look_at_setup supports Skeleton3D (LookAtModifier3D); the 2D look-at modification lives on the Experimental SkeletonModificationStack2D and is not supported yet")
+	var bone_name := str(params.get("bone", ""))
+	if bone_name.is_empty():
+		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM,
+			"look_at_setup needs 'bone': the bone that should track the target")
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var skeleton: Skeleton3D = resolved.node
+	var bone_index := skeleton.find_bone(bone_name)
+	if bone_index < 0:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"Bone '%s' not found on %s" % [bone_name, resolved.path])
+	var forward_spec := str(params.get("forward_axis", "+z"))
+	var forward := _bone_axis(forward_spec)
+	if forward < 0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Invalid forward_axis '%s'. Valid: +x, -x, +y, -y, +z, -z" % forward_spec)
+	var warnings: Array = []
+	var scale := _skeleton_scale(skeleton)
+	if not is_equal_approx(scale, 1.0):
+		warnings.append("the skeleton is scaled (%.2f): look-at assumes unit scale" % scale)
+	var target_path := str(params.get("target_path", ""))
+	var target: Node3D = null
+	if not target_path.is_empty():
+		var found := ValueCodec.resolve_scene_path(target_path, scene_root)
+		if found == null:
+			return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND, ValueCodec.format_node_error(target_path, scene_root))
+		if not (found is Node3D):
+			return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
+				"The look-at target must be a Node3D (got %s)" % found.get_class())
+		target = found
+	var bone_pose := skeleton.get_bone_global_pose(bone_index)
+	var ahead := bone_pose.basis * _bone_axis_vector(forward) * 1.0
+	var target_created := false
+	var entries: Array = []
+	var target_node: Node3D = target
+	if target_node == null:
+		var marker := Marker3D.new()
+		marker.name = str(params.get("target_name", "LookAtTarget"))
+		entries.append({"parent": scene_root, "node": marker,
+			"setup": [{"method": "set_global_position", "args": [skeleton.global_transform * (bone_pose.origin + ahead)]}]})
+		target_node = marker
+		target_created = true
+	var active := bool(params.get("active", false))
+	var modifier := LookAtModifier3D.new()
+	modifier.name = str(params.get("name", "LookAt"))
+	var target_rel := str(skeleton.get_path_to(target_node))
+	if target_rel.is_empty():
+		target_rel = "."
+	var setup: Array = [
+		{"property": "active", "value": active},
+		{"method": "set_bone_name", "args": [bone_name]},
+		{"method": "set_target_node", "args": [NodePath(target_rel)]},
+		{"method": "set_forward_axis", "args": [forward]},
+	]
+	if params.has("origin_from"):
+		var origin_from := _look_at_origin_from(str(params.origin_from))
+		if origin_from < 0:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+				"Invalid origin_from '%s'. Valid: self, bone, external_node" % str(params.origin_from))
+		setup.append({"method": "set_origin_from", "args": [origin_from]})
+	if params.has("origin_bone"):
+		var origin_bone := str(params.origin_bone)
+		if skeleton.find_bone(origin_bone) < 0:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"origin_bone '%s' not found on %s" % [origin_bone, resolved.path])
+		setup.append({"method": "set_origin_bone_name", "args": [origin_bone]})
+	if params.has("origin_node"):
+		var origin_node := ValueCodec.resolve_scene_path(str(params.origin_node), scene_root)
+		if origin_node == null:
+			return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
+				"origin_node %s" % ValueCodec.format_node_error(str(params.origin_node), scene_root))
+		setup.append({"method": "set_origin_external_node", "args": [NodePath(str(skeleton.get_path_to(origin_node)))]})
+	if params.has("origin_offset"):
+		setup.append({"method": "set_origin_offset", "args": [_spec_vector3(params.origin_offset)]})
+	if params.has("origin_safe_margin"):
+		setup.append({"method": "set_origin_safe_margin", "args": [float(params.origin_safe_margin)]})
+	if bool(params.get("use_angle_limitation", false)):
+		setup.append({"method": "set_use_angle_limitation", "args": [true]})
+		if params.has("primary_limit_angle"):
+			setup.append({"method": "set_primary_limit_angle", "args": [float(params.primary_limit_angle)]})
+		if params.has("secondary_limit_angle"):
+			setup.append({"method": "set_secondary_limit_angle", "args": [float(params.secondary_limit_angle)]})
+	if bool(params.get("use_secondary_rotation", false)):
+		setup.append({"method": "set_use_secondary_rotation", "args": [true]})
+	if params.has("primary_axis"):
+		var primary := _vector_axis(str(params.primary_axis))
+		if primary < 0:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+				"Invalid primary_axis '%s'. Valid: x, y, z" % str(params.primary_axis))
+		setup.append({"method": "set_primary_rotation_axis", "args": [primary]})
+	if bool(params.get("relative", false)):
+		setup.append({"method": "set_relative", "args": [true]})
+	if params.has("duration"):
+		setup.append({"method": "set_duration", "args": [float(params.duration)]})
+	entries.append({"parent": skeleton, "node": modifier, "setup": setup})
+	_commit_node_add_many("MCP: Look-at setup", entries)
+	var data := {
+		"skeleton_path": resolved.path,
+		"kind": resolved.kind,
+		"modifier_class": "LookAtModifier3D",
+		"modifier_path": ValueCodec.from_node(modifier, scene_root),
+		"bone": bone_name,
+		"forward_axis": forward_spec,
+		"target_path": ValueCodec.from_node(target_node, scene_root),
+		"target_created": target_created,
+		"active": active,
+		"warnings": warnings,
+		"undoable": true,
+	}
+	if not active:
+		data["active_note"] = "inactive: an active look-at modifier also drives the skeleton while you edit the scene - pass active=true (or enable the modifier) when it is ready"
+	return {"data": data}
+
+
+# ============================================================================
+# retarget_setup
+# ============================================================================
+
+## Attach a RetargetModifier3D under a source Skeleton3D so a child target
+## skeleton follows its poses in model space (different rests are fine).
+func retarget_setup(params: Dictionary) -> Dictionary:
+	var resolved := _resolve_skeleton(params)
+	if resolved.has("error"):
+		return resolved
+	if resolved.kind != "3d":
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"retarget_setup supports Skeleton3D (RetargetModifier3D)")
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var source: Skeleton3D = resolved.node
+	var target_path := str(params.get("target_path", ""))
+	if target_path.is_empty():
+		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM,
+			"retarget_setup needs 'target_path': the Skeleton3D that receives the poses")
+	var found := ValueCodec.resolve_scene_path(target_path, scene_root)
+	if found == null:
+		return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND, ValueCodec.format_node_error(target_path, scene_root))
+	if not (found is Skeleton3D):
+		return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
+			"The retarget target must be a Skeleton3D (got %s)" % found.get_class())
+	var target: Skeleton3D = found
+	if target == source:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"The target skeleton cannot be the source skeleton")
+	if source.is_ancestor_of(target):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"The target skeleton is already inside the source skeleton (%s)" % target_path)
+	var resolved_profile := _resolve_retarget_profile(params, source, target)
+	if resolved_profile.has("error"):
+		return resolved_profile
+	# The modifier lives under the source skeleton and the target moves under the
+	# modifier, so both have to be scene-owned: inside a non-editable instance
+	# the editor would drop the new nodes (and can free them again) on save/undo.
+	var source_levels := _instance_levels(source)
+	if not source_levels.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"The source skeleton lives inside the instanced scene '%s' and that instance is not editable, so the retarget modifier would not survive the scene save - enable Editable Children on it, or use a skeleton that belongs to the edited scene" % str(source_levels[0].instance.scene_file_path))
+	var profile: SkeletonProfile = resolved_profile.profile
+	var warnings: Array = []
+	if not (resolved_profile.unmapped as Array).is_empty():
+		warnings.append("%d of %d profile bones are not in both skeletons and will not retarget: %s" % [
+			(resolved_profile.unmapped as Array).size(), profile.get_bone_size(),
+			", ".join((resolved_profile.unmapped as Array).slice(0, 8))])
+	var scale := _skeleton_scale(source)
+	if not is_equal_approx(scale, 1.0):
+		warnings.append("the source skeleton is scaled (%.2f): retargeting assumes unit scale" % scale)
+	var flags := 0
+	if bool(params.get("position", false)):
+		flags |= RetargetModifier3D.TRANSFORM_FLAG_POSITION
+	if bool(params.get("rotation", true)):
+		flags |= RetargetModifier3D.TRANSFORM_FLAG_ROTATION
+	if bool(params.get("scale", false)):
+		flags |= RetargetModifier3D.TRANSFORM_FLAG_SCALE
+	if flags == 0:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"Enable at least one of position/rotation/scale (rotation is on by default)")
+	var active := bool(params.get("active", false))
+	var move_target := bool(params.get("move_target", true))
+	var already_under_modifier := target.get_parent() is RetargetModifier3D and source.is_ancestor_of(target)
+	if not already_under_modifier and not move_target:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"The target skeleton must be a child of the RetargetModifier3D. Pass move_target=true to move it there, or parent it under a RetargetModifier3D yourself.")
+	if move_target and not already_under_modifier and not _instance_levels(target).is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"The target skeleton lives inside an instanced scene, so moving it would not survive the scene save - move it into the edited scene first (or pass move_target=false and parent it yourself)")
+	var modifier := RetargetModifier3D.new()
+	modifier.name = str(params.get("name", "Retarget"))
+	var setup: Array = [
+		{"property": "active", "value": active},
+		{"property": "profile", "value": profile},
+		{"method": "set_enable_flags", "args": [flags]},
+		{"method": "set_use_global_pose", "args": [bool(params.get("use_global_pose", false))]},
+	]
+	if not _dry_run:
+		_create_scene_pinned_action("MCP: Retarget setup")
+		var undo := ToolContext.undo_redo
+		undo.add_do_method(source, "add_child", modifier, true)
+		undo.add_do_method(modifier, "set_owner", scene_root)
+		undo.add_do_reference(modifier)
+		undo.add_do_reference(profile)
+		for call in setup:
+			if call.has("property"):
+				undo.add_do_property(modifier, call.property, call.value)
+			else:
+				_add_do_call(undo, modifier, call.method, call.get("args", []))
+		if move_target and not already_under_modifier:
+			var old_parent := target.get_parent()
+			undo.add_do_method(target, "reparent", modifier, true)
+			# Undo methods run in registration order, so the target goes back to
+			# its old parent before the modifier (its current parent) is removed.
+			undo.add_undo_method(target, "reparent", old_parent, true)
+			undo.add_undo_method(source, "remove_child", modifier)
+		else:
+			undo.add_undo_method(source, "remove_child", modifier)
+		undo.commit_action()
+	var data := {
+		"skeleton_path": resolved.path,
+		"kind": resolved.kind,
+		"modifier_class": "RetargetModifier3D",
+		"modifier_path": ValueCodec.from_node(modifier, scene_root),
+		"target_path": ValueCodec.from_node(target, scene_root),
+		"moved_target": move_target and not already_under_modifier,
+		"profile_source": str(resolved_profile.source),
+		"profile_bones": profile.get_bone_size(),
+		"mapped_bones": (resolved_profile.mapped as Array).size(),
+		"unmapped_bones": resolved_profile.unmapped,
+		"enable_flags": flags,
+		"use_global_pose": bool(params.get("use_global_pose", false)),
+		"active": active,
+		"warnings": warnings,
+		"undoable": true,
+	}
+	if not active:
+		data["active_note"] = "inactive: an active retarget modifier also drives the target while you edit the scene - pass active=true (or enable the modifier) when it is ready"
+	return {"data": data}
+
+
+# ============================================================================
 # Helpers
 # ============================================================================
 
@@ -1198,3 +1584,126 @@ func _bone_tip_3d(skeleton: Skeleton3D, bone_index: int) -> Dictionary:
 		"position": skeleton.global_transform * tip,
 		"warning": "the end bone '%s' has no child bone, so the target uses a 10 cm virtual tip - move it where it belongs" % skeleton.get_bone_name(bone_index),
 	}
+
+
+# --- modifier enum helpers --------------------------------------------------
+
+## "x" / "y" / "z" / "all" / "custom" -> SkeletonModifier3D.RotationAxis, or -1.
+static func _rotation_axis(value: String) -> int:
+	match value.to_lower():
+		"x": return SkeletonModifier3D.ROTATION_AXIS_X
+		"y": return SkeletonModifier3D.ROTATION_AXIS_Y
+		"z": return SkeletonModifier3D.ROTATION_AXIS_Z
+		"all": return SkeletonModifier3D.ROTATION_AXIS_ALL
+		"custom": return SkeletonModifier3D.ROTATION_AXIS_CUSTOM
+	return -1
+
+
+## "world_origin" / "node" / "bone" -> SpringBoneSimulator3D.CenterFrom, or -1.
+static func _spring_center_from(value: String) -> int:
+	match value.to_lower():
+		"world_origin": return SpringBoneSimulator3D.CENTER_FROM_WORLD_ORIGIN
+		"node": return SpringBoneSimulator3D.CENTER_FROM_NODE
+		"bone": return SpringBoneSimulator3D.CENTER_FROM_BONE
+	return -1
+
+
+## "+x" / "-y" ... -> SkeletonModifier3D.BoneAxis, or -1.
+static func _bone_axis(value: String) -> int:
+	match value.to_lower().replace(" ", ""):
+		"+x": return SkeletonModifier3D.BONE_AXIS_PLUS_X
+		"-x": return SkeletonModifier3D.BONE_AXIS_MINUS_X
+		"+y": return SkeletonModifier3D.BONE_AXIS_PLUS_Y
+		"-y": return SkeletonModifier3D.BONE_AXIS_MINUS_Y
+		"+z": return SkeletonModifier3D.BONE_AXIS_PLUS_Z
+		"-z": return SkeletonModifier3D.BONE_AXIS_MINUS_Z
+	return -1
+
+
+static func _bone_axis_vector(axis: int) -> Vector3:
+	match axis:
+		SkeletonModifier3D.BONE_AXIS_PLUS_X: return Vector3.RIGHT
+		SkeletonModifier3D.BONE_AXIS_MINUS_X: return Vector3.LEFT
+		SkeletonModifier3D.BONE_AXIS_PLUS_Y: return Vector3.UP
+		SkeletonModifier3D.BONE_AXIS_MINUS_Y: return Vector3.DOWN
+		SkeletonModifier3D.BONE_AXIS_PLUS_Z: return Vector3.BACK
+		SkeletonModifier3D.BONE_AXIS_MINUS_Z: return Vector3.FORWARD
+	return Vector3.BACK
+
+
+## "self" / "bone" / "external_node" -> LookAtModifier3D.OriginFrom, or -1.
+static func _look_at_origin_from(value: String) -> int:
+	match value.to_lower():
+		"self": return LookAtModifier3D.ORIGIN_FROM_SELF
+		"bone": return LookAtModifier3D.ORIGIN_FROM_SPECIFIC_BONE
+		"external_node": return LookAtModifier3D.ORIGIN_FROM_EXTERNAL_NODE
+	return -1
+
+
+## "x" / "y" / "z" -> Vector3.Axis, or -1.
+static func _vector_axis(value: String) -> int:
+	match value.to_lower():
+		"x": return Vector3.AXIS_X
+		"y": return Vector3.AXIS_Y
+		"z": return Vector3.AXIS_Z
+	return -1
+
+
+## Deepest last child of a bone (the natural spring end when none is given).
+static func _last_descendant(skeleton: Skeleton3D, bone_index: int) -> String:
+	var current := bone_index
+	while true:
+		var children := skeleton.get_bone_children(current)
+		if children.is_empty():
+			break
+		current = children[children.size() - 1]
+	return skeleton.get_bone_name(current)
+
+
+## Build or load the SkeletonProfile a retarget modifier matches bones by, and
+## report which of its bones exist in both skeletons.
+func _resolve_retarget_profile(params: Dictionary, source: Skeleton3D, target: Skeleton3D) -> Dictionary:
+	var spec := str(params.get("profile", "auto"))
+	var profile: SkeletonProfile = null
+	var profile_source := spec
+	if spec.is_empty() or spec == "auto":
+		profile = SkeletonProfile.new()
+		var count := source.get_bone_count()
+		profile.set_bone_size(count)
+		var root_name := ""
+		for index in count:
+			var bone_name := source.get_bone_name(index)
+			profile.set_bone_name(index, bone_name)
+			var parent_index := source.get_bone_parent(index)
+			profile.set_bone_parent(index, "" if parent_index < 0 else source.get_bone_name(parent_index))
+			if parent_index < 0 and root_name.is_empty():
+				root_name = bone_name
+		if not root_name.is_empty():
+			profile.set_root_bone(root_name)
+			profile.set_scale_base_bone(root_name)
+		profile_source = "auto"
+	elif spec == "humanoid":
+		if not ClassDB.can_instantiate("SkeletonProfileHumanoid"):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"SkeletonProfileHumanoid is not available in this Godot build")
+		profile = ClassDB.instantiate("SkeletonProfileHumanoid")
+		profile_source = "humanoid"
+	elif spec.begins_with("res://"):
+		if not ResourceLoader.exists(spec):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Profile not found: %s" % spec)
+		var loaded = load(spec)
+		if not (loaded is SkeletonProfile):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s is not a SkeletonProfile" % spec)
+		profile = loaded
+	else:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Invalid profile '%s'. Valid: auto, humanoid, or a res:// path to a SkeletonProfile" % spec)
+	var mapped: Array = []
+	var unmapped: Array = []
+	for index in profile.get_bone_size():
+		var bone_name := str(profile.get_bone_name(index))
+		if source.find_bone(bone_name) >= 0 and target.find_bone(bone_name) >= 0:
+			mapped.append(bone_name)
+		else:
+			unmapped.append(bone_name)
+	return {"profile": profile, "source": profile_source, "mapped": mapped, "unmapped": unmapped}

@@ -1237,14 +1237,14 @@ static func _library_ops() -> Array:
 static func _rig_description() -> String:
 	return (
 		"Rig authoring. rig_chain builds bones from a spec or a Node3D/Node2D "
-		+ "subtree; ik_setup attaches a 3D IK modifier "
-		+ "(two_bone/ccdik/fabrik/jacobian/spline) to a target node. Poses are "
-		+ "portable rest-relative data: pose_save captures one (inline and/or "
+		+ "subtree; ik_setup attaches a 3D IK modifier; spring_setup adds spring "
+		+ "bones; look_at_setup tracks a target; retarget_setup retargets onto a "
+		+ "child skeleton. pose_save captures a pose (inline or "
 		+ "res://animation_toolkit/poses/<name>.json), pose_apply writes it back "
 		+ "with blend/mirror/reset, pose_blend mixes two, pose_to_clip keyframes a "
 		+ "sequence into a clip, pose_list lists saved poses. rig_get dumps bones, "
-		+ "rests, poses, modifiers and springs, and flags issues. Bone clips are "
-		+ "ordinary transform tracks, so every other toolkit op works on them."
+		+ "rests, poses, modifiers and springs. Bone clips are ordinary transform "
+		+ "tracks: every other op works on them."
 	)
 
 
@@ -1254,7 +1254,7 @@ static func _rig_schema() -> Dictionary:
 		"properties": {
 			"op": {
 				"type": "string",
-				"enum": ["pose_save", "pose_apply", "pose_blend", "pose_to_clip", "pose_list", "rig_get", "rig_chain", "ik_setup"],
+				"enum": ["pose_save", "pose_apply", "pose_blend", "pose_to_clip", "pose_list", "rig_get", "rig_chain", "ik_setup", "spring_setup", "look_at_setup", "retarget_setup"],
 				"description": "Which rig op to run.",
 			},
 			"skeleton_path": {
@@ -1292,8 +1292,37 @@ static func _rig_schema() -> Dictionary:
 			"active": {
 				"type": "boolean",
 				"default": false,
-				"description": "ik_setup: enable the modifier right away (default false - an active modifier also drives the scene while you edit it).",
+				"description": "ik_setup / spring_setup / look_at_setup / retarget_setup: enable the modifier right away (default false - an active modifier also drives the scene while you edit it).",
 			},
+			"springs": {
+				"type": "array",
+				"items": {"type": "object"},
+				"description": "spring_setup: [{root_bone, end_bone?, stiffness?, drag?, gravity?, radius?, rotation_axis?, rotation_axis_vector?, gravity_direction?, center_from?, center_bone?, center_node?, enable_all_child_collisions?, collisions?, exclude_collisions?}] - one spring per entry, end_bone defaults to the root's leaf.",
+			},
+			"mutable_bone_axes": {"type": "boolean", "description": "spring_setup: let the springs rotate bones on any axis (default off)."},
+			"bone": {"type": "string", "description": "look_at_setup: the bone that should track the target."},
+			"forward_axis": {"type": "string", "enum": ["+x", "-x", "+y", "-y", "+z", "-z"], "description": "look_at_setup: which way the bone looks (default +z)."},
+			"origin_from": {"type": "string", "enum": ["self", "bone", "external_node"], "description": "look_at_setup: what the look direction is measured from (default self)."},
+			"origin_bone": {"type": "string", "description": "look_at_setup: bone the origin comes from when origin_from=bone."},
+			"origin_node": {"type": "string", "description": "look_at_setup: scene path the origin comes from when origin_from=external_node."},
+			"origin_offset": {"description": "look_at_setup: origin offset (Vector3)."},
+			"origin_safe_margin": {"type": "number", "description": "look_at_setup: dead zone around the origin, in metres."},
+			"use_angle_limitation": {"type": "boolean", "default": false, "description": "look_at_setup: clamp how far the bone can rotate."},
+			"primary_limit_angle": {"type": "number", "description": "look_at_setup: primary axis limit in degrees."},
+			"secondary_limit_angle": {"type": "number", "description": "look_at_setup: secondary axis limit in degrees."},
+			"use_secondary_rotation": {"type": "boolean", "default": false, "description": "look_at_setup: also rotate around the secondary axis."},
+			"primary_axis": {"type": "string", "enum": ["x", "y", "z"], "description": "look_at_setup: primary rotation axis (default y)."},
+			"relative": {"type": "boolean", "default": false, "description": "look_at_setup: track the target relative to the bone's initial orientation."},
+			"duration": {"type": "number", "description": "look_at_setup: seconds the bone takes to turn toward the target (0 = instant)."},
+			"profile": {
+				"type": "string",
+				"description": "retarget_setup: bone-name profile - auto (built from the source skeleton), humanoid (SkeletonProfileHumanoid) or a res:// path to a SkeletonProfile.",
+			},
+			"position": {"type": "boolean", "default": false, "description": "retarget_setup: retarget bone positions."},
+			"rotation": {"type": "boolean", "default": true, "description": "retarget_setup: retarget bone rotations."},
+			"scale": {"type": "boolean", "default": false, "description": "retarget_setup: retarget bone scales."},
+			"use_global_pose": {"type": "boolean", "default": false, "description": "retarget_setup: retarget global poses instead of parent-relative ones (bone lengths must match exactly)."},
+			"move_target": {"type": "boolean", "default": true, "description": "retarget_setup: move the target skeleton under the modifier (required by RetargetModifier3D)."},
 			"name": {
 				"type": "string",
 				"description": "Pose name (res://animation_toolkit/poses/<name>.json) to save to or load from.",
@@ -1406,6 +1435,24 @@ static func _rig_ops() -> Array:
 			"summary": "Attach a 3D IK modifier (two-bone or chain solver) to a skeleton and wire it to a target node.",
 			"params": ["skeleton_path", "kind", "chain", "target_path", "target_name", "pole_path", "use_virtual_end", "end_bone_length", "name", "active"],
 			"example": {"op": "ik_setup", "skeleton_path": "/Main/Rig/Skeleton3D", "kind": "two_bone", "chain": ["B-upperArm.L", "B-forearm.L", "B-hand.L"], "target_name": "HandTarget"},
+		},
+		{
+			"name": "spring_setup",
+			"summary": "Attach spring bones (SpringBoneSimulator3D) to a skeleton, one spring setting per entry.",
+			"params": ["skeleton_path", "springs", "name", "active", "mutable_bone_axes"],
+			"example": {"op": "spring_setup", "skeleton_path": "/Main/Rig/Skeleton3D", "springs": [{"root_bone": "B-hair01", "stiffness": 0.3, "drag": 0.2, "gravity": 0.1, "radius": 0.05}]},
+		},
+		{
+			"name": "look_at_setup",
+			"summary": "Attach a look-at modifier so one bone tracks a target node (created in front of the bone when omitted).",
+			"params": ["skeleton_path", "bone", "target_path", "target_name", "forward_axis", "origin_from", "origin_bone", "origin_node", "origin_offset", "origin_safe_margin", "use_angle_limitation", "primary_limit_angle", "secondary_limit_angle", "use_secondary_rotation", "primary_axis", "relative", "duration", "name", "active"],
+			"example": {"op": "look_at_setup", "skeleton_path": "/Main/Rig/Skeleton3D", "bone": "B-head", "target_name": "HeadTarget", "forward_axis": "+z"},
+		},
+		{
+			"name": "retarget_setup",
+			"summary": "Retarget a source skeleton's poses onto a child target skeleton through a RetargetModifier3D and a bone-name profile.",
+			"params": ["skeleton_path", "target_path", "profile", "position", "rotation", "scale", "use_global_pose", "move_target", "name", "active"],
+			"example": {"op": "retarget_setup", "skeleton_path": "/Main/Source/Skeleton3D", "target_path": "/Main/Target/Skeleton3D", "profile": "auto"},
 		},
 	])
 

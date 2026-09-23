@@ -753,11 +753,197 @@ func test_ik_setup_chain_kinds_and_validation() -> void:
 	_teardown(rig)
 
 
+# --- spring_setup ----------------------------------------------------------
+
+func test_spring_setup_builds_springs() -> void:
+	var rig := _rig("RigSpring")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "spring_setup", "skeleton_path": rig.skeleton_path,
+		"springs": [{
+			"root_bone": "B-forearm.L", "end_bone": "B-hand.L",
+			"stiffness": 0.3, "drag": 0.2, "gravity": 0.1, "radius": 0.05,
+			"rotation_axis": "z",
+		}],
+	}, null)
+	assert_true(result.has("data"), "expected data, got: %s" % str(result))
+	assert_eq(int(result.data.spring_count), 1)
+	assert_true(not bool(result.data.active), "the simulator starts inactive")
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var simulator := ValueCodec.resolve_scene_path(str(result.data.modifier_path), scene_root)
+	assert_true(simulator is SpringBoneSimulator3D, "a SpringBoneSimulator3D was added (%s)" % str(result.data.modifier_class))
+	assert_true(simulator.get_parent() == rig.skeleton, "the simulator is a child of the skeleton")
+	assert_eq((simulator as SpringBoneSimulator3D).get_setting_count(), 1)
+	assert_eq((simulator as SpringBoneSimulator3D).get_root_bone_name(0), "B-forearm.L")
+	assert_eq((simulator as SpringBoneSimulator3D).get_end_bone_name(0), "B-hand.L")
+	assert_true(absf((simulator as SpringBoneSimulator3D).get_stiffness(0) - 0.3) < 0.001, "stiffness is set")
+	assert_eq((simulator as SpringBoneSimulator3D).get_rotation_axis(0), SkeletonModifier3D.ROTATION_AXIS_Z)
+	var leaf := _handler.run({
+		"op": "spring_setup", "skeleton_path": rig.skeleton_path,
+		"springs": [{"root_bone": "B-forearm.L"}],
+	}, null)
+	assert_true(leaf.has("data"), "expected data, got: %s" % str(leaf))
+	assert_eq((simulator as SpringBoneSimulator3D).get_setting_count(), 1, "the second call replaces the settings")
+	assert_true((leaf.data.warnings as Array).size() > 0, "the leaf fallback warns")
+	var missing := _handler.run({
+		"op": "spring_setup", "skeleton_path": rig.skeleton_path,
+		"springs": [{"root_bone": "ghost"}],
+	}, null)
+	assert_is_error(missing, ErrorCodes.INVALID_PARAMS)
+	var bad_axis := _handler.run({
+		"op": "spring_setup", "skeleton_path": rig.skeleton_path,
+		"springs": [{"root_bone": "B-forearm.L", "rotation_axis": "w"}],
+	}, null)
+	assert_is_error(bad_axis, ErrorCodes.VALUE_OUT_OF_RANGE)
+	var undone := editor_undo(_undo_redo)
+	assert_true(undone, "undo should succeed")
+	assert_true(ValueCodec.resolve_scene_path(str(leaf.data.modifier_path), scene_root) == null,
+		"one undo removes the simulator")
+	_teardown(rig)
+
+
+# --- look_at_setup ---------------------------------------------------------
+
+func test_look_at_setup_tracks_a_target() -> void:
+	var rig := _rig("RigLook")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "look_at_setup", "skeleton_path": rig.skeleton_path,
+		"bone": "B-head", "target_name": "HeadTarget",
+		"forward_axis": "+z", "duration": 0.2,
+	}, null)
+	assert_true(result.has("data"), "expected data, got: %s" % str(result))
+	assert_true(bool(result.data.target_created), "the target marker was created")
+	assert_true(not bool(result.data.active), "the modifier starts inactive")
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var modifier := ValueCodec.resolve_scene_path(str(result.data.modifier_path), scene_root)
+	assert_true(modifier is LookAtModifier3D, "a LookAtModifier3D was added (%s)" % str(result.data.modifier_class))
+	assert_true(modifier.get_parent() == rig.skeleton, "the modifier is a child of the skeleton")
+	assert_eq((modifier as LookAtModifier3D).get_bone_name(), "B-head")
+	assert_eq((modifier as LookAtModifier3D).get_forward_axis(), SkeletonModifier3D.BONE_AXIS_PLUS_Z)
+	assert_true(not str((modifier as LookAtModifier3D).get_target_node()).is_empty(), "the target is wired")
+	assert_true(absf((modifier as LookAtModifier3D).get_duration() - 0.2) < 0.001, "duration is set")
+	var target := ValueCodec.resolve_scene_path(str(result.data.target_path), scene_root)
+	assert_true(target is Marker3D, "the target is a Marker3D")
+	var missing_bone := _handler.run({
+		"op": "look_at_setup", "skeleton_path": rig.skeleton_path, "bone": "ghost",
+	}, null)
+	assert_is_error(missing_bone, ErrorCodes.INVALID_PARAMS)
+	var bad_axis := _handler.run({
+		"op": "look_at_setup", "skeleton_path": rig.skeleton_path, "bone": "B-head", "forward_axis": "up",
+	}, null)
+	assert_is_error(bad_axis, ErrorCodes.VALUE_OUT_OF_RANGE)
+	var undone := editor_undo(_undo_redo)
+	assert_true(undone, "undo should succeed")
+	assert_true(ValueCodec.resolve_scene_path(str(result.data.modifier_path), scene_root) == null,
+		"one undo removes the modifier")
+	assert_true(ValueCodec.resolve_scene_path(str(result.data.target_path), scene_root) == null,
+		"one undo removes the target too")
+	_teardown(rig)
+
+
+# --- retarget_setup --------------------------------------------------------
+
+func test_retarget_setup_maps_and_moves() -> void:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		skip("no edited scene")
+		return
+	var source_path := "/" + scene_root.name + "/RetargetSource"
+	var target_path := "/" + scene_root.name + "/RetargetTarget"
+	var bones := [
+		{"name": "B-hips", "position": [0, 0.9, 0]},
+		{"name": "B-spine", "parent": "B-hips", "position": [0, 0.2, 0]},
+		{"name": "B-head", "parent": "B-spine", "position": [0, 0.4, 0]},
+	]
+	var built_source := _handler.run({
+		"op": "rig_chain", "skeleton_path": source_path, "name": "RetargetSource", "bones": bones,
+	}, null)
+	assert_true(built_source.has("data"), "the source skeleton builds, got: %s" % str(built_source))
+	var built_target := _handler.run({
+		"op": "rig_chain", "skeleton_path": target_path, "name": "RetargetTarget", "bones": bones,
+	}, null)
+	assert_true(built_target.has("data"), "the target skeleton builds, got: %s" % str(built_target))
+	var result := _handler.run({
+		"op": "retarget_setup", "skeleton_path": source_path,
+		"target_path": target_path, "profile": "auto",
+	}, null)
+	assert_true(result.has("data"), "expected data, got: %s" % str(result))
+	assert_eq(str(result.data.profile_source), "auto")
+	assert_eq(int(result.data.profile_bones), 3, "the auto profile mirrors the source skeleton")
+	assert_eq(int(result.data.mapped_bones), 3, "matching bone names map")
+	assert_eq((result.data.unmapped_bones as Array).size(), 0)
+	assert_true(bool(result.data.moved_target), "the target was moved under the modifier")
+	assert_eq(int(result.data.enable_flags), RetargetModifier3D.TRANSFORM_FLAG_ROTATION,
+		"rotation-only by default")
+	var modifier := ValueCodec.resolve_scene_path(str(result.data.modifier_path), scene_root)
+	assert_true(modifier is RetargetModifier3D, "a RetargetModifier3D was added (%s)" % str(result.data.modifier_class))
+	assert_true(modifier.get_parent() == ValueCodec.resolve_scene_path(source_path, scene_root),
+		"the modifier is a child of the source skeleton")
+	var target := ValueCodec.resolve_scene_path(str(result.data.target_path), scene_root)
+	assert_true(target != null and target.get_parent() == modifier,
+		"the target skeleton is a child of the modifier (at %s)" % str(result.data.target_path))
+	assert_true((modifier as RetargetModifier3D).get_profile() != null, "the profile is assigned")
+	assert_eq((modifier as RetargetModifier3D).get_profile().get_bone_size(), 3)
+	assert_true(not bool(result.data.active), "the modifier starts inactive")
+	var same := _handler.run({
+		"op": "retarget_setup", "skeleton_path": source_path, "target_path": source_path,
+	}, null)
+	assert_is_error(same, ErrorCodes.INVALID_PARAMS)
+	var wrong_type := _handler.run({
+		"op": "retarget_setup", "skeleton_path": source_path, "target_path": "/" + scene_root.name,
+	}, null)
+	assert_is_error(wrong_type, ErrorCodes.WRONG_TYPE)
+	var undone := editor_undo(_undo_redo)
+	assert_true(undone, "undo should succeed")
+	assert_true(ValueCodec.resolve_scene_path(str(result.data.modifier_path), scene_root) == null,
+		"one undo removes the modifier")
+	var restored := ValueCodec.resolve_scene_path(target_path, scene_root)
+	assert_true(restored != null and restored.get_parent() == scene_root,
+		"one undo puts the target skeleton back (found %s)" % str(restored))
+	_remove_node(target_path)
+	_remove_node(source_path)
+
+
+func test_retarget_setup_refuses_instanced_skeletons() -> void:
+	var source_path := "/" + EditorInterface.get_edited_scene_root().name + "/RetargetPlain"
+	var built := _handler.run({
+		"op": "rig_chain", "skeleton_path": source_path, "name": "RetargetPlain",
+		"bones": [{"name": "B-hips", "position": [0, 0.9, 0]}],
+	}, null)
+	if not built.has("data"):
+		skip("the plain skeleton did not build")
+		return
+	var target_rig := _rig("RetargetTgt2")
+	if target_rig.has("error"):
+		_remove_node(source_path)
+		skip(target_rig.error)
+		return
+	var instanced_target := _handler.run({
+		"op": "retarget_setup", "skeleton_path": source_path,
+		"target_path": target_rig.skeleton_path,
+	}, null)
+	assert_is_error(instanced_target, ErrorCodes.INVALID_PARAMS)
+	assert_contains(instanced_target.error.message, "instanced scene")
+	var instanced_source := _handler.run({
+		"op": "retarget_setup", "skeleton_path": target_rig.skeleton_path,
+		"target_path": source_path,
+	}, null)
+	assert_is_error(instanced_source, ErrorCodes.INVALID_PARAMS)
+	assert_contains(instanced_source.error.message, "instanced scene")
+	_teardown(target_rig)
+	_remove_node(source_path)
+
+
 func test_registry_matches_rig_schema() -> void:
 	var info := OpRegistry.family(OpRegistry.FAMILY_RIG)
 	assert_false(info.is_empty(), "the rig family is registered")
 	var op_enum: Array = info.schema.properties.op.enum
-	assert_eq(op_enum.size(), 8, "the rig schema lists every op")
+	assert_eq(op_enum.size(), 11, "the rig schema lists every op")
 	for descriptor in info.ops:
 		assert_true(op_enum.has(descriptor.name), "%s is in the schema enum" % descriptor.name)
 		for param in descriptor.params:
