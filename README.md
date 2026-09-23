@@ -144,6 +144,20 @@ Same contract as the presets — one undo action per call, `dry_run` supported.
 }}
 ```
 
+## A living menu (example)
+
+[**Video: menu demo (0:47)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v1.1.0/animation_toolkit_menu_demo.mp4)
+— a game menu whose every reaction is an ordinary toolkit clip, driven by
+synthetic mouse input: an entry `stagger`, a hover pop from a saved
+`template_apply`, `bounce` + `hit_flash` on press, a `transition` wipe into a
+`progress_fill`/`counter` loading screen, a `dialog_pop` options panel (closed
+by replaying the clip reversed with `animation_edit reverse`), and a quit that
+`shake`s the screen.
+
+The scene ships in the test project: open `test_project/demo_menu.tscn` and run
+it — 17 animation players, every clip authored with the toolkit, plus one small
+driver that replays the interaction timeline.
+
 ## AnimationTree graphs
 
 [**Video: graph demo (0:38)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v0.6.0/animation_toolkit_graph_demo.mp4)

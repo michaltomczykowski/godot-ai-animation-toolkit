@@ -9,6 +9,15 @@
         "intensity": 0.35
       },
       "tool": "animation_presets"
+    },
+    "menu_hover": {
+      "description": "Menu button hover: a small center-pivot pop",
+      "op": "bounce",
+      "params": {
+        "duration": 0.16,
+        "intensity": 0.06
+      },
+      "tool": "animation_presets"
     }
   },
   "version": 1

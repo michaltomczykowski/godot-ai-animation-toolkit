@@ -1,0 +1,64 @@
+{
+  "format": "godot-ai-animation-clip",
+  "length": 0.38,
+  "loop_mode": 0,
+  "markers": [],
+  "tracks": [
+    {
+      "enabled": true,
+      "interp": 1,
+      "keys": [
+        {
+          "time": 0.0,
+          "transition": 1.0,
+          "value": {
+            "kind": "vector2",
+            "x": 0.860000014305115,
+            "y": 0.860000014305115
+          }
+        },
+        {
+          "time": 0.228,
+          "transition": 0.5,
+          "value": {
+            "kind": "vector2",
+            "x": 1.03999996185303,
+            "y": 1.03999996185303
+          }
+        },
+        {
+          "time": 0.38,
+          "transition": 1.0,
+          "value": {
+            "kind": "vector2",
+            "x": 1.0,
+            "y": 1.0
+          }
+        }
+      ],
+      "path": "OptionsPanel:scale",
+      "type": 0,
+      "update_mode": 0
+    },
+    {
+      "enabled": true,
+      "interp": 1,
+      "keys": [
+        {
+          "time": 0.0,
+          "transition": 1.0,
+          "value": 0.0
+        },
+        {
+          "time": 0.228,
+          "transition": 1.0,
+          "value": 1.0
+        }
+      ],
+      "path": "OptionsPanel:modulate:a",
+      "type": 0,
+      "update_mode": 0
+    }
+  ],
+  "version": 1
+}
