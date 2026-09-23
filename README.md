@@ -54,7 +54,9 @@ spec → spec transform and each mutating call is one scene-pinned undo action.
 
 *`op="showcase"` builds the scene above — seven nodes, seven autoplaying clips, one undo step.*
 
-[**Full showcase (3:12)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v1.1.0/animation_toolkit_full_showcase.mp4)
+[![Watch the full showcase](docs/images/showcase-poster.png)](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v1.1.0/animation_toolkit_full_showcase.mp4)
+
+**[Full showcase (3:12)](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v1.1.0/animation_toolkit_full_showcase.mp4)**
 — every phase in one pass: clips, editing, inspection, generators, graphs, the
 project library, rigs, procedural recipes and the exercise recipes, with the CI
 results at the end.
