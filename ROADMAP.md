@@ -269,10 +269,11 @@ Covered by 3 editor rows (133 total) and 1815 tier-1 checks; video
 
 Post-release examples (also on v1.1.0): `demo_menu.tscn` - a living game menu
 where every reaction (entry stagger, hover pop via a saved template, press
-bounce + flash, page wipe, loading bar + counter, dialog-popped options panel
-closed with `animation_edit reverse`, quit shake) is an ordinary toolkit clip
-on one of 17 animation players, driven by synthetic mouse input from a small
-script. Video: `animation_toolkit_menu_demo.mp4` (0:47).
+bounce + flash, page wipe, loading bar + counter, dialog-popped options and
+credits cards closed with `animation_edit reverse`, quit shake, outro) is an
+ordinary toolkit clip on one of 24 animation players over a procedural aurora
+shader and GPU motes, driven by synthetic mouse input from a small script.
+Video: `animation_toolkit_menu_demo.mp4` (0:47).
 
 ### Risks / mitigations
 
