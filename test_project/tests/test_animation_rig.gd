@@ -909,8 +909,9 @@ func test_retarget_setup_maps_and_moves() -> void:
 	_remove_node(source_path)
 
 
-func test_retarget_setup_refuses_instanced_skeletons() -> void:
-	var source_path := "/" + EditorInterface.get_edited_scene_root().name + "/RetargetPlain"
+func test_retarget_setup_moves_instanced_targets_whole() -> void:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var source_path := "/" + scene_root.name + "/RetargetPlain"
 	var built := _handler.run({
 		"op": "rig_chain", "skeleton_path": source_path, "name": "RetargetPlain",
 		"bones": [{"name": "B-hips", "position": [0, 0.9, 0]}],
@@ -923,18 +924,25 @@ func test_retarget_setup_refuses_instanced_skeletons() -> void:
 		_remove_node(source_path)
 		skip(target_rig.error)
 		return
-	var instanced_target := _handler.run({
+	var instance_root: Node = target_rig.skeleton.get_parent()
+	var result := _handler.run({
 		"op": "retarget_setup", "skeleton_path": source_path,
 		"target_path": target_rig.skeleton_path,
 	}, null)
-	assert_is_error(instanced_target, ErrorCodes.INVALID_PARAMS)
-	assert_contains(instanced_target.error.message, "instanced scene")
+	assert_true(result.has("data"), "an instanced target is moved as a whole, got: %s" % str(result))
+	var modifier := ValueCodec.resolve_scene_path(str(result.data.modifier_path), scene_root)
+	assert_true(instance_root.get_parent() == modifier, "the instance root moved under the modifier")
+	assert_true(target_rig.skeleton.get_parent() == instance_root,
+		"the skeleton stays inside its own scene, so the skin binding survives")
+	assert_eq(str(result.data.moved_path), ValueCodec.from_node(instance_root, scene_root),
+		"the response reports the node that moved")
 	var instanced_source := _handler.run({
-		"op": "retarget_setup", "skeleton_path": target_rig.skeleton_path,
+		"op": "retarget_setup", "skeleton_path": str(result.data.target_path),
 		"target_path": source_path,
 	}, null)
 	assert_is_error(instanced_source, ErrorCodes.INVALID_PARAMS)
 	assert_contains(instanced_source.error.message, "instanced scene")
+	editor_undo(_undo_redo)
 	_teardown(target_rig)
 	_remove_node(source_path)
 

@@ -1,0 +1,67 @@
+[gd_scene format=3 uid="uid://bdtpnr3ocnekk"]
+
+[ext_resource type="PackedScene" uid="uid://cpu8s2lb7o6qr" path="res://models/human_dummy/HumanCharacterDummy_F.fbx" id="1_pc4fg"]
+
+[sub_resource type="Animation" id="Animation_pc4fg"]
+length = 3.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("HandTarget:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1875, 0.375, 0.5625, 0.75, 0.9375, 1.125, 1.3125, 1.5, 1.6875, 1.875, 2.0625, 2.25, 2.4375, 2.625, 2.8125, 3),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(1.11762, 1.3851087, 0.03738314), Vector3(1.0871718, 1.3851087, 0.19045651), Vector3(1.0004628, 1.3851087, 0.32022586), Vector3(0.8706934, 1.3851087, 0.40693495), Vector3(0.71762, 1.3851087, 0.43738315), Vector3(0.56454664, 1.3851087, 0.40693495), Vector3(0.4347773, 1.3851087, 0.32022586), Vector3(0.3480682, 1.3851087, 0.19045651), Vector3(0.31762, 1.3851087, 0.03738314), Vector3(0.3480682, 1.3851087, -0.11569023), Vector3(0.4347773, 1.3851087, -0.24545959), Vector3(0.56454664, 1.3851087, -0.33216867), Vector3(0.71762, 1.3851087, -0.36261687), Vector3(0.8706934, 1.3851087, -0.33216867), Vector3(1.0004628, 1.3851087, -0.24545959), Vector3(1.0871718, 1.3851087, -0.11569023), Vector3(1.11762, 1.3851087, 0.03738314)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_2fuy6"]
+_data = {
+&"target_orbit": SubResource("Animation_pc4fg")
+}
+
+[node name="RigIK" type="Node3D" unique_id=1095933012]
+
+[node name="Dummy" parent="." unique_id=1602649457 instance=ExtResource("1_pc4fg")]
+
+[node name="IKTwo Bone" type="TwoBoneIK3D" parent="Dummy/Skeleton3D" parent_id_path=PackedInt32Array(1602649457, 120107459) index="1" unique_id=1723824690]
+setting_count = 1
+settings/0/target_node = NodePath("../../HandTarget")
+settings/0/pole_node = NodePath("")
+settings/0/root_bone_name = "B-upperArm.L"
+settings/0/root_bone = 28
+settings/0/middle_bone_name = "B-forearm.L"
+settings/0/middle_bone = 29
+settings/0/pole_direction = 0
+settings/0/end_bone_name = "B-hand.L"
+settings/0/end_bone = 30
+settings/0/use_virtual_end = false
+settings/0/extend_end_bone = false
+
+[node name="Cam" type="Camera3D" parent="." unique_id=1758972363]
+transform = Transform3D(1, 0, 0, 0, 0.997551, 0.06994285, 0, -0.06994285, 0.997551, 0, 1.15, 3.1)
+current = true
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=1880472887]
+transform = Transform3D(0.8658247, 0.35365817, -0.3539399, 0, 0.7073882, 0.7068252, 0.50034744, -0.6119867, 0.6124742, 0, 0, 0)
+light_energy = 1.2
+
+[node name="TargetAnim" type="AnimationPlayer" parent="." unique_id=1663181949]
+libraries/ = SubResource("AnimationLibrary_2fuy6")
+autoplay = &"target_orbit"
+
+[node name="Ui" type="CanvasLayer" parent="." unique_id=1169073578]
+
+[node name="Title" type="Label" parent="Ui" unique_id=762491095]
+offset_left = 40.0
+offset_top = 24.0
+theme_override_font_sizes/font_size = 34
+text = "ik_setup  two_bone  active: true"
+
+[node name="HandTarget" type="Marker3D" parent="." unique_id=1747741078]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.71762, 1.3851087, 0.03738314)
+
+[editable path="Dummy"]

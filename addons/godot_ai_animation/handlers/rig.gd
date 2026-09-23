@@ -715,6 +715,7 @@ func ik_setup(params: Dictionary) -> Dictionary:
 			return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
 				"The IK target must be a Node3D (got %s)" % found.get_class())
 		target = found
+	var end_index := skeleton.find_bone(str(chain[chain.size() - 1]))
 	var pole: Node3D = null
 	var pole_path := str(params.get("pole_path", ""))
 	if kind == "two_bone" and not pole_path.is_empty():
@@ -725,7 +726,35 @@ func ik_setup(params: Dictionary) -> Dictionary:
 			return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
 				"The IK pole must be a Node3D (got %s)" % found_pole.get_class())
 		pole = found_pole
-	var end_index := skeleton.find_bone(str(chain[chain.size() - 1]))
+	var pole_created := false
+	var pole_entries: Array = []
+	var pole_direction := Vector3.ZERO
+	if kind == "two_bone" and pole == null:
+		# TwoBoneIK3D requires a pole target: without one it solves nothing.
+		# Default it to a point behind the middle joint (Godot's humanoid
+		# convention faces +Z), projected perpendicular to the chain.
+		var root_index := skeleton.find_bone(str(chain[0]))
+		var middle_index := skeleton.find_bone(str(chain[1]))
+		var root_pose := skeleton.get_bone_global_pose(root_index)
+		var middle_pose := skeleton.get_bone_global_pose(middle_index)
+		var end_pose := skeleton.get_bone_global_pose(end_index)
+		var chain_dir := end_pose.origin - root_pose.origin
+		if chain_dir.length() < 0.001:
+			chain_dir = middle_pose.basis.y
+		chain_dir = chain_dir.normalized()
+		var back := Vector3(0, 0, -1)
+		var side := back - chain_dir * back.dot(chain_dir)
+		if side.length() < 0.001:
+			side = middle_pose.basis.x
+		side = side.normalized()
+		var pole_position := middle_pose.origin + side * 0.5
+		pole_direction = (middle_pose.basis.inverse() * side).normalized()
+		var marker := Marker3D.new()
+		marker.name = str(params.get("pole_name", "IKPole"))
+		pole_entries.append({"parent": scene_root, "node": marker,
+			"setup": [{"method": "set_global_position", "args": [skeleton.global_transform * pole_position]}]})
+		pole = marker
+		pole_created = true
 	var tip := _bone_tip_3d(skeleton, end_index)
 	if tip.get("warning") != null:
 		warnings.append(str(tip.warning))
@@ -746,9 +775,7 @@ func ik_setup(params: Dictionary) -> Dictionary:
 		target_node = marker
 		target_created = true
 	var setup: Array = [{"property": "active", "value": active}]
-	var target_rel := str(skeleton.get_path_to(target_node))
-	if target_rel.is_empty():
-		target_rel = "."
+	var target_rel := _modifier_target_path(skeleton, modifier, target_node, scene_root)
 	setup.append({"method": "set_setting_count", "args": [1]})
 	setup.append({"method": "set_root_bone_name", "args": [0, str(chain[0])]})
 	if kind == "two_bone":
@@ -760,11 +787,15 @@ func ik_setup(params: Dictionary) -> Dictionary:
 			setup.append({"method": "set_extend_end_bone", "args": [0, true]})
 			setup.append({"method": "set_end_bone_length", "args": [0, float(params.get("end_bone_length", 0.1))]})
 		if pole != null:
-			setup.append({"method": "set_pole_node", "args": [0, str(skeleton.get_path_to(pole))]})
+			setup.append({"method": "set_pole_node", "args": [0, _modifier_target_path(skeleton, modifier, pole, scene_root)]})
+			if pole_created:
+				setup.append({"method": "set_pole_direction", "args": [0, SkeletonModifier3D.SECONDARY_DIRECTION_CUSTOM]})
+				setup.append({"method": "set_pole_direction_vector", "args": [0, pole_direction]})
 	else:
 		setup.append({"method": "set_end_bone_name", "args": [0, str(chain[chain.size() - 1])]})
-	setup.append({"method": "set_target_node", "args": [0, NodePath(target_rel)]})
+	setup.append({"method": "set_target_node", "args": [0, target_rel]})
 	entries.append({"parent": skeleton, "node": modifier, "setup": setup})
+	entries.append_array(pole_entries)
 	_commit_node_add_many("MCP: IK setup (%s)" % kind, entries)
 	var data := {
 		"skeleton_path": resolved.path,
@@ -776,6 +807,7 @@ func ik_setup(params: Dictionary) -> Dictionary:
 		"target_created": target_created,
 		"chain": chain,
 		"pole_path": "" if pole == null else ValueCodec.from_node(pole, scene_root),
+		"pole_created": pole_created,
 		"active": active,
 		"warnings": warnings,
 		"undoable": true,
@@ -974,13 +1006,11 @@ func look_at_setup(params: Dictionary) -> Dictionary:
 	var active := bool(params.get("active", false))
 	var modifier := LookAtModifier3D.new()
 	modifier.name = str(params.get("name", "LookAt"))
-	var target_rel := str(skeleton.get_path_to(target_node))
-	if target_rel.is_empty():
-		target_rel = "."
+	var target_rel := _modifier_target_path(skeleton, modifier, target_node, scene_root)
 	var setup: Array = [
 		{"property": "active", "value": active},
 		{"method": "set_bone_name", "args": [bone_name]},
-		{"method": "set_target_node", "args": [NodePath(target_rel)]},
+		{"method": "set_target_node", "args": [target_rel]},
 		{"method": "set_forward_axis", "args": [forward]},
 	]
 	if params.has("origin_from"):
@@ -1107,12 +1137,22 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 	var active := bool(params.get("active", false))
 	var move_target := bool(params.get("move_target", true))
 	var already_under_modifier := target.get_parent() is RetargetModifier3D and source.is_ancestor_of(target)
+	# Move the target's scene root (its instance root when it comes from an
+	# instanced scene) rather than the bare skeleton: a skinned mesh is bound to
+	# its skeleton by a path inside its own scene, so pulling the skeleton out
+	# would leave the mesh behind.
+	var move_node: Node = target
+	while move_node.scene_file_path.is_empty() and move_node.get_parent() != null \
+			and move_node.get_parent() != scene_root:
+		move_node = move_node.get_parent()
 	if not already_under_modifier and not move_target:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"The target skeleton must be a child of the RetargetModifier3D. Pass move_target=true to move it there, or parent it under a RetargetModifier3D yourself.")
-	if move_target and not already_under_modifier and not _instance_levels(target).is_empty():
-		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-			"The target skeleton lives inside an instanced scene, so moving it would not survive the scene save - move it into the edited scene first (or pass move_target=false and parent it yourself)")
+	if move_target and not already_under_modifier:
+		var move_parent := move_node.get_parent()
+		if move_parent == null or not _instance_levels(move_parent).is_empty():
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"The target lives inside a nested instanced scene, so moving it would not survive the scene save - move it into the edited scene first (or pass move_target=false and parent it yourself)")
 	var modifier := RetargetModifier3D.new()
 	modifier.name = str(params.get("name", "Retarget"))
 	var setup: Array = [
@@ -1134,11 +1174,11 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 			else:
 				_add_do_call(undo, modifier, call.method, call.get("args", []))
 		if move_target and not already_under_modifier:
-			var old_parent := target.get_parent()
-			undo.add_do_method(target, "reparent", modifier, true)
+			var old_parent := move_node.get_parent()
+			undo.add_do_method(move_node, "reparent", modifier, true)
 			# Undo methods run in registration order, so the target goes back to
 			# its old parent before the modifier (its current parent) is removed.
-			undo.add_undo_method(target, "reparent", old_parent, true)
+			undo.add_undo_method(move_node, "reparent", old_parent, true)
 			undo.add_undo_method(source, "remove_child", modifier)
 		else:
 			undo.add_undo_method(source, "remove_child", modifier)
@@ -1150,6 +1190,7 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 		"modifier_path": ValueCodec.from_node(modifier, scene_root),
 		"target_path": ValueCodec.from_node(target, scene_root),
 		"moved_target": move_target and not already_under_modifier,
+		"moved_path": ValueCodec.from_node(move_node, scene_root) if move_target and not already_under_modifier else "",
 		"profile_source": str(resolved_profile.source),
 		"profile_bones": profile.get_bone_size(),
 		"mapped_bones": (resolved_profile.mapped as Array).size(),
@@ -1587,6 +1628,18 @@ func _bone_tip_3d(skeleton: Skeleton3D, bone_index: int) -> Dictionary:
 
 
 # --- modifier enum helpers --------------------------------------------------
+
+## NodePath from a modifier (a child of `skeleton`) to a target node: IK and
+## look-at settings resolve their paths against the modifier. Targets created by
+## the same action are not in the tree yet, so their path is built by hand (they
+## land directly under the edited scene root).
+static func _modifier_target_path(skeleton: Skeleton3D, modifier: Node, target: Node, scene_root: Node) -> NodePath:
+	if target.is_inside_tree() and modifier.is_inside_tree():
+		return modifier.get_path_to(target)
+	var up := str(skeleton.get_path_to(scene_root))
+	var base := ".." if up.is_empty() else "../%s" % up
+	return NodePath("%s/%s" % [base, str(target.name)])
+
 
 ## "x" / "y" / "z" / "all" / "custom" -> SkeletonModifier3D.RotationAxis, or -1.
 static func _rotation_axis(value: String) -> int:
