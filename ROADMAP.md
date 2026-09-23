@@ -1,7 +1,7 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **Phase 0-5 done** (v0.7.0). Phase 6 (rigs) is the remaining roadmap item.
-Last updated: 2026-09-22.
+Status: **Phase 0-5 done** (v0.7.0). Phase 6 (rigs) is in progress: 6a (poses) first.
+Last updated: 2026-09-23.
 
 Phase 3 note: the generators landed as their own family, `animation_fx`, instead
 of growing the `animation_presets` schema to ~60 params. The "one tool per
@@ -123,6 +123,74 @@ of the undo stack; clip creation is one undo action.
 Skeleton2D/Bone2D chains from a node tree, IK (CCDIK/FABRIK/two-bone), spring
 bones, pose save/apply/blend, then procedural character recipes (`walk_cycle`,
 `idle_breathing`, `blink`).
+
+## Phase 6 - `animation_rig` (in progress)
+
+The last roadmap item, deliberately split into three releases. **Locked
+decisions**: three sub-phases; 3D-first (2D IK is *Experimental* in Godot 4.7);
+scope = bone chains + poses + IK + springs + **retargeting** (no automatic
+skinning/skin weights); tests and CI run on rigs the toolkit builds itself, with
+the committed `Human Character Dummy` pair (`test_project/models/human_dummy/`)
+as the real-character fixture for tests and demos.
+
+Why this is not a new engine: Godot stores bone animation as
+`TYPE_ROTATION_3D` / `POSITION_3D` / `SCALE_3D` tracks at paths like
+`Skeleton3D:B-thigh.R`, with pose rotations as local-to-parent quaternions -
+exactly what `ClipSpec` already stores and what `spec_json` round-trips. Bone
+clips therefore inherit every existing op (`retime`, `mirror`, `reverse`,
+`amplitude`, `spec_export`, templates) from day one.
+
+Verified API surface (Godot 4.7 docs + the dummy import):
+
+| Area | API |
+| --- | --- |
+| Skeleton3D | `add_bone`, `set_bone_parent` (parent < idx), `set_bone_rest`, `localize_rests`, `find_bone`, bone metadata, `create_skin_from_rest_transforms` |
+| Pose | `set/get_bone_pose_rotation` (Quaternion, local to parent), `_position`, `_scale`, `get_bone_global_pose/rest`, `reset_bone_pose(s)`, `set_bone_enabled` |
+| Modifiers | `SkeletonModifier3D` is a child of the Skeleton3D; `active` (default true), `influence`; runs after the AnimationMixer; `modifier_callback_mode_process`, `advance(delta)`, `modification_processed` |
+| 3D IK | `IKModifier3D` -> `TwoBoneIK3D`, `ChainIK3D`; indexed settings (`setting_count`, `settings/<i>/...`): root/middle/end bone names, `set_target_node`, `set_pole_node`/`set_pole_direction(_vector)`, `set_extend_end_bone`, `set_use_virtual_end` |
+| Springs | `SpringBoneSimulator3D` chains (root/end bone, center from, per-joint stiffness/drag/gravity/radius, damping curves, collision lists, `reset()`, `external_force`); docs warn scaled skeletons misbehave |
+| Retargeting | `RetargetModifier3D` (child of the *target* skeleton; the source skeleton must be its parent node), `profile` (`SkeletonProfileHumanoid`), `enable` flags, `use_global_pose` |
+| 2D rig | `Bone2D` (`rest`, `apply_rest`, `set_bone_angle`, `set_length`, autocalculate), `SkeletonModificationStack2D` + `SkeletonModification2DTwoBoneIK`/`CCDIK`/`FABRIK`/`Jiggle` (**Experimental**) |
+
+### 6a - poses -> v0.8.0
+
+| op | What it does |
+| --- | --- |
+| `pose_save` | Capture a skeleton pose (3D bones / 2D bones) inline and/or to `res://animation_toolkit/poses/<name>.json` |
+| `pose_apply` | Write a pose onto a skeleton: `blend` 0-1, `bones` subset, `mirror` (L/R), `reset_first` |
+| `pose_blend` | Pure pose math: slerp/lerp between poses, mirror, rest normalisation |
+| `pose_to_clip` | Keyframe `[{pose, time, transition?}]` into a clip (one rotation track per bone) |
+| `rig_get` | Dump bones/rests/poses, modifier stack, spring chains + issues |
+
+### 6b - rigs, IK, springs, retargeting -> v0.9.0
+
+`rig_chain` (build Skeleton2D/Bone2D or Skeleton3D chains from a spec or a node
+subtree), `ik_setup` (3D two-bone/chain, 2D two-bone/CCDIK/FABRIK - 2D labelled
+experimental), `spring_setup`, `look_at_setup`, `retarget_setup` (profile +
+auto-mapped bone names with overrides; the target skeleton must be a child of
+the source). All modifiers are created **inactive** (opt-in), and rig ops warn
+about scaled skeletons.
+
+### 6c - procedural recipes -> v1.0.0
+
+`walk_cycle` (phase-offset legs/arms + hip bob, explicit role mapping with
+name-based auto-detect), `idle_breathing`, `blink`, and `bake_pose_sequence`
+(step the skeleton with `advance()` and sample IK results into a clip so IK can
+be baked off at runtime).
+
+### Risks / mitigations
+
+1. Editor-time modifier processing (the AnimationTree lesson): verify first,
+   create inactive by default, document opt-in activation.
+2. 2D modification stack is Experimental: 3D-first, graceful errors, stable
+   pose/clip path covers 2D needs.
+3. Undoing bone-list edits: snapshot bones/parents/rests/poses and restore in
+   the undo branch.
+4. IK results are only readable via `modification_processed`: capture posed
+   (pre-modifier) values in `pose_save`; `bake_pose_sequence` handles IK.
+5. Scaled skeletons break springs: warn in `spring_setup`/`rig_get`.
+6. Every unverified setter name gets confirmed against the live 4.7 ClassDB
+   before it is coded.
 
 ## Risks / notes
 
