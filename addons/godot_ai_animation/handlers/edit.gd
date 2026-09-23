@@ -12,6 +12,7 @@ const ClipSpec := preload("res://addons/godot_ai_animation/spec/clip_spec.gd")
 const SpecBuilder := preload("res://addons/godot_ai_animation/spec/spec_builder.gd")
 const SpecIO := preload("res://addons/godot_ai_animation/spec/spec_io.gd")
 const SpecModifiers := preload("res://addons/godot_ai_animation/spec/spec_modifiers.gd")
+const QualityModifiers := preload("res://addons/godot_ai_animation/spec/quality_modifiers.gd")
 const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
 
 const _LOOP_MODES := {
@@ -71,6 +72,16 @@ func _dispatch(params: Dictionary) -> Dictionary:
 			return edit_key_edit(params)
 		"cleanup":
 			return edit_cleanup(params)
+		"smooth":
+			return edit_smooth(params)
+		"resample":
+			return edit_resample(params)
+		"add_noise":
+			return edit_add_noise(params)
+		"overlap":
+			return edit_overlap(params)
+		"layer":
+			return edit_layer(params)
 	return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 		"Unknown op '%s'. Valid: %s" % [op, ", ".join(OpRegistry.op_names(OpRegistry.FAMILY_EDIT))])
 
@@ -496,6 +507,157 @@ func edit_cleanup(params: Dictionary) -> Dictionary:
 	return _commit_edited(loaded, result.spec, "MCP: Cleanup animation %s" % loaded.anim_name, {
 		"removed_keys": int(result.removed),
 		"min_gap": min_gap,
+	})
+
+
+## Soften key values toward their neighbours: follow-through cleanup for noisy
+## captures. `strength` 0-1, `passes` >= 1, optional `track_path`.
+func edit_smooth(params: Dictionary) -> Dictionary:
+	var loaded := _load_clip(params)
+	if loaded.has("error"):
+		return loaded
+	var strength := float(params.get("strength", 0.5))
+	if strength <= 0.0 or strength > 1.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'strength' must be in (0, 1]")
+	var passes := int(params.get("passes", 1))
+	if passes < 1 or passes > 50:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'passes' must be 1-50")
+	var track_path := str(params.get("track_path", ""))
+	var result := QualityModifiers.smooth(loaded.spec, strength, passes, track_path)
+	if int(result.changed) == 0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Nothing to smooth: need value tracks with 3+ keys (matched %d)" % int(result.changed))
+	return _commit_edited(loaded, result.spec, "MCP: Smooth %s" % loaded.anim_name, {
+		"strength": strength,
+		"passes": passes,
+		"track_path": track_path,
+		"smoothed_keys": int(result.changed),
+	})
+
+
+## Rebuild value tracks at a fixed sample rate using the engine's own
+## interpolator, so transitions and cubic keys survive densifying.
+func edit_resample(params: Dictionary) -> Dictionary:
+	var loaded := _load_clip(params)
+	if loaded.has("error"):
+		return loaded
+	var fps := float(params.get("fps", 30.0))
+	if fps <= 0.0 or fps > 120.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'fps' must be in (0, 120]")
+	var interp_name := str(params.get("interpolation", "linear"))
+	if not _INTERP_MODES.has(interp_name):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Invalid interpolation '%s'. Valid: %s" % [interp_name, ", ".join(_INTERP_MODES.keys())])
+	var track_path := str(params.get("track_path", ""))
+	var result := QualityModifiers.resample(loaded.spec, fps, _INTERP_MODES[interp_name], track_path)
+	if int(result.changed) == 0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "Nothing to resample: no value tracks matched")
+	return _commit_edited(loaded, result.spec, "MCP: Resample %s" % loaded.anim_name, {
+		"fps": fps,
+		"interpolation": interp_name,
+		"track_path": track_path,
+		"resampled_keys": int(result.changed),
+	})
+
+
+## Add seeded, smooth micro-motion to value keys (breathing, tremor, life).
+func edit_add_noise(params: Dictionary) -> Dictionary:
+	var loaded := _load_clip(params)
+	if loaded.has("error"):
+		return loaded
+	var amount := float(params.get("amount", 2.0))
+	if amount <= 0.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'amount' must be > 0")
+	var frequency := float(params.get("frequency", 3.0))
+	if frequency <= 0.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'frequency' must be > 0")
+	var seed_value := int(params.get("seed", 0))
+	var track_path := str(params.get("track_path", ""))
+	var result := QualityModifiers.add_noise(loaded.spec, amount, frequency, seed_value, track_path)
+	if int(result.changed) == 0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "Nothing to animate: no value keys matched")
+	return _commit_edited(loaded, result.spec, "MCP: Add noise to %s" % loaded.anim_name, {
+		"amount": amount,
+		"frequency": frequency,
+		"seed": seed_value,
+		"track_path": track_path,
+		"noised_keys": int(result.changed),
+	})
+
+
+## Delay one limb/prop subtree by `delay` seconds - instant follow-through.
+func edit_overlap(params: Dictionary) -> Dictionary:
+	var loaded := _load_clip(params)
+	if loaded.has("error"):
+		return loaded
+	var track_path := str(params.get("track_path", ""))
+	if track_path.is_empty():
+		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM, "overlap needs 'track_path'")
+	var delay := float(params.get("delay", 0.0))
+	if is_zero_approx(delay):
+		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM, "overlap needs 'delay' (seconds, non-zero)")
+	var wrap := bool(params.get("wrap", false))
+	var result := QualityModifiers.overlap(loaded.spec, track_path, delay, wrap)
+	if int(result.changed) == 0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"No tracks match '%s'. Pass an exact track path, a node path, or a subtree prefix." % track_path)
+	return _commit_edited(loaded, result.spec, "MCP: Overlap %s" % loaded.anim_name, {
+		"track_path": track_path,
+		"delay": delay,
+		"wrap": wrap,
+		"shifted_keys": int(result.changed),
+	})
+
+
+## Combine another clip onto this one: "mix" blends toward the source, "add"
+## layers its delta from its first key (breathing/jiggle onto a base).
+func edit_layer(params: Dictionary) -> Dictionary:
+	var loaded := _load_clip(params)
+	if loaded.has("error"):
+		return loaded
+	var source_name := str(params.get("source_animation", ""))
+	if source_name.is_empty():
+		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM, "layer needs 'source_animation'")
+	var layer_mode := str(params.get("layer_mode", "mix"))
+	if layer_mode != "add" and layer_mode != "mix":
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Invalid layer_mode '%s'. Valid: add, mix" % layer_mode)
+	var weight := clampf(float(params.get("weight", 1.0)), 0.0, 1.0)
+	var remap_node := str(params.get("remap_node", ""))
+	var overlay_anim: Animation = null
+	var source_player_path := str(params.get("source_player_path", ""))
+	if source_player_path.is_empty() or source_player_path == str(loaded.player_path):
+		if not loaded.library.has_animation(source_name):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"Animation '%s' not found on %s. Available: %s"
+				% [source_name, str(loaded.player_path), _available_names(loaded.library)])
+		overlay_anim = loaded.library.get_animation(source_name)
+	else:
+		var resolved_source := _resolve_player(source_player_path)
+		if resolved_source.has("error"):
+			return resolved_source
+		var source_library: AnimationLibrary = resolved_source.library
+		if source_library == null or not source_library.has_animation(source_name):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"Animation '%s' not found on %s" % [source_name, source_player_path])
+		overlay_anim = source_library.get_animation(source_name)
+	var unsupported := SpecIO.unsupported_tracks(overlay_anim)
+	if not unsupported.is_empty():
+		return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
+			"Source animation '%s' has tracks this toolkit cannot layer: %s"
+			% [source_name, SpecIO.describe_unsupported(overlay_anim)])
+	var result := QualityModifiers.layer(
+		loaded.spec, SpecIO.from_animation(overlay_anim), weight, layer_mode, remap_node)
+	if int(result.changed) == 0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "The source clip has no value tracks to layer")
+	return _commit_edited(loaded, result.spec, "MCP: Layer %s" % loaded.anim_name, {
+		"source_animation": source_name,
+		"source_player_path": source_player_path,
+		"layer_mode": layer_mode,
+		"weight": weight,
+		"remap_node": remap_node,
+		"layered_keys": int(result.changed),
+		"tracks_created": int(result.tracks_created),
 	})
 
 

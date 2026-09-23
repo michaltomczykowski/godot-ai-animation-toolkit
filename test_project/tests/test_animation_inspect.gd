@@ -402,7 +402,7 @@ func test_help_lists_ops_and_params() -> void:
 	assert_has_key(result, "data")
 	assert_eq(result.data.tool_count, 1)
 	var tool: Dictionary = result.data.tools[0]
-	assert_eq((tool.ops as Array).size(), 14, "every edit op is listed")
+	assert_eq((tool.ops as Array).size(), 19, "every edit op is listed")
 	for descriptor in tool.ops:
 		assert_true((descriptor.params as Array).has("dry_run"),
 			"%s should advertise dry_run" % str(descriptor.name))
@@ -430,13 +430,43 @@ func test_missing_clip_reports_available_names() -> void:
 	_teardown(fixture)
 
 
+func test_motion_report_metrics_and_health() -> void:
+	var fixture := _fixture("MR")
+	if fixture.has("error"):
+		skip(fixture.error)
+		return
+	var result := _handler.run({
+		"op": "motion_report", "player_path": fixture.player_path, "animation_name": "clip",
+	}, null)
+	assert_true(result.has("data"), "motion_report: %s" % str(result))
+	assert_eq(int(result.data.track_count), 2, "both value tracks are reported")
+	assert_eq(int(result.data.tracks[0].keys), 3, "per-track key counts are reported")
+	assert_true(float(result.data.tracks[0].keys_per_second) == 3.0, "key density is reported")
+	# The fixture's position track is not sparse, but the 2-key modulate track is.
+	assert_true(_findings_for(result, "sparse_keys").size() >= 1, "sparse tracks are flagged")
+	var broken := ClipSpec.make(1.0, Animation.LOOP_LINEAR)
+	ClipSpec.add_value_track(broken, "MRTarget:position", [
+		{"time": 0.0, "value": Vector2(0, 0), "transition": 1.0},
+		{"time": 0.5, "value": Vector2(1, 0), "transition": 1.0},
+		{"time": 1.0, "value": Vector2(9, 0), "transition": 1.0},
+	])
+	_add_clip(fixture.player_path, "broken", broken)
+	var poppy := _handler.run({
+		"op": "motion_report", "player_path": fixture.player_path, "animation_name": "broken",
+	}, null)
+	assert_true(poppy.has("data"), "motion_report on the broken clip: %s" % str(poppy))
+	assert_false(bool(poppy.data.healthy), "a popping loop is not healthy")
+	assert_true(_findings_for(poppy, "loop_seam").size() >= 1, "the seam pop is flagged")
+	_teardown(fixture)
+
+
 func test_registry_matches_inspect_schema() -> void:
 	var info := OpRegistry.family(OpRegistry.FAMILY_INSPECT)
 	assert_false(info.is_empty(), "the inspect family is registered")
 	assert_false(bool(info.requires_writable), "inspect does not require a writable project")
 	assert_false(bool(info.undoable), "inspect never touches the undo stack")
 	var op_enum: Array = info.schema.properties.op.enum
-	assert_eq(op_enum.size(), 7, "the inspect schema lists every op")
+	assert_eq(op_enum.size(), 8, "the inspect schema lists every op")
 	for descriptor in info.ops:
 		assert_true(op_enum.has(descriptor.name), "%s is in the schema enum" % descriptor.name)
 		for param in descriptor.params:

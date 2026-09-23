@@ -1,0 +1,410 @@
+@tool
+extends RefCounted
+
+## Cycle definitions for the `animation_motion` family, built on the pure
+## `motion_drivers` math. Each builder returns a key dictionary in the shape
+## `bone_animation._commit_procedural_clip` consumes:
+##
+##   { bone_name: {"rotation": [{time, delta, transition}], "position": [...]} }
+##
+## Everything is sampled at `ctx.samples` keys per second, so curves are smooth
+## and the clips stay portable. Dense samples use linear transitions on purpose:
+## the curve shape is in the samples.
+
+const MotionDrivers := preload("res://addons/godot_ai_animation/spec/motion_drivers.gd")
+
+## Style presets are multipliers over the base config, applied before
+## `overrides` so callers can still tune individual values.
+const _STYLE_MULTIPLIERS := {
+	"default": {},
+	"relaxed": {
+		"stride": 0.85, "arm_swing": 0.8, "bob": 0.8, "sway": 1.25,
+		"hip_yaw": 0.8, "lean": 0.8, "foot_lift": 0.8, "lag": 1.4, "elbow": 1.2,
+	},
+	"heavy": {
+		"stride": 0.9, "arm_swing": 0.7, "bob": 1.5, "sway": 1.2,
+		"hip_roll": 1.5, "lean": 1.3, "foot_lift": 0.6, "elbow": 1.1,
+		"crouch_add": 0.02,
+	},
+	"sneaky": {
+		"stride": 0.7, "arm_swing": 0.35, "knee_bend": 1.8, "bob": 0.5,
+		"lean": 1.6, "foot_lift": 1.2, "sway": 0.6, "elbow": 1.6, "hip_yaw": 0.6,
+	},
+}
+
+
+# --- configs ----------------------------------------------------------------
+
+static func walk_config(style: String, overrides: Dictionary = {}) -> Dictionary:
+	return _resolve_config({
+		"stride": 24.0,
+		"knee_bend": 30.0,
+		"arm_swing": 20.0,
+		"bob": 0.05,
+		"sway": 0.02,
+		"hip_yaw": 6.0,
+		"hip_roll": 2.0,
+		"chest_yaw": 5.0,
+		"lean": 3.0,
+		"foot_lift": 0.05,
+		"elbow": 18.0,
+		"lag": 0.06,
+		"stance": 0.62,
+		"crouch": 0.0,
+	}, style, overrides)
+
+
+static func run_config(style: String, overrides: Dictionary = {}) -> Dictionary:
+	return _resolve_config({
+		"stride": 34.0,
+		"knee_bend": 55.0,
+		"arm_swing": 34.0,
+		"bob": 0.08,
+		"sway": 0.015,
+		"hip_yaw": 8.0,
+		"hip_roll": 2.5,
+		"chest_yaw": 7.0,
+		"lean": 9.0,
+		"foot_lift": 0.12,
+		"elbow": 60.0,
+		"lag": 0.08,
+		"stance": 0.36,
+		"crouch": 0.0,
+	}, style, overrides)
+
+
+static func idle_config(style: String, overrides: Dictionary = {}) -> Dictionary:
+	return _resolve_config({
+		"amplitude": 1.6,
+		"head_amplitude": 0.8,
+		"bob": 0.006,
+		"sway": 0.012,
+		"shift": 1.2,
+		"noise": 0.35,
+		"lean": 1.5,
+		"arm_sway": 1.4,
+		"elbow": 14.0,
+	}, style, overrides)
+
+
+static func _resolve_config(base: Dictionary, style: String, overrides: Dictionary) -> Dictionary:
+	var config := base.duplicate(true)
+	var multipliers: Dictionary = _STYLE_MULTIPLIERS.get(style, {})
+	for key in multipliers:
+		var value := float(multipliers[key])
+		if key == "crouch_add":
+			config["crouch"] = float(config.get("crouch", 0.0)) + value
+		elif config.has(key):
+			config[key] = float(config[key]) * value
+	for key in overrides:
+		config[str(key)] = overrides[key]
+	return config
+
+
+# --- gait (walk / run) ------------------------------------------------------
+
+static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
+	var config: Dictionary = ctx.config
+	var length := maxf(float(ctx.length), 0.001)
+	var rate := float(ctx.samples)
+	var times := MotionDrivers.sample_times(length, rate)
+	var steps := times.size() - 1
+	var keys := {}
+	var up: Vector3 = ctx.up
+	var forward: Vector3 = ctx.forward
+	var lateral: Vector3 = ctx.lateral
+	var roles: Dictionary = ctx.roles
+	var hips := str(ctx.get("hips", ""))
+	var hips_origin: Vector3 = ctx.get("hips_origin", Vector3.ZERO)
+	var signs := _axis_signs(ctx)
+	var crouch := float(config.crouch) + 0.003 * float(config.knee_bend)
+	var stance := clampf(float(config.stance), 0.2, 0.8)
+	var leg: Dictionary = ctx.legs.l
+	var span := 2.0 * (float(leg.upper) + float(leg.lower)) * sin(deg_to_rad(float(config.stride)))
+	var ground_speed := span / (stance * length)
+	var rooted := bool(ctx.get("root_motion", false))
+	var travel := ground_speed * length if rooted else 0.0
+	var lag := float(config.lag)
+	var hip_yaw := float(config.hip_yaw) * float(signs.yaw)
+	var hip_roll := float(config.hip_roll) * float(signs.roll)
+	var chest_yaw := -0.8 * hip_yaw
+	var lean := float(config.lean) * float(signs.lean)
+
+	var pelvis_rotation := [
+		_channel(lateral, hip_yaw, 1.0, 0.0, 0.0, "cosine"),
+		_channel(forward, hip_roll, 1.0, 0.0, 0.0, "sine"),
+		_channel(lateral, 0.0, 1.0, 0.0, 0.0, "sine", 0.5 * lean),
+	]
+	var spine_rotation := [
+		_channel(up, 0.4 * chest_yaw, 1.0, 0.0, 0.0, "cosine"),
+		_channel(lateral, 0.0, 1.0, 0.0, 0.0, "sine", 0.5 * lean),
+	]
+	var chest_rotation := [
+		_channel(up, 0.6 * chest_yaw, 1.0, 0.0, 0.0, "cosine"),
+	]
+	var head_rotation := [
+		_channel(up, -0.5 * chest_yaw, 1.0, 0.0, lag, "cosine"),
+		_channel(lateral, 0.0, 1.0, 0.0, 0.0, "sine", -0.35 * lean),
+	]
+	var bob_channel := _channel(up, -0.5 * float(config.bob), 2.0, 0.0, 0.0, "cosine")
+	var sway_channel := _channel(lateral, -float(config.sway), 1.0, 0.0, 0.0, "sine")
+
+	var spine := str(roles.get("spine", ""))
+	var chest := str(roles.get("chest", ""))
+	var head := str(roles.get("head", ""))
+
+	for index in times.size():
+		var t := float(index) / float(steps)
+		var time := float(times[index])
+		var pelvis_world := MotionDrivers.compose_rotation(pelvis_rotation, t)
+		var hips_animated := Basis(pelvis_world) * _rest_basis(ctx, hips)
+		var offset: Vector3 = (
+			up * (MotionDrivers.channel_value(bob_channel, t) - crouch)
+			+ lateral * MotionDrivers.channel_value(sway_channel, t)
+			+ forward * (travel * t)
+		)
+		if not hips.is_empty():
+			_append_rotation(keys, hips, time, MotionDrivers.rotation_delta(_rest_basis(ctx, hips), pelvis_world))
+			_append_position(keys, hips, time, offset)
+		_solve_leg(ctx, keys, "l", t, time, offset, pelvis_world, hips_animated, hips_origin, stance, span, ground_speed, rooted, length)
+		_solve_leg(ctx, keys, "r", t, time, offset, pelvis_world, hips_animated, hips_origin, stance, span, ground_speed, rooted, length)
+		if not spine.is_empty() and spine != chest:
+			var world := MotionDrivers.compose_rotation(spine_rotation, t)
+			_append_rotation(keys, spine, time, MotionDrivers.rotation_delta(_rest_basis(ctx, spine), world))
+		if not chest.is_empty():
+			var world := MotionDrivers.compose_rotation(chest_rotation, t)
+			_append_rotation(keys, chest, time, MotionDrivers.rotation_delta(_rest_basis(ctx, chest), world))
+		if not head.is_empty():
+			var world := MotionDrivers.compose_rotation(head_rotation, t)
+			_append_rotation(keys, head, time, MotionDrivers.rotation_delta(_rest_basis(ctx, head), world))
+		_solve_arms(ctx, keys, time, t, float(signs.swing))
+
+	# A rooted cycle ends further forward than it started: the hips travel must
+	# survive the loop-closing pass, so opt the hips position track out of it.
+	if rooted and not is_zero_approx(travel) and keys.has(hips):
+		(keys[hips] as Dictionary)["loop_close"] = false
+	return keys
+
+
+static func _solve_leg(
+	ctx: Dictionary, keys: Dictionary, side: String, t: float, time: float,
+	offset: Vector3, pelvis_world: Quaternion, hips_animated: Basis, hips_origin: Vector3,
+	stance: float, span: float, ground_speed: float, rooted: bool, length: float,
+) -> void:
+	var leg: Dictionary = ctx.legs[side]
+	var forward: Vector3 = ctx.forward
+	var up: Vector3 = ctx.up
+	var side_offset := 0.0 if side == "l" else 0.5
+	var p := fposmod(t + side_offset, 1.0)
+	var foot := _foot_trajectory(p, stance, span, ground_speed, length, rooted)
+	var lift := float(ctx.config.get("foot_lift", 0.05))
+	var ankle_target: Vector3 = (
+		leg.ankle + forward * float(foot.forward)
+		+ up * (lift * float(foot.height))
+	)
+	var hip_pos: Vector3 = hips_origin + offset + Basis(pelvis_world) * (leg.hip - hips_origin)
+	var knee := MotionDrivers.knee_position(hip_pos, ankle_target, float(leg.upper), float(leg.lower), forward)
+	var hips_rest := _rest_basis(ctx, ctx.get("hips", ""))
+	var thigh_rest := _rest_basis(ctx, leg.thigh)
+	var shin_rest := _rest_basis(ctx, leg.shin)
+	var thigh_solve := MotionDrivers.aim_delta(hips_animated, hips_rest, thigh_rest, (knee - hip_pos).normalized())
+	var shin_solve := MotionDrivers.aim_delta(thigh_solve.global, thigh_rest, shin_rest, (ankle_target - knee).normalized())
+	_append_rotation(keys, leg.thigh, time, thigh_solve.delta)
+	_append_rotation(keys, leg.shin, time, shin_solve.delta)
+	var foot_bone := str(leg.get("foot", ""))
+	if not foot_bone.is_empty():
+		var foot_rest := _rest_basis(ctx, foot_bone)
+		var flat := MotionDrivers.hold_global_delta(shin_solve.global, shin_rest, foot_rest, foot_rest)
+		var weight := _foot_plant_weight(p, stance)
+		_append_rotation(keys, foot_bone, time, Quaternion.IDENTITY.slerp(flat, weight))
+
+
+static func _solve_arms(ctx: Dictionary, keys: Dictionary, time: float, t: float, swing_sign: float) -> void:
+	var roles: Dictionary = ctx.roles
+	var lateral: Vector3 = ctx.lateral
+	var config: Dictionary = ctx.config
+	var arm_swing := float(config.arm_swing)
+	var elbow := float(config.elbow)
+	var lag := float(config.lag)
+	var arm_down: Dictionary = ctx.get("arm_down", {})
+	var elbow_swing := 0.5 * arm_swing
+	for side in ["l", "r"]:
+		var arm := str(roles.get("arm_" + side, ""))
+		var forearm := str(roles.get("forearm_" + side, ""))
+		var sign := -1.0 if side == "l" else 1.0
+		if not arm.is_empty():
+			var degrees := MotionDrivers.channel_value(
+				_channel(lateral, sign * arm_swing * swing_sign, 1.0, 0.0, 0.0, "cosine"), t)
+			var swing := MotionDrivers.rotation_delta(_rest_basis(ctx, arm), Quaternion(lateral, deg_to_rad(degrees)))
+			var down: Quaternion = arm_down.get(side, Quaternion.IDENTITY)
+			_append_rotation(keys, arm, time, (swing * down).normalized())
+		if not forearm.is_empty():
+			var bend := MotionDrivers.channel_value(
+				_channel(lateral, -sign * elbow_swing * swing_sign, 1.0, 0.0, lag, "cosine", elbow + elbow_swing), t)
+			var bend_delta := MotionDrivers.rotation_delta(_rest_basis(ctx, forearm), Quaternion(lateral, deg_to_rad(bend)))
+			_append_rotation(keys, forearm, time, bend_delta)
+
+
+## Relative forward/height motion of one ankle over a cycle. `p` is the foot's
+## local phase (0 = contact). In-place cycles slide the planted foot backwards;
+## with root motion the foot stays put in skeleton space while the body travels.
+static func _foot_trajectory(p: float, stance: float, span: float, ground_speed: float, length: float, rooted: bool) -> Dictionary:
+	var local_phase := fposmod(p, 1.0)
+	if local_phase < stance:
+		if rooted:
+			var contact_time := -local_phase * length
+			return {"forward": 0.5 * span + ground_speed * contact_time, "height": 0.0}
+		return {"forward": span * (0.5 - local_phase / stance), "height": 0.0}
+	var swing := (local_phase - stance) / maxf(1.0 - stance, 0.001)
+	var from := -0.5 * span
+	var to := 0.5 * span
+	if rooted:
+		from = 0.5 * span - ground_speed * stance * length
+		to = from + ground_speed * length
+	return {"forward": lerpf(from, to, MotionDrivers.smoothstep(swing)), "height": 1.0}
+
+
+## 1 while the foot should stay flat on the ground, 0 while it can follow the
+## shin. Blends across the contact and toe-off edges.
+static func _foot_plant_weight(p: float, stance: float) -> float:
+	var local_phase := fposmod(p, 1.0)
+	if local_phase >= stance:
+		var swing := (local_phase - stance) / maxf(1.0 - stance, 0.001)
+		return 1.0 - MotionDrivers.smoothstep(minf(swing / 0.25, 1.0))
+	return MotionDrivers.smoothstep(minf(local_phase / 0.08, 1.0))
+
+
+# --- idle -------------------------------------------------------------------
+
+static func idle_keys(ctx: Dictionary) -> Dictionary:
+	var config: Dictionary = ctx.config
+	var length := maxf(float(ctx.length), 0.001)
+	var times := MotionDrivers.sample_times(length, float(ctx.samples))
+	var steps := times.size() - 1
+	var keys := {}
+	var up: Vector3 = ctx.up
+	var forward: Vector3 = ctx.forward
+	var lateral: Vector3 = ctx.lateral
+	var roles: Dictionary = ctx.roles
+	var hips := str(ctx.get("hips", ""))
+	var signs := _axis_signs(ctx)
+	var scale := float(signs.lean)
+	var breath := [_channel(lateral, -float(config.amplitude) * scale, 1.0, 0.0, 0.0, "sine")]
+	var spine_breath := [_channel(lateral, -0.6 * float(config.amplitude) * scale, 1.0, 0.0, 0.03, "sine")]
+	var head_breath := [
+		_channel(lateral, 0.4 * float(config.amplitude) * scale, 1.0, 0.0, 0.06, "sine"),
+		_channel(up, float(config.head_amplitude), 0.5, 0.25, 0.0, "sine"),
+	]
+	var noise_amount := float(config.noise)
+	if not is_zero_approx(noise_amount):
+		spine_breath.append(_channel(up, noise_amount * scale, 1.0, 0.0, 0.0, "noise", 0.0, 21, 3))
+		spine_breath.append(_channel(lateral, noise_amount * scale, 1.0, 0.35, 0.0, "noise", 0.0, 22, 3))
+		head_breath.append(_channel(up, 0.8 * noise_amount * scale, 1.0, 0.0, 0.0, "noise", 0.0, 23, 3))
+		head_breath.append(_channel(lateral, 0.6 * noise_amount * scale, 1.0, 0.5, 0.0, "noise", 0.0, 24, 3))
+	var lean := float(config.lean)
+	var sway_channel := _channel(lateral, -float(config.sway), 1.0, 0.0, 0.0, "sine")
+	var bob_channel := _channel(up, -0.5 * float(config.bob), 2.0, 0.0, 0.0, "cosine")
+	var roll_channel := _channel(forward, float(config.shift) * float(signs.roll), 1.0, 0.0, 0.0, "sine")
+
+	for index in times.size():
+		var t := float(index) / float(steps)
+		var time := float(times[index])
+		if not hips.is_empty():
+			var world := Quaternion(lateral, deg_to_rad(-lean * 0.35 * scale)) * Quaternion(
+				forward, deg_to_rad(MotionDrivers.channel_value(roll_channel, t)))
+			_append_rotation(keys, hips, time, MotionDrivers.rotation_delta(_rest_basis(ctx, hips), world))
+			_append_position(keys, hips, time,
+				lateral * MotionDrivers.channel_value(sway_channel, t)
+				+ up * MotionDrivers.channel_value(bob_channel, t))
+		var spine := str(roles.get("spine", ""))
+		var chest := str(roles.get("chest", ""))
+		var head := str(roles.get("head", ""))
+		if not spine.is_empty() and spine != chest:
+			var world := MotionDrivers.compose_rotation(spine_breath, t) * Quaternion(lateral, deg_to_rad(-lean * 0.5 * scale))
+			_append_rotation(keys, spine, time, MotionDrivers.rotation_delta(_rest_basis(ctx, spine), world))
+		if not chest.is_empty():
+			var world := MotionDrivers.compose_rotation(breath, t) * Quaternion(lateral, deg_to_rad(-lean * 0.5 * scale))
+			_append_rotation(keys, chest, time, MotionDrivers.rotation_delta(_rest_basis(ctx, chest), world))
+		if not head.is_empty():
+			var world := MotionDrivers.compose_rotation(head_breath, t) * Quaternion(lateral, deg_to_rad(lean * 0.4 * scale))
+			_append_rotation(keys, head, time, MotionDrivers.rotation_delta(_rest_basis(ctx, head), world))
+		_solve_idle_arms(ctx, keys, time, t, float(signs.swing))
+	return keys
+
+
+## Idle arms: the static arm-down offset (so T-pose rests hang naturally) plus a
+## small swing that follows the weight shift, with a light elbow bend.
+static func _solve_idle_arms(ctx: Dictionary, keys: Dictionary, time: float, t: float, swing_sign: float) -> void:
+	var roles: Dictionary = ctx.roles
+	var lateral: Vector3 = ctx.lateral
+	var config: Dictionary = ctx.config
+	var arm_sway := float(config.arm_sway)
+	var elbow := float(config.elbow)
+	var arm_down: Dictionary = ctx.get("arm_down", {})
+	for side in ["l", "r"]:
+		var arm := str(roles.get("arm_" + side, ""))
+		var forearm := str(roles.get("forearm_" + side, ""))
+		var sign := -1.0 if side == "l" else 1.0
+		if not arm.is_empty():
+			var degrees := MotionDrivers.channel_value(
+				_channel(lateral, sign * arm_sway * swing_sign, 1.0, 0.0, 0.1, "sine"), t)
+			var swing := MotionDrivers.rotation_delta(_rest_basis(ctx, arm), Quaternion(lateral, deg_to_rad(degrees)))
+			var down: Quaternion = arm_down.get(side, Quaternion.IDENTITY)
+			_append_rotation(keys, arm, time, (swing * down).normalized())
+		if not forearm.is_empty():
+			var bend_delta := MotionDrivers.rotation_delta(
+				_rest_basis(ctx, forearm), Quaternion(lateral, deg_to_rad(elbow * swing_sign)))
+			_append_rotation(keys, forearm, time, bend_delta)
+
+
+# --- helpers ----------------------------------------------------------------
+
+static func _rest_basis(ctx: Dictionary, bone: String) -> Basis:
+	if bone.is_empty():
+		return Basis.IDENTITY
+	var rest: Dictionary = ctx.rest.get(bone, {})
+	return rest.get("global", Basis.IDENTITY)
+
+
+## Rotation channel. `amplitude`/`offset` are degrees.
+static func _channel(
+	axis: Vector3, amplitude: float, frequency: float, phase: float, lag: float,
+	shape: String, offset: float = 0.0, seed_value: int = 0, harmonics: int = 4,
+) -> Dictionary:
+	return {
+		"axis": axis, "amplitude": amplitude, "frequency": frequency, "phase": phase,
+		"lag": lag, "shape": shape, "offset": offset, "seed": seed_value, "harmonics": harmonics,
+	}
+
+
+static func _append_rotation(keys: Dictionary, bone: String, time: float, delta: Quaternion) -> void:
+	if not keys.has(bone):
+		keys[bone] = {"rotation": []}
+	((keys[bone] as Dictionary)["rotation"] as Array).append(
+		{"time": time, "delta": delta.normalized(), "transition": "linear"})
+
+
+static func _append_position(keys: Dictionary, bone: String, time: float, delta: Vector3) -> void:
+	if not keys.has(bone):
+		keys[bone] = {}
+	if not (keys[bone] as Dictionary).has("position"):
+		(keys[bone] as Dictionary)["position"] = []
+	((keys[bone] as Dictionary)["position"] as Array).append({"time": time, "delta": delta, "transition": "linear"})
+
+
+## Geometric sign conventions, so the same numbers read the same way on any rig:
+## yaw + brings the left hip forward, roll + drops the right hip, lean + tips the
+## torso forward, swing + swings a hanging limb forward.
+static func _axis_signs(ctx: Dictionary) -> Dictionary:
+	var up: Vector3 = ctx.up
+	var forward: Vector3 = ctx.forward
+	var lateral: Vector3 = ctx.lateral
+	var hips_origin: Vector3 = ctx.get("hips_origin", Vector3.ZERO)
+	var left_hip: Vector3 = ctx.legs.l.hip
+	var right_hip: Vector3 = ctx.legs.r.hip
+	return {
+		"yaw": 1.0 if up.cross(left_hip - hips_origin).dot(forward) >= 0.0 else -1.0,
+		"roll": 1.0 if forward.cross(right_hip - hips_origin).dot(-up) >= 0.0 else -1.0,
+		"lean": 1.0 if lateral.cross(up).dot(forward) >= 0.0 else -1.0,
+		"swing": 1.0 if lateral.cross(Vector3.DOWN).dot(forward) >= 0.0 else -1.0,
+	}

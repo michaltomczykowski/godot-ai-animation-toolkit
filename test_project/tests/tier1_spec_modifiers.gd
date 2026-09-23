@@ -26,6 +26,10 @@ func _init() -> void:
 	_check_mirror()
 	_check_offset()
 	_check_easing()
+	_check_typed_transitions()
+	_check_ease_curve()
+	_check_sample_track()
+	_check_continuity()
 	_check_trim_split()
 	_check_merge()
 	_check_amplitude()
@@ -232,6 +236,105 @@ func _check_easing() -> void:
 	_expect_eq(int(one.spec.tracks[0].interp), Animation.INTERPOLATION_LINEAR, "other tracks keep their interpolation")
 
 
+func _check_typed_transitions() -> void:
+	var spec := ClipSpec.make(1.0, Animation.LOOP_NONE)
+	ClipSpec.add_value_track(spec, "Body:rotation", [
+		{"time": 0.0, "value": Quaternion.IDENTITY, "transition": "ease_in"},
+		{"time": 0.5, "value": Quaternion(Vector3(0, 1, 0), PI / 2.0), "transition": "ease_out"},
+		{"time": 1.0, "value": Quaternion.IDENTITY, "transition": 1.0},
+	], Animation.INTERPOLATION_LINEAR, Animation.TYPE_ROTATION_3D)
+	ClipSpec.add_value_track(spec, "Body:position", [
+		{"time": 0.0, "value": Vector3.ZERO, "transition": "ease_in_out"},
+		{"time": 1.0, "value": Vector3(1, 0, 0), "transition": 1.0},
+	], Animation.INTERPOLATION_LINEAR, Animation.TYPE_POSITION_3D)
+	ClipSpec.add_value_track(spec, "Body:scale", [
+		{"time": 0.0, "value": Vector3.ONE, "transition": 0.0},
+		{"time": 1.0, "value": Vector3(2, 2, 2), "transition": 1.0},
+	], Animation.INTERPOLATION_LINEAR, Animation.TYPE_SCALE_3D)
+	var anim := SpecBuilder.to_animation(spec)
+	_expect_approx(anim.track_get_key_transition(0, 0), 2.0, "rotation track keeps ease_in")
+	_expect_approx(anim.track_get_key_transition(0, 1), 0.5, "rotation track keeps ease_out")
+	_expect_approx(anim.track_get_key_transition(1, 0), -2.0, "position track keeps ease_in_out")
+	_expect_approx(anim.track_get_key_transition(2, 0), 0.0, "scale track keeps an explicit hold")
+	var mid: Quaternion = anim.rotation_track_interpolate(0, 0.25)
+	_expect_approx(mid.get_angle(), PI / 8.0, "ease_in shapes the engine's rotation interpolation")
+	var back := SpecIO.from_animation(anim)
+	_expect_approx(float(back.tracks[0].keys[0].transition), 2.0, "round-trip keeps rotation transitions")
+	_expect_approx(float(back.tracks[1].keys[0].transition), -2.0, "round-trip keeps position transitions")
+	_expect_approx(float(back.tracks[2].keys[0].transition), 0.0, "round-trip keeps scale holds")
+
+
+func _check_ease_curve() -> void:
+	_expect_approx(SpecModifiers.ease_curve(0.5, 1.0), 0.5, "linear ease is the identity")
+	_expect_approx(SpecModifiers.ease_curve(0.5, 2.0), 0.25, "ease_in squares the ramp")
+	_expect_approx(SpecModifiers.ease_curve(0.5, 0.5), 0.75, "ease_out raises the ramp")
+	_expect_approx(SpecModifiers.ease_curve(0.5, -2.0), 0.5, "ease_in_out is symmetric")
+	_expect_approx(SpecModifiers.ease_curve(0.25, -2.0), 0.125, "ease_in_out is quadratic before the midpoint")
+	_expect_approx(SpecModifiers.ease_curve(0.7, 0.0), 0.0, "transition 0 holds")
+
+
+func _check_sample_track() -> void:
+	var eased := {
+		"type": Animation.TYPE_VALUE,
+		"path": "N:value",
+		"interp": Animation.INTERPOLATION_LINEAR,
+		"keys": [
+			{"time": 0.0, "value": 0.0, "transition": "ease_in_out"},
+			{"time": 1.0, "value": 10.0, "transition": 1.0},
+		],
+	}
+	_expect_approx(float(SpecModifiers.sample_track(eased, 0.5)), 5.0, "ease_in_out midpoint is unchanged")
+	_expect_approx(float(SpecModifiers.sample_track(eased, 0.25)), 1.25, "sample_track follows the ease shape")
+	_expect_approx(float(SpecModifiers.sample_track(eased, 2.0)), 10.0, "sample_track clamps past the last key")
+	var hold := eased.duplicate(true)
+	hold.keys[0].transition = 0.0
+	_expect_approx(float(SpecModifiers.sample_track(hold, 0.9)), 0.0, "transition 0 holds the from-key value")
+	var cubic := ClipSpec.make(2.0, Animation.LOOP_NONE)
+	ClipSpec.add_value_track(cubic, "N:position", [
+		{"time": 0.0, "value": Vector3.ZERO, "transition": 1.0},
+		{"time": 1.0, "value": Vector3(1, 0, 0), "transition": 1.0},
+		{"time": 2.0, "value": Vector3(3, 0, 0), "transition": 1.0},
+	], Animation.INTERPOLATION_CUBIC, Animation.TYPE_POSITION_3D)
+	var sampled: Vector3 = SpecModifiers.sample_track(cubic.tracks[0], 0.5)
+	_expect(absf(sampled.x - 0.5) > 0.01, "cubic tracks sample through the engine (not linearly)")
+	_expect(sampled.x > 0.0 and sampled.x < 1.0, "cubic sample stays smooth between keys")
+	_expect_vec(SpecModifiers.sample_track(cubic.tracks[0], 0.0), Vector3.ZERO, "cubic sampling clamps before the first key")
+	var nearest := ClipSpec.make(1.0, Animation.LOOP_NONE)
+	ClipSpec.add_value_track(nearest, "N:value", [
+		{"time": 0.0, "value": 0.0, "transition": 1.0},
+		{"time": 1.0, "value": 10.0, "transition": 1.0},
+	], Animation.INTERPOLATION_NEAREST)
+	_expect_approx(float(SpecModifiers.sample_track(nearest.tracks[0], 0.5)), 0.0, "nearest tracks hold the from key")
+
+
+func _check_continuity() -> void:
+	var q := Quaternion(Vector3(0, 1, 0), PI * 0.75)
+	var keys := [
+		{"time": 0.0, "value": Quaternion.IDENTITY},
+		{"time": 0.5, "value": q},
+		{"time": 1.0, "value": -q},
+	]
+	ClipSpec.align_quaternions(keys)
+	var q1: Quaternion = keys[1].value
+	var q2: Quaternion = keys[2].value
+	_expect(q1.dot(keys[0].value as Quaternion) >= 0.0, "align keeps a same-hemisphere key")
+	_expect(q2.dot(q1) >= 0.0, "align flips the opposite-hemisphere key")
+	var looped := [
+		{"time": 0.0, "value": Quaternion.IDENTITY, "transition": 0.5},
+		{"time": 0.9, "value": Quaternion(Vector3(0, 1, 0), 0.3)},
+	]
+	ClipSpec.close_loop(looped, 1.0)
+	_expect_eq(looped.size(), 3, "close_loop appends a closing key")
+	_expect_approx(float(looped[2].time), 1.0, "close_loop lands on the clip length")
+	_expect((looped[2].value as Quaternion).is_equal_approx(Quaternion.IDENTITY), "close_loop copies the first value")
+	_expect_approx(float(looped[2].transition), 0.5, "close_loop copies the first transition")
+	var short := [{"time": 0.0, "value": 0.0}, {"time": 0.5, "value": 1.0}]
+	ClipSpec.close_loop(short, 0.5)
+	_expect_approx(float(short[1].value), 0.0, "close_loop overwrites a key already at the length")
+	ClipSpec.close_loop([], 1.0)
+	_expect(true, "close_loop tolerates empty keys")
+
+
 func _check_trim_split() -> void:
 	var spec := _fixture()
 	var trimmed := SpecModifiers.trim(spec, 0.25, 0.75, true)
@@ -367,7 +470,7 @@ func _check_roundtrip() -> void:
 
 func _check_registry() -> void:
 	var families := OpRegistry.families()
-	_expect_eq(families.size(), 7, "seven tool families are registered")
+	_expect_eq(families.size(), 8, "eight tool families are registered")
 	for family_name in OpRegistry.family_names():
 		var info: Dictionary = families[family_name]
 		var description := str(info.get("description", ""))

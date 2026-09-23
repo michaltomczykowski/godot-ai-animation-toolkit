@@ -510,13 +510,75 @@ func test_undo_restores_the_original_clip() -> void:
 
 # --- registry --------------------------------------------------------------
 
+func test_quality_passes_smooth_resample_noise_overlap_layer() -> void:
+	var fixture := _fixture("QP")
+	if fixture.has("error"):
+		skip(fixture.error)
+		return
+	var smoothed := _handler.run({
+		"op": "smooth", "player_path": fixture.player_path, "animation_name": "clip",
+		"strength": 0.5, "passes": 1,
+	}, null)
+	assert_true(smoothed.has("data"), "smooth: %s" % str(smoothed))
+	var anim := _fetch_anim(fixture.player_path, "clip")
+	assert_eq(anim.track_get_key_count(0), 3, "smooth keeps the key count")
+	var mid: Vector2 = anim.track_get_key_value(0, 1)
+	assert_true(mid.distance_to(Vector2(10, 2)) < 0.01, "smooth pulls the middle key toward its neighbours (got %s)" % mid)
+	var resampled := _handler.run({
+		"op": "resample", "player_path": fixture.player_path, "animation_name": "clip", "fps": 10.0,
+	}, null)
+	assert_true(resampled.has("data"), "resample: %s" % str(resampled))
+	anim = _fetch_anim(fixture.player_path, "clip")
+	assert_eq(anim.track_get_key_count(0), 11, "resample gives 11 keys for 1 s at 10 fps")
+	var noised := _handler.run({
+		"op": "add_noise", "player_path": fixture.player_path, "animation_name": "clip",
+		"amount": 0.5, "frequency": 2.0, "seed": 3, "track_path": "QPTarget:position",
+	}, null)
+	assert_true(noised.has("data"), "add_noise: %s" % str(noised))
+	var overlapped := _handler.run({
+		"op": "overlap", "player_path": fixture.player_path, "animation_name": "clip",
+		"track_path": "QPTarget:position", "delay": 0.1, "wrap": true,
+	}, null)
+	assert_true(overlapped.has("data"), "overlap: %s" % str(overlapped))
+	var source := ClipSpec.make(1.0, Animation.LOOP_NONE)
+	ClipSpec.add_value_track(source, "QPTarget:modulate:a", [
+		{"time": 0.0, "value": 1.0, "transition": 1.0},
+		{"time": 1.0, "value": 1.0, "transition": 1.0},
+	])
+	_add_clip(fixture.player_path, "src", source)
+	var layered := _handler.run({
+		"op": "layer", "player_path": fixture.player_path, "animation_name": "clip",
+		"source_animation": "src", "layer_mode": "mix", "weight": 0.5,
+	}, null)
+	assert_true(layered.has("data"), "layer: %s" % str(layered))
+	anim = _fetch_anim(fixture.player_path, "clip")
+	var modulate := -1
+	for index in anim.get_track_count():
+		if str(anim.track_get_path(index)).ends_with(":modulate:a"):
+			modulate = index
+	assert_true(modulate >= 0, "the modulate track survived every pass")
+	assert_true(absf(float(anim.track_get_key_value(modulate, 0)) - 0.5) < 0.001,
+		"layer mixed the base toward the source (got %s)" % anim.track_get_key_value(modulate, 0))
+	var bad_mode := _handler.run({
+		"op": "layer", "player_path": fixture.player_path, "animation_name": "clip",
+		"source_animation": "src", "layer_mode": "multiply",
+	}, null)
+	assert_is_error(bad_mode, ErrorCodes.VALUE_OUT_OF_RANGE)
+	var bad_delay := _handler.run({
+		"op": "overlap", "player_path": fixture.player_path, "animation_name": "clip",
+		"track_path": "QPTarget:position", "delay": 0.0,
+	}, null)
+	assert_is_error(bad_delay, ErrorCodes.MISSING_REQUIRED_PARAM)
+	_teardown(fixture)
+
+
 func test_registry_matches_edit_schema() -> void:
 	var info := OpRegistry.family(OpRegistry.FAMILY_EDIT)
 	assert_false(info.is_empty(), "the edit family is registered")
 	var schema: Dictionary = info.schema
 	var properties: Dictionary = schema.properties
 	var op_enum: Array = properties.op.enum
-	assert_eq(op_enum.size(), 14, "the edit schema lists every op")
+	assert_eq(op_enum.size(), 19, "the edit schema lists every op")
 	for descriptor in info.ops:
 		assert_true(op_enum.has(descriptor.name), "%s is in the schema enum" % descriptor.name)
 		for param in descriptor.params:

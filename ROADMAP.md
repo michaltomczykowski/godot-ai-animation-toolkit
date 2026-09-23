@@ -1,6 +1,8 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **all planned phases done** — v1.1.0 (7 tools, 79 ops) released 2026-09-23.
+Status: **phases 0–7 done** — v1.1.0 (7 tools, 79 ops) released 2026-09-23.
+Phase 8 (motion and clip quality) is implemented on `main`, tested, and has
+committed demos; it is not released yet (8 tools, 87 ops).
 Last updated: 2026-09-23.
 
 Phase 3 note: the generators landed as their own family, `animation_fx`, instead
@@ -274,6 +276,50 @@ credits cards closed with `animation_edit reverse`, quit shake, outro) is an
 ordinary toolkit clip on one of 24 animation players over a procedural aurora
 shader and GPU motes, driven by synthetic mouse input from a small script.
 Video: `animation_toolkit_menu_demo.mp4` (0:47).
+
+### Phase 8 - motion and clip quality (implemented, unreleased)
+
+Requested after v1.1.0: the procedural dummy animations were stiff (every bone
+key was linear because `spec_builder` silently dropped per-key transitions on
+typed 3D tracks, and the recipes were 2–4 hand-tuned keys per bone). Phase 8
+fixes the interpolation foundation and adds a real procedural motion engine plus
+clip-quality passes.
+
+**Interpolation foundation (spec engine):**
+
+- `spec_builder` forwards per-key transitions on `POSITION_3D`/`ROTATION_3D`/
+  `SCALE_3D` tracks (named transitions included), and `spec_io` reads them back.
+- `spec_modifiers.sample_track` honors Godot's `Math::ease` transition shapes and
+  delegates cubic/nearest tracks to an engine-backed exact sampler
+  (`sample_track_exact` / `build_track_animation` / `sample_built_track`).
+- `clip_spec.align_quaternions` + `clip_spec.close_loop` are applied by
+  `_commit_procedural_clip`: loops close exactly and consecutive rotation keys
+  share a hemisphere.
+
+**`animation_motion` (8th tool, new family):**
+
+- `spec/motion_drivers.gd` (pure, tier-1): periodic seeded noise, channel
+  curves with lag, world-space → bone-local rotation conversion, the aim and
+  knee solves, smoothstep/smoothing, and the offline spring (`follow_spring`).
+- `spec/motion_specs.gd` (pure): walk/run/idle cycle builders + style bundles.
+- `handlers/motion.gd`: `walk_cycle`, `run_cycle`, `idle_cycle`, `cycle`,
+  `secondary_motion`; dense sampling (24/s), two-bone leg IK with a flat-stance
+  foot, pelvis bob/sway/yaw/roll, counter-rotating torso, arm swing with elbow
+  lag, head stabilisation, T-pose arm auto-lowering, styles/overrides, optional
+  root motion with the implied `speed`.
+- `handlers/bone_animation.gd`: shared skeleton/role resolution, aim/knee math
+  and the procedural-clip commit path, inherited by `animation_rig` and
+  `animation_motion` (rig.gd shrank by ~250 lines).
+
+**Clip-quality passes (`animation_edit`):** `smooth`, `resample`, `add_noise`,
+`overlap`, `layer` — seeded micro-motion, per-limb follow-through, additive/mix
+layering and engine-exact resampling, all pure spec transforms in
+`spec/quality_modifiers.gd`.
+
+**Coverage:** tier-1 grew from ~1815 to ~2000 checks (motion drivers,
+quality modifiers, typed-track transitions, sampler); the editor suites gained
+`animation_motion` (9 tests) and four quality-pass tests. New demos:
+`demo_motion_walk`, `demo_motion_run`, `demo_motion_idle`.
 
 ### Risks / mitigations
 

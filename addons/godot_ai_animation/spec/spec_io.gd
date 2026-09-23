@@ -79,7 +79,7 @@ static func _read_track(anim: Animation, index: int) -> Dictionary:
 				track.keys.append({
 					"time": anim.track_get_key_time(index, key),
 					"value": anim.track_get_key_value(index, key),
-					"transition": 1.0,
+					"transition": anim.track_get_key_transition(index, key),
 				})
 		Animation.TYPE_METHOD:
 			for key in count:

@@ -9,12 +9,14 @@ extends "res://addons/godot_ai_animation/handlers/animation_tool_base.gd"
 
 const ClipSpec := preload("res://addons/godot_ai_animation/spec/clip_spec.gd")
 const SpecIO := preload("res://addons/godot_ai_animation/spec/spec_io.gd")
+const QualityModifiers := preload("res://addons/godot_ai_animation/spec/quality_modifiers.gd")
 const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
 const GenerateHandler := preload("res://addons/godot_ai_animation/handlers/generate.gd")
 const FxHandler := preload("res://addons/godot_ai_animation/handlers/fx.gd")
 const GraphHandler := preload("res://addons/godot_ai_animation/handlers/graph.gd")
 const LibraryHandler := preload("res://addons/godot_ai_animation/handlers/library.gd")
 const RigHandler := preload("res://addons/godot_ai_animation/handlers/rig.gd")
+const MotionHandler := preload("res://addons/godot_ai_animation/handlers/motion.gd")
 const EditHandler := preload("res://addons/godot_ai_animation/handlers/edit.gd")
 
 const _SEVERITIES := ["all", "error", "warning", "info"]
@@ -38,6 +40,8 @@ func run(params: Dictionary, _ctx) -> Dictionary:
 			return inspect_compare(params)
 		"stats":
 			return inspect_stats(params)
+		"motion_report":
+			return inspect_motion_report(params)
 		"dry_run":
 			return inspect_dry_run(params)
 		"help":
@@ -552,6 +556,33 @@ func inspect_stats(params: Dictionary) -> Dictionary:
 
 
 # ============================================================================
+# motion_report
+# ============================================================================
+
+## Per-track motion quality: key density, peak speed/acceleration, loop-seam
+## pops, hemisphere flips and constant tracks, each finding with a fix hint.
+func inspect_motion_report(params: Dictionary) -> Dictionary:
+	var loaded := _load_readable_clip(params)
+	if loaded.has("error"):
+		return loaded
+	var unsupported := SpecIO.unsupported_tracks(loaded.anim)
+	if not unsupported.is_empty():
+		return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
+			"Animation '%s' has tracks this report cannot analyse: %s"
+			% [loaded.anim_name, SpecIO.describe_unsupported(loaded.anim)])
+	var max_tracks := int(params.get("max_tracks", 20))
+	var report := QualityModifiers.motion_report(SpecIO.from_animation(loaded.anim), max_tracks)
+	var data := {
+		"player_path": str(loaded.player_path),
+		"animation_name": str(loaded.anim_name),
+		"length": loaded.anim.length,
+		"loop_mode": ValueCodec.loop_mode_to_string(loaded.anim.loop_mode),
+	}
+	data.merge(report, true)
+	return {"data": data}
+
+
+# ============================================================================
 # dry_run
 # ============================================================================
 
@@ -583,10 +614,12 @@ func inspect_dry_run(params: Dictionary) -> Dictionary:
 		handler = LibraryHandler.new()
 	elif tool == OpRegistry.FAMILY_RIG:
 		handler = RigHandler.new()
+	elif tool == OpRegistry.FAMILY_MOTION:
+		handler = MotionHandler.new()
 	else:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-			"dry_run supports %s, %s, %s and %s (inspect ops are already read-only)"
-			% [OpRegistry.FAMILY_PRESETS, OpRegistry.FAMILY_FX, OpRegistry.FAMILY_GRAPH, OpRegistry.FAMILY_EDIT])
+			"dry_run supports %s, %s, %s, %s, %s and %s (inspect ops are already read-only)"
+			% [OpRegistry.FAMILY_PRESETS, OpRegistry.FAMILY_FX, OpRegistry.FAMILY_GRAPH, OpRegistry.FAMILY_EDIT, OpRegistry.FAMILY_RIG, OpRegistry.FAMILY_MOTION])
 	var result: Dictionary = handler.run(forwarded, null)
 	if result.has("data"):
 		result.data["dry_run"] = true

@@ -7,6 +7,8 @@ extends RefCounted
 ## types pass through untouched rather than being corrupted.
 
 const ClipSpec := preload("res://addons/godot_ai_animation/spec/clip_spec.gd")
+const SpecBuilder := preload("res://addons/godot_ai_animation/spec/spec_builder.gd")
+const ValueCodec := preload("res://addons/godot_ai_animation/utils/value_codec.gd")
 
 const _TIME_EPSILON := 0.000001
 const _PROPERTY_ROTATION := ["rotation", "rotation_degrees", "quaternion"]
@@ -221,8 +223,10 @@ static func set_interp(spec: Dictionary, interpolation: int, track_path: String)
 
 # --- trim / split / merge --------------------------------------------------
 
-## Linear-interpolated value of a value-ish track at `time` (nearest-key
-## fallback outside the key range; cubic tracks are sampled linearly).
+## Value of a value-ish track at `time` (nearest-key fallback outside the key
+## range). Honors the left key's per-key transition shape and, for cubic /
+## nearest tracks, the engine's own interpolator, so spec math and playback
+## agree. Returns null for non-value tracks and empty tracks.
 static func sample_track(track: Dictionary, time: float) -> Variant:
 	if not ClipSpec.is_value_type(int(track.get("type", -1))):
 		return null
@@ -234,6 +238,8 @@ static func sample_track(track: Dictionary, time: float) -> Variant:
 	var last: Dictionary = keys[keys.size() - 1]
 	if time >= float(last.get("time", 0.0)):
 		return last.get("value")
+	if int(track.get("interp", Animation.INTERPOLATION_LINEAR)) != Animation.INTERPOLATION_LINEAR:
+		return sample_track_exact(track, time)
 	for i in range(keys.size() - 1):
 		var a: Dictionary = keys[i]
 		var b: Dictionary = keys[i + 1]
@@ -248,8 +254,57 @@ static func sample_track(track: Dictionary, time: float) -> Variant:
 		var vb: Variant = b.get("value")
 		if not ClipSpec.can_lerp(va, vb):
 			return va
-		return ClipSpec.lerp_value(va, vb, (time - ta) / span)
+		var c := ease_curve((time - ta) / span, ValueCodec.parse_transition(a.get("transition", 1.0)))
+		return ClipSpec.lerp_value(va, vb, c)
 	return null
+
+
+## Exact value of a value-ish track at `time`, sampled through the engine's own
+## interpolator: a scratch Animation is built from the track, so per-key
+## transitions and cubic interpolation behave exactly as they do at playback.
+## Prefer `sample_built_track` when sampling one track many times.
+static func sample_track_exact(track: Dictionary, time: float) -> Variant:
+	return sample_built_track(build_track_animation(track), time)
+
+
+## A scratch single-track Animation for engine-side sampling (transitions and
+## cubic included). The track is deep-copied, so the input spec is untouched.
+static func build_track_animation(track: Dictionary) -> Animation:
+	var spec := ClipSpec.make(ClipSpec.last_key_time(track), Animation.LOOP_NONE)
+	spec.tracks.append(track.duplicate(true))
+	return SpecBuilder.to_animation(spec)
+
+
+## Value of the first track of a `build_track_animation` result at `time`.
+static func sample_built_track(anim: Animation, time: float) -> Variant:
+	if anim == null or anim.get_track_count() == 0:
+		return null
+	match anim.track_get_type(0):
+		Animation.TYPE_POSITION_3D:
+			return anim.position_track_interpolate(0, time)
+		Animation.TYPE_ROTATION_3D:
+			return anim.rotation_track_interpolate(0, time)
+		Animation.TYPE_SCALE_3D:
+			return anim.scale_track_interpolate(0, time)
+		_:
+			return anim.value_track_interpolate(0, time)
+
+
+## Godot's `Math::ease(p_x, p_c)` curve. `transition` is the per-key encoding
+## used everywhere else (1.0 linear, 2.0 ease_in, 0.5 ease_out, -2.0
+## ease_in_out, 0.0 hold; other positive/negative floats are custom exponents).
+static func ease_curve(p_x: float, transition: float) -> float:
+	var x := clampf(p_x, 0.0, 1.0)
+	if is_zero_approx(transition):
+		return 0.0
+	if transition > 0.0:
+		if transition < 1.0:
+			return 1.0 - pow(1.0 - x, 1.0 / transition)
+		return pow(x, transition)
+	return 0.5 * (
+		pow(2.0 * x, -transition) if x < 0.5
+		else 2.0 - pow(2.0 - x * 2.0, -transition)
+	)
 
 
 ## Keep only [from, to], shifted to start at 0, with the clip length set to

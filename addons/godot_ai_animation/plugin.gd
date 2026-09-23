@@ -2,10 +2,11 @@
 extends EditorPlugin
 
 ## Registers the animation toolkit's tools with Godot AI (>= 4.1.0):
-## `animation_presets` (create clips) and `animation_edit` (edit existing
-## clips). Both are promoted to first-class `custom_*` tools and are declared
-## in `registry/op_registry.gd` — the single source of truth for descriptions,
-## params schemas and the generated docs.
+## `animation_presets`, `animation_fx`, `animation_graph`, `animation_edit`,
+## `animation_inspect`, `animation_library`, `animation_rig` and
+## `animation_motion`. All are promoted to first-class `custom_*` tools and are
+## declared in `registry/op_registry.gd` — the single source of truth for
+## descriptions, params schemas and the generated docs.
 ##
 ## Registration is defensive: when Godot AI is absent this plugin loads cleanly,
 ## retries for a while (the other plugin may be enabled later in the same

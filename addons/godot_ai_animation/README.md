@@ -1,6 +1,6 @@
 # Godot AI Animation Toolkit (addon)
 
-Seven custom MCP tools for Godot AI agents, built on one declarative clip-spec
+Eight custom MCP tools for Godot AI agents, built on one declarative clip-spec
 engine:
 
 - **`animation_presets`** (promoted to `custom_animation_presets`) — build clips
@@ -18,6 +18,9 @@ engine:
   templates and JSON clip specs for reuse and interchange.
 - **`animation_rig`** (promoted to `custom_animation_rig`) — skeleton poses:
   capture, apply, blend, keyframe into clips, inspect rigs.
+- **`animation_motion`** (promoted to `custom_animation_motion`) — procedural
+  humanoid cycles: `walk_cycle`, `run_cycle`, `idle_cycle`, `cycle`, plus
+  `secondary_motion` (offline spring bones).
 - **`animation_inspect`** (promoted to `custom_animation_inspect`) — read-only
   inspection, auditing and dry runs.
 
@@ -56,6 +59,11 @@ Every preset commits **one scene-pinned undo action**; Controls get
 | `loop` | Set the loop mode, optionally making a linear loop seamless. |
 | `key_edit` | Add / set / remove / move a single key. |
 | `cleanup` | Drop redundant keys and empty tracks. |
+| `smooth` | Soften key values toward their neighbours (noise cleanup). |
+| `resample` | Rebuild value tracks at fixed fps, engine-exact (transitions + cubic preserved). |
+| `add_noise` | Seeded smooth micro-motion on value keys. |
+| `overlap` | Delay one node/subtree's tracks (per-limb follow-through). |
+| `layer` | Combine another clip additively (`add`) or by weight (`mix`). |
 
 Edit ops refuse clips with bezier / blend-shape / animation tracks or
 compressed tracks rather than rewriting them lossily.
@@ -114,8 +122,8 @@ compressed tracks rather than rewriting them lossily.
 | `spring_setup` | Attach spring bones (stiffness, drag, gravity, radius, collisions). |
 | `look_at_setup` | One bone tracks a target, with origin, limits, secondary rotation, turn duration. |
 | `retarget_setup` | Retarget a source skeleton onto a child target (auto / humanoid / res:// profile). |
-| `walk_cycle` | Looping in-place walk: thigh swing, knee bend, counter-swinging arms (`arm_down` for T-pose rigs), hip bob. |
-| `idle_breathing` | Subtle idle: chest/spine breathing, head counter-move, hip bob. |
+| `walk_cycle` | Looping in-place walk: thigh swing, knee bend, counter-swinging arms (`arm_down` for T-pose rigs), hip bob. For smooth character cycles prefer `animation_motion` below. |
+| `idle_breathing` | Subtle idle: chest/spine breathing, head counter-move, hip bob. For a richer loop prefer `animation_motion`'s `idle_cycle`. |
 | `blink` | Scale/rotate lid bones closed, N blinks per clip. |
 | `jumping_jack` | Looping jack: arms down to overhead, legs spread, rise. |
 | `squat` | Looping squat with the ankles planted by a two-bone solve. |
@@ -128,6 +136,21 @@ compressed tracks rather than rewriting them lossily.
 | `pose_list` | List saved pose files. |
 | `rig_get` | Dump bones, rests, pose, modifiers, springs + issues. |
 
+## `animation_motion`
+
+| op | What it builds |
+| --- | --- |
+| `walk_cycle` | Dense procedural walk: planted feet (two-bone IK leg solve), pelvis bob/sway/yaw/roll, counter-rotating torso, arm swing with elbow lag, head stabilisation. |
+| `run_cycle` | Same engine with a flight phase, forward lean, wider stride and bent elbows. |
+| `idle_cycle` | Looping idle: two-frequency breathing, weight shift, seeded micro-noise, arms hanging with a subtle sway. |
+| `cycle` | Generic entry: `preset` = walk / run / idle. |
+| `secondary_motion` | Bake offline spring bones (hair/tail/cloth) into an existing clip, deterministically. |
+
+Styles (`default` / `relaxed` / `heavy` / `sneaky`) scale a config before
+`overrides`; `root_motion` keys forward travel at the implied `speed`; T-pose
+rigs get their arms lowered automatically. Pure curve/IK/spring math lives in
+`spec/motion_drivers.gd` and cycle definitions in `spec/motion_specs.gd`.
+
 ## `animation_inspect`
 
 | op | What it reports |
@@ -137,6 +160,7 @@ compressed tracks rather than rewriting them lossily.
 | `audit` | Scene/player health check: broken paths, zero-length clips, duplicate keys, loop seams, autoplay conflicts, unused clips. |
 | `compare` | Diff two clips (length, loop mode, track paths, key deltas). |
 | `stats` | Clip/track/key totals, track-type histogram, loop-mode breakdown. |
+| `motion_report` | Per-track motion quality: key density, peak speed/acceleration, loop-seam pops, hemisphere flips, constant tracks — with fix hints. |
 | `dry_run` | Run any presets/edit op and report the result without committing. |
 | `help` | Op index from the registry. |
 
@@ -148,6 +172,11 @@ undoable commands) rejects it — call it directly.
 - `spec/clip_spec.gd` — declarative clip data (tracks, typed keys, markers).
 - `spec/spec_builder.gd` / `spec/spec_io.gd` — spec ⇄ `Animation`.
 - `spec/spec_modifiers.gd` — pure spec → spec transforms (tier-1 tested).
+- `spec/quality_modifiers.gd` — smoothing, engine-exact resampling, micro-noise,
+  overlap and layering, plus the `motion_report` analysis (tier-1 tested).
+- `spec/motion_drivers.gd` — pure procedural motion math: curves, periodic
+  noise, rest-relative rotation conversion, aim/knee solves, spring simulation.
+- `spec/motion_specs.gd` — walk/run/idle cycle definitions and style bundles.
 - `registry/op_registry.gd` — single source of truth for tool descriptions,
   params schemas, op metadata, and `docs/op-index.md`.
 - `spec/fx_specs.gd` — pure spec builders for the `animation_fx` generators.
@@ -156,9 +185,11 @@ undoable commands) rejects it — call it directly.
 - `spec/pose_math.gd` — pure pose math (rest deltas, mirroring, blending).
 - `handlers/generate.gd`, `handlers/fx.gd`, `handlers/graph.gd`,
   `handlers/edit.gd`, `handlers/inspect.gd`, `handlers/library.gd`,
-  `handlers/rig.gd` — tool entry points sharing
+  `handlers/rig.gd`, `handlers/motion.gd` — tool entry points sharing
   `handlers/animation_tool_base.gd` (one undo action per mutating call;
-  `dry_run` skips the commit).
+  `dry_run` skips the commit). Bone-based families also share
+  `handlers/bone_animation.gd` (skeleton/role resolution, aim/knee math, the
+  procedural-clip commit path).
 
 ## Requirements
 

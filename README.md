@@ -1,7 +1,7 @@
 # Godot AI Animation Toolkit
 
 A standalone [Godot](https://godotengine.org) addon that gives
-[Godot AI](https://github.com/hi-godot/godot-ai) agents seven animation tools —
+[Godot AI](https://github.com/hi-godot/godot-ai) agents eight animation tools —
 **no core patches**:
 
 - **`animation_presets`** — build clips in one call (the presets scoped out of
@@ -9,7 +9,8 @@ A standalone [Godot](https://godotengine.org) addon that gives
   `orbit`, `sweep`, `drift`, `spin`, `float`, `stagger`, `showcase`).
 - **`animation_edit`** — edit any existing clip in place: `retime`, `retarget`,
   `reverse`, `mirror`, `offset`, `ease_range`, `set_interp`, `trim`, `split_at`,
-  `merge`, `amplitude`, `loop`, `key_edit`, `cleanup`.
+  `merge`, `amplitude`, `loop`, `key_edit`, `cleanup`, plus quality passes
+  (`smooth`, `resample`, `add_noise`, `overlap`, `layer`).
 - **`animation_fx`** — one-call generators for game feel, UI, sprites and
   audio: `shake`, `zoom_punch`, `hit_flash`, `damage_bar`, `typewriter`,
   `progress_fill`, `counter`, `dialog_pop`, `transition`, `wave`, `spring`,
@@ -25,11 +26,17 @@ A standalone [Godot](https://godotengine.org) addon that gives
   `rig_get`), procedural recipes (`walk_cycle`, `idle_breathing`, `blink`,
   `jumping_jack`, `squat`, `punch`) and `bake_pose_sequence` (live modifiers →
   a plain clip).
+- **`animation_motion`** — procedural humanoid locomotion and idle:
+  `walk_cycle`, `run_cycle`, `idle_cycle` and a generic `cycle` build densely
+  sampled clips with two-bone IK leg solves (planted feet), pelvis
+  bob/sway/yaw/roll, counter-rotating torso and follow-through arms;
+  `style`/`overrides` tune the motion, `root_motion` keys forward travel, and
+  `secondary_motion` bakes offline spring bones (hair/tail/cloth) into a clip.
 - **`animation_inspect`** — read-only reasoning and QA: `describe`, `timeline`,
   `audit` (broken paths, dead clips, loop seams, autoplay conflicts),
   `compare`, `stats`, `dry_run` (run any op without committing), `help`.
 
-All seven sit on one declarative clip-spec engine, so every op is a pure
+All eight sit on one declarative clip-spec engine, so every op is a pure
 spec → spec transform and each mutating call is one scene-pinned undo action.
 
 ```json
@@ -60,9 +67,6 @@ spec → spec transform and each mutating call is one scene-pinned undo action.
 — every phase in one pass: clips, editing, inspection, generators, graphs, the
 project library, rigs, procedural recipes and the exercise recipes, with the CI
 results at the end.
-
-[**Video walkthrough (2 min)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v0.2.1/animation_toolkit_presets_walkthrough.mp4)
-— every preset card-by-card, with the exact call and the recorded clip it builds.
 
 ## Presets
 
@@ -97,10 +101,6 @@ instead of a single clip.)
 `animation_edit` works on any clip in any `AnimationPlayer` — including
 hand-authored ones — and commits one scene-pinned undo action per call.
 
-[**Video: editing demo (1:21)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v0.3.0/animation_toolkit_edit_demo.mp4)
-— before/after clips for `retime`, `reverse`, `mirror`, `trim`, `amplitude` and
-`key_edit`.
-
 | op | What it does |
 | --- | --- |
 | `retime` | Scale the timeline by `factor` or to `length` (optionally `keys_only`). |
@@ -122,11 +122,6 @@ Clips containing bezier / blend-shape / animation tracks (or compressed tracks)
 are refused with a clear error rather than rewritten lossily.
 
 ## Game feel, UI, sprites and audio
-
-[**Video: generators demo (1:00)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v0.5.0/animation_toolkit_fx_demo.mp4)
-— four groups on one stage: feedback (shake/zoom_punch/hit_flash/damage_bar),
-UI (typewriter/counter/progress_fill/dialog_pop), motion (wave/pendulum/spring)
-and sprites (flipbook/sprite_frames).
 
 `animation_fx` covers the rest of the everyday animation work: camera shake and
 punches, hit flashes, delayed damage bars, typewriter text, progress fills,
@@ -162,10 +157,6 @@ driver that replays the interaction timeline.
 
 ## AnimationTree graphs
 
-[**Video: graph demo (0:38)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v0.6.0/animation_toolkit_graph_demo.mp4)
-— a locomotion state machine following `walking`/`running` conditions with
-cross-fades, then a speed blend space with a one-shot jump layer.
-
 `animation_graph` builds and inspects the graph layer: state machines with
 conditions and cross-fades, 1D/2D blend spaces, recursive blend trees, and
 ready-made locomotion / one-shot / additive layer setups. It creates and wires
@@ -181,10 +172,6 @@ graphs that reference clips the player does not have.
 ```
 
 ## Reuse and interchange
-
-[**Video: library demo (0:38)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v0.7.0/animation_toolkit_library_demo.mp4)
-— one saved template driving five squares at five durations, then one exported
-clip replayed on three nodes via track remapping.
 
 `animation_library` turns one-off calls into project knowledge: save any
 presets/fx call as a named template and apply it later to other players or
@@ -202,17 +189,6 @@ targets with overrides, and move whole clips in and out of a typed JSON format
 ```
 
 ## Rigs, poses and procedural recipes
-
-[**Video: rig demo (0:49)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v0.9.0/animation_toolkit_rig_demo.mp4)
-— IK reach, spring bones and head look-at on the bundled human dummy.
-
-[**Video: procedural recipes (0:49)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v1.0.0/animation_toolkit_recipes_demo.mp4)
-— `walk_cycle`, `idle_breathing` + `blink`, and a bake that turns two live IK
-chains into an ordinary clip.
-
-[**Video: exercise recipes (0:49)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v1.1.0/animation_toolkit_exercises_demo.mp4)
-— `jumping_jack`, `squat` (two-bone solve, planted feet) and a `punch` combo on
-the dummy.
 
 `animation_rig` builds and drives skeletons: bones from a spec or a node
 subtree (`rig_chain`), IK (`ik_setup` — two-bone and chain solvers), spring
@@ -249,11 +225,35 @@ templates.
 }}
 ```
 
-## Inspecting and auditing
+## Procedural motion (3D character cycles)
 
-[**Video: inspection demo (0:55)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v0.4.0/animation_toolkit_inspect_demo.mp4)
-— `audit` finding five real problems in one scene, `dry_run` previewing the fix,
-and `compare` explaining a `retime`.
+[**Video: dummy motion showcase (0:44)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v1.2.0/animation_toolkit_motion_demo.mp4)
+— `walk_cycle`, `run_cycle` and `idle_cycle` recorded on the bundled human
+dummy: densely sampled curves, two-bone IK leg solves with planted feet,
+counter-rotating torso, arm follow-through and loops that close by construction.
+
+`animation_motion` is the character-motion family: `walk_cycle`, `run_cycle`,
+`idle_cycle` and a generic `cycle` build smooth clips from analytic drivers
+instead of a handful of hand-tuned keys. Legs are solved per sample by a
+two-bone IK so the stance foot stays planted and slides back at the cycle's
+ground speed; the pelvis bobs/sways/yaws/rolls, the chest counter-rotates and
+the arms swing with elbow lag. `style` (`relaxed` / `heavy` / `sneaky`) and
+`overrides` tune everything, `root_motion` keys the hips forward at the implied
+`speed`, and `secondary_motion` bakes offline spring bones (hair, tails, cloth)
+into any clip. T-pose rigs get their arms lowered automatically.
+
+```json
+{"tool": "custom_animation_motion", "params": {
+  "op": "walk_cycle",
+  "player_path": "/Main/Rig/AnimationPlayer",
+  "skeleton_path": "/Main/Rig/Skeleton3D",
+  "animation_name": "walk",
+  "duration": 1.0,
+  "loop_mode": "linear"
+}}
+```
+
+## Inspecting and auditing
 
 `animation_inspect` is read-only, so an agent can look before it edits — and
 `dry_run` shows exactly what a presets/edit call would produce without
@@ -307,11 +307,12 @@ warning) when Godot AI is absent.
 ```
 
 `test_project/` is a Godot project wired to both addons; `tests/` holds the
-editor suites (133 rows across all seven tools) and the headless checks
+editor suites (144 rows across all eight tools) and the headless checks
 (`tier1_value_codec.gd`, `tier1_spec_modifiers.gd`, `tier1_fx_specs.gd`,
-`tier1_graph_builders.gd`, `tier1_spec_json.gd`, `tier1_pose_math.gd`, 1815
-checks). The `demo_*.tscn` scenes are the ones recorded for the walkthrough
-videos — each is one toolkit call (plus autoplay) or one built demo subtree.
+`tier1_graph_builders.gd`, `tier1_spec_json.gd`, `tier1_pose_math.gd`,
+`tier1_motion_drivers.gd`, `tier1_quality_modifiers.gd`, 2100+ checks). The
+`demo_*.tscn` scenes are the ones recorded for the showcase videos — each is one
+toolkit call (plus autoplay) or one built demo subtree.
 
 ```powershell
 # Regenerate docs/op-index.md from the op registry (the single source of truth)

@@ -387,3 +387,46 @@ static func scale_delta(value: Variant, baseline: Variant, factor: float) -> Var
 		TYPE_QUATERNION:
 			return Quaternion.IDENTITY.slerp(value as Quaternion, factor)
 	return value
+
+
+# --- continuity ------------------------------------------------------------
+
+## Flip quaternion keys that sit on the opposite hemisphere to their predecessor
+## so consecutive rotation keys share a sign (dot >= 0). The rotation is
+## unchanged; it keeps slerp/cubic interpolation and exporters on the short
+## path. Non-quaternion keys are skipped. Mutates `keys` in place.
+static func align_quaternions(keys: Array) -> void:
+	var previous := Quaternion()
+	var has_previous := false
+	for key in keys:
+		var value: Variant = key.get("value")
+		if typeof(value) != TYPE_QUATERNION:
+			continue
+		var q := value as Quaternion
+		if has_previous and q.dot(previous) < 0.0:
+			q = -q
+			key["value"] = q
+		previous = q
+		has_previous = true
+
+
+## Force a looping key sequence to close: ensure a key sits exactly at `length`
+## carrying (a copy of) the first key's value, so a linear or ping-pong loop
+## wraps without a jump. No-op for empty keys or keys already past `length`.
+## Mutates `keys` in place.
+static func close_loop(keys: Array, length: float) -> void:
+	if keys.is_empty():
+		return
+	var first: Dictionary = keys[0]
+	if float(first.get("time", 0.0)) >= length:
+		return
+	var first_value: Variant = first.get("value")
+	var last: Dictionary = keys[keys.size() - 1]
+	if float(last.get("time", 0.0)) >= length - 0.000001:
+		last["value"] = first_value
+		last["time"] = length
+		return
+	var closing := {"time": length, "value": first_value}
+	if first.has("transition"):
+		closing["transition"] = first.get("transition")
+	keys.append(closing)

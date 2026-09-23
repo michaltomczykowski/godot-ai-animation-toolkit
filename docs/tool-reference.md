@@ -140,6 +140,11 @@ a `WRONG_TYPE` / `INVALID_PARAMS` error instead of being rewritten lossily.
 | `loop` | Sets `loop_mode`; `make_seamless=true` appends (or rewrites) a final key equal to the first value so a linear loop wraps without a jump. |
 | `key_edit` | `action` is `add` / `set` / `remove` / `move`; the track is selected by `track_path` (e.g. `"Sprite:position"`) or `track_index`; keys are matched within `tolerance`. `value` is coerced against the target property's real type (or the track's existing key type), so `{"x": 10, "y": 0}` works for a `Vector2` track. |
 | `cleanup` | Collapses consecutive equal keys to the last one (so holds keep their end), optionally drops keys closer than `min_gap`, removes empty tracks, and preserves the clip length. |
+| `smooth` | `strength` (0-1) lerps every value key toward the midpoint of its neighbours, `passes` times; looping clips wrap the seam. Use it to take jitter or over-shoot out of captured clips. |
+| `resample` | Rebuilds value tracks at `fps` samples/s using the engine's own interpolator, so per-key transitions and cubic tracks are preserved. `interpolation` sets the rebuilt track mode (`linear`/`nearest`). Optional `track_path`. |
+| `add_noise` | Deterministic micro-motion: `amount` (degrees for rotations, units for vectors) of seeded smooth noise, `frequency` cycles across the track, `seed`. Use it for breathing, tremor and idle life. |
+| `overlap` | Delays the tracks matching `track_path` (exact path, node, or subtree prefix) by `delay` seconds — the one-call follow-through for forearms, hair or props. `wrap=true` folds the shift inside the clip. |
+| `layer` | Combines `source_animation` onto the edited clip. `layer_mode="mix"` (default) blends toward the source by `weight`; `"add"` applies the source's delta from its first key (rotation multiply, vector/float add) — breathing or jiggle over a base. `source_player_path` reads the source from another player, `remap_node` rewrites its node path before matching. |
 
 ### Examples
 
@@ -160,6 +165,17 @@ a `WRONG_TYPE` / `INVALID_PARAMS` error instead of being rewritten lossily.
 
 {"op": "animation_edit", "params": {"op": "loop", "player_path": "/Main",
   "animation_name": "walk", "loop_mode": "linear", "make_seamless": true}}
+
+{"op": "animation_edit", "params": {"op": "overlap", "player_path": "/Main",
+  "animation_name": "walk", "track_path": "Skeleton3D:B-forearm.L",
+  "delay": 0.08, "wrap": true}}
+
+{"op": "animation_edit", "params": {"op": "layer", "player_path": "/Main",
+  "animation_name": "walk", "source_animation": "breathing",
+  "layer_mode": "add", "weight": 0.4}}
+
+{"op": "animation_edit", "params": {"op": "resample", "player_path": "/Main",
+  "animation_name": "walk", "fps": 30, "interpolation": "linear"}}
 ```
 
 ## `animation_inspect`
@@ -465,4 +481,62 @@ Notes:
   "keys": [{"name": "idle", "time": 0.0},
            {"name": "wave_mid", "time": 0.5, "transition": "ease_in_out"},
            {"name": "idle", "time": 1.0}]}}
+```
+
+## `animation_motion`
+
+Procedural humanoid cycles. Unlike `animation_rig`'s sparse recipes, these build
+**densely sampled** clips from analytic curves (24 keys/s by default) with the
+legs solved by a two-bone IK, so planted feet stay planted, phase offsets give
+follow-through, and the result looks smooth at any playback rate.
+
+| op | Notes |
+| --- | --- |
+| `walk_cycle` | Full gait: contact/passing timing, pelvis bob (2x) + sway + yaw + roll, counter-rotating spine/chest, arm swing with elbow lag, head stabilisation, planted feet with a flat-stance foot. `stride`, `knee_bend` (a planted crouch), `arm_swing`, `bob`, `sway`, `lean`, `arm_down`. |
+| `run_cycle` | Same engine with a flight phase, a forward lean, a wider stride, bent elbows and a bigger bob. Use a shorter `duration` (0.5-0.7 s). |
+| `idle_cycle` | Two-frequency breathing (chest, spine with lag), weight shift (sway + roll + bob), seeded micro-noise and head drift. `amplitude`, `head_amplitude`, `bob`, `sway`, `lean`. |
+| `cycle` | Generic entry point: `preset` = `walk` / `run` / `idle`, same params as the dedicated ops. |
+| `secondary_motion` | Bakes **offline spring bones** into an existing clip: each name in `bones` (hair, tail, cloth root — must be unkeyed in the clip) lags behind its animated parent with a damped angular spring (`stiffness` 1/s², `damping` 1/s, 120/12 = snappy hair), keyed as ordinary rotation tracks. Deterministic; no live modifier needed. |
+
+How motion is generated:
+
+- **Analytic drivers, dense samples.** Each bone channel is a sine/noise curve
+  (amplitude, frequency, phase, lag) composed in world space and converted into
+  the bone's rest frame — so the same numbers read the same way on any rig.
+- **Planted feet.** Per sample the hips and pelvis motion are applied, then each
+  leg is solved (law of cosines in the sagittal plane) so the ankle follows its
+  trajectory: the stance foot slides back at the cycle's ground speed, the swing
+  foot arcs forward and up. The returned `speed` is the implied m/s.
+- **Loop closure by construction.** Integer frequencies and a final sample that
+  re-evaluates phase 0 make every track close exactly; the commit pass also
+  aligns quaternion hemispheres and snaps the loop seam.
+- **Styles.** `style` = `default` / `relaxed` / `heavy` / `sneaky` scales the
+  config before `overrides` (e.g. `{"stride": 18, "lag": 0.1}`), so one call can
+  produce very different characters.
+- **Root motion.** `root_motion=true` also keys the hips forward at the implied
+  speed and returns `root_motion_track`; point `AnimationPlayer.root_motion_track`
+  at it to move the character.
+- T-pose rigs are detected: the arms are lowered automatically so the swing has
+  a real axis (an explicit `arm_down` always wins). A-pose rigs are untouched.
+
+### Examples
+
+```json
+{"op": "animation_motion", "params": {"op": "walk_cycle",
+  "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
+  "animation_name": "walk", "duration": 1.0, "loop_mode": "linear"}}
+
+{"op": "animation_motion", "params": {"op": "run_cycle",
+  "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
+  "animation_name": "run", "duration": 0.6, "loop_mode": "linear", "style": "heavy"}}
+
+{"op": "animation_motion", "params": {"op": "idle_cycle",
+  "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
+  "animation_name": "idle", "duration": 3.0, "loop_mode": "linear",
+  "overrides": {"sway": 0.02, "noise": 0.6}}}
+
+{"op": "animation_motion", "params": {"op": "secondary_motion",
+  "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
+  "animation_name": "walk", "bones": ["B-hair01", "B-hair02"],
+  "stiffness": 120.0, "damping": 12.0}}
 ```

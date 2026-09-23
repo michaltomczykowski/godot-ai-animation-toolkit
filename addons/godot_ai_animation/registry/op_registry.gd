@@ -18,6 +18,7 @@ const FAMILY_FX := "animation_fx"
 const FAMILY_GRAPH := "animation_graph"
 const FAMILY_LIBRARY := "animation_library"
 const FAMILY_RIG := "animation_rig"
+const FAMILY_MOTION := "animation_motion"
 
 const MAX_DESCRIPTION_CHARS := 600
 ## The core registry rejects a custom tool whose params schema serializes past
@@ -96,11 +97,25 @@ static func families() -> Dictionary:
 			## bake_pose_sequence drives a full skeleton update per sample.
 			"timeout_ms": 30000,
 		},
+		FAMILY_MOTION: {
+			"handler": "res://addons/godot_ai_animation/handlers/motion.gd",
+			"summary": "Procedural locomotion and idle cycles for a humanoid skeleton.",
+			"description": _motion_description(),
+			"schema": _motion_schema(),
+			"ops": _motion_ops(),
+			"requires_writable": true,
+			"undoable": true,
+			## Dense sampling plus a two-bone solve per sample.
+			"timeout_ms": 30000,
+		},
 	}
 
 
 static func family_names() -> Array:
-	return [FAMILY_PRESETS, FAMILY_FX, FAMILY_GRAPH, FAMILY_EDIT, FAMILY_INSPECT, FAMILY_LIBRARY, FAMILY_RIG]
+	return [
+		FAMILY_PRESETS, FAMILY_FX, FAMILY_GRAPH, FAMILY_EDIT, FAMILY_INSPECT,
+		FAMILY_LIBRARY, FAMILY_RIG, FAMILY_MOTION,
+	]
 
 
 static func family(name: String) -> Dictionary:
@@ -331,9 +346,10 @@ static func _presets_ops() -> Array:
 static func _edit_description() -> String:
 	return (
 		"Edit an existing Animation clip in place (hand-authored clips included). "
-		+ "Ops: retime, retarget (rename or bulk-remap track paths), reverse, "
-		+ "mirror, offset, ease_range, set_interp, trim, split_at, merge, "
-		+ "amplitude, loop, key_edit, cleanup. Needs player_path + "
+		+ "Ops: retime, retarget, reverse, mirror, offset, ease_range, set_interp, "
+		+ "trim, split_at, merge, amplitude, loop, key_edit, cleanup, plus quality "
+		+ "passes: smooth, resample, add_noise, overlap (per-limb follow-through) "
+		+ "and layer (additive/mix another clip). Needs player_path + "
 		+ "animation_name; every call commits one scene-pinned undo action. "
 		+ "Refuses clips with bezier/blend-shape/compressed tracks instead of "
 		+ "dropping data. Requires the Godot AI addon."
@@ -350,6 +366,7 @@ static func _edit_schema() -> Dictionary:
 					"retime", "retarget", "reverse", "mirror", "offset",
 					"ease_range", "set_interp", "trim", "split_at", "merge",
 					"amplitude", "loop", "key_edit", "cleanup",
+					"smooth", "resample", "add_noise", "overlap", "layer",
 				],
 				"description": "Which edit to apply.",
 			},
@@ -468,6 +485,22 @@ static func _edit_schema() -> Dictionary:
 				"default": true,
 				"description": "cleanup: remove tracks that end up with no keys.",
 			},
+			"strength": {"type": "number", "description": "smooth: 0-1 lerp toward the neighbour midpoint (0.5)."},
+			"passes": {"type": "integer", "description": "smooth: passes over the keys (1)."},
+			"fps": {"type": "number", "description": "resample: samples per second (30; 0-120)."},
+			"amount": {"type": "number", "description": "add_noise: degrees for rotations, units for position/scale (2)."},
+			"frequency": {"type": "number", "description": "add_noise: noise cycles across the track (3)."},
+			"seed": {"type": "integer", "description": "add_noise: deterministic noise seed (0)."},
+			"delay": {"type": "number", "description": "overlap: seconds to delay the matched tracks (needed for follow-through)."},
+			"weight": {"type": "number", "description": "layer: 0-1 blend toward the source clip (1)."},
+			"source_animation": {"type": "string", "description": "layer: clip to combine in."},
+			"source_player_path": {"type": "string", "description": "layer: player holding the source clip (default: the edited player)."},
+			"layer_mode": {
+				"type": "string",
+				"enum": ["add", "mix"],
+				"description": "layer: add applies the source's delta from its first key, mix blends toward it.",
+			},
+			"remap_node": {"type": "string", "description": "layer: rewrite the source's node path to this node before matching."},
 			"dry_run": {
 				"type": "boolean",
 				"default": false,
@@ -564,6 +597,36 @@ static func _edit_ops() -> Array:
 			"params": ["player_path", "animation_name", "tolerance", "min_gap", "drop_empty_tracks"],
 			"example": {"op": "cleanup", "player_path": "/Main", "animation_name": "walk", "tolerance": 0.0001, "min_gap": 0.01},
 		},
+		{
+			"name": "smooth",
+			"summary": "Soften key values toward their neighbours - follow-through cleanup for noisy captures.",
+			"params": ["player_path", "animation_name", "strength", "passes", "track_path"],
+			"example": {"op": "smooth", "player_path": "/Main", "animation_name": "walk", "strength": 0.5, "passes": 2},
+		},
+		{
+			"name": "resample",
+			"summary": "Rebuild value tracks at a fixed sample rate, keeping the curve (engine-exact interpolation).",
+			"params": ["player_path", "animation_name", "fps", "interpolation", "track_path"],
+			"example": {"op": "resample", "player_path": "/Main", "animation_name": "walk", "fps": 30, "interpolation": "linear"},
+		},
+		{
+			"name": "add_noise",
+			"summary": "Add seeded, smooth micro-motion to value keys (breathing, tremor, life).",
+			"params": ["player_path", "animation_name", "amount", "frequency", "seed", "track_path"],
+			"example": {"op": "add_noise", "player_path": "/Main", "animation_name": "idle", "amount": 0.4, "frequency": 2.0, "track_path": "Skeleton3D:B-head"},
+		},
+		{
+			"name": "overlap",
+			"summary": "Delay one node/subtree's tracks by `delay` seconds - instant follow-through on any clip.",
+			"params": ["player_path", "animation_name", "track_path", "delay", "wrap"],
+			"example": {"op": "overlap", "player_path": "/Main", "animation_name": "walk", "track_path": "Skeleton3D:B-forearm.L", "delay": 0.08, "wrap": true},
+		},
+		{
+			"name": "layer",
+			"summary": "Combine another clip: add its delta from its first key (jiggle/breathing) or mix toward it.",
+			"params": ["player_path", "animation_name", "source_animation", "source_player_path", "layer_mode", "weight", "remap_node"],
+			"example": {"op": "layer", "player_path": "/Main", "animation_name": "walk", "source_animation": "idle", "layer_mode": "add", "weight": 0.4},
+		},
 	])
 
 
@@ -577,6 +640,7 @@ static func _inspect_description() -> String:
 		+ "summary), timeline (per-track key table), audit (broken paths, "
 		+ "zero-length clips, duplicate keys, loop seams, autoplay conflicts, "
 		+ "unused clips), compare (diff two clips), stats (scene-wide numbers), "
+		+ "motion_report (key density, spikes, loop-seam pops, hemisphere flips), "
 		+ "dry_run (run any generator or edit op without "
 		+ "committing), help (op index with params and examples). Never mutates "
 		+ "the scene or the undo stack. Requires the Godot AI addon."
@@ -589,7 +653,7 @@ static func _inspect_schema() -> Dictionary:
 		"properties": {
 			"op": {
 				"type": "string",
-				"enum": ["describe", "timeline", "audit", "compare", "stats", "dry_run", "help"],
+				"enum": ["describe", "timeline", "audit", "compare", "stats", "motion_report", "dry_run", "help"],
 				"description": "Which inspection to run.",
 			},
 			"player_path": {
@@ -638,7 +702,7 @@ static func _inspect_schema() -> Dictionary:
 			},
 			"tool": {
 				"type": "string",
-				"enum": ["animation_presets", "animation_fx", "animation_graph", "animation_edit", "animation_library", "animation_rig"],
+				"enum": ["animation_presets", "animation_fx", "animation_graph", "animation_edit", "animation_library", "animation_rig", "animation_motion"],
 				"description": "dry_run: which tool to run. help: which tool's ops to list (omit for all).",
 			},
 			"forward_op": {
@@ -685,6 +749,12 @@ static func _inspect_ops() -> Array:
 			"summary": "Clip/track/key totals, track-type histogram and loop-mode breakdown.",
 			"params": ["player_path"],
 			"example": {"op": "stats"},
+		},
+		{
+			"name": "motion_report",
+			"summary": "Per-track motion quality: key density, peak speed/acceleration, loop-seam pops, hemisphere flips, constant tracks - each with a fix hint.",
+			"params": ["player_path", "animation_name", "max_tracks"],
+			"example": {"op": "motion_report", "player_path": "/Main", "animation_name": "walk"},
 		},
 		{
 			"name": "dry_run",
@@ -1514,6 +1584,186 @@ static func _rig_ops() -> Array:
 			"summary": "Sample a skeleton over time into a clip: seek the source clip, run the active modifiers (IK, springs, retarget), key the final pose.",
 			"params": ["player_path", "skeleton_path", "animation_name", "duration", "fps", "bones", "positions", "scales", "source_animation", "loop_mode", "overwrite"],
 			"example": {"op": "bake_pose_sequence", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "walk_baked", "duration": 1.0, "loop_mode": "linear"},
+		},
+	])
+
+
+# ============================================================================
+# animation_motion
+# ============================================================================
+
+static func _motion_description() -> String:
+	return (
+		"Procedural locomotion and idle for a humanoid skeleton: walk_cycle, "
+		+ "run_cycle, idle_cycle and a generic cycle (preset) build dense, smoothly "
+		+ "sampled clips with the legs solved by a two-bone IK (planted feet), "
+		+ "pelvis bob/sway/yaw/roll, counter-rotating torso and follow-through "
+		+ "arms. secondary_motion bakes offline spring bones (hair/tail/cloth) "
+		+ "into an existing clip. style (default/relaxed/heavy/sneaky) or overrides "
+		+ "tune the motion; root_motion keys the hips forward at the cycle's "
+		+ "implied speed. Needs a Skeleton3D with humanoid bone roles."
+	)
+
+
+static func _motion_schema() -> Dictionary:
+	return {
+		"type": "object",
+		"properties": {
+			"op": {
+				"type": "string",
+				"enum": ["walk_cycle", "run_cycle", "idle_cycle", "cycle", "secondary_motion"],
+				"description": "Cycle to build, or secondary_motion to bake spring bones into an existing clip.",
+			},
+			"preset": {
+				"type": "string",
+				"enum": ["walk", "run", "idle"],
+				"description": "cycle: which cycle to build (walk).",
+			},
+			"player_path": {
+				"type": "string",
+				"description": "Scene path to the AnimationPlayer that receives the clip.",
+			},
+			"skeleton_path": {
+				"type": "string",
+				"description": "Scene path to the Skeleton3D (default: the first one).",
+			},
+			"animation_name": {
+				"type": "string",
+				"description": "Clip name (default: the cycle name).",
+			},
+			"duration": {
+				"type": "number",
+				"description": "Clip length in seconds; one gait cycle fits in it.",
+			},
+			"style": {
+				"type": "string",
+				"enum": ["default", "relaxed", "heavy", "sneaky"],
+				"description": "Motion style preset, applied before overrides.",
+			},
+			"overrides": {
+				"type": "object",
+				"description": "Deep tuning, e.g. {\"stride\": 18, \"lag\": 0.1}; walk/run keys: stride, knee_bend, arm_swing, bob, sway, hip_yaw, hip_roll, chest_yaw, lean, foot_lift, elbow, lag, stance, crouch; idle keys: amplitude, head_amplitude, bob, sway, shift, noise, lean, arm_sway, elbow.",
+			},
+			"samples": {
+				"type": "number",
+				"description": "Keys per second of clip (24; clamped to 4-120).",
+			},
+			"root_motion": {
+				"type": "boolean",
+				"description": "Also key the hips forward at the cycle's implied speed (off; set player.root_motion_track to the returned track).",
+			},
+			"stride": {
+				"type": "number",
+				"description": "Gait: leg swing, degrees (walk 24, run 34).",
+			},
+			"knee_bend": {
+				"type": "number",
+				"description": "Gait: planted crouch, degrees (walk 30, run 55).",
+			},
+			"arm_swing": {
+				"type": "number",
+				"description": "Gait: arm counter-swing, degrees (walk 20, run 34).",
+			},
+			"arm_down": {
+				"type": "number",
+				"description": "Lower the arms this many degrees from the rest pose (T-pose rigs).",
+			},
+			"bob": {
+				"type": "number",
+				"description": "Pelvis bob, metres peak-to-peak (walk 0.05; idle 0.006).",
+			},
+			"sway": {
+				"type": "number",
+				"description": "Pelvis lateral sway, metres (walk 0.02; idle 0.012).",
+			},
+			"lean": {
+				"type": "number",
+				"description": "Forward lean, degrees (walk 3, run 9; idle slouch 1.5).",
+			},
+			"amplitude": {
+				"type": "number",
+				"description": "idle_cycle: breathing chest rotation, degrees (1.6).",
+			},
+			"head_amplitude": {
+				"type": "number",
+				"description": "idle_cycle: head drift, degrees (0.8).",
+			},
+			"roles": {
+				"type": "object",
+				"description": "Bone roles, e.g. {\"thigh_l\": \"B-thigh.L\"}; missing ones auto-detect.",
+			},
+			"bones": {
+				"type": "array",
+				"items": {"type": "string"},
+				"description": "secondary_motion: jiggle bones to bake (must be unkeyed in the clip).",
+			},
+			"stiffness": {
+				"type": "number",
+				"description": "secondary_motion: spring stiffness, 1/s^2 (120; hair ~120, heavy tail ~30).",
+			},
+			"damping": {
+				"type": "number",
+				"description": "secondary_motion: spring damping, 1/s (12; lower swings longer).",
+			},
+			"loop_mode": {
+				"type": "string",
+				"enum": ["none", "linear", "pingpong"],
+				"description": "Loop mode (none; cycles use linear).",
+			},
+			"overwrite": {
+				"type": "boolean",
+				"description": "Replace an existing clip with the same name (off).",
+			},
+			"dry_run": {
+				"type": "boolean",
+				"description": "Report without committing (off).",
+			},
+		},
+		"required": ["op"],
+	}
+
+
+static func _motion_ops() -> Array:
+	var gait_params := [
+		"player_path", "skeleton_path", "animation_name", "duration", "style",
+		"overrides", "samples", "root_motion", "stride", "knee_bend", "arm_swing",
+		"arm_down", "bob", "sway", "lean", "roles", "loop_mode", "overwrite",
+	]
+	var idle_params := [
+		"player_path", "skeleton_path", "animation_name", "duration", "style",
+		"overrides", "samples", "amplitude", "head_amplitude", "bob", "sway",
+		"lean", "roles", "loop_mode", "overwrite",
+	]
+	return _with_dry_run([
+		{
+			"name": "walk_cycle",
+			"summary": "Build a looping walk with planted feet: pelvis bob/sway/yaw/roll, counter-rotating torso, arm swing with elbow follow-through, head stabilisation.",
+			"params": gait_params,
+			"example": {"op": "walk_cycle", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "walk", "duration": 1.0, "loop_mode": "linear"},
+		},
+		{
+			"name": "run_cycle",
+			"summary": "Build a looping run: flight phase, forward lean, bigger stride and arm swing, bent elbows.",
+			"params": gait_params,
+			"example": {"op": "run_cycle", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "run", "duration": 0.6, "loop_mode": "linear"},
+		},
+		{
+			"name": "idle_cycle",
+			"summary": "Build a subtle looping idle: two-frequency breathing, weight shift, seeded micro-motion and head drift.",
+			"params": idle_params,
+			"example": {"op": "idle_cycle", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "idle", "duration": 3.0, "loop_mode": "linear"},
+		},
+		{
+			"name": "cycle",
+			"summary": "Generic entry point: build the cycle named by `preset` (walk, run or idle) with the same parameters as the dedicated ops.",
+			"params": ["preset"] + gait_params + ["amplitude", "head_amplitude"],
+			"example": {"op": "cycle", "preset": "run", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "run", "duration": 0.6, "loop_mode": "linear"},
+		},
+		{
+			"name": "secondary_motion",
+			"summary": "Bake offline spring bones into an existing clip: hair/tail/cloth roots lag behind their animated parent, deterministically.",
+			"params": ["player_path", "skeleton_path", "animation_name", "bones", "stiffness", "damping", "samples"],
+			"example": {"op": "secondary_motion", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "walk", "bones": ["B-hair01", "B-hair02"], "stiffness": 120.0, "damping": 12.0},
 		},
 	])
 

@@ -7,6 +7,7 @@ extends RefCounted
 
 const ClipSpec := preload("res://addons/godot_ai_animation/spec/clip_spec.gd")
 const ErrorCodes := preload("res://addons/godot_ai_animation/utils/error_codes.gd")
+const ValueCodec := preload("res://addons/godot_ai_animation/utils/value_codec.gd")
 
 
 ## Structural check: {} when the spec can be built, else an error dict.
@@ -61,13 +62,14 @@ static func _build_track(anim: Animation, track: Dictionary) -> void:
 			for key in track.get("keys", []):
 				anim.track_insert_key(
 					index, float(key.get("time", 0.0)), key.get("value"),
-					float(key.get("transition", 1.0)),
+					ValueCodec.parse_transition(key.get("transition", 1.0)),
 				)
 		Animation.TYPE_POSITION_3D, Animation.TYPE_ROTATION_3D, Animation.TYPE_SCALE_3D:
 			anim.track_set_interpolation_type(index, int(track.get("interp", Animation.INTERPOLATION_LINEAR)))
 			anim.track_set_interpolation_loop_wrap(index, bool(track.get("loop_wrap", true)))
 			for key in track.get("keys", []):
-				anim.track_insert_key(index, float(key.get("time", 0.0)), key.get("value"))
+				anim.track_insert_key(index, float(key.get("time", 0.0)), key.get("value"),
+					ValueCodec.parse_transition(key.get("transition", 1.0)))
 		Animation.TYPE_METHOD:
 			for key in track.get("keys", []):
 				anim.track_insert_key(index, float(key.get("time", 0.0)), {

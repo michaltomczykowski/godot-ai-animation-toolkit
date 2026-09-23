@@ -275,12 +275,17 @@ Handler: `res://addons/godot_ai_animation/handlers/edit.gd`
 | `loop` | Set the loop mode, optionally making a linear loop seamless. | `player_path`, `animation_name`, `loop_mode`, `make_seamless`, `dry_run` |
 | `key_edit` | Add, set, remove or move a single key on a track. | `player_path`, `animation_name`, `action`, `track_path`, `track_index`, `time`, `value`, `transition`, `new_time`, `tolerance`, `dry_run` |
 | `cleanup` | Drop redundant keys and empty tracks (dedupe holds, optional minimum gap). | `player_path`, `animation_name`, `tolerance`, `min_gap`, `drop_empty_tracks`, `dry_run` |
+| `smooth` | Soften key values toward their neighbours - follow-through cleanup for noisy captures. | `player_path`, `animation_name`, `strength`, `passes`, `track_path`, `dry_run` |
+| `resample` | Rebuild value tracks at a fixed sample rate, keeping the curve (engine-exact interpolation). | `player_path`, `animation_name`, `fps`, `interpolation`, `track_path`, `dry_run` |
+| `add_noise` | Add seeded, smooth micro-motion to value keys (breathing, tremor, life). | `player_path`, `animation_name`, `amount`, `frequency`, `seed`, `track_path`, `dry_run` |
+| `overlap` | Delay one node/subtree's tracks by `delay` seconds - instant follow-through on any clip. | `player_path`, `animation_name`, `track_path`, `delay`, `wrap`, `dry_run` |
+| `layer` | Combine another clip: add its delta from its first key (jiggle/breathing) or mix toward it. | `player_path`, `animation_name`, `source_animation`, `source_player_path`, `layer_mode`, `weight`, `remap_node`, `dry_run` |
 
 ### `animation_edit` parameters
 
 | Param | Type | Notes |
 | --- | --- | --- |
-| `op` | string: retime \| retarget \| reverse \| mirror \| offset \| ease_range \| set_interp \| trim \| split_at \| merge \| amplitude \| loop \| key_edit \| cleanup | Which edit to apply. |
+| `op` | string: retime \| retarget \| reverse \| mirror \| offset \| ease_range \| set_interp \| trim \| split_at \| merge \| amplitude \| loop \| key_edit \| cleanup \| smooth \| resample \| add_noise \| overlap \| layer | Which edit to apply. |
 | `player_path` | string | Scene path to the AnimationPlayer that owns the clip. |
 | `animation_name` | string | Name of the clip to edit (merge: the default player for sources without one). |
 | `factor` | number | retime: time multiplier (>0). amplitude: value multiplier (1.0 = unchanged, 0.0 = flat). |
@@ -317,6 +322,18 @@ Handler: `res://addons/godot_ai_animation/handlers/edit.gd`
 | `tolerance` | number | key_edit/cleanup: match/equality tolerance in seconds or units (default 0.001 / 0.0001). |
 | `min_gap` | number | cleanup: drop keys closer than this to the previous kept key (default 0 = keep all). |
 | `drop_empty_tracks` | boolean (default `true`) | cleanup: remove tracks that end up with no keys. |
+| `strength` | number | smooth: 0-1 lerp toward the neighbour midpoint (0.5). |
+| `passes` | integer | smooth: passes over the keys (1). |
+| `fps` | number | resample: samples per second (30; 0-120). |
+| `amount` | number | add_noise: degrees for rotations, units for position/scale (2). |
+| `frequency` | number | add_noise: noise cycles across the track (3). |
+| `seed` | integer | add_noise: deterministic noise seed (0). |
+| `delay` | number | overlap: seconds to delay the matched tracks (needed for follow-through). |
+| `weight` | number | layer: 0-1 blend toward the source clip (1). |
+| `source_animation` | string | layer: clip to combine in. |
+| `source_player_path` | string | layer: player holding the source clip (default: the edited player). |
+| `layer_mode` | string: add \| mix | layer: add applies the source's delta from its first key, mix blends toward it. |
+| `remap_node` | string | layer: rewrite the source's node path to this node before matching. |
 | `dry_run` | boolean (default `false`) | Report what the edit would produce without committing anything (no undo action). |
 
 Required: `op`, `player_path`, `animation_name`.
@@ -338,6 +355,11 @@ Required: `op`, `player_path`, `animation_name`.
 {"animation_name":"walk","loop_mode":"linear","make_seamless":true,"op":"loop","player_path":"/Main"}
 {"action":"set","animation_name":"open","op":"key_edit","player_path":"/Main/HUD","time":0.2,"track_path":"Panel:position","value":{"x":10,"y":0}}
 {"animation_name":"walk","min_gap":0.01,"op":"cleanup","player_path":"/Main","tolerance":0.0001}
+{"animation_name":"walk","op":"smooth","passes":2,"player_path":"/Main","strength":0.5}
+{"animation_name":"walk","fps":30,"interpolation":"linear","op":"resample","player_path":"/Main"}
+{"amount":0.4,"animation_name":"idle","frequency":2.0,"op":"add_noise","player_path":"/Main","track_path":"Skeleton3D:B-head"}
+{"animation_name":"walk","delay":0.08,"op":"overlap","player_path":"/Main","track_path":"Skeleton3D:B-forearm.L","wrap":true}
+{"animation_name":"walk","layer_mode":"add","op":"layer","player_path":"/Main","source_animation":"idle","weight":0.4}
 ```
 
 ## `animation_inspect`
@@ -353,6 +375,7 @@ Handler: `res://addons/godot_ai_animation/handlers/inspect.gd`
 | `audit` | Scene or player health check: broken paths, dead clips, loop seams, autoplay conflicts. | `player_path`, `severity`, `include_info` |
 | `compare` | Diff two clips: length, loop mode, track paths, key counts and value deltas. | `player_path`, `animation_name`, `other_animation_name`, `other_player_path`, `tolerance`, `max_keys` |
 | `stats` | Clip/track/key totals, track-type histogram and loop-mode breakdown. | `player_path` |
+| `motion_report` | Per-track motion quality: key density, peak speed/acceleration, loop-seam pops, hemisphere flips, constant tracks - each with a fix hint. | `player_path`, `animation_name`, `max_tracks` |
 | `dry_run` | Run any presets/edit op and report the result without committing. | `tool`, `forward_op`, `player_path`, `animation_name` |
 | `help` | Op index from the registry: names, summaries, params and examples. | `tool`, `op_name` |
 
@@ -360,7 +383,7 @@ Handler: `res://addons/godot_ai_animation/handlers/inspect.gd`
 
 | Param | Type | Notes |
 | --- | --- | --- |
-| `op` | string: describe \| timeline \| audit \| compare \| stats \| dry_run \| help | Which inspection to run. |
+| `op` | string: describe \| timeline \| audit \| compare \| stats \| motion_report \| dry_run \| help | Which inspection to run. |
 | `player_path` | string | Scene path to an AnimationPlayer. Omit for audit/stats to scan every player in the edited scene. |
 | `animation_name` | string | Clip to inspect (describe/timeline/compare). Omit for describe to summarise every clip on the player. |
 | `other_animation_name` | string | compare: the clip to diff against. |
@@ -372,7 +395,7 @@ Handler: `res://addons/godot_ai_animation/handlers/inspect.gd`
 | `severity` | string: all \| error \| warning \| info | audit: only findings of this severity (default all). |
 | `include_info` | boolean (default `true`) | audit: include info-level findings (unused clips, constant tracks). |
 | `tolerance` | number | compare: value comparison tolerance (default 0.0001). |
-| `tool` | string: animation_presets \| animation_fx \| animation_graph \| animation_edit \| animation_library \| animation_rig | dry_run: which tool to run. help: which tool's ops to list (omit for all). |
+| `tool` | string: animation_presets \| animation_fx \| animation_graph \| animation_edit \| animation_library \| animation_rig \| animation_motion | dry_run: which tool to run. help: which tool's ops to list (omit for all). |
 | `forward_op` | string | dry_run: the presets/fx/edit op to run (e.g. "retime"); its own params go in the same call. |
 | `op_name` | string | help: only this op (omit to list the tool's whole index). |
 
@@ -386,6 +409,7 @@ Required: `op`.
 {"op":"audit","severity":"warning"}
 {"animation_name":"walk","op":"compare","other_animation_name":"walk_fast","player_path":"/Main"}
 {"op":"stats"}
+{"animation_name":"walk","op":"motion_report","player_path":"/Main"}
 {"animation_name":"walk","factor":0.5,"forward_op":"retime","op":"dry_run","player_path":"/Main","tool":"animation_edit"}
 {"op":"help","tool":"animation_edit"}
 ```
@@ -564,4 +588,61 @@ Required: `op`.
 {"animation_name":"squat","bob":0.25,"duration":2.0,"loop_mode":"linear","op":"squat","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"animation_name":"boxing","cycles":2,"duration":0.8,"loop_mode":"linear","op":"punch","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"animation_name":"walk_baked","duration":1.0,"loop_mode":"linear","op":"bake_pose_sequence","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
+```
+
+## `animation_motion`
+
+Procedural locomotion and idle cycles for a humanoid skeleton.
+
+Handler: `res://addons/godot_ai_animation/handlers/motion.gd`
+
+| op | What it does | Params |
+| --- | --- | --- |
+| `walk_cycle` | Build a looping walk with planted feet: pelvis bob/sway/yaw/roll, counter-rotating torso, arm swing with elbow follow-through, head stabilisation. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `root_motion`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `sway`, `lean`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
+| `run_cycle` | Build a looping run: flight phase, forward lean, bigger stride and arm swing, bent elbows. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `root_motion`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `sway`, `lean`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
+| `idle_cycle` | Build a subtle looping idle: two-frequency breathing, weight shift, seeded micro-motion and head drift. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `amplitude`, `head_amplitude`, `bob`, `sway`, `lean`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
+| `cycle` | Generic entry point: build the cycle named by `preset` (walk, run or idle) with the same parameters as the dedicated ops. | `preset`, `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `root_motion`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `sway`, `lean`, `roles`, `loop_mode`, `overwrite`, `amplitude`, `head_amplitude`, `dry_run` |
+| `secondary_motion` | Bake offline spring bones into an existing clip: hair/tail/cloth roots lag behind their animated parent, deterministically. | `player_path`, `skeleton_path`, `animation_name`, `bones`, `stiffness`, `damping`, `samples`, `dry_run` |
+
+### `animation_motion` parameters
+
+| Param | Type | Notes |
+| --- | --- | --- |
+| `op` | string: walk_cycle \| run_cycle \| idle_cycle \| cycle \| secondary_motion | Cycle to build, or secondary_motion to bake spring bones into an existing clip. |
+| `preset` | string: walk \| run \| idle | cycle: which cycle to build (walk). |
+| `player_path` | string | Scene path to the AnimationPlayer that receives the clip. |
+| `skeleton_path` | string | Scene path to the Skeleton3D (default: the first one). |
+| `animation_name` | string | Clip name (default: the cycle name). |
+| `duration` | number | Clip length in seconds; one gait cycle fits in it. |
+| `style` | string: default \| relaxed \| heavy \| sneaky | Motion style preset, applied before overrides. |
+| `overrides` | object | Deep tuning, e.g. {"stride": 18, "lag": 0.1}; walk/run keys: stride, knee_bend, arm_swing, bob, sway, hip_yaw, hip_roll, chest_yaw, lean, foot_lift, elbow, lag, stance, crouch; idle keys: amplitude, head_amplitude, bob, sway, shift, noise, lean, arm_sway, elbow. |
+| `samples` | number | Keys per second of clip (24; clamped to 4-120). |
+| `root_motion` | boolean | Also key the hips forward at the cycle's implied speed (off; set player.root_motion_track to the returned track). |
+| `stride` | number | Gait: leg swing, degrees (walk 24, run 34). |
+| `knee_bend` | number | Gait: planted crouch, degrees (walk 30, run 55). |
+| `arm_swing` | number | Gait: arm counter-swing, degrees (walk 20, run 34). |
+| `arm_down` | number | Lower the arms this many degrees from the rest pose (T-pose rigs). |
+| `bob` | number | Pelvis bob, metres peak-to-peak (walk 0.05; idle 0.006). |
+| `sway` | number | Pelvis lateral sway, metres (walk 0.02; idle 0.012). |
+| `lean` | number | Forward lean, degrees (walk 3, run 9; idle slouch 1.5). |
+| `amplitude` | number | idle_cycle: breathing chest rotation, degrees (1.6). |
+| `head_amplitude` | number | idle_cycle: head drift, degrees (0.8). |
+| `roles` | object | Bone roles, e.g. {"thigh_l": "B-thigh.L"}; missing ones auto-detect. |
+| `bones` | array | secondary_motion: jiggle bones to bake (must be unkeyed in the clip). |
+| `stiffness` | number | secondary_motion: spring stiffness, 1/s^2 (120; hair ~120, heavy tail ~30). |
+| `damping` | number | secondary_motion: spring damping, 1/s (12; lower swings longer). |
+| `loop_mode` | string: none \| linear \| pingpong | Loop mode (none; cycles use linear). |
+| `overwrite` | boolean | Replace an existing clip with the same name (off). |
+| `dry_run` | boolean | Report without committing (off). |
+
+Required: `op`.
+
+### Examples
+
+```json
+{"animation_name":"walk","duration":1.0,"loop_mode":"linear","op":"walk_cycle","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
+{"animation_name":"run","duration":0.6,"loop_mode":"linear","op":"run_cycle","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
+{"animation_name":"idle","duration":3.0,"loop_mode":"linear","op":"idle_cycle","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
+{"animation_name":"run","duration":0.6,"loop_mode":"linear","op":"cycle","player_path":"/Main/Rig/AnimationPlayer","preset":"run","skeleton_path":"/Main/Rig/Skeleton3D"}
+{"animation_name":"walk","bones":["B-hair01","B-hair02"],"damping":12.0,"op":"secondary_motion","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D","stiffness":120.0}
 ```
