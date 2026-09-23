@@ -983,6 +983,34 @@ func test_walk_cycle_builds_roles_and_clip() -> void:
 	_teardown(rig)
 
 
+func test_walk_cycle_arm_down_lowers_the_arms() -> void:
+	var rig := _rig("RigWalkDown")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "walk_down",
+		"duration": 1.0, "loop_mode": "linear", "arm_down": 60.0,
+	}, null)
+	assert_true(result.has("data"), "expected data, got: %s" % str(result))
+	assert_eq(float(result.data.arm_down), 60.0, "arm_down is reported back")
+	var anim: Animation = rig.player.get_animation("walk_down")
+	assert_true(anim != null, "the clip exists")
+	var arm_index := -1
+	for index in anim.get_track_count():
+		if str(anim.track_get_path(index)).ends_with(":B-upperArm.L"):
+			arm_index = index
+	assert_true(arm_index >= 0, "the left arm has a track")
+	var bone: int = rig.skeleton.find_bone("B-upperArm.L")
+	var parent: int = rig.skeleton.get_bone_parent(bone)
+	var posed: Basis = Basis(anim.track_get_key_value(arm_index, 0))
+	var direction: Vector3 = (rig.skeleton.get_bone_global_rest(parent).basis * posed * Vector3.UP).normalized()
+	assert_true(direction.y < -0.5,
+		"the arm points downward with arm_down=60 (dir.y=%.2f)" % direction.y)
+	_teardown(rig)
+
+
 func test_idle_breathing_and_blink() -> void:
 	var rig := _rig("RigIdle")
 	if rig.has("error"):
@@ -1039,8 +1067,78 @@ func test_bake_pose_sequence_samples_and_restores() -> void:
 	var anim: Animation = rig.player.get_animation("walk_baked")
 	assert_true(anim != null, "the baked clip exists")
 	assert_eq(anim.track_get_key_count(0), 6, "one key per sample")
+	var source_anim: Animation = rig.player.get_animation("walk_src")
+	var source_thigh := -1
+	var baked_thigh := -1
+	for index in source_anim.get_track_count():
+		if str(source_anim.track_get_path(index)).ends_with(":B-thigh.L"):
+			source_thigh = index
+	for index in anim.get_track_count():
+		if anim.track_get_type(index) == Animation.TYPE_ROTATION_3D \
+				and str(anim.track_get_path(index)).ends_with(":B-thigh.L"):
+			baked_thigh = index
+			break
+	assert_true(source_thigh >= 0 and baked_thigh >= 0, "both clips key the left thigh")
+	assert_true((anim.track_get_key_value(baked_thigh, 0) as Quaternion).is_equal_approx(
+		source_anim.track_get_key_value(source_thigh, 0)),
+		"the first baked sample is the source clip's pose (the player is seeked while sampling)")
+	assert_true((anim.track_get_key_value(baked_thigh, 0) as Quaternion).angle_to(
+		anim.track_get_key_value(baked_thigh, 2) as Quaternion) > 0.05,
+		"sampled poses differ across the clip")
 	var after: Quaternion = rig.skeleton.get_bone_pose_rotation(rig.skeleton.find_bone("B-thigh.L"))
 	assert_true(before.is_equal_approx(after), "the skeleton pose is restored after sampling")
+	_teardown(rig)
+
+
+func test_bake_pose_sequence_captures_ik() -> void:
+	var rig := _rig("RigBakeIK")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var target := Marker3D.new()
+	target.name = "BakeTarget"
+	target.position = Vector3(0.5, 1.7, 0.3)
+	scene_root.add_child(target)
+	target.owner = scene_root
+	var built := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "walk_src",
+		"duration": 0.5, "loop_mode": "linear",
+	}, null)
+	assert_true(built.has("data"), "the source cycle builds, got: %s" % str(built))
+	var setup := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path,
+		"kind": "two_bone", "chain": ["B-upperArm.L", "B-forearm.L", "B-hand.L"],
+		"target_path": "/" + scene_root.name + "/BakeTarget", "active": true,
+	}, null)
+	assert_true(setup.has("data"), "ik_setup: %s" % str(setup))
+	var result := _handler.run({
+		"op": "bake_pose_sequence", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "walk_ik",
+		"source_animation": "walk_src", "duration": 0.5, "fps": 10,
+		"loop_mode": "linear",
+	}, null)
+	assert_true(result.has("data"), "expected data, got: %s" % str(result))
+	var anim: Animation = rig.player.get_animation("walk_ik")
+	var source_anim: Animation = rig.player.get_animation("walk_src")
+	assert_true(anim != null and source_anim != null, "both clips exist")
+	var source_upper := -1
+	var baked_upper := -1
+	for index in source_anim.get_track_count():
+		if str(source_anim.track_get_path(index)).ends_with(":B-upperArm.L"):
+			source_upper = index
+	for index in anim.get_track_count():
+		if anim.track_get_type(index) == Animation.TYPE_ROTATION_3D \
+				and str(anim.track_get_path(index)).ends_with(":B-upperArm.L"):
+			baked_upper = index
+			break
+	assert_true(source_upper >= 0 and baked_upper >= 0, "both clips key the left upper arm")
+	var moved: float = (anim.track_get_key_value(baked_upper, 0) as Quaternion).angle_to(
+		source_anim.track_get_key_value(source_upper, 0) as Quaternion)
+	assert_true(moved > 0.3, "the IK-modified pose is baked (arm moved %.2f rad)" % moved)
+	scene_root.remove_child(target)
+	target.queue_free()
 	_teardown(rig)
 
 

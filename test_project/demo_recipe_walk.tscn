@@ -1,0 +1,83 @@
+[gd_scene format=3 uid="uid://dptiw2p0dst3v"]
+
+[ext_resource type="PackedScene" uid="uid://cpu8s2lb7o6qr" path="res://models/human_dummy/HumanCharacterDummy_F.fbx" id="1_r5vhd"]
+
+[sub_resource type="Animation" id="Animation_r5vhd"]
+loop_mode = 1
+tracks/0/type = "rotation_3d"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Dummy/Skeleton3D:B-thigh.L")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = PackedFloat32Array(0, 1, 0.9883978, -0.009989243, 0.006272847, -0.15142946, 0.5, 1, 0.95978945, -0.011704348, 0.0014634928, 0.28047326, 1, 1, 0.9883978, -0.009989243, 0.006272847, -0.15142946)
+tracks/1/type = "rotation_3d"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Dummy/Skeleton3D:B-thigh.R")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = PackedFloat32Array(0, 1, 0.9597894, 0.011704777, -0.0014685004, 0.28047305, 0.5, 1, 0.9883977, 0.009987516, -0.006277567, -0.15142964, 1, 1, 0.9597894, 0.011704777, -0.0014685004, 0.28047305)
+tracks/2/type = "rotation_3d"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Dummy/Skeleton3D:B-shin.L")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = PackedFloat32Array(0, 1, 0.027836848, 0.0010341292, -0.01158622, 0.9995448, 0.4, 1, -0.1934465, 0.0035656793, -0.011072301, 0.9810419, 0.6, 1, -0.024513438, 0.0016390879, -0.01151622, 0.9996318, 1, 1, 0.027836848, 0.0010341292, -0.01158622, 0.9995448)
+tracks/3/type = "rotation_3d"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Dummy/Skeleton3D:B-shin.R")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = PackedFloat32Array(0, 1, -0.024513952, -0.0016389969, 0.011514722, 0.9996318, 0.4, 1, 0.027836341, -0.0010341168, 0.011584721, 0.9995449, 0.6, 1, -0.19344705, -0.0035653363, 0.011070843, 0.98104185, 1, 1, -0.024513952, -0.0016389969, 0.011514722, 0.9996318)
+tracks/4/type = "rotation_3d"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Dummy/Skeleton3D:B-upperArm.L")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = PackedFloat32Array(0, 1, -0.49154106, 0.69645846, -0.31343877, 0.4184367, 0.5, 1, -0.23756087, 0.46778563, -0.60371745, 0.60022223, 1, 1, -0.49154106, 0.69645846, -0.31343877, 0.4184367)
+tracks/5/type = "rotation_3d"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Dummy/Skeleton3D:B-upperArm.R")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = PackedFloat32Array(0, 1, -0.23748861, -0.46781942, 0.6038103, 0.60013103, 0.5, 1, -0.49143443, -0.69653183, 0.3135049, 0.4183901, 1, 1, -0.23748861, -0.46781942, 0.6038103, 0.60013103)
+tracks/6/type = "position_3d"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("Dummy/Skeleton3D:B-hips")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = PackedFloat32Array(0, 1, 0, 0.967712, 0.016772, 0.25, 1, 0, 1.027712, 0.016772, 0.5, 1, 0, 0.967712, 0.016772, 0.75, 1, 0, 1.027712, 0.016772, 1, 1, 0, 0.967712, 0.016772)
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_01dmd"]
+_data = {
+&"walk": SubResource("Animation_r5vhd")
+}
+
+[node name="RecipeWalk" type="Node3D" unique_id=681448227]
+
+[node name="Dummy" parent="." unique_id=1602649457 instance=ExtResource("1_r5vhd")]
+
+[node name="WalkAnim" type="AnimationPlayer" parent="." unique_id=179536908]
+libraries/ = SubResource("AnimationLibrary_01dmd")
+autoplay = &"walk"
+
+[node name="Cam" type="Camera3D" parent="." unique_id=1970016315]
+transform = Transform3D(1, 0, 0, 0, 0.997551, -0.06994285, 0, 0.06994285, 0.997551, 0, 1.15, 3.1)
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=1798759656]
+transform = Transform3D(0.8658247, 0, 0.50034744, 0.35365817, 0.7073882, -0.6119867, -0.3539399, 0.7068252, 0.6124742, 0, 0, 0)
+light_energy = 1.2
+
+[node name="Ui" type="CanvasLayer" parent="." unique_id=369719855]
+
+[node name="Title" type="Label" parent="Ui" unique_id=152566820]
+offset_left = 40.0
+offset_top = 24.0
+theme_override_font_sizes/font_size = 34
+text = "walk_cycle"

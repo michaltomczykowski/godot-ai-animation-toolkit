@@ -1244,12 +1244,15 @@ func walk_cycle(params: Dictionary) -> Dictionary:
 	var stride := float(params.get("stride", 25.0))
 	var knee := float(params.get("knee_bend", 30.0))
 	var arm := float(params.get("arm_swing", 20.0))
+	var arm_down := float(params.get("arm_down", 0.0))
 	var bob := float(params.get("bob", 0.05))
 	var axis_name := str(params.get("swing_axis", "x"))
 	var axis := _spec_vector3(axis_name_to_vector(axis_name))
 	if axis == Vector3.ZERO:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 			"Invalid swing_axis '%s'. Valid: x, y, z" % axis_name)
+	var down_l := _arm_down_delta(skeleton, str(roles.arm_l), arm_down)
+	var down_r := _arm_down_delta(skeleton, str(roles.arm_r), arm_down)
 	var half := length * 0.5
 	var keys := {}
 	keys[roles.thigh_l] = {"rotation": [
@@ -1275,14 +1278,14 @@ func walk_cycle(params: Dictionary) -> Dictionary:
 		{"time": length, "delta": Quaternion(axis, deg_to_rad(-knee * 0.35))},
 	]}
 	keys[roles.arm_l] = {"rotation": [
-		{"time": 0.0, "delta": Quaternion(axis, deg_to_rad(-arm))},
-		{"time": half, "delta": Quaternion(axis, deg_to_rad(arm))},
-		{"time": length, "delta": Quaternion(axis, deg_to_rad(-arm))},
+		{"time": 0.0, "delta": (down_l * Quaternion(axis, deg_to_rad(-arm))).normalized()},
+		{"time": half, "delta": (down_l * Quaternion(axis, deg_to_rad(arm))).normalized()},
+		{"time": length, "delta": (down_l * Quaternion(axis, deg_to_rad(-arm))).normalized()},
 	]}
 	keys[roles.arm_r] = {"rotation": [
-		{"time": 0.0, "delta": Quaternion(axis, deg_to_rad(arm))},
-		{"time": half, "delta": Quaternion(axis, deg_to_rad(-arm))},
-		{"time": length, "delta": Quaternion(axis, deg_to_rad(arm))},
+		{"time": 0.0, "delta": (down_r * Quaternion(axis, deg_to_rad(arm))).normalized()},
+		{"time": half, "delta": (down_r * Quaternion(axis, deg_to_rad(-arm))).normalized()},
+		{"time": length, "delta": (down_r * Quaternion(axis, deg_to_rad(arm))).normalized()},
 	]}
 	if roles.has("hips"):
 		keys[roles.hips] = {"position": [
@@ -1297,6 +1300,7 @@ func walk_cycle(params: Dictionary) -> Dictionary:
 	if committed.has("error"):
 		return committed
 	committed.data["roles"] = roles
+	committed.data["arm_down"] = arm_down
 	committed.data["note"] = "in-place cycle: no root motion is keyed"
 	return committed
 
@@ -1455,6 +1459,22 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 	if library == null:
 		library = AnimationLibrary.new()
 		created_library = true
+	# The source clip has to be assigned to the player before seek() can sample
+	# it - a player that was never played has no current animation, and seeking
+	# it would leave the skeleton at rest.
+	var source := str(params.get("source_animation", ""))
+	if source.is_empty():
+		source = player.current_animation
+	if source.is_empty() and not String(player.assigned_animation).is_empty():
+		source = String(player.assigned_animation)
+	if not source.is_empty() and not player.has_animation(source):
+		var names: Array = []
+		for name in library.get_animation_list():
+			names.append(str(name))
+		names.sort()
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"Animation '%s' not found on the player. Available: %s"
+			% [source, ", ".join(names) if not names.is_empty() else "(none)"])
 	var root_node := ValueCodec.player_root_node(player)
 	if root_node == null:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
@@ -1484,21 +1504,56 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 	var keys := {}
 	for index in indices:
 		keys[skeleton.get_bone_name(index)] = {"rotation": [], "position": [], "scale": []}
+	var was_playing := player.is_playing()
+	if not source.is_empty():
+		player.play(source)
+	# Active modifiers (IK, springs, retarget) only run in the skeleton's
+	# deferred update, and their result is only readable inside
+	# modification_processed - get_bone_pose_* outside it returns the
+	# pre-modifier pose. Drive that update manually per sample and capture the
+	# final pose in the signal handler.
+	var modifiers: Array = []
+	for child in skeleton.get_children():
+		if child is SkeletonModifier3D and (child as SkeletonModifier3D).active:
+			modifiers.append(child)
+	var sampled: Dictionary = {}
+	var capture := func() -> void:
+		sampled.clear()
+		for index in indices:
+			sampled[index] = {
+				"rotation": skeleton.get_bone_pose_rotation(index),
+				"position": skeleton.get_bone_pose_position(index),
+				"scale": skeleton.get_bone_pose_scale(index),
+			}
+	for modifier in modifiers:
+		(modifier as SkeletonModifier3D).modification_processed.connect(capture)
 	for sample in samples:
 		var time := minf(sample * step, length)
-		if player.current_animation != "" or player.has_animation(str(params.get("source_animation", ""))):
-			var source := str(params.get("source_animation", player.current_animation))
-			if not source.is_empty():
-				player.seek(time, true)
-		skeleton.advance(step)
+		if not source.is_empty():
+			player.seek(time, true)
+		sampled.clear()
+		if not modifiers.is_empty():
+			skeleton.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
 		for index in indices:
 			var bone_name := skeleton.get_bone_name(index)
 			var entry: Dictionary = keys[bone_name]
-			(entry.rotation as Array).append({"time": time, "value": skeleton.get_bone_pose_rotation(index), "transition": "linear"})
+			var rotation: Quaternion = skeleton.get_bone_pose_rotation(index)
+			var position: Vector3 = skeleton.get_bone_pose_position(index)
+			var bone_scale: Vector3 = skeleton.get_bone_pose_scale(index)
+			if sampled.has(index):
+				rotation = sampled[index].rotation
+				position = sampled[index].position
+				bone_scale = sampled[index].scale
+			(entry.rotation as Array).append({"time": time, "value": rotation, "transition": "linear"})
 			if include_positions:
-				(entry.position as Array).append({"time": time, "value": skeleton.get_bone_pose_position(index), "transition": "linear"})
+				(entry.position as Array).append({"time": time, "value": position, "transition": "linear"})
 			if include_scales:
-				(entry.scale as Array).append({"time": time, "value": skeleton.get_bone_pose_scale(index), "transition": "linear"})
+				(entry.scale as Array).append({"time": time, "value": bone_scale, "transition": "linear"})
+	for modifier in modifiers:
+		if (modifier as SkeletonModifier3D).modification_processed.is_connected(capture):
+			(modifier as SkeletonModifier3D).modification_processed.disconnect(capture)
+	if not source.is_empty() and not was_playing:
+		player.stop()
 	for index in skeleton.get_bone_count():
 		skeleton.set_bone_pose_rotation(index, restore[index].rotation)
 		skeleton.set_bone_pose_position(index, restore[index].position)
@@ -1540,6 +1595,7 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 		"track_count": (spec.tracks as Array).size(),
 		"positions": include_positions,
 		"scales": include_scales,
+		"source_animation": source,
 		"loop_mode": ValueCodec.loop_mode_to_string(int(spec.loop_mode)),
 		"library_created": created_library,
 		"overwritten": existing.old_anim != null,
@@ -2112,6 +2168,33 @@ static func axis_name_to_vector(axis: String) -> Vector3:
 		"y": return Vector3.UP
 		"z": return Vector3.BACK
 	return Vector3.ZERO
+
+
+## The bone-local rotation that swings a bone from its rest direction toward
+## world DOWN by `degrees` - for rigs whose rest pose has the arms horizontal
+## (T-pose). Returns identity when the bone already points down.
+static func _arm_down_delta(skeleton: Skeleton3D, bone_name: String, degrees: float) -> Quaternion:
+	if is_zero_approx(degrees):
+		return Quaternion.IDENTITY
+	var index := skeleton.find_bone(bone_name)
+	if index < 0:
+		return Quaternion.IDENTITY
+	var world_dir := (skeleton.get_bone_global_rest(index).basis * Vector3.UP).normalized()
+	if world_dir.dot(Vector3.DOWN) > 0.9:
+		return Quaternion.IDENTITY
+	var axis_world := world_dir.cross(Vector3.DOWN)
+	if axis_world.length_squared() < 0.00000001:
+		return Quaternion.IDENTITY
+	axis_world = axis_world.normalized()
+	var desired_world := world_dir.rotated(axis_world, deg_to_rad(degrees))
+	var parent_basis := Basis.IDENTITY
+	var parent := skeleton.get_bone_parent(index)
+	if parent >= 0:
+		parent_basis = skeleton.get_bone_global_rest(parent).basis
+	var desired_parent := (parent_basis.inverse() * desired_world).normalized()
+	var rest_rotation := skeleton.get_bone_rest(index).basis.get_rotation_quaternion()
+	var desired_local := (rest_rotation.inverse() * desired_parent).normalized()
+	return Quaternion(Vector3.UP, desired_local).normalized()
 
 
 ## Bone roles for the procedural recipes: explicit `roles` overrides first,

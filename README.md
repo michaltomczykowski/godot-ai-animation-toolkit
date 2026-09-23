@@ -1,7 +1,7 @@
 # Godot AI Animation Toolkit
 
 A standalone [Godot](https://godotengine.org) addon that gives
-[Godot AI](https://github.com/hi-godot/godot-ai) agents two animation tools —
+[Godot AI](https://github.com/hi-godot/godot-ai) agents seven animation tools —
 **no core patches**:
 
 - **`animation_presets`** — build clips in one call (the presets scoped out of
@@ -19,8 +19,11 @@ A standalone [Godot](https://godotengine.org) addon that gives
   `additive_lean` setups.
 - **`animation_library`** — reusable templates (`template_save/apply/list/delete`)
   and JSON clip specs (`spec_export/import/apply`).
-- **`animation_rig`** — skeleton poses: `pose_save`, `pose_apply`, `pose_blend`,
-  `pose_to_clip` (pose sequences into clips), `pose_list`, `rig_get`.
+- **`animation_rig`** — skeletons from scratch (`rig_chain`), IK (`ik_setup`),
+  spring bones, look-at and retargeting modifiers, skeleton poses
+  (`pose_save`, `pose_apply`, `pose_blend`, `pose_to_clip`, `pose_list`,
+  `rig_get`), procedural recipes (`walk_cycle`, `idle_breathing`, `blink`) and
+  `bake_pose_sequence` (live modifiers → a plain clip).
 - **`animation_inspect`** — read-only reasoning and QA: `describe`, `timeline`,
   `audit` (broken paths, dead clips, loop seams, autoplay conflicts),
   `compare`, `stats`, `dry_run` (run any op without committing), `help`.
@@ -174,12 +177,26 @@ targets with overrides, and move whole clips in and out of a typed JSON format
 }}
 ```
 
-## Rig poses
+## Rigs, poses and procedural recipes
 
-`animation_rig` captures and applies skeleton poses as portable rest-relative
-data, and keyframes pose sequences into clips. Bone clips are ordinary transform
-tracks, so everything else in the toolkit works on them — `retime`, `mirror`,
-`reverse`, `amplitude`, JSON export, templates.
+[**Video: rig demo (0:49)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v0.9.0/animation_toolkit_rig_demo.mp4)
+— IK reach, spring bones and head look-at on the bundled human dummy.
+
+[**Video: procedural recipes (0:49)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v1.0.0/animation_toolkit_recipes_demo.mp4)
+— `walk_cycle`, `idle_breathing` + `blink`, and a bake that turns two live IK
+chains into an ordinary clip.
+
+`animation_rig` builds and drives skeletons: bones from a spec or a node
+subtree (`rig_chain`), IK (`ik_setup` — two-bone and chain solvers), spring
+bones, look-at and retargeting modifiers, and skeleton poses as portable
+rest-relative data. On top of that sit four procedural recipes — `walk_cycle`
+(with `arm_down` for T-pose rigs), `idle_breathing`, `blink` and
+`bake_pose_sequence`, which samples a source clip with the active modifiers
+running and keys the final pose into a new clip.
+
+Bone clips are ordinary transform tracks, so everything else in the toolkit
+works on them — `retime`, `mirror`, `reverse`, `amplitude`, JSON export,
+templates.
 
 ```json
 {"tool": "custom_animation_rig", "params": {
@@ -189,6 +206,18 @@ tracks, so everything else in the toolkit works on them — `retime`, `mirror`,
   "animation_name": "wave",
   "loop_mode": "linear",
   "keys": [{"name": "idle", "time": 0.0}, {"name": "wave_mid", "time": 0.5}, {"name": "idle", "time": 1.0}]
+}}
+```
+
+```json
+{"tool": "custom_animation_rig", "params": {
+  "op": "walk_cycle",
+  "player_path": "/Main/Rig/AnimationPlayer",
+  "skeleton_path": "/Main/Rig/Skeleton3D",
+  "animation_name": "walk",
+  "duration": 1.0,
+  "arm_down": 70,
+  "loop_mode": "linear"
 }}
 ```
 
@@ -250,11 +279,11 @@ warning) when Godot AI is absent.
 ```
 
 `test_project/` is a Godot project wired to both addons; `tests/` holds the
-editor suites (114 rows across all seven tools) and the headless checks
+editor suites (130 rows across all seven tools) and the headless checks
 (`tier1_value_codec.gd`, `tier1_spec_modifiers.gd`, `tier1_fx_specs.gd`,
-`tier1_graph_builders.gd`, `tier1_spec_json.gd`, `tier1_pose_math.gd`, 1574
+`tier1_graph_builders.gd`, `tier1_spec_json.gd`, `tier1_pose_math.gd`, 1770
 checks). The `demo_*.tscn` scenes are the ones recorded for the walkthrough
-video — each is one preset call plus autoplay.
+videos — each is one toolkit call (plus autoplay) or one built demo subtree.
 
 ```powershell
 # Regenerate docs/op-index.md from the op registry (the single source of truth)

@@ -375,6 +375,15 @@ func _check_registry() -> void:
 		_expect(description.length() <= OpRegistry.MAX_DESCRIPTION_CHARS,
 			"%s description fits the %d-char cap (got %d)" % [family_name, OpRegistry.MAX_DESCRIPTION_CHARS, description.length()])
 		_expect(ResourceLoader.exists(str(info.get("handler", ""))), "%s handler exists" % family_name)
+		## The plugin's own gate uses Godot's compact JSON.stringify, but the
+		## Godot AI server re-measures the pushed schema with python json.dumps,
+		## whose default separators are ", " and ": " - a few hundred bytes
+		## larger. Count the separators to stay on the server's side of the cap.
+		var serialized := JSON.stringify(info.get("schema", {}))
+		var server_bytes: int = serialized.to_utf8_buffer().size() \
+			+ serialized.count(":") + serialized.count(",")
+		_expect(server_bytes <= OpRegistry.MAX_SCHEMA_BYTES,
+			"%s schema fits the %d-byte server cap (got ~%d)" % [family_name, OpRegistry.MAX_SCHEMA_BYTES, server_bytes])
 		var schema: Dictionary = info.get("schema", {})
 		var properties: Dictionary = schema.get("properties", {})
 		var op_enum: Array = properties.get("op", {}).get("enum", [])

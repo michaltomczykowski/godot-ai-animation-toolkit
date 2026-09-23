@@ -88,6 +88,16 @@ Godot binary (local):
 - **SkeletonModifier3D results are only readable at `modification_processed`.**
   Reading `get_bone_pose_*` later in the frame returns the pre-modifier pose
   even though skinning used the modified one - measure inside the signal.
+  Modifiers only process in the skeleton's deferred update, so a synchronous
+  tool call must nudge it with `skeleton.notification(NOTIFICATION_UPDATE_SKELETON)`
+  and capture inside the signal (this is what `bake_pose_sequence` does;
+  `Skeleton3D.advance()` does *not* run modifiers).
+- **A custom tool's `params_schema` is capped at 8192 bytes on both sides of the
+  wire, measured differently**: the plugin uses Godot's compact `JSON.stringify`,
+  the Godot AI server re-measures with python `json.dumps` (spaced separators,
+  ~5% bigger) and dropping one over-cap definition drops the whole catalog for
+  that session. Keep ~400 bytes of headroom; the tier-1 registry check counts
+  the separators to stay on the server's side.
 - **TwoBoneIK3D requires a pole target**; without one it silently solves
   nothing. IK/look-at settings resolve NodePaths **relative to the modifier**.
 - **Clips written into an instanced scene** only survive the save when the

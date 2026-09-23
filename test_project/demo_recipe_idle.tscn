@@ -1,0 +1,76 @@
+[gd_scene format=3 uid="uid://cj8l8wktt73ul"]
+
+[ext_resource type="PackedScene" uid="uid://cpu8s2lb7o6qr" path="res://models/human_dummy/HumanCharacterDummy_F.fbx" id="1_va2s8"]
+
+[sub_resource type="Animation" id="Animation_va2s8"]
+length = 3.0
+loop_mode = 1
+tracks/0/type = "rotation_3d"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Dummy/Skeleton3D:B-chest")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = PackedFloat32Array(0, 1, -0.022586964, 0, 0, 0.9997449, 1.05, 1, 0.021042792, 0, 0, 0.99977857, 1.8, 1, 0.014498856, 0, 0, 0.999895, 3, 1, -0.022586964, 0, 0, 0.9997449)
+tracks/1/type = "rotation_3d"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Dummy/Skeleton3D:B-head")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = PackedFloat32Array(0, 1, -0.06999012, 0, 0, 0.9975477, 1.05, 1, -0.09173486, 0, 0, 0.99578357, 3, 1, -0.06999012, 0, 0, 0.9975477)
+tracks/2/type = "position_3d"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Dummy/Skeleton3D:B-hips")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = PackedFloat32Array(0, 1, 0, 0.967712, 0.016772, 1.5, 1, 0, 0.99771196, 0.016772, 3, 1, 0, 0.967712, 0.016772)
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_45snh"]
+_data = {
+&"idle": SubResource("Animation_va2s8")
+}
+
+[sub_resource type="Animation" id="Animation_cb0iw"]
+length = 1.5
+loop_mode = 1
+tracks/0/type = "rotation_3d"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Dummy/Skeleton3D:B-jaw")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = PackedFloat32Array(0, 1, 0.707111, -7.071117e-06, -7.0710184e-06, 0.70710254, 0.2, 1, 0.8660285, -8.6602895e-06, -4.99994e-06, 0.49999487, 0.275, 1, 0.8660285, -8.6602895e-06, -4.99994e-06, 0.49999487, 0.5, 1, 0.707111, -7.071117e-06, -7.0710184e-06, 0.70710254, 0.7, 1, 0.8660285, -8.6602895e-06, -4.99994e-06, 0.49999487, 0.775, 1, 0.8660285, -8.6602895e-06, -4.99994e-06, 0.49999487, 1, 1, 0.707111, -7.071117e-06, -7.0710184e-06, 0.70710254, 1.2, 1, 0.8660285, -8.6602895e-06, -4.99994e-06, 0.49999487, 1.275, 1, 0.8660285, -8.6602895e-06, -4.99994e-06, 0.49999487, 1.5, 1, 0.707111, -7.071117e-06, -7.0710184e-06, 0.70710254)
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_7ku4e"]
+_data = {
+&"blink": SubResource("Animation_cb0iw")
+}
+
+[node name="RecipeIdle" type="Node3D" unique_id=153709676]
+
+[node name="Dummy" parent="." unique_id=1602649457 instance=ExtResource("1_va2s8")]
+
+[node name="BodyAnim" type="AnimationPlayer" parent="." unique_id=79787716]
+libraries/ = SubResource("AnimationLibrary_45snh")
+autoplay = &"idle"
+
+[node name="BlinkAnim" type="AnimationPlayer" parent="." unique_id=85087121]
+libraries/ = SubResource("AnimationLibrary_7ku4e")
+autoplay = &"blink"
+
+[node name="Cam" type="Camera3D" parent="." unique_id=1561870559]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 1.5)
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=613106250]
+transform = Transform3D(0.8658247, 0, 0.50034744, 0.35365817, 0.7073882, -0.6119867, -0.3539399, 0.7068252, 0.6124742, 0, 0, 0)
+light_energy = 1.2
+
+[node name="Ui" type="CanvasLayer" parent="." unique_id=275451886]
+
+[node name="Title" type="Label" parent="Ui" unique_id=1968834676]
+offset_left = 40.0
+offset_top = 24.0
+theme_override_font_sizes/font_size = 34
+text = "idle_breathing + blink"

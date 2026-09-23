@@ -109,6 +109,15 @@ compressed tracks rather than rewriting them lossily.
 
 | op | What it does |
 | --- | --- |
+| `rig_chain` | Build bones from a spec or turn a Node3D/Node2D subtree into a skeleton. |
+| `ik_setup` | Attach a two-bone / CCDIK / FABRIK / Jacobian / spline IK modifier wired to a target and pole. |
+| `spring_setup` | Attach spring bones (stiffness, drag, gravity, radius, collisions). |
+| `look_at_setup` | One bone tracks a target, with origin, limits, secondary rotation, turn duration. |
+| `retarget_setup` | Retarget a source skeleton onto a child target (auto / humanoid / res:// profile). |
+| `walk_cycle` | Looping in-place walk: thigh swing, knee bend, counter-swinging arms (`arm_down` for T-pose rigs), hip bob. |
+| `idle_breathing` | Subtle idle: chest/spine breathing, head counter-move, hip bob. |
+| `blink` | Scale/rotate lid bones closed, N blinks per clip. |
+| `bake_pose_sequence` | Sample a clip and the active modifiers into a new keyed clip (final pose captured at `modification_processed`). |
 | `pose_save` | Capture a skeleton pose as portable rest-relative data. |
 | `pose_apply` | Write a pose back (blend / mirror / reset options). |
 | `pose_blend` | Blend two poses (slerp rotations, lerp positions). |

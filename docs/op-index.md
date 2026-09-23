@@ -457,84 +457,85 @@ Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 | `spring_setup` | Attach spring bones (SpringBoneSimulator3D) to a skeleton, one spring setting per entry. | `skeleton_path`, `springs`, `name`, `active`, `mutable_bone_axes`, `dry_run` |
 | `look_at_setup` | Attach a look-at modifier so one bone tracks a target node (created in front of the bone when omitted). | `skeleton_path`, `bone`, `target_path`, `target_name`, `forward_axis`, `origin_from`, `origin_bone`, `origin_node`, `origin_offset`, `origin_safe_margin`, `use_angle_limitation`, `primary_limit_angle`, `secondary_limit_angle`, `use_secondary_rotation`, `primary_axis`, `relative`, `duration`, `name`, `active`, `dry_run` |
 | `retarget_setup` | Retarget a source skeleton's poses onto a child target skeleton through a RetargetModifier3D and a bone-name profile. | `skeleton_path`, `target_path`, `profile`, `position`, `rotation`, `scale`, `use_global_pose`, `move_target`, `name`, `active`, `dry_run` |
-| `walk_cycle` | Build a looping in-place walk cycle (legs, knees, counter-swinging arms, hip bob) from bone roles. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `stride`, `knee_bend`, `arm_swing`, `bob`, `swing_axis`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
+| `walk_cycle` | Build a looping in-place walk cycle (legs, knees, counter-swinging arms, hip bob) from bone roles. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `swing_axis`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
 | `idle_breathing` | Build a subtle looping idle: chest/spine breathing, a light head counter-move and an optional hip bob. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `amplitude`, `head_amplitude`, `bob`, `axis`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
 | `blink` | Build a quick blink clip on the eye/eyelid bones, scale or rotate, optionally several blinks. | `player_path`, `skeleton_path`, `animation_name`, `bones`, `mode`, `closed_scale`, `angle`, `axis`, `blinks`, `duration`, `loop_mode`, `overwrite`, `dry_run` |
-| `bake_pose_sequence` | Sample a skeleton over time into a clip - seek the player, advance the skeleton so IK/springs/retarget run, then key the result. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `fps`, `bones`, `positions`, `scales`, `source_animation`, `loop_mode`, `overwrite`, `dry_run` |
+| `bake_pose_sequence` | Sample a skeleton over time into a clip: seek the source clip, run the active modifiers (IK, springs, retarget), key the final pose. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `fps`, `bones`, `positions`, `scales`, `source_animation`, `loop_mode`, `overwrite`, `dry_run` |
 
 ### `animation_rig` parameters
 
 | Param | Type | Notes |
 | --- | --- | --- |
-| `op` | string: pose_save \| pose_apply \| pose_blend \| pose_to_clip \| pose_list \| rig_get \| rig_chain \| ik_setup \| spring_setup \| look_at_setup \| retarget_setup \| walk_cycle \| idle_breathing \| blink \| bake_pose_sequence | Which rig op to run. |
-| `roles` | object | walk_cycle / idle_breathing / blink: explicit bone roles, e.g. {"thigh_l": "B-thigh.L", "chest": "B-chest"}. Missing roles are auto-detected from bone names. |
-| `stride` | number | walk_cycle: leg swing in degrees (default 25). |
-| `knee_bend` | number | walk_cycle: knee bend in degrees (default 30). |
-| `arm_swing` | number | walk_cycle: arm counter-swing in degrees (default 20). |
-| `bob` | number | walk_cycle / idle_breathing: vertical hip bob in metres. |
-| `swing_axis` | string: x \| y \| z | walk_cycle: bone-local axis the limbs swing around (default x). |
-| `axis` | string: x \| y \| z | idle_breathing / blink: bone-local axis to rotate around (default x). |
-| `amplitude` | number | idle_breathing: chest rotation in degrees (default 2). |
-| `head_amplitude` | number | idle_breathing: head counter-rotation in degrees (default 1). |
-| `mode` | string: scale \| rotate | blink: how the lid closes (default scale). |
-| `closed_scale` | number | blink scale mode: Y scale of the closed lid (default 0.05). |
-| `angle` | number | blink rotate mode: closing rotation in degrees (default 25). |
-| `blinks` | integer | blink: how many blinks fit in the clip (default 1). |
-| `fps` | integer | bake_pose_sequence: samples per second (default 30). |
-| `source_animation` | string | bake_pose_sequence: animation to seek while sampling (default: whatever the player is playing). |
-| `skeleton_path` | string | Scene path to a Skeleton3D or Skeleton2D. Omit to use the first skeleton in the edited scene. |
-| `bones` | array | rig_chain: [{name, parent?, position?, rotation?, scale?, length?}] rest transforms, rotation in degrees. Pose ops: restrict capture/apply to these bone names. |
-| `node_path` | string | rig_chain: a Node3D/Node2D subtree to convert into a new skeleton (its local transforms become bone rests). |
-| `kind` | string: 3d \| 2d \| two_bone \| ccdik \| fabrik \| jacobian \| spline | rig_chain: 3d or 2d (default 3d). ik_setup: the solver kind (default two_bone). |
-| `chain` | array | ik_setup: bone names from the chain root to the effector. |
-| `target_path` | string | ik_setup: existing target node (a Node3D). Created at the chain tip when omitted. |
-| `target_name` | string | ik_setup: name for the created target node (default IKTarget). |
-| `pole_path` | string | ik_setup two_bone: optional pole node for the bend direction. |
-| `use_virtual_end` | boolean (default `false`) | ik_setup two_bone: treat the chain's last bone as the effector (chain [root, middle]) instead of requiring an end bone. |
-| `end_bone_length` | number | ik_setup two_bone with use_virtual_end: virtual end bone length (default 0.1). |
-| `active` | boolean (default `false`) | ik_setup / spring_setup / look_at_setup / retarget_setup: enable the modifier right away (default false - an active modifier also drives the scene while you edit it). |
-| `springs` | array | spring_setup: [{root_bone, end_bone?, stiffness?, drag?, gravity?, radius?, rotation_axis?, rotation_axis_vector?, gravity_direction?, center_from?, center_bone?, center_node?, enable_all_child_collisions?, collisions?, exclude_collisions?}] - one spring per entry, end_bone defaults to the root's leaf. |
-| `mutable_bone_axes` | boolean | spring_setup: let the springs rotate bones on any axis (default off). |
-| `bone` | string | look_at_setup: the bone that should track the target. |
-| `forward_axis` | string: +x \| -x \| +y \| -y \| +z \| -z | look_at_setup: which way the bone looks (default +z). |
-| `origin_from` | string: self \| bone \| external_node | look_at_setup: what the look direction is measured from (default self). |
-| `origin_bone` | string | look_at_setup: bone the origin comes from when origin_from=bone. |
-| `origin_node` | string | look_at_setup: scene path the origin comes from when origin_from=external_node. |
-| `origin_offset` | any | look_at_setup: origin offset (Vector3). |
-| `origin_safe_margin` | number | look_at_setup: dead zone around the origin, in metres. |
-| `use_angle_limitation` | boolean (default `false`) | look_at_setup: clamp how far the bone can rotate. |
-| `primary_limit_angle` | number | look_at_setup: primary axis limit in degrees. |
-| `secondary_limit_angle` | number | look_at_setup: secondary axis limit in degrees. |
-| `use_secondary_rotation` | boolean (default `false`) | look_at_setup: also rotate around the secondary axis. |
-| `primary_axis` | string: x \| y \| z | look_at_setup: primary rotation axis (default y). |
-| `relative` | boolean (default `false`) | look_at_setup: track the target relative to the bone's initial orientation. |
-| `duration` | number | look_at_setup: seconds the bone takes to turn toward the target (0 = instant). |
-| `profile` | string | retarget_setup: bone-name profile - auto (built from the source skeleton), humanoid (SkeletonProfileHumanoid) or a res:// path to a SkeletonProfile. |
-| `position` | boolean (default `false`) | retarget_setup: retarget bone positions. |
-| `rotation` | boolean (default `true`) | retarget_setup: retarget bone rotations. |
-| `scale` | boolean (default `false`) | retarget_setup: retarget bone scales. |
-| `use_global_pose` | boolean (default `false`) | retarget_setup: retarget global poses instead of parent-relative ones (bone lengths must match exactly). |
-| `move_target` | boolean (default `true`) | retarget_setup: move the target skeleton under the modifier (required by RetargetModifier3D). |
-| `name` | string | Pose name (res://animation_toolkit/poses/<name>.json) to save to or load from. |
-| `path` | string | Explicit pose JSON file path. |
+| `op` | string: pose_save \| pose_apply \| pose_blend \| pose_to_clip \| pose_list \| rig_get \| rig_chain \| ik_setup \| spring_setup \| look_at_setup \| retarget_setup \| walk_cycle \| idle_breathing \| blink \| bake_pose_sequence | Rig op to run. |
+| `roles` | object | Recipes: bone roles, e.g. {"thigh_l": "B-thigh.L"}; missing roles auto-detect from names. |
+| `stride` | number | walk_cycle: leg swing, degrees (25). |
+| `knee_bend` | number | walk_cycle: knee bend, degrees (30). |
+| `arm_swing` | number | walk_cycle: arm counter-swing, degrees (20). |
+| `arm_down` | number | walk_cycle: lower the arms this many degrees from the rest pose (T-pose rigs). |
+| `bob` | number | walk_cycle / idle_breathing: hip bob, metres. |
+| `swing_axis` | string: x \| y \| z | walk_cycle: swing axis (x). |
+| `axis` | string: x \| y \| z | idle_breathing / blink: rotation axis (x). |
+| `amplitude` | number | idle_breathing: chest rotation, degrees (2). |
+| `head_amplitude` | number | idle_breathing: head counter-rotation, degrees (1). |
+| `mode` | string: scale \| rotate | blink: how the lid closes (scale). |
+| `closed_scale` | number | blink scale mode: closed Y scale (0.05). |
+| `angle` | number | blink rotate mode: closing angle, degrees (25). |
+| `blinks` | integer | blink: blinks per clip (1). |
+| `fps` | integer | bake_pose_sequence: samples/s (30). |
+| `source_animation` | string | bake_pose_sequence: clip to sample (default: playing). |
+| `skeleton_path` | string | Skeleton3D/Skeleton2D scene path (default: first one). |
+| `bones` | array | rig_chain: [{name, parent?, position?, rotation?, scale?, length?}] rests, degrees. Pose/recipe ops: restrict to these bones. |
+| `node_path` | string | rig_chain: Node3D/Node2D subtree to turn into a skeleton (locals become rests). |
+| `kind` | string: 3d \| 2d \| two_bone \| ccdik \| fabrik \| jacobian \| spline | rig_chain: 3d|2d. ik_setup: solver (two_bone). |
+| `chain` | array | ik_setup: bones root -> effector. |
+| `target_path` | string | ik_setup: existing target node; created at the chain tip if omitted. |
+| `target_name` | string | ik_setup: name of the created target (IKTarget). |
+| `pole_path` | string | ik_setup two_bone: pole node for the bend direction. |
+| `use_virtual_end` | boolean (default `false`) | ik_setup two_bone: last chain bone is the effector ([root, middle]). |
+| `end_bone_length` | number | ik_setup: virtual end length under use_virtual_end (0.1). |
+| `active` | boolean (default `false`) | Modifier setups: enable now (an active modifier drives the scene while you edit). |
+| `springs` | array | spring_setup: one per spring - {root_bone, end_bone?, stiffness?, drag?, gravity?, radius?, rotation_axis?, center_from?, collisions?...}; end_bone defaults to the leaf. |
+| `mutable_bone_axes` | boolean | spring_setup: allow any-axis rotation (off). |
+| `bone` | string | look_at_setup: bone that tracks the target. |
+| `forward_axis` | string: +x \| -x \| +y \| -y \| +z \| -z | look_at_setup: look direction (+z). |
+| `origin_from` | string: self \| bone \| external_node | look_at_setup: look-direction source (self). |
+| `origin_bone` | string | look_at_setup: origin bone (origin_from=bone). |
+| `origin_node` | string | look_at_setup: origin node (origin_from=external_node). |
+| `origin_offset` | any | look_at_setup: origin offset. |
+| `origin_safe_margin` | number | look_at_setup: origin dead zone. |
+| `use_angle_limitation` | boolean (default `false`) | look_at_setup: clamp the rotation. |
+| `primary_limit_angle` | number | look_at_setup: primary limit, degrees. |
+| `secondary_limit_angle` | number | look_at_setup: secondary limit, degrees. |
+| `use_secondary_rotation` | boolean (default `false`) | look_at_setup: also rotate the secondary axis. |
+| `primary_axis` | string: x \| y \| z | look_at_setup: primary rotation axis (y). |
+| `relative` | boolean (default `false`) | look_at_setup: track from the bone's initial orientation. |
+| `duration` | number | look_at_setup: turn time, seconds (0 = instant). |
+| `profile` | string | retarget_setup: auto | humanoid | res:// SkeletonProfile path. |
+| `position` | boolean (default `false`) | retarget_setup: bone positions. |
+| `rotation` | boolean (default `true`) | retarget_setup: bone rotations. |
+| `scale` | boolean (default `false`) | retarget_setup: bone scales. |
+| `use_global_pose` | boolean (default `false`) | retarget_setup: global poses (lengths must match). |
+| `move_target` | boolean (default `true`) | retarget_setup: move target under the modifier. |
+| `name` | string | Pose name under res://animation_toolkit/poses/. |
+| `path` | string | Explicit pose JSON path. |
 | `pose` | object | Inline pose (as returned by pose_save). |
-| `from` | any | pose_blend: the first pose (inline object, or a saved pose name). |
-| `to` | any | pose_blend: the second pose (inline object, or a saved pose name). |
-| `factor` | number | pose_blend: 0 = from, 1 = to (default 0.5). |
-| `mirror` | boolean (default `false`) | Mirror the pose(s) across X before applying/blending (L/R bones swap). |
-| `blend` | number | pose_apply: 0-1 blend from the current pose toward the target (default 1). |
-| `reset_first` | boolean (default `false`) | pose_apply: reset every bone pose before applying. |
-| `player_path` | string | pose_to_clip: AnimationPlayer that receives the clip. |
-| `animation_name` | string | pose_to_clip: clip name (default "pose_clip"). |
-| `keys` | array | pose_to_clip: [{pose|name|path, time, transition?, mirror?}] pose keyframes. |
-| `positions` | boolean (default `false`) | pose_to_clip: also key bone positions (hips/root motion). |
-| `scales` | boolean (default `false`) | pose_to_clip: also key bone scales. |
-| `loop_mode` | string: none \| linear \| pingpong | pose_to_clip: loop mode (default none). |
-| `directory` | string | pose_list: directory to scan (default res://animation_toolkit/poses). |
-| `pose_dir` | string | Directory for named pose files (default res://animation_toolkit/poses). |
-| `include_pose` | boolean (default `true`) | rig_get: include each bone's current pose delta. |
+| `from` | any | pose_blend: first pose (inline or saved name). |
+| `to` | any | pose_blend: second pose (inline or saved name). |
+| `factor` | number | pose_blend: 0=from, 1=to (0.5). |
+| `mirror` | boolean (default `false`) | Mirror poses across X (L/R swap). |
+| `blend` | number | pose_apply: 0-1 blend toward target (1). |
+| `reset_first` | boolean (default `false`) | pose_apply: reset poses first. |
+| `player_path` | string | pose_to_clip: AnimationPlayer to receive the clip. |
+| `animation_name` | string | pose_to_clip: clip name (pose_clip). |
+| `keys` | array | pose_to_clip: [{pose|name|path, time, transition?, mirror?}]. |
+| `positions` | boolean (default `false`) | pose_to_clip: also key positions (root motion). |
+| `scales` | boolean (default `false`) | pose_to_clip: also key scales. |
+| `loop_mode` | string: none \| linear \| pingpong | pose_to_clip: loop mode (none). |
+| `directory` | string | pose_list: directory to scan. |
+| `pose_dir` | string | Directory for named pose files. |
+| `include_pose` | boolean (default `true`) | rig_get: include pose deltas. |
 | `overwrite` | boolean (default `false`) | Replace an existing pose file or clip. |
-| `dry_run` | boolean (default `false`) | Report what the call would do without writing anything. |
+| `dry_run` | boolean (default `false`) | Report without committing. |
 
 Required: `op`.
 
