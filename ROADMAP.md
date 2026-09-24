@@ -1,9 +1,9 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **phases 0–10 implemented** — v1.4.0 (8 tools, 98 ops); release pending.
-Phase 10 (agent ergonomics) landed as `rig_profile`, `sample`,
-`character_setup` and motion/rig templates; see below.
-Last updated: 2026-09-23.
+Status: **phases 0–10 done** — v1.4.0 (8 tools, 98 ops) released 2026-09-24.
+Every roadmap phase is implemented and shipped; see the deferred list at the end
+of phase 10 for candidate v1.5 work.
+Last updated: 2026-09-24.
 
 Phase 3 note: the generators landed as their own family, `animation_fx`, instead
 of growing the `animation_presets` schema to ~60 params. The "one tool per
@@ -425,7 +425,11 @@ Shipped implementation details:
 
 Coverage: 6 new editor rows (158 total) and tier-1 at 2437 checks
 (`tier1_rig_analysis.gd` plus the `wrap_one_shot` checks). Docs regenerated.
-Remaining checklist item: demo scene + video, then the v1.4.0 tag.
+
+**Done (v1.4.0):** demo scene `demo_character_setup.tscn` (the dummy circles the
+scene at the blend speed, root motion driving the travel, with jump requests on
+a schedule), the 0:31 `animation_toolkit_character_setup.mp4`, and the release
+with the zip and the video.
 
 Deferred (candidate v1.5): `crouch_walk`, gesture pack, foot ground-lock for
 imported clips, twist dispersion (BoneTwistDisperser3D), gaze baking,
