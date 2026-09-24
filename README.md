@@ -2,7 +2,7 @@
 
 A standalone [Godot](https://godotengine.org) addon that gives
 [Godot AI](https://github.com/hi-godot/godot-ai) agents eight animation tools
-(100 ops) — **no core patches**:
+(102 ops) — **no core patches**:
 
 - **`animation_presets`** — build clips in one call (the presets scoped out of
   core during the animation PR review: a generalized `pulse` plus `bounce`,
@@ -40,7 +40,9 @@ A standalone [Godot](https://godotengine.org) addon that gives
 - **`animation_inspect`** — read-only reasoning and QA: `describe`, `timeline`,
   `audit` (broken paths, dead clips, loop seams, autoplay conflicts),
   `compare`, `stats`, `motion_report` (key density, peaks, seam pops,
-  hemisphere flips), `rig_profile` (bone roles/candidates, T/A pose, limb
+  hemisphere flips), `motion_audit` (plays the clip on a rig and grades it:
+  per-foot contact windows and the horizontal slide while planted, hip bob, all
+  pass/fail against a budget), `rig_profile` (bone roles/candidates, T/A pose, limb
   reach, capabilities; saves a reusable profile), `sample` (FK probe: world
   bone positions, foot heights, contact windows), `preview` (offscreen PNGs of
   the posed character, so a clip can be *seen*), `dry_run` (run any op without
@@ -129,6 +131,7 @@ hand-authored ones — and commits one scene-pinned undo action per call.
 | `cleanup` | Drop redundant keys and empty tracks. |
 | `smooth` | Soften key values toward their neighbours — noise/follow-through cleanup. |
 | `resample` | Rebuild value tracks at a fixed fps through the engine's interpolator (transitions and cubic preserved). |
+| `reduce` | Drop redundant keys inside a measured error budget (degrees for rotations, units for the rest) — the dense cycles slim down with the curve intact. |
 | `add_noise` | Seeded smooth micro-motion on value keys (breathing, tremor). |
 | `overlap` | Delay one node/subtree's tracks by `delay` seconds — per-limb follow-through. |
 | `layer` | Combine another clip: `add` its delta from its first key, or `mix` toward it by `weight`. |

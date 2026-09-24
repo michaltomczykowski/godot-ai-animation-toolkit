@@ -508,6 +508,57 @@ func test_undo_restores_the_original_clip() -> void:
 	_teardown(fixture)
 
 
+func test_reduce_shrinks_a_dense_clip_inside_its_budget() -> void:
+	var fixture := _fixture("RD")
+	if fixture.has("error"):
+		skip(fixture.error)
+		return
+	var player_path := str(fixture.player_path)
+	var dense := ClipSpec.make(1.0, Animation.LOOP_LINEAR)
+	var keys: Array = []
+	for index in 49:
+		var phase := float(index) / 48.0 * TAU
+		keys.append({
+			"time": float(index) / 48.0,
+			"value": Vector2(sin(phase) * 20.0, 0.0),
+			"transition": 1.0,
+		})
+	ClipSpec.add_value_track(dense, "RDCam:position", keys)
+	_add_clip(player_path, "dense", dense)
+	var before := _fetch_anim(player_path, "dense")
+	assert_eq(before.track_get_key_count(0), 49, "the fixture is dense")
+	var reduced := _handler.run({
+		"op": "reduce", "player_path": player_path, "animation_name": "dense",
+		"angle": 1.0, "value_tolerance": 0.05,
+	}, null)
+	assert_true(reduced.has("data"), "reduce: %s" % str(reduced))
+	assert_true(int(reduced.data.removed_keys) > 0, "keys were removed")
+	assert_true(int(reduced.data.kept_keys) < 49, "fewer keys remain (%s)" % str(reduced.data.kept_keys))
+	assert_true(float(reduced.data.worst_error) <= 0.05,
+		"the measured error stays inside the budget (%s)" % str(reduced.data.worst_error))
+	var after := _fetch_anim(player_path, "dense")
+	assert_true(after.track_get_key_count(0) < 49, "the clip really lost keys (%s)" % str(after.track_get_key_count(0)))
+	# The curve still has the swing: a sampled peak is still near the original.
+	var peak := 0.0
+	for key in after.track_get_key_count(0):
+		var value: Vector2 = after.track_get_key_value(0, key)
+		peak = maxf(peak, absf(value.x))
+	assert_true(peak > 18.0, "the reduced curve keeps its amplitude (%s)" % str(peak))
+	var undo_ok := editor_undo(_undo_redo)
+	assert_true(undo_ok, "undo should succeed")
+	assert_eq(_fetch_anim(player_path, "dense").track_get_key_count(0), 49, "undo restores every key")
+	var nothing := _handler.run({
+		"op": "reduce", "player_path": player_path, "animation_name": "clip",
+		"angle": 0.0, "value_tolerance": 0.0,
+	}, null)
+	assert_is_error(nothing, ErrorCodes.VALUE_OUT_OF_RANGE)
+	var bad := _handler.run({
+		"op": "reduce", "player_path": player_path, "animation_name": "dense", "angle": -1.0,
+	}, null)
+	assert_is_error(bad, ErrorCodes.VALUE_OUT_OF_RANGE)
+	_teardown(fixture)
+
+
 # --- registry --------------------------------------------------------------
 
 func test_quality_passes_smooth_resample_noise_overlap_layer() -> void:
@@ -578,7 +629,7 @@ func test_registry_matches_edit_schema() -> void:
 	var schema: Dictionary = info.schema
 	var properties: Dictionary = schema.properties
 	var op_enum: Array = properties.op.enum
-	assert_eq(op_enum.size(), 19, "the edit schema lists every op")
+	assert_eq(op_enum.size(), 20, "the edit schema lists every op")
 	for descriptor in info.ops:
 		assert_true(op_enum.has(descriptor.name), "%s is in the schema enum" % descriptor.name)
 		for param in descriptor.params:

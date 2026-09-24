@@ -366,6 +366,107 @@ static func contact_windows(times: Array, heights: Array, threshold: float = 0.0
 	return windows
 
 
+## Slide of one foot over `times`, from its world positions: how far it travels
+## horizontally while it is on the ground, which is the number that separates a
+## planted walk from a moonwalk.
+##
+## A sample counts as planted when it is within `threshold` of `ground_height` -
+## the foot's world height at rest, which is what "on the ground" means for a rig.
+## Pass `NAN` (or omit it) to fall back to the lowest height in the clip, but a
+## swing arc passes through that minimum twice, so the window then covers the
+## swing instead of the stance.
+##
+## The slide of a window is the **net** horizontal displacement from its first to
+## its last planted sample, not the accumulated path: a foot that lifts, swings
+## and comes back has a long path and no slide, while a foot that creeps across
+## the floor has both. `path` (the accumulated travel) is reported alongside for
+## the moonwalk case.
+##
+## Returns `{windows, worst, mean, path, contact_time, planted_samples}` where
+## `worst` is the largest net displacement inside one contact window (metres),
+## `mean` the displacement per second of contact, and `contact_time` the total
+## planted duration.
+static func foot_slide(times: Array, positions: Array, threshold: float = 0.02,
+		ground_height: float = NAN) -> Dictionary:
+	var out := {"windows": [] as Array, "worst": 0.0, "mean": 0.0, "path": 0.0,
+		"contact_time": 0.0, "planted_samples": 0}
+	if times.is_empty() or positions.size() != times.size():
+		return out
+	var floor_height := ground_height
+	if not is_finite(floor_height):
+		floor_height = INF
+		for position in positions:
+			if position is Vector3:
+				floor_height = minf(floor_height, (position as Vector3).y)
+	if not is_finite(floor_height):
+		return out
+	var windows: Array = []
+	var start := -1.0
+	var anchor := Vector3.ZERO
+	var last_planted := Vector3.ZERO
+	var path := 0.0
+	var total_net := 0.0
+	var total_path := 0.0
+	var worst := 0.0
+	var planted := 0
+	var previous_contact := false
+	for index in times.size():
+		var position: Vector3 = positions[index]
+		var time := float(times[index])
+		var contact: bool = position.y <= floor_height + threshold
+		if contact:
+			planted += 1
+			if start < 0.0:
+				start = time
+				anchor = position
+				last_planted = position
+				path = 0.0
+			else:
+				last_planted = position
+				if previous_contact and index > 0:
+					# The step from the last planted sample, so a fast creep shows up
+					# even at a coarse sample rate.
+					var previous: Vector3 = positions[index - 1]
+					path += Vector2(position.x - previous.x, position.z - previous.z).length()
+		elif start >= 0.0:
+			windows.append(_slide_window(times[index - 1], start, anchor, last_planted, path))
+			total_net += _flat_distance(anchor, last_planted)
+			total_path += path
+			worst = maxf(worst, _flat_distance(anchor, last_planted))
+			start = -1.0
+			path = 0.0
+		previous_contact = contact
+	if start >= 0.0:
+		windows.append(_slide_window(times[times.size() - 1], start, anchor, last_planted, path))
+		total_net += _flat_distance(anchor, last_planted)
+		total_path += path
+		worst = maxf(worst, _flat_distance(anchor, last_planted))
+	# Contact time: every planted sample owns the average gap to its neighbour,
+	# so a coarse sample rate cannot understate how long the foot was down.
+	var period := 0.0
+	if times.size() > 1:
+		period = (float(times[times.size() - 1]) - float(times[0])) / float(times.size() - 1)
+	var contact_time := float(planted) * period
+	out["windows"] = windows
+	out["worst"] = worst
+	out["path"] = total_path
+	out["planted_samples"] = planted
+	out["contact_time"] = contact_time
+	out["mean"] = total_net / contact_time if contact_time > 0.0 else 0.0
+	return out
+
+
+static func _slide_window(end: float, start: float, anchor: Vector3, last: Vector3, path: float) -> Dictionary:
+	return {
+		"start": start, "end": end,
+		"slide": _flat_distance(anchor, last), "path": path,
+	}
+
+
+static func _flat_distance(a: Vector3, b: Vector3) -> float:
+	return Vector2(a.x - b.x, a.z - b.z).length()
+
+
 ## Validate a loaded/saved profile and return its role map.
 static func profile_roles(data) -> Dictionary:
 	if not data is Dictionary:

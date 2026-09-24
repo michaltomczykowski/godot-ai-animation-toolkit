@@ -368,7 +368,7 @@ static func _edit_schema() -> Dictionary:
 					"retime", "retarget", "reverse", "mirror", "offset",
 					"ease_range", "set_interp", "trim", "split_at", "merge",
 					"amplitude", "loop", "key_edit", "cleanup",
-					"smooth", "resample", "add_noise", "overlap", "layer",
+					"smooth", "resample", "reduce", "add_noise", "overlap", "layer",
 				],
 				"description": "Which edit to apply.",
 			},
@@ -490,6 +490,9 @@ static func _edit_schema() -> Dictionary:
 			"strength": {"type": "number", "description": "smooth: 0-1 lerp toward the neighbour midpoint (0.5)."},
 			"passes": {"type": "integer", "description": "smooth: passes over the keys (1)."},
 			"fps": {"type": "number", "description": "resample: samples per second (30; 0-120)."},
+			"angle": {"type": "number", "description": "reduce: error budget for rotation tracks, degrees (0.5)."},
+			"value_tolerance": {"type": "number", "description": "reduce: error budget for other value tracks, units (0.001)."},
+			"max_keys": {"type": "integer", "description": "reduce: key cap per track (0 = no cap)."},
 			"amount": {"type": "number", "description": "add_noise: degrees for rotations, units for position/scale (2)."},
 			"frequency": {"type": "number", "description": "add_noise: noise cycles across the track (3)."},
 			"seed": {"type": "integer", "description": "add_noise: deterministic noise seed (0)."},
@@ -612,6 +615,12 @@ static func _edit_ops() -> Array:
 			"example": {"op": "resample", "player_path": "/Main", "animation_name": "walk", "fps": 30, "interpolation": "linear"},
 		},
 		{
+			"name": "reduce",
+			"summary": "Drop the keys a clip does not need, inside a measured error budget: `angle` degrees for rotation tracks, `value` units for the rest. The dense procedural cycles (70+ keys per bone) shrink to a fraction of their keys with the shape intact - unlike `resample`, no key moves onto a new grid. Reports keys removed and the worst measured error.",
+			"params": ["player_path", "animation_name", "angle", "value_tolerance", "max_keys", "track_path"],
+			"example": {"op": "reduce", "player_path": "/Main/Rig/AnimationPlayer", "animation_name": "walk", "angle": 0.5, "value_tolerance": 0.001},
+		},
+		{
 			"name": "add_noise",
 			"summary": "Add seeded, smooth micro-motion to value keys (breathing, tremor, life).",
 			"params": ["player_path", "animation_name", "amount", "frequency", "seed", "track_path"],
@@ -656,7 +665,7 @@ static func _inspect_schema() -> Dictionary:
 		"properties": {
 			"op": {
 				"type": "string",
-				"enum": ["describe", "timeline", "audit", "compare", "stats", "motion_report", "rig_profile", "sample", "preview", "dry_run", "help"],
+				"enum": ["describe", "timeline", "audit", "compare", "stats", "motion_report", "motion_audit", "rig_profile", "sample", "preview", "dry_run", "help"],
 				"description": "Which inspection to run.",
 			},
 			"player_path": {
@@ -767,7 +776,15 @@ static func _inspect_schema() -> Dictionary:
 			},
 			"contact_threshold": {
 				"type": "number",
-				"description": "sample: height above the lowest foot sample counted as ground contact (default 0.02).",
+				"description": "sample/motion_audit: height above the lowest foot sample counted as ground contact (default 0.02).",
+			},
+			"max_slide": {
+				"type": "number",
+				"description": "motion_audit: worst foot travel while planted to pass, metres (0.05).",
+			},
+			"max_hip_bob": {
+				"type": "number",
+				"description": "motion_audit: hips' vertical range to pass, metres (0.12).",
 			},
 			"width": {"type": "integer", "description": "preview: frame width in pixels (480)."},
 			"height": {"type": "integer", "description": "preview: frame height in pixels (270)."},
@@ -822,6 +839,12 @@ static func _inspect_ops() -> Array:
 			"summary": "Per-track motion quality: key density, peak speed/acceleration, loop-seam pops, hemisphere flips, constant tracks - each with a fix hint.",
 			"params": ["player_path", "animation_name", "max_tracks"],
 			"example": {"op": "motion_report", "player_path": "/Main", "animation_name": "walk"},
+		},
+		{
+			"name": "motion_audit",
+			"summary": "Play the clip on a Skeleton3D (posed and restored, never saved) and grade it: per-foot ground-contact windows and the horizontal slide while planted, hip bob and travel, each pass/fail against a budget with a fix hint. The numeric answer to 'is this walk actually planted?' - a moonwalk reports a slide in metres, not a vibe. Needs foot/hips roles (auto-detected or via roles/profile).",
+			"params": ["player_path", "animation_name", "skeleton_path", "roles", "profile", "samples", "contact_threshold", "max_slide", "max_hip_bob"],
+			"example": {"op": "motion_audit", "player_path": "/Main/Rig/AnimationPlayer", "animation_name": "walk", "skeleton_path": "/Main/Rig/Skeleton3D", "max_slide": 0.03},
 		},
 		{
 			"name": "rig_profile",

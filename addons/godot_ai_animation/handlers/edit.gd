@@ -76,6 +76,8 @@ func _dispatch(params: Dictionary) -> Dictionary:
 			return edit_smooth(params)
 		"resample":
 			return edit_resample(params)
+		"reduce":
+			return edit_reduce(params)
 		"add_noise":
 			return edit_add_noise(params)
 		"overlap":
@@ -557,6 +559,39 @@ func edit_resample(params: Dictionary) -> Dictionary:
 		"interpolation": interp_name,
 		"track_path": track_path,
 		"resampled_keys": int(result.changed),
+	})
+
+
+## Drop the keys a clip does not need, inside an error budget: the dense
+## procedural cycles ship with 70+ keys per track, and this keeps the shape
+## (measured through the engine's own interpolator) with a fraction of them.
+## `angle` is the budget for rotation tracks in degrees, `value` for everything
+## else; `max_keys` caps each track, `track_path` narrows the selection.
+func edit_reduce(params: Dictionary) -> Dictionary:
+	var loaded := _load_clip(params)
+	if loaded.has("error"):
+		return loaded
+	var angle := float(params.get("angle", 0.5))
+	var value := float(params.get("value_tolerance", 0.001))
+	if angle < 0.0 or value < 0.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'angle' and 'value' must be >= 0")
+	var max_keys := int(params.get("max_keys", 0))
+	if max_keys < 0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'max_keys' must be >= 0 (0 = no cap)")
+	var track_path := str(params.get("track_path", ""))
+	var result := QualityModifiers.reduce(loaded.spec, angle, value, track_path, max_keys)
+	if int(result.removed) == 0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Nothing to reduce: every key is already needed inside the budget (angle=%s, value=%s). Loosen the budget or check track_path." % [str(angle), str(value)])
+	return _commit_edited(loaded, result.spec, "MCP: Reduce keys %s" % loaded.anim_name, {
+		"angle_degrees": angle,
+		"value_tolerance": value,
+		"max_keys": max_keys,
+		"track_path": track_path,
+		"removed_keys": int(result.removed),
+		"kept_keys": int(result.kept),
+		"tracks_changed": int(result.tracks_changed),
+		"worst_error": round(float(result.worst) * 10000.0) / 10000.0,
 	})
 
 

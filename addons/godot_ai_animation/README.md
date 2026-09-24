@@ -61,6 +61,7 @@ Every preset commits **one scene-pinned undo action**; Controls get
 | `cleanup` | Drop redundant keys and empty tracks. |
 | `smooth` | Soften key values toward their neighbours (noise cleanup). |
 | `resample` | Rebuild value tracks at fixed fps, engine-exact (transitions + cubic preserved). |
+| `reduce` | Drop the keys a clip does not need, inside a measured error budget (degrees for rotations, units otherwise). |
 | `add_noise` | Seeded smooth micro-motion on value keys. |
 | `overlap` | Delay one node/subtree's tracks (per-limb follow-through). |
 | `layer` | Combine another clip additively (`add`) or by weight (`mix`). |
@@ -169,6 +170,7 @@ curve/IK/spring math lives in `spec/motion_drivers.gd`, cycle definitions in
 | `compare` | Diff two clips (length, loop mode, track paths, key deltas). |
 | `stats` | Clip/track/key totals, track-type histogram, loop-mode breakdown. |
 | `motion_report` | Per-track motion quality: key density, peak speed/acceleration, loop-seam pops, hemisphere flips, constant tracks — with fix hints. |
+| `motion_audit` | Play the clip on a Skeleton3D and grade it: per-foot contact windows and the slide while planted, hip bob, pass/fail per budget (and it says when a cycle is authored in place). |
 | `dry_run` | Run any presets/edit op and report the result without committing. |
 | `help` | Op index from the registry. |
 

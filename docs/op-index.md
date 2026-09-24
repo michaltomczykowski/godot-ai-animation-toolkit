@@ -277,6 +277,7 @@ Handler: `res://addons/godot_ai_animation/handlers/edit.gd`
 | `cleanup` | Drop redundant keys and empty tracks (dedupe holds, optional minimum gap). | `player_path`, `animation_name`, `tolerance`, `min_gap`, `drop_empty_tracks`, `dry_run` |
 | `smooth` | Soften key values toward their neighbours - follow-through cleanup for noisy captures. | `player_path`, `animation_name`, `strength`, `passes`, `track_path`, `dry_run` |
 | `resample` | Rebuild value tracks at a fixed sample rate, keeping the curve (engine-exact interpolation). | `player_path`, `animation_name`, `fps`, `interpolation`, `track_path`, `dry_run` |
+| `reduce` | Drop the keys a clip does not need, inside a measured error budget: `angle` degrees for rotation tracks, `value` units for the rest. The dense procedural cycles (70+ keys per bone) shrink to a fraction of their keys with the shape intact - unlike `resample`, no key moves onto a new grid. Reports keys removed and the worst measured error. | `player_path`, `animation_name`, `angle`, `value_tolerance`, `max_keys`, `track_path`, `dry_run` |
 | `add_noise` | Add seeded, smooth micro-motion to value keys (breathing, tremor, life). | `player_path`, `animation_name`, `amount`, `frequency`, `seed`, `track_path`, `dry_run` |
 | `overlap` | Delay one node/subtree's tracks by `delay` seconds - instant follow-through on any clip. | `player_path`, `animation_name`, `track_path`, `delay`, `wrap`, `dry_run` |
 | `layer` | Combine another clip: add its delta from its first key (jiggle/breathing) or mix toward it. | `player_path`, `animation_name`, `source_animation`, `source_player_path`, `layer_mode`, `weight`, `remap_node`, `dry_run` |
@@ -285,7 +286,7 @@ Handler: `res://addons/godot_ai_animation/handlers/edit.gd`
 
 | Param | Type | Notes |
 | --- | --- | --- |
-| `op` | string: retime \| retarget \| reverse \| mirror \| offset \| ease_range \| set_interp \| trim \| split_at \| merge \| amplitude \| loop \| key_edit \| cleanup \| smooth \| resample \| add_noise \| overlap \| layer | Which edit to apply. |
+| `op` | string: retime \| retarget \| reverse \| mirror \| offset \| ease_range \| set_interp \| trim \| split_at \| merge \| amplitude \| loop \| key_edit \| cleanup \| smooth \| resample \| reduce \| add_noise \| overlap \| layer | Which edit to apply. |
 | `player_path` | string | Scene path to the AnimationPlayer that owns the clip. |
 | `animation_name` | string | Name of the clip to edit (merge: the default player for sources without one). |
 | `factor` | number | retime: time multiplier (>0). amplitude: value multiplier (1.0 = unchanged, 0.0 = flat). |
@@ -325,6 +326,9 @@ Handler: `res://addons/godot_ai_animation/handlers/edit.gd`
 | `strength` | number | smooth: 0-1 lerp toward the neighbour midpoint (0.5). |
 | `passes` | integer | smooth: passes over the keys (1). |
 | `fps` | number | resample: samples per second (30; 0-120). |
+| `angle` | number | reduce: error budget for rotation tracks, degrees (0.5). |
+| `value_tolerance` | number | reduce: error budget for other value tracks, units (0.001). |
+| `max_keys` | integer | reduce: key cap per track (0 = no cap). |
 | `amount` | number | add_noise: degrees for rotations, units for position/scale (2). |
 | `frequency` | number | add_noise: noise cycles across the track (3). |
 | `seed` | integer | add_noise: deterministic noise seed (0). |
@@ -357,6 +361,7 @@ Required: `op`, `player_path`, `animation_name`.
 {"animation_name":"walk","min_gap":0.01,"op":"cleanup","player_path":"/Main","tolerance":0.0001}
 {"animation_name":"walk","op":"smooth","passes":2,"player_path":"/Main","strength":0.5}
 {"animation_name":"walk","fps":30,"interpolation":"linear","op":"resample","player_path":"/Main"}
+{"angle":0.5,"animation_name":"walk","op":"reduce","player_path":"/Main/Rig/AnimationPlayer","value_tolerance":0.001}
 {"amount":0.4,"animation_name":"idle","frequency":2.0,"op":"add_noise","player_path":"/Main","track_path":"Skeleton3D:B-head"}
 {"animation_name":"walk","delay":0.08,"op":"overlap","player_path":"/Main","track_path":"Skeleton3D:B-forearm.L","wrap":true}
 {"animation_name":"walk","layer_mode":"add","op":"layer","player_path":"/Main","source_animation":"idle","weight":0.4}
@@ -376,6 +381,7 @@ Handler: `res://addons/godot_ai_animation/handlers/inspect.gd`
 | `compare` | Diff two clips: length, loop mode, track paths, key counts and value deltas. | `player_path`, `animation_name`, `other_animation_name`, `other_player_path`, `tolerance`, `max_keys` |
 | `stats` | Clip/track/key totals, track-type histogram and loop-mode breakdown. | `player_path` |
 | `motion_report` | Per-track motion quality: key density, peak speed/acceleration, loop-seam pops, hemisphere flips, constant tracks - each with a fix hint. | `player_path`, `animation_name`, `max_tracks` |
+| `motion_audit` | Play the clip on a Skeleton3D (posed and restored, never saved) and grade it: per-foot ground-contact windows and the horizontal slide while planted, hip bob and travel, each pass/fail against a budget with a fix hint. The numeric answer to 'is this walk actually planted?' - a moonwalk reports a slide in metres, not a vibe. Needs foot/hips roles (auto-detected or via roles/profile). | `player_path`, `animation_name`, `skeleton_path`, `roles`, `profile`, `samples`, `contact_threshold`, `max_slide`, `max_hip_bob` |
 | `rig_profile` | Understand a rig: detected roles with candidates, T/A pose, limb lengths/reach, facing/lateral axes, capabilities, missing roles and suggested ops; save=true writes a reusable profile. | `skeleton_path`, `roles`, `profile`, `save`, `name`, `overwrite` |
 | `sample` | FK probe: world positions (and optional euler rotations) of requested bones at N times, plus derived foot heights and ground-contact windows. Pose is restored afterwards. | `player_path`, `animation_name`, `skeleton_path`, `roles`, `profile`, `bones`, `times`, `samples`, `include_rotation`, `contact_threshold` |
 | `preview` | Render the posed character offscreen to PNGs at clip times so an agent can see contact, foot planting and follow-through. A private copy of the character subtree is posed in an offscreen viewport; the edited scene is never touched. The reply is deferred (one editor frame per image) and needs a rendering device. | `player_path`, `animation_name`, `skeleton_path`, `character_path`, `times`, `samples`, `width`, `height`, `output_dir`, `basename`, `yaw`, `elevation`, `margin`, `background`, `overwrite` |
@@ -386,7 +392,7 @@ Handler: `res://addons/godot_ai_animation/handlers/inspect.gd`
 
 | Param | Type | Notes |
 | --- | --- | --- |
-| `op` | string: describe \| timeline \| audit \| compare \| stats \| motion_report \| rig_profile \| sample \| preview \| dry_run \| help | Which inspection to run. |
+| `op` | string: describe \| timeline \| audit \| compare \| stats \| motion_report \| motion_audit \| rig_profile \| sample \| preview \| dry_run \| help | Which inspection to run. |
 | `player_path` | string | Scene path to an AnimationPlayer. Omit for audit/stats to scan every player in the edited scene. |
 | `animation_name` | string | Clip to inspect (describe/timeline/compare). Omit for describe to summarise every clip on the player. |
 | `other_animation_name` | string | compare: the clip to diff against. |
@@ -412,7 +418,9 @@ Handler: `res://addons/godot_ai_animation/handlers/inspect.gd`
 | `times` | array | sample/preview: explicit sample times in seconds (alternative to samples). |
 | `samples` | integer | sample/preview: evenly spaced samples over the clip (sample 24, preview 4; max 240). |
 | `include_rotation` | boolean (default `false`) | sample: also report each bone's euler rotation in degrees. |
-| `contact_threshold` | number | sample: height above the lowest foot sample counted as ground contact (default 0.02). |
+| `contact_threshold` | number | sample/motion_audit: height above the lowest foot sample counted as ground contact (default 0.02). |
+| `max_slide` | number | motion_audit: worst foot travel while planted to pass, metres (0.05). |
+| `max_hip_bob` | number | motion_audit: hips' vertical range to pass, metres (0.12). |
 | `width` | integer | preview: frame width in pixels (480). |
 | `height` | integer | preview: frame height in pixels (270). |
 | `output_dir` | string | preview: directory for the PNGs (res://animation_toolkit/previews). |
@@ -433,6 +441,7 @@ Required: `op`.
 {"animation_name":"walk","op":"compare","other_animation_name":"walk_fast","player_path":"/Main"}
 {"op":"stats"}
 {"animation_name":"walk","op":"motion_report","player_path":"/Main"}
+{"animation_name":"walk","max_slide":0.03,"op":"motion_audit","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"name":"hero","op":"rig_profile","save":true,"skeleton_path":"/Main/Rig/Skeleton3D"}
 {"animation_name":"walk","bones":["B-foot.L","B-foot.R"],"op":"sample","player_path":"/Main/Rig/AnimationPlayer","samples":24}
 {"animation_name":"reach","op":"preview","output_dir":"res://animation_toolkit/previews","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D","times":[0.0,0.4],"yaw":28}

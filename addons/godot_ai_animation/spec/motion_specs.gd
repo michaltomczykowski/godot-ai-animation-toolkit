@@ -233,7 +233,7 @@ static func _solve_leg(
 	var knee_hint: Vector3 = ctx.get("knee_hint", ctx.forward)
 	var side_offset := 0.0 if side == "l" else 0.5
 	var p := fposmod(t + side_offset, 1.0)
-	var foot := _foot_trajectory(p, stance, span, ground_speed, length, rooted)
+	var foot := _foot_trajectory(p, stance, span, ground_speed, length, rooted, side_offset)
 	var lift := float(ctx.get("foot_lift_scaled", (ctx.config as Dictionary).get("foot_lift", 0.05)))
 	var ankle_target: Vector3 = (
 		leg.ankle + step_axis * float(foot.forward)
@@ -338,21 +338,33 @@ static func _solve_arm_chain(
 
 
 ## Relative forward/height motion of one ankle over a cycle. `p` is the foot's
-## local phase (0 = contact). In-place cycles slide the planted foot backwards;
-## with root motion the foot stays put in skeleton space while the body travels.
-static func _foot_trajectory(p: float, stance: float, span: float, ground_speed: float, length: float, rooted: bool) -> Dictionary:
+## local phase (0 = contact) and `phase_offset` which half-cycle the foot leads
+## by (0 left, 0.5 right). In-place cycles slide the planted foot backwards in
+## clip space, which is what cancels the body's motion when the game moves the
+## character; with root motion the body travels *inside* the clip, so each stance
+## holds a fixed world point and the swing covers the stride to the next one.
+static func _foot_trajectory(p: float, stance: float, span: float, ground_speed: float, length: float, rooted: bool, phase_offset: float = 0.0) -> Dictionary:
 	var local_phase := fposmod(p, 1.0)
 	if local_phase < stance:
 		if rooted:
-			var contact_time := -local_phase * length
-			return {"forward": 0.5 * span + ground_speed * contact_time, "height": 0.0}
+			# The leg rotations are aimed at this target with the hips already
+			# travelled, so the foot lands *on* it: holding the target still during
+			# the stance is what plants the foot in the world. The trailing foot
+			# holds the point half a stride behind, so the two never share one.
+			return {
+				"forward": 0.5 * span + phase_offset * ground_speed * length,
+				"height": 0.0,
+			}
 		return {"forward": span * (0.5 - local_phase / stance), "height": 0.0}
 	var swing := (local_phase - stance) / maxf(1.0 - stance, 0.001)
 	var from := -0.5 * span
 	var to := 0.5 * span
 	if rooted:
-		from = 0.5 * span - ground_speed * stance * length
-		to = from + ground_speed * length
+		# The swing closes the gap to this stance's point, which is one stride
+		# ahead of the one it just left.
+		var travel := ground_speed * length
+		from = 0.5 * span + (phase_offset - 1.0) * travel
+		to = 0.5 * span + phase_offset * travel
 	return {"forward": lerpf(from, to, MotionDrivers.smoothstep(swing)), "height": 1.0}
 
 

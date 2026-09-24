@@ -46,6 +46,8 @@ func run(params: Dictionary, ctx) -> Dictionary:
 			return inspect_stats(params)
 		"motion_report":
 			return inspect_motion_report(params)
+		"motion_audit":
+			return inspect_motion_audit(params)
 		"rig_profile":
 			return inspect_rig_profile(params)
 		"sample":
@@ -590,6 +592,185 @@ func inspect_motion_report(params: Dictionary) -> Dictionary:
 	}
 	data.merge(report, true)
 	return {"data": data}
+
+
+# ============================================================================
+# motion_audit
+# ============================================================================
+
+## Does this clip actually move the way it claims? Plays it on a Skeleton3D (the
+## scene is posed and restored, never saved) and reports the numbers a procedural
+## walk has to pass: per-foot ground contact and the horizontal slide while
+## planted, plus hip bob and speed. Every check returns pass/fail against a
+## budget with a `fix` hint, so a bad cycle is a number, not a vibe.
+##
+## Contact is "within `contact_threshold` of the foot's rest height" (5 mm by
+## default: a planted foot sits a millimetre or two off rest, a lifted one is
+## centimetres up), and a window's slide is the foot's *net* displacement while
+## it was down - a foot that lifts, swings and lands ahead is a step, not a slide.
+## A clip authored in place is reported as such, because its stance foot travels
+## with the body by design.
+func inspect_motion_audit(params: Dictionary) -> Dictionary:
+	var loaded := _load_readable_clip(params)
+	if loaded.has("error"):
+		return loaded
+	var unsupported := SpecIO.unsupported_tracks(loaded.anim)
+	if not unsupported.is_empty():
+		return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
+			"Animation '%s' has tracks this audit cannot pose: %s"
+				% [loaded.anim_name, SpecIO.describe_unsupported(loaded.anim)])
+	var resolved := _resolve_skeleton(params)
+	if resolved.has("error"):
+		return resolved
+	if resolved.kind != "3d":
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"motion_audit plays the clip on a Skeleton3D to measure world-space contact (3D only)")
+	var skeleton: Skeleton3D = resolved.node
+	var roles: Dictionary = _resolve_roles(params, skeleton)
+	if roles.has("_error"):
+		return roles["_error"]
+	var length: float = loaded.anim.length
+	var times: Array = RigAnalysis.sample_times(length, clampi(int(params.get("samples", 48)), 4, 240))
+	var threshold := maxf(float(params.get("contact_threshold", 0.005)), 0.0)
+	var slide_budget := maxf(float(params.get("max_slide", 0.05)), 0.0)
+	var bob_budget := maxf(float(params.get("max_hip_bob", 0.12)), 0.0)
+	var spec := SpecIO.from_animation(loaded.anim)
+	var snapshot := _pose_snapshot(skeleton)
+	var skeleton_xform := skeleton.global_transform
+	var feet := {}
+	for side in ["l", "r"]:
+		var foot := str(roles.get("foot_" + side, ""))
+		var foot_index := skeleton.find_bone(foot)
+		if not foot.is_empty() and foot_index >= 0:
+			# The foot's rest height is the ground for this rig: contact is "within
+			# `contact_threshold` of where the foot rests", not "near the lowest
+			# sample" (a swing arc dips to that twice per cycle).
+			feet[side] = {
+				"bone": foot,
+				"ground": (skeleton_xform * skeleton.get_bone_global_rest(foot_index)).origin.y,
+				"positions": [],
+			}
+	var hips := str(roles.get("hips", ""))
+	var hips_index := skeleton.find_bone(hips) if not hips.is_empty() else -1
+	var hip_positions: Array = []
+	for time in times:
+		_apply_spec_at(skeleton, spec, float(time))
+		for side in feet:
+			var foot_index := skeleton.find_bone(str(feet[side].bone))
+			if foot_index >= 0:
+				feet[side].positions.append(
+					(skeleton_xform * skeleton.get_bone_global_pose(foot_index)).origin)
+		if hips_index >= 0:
+			hip_positions.append((skeleton_xform * skeleton.get_bone_global_pose(hips_index)).origin)
+	_pose_restore(skeleton, snapshot)
+	var checks: Array = []
+	var foot_data := {}
+	var hip_data := {"samples": hip_positions.size()}
+	if not hip_positions.is_empty():
+		var lowest := INF
+		var highest := -INF
+		var travel := 0.0
+		for index in hip_positions.size():
+			var position: Vector3 = hip_positions[index]
+			lowest = minf(lowest, position.y)
+			highest = maxf(highest, position.y)
+			if index > 0:
+				var previous: Vector3 = hip_positions[index - 1]
+				travel += Vector2(position.x - previous.x, position.z - previous.z).length()
+		var bob := highest - lowest
+		var net := 0.0
+		if hip_positions.size() > 1:
+			var first_position: Vector3 = hip_positions[0]
+			var last_position: Vector3 = hip_positions[hip_positions.size() - 1]
+			net = Vector2(last_position.x - first_position.x, last_position.z - first_position.z).length()
+		hip_data["height_range"] = _round(bob)
+		# Net displacement, not the accumulated path: an in-place cycle still
+		# swings the pelvis (sway plus the yaw/roll orbit), so the path overstates
+		# the travel and would make every cycle look like it moves the body.
+		hip_data["body_travel"] = _round(net)
+		hip_data["body_path"] = _round(travel)
+		hip_data["mean_speed"] = _round(travel / length) if length > 0.0 else 0.0
+		hip_data["trace"] = hip_positions.map(func(position): return [
+			_round(position.x), _round(position.y), _round(position.z)])
+		checks.append({
+			"check": "hip_bob",
+			"passed": bob <= bob_budget,
+			"value": _round(bob),
+			"budget": _round(bob_budget),
+			"unit": "m",
+			"message": "the hips move %s m vertically over the clip (budget %s m)" % [
+				str(_round(bob)), str(_round(bob_budget))],
+			"fix": "lower the bob override (animation_motion walk_cycle overrides.bob) or lengthen the clip.",
+		})
+	# An in-place cycle is *meant* to slide its stance foot backwards: the clip
+	# carries no body travel, so the game (or root motion) supplies it. Only a
+	# clip that moves the body has to keep the planted foot still, so the audit
+	# says which of the two it is looking at.
+	var body_travel := float(hip_data.get("body_travel", 0.0))
+	var in_place := body_travel < 0.05 * maxf(length, 0.001)
+	for side in feet:
+		var slide := RigAnalysis.foot_slide(times, (feet[side] as Dictionary).positions,
+			threshold, float((feet[side] as Dictionary).ground))
+		var worst := float(slide.worst)
+		var passed := worst <= slide_budget
+		foot_data[side] = {
+			"bone": str(feet[side].bone),
+			"ground": _round(float(feet[side].ground)),
+			"worst_slide": _round(worst),
+			"mean_slide": _round(float(slide.mean)),
+			"path": _round(float(slide.path)),
+			"contact_time": _round(float(slide.contact_time)),
+			"contact_fraction": _round(float(slide.contact_time) / length) if length > 0.0 else 0.0,
+			"windows": (slide.windows as Array).map(func(window): return {
+				"start": _round(float(window.start)), "end": _round(float(window.end)),
+				"slide": _round(float(window.slide)), "path": _round(float(window.path))}),
+			"trace": ((feet[side] as Dictionary).positions as Array).map(func(position): return [
+				_round((position as Vector3).x), _round((position as Vector3).y), _round((position as Vector3).z)]),
+		}
+		checks.append({
+			"check": "foot_slide.%s" % side,
+			"passed": passed,
+			"in_place": in_place,
+			"value": _round(worst),
+			"budget": _round(slide_budget),
+			"unit": "m",
+			"message": ("%s foot travels %s m while planted (budget %s m)%s" % [
+				side.to_upper(), str(_round(worst)), str(_round(slide_budget)),
+				"; this clip is authored in place, so that travel is the body's speed and is expected" if in_place else ""]),
+			"fix": ("rebuild with root_motion=true to keep the stance foot planted, or play the clip on a character the game already moves" if in_place
+				else "raise the stance share, shorten the cycle, or bake with a higher speed: the walk cycle keeps the ankle on the solved trajectory (animation_motion walk_cycle speed/stance)."),
+		})
+	if feet.is_empty():
+		checks.append({
+			"check": "roles",
+			"passed": false,
+			"value": 0.0,
+			"budget": 0.0,
+			"unit": "",
+			"message": "no foot bones were detected, so ground contact cannot be measured",
+			"fix": "pass roles/profile with foot_l and foot_r (animation_inspect rig_profile lists candidates).",
+		})
+	var failed := 0
+	for check in checks:
+		if not bool(check.passed):
+			failed += 1
+	return {"data": {
+		"player_path": str(loaded.player_path),
+		"animation_name": str(loaded.anim_name),
+		"skeleton_path": str(resolved.path),
+		"length": length,
+		"loop_mode": ValueCodec.loop_mode_to_string(loaded.anim.loop_mode),
+		"sample_count": times.size(),
+		"contact_threshold": threshold,
+		"in_place": in_place,
+		"body_travel": _round(body_travel),
+		"feet": foot_data,
+		"hips": hip_data,
+		"checks": checks,
+		"passed": failed == 0,
+		"failed_checks": failed,
+		"undoable": false,
+	}}
 
 
 # ============================================================================

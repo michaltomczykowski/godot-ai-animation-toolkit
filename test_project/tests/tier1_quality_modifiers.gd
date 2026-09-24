@@ -8,6 +8,7 @@ extends SceneTree
 const ClipSpec := preload("res://addons/godot_ai_animation/spec/clip_spec.gd")
 const SpecModifiers := preload("res://addons/godot_ai_animation/spec/spec_modifiers.gd")
 const QualityModifiers := preload("res://addons/godot_ai_animation/spec/quality_modifiers.gd")
+const RigAnalysis := preload("res://addons/godot_ai_animation/spec/rig_analysis.gd")
 
 var _checks := 0
 var _failures := 0
@@ -16,10 +17,12 @@ var _failures := 0
 func _init() -> void:
 	_check_smooth()
 	_check_resample()
+	_check_reduce()
 	_check_noise()
 	_check_overlap()
 	_check_layer()
 	_check_motion_report()
+	_check_foot_slide()
 	if _failures == 0:
 		print("TIER1 PASS (%d checks)" % _checks)
 	else:
@@ -94,6 +97,97 @@ func _check_resample() -> void:
 	_expect_approx(float(result.spec.tracks[0].keys[20].time), 2.0, "resampled keys end at the length")
 	var limited := QualityModifiers.resample(spec, 10.0, Animation.INTERPOLATION_LINEAR, "Other:position")
 	_expect_eq((limited.spec.tracks[0].keys as Array).size(), 3, "a non-matching track_path passes tracks through")
+
+
+func _check_reduce() -> void:
+	# A straight ramp needs no interior keys at all.
+	var ramp := _float_track(1.0, [0.0, 0.25, 0.5, 0.75, 1.0])
+	var lean := QualityModifiers.reduce(ramp, 0.5, 0.01, "")
+	_expect_eq((lean.spec.tracks[0].keys as Array).size(), 2, "a straight ramp reduces to its end keys")
+	_expect_approx(float(lean.spec.tracks[0].keys[1].value), 1.0, "the reduced track keeps the last value")
+	_expect_approx(float(lean.worst), 0.0, "a straight ramp has no reduction error")
+	_expect_eq(int(ramp.tracks[0].keys.size()), 5, "reduce never mutates its input")
+	# A shape no 2-key line can follow keeps its keys: the budget is the contract.
+	var spike := _float_track(1.0, [0.0, 0.0, 1.0, 0.0, 0.0])
+	var tight_spike := QualityModifiers.reduce(spike, 0.5, 0.01, "")
+	_expect_eq((tight_spike.spec.tracks[0].keys as Array).size(), 5,
+		"a 0.01-unit budget keeps every key of a sharp spike")
+	_expect_approx(float(tight_spike.spec.tracks[0].keys[2].value), 1.0, "the peak value survives")
+	var loose := QualityModifiers.reduce(spike, 0.5, 2.0, "")
+	_expect_eq((loose.spec.tracks[0].keys as Array).size(), 2, "a budget wider than the spike drops it")
+	_expect(float(loose.worst) <= 2.0, "the measured error stays inside the loose budget")
+	# Rotation tracks are budgeted in degrees, and the reported worst error is one.
+	var degrees := ClipSpec.make(1.0, Animation.LOOP_NONE)
+	var keys: Array = []
+	for index in 25:
+		keys.append({
+			"time": float(index) / 24.0,
+			"value": Quaternion(Vector3.UP, deg_to_rad(sin(float(index) / 24.0 * TAU) * 20.0)),
+			"transition": 1.0,
+		})
+	ClipSpec.add_value_track(degrees, "Skeleton3D:B-chest", keys,
+		Animation.INTERPOLATION_LINEAR, Animation.TYPE_ROTATION_3D)
+	var reduced := QualityModifiers.reduce(degrees, 0.5, 0.0, "")
+	_expect((reduced.spec.tracks[0].keys as Array).size() < 25, "a sampled sine loses keys under a 0.5-degree budget")
+	_expect(float(reduced.worst) <= 0.5, "the measured rotation error stays inside the budget (%s)" % str(reduced.worst))
+	var tight := QualityModifiers.reduce(degrees, 0.01, 0.0, "")
+	_expect((tight.spec.tracks[0].keys as Array).size() > (reduced.spec.tracks[0].keys as Array).size(),
+		"a tighter budget keeps more keys")
+	var capped := QualityModifiers.reduce(degrees, 0.01, 0.0, "", 6)
+	_expect((capped.spec.tracks[0].keys as Array).size() <= 6, "max_keys caps the result")
+	# Only the selected track is reduced, and the report adds up.
+	var pair := ClipSpec.make(1.0, Animation.LOOP_NONE)
+	ClipSpec.add_value_track(pair, "A:value", [
+		{"time": 0.0, "value": 0.0, "transition": 1.0},
+		{"time": 0.5, "value": 1.0, "transition": 1.0},
+		{"time": 1.0, "value": 0.0, "transition": 1.0},
+	])
+	ClipSpec.add_value_track(pair, "B:value", [
+		{"time": 0.0, "value": 0.0, "transition": 1.0},
+		{"time": 0.5, "value": 1.0, "transition": 1.0},
+		{"time": 1.0, "value": 0.0, "transition": 1.0},
+	])
+	var one := QualityModifiers.reduce(pair, 0.5, 2.0, "B")
+	_expect_eq((one.spec.tracks[0].keys as Array).size(), 3, "an unmatched track is left alone")
+	_expect_eq((one.spec.tracks[1].keys as Array).size(), 2, "the selected track is reduced")
+	_expect_eq(int(one.tracks_changed), 1, "only one track changed")
+	_expect_eq(int(one.removed), 1, "the removed count matches")
+	_expect_eq(int(one.kept), 5, "the kept count adds up")
+
+
+func _check_foot_slide() -> void:
+	# A planted foot that does not move: no slide, one contact window.
+	var still := RigAnalysis.foot_slide(
+		[0.0, 0.5, 1.0, 1.5, 2.0],
+		[Vector3(0, 0, 0), Vector3(0, 0, 0), Vector3(0, 0, 0), Vector3(0, 0.2, 0), Vector3(0, 0.3, 0)],
+		0.02)
+	_expect_approx(float(still.worst), 0.0, "a planted foot that does not move has no slide")
+	_expect_eq((still.windows as Array).size(), 1, "the contact window is found")
+	_expect_approx(float(still.contact_time), 1.5, "contact time counts the planted samples")
+	# A planted foot that creeps: the slide is its net displacement in metres.
+	var creep := RigAnalysis.foot_slide(
+		[0.0, 0.5, 1.0, 1.5, 2.0],
+		[Vector3(0, 0, 0), Vector3(0.02, 0, 0), Vector3(0.04, 0, 0), Vector3(0.04, 0.2, 0), Vector3(0.04, 0.3, 0)],
+		0.02)
+	_expect_approx(float(creep.worst), 0.04, "the worst slide is the planted displacement in metres")
+	_expect_approx(float(creep.path), 0.04, "the accumulated path matches a straight creep")
+	_expect(float(creep.mean) > 0.0, "the mean slide rate is reported")
+	# A foot that lifts, swings forward and lands ahead: a step, not a slide.
+	var swing := RigAnalysis.foot_slide(
+		[0.0, 0.5, 1.0, 1.5, 2.0],
+		[Vector3(0, 0, 0), Vector3(0, 0.3, 0), Vector3(0.4, 0.3, 0), Vector3(0.4, 0, 0), Vector3(0.4, 0, 0)],
+		0.02, 0.0)
+	_expect_approx(float(swing.worst), 0.0, "a swing that returns to its start is not a slide")
+	_expect_approx(float(swing.path), 0.0, "the travel between two contacts is a step, not a planted path")
+	_expect_eq((swing.windows as Array).size(), 2, "each landing opens its own contact window")
+	# A fast swing that barely touches down: the contact is short, so the slide
+	# claim stays small even though the foot moves a lot in the air.
+	var airborne := RigAnalysis.foot_slide(
+		[0.0, 0.5, 1.0], [Vector3(0, 0.5, 0), Vector3(0, 0.2, 0), Vector3(0, 0.5, 0)], 0.02)
+	_expect_approx(float(airborne.contact_time), 0.5, "one planted sample owns one sample period")
+	_expect_approx(float(airborne.worst), 0.0, "a single planted sample cannot slide")
+	var empty := RigAnalysis.foot_slide([], [], 0.02)
+	_expect_approx(float(empty.worst), 0.0, "no samples means no slide")
 
 
 func _check_noise() -> void:

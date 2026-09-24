@@ -6,6 +6,7 @@ const ToolContext := preload("res://addons/godot_ai_animation/utils/tool_context
 const ValueCodec := preload("res://addons/godot_ai_animation/utils/value_codec.gd")
 const ClipSpec := preload("res://addons/godot_ai_animation/spec/clip_spec.gd")
 const SpecBuilder := preload("res://addons/godot_ai_animation/spec/spec_builder.gd")
+const SpecIO := preload("res://addons/godot_ai_animation/spec/spec_io.gd")
 const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
 
 const InspectHandler := preload("res://addons/godot_ai_animation/handlers/inspect.gd")
@@ -162,6 +163,22 @@ func _teardown(fixture: Dictionary) -> void:
 		_remove_node(fixture.player_path)
 	if fixture.has("target"):
 		_remove_node(fixture.target)
+
+
+func _check_named(checks: Array, name: String) -> Dictionary:
+	for check in checks:
+		if str(check.get("check", "")) == name:
+			return check
+	return {}
+
+
+## The clip behind a player path, for building a variant of it in a test.
+func _clip_anim(player_path: String, clip_name: String) -> Animation:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var player := ValueCodec.resolve_scene_path(player_path, scene_root) as AnimationPlayer
+	if player == null:
+		return null
+	return player.get_animation(clip_name)
 
 
 func _findings_for(result: Dictionary, code: String) -> Array:
@@ -455,7 +472,7 @@ func test_help_lists_ops_and_params() -> void:
 	assert_has_key(result, "data")
 	assert_eq(result.data.tool_count, 1)
 	var tool: Dictionary = result.data.tools[0]
-	assert_eq((tool.ops as Array).size(), 19, "every edit op is listed")
+	assert_eq((tool.ops as Array).size(), 20, "every edit op is listed")
 	for descriptor in tool.ops:
 		assert_true((descriptor.params as Array).has("dry_run"),
 			"%s should advertise dry_run" % str(descriptor.name))
@@ -481,6 +498,98 @@ func test_missing_clip_reports_available_names() -> void:
 	assert_contains(result.error.message, "Available")
 	assert_contains(result.error.message, "clip")
 	_teardown(fixture)
+
+
+func test_motion_audit_grades_planted_feet_and_hips() -> void:
+	var rig := _rig("Audit")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var motion := MotionHandler.new()
+	var walked := motion.run({
+		"op": "walk_cycle", "player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
+		"duration": 1.0, "loop_mode": "linear", "animation_name": "walk", "speed": 1.0,
+		"root_motion": true, "set_root_motion": true,
+	}, null)
+	if not walked.has("data"):
+		skip("walk_cycle failed: %s" % str(walked))
+		_teardown_rig(rig)
+		return
+	var skeleton: Skeleton3D = rig.skeleton
+	var thigh := skeleton.find_bone("B-thigh.L")
+	var before := skeleton.get_bone_pose_rotation(thigh)
+	var result := _handler.run({
+		"op": "motion_audit", "player_path": rig.player_path, "animation_name": "walk",
+		"skeleton_path": rig.skeleton_path, "samples": 24,
+	}, null)
+	assert_true(result.has("data"), "motion_audit: %s" % str(result))
+	assert_eq(int(result.data.sample_count), 24, "the clip is sampled as asked")
+	assert_true(float(result.data.body_travel) > 0.5,
+		"a root-motion walk carries the body forward (%s m)" % str(result.data.body_travel))
+	assert_false(bool(result.data.in_place), "a clip that moves the body is not in place")
+	var feet: Dictionary = result.data.feet
+	assert_true(feet.has("l") and feet.has("r"), "both feet are audited")
+	assert_true(float(feet.l.contact_time) > 0.0, "the left foot spends time on the ground")
+	assert_true((feet.l.windows as Array).size() >= 1, "a contact window is reported")
+	assert_true((feet.r.windows as Array).size() >= 1, "the right foot has a window too")
+	assert_true(float(feet.l.worst_slide) <= 0.05,
+		"a root-motion walk keeps the planted foot inside the 5 cm budget (%s m)" % str(feet.l.worst_slide))
+	var checks: Array = result.data.checks
+	assert_true(checks.size() >= 3, "slide and hip checks are reported (%s)" % str(checks.size()))
+	for check in checks:
+		assert_true(not str(check.get("message", "")).is_empty(), "every check explains itself")
+		assert_true(not str(check.get("fix", "")).is_empty(), "every check names a fix")
+	assert_true(bool(result.data.passed), "a root-motion walk passes its own budgets (%s)" % str(result.data.checks))
+	# The same walk authored in place: the stance foot travels backwards with the
+	# body by design, and the audit has to say that instead of calling it a defect.
+	var in_place := motion.run({
+		"op": "walk_cycle", "player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
+		"duration": 1.0, "loop_mode": "linear", "animation_name": "walk_in_place", "speed": 1.0,
+	}, null)
+	assert_true(in_place.has("data"), "the in-place variant builds: %s" % str(in_place))
+	var audit_in_place := _handler.run({
+		"op": "motion_audit", "player_path": rig.player_path, "animation_name": "walk_in_place",
+		"skeleton_path": rig.skeleton_path, "samples": 24,
+	}, null)
+	assert_true(audit_in_place.has("data"), "motion_audit in place: %s" % str(audit_in_place))
+	assert_true(bool(audit_in_place.data.in_place), "a static-body clip is reported as in place")
+	assert_true(float((audit_in_place.data.feet.l as Dictionary).worst_slide) > 0.1,
+		"the in-place stance foot really does travel (%s m)"
+			% str((audit_in_place.data.feet.l as Dictionary).worst_slide))
+	var slide_check := _check_named(audit_in_place.data.checks, "foot_slide.l")
+	assert_true(not slide_check.is_empty(), "the slide check is reported")
+	assert_true(str(slide_check.message).contains("in place"),
+		"the message explains the in-place travel: %s" % str(slide_check.message))
+	assert_true(str(slide_check.fix).contains("root_motion"),
+		"the fix points at root motion: %s" % str(slide_check.fix))
+	# A moonwalk: the same walk clip with the hips pushed forward three times
+	# faster than the legs were solved for, so the stance feet have to slide.
+	var fast := SpecIO.from_animation(_clip_anim(rig.player_path, "walk"))
+	var touched := 0
+	for track in fast.tracks:
+		if str(track.get("path", "")).ends_with("B-hips") \
+				and int(track.get("type", -1)) == Animation.TYPE_POSITION_3D:
+			touched += 1
+			for key in track.get("keys", []):
+				var value: Vector3 = key.get("value", Vector3.ZERO)
+				key["value"] = Vector3(value.x, value.y, value.z * 3.0)
+	assert_true(touched == 1, "the walk has one hips position track to speed up (%s)" % str(touched))
+	_add_clip(rig.player_path, "moonwalk", fast)
+	var failed := _handler.run({
+		"op": "motion_audit", "player_path": rig.player_path, "animation_name": "moonwalk",
+		"skeleton_path": rig.skeleton_path, "samples": 24, "max_slide": 0.05,
+	}, null)
+	assert_true(failed.has("data"), "motion_audit on a moonwalk clip: %s" % str(failed))
+	assert_false(bool(failed.data.in_place), "the moonwalk clip moves the body")
+	assert_true(not bool(failed.data.passed), "a foot that cannot keep up fails the slide budget")
+	assert_true(int(failed.data.failed_checks) >= 1, "the failure is counted")
+	var slid: float = float((failed.data.feet.l as Dictionary).worst_slide)
+	assert_true(slid > 0.05, "the slide is reported in metres (%s)" % str(slid))
+	assert_true(not str((failed.data.checks[0] as Dictionary).get("fix", "")).is_empty(),
+		"the failing check still names a fix")
+	assert_true(skeleton.get_bone_pose_rotation(thigh).is_equal_approx(before),
+		"the live pose is restored after the audit")
+	_teardown_rig(rig)
 
 
 func test_motion_report_metrics_and_health() -> void:
@@ -661,7 +770,7 @@ func test_registry_matches_inspect_schema() -> void:
 	assert_false(bool(info.requires_writable), "inspect does not require a writable project")
 	assert_false(bool(info.undoable), "inspect never touches the undo stack")
 	var op_enum: Array = info.schema.properties.op.enum
-	assert_eq(op_enum.size(), 11, "the inspect schema lists every op")
+	assert_eq(op_enum.size(), 12, "the inspect schema lists every op")
 	for descriptor in info.ops:
 		assert_true(op_enum.has(descriptor.name), "%s is in the schema enum" % descriptor.name)
 		for param in descriptor.params:

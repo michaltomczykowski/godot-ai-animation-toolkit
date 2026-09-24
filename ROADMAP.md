@@ -1,10 +1,8 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **phases 0–12 done** — v1.6.0 (8 tools, 100 ops) released 2026-09-24.
-Phases 11 (contact authoring + visual verification) and 12 (spine chain + twist
-distribution) ship without a new demo recording: the door/punch showcase was
-dropped after its rebuild still read as broken, and the ops stand on their own
-behind the editor suites. See the end of the file for their scope.
+Status: **phases 0–13 done** — v1.6.0 (8 tools, 100 ops) released 2026-09-24;
+Phase 13 (prove the motion, then ship a lighter clip) is implemented and green,
+awaiting its release. See the end of the file for their scope.
 Last updated: 2026-09-24.
 
 Phase 3 note: the generators landed as their own family, `animation_fx`, instead
@@ -535,6 +533,59 @@ spine_chain`), the `twist_setup` op test, and the existing turn-step bound.
    peak-to-peak, which the tests state explicitly.
 3. Recipe defaults are in the same units as before (the idle's `twist` default
    moved 12 -> 22 so the *total* matches the old summed output).
+
+## Phase 13 — prove the motion, then ship a lighter clip (v1.7.0, done)
+
+The dropped demo made one thing obvious: judging motion by eye costs a whole
+recording per attempt. Phase 13 turns the two soft spots into numbers.
+
+1. **`animation_inspect motion_audit`** — plays the clip on a Skeleton3D (the
+   scene is posed and restored, never saved) and grades it: per foot the
+   ground-contact windows and the horizontal slide while planted, plus the hips'
+   bob and travel. Every check is pass/fail against a budget (`max_slide` 5 cm,
+   `max_hip_bob` 12 cm) with a `fix` hint, and the response carries the foot
+   traces so a bad cycle can be read, not guessed. Two definitions matter:
+   - **Contact** is "within `contact_threshold` (5 mm) of the foot's *rest*
+     height", not "near the lowest sample" — a swing arc dips to the minimum
+     twice per cycle, so the old rule graded the swing as contact.
+   - **Slide** is the foot's *net* displacement inside a window, not the
+     accumulated path: lift, swing and land is a step, creep across the floor is
+     a slide. Both the net and the path are reported.
+   A clip authored in place is reported as `in_place` (its stance foot travels
+   with the body by design) and the check's `fix` points at `root_motion`.
+   Pure math: `RigAnalysis.foot_slide(times, positions, threshold, ground)`.
+2. **`animation_edit reduce`** — the other half: the procedural cycles ship with
+   70+ keys per bone, and there was no way to slim them. `reduce` keeps the
+   first/last key, measures the reduced track against every original key through
+   the engine's own interpolator, and re-inserts the worst offender until the
+   budget holds (`angle` degrees for rotations, `value_tolerance` units for the
+   rest, `max_keys` as a cap). Nothing moves onto a new grid, so unlike
+   `resample` the curve is preserved; the reply carries the keys removed and the
+   worst measured error. Pure math: `QualityModifiers.reduce`.
+3. **A real bug the audit found on day one.** A root-motion walk's stance feet
+   were sliding backwards at the full body speed: `_foot_trajectory`'s rooted
+   branch moved the stance target *with* the body instead of holding it still,
+   and both feet shared one target. The leg rotations are aimed at the target
+   with the hips already travelled, so holding the target still is exactly what
+   plants the foot; the trailing foot now holds the point half a stride behind.
+   Measured before: 0.30 m of slide per stance. After: **0.0 m**, asserted by the
+   audit test, which also keeps a moonwalk fixture (the same clip with the hips
+   pushed 3x faster) failing the budget.
+
+Tier-1: 73 checks in `tier1_quality_modifiers.gd` (reduction budgets, engine-exact
+error measurement, `max_keys`, slide definitions) and the registry/docs drift.
+Editor suites: 165 tests, including the audit's pass/fail/in-place cases and the
+`reduce` round trip with its undo.
+
+### Phase 13 risks / mitigations
+
+1. Contact and slide are only as good as the threshold: both are reported, and
+   the traces are in the reply, so a wrong threshold is visible rather than
+   silently wrong.
+2. The audit poses a live skeleton, so it needs an open scene and a 3D rig; 2D
+   and headless readers get the tier-1 math instead.
+3. `reduce` is greedy, so a pathological track can stop above the budget when a
+   re-insert stops helping; the reply's `worst_error` says so.
 
 ## Risks / notes
 

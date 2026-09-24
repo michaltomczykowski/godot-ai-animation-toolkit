@@ -185,6 +185,108 @@ static func _seeded_axis(seed_value: int) -> Vector3:
 	return axis.normalized()
 
 
+# --- reduce -----------------------------------------------------------------
+
+## Drop the keys a track does not need, inside an error budget. Greedy and
+## exact: keep the first and last key, measure the *reduced* track against every
+## original key through the engine's own interpolator, and re-insert the worst
+## offender until the budget holds (or `max_keys` is hit). `angle_degrees` bounds
+## rotation tracks, `value_tolerance` the rest. Key times, values and
+## transitions are kept as authored, so the result is the same curve with fewer
+## keys - unlike `resample`, nothing is moved onto a new grid.
+##
+## Returns `{spec, removed, kept, tracks_changed, worst}` where `worst` is the
+## measured error over all reduced tracks, in degrees for rotations.
+static func reduce(spec: Dictionary, angle_degrees: float, value_tolerance: float,
+		track_path: String = "", max_keys: int = 0) -> Dictionary:
+	var out := ClipSpec.clone(spec)
+	var worst := 0.0
+	var removed := 0
+	var kept_total := 0
+	var tracks_changed := 0
+	for track in out.get("tracks", []):
+		if not ClipSpec.is_value_type(int(track.get("type", -1))) \
+				or not (track_path.is_empty() or _matches(track, track_path)):
+			kept_total += (track.get("keys", []) as Array).size()
+			continue
+		var is_rotation := int(track.get("type", -1)) == Animation.TYPE_ROTATION_3D
+		var budget := maxf(angle_degrees if is_rotation else value_tolerance, 0.0)
+		var reduced := _reduce_track(track, budget, max_keys)
+		var original: Array = track.get("keys", [])
+		var kept: Array = reduced.get("keys", [])
+		if kept.size() < original.size():
+			removed += original.size() - kept.size()
+			tracks_changed += 1
+			track["keys"] = kept
+		worst = maxf(worst, float(reduced.get("error", 0.0)))
+		kept_total += kept.size()
+	return {
+		"spec": out, "removed": removed, "kept": kept_total,
+		"tracks_changed": tracks_changed, "worst": worst,
+	}
+
+
+## Greedy reduction of one track: returns `{keys, error, added}`. The error is
+## in degrees for rotation tracks and in track units for everything else, which
+## is why the caller picks the budget by track type.
+static func _reduce_track(track: Dictionary, budget: float, max_keys: int) -> Dictionary:
+	var keys: Array = track.get("keys", [])
+	if keys.size() <= 2:
+		return {"keys": keys, "error": 0.0, "added": 0}
+	var exact := int(track.get("interp", Animation.INTERPOLATION_LINEAR)) != Animation.INTERPOLATION_LINEAR
+	var selected: Array = [keys[0], keys[keys.size() - 1]]
+	var added := 0
+	var error := 0.0
+	while selected.size() < keys.size():
+		if max_keys > 0 and selected.size() >= max_keys:
+			break
+		var measured := _measure_reduction(track, selected, exact)
+		error = float(measured.error)
+		var index := int(measured.key_index)
+		# A key already kept cannot be re-inserted: that would grow the list
+		# without improving the fit, so the reduction stops there.
+		if error <= budget or index < 0 or _holds_key(selected, keys[index]):
+			break
+		selected.append(keys[index])
+		selected.sort_custom(func(a, b): return float(a.get("time", 0.0)) < float(b.get("time", 0.0)))
+		added += 1
+	return {"keys": selected, "error": error, "added": added}
+
+
+static func _holds_key(selected: Array, key: Dictionary) -> bool:
+	for held in selected:
+		if held is Dictionary and absf(float((held as Dictionary).get("time", 0.0)) \
+				- float((key as Dictionary).get("time", 0.0))) <= _EPSILON:
+			return true
+	return false
+
+
+## Worst deviation between the track reduced to `selected` and the original
+## values, sampled at every original key time through the same interpolator
+## playback uses (spec math for linear tracks, the engine for cubic). Returns
+## `{error, key_index}`: the original key that deviates most, or -1.
+static func _measure_reduction(track: Dictionary, selected: Array, exact: bool) -> Dictionary:
+	if selected.size() < 2:
+		return {"error": 0.0, "key_index": -1}
+	var reduced: Dictionary = track.duplicate(true)
+	reduced["keys"] = selected.duplicate(true)
+	var built: Animation = SpecModifiers.build_track_animation(reduced) if exact else null
+	var worst := 0.0
+	var worst_index := -1
+	for index in (track.get("keys", []) as Array).size():
+		var key: Dictionary = track.get("keys", [])[index]
+		var time := float(key.get("time", 0.0))
+		var value = SpecModifiers.sample_built_track(built, time) if exact \
+			else SpecModifiers.sample_track(reduced, time)
+		if value == null:
+			continue
+		var distance := _value_distance(value, key.get("value"))
+		if distance > worst:
+			worst = distance
+			worst_index = index
+	return {"error": worst, "key_index": worst_index}
+
+
 # --- overlap ----------------------------------------------------------------
 
 ## Delay the selected tracks by `delay` seconds, leaving the rest alone - the
