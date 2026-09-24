@@ -1,8 +1,11 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **phases 0–13 done** — v1.6.0 (8 tools, 100 ops) released 2026-09-24;
-Phase 13 (prove the motion, then ship a lighter clip) is implemented and green,
-awaiting its release. See the end of the file for their scope.
+Status: **phases 0–13 done** — v1.7.0 (8 tools, 102 ops) released 2026-09-24:
+Phase 13 adds the numeric motion gate (`motion_audit`) and the lighter-clip
+half (`reduce`), and fixes the planted feet of root-motion walks. Phases 11 (11)
+and 12 (12) ship without a new demo recording: the door/punch showcase was
+dropped after its rebuild still read as broken, and the ops stand on their own
+behind the editor suites. See the end of the file for their scope.
 Last updated: 2026-09-24.
 
 Phase 3 note: the generators landed as their own family, `animation_fx`, instead
@@ -534,7 +537,7 @@ spine_chain`), the `twist_setup` op test, and the existing turn-step bound.
 3. Recipe defaults are in the same units as before (the idle's `twist` default
    moved 12 -> 22 so the *total* matches the old summed output).
 
-## Phase 13 — prove the motion, then ship a lighter clip (v1.7.0, done)
+## Phase 13 — prove the motion, then ship a lighter clip (v1.7.0, done, released 2026-09-24)
 
 The dropped demo made one thing obvious: judging motion by eye costs a whole
 recording per attempt. Phase 13 turns the two soft spots into numbers.
