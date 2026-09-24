@@ -666,3 +666,67 @@ func test_override_tunes_the_cycle() -> void:
 	assert_true(small.has("data") and large.has("data"), "both override calls build")
 	assert_gt(float(large.data.speed), float(small.data.speed) * 2.0, "a wider stride covers more ground")
 	_teardown(rig)
+
+
+# --- character setup --------------------------------------------------------
+
+func test_character_setup_builds_clips_and_tree() -> void:
+	var rig := _rig("Setup")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "character_setup", "player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
+		"speed": 1.4, "run_speed": 4.0, "include_jump": true, "include_turn": true,
+	}, null)
+	assert_true(result.has("data"), "character_setup: %s" % str(result))
+	for clip in ["idle", "walk", "run", "jump", "turn_left"]:
+		assert_true(rig.player.has_animation(clip), "the %s clip exists" % clip)
+	assert_eq(str(result.data.speed_parameter), "parameters/Base/blend_position",
+		"the speed parameter points into the wrapped blend space")
+	assert_eq(str(result.data.jump_request_parameter), "parameters/OneShot/request",
+		"the jump request parameter is reported")
+	assert_true(float(result.data.speed_values.walk) == 1.4 and float(result.data.speed_values.run) == 4.0,
+		"the blend space positions are the clip speeds")
+	assert_true(str(rig.player.root_motion_track).ends_with(":B-hips"), "root motion is wired")
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var tree := _find_of_type(rig.player.get_parent(), "AnimationTree") as AnimationTree
+	assert_true(tree != null, "an AnimationTree is created next to the player")
+	if tree != null:
+		assert_true(tree.tree_root is AnimationNodeBlendTree, "the jump layer wraps the blend space")
+		assert_true(tree.get_node_or_null(tree.anim_player) == rig.player, "the tree is wired to the player")
+		assert_true(str(tree.root_motion_track).ends_with(":B-hips"), "the tree carries the root motion track")
+	assert_true(str(result.data.apply_snippet).contains("blend_position"), "a game-side snippet is returned")
+	# One undo removes the clips, the root motion track and the tree together.
+	assert_true(editor_undo(_undo_redo), "undo should succeed")
+	for clip in ["idle", "walk", "run", "jump", "turn_left"]:
+		assert_true(rig.player.get_animation(clip) == null, "undo removed the %s clip" % clip)
+	assert_true(str(rig.player.root_motion_track).is_empty(), "undo cleared the root motion track")
+	assert_true(_find_of_type(rig.player.get_parent(), "AnimationTree") == null,
+		"undo removed the created tree")
+	_teardown(rig)
+
+
+func test_character_setup_defaults_and_validation() -> void:
+	var rig := _rig("SetupPlain")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "character_setup", "player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
+	}, null)
+	assert_true(result.has("data"), "character_setup with defaults: %s" % str(result))
+	assert_eq(str(result.data.speed_parameter), "parameters/blend_position",
+		"without jump the blend space is the tree root (got %s)" % str(result.data.speed_parameter))
+	assert_eq(str(result.data.jump_request_parameter), "", "no jump layer means no request parameter")
+	var tree := _find_of_type(rig.player.get_parent(), "AnimationTree") as AnimationTree
+	assert_true(tree != null and tree.tree_root is AnimationNodeBlendSpace1D,
+		"the default tree root is the blend space")
+	assert_true(rig.player.get_animation("jump") == null, "jump is opt-in")
+	assert_true(rig.player.get_animation("turn_left") == null, "turn is opt-in")
+	var bad_speeds := _handler.run({
+		"op": "character_setup", "player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
+		"speed": 4.0, "run_speed": 2.0,
+	}, null)
+	assert_is_error(bad_speeds, ErrorCodes.VALUE_OUT_OF_RANGE)
+	_teardown(rig)

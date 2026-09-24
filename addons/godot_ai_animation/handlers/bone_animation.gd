@@ -9,6 +9,8 @@ extends "res://addons/godot_ai_animation/handlers/animation_tool_base.gd"
 
 const ClipSpec := preload("res://addons/godot_ai_animation/spec/clip_spec.gd")
 const SpecBuilder := preload("res://addons/godot_ai_animation/spec/spec_builder.gd")
+const SpecModifiers := preload("res://addons/godot_ai_animation/spec/spec_modifiers.gd")
+const RigAnalysis := preload("res://addons/godot_ai_animation/spec/rig_analysis.gd")
 
 const _LOOP_MODES := {
 	"none": Animation.LOOP_NONE,
@@ -19,37 +21,6 @@ const _LOOP_MODES := {
 
 # --- skeleton / roles -------------------------------------------------------
 
-## Resolve the target skeleton: `skeleton_path` (scene-absolute or relative), or
-## the first Skeleton3D / Skeleton2D in the edited scene.
-func _resolve_skeleton(params: Dictionary) -> Dictionary:
-	var scene_root := EditorInterface.get_edited_scene_root()
-	if scene_root == null:
-		return ErrorCodes.make(ErrorCodes.EDITOR_NOT_READY, "No edited scene open")
-	var path := str(params.get("skeleton_path", ""))
-	var node: Node = null
-	if not path.is_empty():
-		node = ValueCodec.resolve_scene_path(path, scene_root)
-		if node == null:
-			return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND, ValueCodec.format_node_error(path, scene_root))
-	else:
-		for candidate in scene_root.find_children("*", "Skeleton3D", true, false):
-			node = candidate
-			break
-		if node == null:
-			for candidate in scene_root.find_children("*", "Skeleton2D", true, false):
-				node = candidate
-				break
-		if node == null:
-			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-				"No skeleton found in the edited scene (pass skeleton_path)")
-	if node is Skeleton3D:
-		return {"node": node, "kind": "3d", "path": ValueCodec.from_node(node, scene_root)}
-	if node is Skeleton2D:
-		return {"node": node, "kind": "2d", "path": ValueCodec.from_node(node, scene_root)}
-	return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
-		"Node at %s is not a Skeleton3D or Skeleton2D (got %s)" % [path, node.get_class()])
-
-
 static func _loop_mode(params: Dictionary) -> Dictionary:
 	var mode := str(params.get("loop_mode", "none"))
 	if not _LOOP_MODES.has(mode):
@@ -57,63 +28,60 @@ static func _loop_mode(params: Dictionary) -> Dictionary:
 	return {"ok": _LOOP_MODES[mode]}
 
 
-## Bone roles for the procedural recipes: explicit `roles` overrides first,
-## then name-based auto-detection (thigh/shin/arm/hips/chest/head/eye...).
+## Bone roles for the procedural recipes: explicit `roles` overrides win, then a
+## saved `profile` (name or res:// path), then name-based auto-detection
+## (`spec/rig_analysis.gd`). Shared by the rig and motion families.
+##
+## Returns the role map, or `{"_error": <error dict>}` when `profile` names a
+## file that cannot be read or is not a rig profile.
 static func _resolve_roles(params: Dictionary, skeleton: Skeleton3D) -> Dictionary:
-	var roles := {}
-	var arm_fallback := {}
+	var names: Array = []
 	for index in skeleton.get_bone_count():
-		var name := skeleton.get_bone_name(index)
-		var lower := name.to_lower()
-		var side := ""
-		if lower.ends_with(".l") or lower.ends_with("_l") or lower.ends_with("-l") or lower.contains("left"):
-			side = "l"
-		elif lower.ends_with(".r") or lower.ends_with("_r") or lower.ends_with("-r") or lower.contains("right"):
-			side = "r"
-		if not side.is_empty():
-			if lower.contains("thigh") or lower.contains("upperleg") or lower.contains("upleg"):
-				roles["thigh_" + side] = name
-			elif lower.contains("shin") or lower.contains("calf") or lower.contains("lowerleg"):
-				roles["shin_" + side] = name
-			elif lower.contains("forearm") or (lower.contains("arm") and lower.contains("fore")):
-				roles["forearm_" + side] = name
-			elif lower.contains("upperarm"):
-				roles["arm_" + side] = name
-			elif lower.contains("shoulder") or lower.contains("clavicle"):
-				roles["shoulder_" + side] = name
-			elif lower.contains("arm") and not lower.contains("fore"):
-				arm_fallback["arm_" + side] = name
-			elif lower.contains("foot") or lower.contains("ankle"):
-				roles["foot_" + side] = name
-			elif lower.contains("toe"):
-				roles["toe_" + side] = name
-			elif lower.contains("eye") or lower.contains("lid"):
-				roles["eye_" + side] = name
-		if not roles.has("hips") and (lower.contains("hips") or lower.contains("pelvis")):
-			roles["hips"] = name
-		if not roles.has("head") and lower.contains("head"):
-			roles["head"] = name
-		if not roles.has("spine") and lower.contains("spine") and not lower.contains("proxy"):
-			roles["spine"] = name
-	# The upper arm wins over a shoulder bone regardless of bone order.
-	for role in arm_fallback:
-		if not roles.has(role):
-			roles[role] = arm_fallback[role]
-	# Chest: prefer a bone that says "chest" over spine/torso fallbacks.
-	if not roles.has("chest"):
-		for want in ["chest", "spine", "torso"]:
-			for index in skeleton.get_bone_count():
-				var candidate := skeleton.get_bone_name(index)
-				if candidate.to_lower().contains(want):
-					roles["chest"] = candidate
-					break
-			if roles.has("chest"):
-				break
+		names.append(skeleton.get_bone_name(index))
+	var roles := RigAnalysis.detect_roles(names).roles as Dictionary
+	var profile := _profile_roles(params.get("profile", null), names)
+	if profile.has("error"):
+		return {"_error": profile.error}
+	for role in profile.roles:
+		roles[str(role)] = str(profile.roles[role])
 	var overrides = params.get("roles", {})
 	if overrides is Dictionary:
 		for role in overrides:
 			roles[str(role)] = str((overrides as Dictionary)[role])
 	return roles
+
+
+## Load `profile` (inline dict, `res://` path, or a bare profile name) and keep
+## the roles whose bones exist on this skeleton.
+static func _profile_roles(profile, bone_names: Array) -> Dictionary:
+	if profile == null:
+		return {"roles": {}}
+	var data
+	if profile is Dictionary:
+		data = profile
+	else:
+		var value := str(profile)
+		if value.is_empty():
+			return {"roles": {}}
+		var path := value if value.ends_with(".json") else "%s/%s.json" % [RigAnalysis.PROFILE_DIR, value]
+		if not FileAccess.file_exists(path):
+			return {"error": ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"Rig profile not found: %s. Save one with animation_inspect(op=\"rig_profile\", save=true)." % path)}
+		var raw := FileAccess.get_file_as_string(path)
+		data = JSON.parse_string(raw)
+		if data == null:
+			return {"error": ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s is not valid JSON" % path)}
+	var parsed = RigAnalysis.profile_roles(data)
+	if parsed.has("error"):
+		return {"error": ErrorCodes.make(ErrorCodes.INVALID_PARAMS, str(parsed.error))}
+	var known := {}
+	for name in bone_names:
+		known[str(name)] = true
+	var roles := {}
+	for role in parsed.roles:
+		if known.has(str(parsed.roles[role])):
+			roles[str(role)] = str(parsed.roles[role])
+	return {"roles": roles}
 
 
 # --- vector / pose math -----------------------------------------------------
@@ -255,15 +223,43 @@ static func _pose_restore(skeleton: Skeleton3D, snapshot: Array) -> void:
 		skeleton.set_bone_pose_scale(index, snapshot[index].scale)
 
 
+## Apply a clip spec to the skeleton at `time` (rest + sampled key values), so
+## read-only probes and spring passes can pose the skeleton without a player.
+static func _apply_spec_at(skeleton: Skeleton3D, spec: Dictionary, time: float) -> void:
+	skeleton.reset_bone_poses()
+	for track in spec.get("tracks", []):
+		var type := int(track.get("type", -1))
+		if type != Animation.TYPE_ROTATION_3D and type != Animation.TYPE_POSITION_3D and type != Animation.TYPE_SCALE_3D:
+			continue
+		var index := skeleton.find_bone(ClipSpec.property_of(str(track.get("path", ""))))
+		if index < 0:
+			continue
+		var value = SpecModifiers.sample_track(track, time)
+		if value == null:
+			continue
+		match type:
+			Animation.TYPE_ROTATION_3D:
+				skeleton.set_bone_pose_rotation(index, value)
+			Animation.TYPE_POSITION_3D:
+				skeleton.set_bone_pose_position(index, value)
+			Animation.TYPE_SCALE_3D:
+				skeleton.set_bone_pose_scale(index, value)
+
+
 # --- procedural clip commit -------------------------------------------------
 
-## Commit a procedurally built bone clip. `keys` maps bone names to
+## Build the Animation for a procedurally keyed bone clip without committing
+## it. `keys` maps bone names to
 ## {"rotation": [{time, delta}], "position": [{time, delta}], "scale": [{time, value}]}
 ## where rotation/position deltas are rest-relative. `markers` is an optional
 ## list of {name, time, color?} cues (footsteps, jump phases, ...).
-func _commit_procedural_clip(
+##
+## Returns `{anim, spec, track_root, bones, player, library, created_library}`,
+## so a caller can bundle several clips into one undo action
+## (`character_setup`), or an error dict.
+func _build_procedural_animation(
 	params: Dictionary, resolved: Dictionary, anim_name: String, length: float,
-	loop_mode: int, keys: Dictionary, markers: Array = [], extra_props: Array = [],
+	loop_mode: int, keys: Dictionary, markers: Array = [],
 ) -> Dictionary:
 	var player_resolved := _resolve_player(str(params.get("player_path", "")))
 	if player_resolved.has("error"):
@@ -345,23 +341,42 @@ func _commit_procedural_clip(
 	var valid := SpecBuilder.validate(spec)
 	if valid.has("error"):
 		return valid
-	var overwrite := bool(params.get("overwrite", false))
-	var existing := _existing_animation(library, anim_name, overwrite)
+	return {
+		"anim": SpecBuilder.to_animation(spec),
+		"spec": spec,
+		"track_root": track_root,
+		"bones": used,
+		"player": player,
+		"library": library,
+		"created_library": created_library,
+	}
+
+
+## Commit a procedurally built bone clip as one undo action (the cycle/recipe
+## path). Builds through `_build_procedural_animation`, so a caller can also
+## build without committing.
+func _commit_procedural_clip(
+	params: Dictionary, resolved: Dictionary, anim_name: String, length: float,
+	loop_mode: int, keys: Dictionary, markers: Array = [], extra_props: Array = [],
+) -> Dictionary:
+	var built := _build_procedural_animation(params, resolved, anim_name, length, loop_mode, keys, markers)
+	if built.has("error"):
+		return built
+	var existing := _existing_animation(built.library, anim_name, bool(params.get("overwrite", false)))
 	if existing.has("error"):
 		return existing.error
-	var anim := SpecBuilder.to_animation(spec)
-	_commit_animation_add("MCP: %s" % anim_name, player, library, created_library,
-		anim_name, anim, existing.old_anim, extra_props)
+	_commit_animation_add("MCP: %s" % anim_name, built.player, built.library, built.created_library,
+		anim_name, built.anim, existing.old_anim, extra_props)
 	return {"data": {
 		"player_path": str(params.get("player_path", "")),
 		"skeleton_path": resolved.path,
 		"animation_name": anim_name,
 		"length": length,
-		"loop_mode": ValueCodec.loop_mode_to_string(int(spec.loop_mode)),
-		"track_count": (spec.tracks as Array).size(),
-		"key_count": ClipSpec.total_key_count(spec),
-		"bones": used,
-		"library_created": created_library,
+		"loop_mode": ValueCodec.loop_mode_to_string(int(built.spec.loop_mode)),
+		"track_count": (built.spec.tracks as Array).size(),
+		"key_count": ClipSpec.total_key_count(built.spec),
+		"bones": built.bones,
+		"library_created": built.created_library,
 		"overwritten": existing.old_anim != null,
 		"undoable": true,
 	}}

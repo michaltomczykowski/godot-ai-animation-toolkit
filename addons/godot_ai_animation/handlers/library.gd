@@ -16,12 +16,16 @@ const SpecBuilder := preload("res://addons/godot_ai_animation/spec/spec_builder.
 const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
 const GenerateHandler := preload("res://addons/godot_ai_animation/handlers/generate.gd")
 const FxHandler := preload("res://addons/godot_ai_animation/handlers/fx.gd")
+const MotionHandler := preload("res://addons/godot_ai_animation/handlers/motion.gd")
+const RigHandler := preload("res://addons/godot_ai_animation/handlers/rig.gd")
 
 const DEFAULT_LIBRARY := "res://animation_toolkit/library.json"
 const LIBRARY_FORMAT := "godot-ai-animation-library"
 const LIBRARY_VERSION := 1
 const SPEC_DIR := "res://animation_toolkit/clips"
-const _APPLIABLE_TOOLS := [OpRegistry.FAMILY_PRESETS, OpRegistry.FAMILY_FX]
+const _APPLIABLE_TOOLS := [
+	OpRegistry.FAMILY_PRESETS, OpRegistry.FAMILY_FX, OpRegistry.FAMILY_MOTION, OpRegistry.FAMILY_RIG,
+]
 
 
 ## Rollup entry registered with the Godot AI tool registry.
@@ -405,6 +409,10 @@ func _run_tool(tool: String, forwarded: Dictionary) -> Dictionary:
 		return GenerateHandler.new().run(forwarded, null)
 	if tool == OpRegistry.FAMILY_FX:
 		return FxHandler.new().run(forwarded, null)
+	if tool == OpRegistry.FAMILY_MOTION:
+		return MotionHandler.new().run(forwarded, null)
+	if tool == OpRegistry.FAMILY_RIG:
+		return RigHandler.new().run(forwarded, null)
 	return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "Cannot apply templates for tool '%s'" % tool)
 
 

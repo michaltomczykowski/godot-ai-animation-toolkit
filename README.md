@@ -2,7 +2,7 @@
 
 A standalone [Godot](https://godotengine.org) addon that gives
 [Godot AI](https://github.com/hi-godot/godot-ai) agents eight animation tools
-(90 ops) — **no core patches**:
+(98 ops) — **no core patches**:
 
 - **`animation_presets`** — build clips in one call (the presets scoped out of
   core during the animation PR review: a generalized `pulse` plus `bounce`,
@@ -31,12 +31,17 @@ A standalone [Godot](https://godotengine.org) addon that gives
   sampled clips with two-bone IK leg solves (planted feet), pelvis
   bob/sway/yaw/roll, counter-rotating torso, proper arm swing with forward
   elbow follow-through, and an idle that looks around and twists the torso;
-  `style`/`overrides` tune the motion, `root_motion` keys forward travel, and
-  `secondary_motion` bakes offline spring bones (hair/tail/cloth) into a clip.
+  `style`/`overrides` tune the motion, `root_motion` keys forward travel,
+  `character_setup` builds idle + walk + run and the locomotion tree in one
+  call, and `secondary_motion` bakes offline spring bones (hair/tail/cloth)
+  into a clip.
 - **`animation_inspect`** — read-only reasoning and QA: `describe`, `timeline`,
   `audit` (broken paths, dead clips, loop seams, autoplay conflicts),
   `compare`, `stats`, `motion_report` (key density, peaks, seam pops,
-  hemisphere flips), `dry_run` (run any op without committing), `help`.
+  hemisphere flips), `rig_profile` (bone roles/candidates, T/A pose, limb
+  reach, capabilities; saves a reusable profile), `sample` (FK probe: world
+  bone positions, foot heights, contact windows), `dry_run` (run any op without
+  committing), `help`.
 
 All eight sit on one declarative clip-spec engine, so every op is a pure
 spec → spec transform and each mutating call is one scene-pinned undo action.
@@ -181,9 +186,10 @@ graphs that reference clips the player does not have.
 ## Reuse and interchange
 
 `animation_library` turns one-off calls into project knowledge: save any
-presets/fx call as a named template and apply it later to other players or
-targets with overrides, and move whole clips in and out of a typed JSON format
-(`spec_export` / `spec_import` / `spec_apply`, with optional track remapping).
+presets/fx/motion/rig call as a named template and apply it later to other
+players or targets with overrides, and move whole clips in and out of a typed
+JSON format (`spec_export` / `spec_import` / `spec_apply`, with optional track
+remapping).
 
 ```json
 {"tool": "custom_animation_library", "params": {
@@ -252,7 +258,21 @@ follow-through. Pass `speed` (m/s) and the stride is solved for you; `style`
 `contact`/`toe_off`/`passing` phase markers for footsteps and blends;
 `root_motion` keys forward travel and wires `AnimationPlayer.root_motion_track`
 in the same undo action; `secondary_motion` bakes offline spring bones (hair,
-tails, cloth) into any clip. T-pose rigs get their arms lowered automatically.
+tails, cloth) into any clip; `character_setup` goes from a bare rig to a
+playable locomotion set — idle + walk + run (optionally jump/turn), a speed
+blend space, the `AnimationTree` and the root-motion track — in one call and one
+undo. T-pose rigs get their arms lowered automatically.
+
+```json
+{"tool": "custom_animation_motion", "params": {
+  "op": "character_setup",
+  "player_path": "/Main/Rig/AnimationPlayer",
+  "skeleton_path": "/Main/Rig/Skeleton3D",
+  "speed": 1.4,
+  "run_speed": 4.0,
+  "include_jump": true
+}}
+```
 
 ```json
 {"tool": "custom_animation_motion", "params": {
@@ -268,11 +288,15 @@ tails, cloth) into any clip. T-pose rigs get their arms lowered automatically.
 ## Inspecting and auditing
 
 `animation_inspect` is read-only, so an agent can look before it edits — and
-`dry_run` shows exactly what a presets/edit call would produce without
+`dry_run` shows exactly what a generator or edit call would produce without
 committing it. `audit` scans a player or the whole scene and reports findings
 with a severity, a code and a `fix` hint naming the op that resolves them
 (e.g. a linear loop that pops at the seam → `animation_edit loop
-make_seamless=true`).
+make_seamless=true`). `rig_profile` tells an agent what a rig can do before it
+tries (roles and candidates, T/A pose, limb reach, capabilities, suggested
+ops — and a saved profile the rig/motion ops reuse), while `sample` FK-probes a
+clip numerically (world bone positions, foot heights, contact windows) so
+motion can be verified without rendering it.
 
 ```json
 {"tool": "custom_animation_inspect", "params": {

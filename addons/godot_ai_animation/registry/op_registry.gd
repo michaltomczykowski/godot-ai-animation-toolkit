@@ -636,14 +636,15 @@ static func _edit_ops() -> Array:
 
 static func _inspect_description() -> String:
 	return (
-		"Read-only inspection for animation work: describe (human-readable clip "
-		+ "summary), timeline (per-track key table), audit (broken paths, "
-		+ "zero-length clips, duplicate keys, loop seams, autoplay conflicts, "
-		+ "unused clips), compare (diff two clips), stats (scene-wide numbers), "
-		+ "motion_report (key density, spikes, loop-seam pops, hemisphere flips), "
-		+ "dry_run (run any generator or edit op without "
-		+ "committing), help (op index with params and examples). Never mutates "
-		+ "the scene or the undo stack. Requires the Godot AI addon."
+		"Read-only inspection for animation work: describe (clip summary), "
+		+ "timeline (per-track keys), audit (broken paths, dead clips, loop "
+		+ "seams, autoplay conflicts), compare (diff two clips), stats "
+		+ "(scene-wide numbers), motion_report (key density, spikes, seam pops, "
+		+ "flips), rig_profile (roles/candidates, T/A pose, limb reach, "
+		+ "capabilities; saves a reusable profile), sample (FK probe: world "
+		+ "positions, foot heights, contact windows), dry_run (run any generator "
+		+ "or edit op uncommitted), help (op index). Never mutates the scene or "
+		+ "the undo stack. Requires the Godot AI addon."
 	)
 
 
@@ -653,7 +654,7 @@ static func _inspect_schema() -> Dictionary:
 		"properties": {
 			"op": {
 				"type": "string",
-				"enum": ["describe", "timeline", "audit", "compare", "stats", "motion_report", "dry_run", "help"],
+				"enum": ["describe", "timeline", "audit", "compare", "stats", "motion_report", "rig_profile", "sample", "dry_run", "help"],
 				"description": "Which inspection to run.",
 			},
 			"player_path": {
@@ -707,11 +708,60 @@ static func _inspect_schema() -> Dictionary:
 			},
 			"forward_op": {
 				"type": "string",
-				"description": "dry_run: the presets/fx/edit op to run (e.g. \"retime\"); its own params go in the same call.",
+				"description": "dry_run: the generator or edit op to run (e.g. \"retime\"); its own params go in the same call.",
 			},
 			"op_name": {
 				"type": "string",
 				"description": "help: only this op (omit to list the tool's whole index).",
+			},
+			"skeleton_path": {
+				"type": "string",
+				"description": "rig_profile/sample: scene path to the Skeleton3D (default: the first one in the scene).",
+			},
+			"roles": {
+				"type": "object",
+				"description": "rig_profile/sample: explicit bone roles, e.g. {\"thigh_l\": \"B-thigh.L\"}; they win over detection.",
+			},
+			"profile": {
+				"type": "string",
+				"description": "rig_profile/sample: a saved rig profile (name or res:// path) whose roles are reused.",
+			},
+			"save": {
+				"type": "boolean",
+				"default": false,
+				"description": "rig_profile: write the profile to res://animation_toolkit/rig_profiles/<name>.json.",
+			},
+			"name": {
+				"type": "string",
+				"description": "rig_profile: profile file name (default: the skeleton node name).",
+			},
+			"overwrite": {
+				"type": "boolean",
+				"default": false,
+				"description": "rig_profile: replace an existing profile file.",
+			},
+			"bones": {
+				"type": "array",
+				"items": {"type": "string"},
+				"description": "sample: bones to probe ([\"*\"] = every bone; default: the detected role bones).",
+			},
+			"times": {
+				"type": "array",
+				"items": {"type": "number"},
+				"description": "sample: explicit sample times in seconds (alternative to samples).",
+			},
+			"samples": {
+				"type": "integer",
+				"description": "sample: evenly spaced samples over the clip (default 24, max 240).",
+			},
+			"include_rotation": {
+				"type": "boolean",
+				"default": false,
+				"description": "sample: also report each bone's euler rotation in degrees.",
+			},
+			"contact_threshold": {
+				"type": "number",
+				"description": "sample: height above the lowest foot sample counted as ground contact (default 0.02).",
 			},
 		},
 		"required": ["op"],
@@ -755,6 +805,18 @@ static func _inspect_ops() -> Array:
 			"summary": "Per-track motion quality: key density, peak speed/acceleration, loop-seam pops, hemisphere flips, constant tracks - each with a fix hint.",
 			"params": ["player_path", "animation_name", "max_tracks"],
 			"example": {"op": "motion_report", "player_path": "/Main", "animation_name": "walk"},
+		},
+		{
+			"name": "rig_profile",
+			"summary": "Understand a rig: detected roles with candidates, T/A pose, limb lengths/reach, facing/lateral axes, capabilities, missing roles and suggested ops; save=true writes a reusable profile.",
+			"params": ["skeleton_path", "roles", "profile", "save", "name", "overwrite"],
+			"example": {"op": "rig_profile", "skeleton_path": "/Main/Rig/Skeleton3D", "save": true, "name": "hero"},
+		},
+		{
+			"name": "sample",
+			"summary": "FK probe: world positions (and optional euler rotations) of requested bones at N times, plus derived foot heights and ground-contact windows. Pose is restored afterwards.",
+			"params": ["player_path", "animation_name", "skeleton_path", "roles", "profile", "bones", "times", "samples", "include_rotation", "contact_threshold"],
+			"example": {"op": "sample", "player_path": "/Main/Rig/AnimationPlayer", "animation_name": "walk", "bones": ["B-foot.L", "B-foot.R"], "samples": 24},
 		},
 		{
 			"name": "dry_run",
@@ -1196,7 +1258,7 @@ static func _graph_ops() -> Array:
 static func _library_description() -> String:
 	return (
 		"Project library for reuse and interchange. Templates: save any "
-		+ "presets/fx call as a named recipe in res://animation_toolkit/"
+		+ "presets/fx/motion/rig call as a named recipe in res://animation_toolkit/"
 		+ "library.json, then apply it later (with per-call overrides) to other "
 		+ "players or targets. Clip specs: export a clip to JSON, import/validate "
 		+ "one, or build a clip from a spec file or inline spec (optionally "
@@ -1221,12 +1283,12 @@ static func _library_schema() -> Dictionary:
 			"name": {"type": "string", "description": "Template name (save/apply/delete)."},
 			"tool": {
 				"type": "string",
-				"enum": ["animation_presets", "animation_fx"],
+				"enum": ["animation_presets", "animation_fx", "animation_motion", "animation_rig"],
 				"description": "template_save: which tool the stored op belongs to.",
 			},
 			"forward_op": {
 				"type": "string",
-				"description": "template_save: the presets/fx op to store (e.g. \"bounce\"); its params go in the same call.",
+				"description": "template_save: the presets/fx/motion/rig op to store (e.g. \"bounce\"); its params go in the same call.",
 			},
 			"description": {"type": "string", "description": "template_save: a note for other agents/users."},
 			"library_path": {
@@ -1266,7 +1328,7 @@ static func _library_ops() -> Array:
 	return [
 		{
 			"name": "template_save",
-			"summary": "Save a presets/fx call (its op and params) as a named template in the project library.",
+			"summary": "Save a presets/fx/motion/rig call (its op and params) as a named template in the project library.",
 			"params": ["name", "tool", "forward_op", "description", "library_path", "overwrite", "dry_run"],
 			"example": {"op": "template_save", "name": "button_pop", "tool": "animation_presets", "forward_op": "bounce", "intensity": 0.2, "duration": 0.5},
 		},
@@ -1411,7 +1473,7 @@ static func _rig_schema() -> Dictionary:
 			"duration": {"type": "number", "description": "look_at_setup: turn time, seconds (0 = instant)."},
 			"profile": {
 				"type": "string",
-				"description": "retarget_setup: auto | humanoid | res:// SkeletonProfile path.",
+				"description": "retarget_setup: auto | humanoid | res:// SkeletonProfile path. Recipes: a saved rig profile (name or res:// path).",
 			},
 			"position": {"type": "boolean", "description": "retarget_setup: bone positions (off)."},
 			"rotation": {"type": "boolean", "default": true, "description": "retarget_setup: bone rotations (on)."},
@@ -1546,37 +1608,37 @@ static func _rig_ops() -> Array:
 		{
 			"name": "walk_cycle",
 			"summary": "Build a looping in-place walk cycle (legs, knees, counter-swinging arms, hip bob) from bone roles.",
-			"params": ["player_path", "skeleton_path", "animation_name", "duration", "stride", "knee_bend", "arm_swing", "arm_down", "bob", "swing_axis", "roles", "loop_mode", "overwrite"],
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "stride", "knee_bend", "arm_swing", "arm_down", "bob", "swing_axis", "roles", "profile", "loop_mode", "overwrite"],
 			"example": {"op": "walk_cycle", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "walk", "duration": 1.0, "loop_mode": "linear"},
 		},
 		{
 			"name": "idle_breathing",
 			"summary": "Build a subtle looping idle: chest/spine breathing, a light head counter-move and an optional hip bob.",
-			"params": ["player_path", "skeleton_path", "animation_name", "duration", "amplitude", "head_amplitude", "bob", "axis", "roles", "loop_mode", "overwrite"],
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "amplitude", "head_amplitude", "bob", "axis", "roles", "profile", "loop_mode", "overwrite"],
 			"example": {"op": "idle_breathing", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "idle", "duration": 3.0, "loop_mode": "linear"},
 		},
 		{
 			"name": "blink",
 			"summary": "Build a quick blink clip on the eye/eyelid bones, scale or rotate, optionally several blinks.",
-			"params": ["player_path", "skeleton_path", "animation_name", "bones", "mode", "closed_scale", "angle", "axis", "blinks", "duration", "loop_mode", "overwrite"],
+			"params": ["player_path", "skeleton_path", "animation_name", "bones", "mode", "closed_scale", "angle", "axis", "blinks", "duration", "roles", "profile", "loop_mode", "overwrite"],
 			"example": {"op": "blink", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "bones": ["eyelid.L", "eyelid.R"], "animation_name": "blink"},
 		},
 		{
 			"name": "jumping_jack",
 			"summary": "Build a looping jumping jack: arms swing down to overhead while the legs spread apart and back together, with a small rise.",
-			"params": ["player_path", "skeleton_path", "animation_name", "duration", "amplitude", "stride", "bob", "roles", "loop_mode", "overwrite"],
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "amplitude", "stride", "bob", "roles", "profile", "loop_mode", "overwrite"],
 			"example": {"op": "jumping_jack", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "jack", "duration": 1.0, "loop_mode": "linear"},
 		},
 		{
 			"name": "squat",
 			"summary": "Build a looping squat with planted feet: the hips drop, the knees bend forward and the leg chains are solved to keep the ankles in place.",
-			"params": ["player_path", "skeleton_path", "animation_name", "duration", "bob", "amplitude", "roles", "loop_mode", "overwrite"],
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "bob", "amplitude", "roles", "profile", "loop_mode", "overwrite"],
 			"example": {"op": "squat", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "squat", "duration": 2.0, "bob": 0.25, "loop_mode": "linear"},
 		},
 		{
 			"name": "punch",
 			"summary": "Build a looping boxing combo: guard, then alternating straight punches with a torso twist. `cycles` punches fit in the clip.",
-			"params": ["player_path", "skeleton_path", "animation_name", "duration", "cycles", "amplitude", "bob", "roles", "loop_mode", "overwrite"],
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "cycles", "amplitude", "bob", "roles", "profile", "loop_mode", "overwrite"],
 			"example": {"op": "punch", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "boxing", "duration": 0.8, "cycles": 2, "loop_mode": "linear"},
 		},
 		{
@@ -1595,14 +1657,14 @@ static func _rig_ops() -> Array:
 static func _motion_description() -> String:
 	return (
 		"Procedural humanoid motion: walk_cycle, run_cycle, strafe_cycle, "
-		+ "idle_cycle and a generic cycle build dense, smoothly sampled clips "
-		+ "with two-bone IK leg solves (planted feet, toe roll), pelvis bob/sway/"
-		+ "yaw/roll, counter-rotating torso and forward elbow follow-through; "
-		+ "jump and turn_cycle are one-shots, walk_start/walk_stop blend in and "
-		+ "out of a gait, and secondary_motion bakes offline spring bones. "
-		+ "`speed` solves the stride from a target m/s; style/overrides tune the "
-		+ "motion; root_motion keys and wires forward travel. Needs a Skeleton3D "
-		+ "with humanoid bone roles."
+		+ "idle_cycle and a generic cycle build dense clips with two-bone IK leg "
+		+ "solves (planted feet, toe roll), pelvis bob/sway/yaw/roll, "
+		+ "counter-rotating torso and forward elbow follow-through; jump and "
+		+ "turn_cycle are one-shots, walk_start/walk_stop blend in and out of a "
+		+ "gait, and secondary_motion bakes spring bones. `speed` solves the "
+		+ "stride from a target m/s; style/overrides tune the motion; root_motion "
+		+ "keys and wires travel. character_setup builds idle+walk+run and the "
+		+ "locomotion tree in one call."
 	)
 
 
@@ -1612,8 +1674,8 @@ static func _motion_schema() -> Dictionary:
 		"properties": {
 			"op": {
 				"type": "string",
-				"enum": ["walk_cycle", "run_cycle", "idle_cycle", "cycle", "jump", "turn_cycle", "strafe_cycle", "walk_start", "walk_stop", "secondary_motion"],
-				"description": "Cycle/move to build, or secondary_motion to bake spring bones into an existing clip.",
+				"enum": ["walk_cycle", "run_cycle", "idle_cycle", "cycle", "jump", "turn_cycle", "strafe_cycle", "walk_start", "walk_stop", "character_setup", "secondary_motion"],
+				"description": "Cycle/move to build, character_setup for the whole locomotion set, or secondary_motion to bake spring bones into an existing clip.",
 			},
 			"preset": {
 				"type": "string",
@@ -1726,6 +1788,10 @@ static func _motion_schema() -> Dictionary:
 				"type": "object",
 				"description": "Bone roles, e.g. {\"thigh_l\": \"B-thigh.L\"}; missing ones auto-detect.",
 			},
+			"profile": {
+				"type": "string",
+				"description": "Saved rig profile (name or res:// path) from animation_inspect rig_profile; supplies the roles.",
+			},
 			"bones": {
 				"type": "array",
 				"items": {"type": "string"},
@@ -1746,7 +1812,43 @@ static func _motion_schema() -> Dictionary:
 			},
 			"overwrite": {
 				"type": "boolean",
-				"description": "Replace an existing clip with the same name (off).",
+				"description": "Replace an existing clip with the same name (off; character_setup defaults to on).",
+			},
+			"active": {
+				"type": "boolean",
+				"description": "character_setup: enable the AnimationTree right away (off; an active tree drives the scene while you edit).",
+			},
+			"tree_path": {
+				"type": "string",
+				"description": "character_setup: scene path for the AnimationTree (default: an existing tree wired to the player, else a new sibling).",
+			},
+			"idle_duration": {
+				"type": "number",
+				"description": "character_setup: idle clip length in seconds (3.0).",
+			},
+			"run_duration": {
+				"type": "number",
+				"description": "character_setup: run clip length in seconds (0.6).",
+			},
+			"run_speed": {
+				"type": "number",
+				"description": "character_setup: run speed in m/s, the blend space's max (4.0; must exceed speed).",
+			},
+			"include_jump": {
+				"type": "boolean",
+				"description": "character_setup: also build a jump clip and a one-shot layer with a request parameter (off).",
+			},
+			"include_turn": {
+				"type": "boolean",
+				"description": "character_setup: also build a turn_<direction> clip (off).",
+			},
+			"jump_duration": {
+				"type": "number",
+				"description": "character_setup: jump clip length in seconds (1.2).",
+			},
+			"turn_duration": {
+				"type": "number",
+				"description": "character_setup: turn clip length in seconds (0.7).",
 			},
 			"dry_run": {
 				"type": "boolean",
@@ -1762,12 +1864,12 @@ static func _motion_ops() -> Array:
 		"player_path", "skeleton_path", "animation_name", "duration", "style",
 		"overrides", "samples", "root_motion", "set_root_motion", "speed", "stride",
 		"knee_bend", "arm_swing", "arm_down", "bob", "sway", "lean", "roles",
-		"loop_mode", "overwrite",
+		"profile", "loop_mode", "overwrite",
 	]
 	var idle_params := [
 		"player_path", "skeleton_path", "animation_name", "duration", "style",
 		"overrides", "samples", "amplitude", "head_amplitude", "bob", "sway",
-		"lean", "roles", "loop_mode", "overwrite",
+		"lean", "roles", "profile", "loop_mode", "overwrite",
 	]
 	return _with_dry_run([
 		{
@@ -1795,6 +1897,12 @@ static func _motion_ops() -> Array:
 			"example": {"op": "cycle", "preset": "run", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "run", "duration": 0.6, "loop_mode": "linear"},
 		},
 		{
+			"name": "character_setup",
+			"summary": "One call, one undo: build idle + walk + run (optionally jump/turn), wire the locomotion AnimationTree and set the root-motion track; returns the speed parameter and a game-side snippet.",
+			"params": ["player_path", "skeleton_path", "roles", "profile", "style", "samples", "speed", "run_speed", "duration", "run_duration", "idle_duration", "root_motion", "include_jump", "include_turn", "height", "crouch", "distance", "jump_duration", "angle", "direction", "turn_duration", "tree_path", "active", "overwrite"],
+			"example": {"op": "character_setup", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "speed": 1.4, "run_speed": 4.0, "include_jump": true},
+		},
+		{
 			"name": "secondary_motion",
 			"summary": "Bake offline spring bones into an existing clip: hair/tail/cloth roots lag behind their animated parent, deterministically.",
 			"params": ["player_path", "skeleton_path", "animation_name", "bones", "stiffness", "damping", "samples"],
@@ -1803,31 +1911,31 @@ static func _motion_ops() -> Array:
 		{
 			"name": "jump",
 			"summary": "Build a one-shot jump: anticipation crouch, launch, air arc, landing absorb and recovery; feet planted before takeoff and after landing.",
-			"params": ["player_path", "skeleton_path", "animation_name", "duration", "height", "crouch", "distance", "style", "overrides", "samples", "roles", "loop_mode", "overwrite"],
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "height", "crouch", "distance", "style", "overrides", "samples", "roles", "profile", "loop_mode", "overwrite"],
 			"example": {"op": "jump", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "jump", "duration": 1.2, "height": 0.6, "crouch": 0.25},
 		},
 		{
 			"name": "turn_cycle",
 			"summary": "Build an in-place pivot turn with anticipation, a stepping foot and a settle; one-shot, direction left/right.",
-			"params": ["player_path", "skeleton_path", "animation_name", "duration", "angle", "direction", "style", "overrides", "samples", "roles", "loop_mode", "overwrite"],
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "angle", "direction", "style", "overrides", "samples", "roles", "profile", "loop_mode", "overwrite"],
 			"example": {"op": "turn_cycle", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "turn_left", "duration": 0.7, "angle": 90, "direction": "left"},
 		},
 		{
 			"name": "strafe_cycle",
 			"summary": "Build a looping sideways gait (leading foot steps out, trailing closes) with the knees still facing forward; speed-driven like the walk.",
-			"params": ["player_path", "skeleton_path", "animation_name", "duration", "direction", "speed", "stride", "style", "overrides", "samples", "root_motion", "set_root_motion", "roles", "loop_mode", "overwrite"],
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "direction", "speed", "stride", "style", "overrides", "samples", "root_motion", "set_root_motion", "roles", "profile", "loop_mode", "overwrite"],
 			"example": {"op": "strafe_cycle", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "strafe_left", "duration": 0.9, "direction": "left", "speed": 0.8, "loop_mode": "linear"},
 		},
 		{
 			"name": "walk_start",
 			"summary": "Build a short blend into a gait: rest -> the walk pose at `phase`, so it matches the cycle frame-for-frame.",
-			"params": ["player_path", "skeleton_path", "animation_name", "duration", "phase", "style", "overrides", "samples", "roles", "loop_mode", "overwrite"],
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "phase", "style", "overrides", "samples", "roles", "profile", "loop_mode", "overwrite"],
 			"example": {"op": "walk_start", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "walk_start", "duration": 0.35, "phase": 0.0},
 		},
 		{
 			"name": "walk_stop",
 			"summary": "Build a short blend out of a gait: the walk pose at `phase` -> rest with a settle.",
-			"params": ["player_path", "skeleton_path", "animation_name", "duration", "phase", "style", "overrides", "samples", "roles", "loop_mode", "overwrite"],
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "phase", "style", "overrides", "samples", "roles", "profile", "loop_mode", "overwrite"],
 			"example": {"op": "walk_stop", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "walk_stop", "duration": 0.35, "phase": 0.5},
 		},
 	])

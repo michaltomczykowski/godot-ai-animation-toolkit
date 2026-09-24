@@ -1230,6 +1230,8 @@ func walk_cycle(params: Dictionary) -> Dictionary:
 			"walk_cycle needs a Skeleton3D (bone roles are matched by name)")
 	var skeleton: Skeleton3D = resolved.node
 	var roles := _resolve_roles(params, skeleton)
+	if roles.has("_error"):
+		return roles["_error"]
 	var missing: Array = []
 	for role in ["thigh_l", "thigh_r", "shin_l", "shin_r", "arm_l", "arm_r"]:
 		if not roles.has(role):
@@ -1317,6 +1319,8 @@ func idle_breathing(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "idle_breathing needs a Skeleton3D")
 	var skeleton: Skeleton3D = resolved.node
 	var roles := _resolve_roles(params, skeleton)
+	if roles.has("_error"):
+		return roles["_error"]
 	var chest := str(roles.get("chest", ""))
 	if chest.is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
@@ -1374,6 +1378,8 @@ func blink(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "blink needs a Skeleton3D")
 	var skeleton: Skeleton3D = resolved.node
 	var roles := _resolve_roles(params, skeleton)
+	if roles.has("_error"):
+		return roles["_error"]
 	var eye_bones: Array = params.get("bones", [])
 	if eye_bones.is_empty():
 		for role in ["eye_l", "eye_r", "eyelid_l", "eyelid_r"]:
@@ -1442,6 +1448,8 @@ func jumping_jack(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "jumping_jack needs a Skeleton3D")
 	var skeleton: Skeleton3D = resolved.node
 	var roles := _resolve_roles(params, skeleton)
+	if roles.has("_error"):
+		return roles["_error"]
 	var missing: Array = []
 	for role in ["arm_l", "arm_r", "thigh_l", "thigh_r"]:
 		if not roles.has(role):
@@ -1499,6 +1507,8 @@ func squat(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "squat needs a Skeleton3D")
 	var skeleton: Skeleton3D = resolved.node
 	var roles := _resolve_roles(params, skeleton)
+	if roles.has("_error"):
+		return roles["_error"]
 	var missing: Array = []
 	for role in ["thigh_l", "thigh_r", "shin_l", "shin_r", "foot_l", "foot_r", "hips"]:
 		if not roles.has(role):
@@ -1588,6 +1598,8 @@ func punch(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "punch needs a Skeleton3D")
 	var skeleton: Skeleton3D = resolved.node
 	var roles := _resolve_roles(params, skeleton)
+	if roles.has("_error"):
+		return roles["_error"]
 	var missing: Array = []
 	for role in ["arm_l", "arm_r", "forearm_l", "forearm_r"]:
 		if not roles.has(role):

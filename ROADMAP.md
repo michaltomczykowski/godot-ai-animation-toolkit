@@ -1,7 +1,8 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **phases 0–9 done** — v1.3.0 (8 tools, 95 ops) released 2026-09-23.
-Phase 10 (agent ergonomics) is next, toward v1.4.0; see below.
+Status: **phases 0–10 implemented** — v1.4.0 (8 tools, 98 ops); release pending.
+Phase 10 (agent ergonomics) landed as `rig_profile`, `sample`,
+`character_setup` and motion/rig templates; see below.
 Last updated: 2026-09-23.
 
 Phase 3 note: the generators landed as their own family, `animation_fx`, instead
@@ -383,7 +384,7 @@ root-motion wiring inside the same undo action. 7 new editor rows (152 total),
 tier-1 at 2241 checks; demos `demo_motion_jump`/`turn`/`strafe` and the 0:40
 `animation_toolkit_motion_pack.mp4` on the release.
 
-### Phase 10 - understand & drive -> v1.4.0 (planned)
+### Phase 10 - understand & drive -> v1.4.0 (implemented)
 
 Make agents effective on the *first* try: understand a rig, verify motion
 numerically, and get a playable character in one call.
@@ -403,6 +404,28 @@ numerically, and get a playable character in one call.
   contact windows, so an agent can verify motion without rendering.
 - **Library templates for motion/rig** - `template_save/apply` extended to
   `animation_motion` and `animation_rig` calls (save a tuned style or recipe).
+
+Shipped implementation details:
+
+- `spec/rig_analysis.gd` is the new pure core: name-based role detection with
+  ranked candidates, arm-pose classification (T/A/arms_down), capability and
+  missing-role maps, sample-time/contact-window math and rig-profile
+  validation. `bone_animation._resolve_roles` now delegates to it, so the
+  recipes, rig_profile and motion share one detection implementation.
+- `_resolve_roles` resolves explicit `roles` > saved `profile` > detection;
+  profile bones missing on the skeleton fall through to detection.
+- Graceful degradation: the `character_setup` blend-space positions are the
+  clips' solved speeds; the tree is created inactive like the graph ops; with
+  `include_jump` it wraps the blend space in a blend tree and reports
+  `parameters/Base/blend_position` / `parameters/OneShot/request`.
+- `GraphBuilders.wrap_one_shot` builds the jump layer; `character_setup`
+  commits clips + tree + root-motion properties in one scene-pinned action
+  (`_stage_animation_changes` was split out of `_commit_animation_changes` so
+  clips and nodes bundle into the same undo step).
+
+Coverage: 6 new editor rows (158 total) and tier-1 at 2437 checks
+(`tier1_rig_analysis.gd` plus the `wrap_one_shot` checks). Docs regenerated.
+Remaining checklist item: demo scene + video, then the v1.4.0 tag.
 
 Deferred (candidate v1.5): `crouch_walk`, gesture pack, foot ground-lock for
 imported clips, twist dispersion (BoneTwistDisperser3D), gaze baking,

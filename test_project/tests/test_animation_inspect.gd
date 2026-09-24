@@ -9,6 +9,11 @@ const SpecBuilder := preload("res://addons/godot_ai_animation/spec/spec_builder.
 const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
 
 const InspectHandler := preload("res://addons/godot_ai_animation/handlers/inspect.gd")
+const MotionHandler := preload("res://addons/godot_ai_animation/handlers/motion.gd")
+
+const DUMMY := "res://models/human_dummy/HumanCharacterDummy_F.fbx"
+const PROFILE_NAME := "inspect_suite_profile"
+const PROFILE_PATH := "res://animation_toolkit/rig_profiles/inspect_suite_profile.json"
 
 ## Tests for the animation_inspect tool (describe/timeline/audit/compare/stats/
 ## dry_run/help).
@@ -31,7 +36,8 @@ func suite_setup(ctx: Dictionary) -> void:
 
 
 func suite_teardown() -> void:
-	pass
+	if FileAccess.file_exists(PROFILE_PATH):
+		DirAccess.remove_absolute(PROFILE_PATH)
 
 
 # --- helpers ---------------------------------------------------------------
@@ -66,6 +72,53 @@ func _add_sibling(node: Node, sibling_name: String) -> Node:
 	scene_root.add_child(node)
 	node.owner = scene_root
 	return node
+
+
+func _find_of_type(node: Node, type_name: String) -> Node:
+	if node.is_class(type_name):
+		return node
+	for child in node.get_children():
+		var found := _find_of_type(child, type_name)
+		if found != null:
+			return found
+	return null
+
+
+func _assign_owners(node: Node, owner: Node) -> void:
+	for child in node.get_children():
+		child.owner = owner
+		_assign_owners(child, owner)
+
+
+## The committed human dummy, added under the edited scene root.
+func _rig(prefix: String) -> Dictionary:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		return {"error": "no scene"}
+	if not ResourceLoader.exists(DUMMY):
+		return {"error": "the human dummy asset is missing"}
+	var packed = load(DUMMY)
+	var root: Node = packed.instantiate()
+	root.name = prefix + "Dummy"
+	scene_root.add_child(root)
+	_assign_owners(root, scene_root)
+	var skeleton := _find_of_type(root, "Skeleton3D") as Skeleton3D
+	var player := _find_of_type(root, "AnimationPlayer") as AnimationPlayer
+	if skeleton == null or player == null:
+		_remove_node("/" + scene_root.name + "/" + str(root.name))
+		return {"error": "the dummy has no skeleton/player"}
+	return {
+		"root_path": "/" + scene_root.name + "/" + str(root.name),
+		"skeleton_path": "/" + scene_root.name + "/" + str(scene_root.get_path_to(skeleton)),
+		"player_path": "/" + scene_root.name + "/" + str(scene_root.get_path_to(player)),
+		"skeleton": skeleton,
+		"player": player,
+	}
+
+
+func _teardown_rig(rig: Dictionary) -> void:
+	if rig.has("root_path"):
+		_remove_node(rig.root_path)
 
 
 func _add_clip(player_path: String, clip_name: String, spec: Dictionary) -> void:
@@ -460,13 +513,111 @@ func test_motion_report_metrics_and_health() -> void:
 	_teardown(fixture)
 
 
+# --- rig_profile / sample --------------------------------------------------
+
+func test_rig_profile_reports_roles_and_capabilities() -> void:
+	var rig := _rig("Profile")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({"op": "rig_profile", "skeleton_path": rig.skeleton_path}, null)
+	assert_true(result.has("data"), "rig_profile: %s" % str(result))
+	assert_eq(str(result.data.roles.hips), "B-hips", "hips is detected")
+	assert_true(not str(result.data.roles.get("thigh_l", "")).is_empty(), "the left thigh is detected")
+	assert_true(not str(result.data.roles.get("foot_r", "")).is_empty(), "the right foot is detected")
+	assert_true(bool(result.data.capabilities.walk_cycle), "the dummy can walk")
+	assert_true(bool(result.data.capabilities.idle_cycle), "the dummy can idle")
+	assert_true((result.data.missing.locomotion as Array).is_empty(), "no locomotion role is missing")
+	assert_true(float(result.data.limbs.leg_length) > 0.5, "leg length is measured")
+	assert_true((result.data.suggested_ops as Array).size() > 0, "next ops are suggested")
+	assert_true(["T", "A", "arms_down"].has(str(result.data.pose.pose)),
+		"the rest pose is classified (%s)" % str(result.data.pose.pose))
+	_teardown_rig(rig)
+
+
+func test_rig_profile_saves_and_is_reused_by_motion() -> void:
+	var rig := _rig("ProfileSave")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var saved := _handler.run({
+		"op": "rig_profile", "skeleton_path": rig.skeleton_path,
+		"save": true, "name": PROFILE_NAME, "overwrite": true,
+	}, null)
+	assert_true(saved.has("data"), "rig_profile save: %s" % str(saved))
+	assert_eq(str(saved.data.saved), PROFILE_PATH, "the profile file is written")
+	assert_true(FileAccess.file_exists(PROFILE_PATH), "the profile exists on disk")
+	var loaded := _handler.run({
+		"op": "rig_profile", "skeleton_path": rig.skeleton_path, "profile": PROFILE_NAME,
+	}, null)
+	assert_true(loaded.has("data"), "rig_profile with a profile: %s" % str(loaded))
+	assert_true(not (loaded.data.profile_roles as Dictionary).is_empty(), "the profile roles load")
+	var motion := MotionHandler.new()
+	var walked := motion.run({
+		"op": "walk_cycle", "player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
+		"profile": PROFILE_NAME, "duration": 1.0, "loop_mode": "linear", "animation_name": "profiled_walk",
+	}, null)
+	assert_true(walked.has("data"), "walk_cycle with a profile: %s" % str(walked))
+	assert_true(not str(walked.data.roles.get("thigh_l", "")).is_empty(), "profile roles reach the motion op")
+	var bogus := motion.run({
+		"op": "walk_cycle", "player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
+		"profile": "no_such_profile", "duration": 1.0, "animation_name": "nope_walk",
+	}, null)
+	assert_is_error(bogus, ErrorCodes.INVALID_PARAMS)
+	assert_contains(bogus.error.message, "not found")
+	_teardown_rig(rig)
+
+
+func test_sample_returns_positions_feet_and_restores_pose() -> void:
+	var rig := _rig("Sample")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var motion := MotionHandler.new()
+	var walked := motion.run({
+		"op": "walk_cycle", "player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
+		"duration": 1.0, "loop_mode": "linear", "animation_name": "walk",
+	}, null)
+	if not walked.has("data"):
+		skip("walk_cycle failed: %s" % str(walked))
+		_teardown_rig(rig)
+		return
+	var skeleton: Skeleton3D = rig.skeleton
+	var thigh := skeleton.find_bone("B-thigh.L")
+	var before := skeleton.get_bone_pose_rotation(thigh)
+	var result := _handler.run({
+		"op": "sample", "player_path": rig.player_path, "animation_name": "walk",
+		"skeleton_path": rig.skeleton_path, "samples": 12, "include_rotation": true,
+	}, null)
+	assert_true(result.has("data"), "sample: %s" % str(result))
+	assert_eq(int(result.data.sample_count), 12, "every requested sample is returned")
+	var bones: Dictionary = result.data.bones
+	assert_true(bones.has("B-foot.L"), "the role bones are probed by default")
+	assert_eq((bones["B-foot.L"].positions as Array).size(), 12, "one position per sample")
+	assert_eq((bones["B-foot.L"].euler_degrees as Array).size(), 12, "rotations come with include_rotation")
+	var feet: Dictionary = result.data.feet
+	assert_true(feet.has("l") and feet.has("r"), "both feet are analysed")
+	assert_eq((feet.l.heights as Array).size(), 12, "foot heights are sampled")
+	assert_true(float(feet.l.min_height) < 0.5, "the planted foot reaches the ground")
+	assert_true((feet.l.contacts as Array).size() >= 1, "the walk has a contact window")
+	assert_true(skeleton.get_bone_pose_rotation(thigh).is_equal_approx(before), "the pose is restored")
+	var explicit := _handler.run({
+		"op": "sample", "player_path": rig.player_path, "animation_name": "walk",
+		"skeleton_path": rig.skeleton_path, "bones": ["B-hips", "B-nope"], "times": [0.0, 0.5],
+	}, null)
+	assert_true(explicit.has("data"), "sample with explicit times: %s" % str(explicit))
+	assert_eq(str((explicit.data.missing_bones as Array)[0]), "B-nope", "unknown bones are reported")
+	assert_eq((explicit.data.bones["B-hips"].positions as Array).size(), 2, "explicit times are honoured")
+	_teardown_rig(rig)
+
+
 func test_registry_matches_inspect_schema() -> void:
 	var info := OpRegistry.family(OpRegistry.FAMILY_INSPECT)
 	assert_false(info.is_empty(), "the inspect family is registered")
 	assert_false(bool(info.requires_writable), "inspect does not require a writable project")
 	assert_false(bool(info.undoable), "inspect never touches the undo stack")
 	var op_enum: Array = info.schema.properties.op.enum
-	assert_eq(op_enum.size(), 8, "the inspect schema lists every op")
+	assert_eq(op_enum.size(), 10, "the inspect schema lists every op")
 	for descriptor in info.ops:
 		assert_true(op_enum.has(descriptor.name), "%s is in the schema enum" % descriptor.name)
 		for param in descriptor.params:

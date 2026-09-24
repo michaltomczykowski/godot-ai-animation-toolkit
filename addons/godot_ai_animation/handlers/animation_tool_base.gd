@@ -47,6 +47,37 @@ func _resolve_player(player_path: String) -> Dictionary:
 	return {"player": player, "library": library}
 
 
+## Resolve the target skeleton: `skeleton_path` (scene-absolute or relative), or
+## the first Skeleton3D / Skeleton2D in the edited scene.
+func _resolve_skeleton(params: Dictionary) -> Dictionary:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		return ErrorCodes.make(ErrorCodes.EDITOR_NOT_READY, "No edited scene open")
+	var path := str(params.get("skeleton_path", ""))
+	var node: Node = null
+	if not path.is_empty():
+		node = ValueCodec.resolve_scene_path(path, scene_root)
+		if node == null:
+			return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND, ValueCodec.format_node_error(path, scene_root))
+	else:
+		for candidate in scene_root.find_children("*", "Skeleton3D", true, false):
+			node = candidate
+			break
+		if node == null:
+			for candidate in scene_root.find_children("*", "Skeleton2D", true, false):
+				node = candidate
+				break
+		if node == null:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"No skeleton found in the edited scene (pass skeleton_path)")
+	if node is Skeleton3D:
+		return {"node": node, "kind": "3d", "path": ValueCodec.from_node(node, scene_root)}
+	if node is Skeleton2D:
+		return {"node": node, "kind": "2d", "path": ValueCodec.from_node(node, scene_root)}
+	return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
+		"Node at %s is not a Skeleton3D or Skeleton2D (got %s)" % [path, node.get_class()])
+
+
 ## True when the player's default library has to be made local to the edited
 ## scene before clips can be added: the player sits inside a scene instance,
 ## so its nodes are saved as overrides of the source scene and the inherited
@@ -108,6 +139,28 @@ func _commit_animation_changes(
 ) -> void:
 	if _dry_run:
 		return
+	_create_scene_pinned_action(action_label)
+	var undo := ToolContext.undo_redo
+	_stage_animation_changes(undo, player, library, created_library, removed, added)
+	for entry in extra_props:
+		undo.add_do_property(entry.object, entry.property, entry.value)
+		undo.add_undo_property(entry.object, entry.property, entry.old)
+	undo.commit_action()
+
+
+## Stage clip add/remove calls on an already-open undo action, including the
+## scene-local library swap for players inside scene instances. Returns the
+## library the clips are actually written to (the local copy when relocalized).
+## Split out of `_commit_animation_changes` so ops that bundle clips with other
+## scene edits (`character_setup`) still get exactly one undo action.
+func _stage_animation_changes(
+	undo: Object,
+	player: AnimationPlayer,
+	library: AnimationLibrary,
+	created_library: bool,
+	removed: Dictionary,
+	added: Dictionary,
+) -> AnimationLibrary:
 	# A library inherited from an instanced scene is shared with the source
 	# scene, and mutating it in place never shows up in the parent scene's save
 	# diff — the added clips would be silently dropped on save. Swap in a
@@ -117,8 +170,6 @@ func _commit_animation_changes(
 	if relocalized:
 		target_library = library.duplicate(true) as AnimationLibrary
 		target_library.resource_local_to_scene = true
-	_create_scene_pinned_action(action_label)
-	var undo := ToolContext.undo_redo
 	# Same reason: overrides inside a scene instance are only serialized when
 	# that instance is editable, so turn Editable Children on for the levels
 	# between the player and the edited scene root as part of this action.
@@ -146,10 +197,7 @@ func _commit_animation_changes(
 	for clip_name in removed:
 		undo.add_undo_method(target_library, "add_animation", clip_name, removed[clip_name])
 		undo.add_do_reference(removed[clip_name])
-	for entry in extra_props:
-		undo.add_do_property(entry.object, entry.property, entry.value)
-		undo.add_undo_property(entry.object, entry.property, entry.old)
-	undo.commit_action()
+	return target_library
 
 
 ## Add-or-replace one clip in one action (the generator path).

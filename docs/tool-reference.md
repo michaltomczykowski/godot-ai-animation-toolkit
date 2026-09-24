@@ -192,7 +192,10 @@ directly, or through `custom_manage(op="invoke")`.
 | `audit` | Scene- or player-wide health check. Findings carry a `severity`, a `code` and a `fix` hint. |
 | `compare` | Diff two clips (same player by default): length, loop mode, added/removed tracks, changed key counts and max value delta. |
 | `stats` | Clip/track/key totals, track-type histogram, loop-mode breakdown, longest/shortest clip. |
-| `dry_run` | Runs any `animation_presets` / `animation_edit` op (`forward_op`) and reports what it *would* produce — nothing is committed. |
+| `motion_report` | Per-track motion quality: key density, peak speed/acceleration, loop-seam pops, quaternion hemisphere flips and constant tracks, each with a `fix` hint. |
+| `rig_profile` | Understand a rig without touching it: detected roles with ranked candidates, T/A pose, limb lengths and reach, facing/lateral/up axes, capabilities (walk/run/jump/turn/strafe/blink/IK/springs), missing roles, warnings and suggested next ops. `save=true` writes `res://animation_toolkit/rig_profiles/<name>.json`; rig and motion ops accept that file (or its name) as their `profile` param, so detection is never guessed twice. |
+| `sample` | FK probe: apply the clip to the skeleton in memory and report world positions (and optional euler rotations) of requested bones at N times, plus derived foot heights and ground-contact windows. The skeleton's pose is restored afterwards. |
+| `dry_run` | Runs any generator or edit op (`forward_op` from `animation_presets`, `animation_fx`, `animation_graph`, `animation_edit`, `animation_library`, `animation_rig`, `animation_motion`) and reports what it *would* produce — nothing is committed. |
 | `help` | The op index straight from the registry: names, summaries, params and examples. |
 
 ### Audit findings
@@ -216,6 +219,12 @@ directly, or through `custom_manage(op="invoke")`.
 {"op": "animation_inspect", "params": {"op": "describe", "player_path": "/Main/HUD"}}
 
 {"op": "animation_inspect", "params": {"op": "audit", "severity": "warning"}}
+
+{"op": "animation_inspect", "params": {"op": "rig_profile", "skeleton_path": "/Main/Rig/Skeleton3D",
+  "save": true, "name": "hero"}}
+
+{"op": "animation_inspect", "params": {"op": "sample", "player_path": "/Main/Rig/AnimationPlayer",
+  "animation_name": "walk", "skeleton_path": "/Main/Rig/Skeleton3D", "samples": 24}}
 
 {"op": "animation_inspect", "params": {"op": "dry_run", "tool": "animation_edit",
   "forward_op": "retime", "player_path": "/Main", "animation_name": "walk", "factor": 0.5}}
@@ -327,15 +336,15 @@ Notes:
 
 ## `animation_library`
 
-Reuse and interchange. Templates store a presets/fx call (its op and params) as
-a named recipe in a project file; clip specs are a typed JSON format for whole
-clips. File writes are **not** part of the undo stack (like the core's
+Reuse and interchange. Templates store a presets/fx/motion/rig call (its op and
+params) as a named recipe in a project file; clip specs are a typed JSON format
+for whole clips. File writes are **not** part of the undo stack (like the core's
 `scene_save`); clip creation through `template_apply` / `spec_apply` is one
 scene-pinned undo action.
 
 | op | What it does |
 | --- | --- |
-| `template_save` | Store `{tool, forward_op, ...params}` under a name in `res://animation_toolkit/library.json`. |
+| `template_save` | Store `{tool, forward_op, ...params}` under a name in `res://animation_toolkit/library.json`. `tool` is `animation_presets`, `animation_fx`, `animation_motion` or `animation_rig`. |
 | `template_apply` | Run the stored op again, with per-call overrides (`player_path`, `target_path`, `animation_name`, any op param). `dry_run` works. |
 | `template_list` | List templates with tool, op, description and params. |
 | `template_delete` | Remove a template. |
@@ -449,6 +458,11 @@ Notes:
   sagittal plane) so the ankles stay at their rest positions, and `punch`
   derives the character's facing direction from the feet (ankle to toe), so the
   punches follow the rig instead of an assumed +Z.
+- **Rig profiles.** Every recipe op takes `profile` (a name under
+  `res://animation_toolkit/rig_profiles/` or a `res://` path). Roles saved by
+  `animation_inspect rig_profile` are applied as if passed in `roles`; bones the
+  profile names that are missing on this skeleton are ignored so detection can
+  fill them in. Explicit `roles` still win over the profile.
 - **`bake_pose_sequence` side effects**: it plays the source clip on the player
   and stops it afterwards (unless it was already playing); nodes other than the
   skeleton that the source clip animates are left at the last sampled time; and
@@ -501,6 +515,7 @@ follow-through, and the result looks smooth at any playback rate.
 | `turn_cycle` | One-shot in-place pivot turn: anticipation, a stepping foot, stance feet held at their rest orientation, overshoot settle. `angle`, `direction`. Emits `anticipate` / `step` / `settle`. |
 | `walk_start` / `walk_stop` | Short blend in/out of a gait. The gait-facing end is sampled from the cycle at `phase`, so it matches frame-for-frame and can be concatenated or cross-faded. |
 | `cycle` | Generic entry point: `preset` = `walk` / `run` / `idle`, same params as the dedicated ops. |
+| `character_setup` | One call, one undo: builds `idle` + `walk` + `run` (plus `jump`/`turn_<dir>` when `include_jump`/`include_turn`), wires a locomotion blend space on speed — a jump one-shot layer when requested — creates the `AnimationTree`, sets the root-motion track on player and tree, and returns `speed_parameter`, `speed_values`, `jump_request_parameter` and a game-side `apply_snippet`. `speed`/`run_speed` become the blend positions; `overwrite` defaults to true so a re-run refreshes the set. |
 | `secondary_motion` | Bakes **offline spring bones** into an existing clip: each name in `bones` (hair, tail, cloth root — must be unkeyed in the clip) lags behind its animated parent with a damped angular spring (`stiffness` 1/s², `damping` 1/s, 120/12 = snappy hair), keyed as ordinary rotation tracks. Deterministic; no live modifier needed. |
 
 How motion is generated:
@@ -533,6 +548,14 @@ How motion is generated:
   `*_accumulator()` variants when the node itself rotates.
 - T-pose rigs are detected: the arms are lowered automatically so the swing has
   a real axis (an explicit `arm_down` always wins). A-pose rigs are untouched.
+- **Rig profiles.** Every cycle op takes `profile` (a name under
+  `res://animation_toolkit/rig_profiles/` or a `res://` path); the roles saved
+  by `animation_inspect rig_profile` are reused, explicit `roles` still win, and
+  profile bones missing on this skeleton are ignored so detection fills them in.
+- **`character_setup`** returns a snippet that feeds `velocity.length()` into
+  `speed_parameter` each physics frame; the tree is created **inactive** by
+  default like the graph ops (`active=true` to enable it), and root motion is
+  wired on both the player and the tree.
 
 ### Examples
 
@@ -540,6 +563,10 @@ How motion is generated:
 {"op": "animation_motion", "params": {"op": "walk_cycle",
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
   "animation_name": "walk", "duration": 1.0, "loop_mode": "linear"}}
+
+{"op": "animation_motion", "params": {"op": "character_setup",
+  "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
+  "speed": 1.4, "run_speed": 4.0, "include_jump": true}}
 
 {"op": "animation_motion", "params": {"op": "run_cycle",
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",

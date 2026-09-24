@@ -19,6 +19,7 @@ func _init() -> void:
 	_check_blend_space_2d()
 	_check_blend_tree()
 	_check_blend_tree_validation()
+	_check_wrap_one_shot()
 	_check_dump()
 	_check_animations_and_issues()
 	if _failures == 0:
@@ -37,6 +38,10 @@ func _expect(condition: bool, message: String) -> void:
 
 func _expect_approx(actual: float, expected: float, message: String) -> void:
 	_expect(absf(actual - expected) < 0.0001, "%s (expected %s, got %s)" % [message, expected, actual])
+
+
+func _expect_eq(actual: Variant, expected: Variant, message: String) -> void:
+	_expect(actual == expected, "%s (expected %s, got %s)" % [message, str(expected), str(actual)])
 
 
 func _expect_error(result: Dictionary, message: String) -> void:
@@ -247,6 +252,43 @@ func _check_blend_tree_validation() -> void:
 		"inputs": [{"type": "animation", "animation": "jump"}],
 	})
 	_expect(bad_mix.has("error"), "invalid mix modes are rejected")
+
+
+func _check_wrap_one_shot() -> void:
+	var space := GraphBuilders.blend_space({
+		"dimensions": 1,
+		"points": [
+			{"animation": "idle", "position": 0.0},
+			{"animation": "walk", "position": 1.4},
+			{"animation": "run", "position": 4.0},
+		],
+		"min": 0.0, "max": 4.0, "sync": true,
+	})
+	_expect(not space.has("error"), "the base blend space builds")
+	var wrapped := GraphBuilders.wrap_one_shot(space.root, "jump", 0.1, 0.25)
+	_expect(not wrapped.has("error"), "wrap_one_shot builds")
+	var tree: AnimationNodeBlendTree = wrapped.root
+	_expect(tree is AnimationNodeBlendTree, "the wrapped root is a blend tree")
+	for node_name in ["Base", "OneShot", "Shot", "Blend2", "output"]:
+		_expect(tree.has_node(StringName(node_name)), "'%s' node exists" % node_name)
+	_expect(tree.get_node(StringName("Base")) is AnimationNodeBlendSpace1D,
+		"the base root is preserved as the Base node")
+	var shot: AnimationNodeOneShot = tree.get_node(StringName("OneShot"))
+	_expect_approx(shot.fadein_time, 0.1, "fadein is applied")
+	_expect_approx(shot.fadeout_time, 0.25, "fadeout is applied")
+	_expect(shot.mix_mode == AnimationNodeOneShot.MIX_MODE_BLEND, "blend is the default mix mode")
+	var clip: AnimationNodeAnimation = tree.get_node(StringName("Shot"))
+	_expect_eq(str(clip.animation), "jump", "the one-shot clip is assigned")
+	_expect((GraphBuilders.animations_in(tree) as Array).has("jump"),
+		"the one-shot clip is discoverable")
+	var add_shot := GraphBuilders.wrap_one_shot(space.root, "lean", 0.1, 0.2, "add")
+	_expect(not add_shot.has("error"), "add mode builds")
+	_expect((add_shot.root.get_node(StringName("OneShot")) as AnimationNodeOneShot).mix_mode \
+		== AnimationNodeOneShot.MIX_MODE_ADD, "add mode is applied")
+	_expect_error(GraphBuilders.wrap_one_shot(null, "jump"), "a base root is required")
+	_expect_error(GraphBuilders.wrap_one_shot(space.root, ""), "an animation name is required")
+	_expect_error(GraphBuilders.wrap_one_shot(space.root, "jump", 0.1, 0.2, "wobble"),
+		"unknown mix modes are rejected")
 
 
 func _check_dump() -> void:

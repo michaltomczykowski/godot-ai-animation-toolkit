@@ -13,7 +13,7 @@ const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registr
 const MotionSpecs := preload("res://addons/godot_ai_animation/spec/motion_specs.gd")
 const MotionDrivers := preload("res://addons/godot_ai_animation/spec/motion_drivers.gd")
 const SpecIO := preload("res://addons/godot_ai_animation/spec/spec_io.gd")
-const SpecModifiers := preload("res://addons/godot_ai_animation/spec/spec_modifiers.gd")
+const GraphBuilders := preload("res://addons/godot_ai_animation/spec/graph_builders.gd")
 
 const _CYCLE_KINDS := {
 	"walk_cycle": "walk",
@@ -62,6 +62,8 @@ func _dispatch(params: Dictionary) -> Dictionary:
 			return _run_cycle(params, "idle")
 		"cycle":
 			return _run_cycle(params, str(params.get("preset", "walk")))
+		"character_setup":
+			return motion_character_setup(params)
 		"jump":
 			return _run_cycle(params, "jump")
 		"turn_cycle":
@@ -81,6 +83,52 @@ func _dispatch(params: Dictionary) -> Dictionary:
 # --- cycle ops --------------------------------------------------------------
 
 func _run_cycle(params: Dictionary, kind: String) -> Dictionary:
+	var prepared := _prepare_cycle(params, kind)
+	if prepared.has("error"):
+		return prepared
+	# Root motion: wire the player's root_motion_track inside the same action so
+	# the clip actually drives the character.
+	var extra_props: Array = []
+	var root_motion_track := ""
+	if prepared.rooted and bool(params.get("set_root_motion", true)):
+		var player_resolved := _resolve_player(str(params.get("player_path", "")))
+		if not player_resolved.has("error"):
+			var root_node := ValueCodec.player_root_node(player_resolved.player)
+			if root_node != null:
+				root_motion_track = "%s:%s" % [str(root_node.get_path_to(prepared.resolved.node)), str(prepared.ctx.hips)]
+				extra_props.append({
+					"object": player_resolved.player,
+					"property": "root_motion_track",
+					"value": NodePath(root_motion_track),
+					"old": player_resolved.player.root_motion_track,
+				})
+	var committed := _commit_procedural_clip(params, prepared.resolved, prepared.anim_name,
+		prepared.length, prepared.loop_mode, prepared.keys, prepared.markers, extra_props)
+	if committed.has("error"):
+		return committed
+	committed.data["style"] = prepared.style
+	committed.data["samples"] = prepared.rate
+	committed.data["roles"] = prepared.ctx.roles
+	committed.data["root_motion"] = bool(prepared.ctx.get("root_motion", false))
+	committed.data["root_motion_track"] = root_motion_track
+	committed.data["speed"] = float(prepared.meta.get("speed",
+		_implied_speed(kind, prepared.config, prepared.ctx, prepared.length)))
+	for key in prepared.meta:
+		if key != "warnings":
+			committed.data[key] = prepared.meta[key]
+	if prepared.meta.has("warnings") and not (prepared.meta.get("warnings") as Array).is_empty():
+		committed.data["warnings"] = prepared.meta.get("warnings")
+	committed.data["markers"] = prepared.markers.size()
+	return committed
+
+
+## Compute everything a cycle needs before committing: config, context, keys,
+## markers and metadata. No scene mutation, so `character_setup` can build
+## several cycles and commit them in one undo action.
+##
+## Returns `{resolved, ctx, config, keys, markers, meta, length, rate, loop_mode,
+## style, anim_name, rooted}` or an error dict.
+func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 	if not _CYCLE_KINDS.values().has(kind):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 			"Invalid preset '%s'. Valid: walk, run, idle, jump, turn, strafe" % kind)
@@ -156,43 +204,21 @@ func _run_cycle(params: Dictionary, kind: String) -> Dictionary:
 	if keys.is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"No bones could be keyed - check the skeleton's bone roles")
-	var markers: Array = result.get("markers", [])
-	var meta: Dictionary = result.get("meta", {})
-	# Root motion: wire the player's root_motion_track inside the same action so
-	# the clip actually drives the character.
-	var extra_props: Array = []
-	var root_motion_track := ""
-	var rooted := bool(built.ctx.get("root_motion", false)) and not str(built.ctx.get("hips", "")).is_empty()
-	if rooted and bool(params.get("set_root_motion", true)):
-		var player_resolved := _resolve_player(str(params.get("player_path", "")))
-		if not player_resolved.has("error"):
-			var root_node := ValueCodec.player_root_node(player_resolved.player)
-			if root_node != null:
-				root_motion_track = "%s:%s" % [str(root_node.get_path_to(built.skeleton)), str(built.ctx.hips)]
-				extra_props.append({
-					"object": player_resolved.player,
-					"property": "root_motion_track",
-					"value": NodePath(root_motion_track),
-					"old": player_resolved.player.root_motion_track,
-				})
-	var anim_name := str(params.get("animation_name", kind))
-	var committed := _commit_procedural_clip(params, built.resolved, anim_name, length,
-		int(built.loop_mode), keys, markers, extra_props)
-	if committed.has("error"):
-		return committed
-	committed.data["style"] = style
-	committed.data["samples"] = rate
-	committed.data["roles"] = built.ctx.roles
-	committed.data["root_motion"] = bool(built.ctx.get("root_motion", false))
-	committed.data["root_motion_track"] = root_motion_track
-	committed.data["speed"] = float(meta.get("speed", _implied_speed(kind, config, built.ctx, length)))
-	for key in meta:
-		if key != "warnings":
-			committed.data[key] = meta[key]
-	if meta.has("warnings") and not (meta.get("warnings") as Array).is_empty():
-		committed.data["warnings"] = meta.get("warnings")
-	committed.data["markers"] = markers.size()
-	return committed
+	return {
+		"resolved": built.resolved,
+		"ctx": ctx,
+		"config": config,
+		"keys": keys,
+		"markers": result.get("markers", []),
+		"meta": result.get("meta", {}),
+		"length": length,
+		"rate": rate,
+		"loop_mode": int(built.loop_mode),
+		"style": style,
+		"kind": kind,
+		"anim_name": str(params.get("animation_name", kind)),
+		"rooted": bool(built.ctx.get("root_motion", false)) and not str(built.ctx.get("hips", "")).is_empty(),
+	}
 
 
 ## Ground speed a gaits represent, in metres per second (0 for everything else).
@@ -203,6 +229,286 @@ static func _implied_speed(kind: String, config: Dictionary, ctx: Dictionary, le
 	var span := 2.0 * (float(leg.upper) + float(leg.lower)) * sin(deg_to_rad(float(config.stride)))
 	var stance := clampf(float(config.stance), 0.2, 0.8)
 	return span / (stance * length)
+
+
+# --- character setup --------------------------------------------------------
+
+## One call, one undo: build idle + walk + run (optionally jump/turn), wire the
+## locomotion AnimationTree and set the root-motion track. The clip speeds become
+## the blend-space positions, so a game can feed `velocity.length()` straight
+## into the returned `speed_parameter`.
+func motion_character_setup(params: Dictionary) -> Dictionary:
+	var context_error := _context_error()
+	if not context_error.is_empty():
+		return context_error
+	var player_path := str(params.get("player_path", ""))
+	if player_path.is_empty():
+		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM, "character_setup needs 'player_path'")
+	var resolved_player := _resolve_player(player_path)
+	if resolved_player.has("error"):
+		return resolved_player
+	var player: AnimationPlayer = resolved_player.player
+	var player_root := ValueCodec.player_root_node(player)
+	if player_root == null:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "The AnimationPlayer has no resolvable root_node")
+	var walk_speed := maxf(float(params.get("speed", 1.4)), 0.0)
+	var run_speed := maxf(float(params.get("run_speed", 4.0)), 0.0)
+	if walk_speed <= 0.0 or run_speed <= walk_speed:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"character_setup needs 0 < speed < run_speed (got speed=%.3f, run_speed=%.3f)" % [walk_speed, run_speed])
+	var overwrite := bool(params.get("overwrite", true))
+	var root_motion := bool(params.get("root_motion", true))
+	var include_jump := bool(params.get("include_jump", false))
+	var include_turn := bool(params.get("include_turn", false))
+	var direction := str(params.get("direction", "left"))
+	if direction != "left" and direction != "right":
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'direction' must be 'left' or 'right'")
+	var plans: Array = [
+		{"kind": "idle", "name": "idle", "args": {
+			"duration": float(params.get("idle_duration", 3.0)),
+			"loop_mode": "linear", "root_motion": false,
+		}},
+		{"kind": "walk", "name": "walk", "args": {
+			"duration": float(params.get("duration", 1.0)), "speed": walk_speed,
+			"loop_mode": "linear", "root_motion": root_motion,
+		}},
+		{"kind": "run", "name": "run", "args": {
+			"duration": float(params.get("run_duration", 0.6)), "speed": run_speed,
+			"loop_mode": "linear", "root_motion": root_motion,
+		}},
+	]
+	if include_jump:
+		plans.append({"kind": "jump", "name": "jump", "args": {
+			"duration": float(params.get("jump_duration", 1.2)),
+			"height": float(params.get("height", 0.5)),
+			"crouch": float(params.get("crouch", 0.24)),
+			"distance": float(params.get("distance", 0.0)),
+			"loop_mode": "none", "root_motion": false,
+		}})
+	if include_turn:
+		plans.append({"kind": "turn", "name": "turn_" + direction, "args": {
+			"duration": float(params.get("turn_duration", 0.7)),
+			"angle": float(params.get("angle", 90.0)),
+			"direction": direction,
+			"loop_mode": "none", "root_motion": false,
+		}})
+	var common := {
+		"player_path": player_path,
+		"skeleton_path": str(params.get("skeleton_path", "")),
+		"roles": params.get("roles", {}),
+		"profile": params.get("profile", null),
+		"style": str(params.get("style", "default")),
+		"samples": float(params.get("samples", 24.0)),
+		"set_root_motion": false,
+		"dry_run": _dry_run,
+	}
+	var prepared_list: Array = []
+	for plan in plans:
+		var forwarded: Dictionary = common.duplicate(true)
+		for key in (plan.args as Dictionary):
+			forwarded[key] = plan.args[key]
+		var prepared := _prepare_cycle(forwarded, str(plan.kind))
+		if prepared.has("error"):
+			return prepared
+		prepared["name"] = str(plan.name)
+		prepared_list.append(prepared)
+	var library: AnimationLibrary = resolved_player.library
+	var created_library := false
+	if library == null:
+		library = AnimationLibrary.new()
+		created_library = true
+	var added := {}
+	var removed := {}
+	var clips := {}
+	var clips_by_kind := {}
+	for prepared in prepared_list:
+		var clip_name := str(prepared.name)
+		clips_by_kind[str(prepared.kind)] = clip_name
+		var existing := _existing_animation(library, clip_name, overwrite)
+		if existing.has("error"):
+			return existing.error
+		if existing.old_anim != null:
+			removed[clip_name] = existing.old_anim
+		var built := _build_procedural_animation({"player_path": player_path}, prepared.resolved,
+			clip_name, prepared.length, prepared.loop_mode, prepared.keys, prepared.markers)
+		if built.has("error"):
+			return built
+		added[clip_name] = built.anim
+		var clip_warnings: Array = (prepared.meta.get("warnings", []) as Array).duplicate()
+		var speed := 0.0
+		if str(prepared.kind) == "walk" or str(prepared.kind) == "run" or str(prepared.kind) == "strafe":
+			speed = float(prepared.meta.get("speed",
+				_implied_speed(str(prepared.kind), prepared.config, prepared.ctx, prepared.length)))
+		clips[clip_name] = {
+			"kind": str(prepared.kind),
+			"length": prepared.length,
+			"loop_mode": ValueCodec.loop_mode_to_string(prepared.loop_mode),
+			"track_count": (built.spec.tracks as Array).size(),
+			"key_count": ClipSpec.total_key_count(built.spec),
+			"marker_count": (prepared.markers as Array).size(),
+			"speed": speed,
+			"warnings": clip_warnings,
+		}
+	# The locomotion tree: a 1D blend space on speed (idle at 0, walk and run at
+	# their solved speeds), optionally under a jump one-shot layer.
+	var built_space := GraphBuilders.blend_space({
+		"dimensions": 1,
+		"points": [
+			{"animation": str(clips_by_kind.idle), "position": 0.0, "name": "idle"},
+			{"animation": str(clips_by_kind.walk), "position": walk_speed, "name": "walk"},
+			{"animation": str(clips_by_kind.run), "position": run_speed, "name": "run"},
+		],
+		"min": 0.0, "max": run_speed, "snap": 0.01, "sync": true,
+	})
+	if built_space.has("error"):
+		return built_space
+	var tree_root: AnimationNode = built_space.root
+	var speed_parameter := "parameters/blend_position"
+	var jump_request := ""
+	if include_jump:
+		var wrapped := GraphBuilders.wrap_one_shot(tree_root, "jump",
+			float(params.get("jump_fadein", 0.1)), float(params.get("jump_fadeout", 0.2)))
+		if wrapped.has("error"):
+			return wrapped
+		tree_root = wrapped.root
+		speed_parameter = "parameters/Base/blend_position"
+		jump_request = "parameters/OneShot/request"
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var tree_path := str(params.get("tree_path", ""))
+	var tree: AnimationTree = null
+	var tree_parent: Node = null
+	var created_tree := false
+	if not tree_path.is_empty():
+		var node := ValueCodec.resolve_scene_path(tree_path, scene_root)
+		if node != null:
+			if not node is AnimationTree:
+				return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
+					"Node at %s is not an AnimationTree (got %s)" % [tree_path, node.get_class()])
+			tree = node
+		else:
+			var parent := ValueCodec.resolve_scene_path(tree_path.get_base_dir(), scene_root)
+			if parent == null:
+				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
+					"Cannot create an AnimationTree at %s: parent '%s' not found" % [tree_path, tree_path.get_base_dir()])
+			tree = AnimationTree.new()
+			tree.name = tree_path.get_file()
+			tree_parent = parent
+			created_tree = true
+	else:
+		for candidate in scene_root.find_children("*", "AnimationTree", true, false):
+			var existing_tree := candidate as AnimationTree
+			if existing_tree.get_node_or_null(existing_tree.anim_player) == player:
+				tree = existing_tree
+				break
+		if tree == null:
+			tree = AnimationTree.new()
+			tree.name = "AnimationTree"
+			tree_parent = player.get_parent() if player.get_parent() != null else scene_root
+			created_tree = true
+	var root_motion_track := ""
+	if root_motion and not str(prepared_list[0].ctx.get("hips", "")).is_empty():
+		root_motion_track = "%s:%s" % [str(player_root.get_path_to(prepared_list[0].resolved.node)), str(prepared_list[0].ctx.hips)]
+	var want_active := bool(params.get("active", false))
+	var old_root: AnimationRootNode = tree.tree_root if not created_tree else null
+	var old_anim_player := tree.anim_player
+	var old_active := tree.active
+	var old_tree_root_motion := tree.root_motion_track
+	var old_player_root_motion := player.root_motion_track
+	var wanted_player := _tree_anim_player_path(tree, player, tree_parent, created_tree)
+	if not _dry_run:
+		_create_scene_pinned_action("MCP: Character setup")
+		var undo := ToolContext.undo_redo
+		_stage_animation_changes(undo, player, library, created_library, removed, added)
+		if created_tree:
+			undo.add_do_method(tree_parent, "add_child", tree, true)
+			undo.add_undo_method(tree_parent, "remove_child", tree)
+			undo.add_do_method(tree, "set_owner", scene_root)
+			undo.add_do_reference(tree)
+		undo.add_do_property(tree, "tree_root", tree_root)
+		undo.add_undo_property(tree, "tree_root", old_root)
+		undo.add_do_reference(tree_root)
+		if tree.anim_player != wanted_player:
+			undo.add_do_property(tree, "anim_player", wanted_player)
+			undo.add_undo_property(tree, "anim_player", old_anim_player)
+		if tree.active != want_active:
+			undo.add_do_property(tree, "active", want_active)
+			undo.add_undo_property(tree, "active", old_active)
+		if not root_motion_track.is_empty():
+			undo.add_do_property(player, "root_motion_track", NodePath(root_motion_track))
+			undo.add_undo_property(player, "root_motion_track", old_player_root_motion)
+			undo.add_do_property(tree, "root_motion_track", NodePath(root_motion_track))
+			undo.add_undo_property(tree, "root_motion_track", old_tree_root_motion)
+		undo.commit_action()
+	var tree_label := ""
+	if created_tree:
+		tree_label = "%s/%s" % [ValueCodec.from_node(tree_parent, scene_root), str(tree.name)]
+	else:
+		tree_label = ValueCodec.from_node(tree, scene_root)
+	var parameter_paths: Array = []
+	if not _dry_run and tree.get_parent() != null:
+		for entry in tree.get_property_list():
+			var property_name := str(entry.get("name", ""))
+			if property_name.begins_with("parameters/"):
+				parameter_paths.append(property_name)
+		parameter_paths.sort()
+		speed_parameter = _first_parameter(parameter_paths, "/blend_position", speed_parameter)
+		if include_jump:
+			jump_request = _first_parameter(parameter_paths, "/request", jump_request)
+	var warnings: Array = []
+	for clip_name in clips:
+		for warning in (clips[clip_name].warnings as Array):
+			warnings.append("%s: %s" % [clip_name, str(warning)])
+	return {"data": {
+		"player_path": player_path,
+		"skeleton_path": str(prepared_list[0].resolved.path),
+		"tree_path": tree_label,
+		"tree_created": created_tree,
+		"tree_active": want_active,
+		"clips": clips,
+		"root_motion": root_motion,
+		"root_motion_track": root_motion_track,
+		"speed_parameter": speed_parameter,
+		"speed_values": {"idle": 0.0, "walk": walk_speed, "run": run_speed},
+		"jump_request_parameter": jump_request,
+		"parameters": parameter_paths,
+		"apply_snippet": _apply_snippet(tree_label, speed_parameter, jump_request),
+		"warnings": warnings,
+		"undoable": true,
+		"note": "inactive tree by default; pass active=true (or enable the tree) when the scene is ready",
+	}}
+
+
+## Path from the (possibly detached) tree to the player.
+func _tree_anim_player_path(tree: AnimationTree, player: AnimationPlayer, tree_parent: Node, created: bool) -> NodePath:
+	if not created and tree.get_parent() != null:
+		return tree.get_path_to(player)
+	if tree_parent == null:
+		return NodePath()
+	var relative := str(tree_parent.get_path_to(player))
+	if relative.is_empty():
+		return NodePath("..")
+	return NodePath("../" + relative)
+
+
+static func _first_parameter(paths: Array, suffix: String, fallback: String) -> String:
+	for path in paths:
+		if str(path).ends_with(suffix):
+			return str(path)
+	return fallback
+
+
+static func _apply_snippet(tree_label: String, speed_parameter: String, jump_request: String) -> String:
+	var lines: Array = [
+		"@onready var tree: AnimationTree = get_node(\"%s\")" % tree_label,
+		"",
+		"# each physics frame:",
+		"tree.set(\"%s\", velocity.length())" % speed_parameter,
+	]
+	if not jump_request.is_empty():
+		lines.append("")
+		lines.append("if Input.is_action_just_pressed(\"jump\"):")
+		lines.append("\ttree.set(\"%s\", AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)" % jump_request)
+	return "\n".join(lines)
 
 
 # --- secondary motion -------------------------------------------------------
@@ -338,29 +644,6 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 	}}
 
 
-## Apply a clip spec to the skeleton at `time` (rest + sampled key values), so
-## the spring pass can read animated parent poses without an AnimationPlayer.
-func _apply_spec_at(skeleton: Skeleton3D, spec: Dictionary, time: float) -> void:
-	skeleton.reset_bone_poses()
-	for track in spec.get("tracks", []):
-		var type := int(track.get("type", -1))
-		if type != Animation.TYPE_ROTATION_3D and type != Animation.TYPE_POSITION_3D and type != Animation.TYPE_SCALE_3D:
-			continue
-		var index := skeleton.find_bone(ClipSpec.property_of(str(track.get("path", ""))))
-		if index < 0:
-			continue
-		var value = SpecModifiers.sample_track(track, time)
-		if value == null:
-			continue
-		match type:
-			Animation.TYPE_ROTATION_3D:
-				skeleton.set_bone_pose_rotation(index, value)
-			Animation.TYPE_POSITION_3D:
-				skeleton.set_bone_pose_position(index, value)
-			Animation.TYPE_SCALE_3D:
-				skeleton.set_bone_pose_scale(index, value)
-
-
 # --- rig context ------------------------------------------------------------
 
 func _build_context(params: Dictionary, kind: String) -> Dictionary:
@@ -371,6 +654,8 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s needs a Skeleton3D (bone roles are matched by name)" % kind)
 	var skeleton: Skeleton3D = resolved.node
 	var roles: Dictionary = _resolve_roles(params, skeleton)
+	if roles.has("_error"):
+		return roles["_error"]
 	var required: Array = ["hips", "thigh_l", "thigh_r", "shin_l", "shin_r"]
 	if kind != "idle":
 		required.append_array(["foot_l", "foot_r"])

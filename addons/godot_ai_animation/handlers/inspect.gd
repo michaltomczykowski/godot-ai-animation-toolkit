@@ -1,5 +1,5 @@
 @tool
-extends "res://addons/godot_ai_animation/handlers/animation_tool_base.gd"
+extends "res://addons/godot_ai_animation/handlers/bone_animation.gd"
 
 ## Read-only inspection — the `animation_inspect` tool.
 ##
@@ -7,7 +7,6 @@ extends "res://addons/godot_ai_animation/handlers/animation_tool_base.gd"
 ## a project's animation state (and dry-run any generate/edit call) before
 ## touching it. Findings carry a `fix` hint naming the op that resolves them.
 
-const ClipSpec := preload("res://addons/godot_ai_animation/spec/clip_spec.gd")
 const SpecIO := preload("res://addons/godot_ai_animation/spec/spec_io.gd")
 const QualityModifiers := preload("res://addons/godot_ai_animation/spec/quality_modifiers.gd")
 const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
@@ -24,6 +23,11 @@ const _CONSTANT_TOLERANCE := 0.0001
 
 ## Godot clamps Animation.length to 0.001, so anything at or below that is empty.
 const _MIN_LENGTH := 0.0011
+
+## Default FK sample count and cap, and how many bones the default role set holds.
+const _SAMPLE_DEFAULT := 24
+const _SAMPLE_CAP := 240
+const _SAMPLE_MAX_BONES := 64
 
 
 ## Rollup entry registered with the Godot AI tool registry.
@@ -42,6 +46,10 @@ func run(params: Dictionary, _ctx) -> Dictionary:
 			return inspect_stats(params)
 		"motion_report":
 			return inspect_motion_report(params)
+		"rig_profile":
+			return inspect_rig_profile(params)
+		"sample":
+			return inspect_sample(params)
 		"dry_run":
 			return inspect_dry_run(params)
 		"help":
@@ -583,6 +591,395 @@ func inspect_motion_report(params: Dictionary) -> Dictionary:
 
 
 # ============================================================================
+# rig_profile
+# ============================================================================
+
+## Understand a rig without touching it: roles (with candidates), T/A pose,
+## limb lengths/reach, facing and lateral axes, capabilities and suggested next
+## ops. `save=true` writes a reusable profile that rig/motion ops accept through
+## their `profile` param, so detection is never guessed twice.
+func inspect_rig_profile(params: Dictionary) -> Dictionary:
+	var resolved := _resolve_skeleton(params)
+	if resolved.has("error"):
+		return resolved
+	var skeleton3d: Skeleton3D = resolved.node if resolved.kind == "3d" else null
+	var skeleton2d: Skeleton2D = resolved.node if resolved.kind == "2d" else null
+	var bone_names: Array = []
+	if skeleton3d != null:
+		for index in skeleton3d.get_bone_count():
+			bone_names.append(skeleton3d.get_bone_name(index))
+	else:
+		for index in skeleton2d.get_bone_count():
+			bone_names.append(str(skeleton2d.get_bone(index).name))
+	var detected := RigAnalysis.detect_roles(bone_names)
+	var roles: Dictionary = (detected.roles as Dictionary).duplicate()
+	var profile_roles := {}
+	if params.get("profile") != null:
+		var loaded_profile := _profile_roles(params.get("profile"), bone_names)
+		if loaded_profile.has("error"):
+			return loaded_profile.error
+		profile_roles = loaded_profile.roles
+		for role in profile_roles:
+			roles[str(role)] = str(profile_roles[role])
+	var explicit_roles := {}
+	var overrides = params.get("roles", {})
+	if overrides is Dictionary:
+		for role in overrides:
+			explicit_roles[str(role)] = str((overrides as Dictionary)[role])
+			roles[str(role)] = str((overrides as Dictionary)[role])
+	var pose := {"pose": "unknown", "arm_angle_degrees": 0.0, "per_side": {}}
+	var axes := {}
+	var limbs := {}
+	var warnings: Array = []
+	if skeleton3d != null:
+		pose = RigAnalysis.arm_pose(_arm_rest_directions(skeleton3d, roles))
+		axes = _rig_axes(skeleton3d, roles)
+		limbs = _limb_metrics(skeleton3d, roles)
+		var scale_factor := _skeleton_scale(skeleton3d)
+		if absf(scale_factor - 1.0) > 0.001:
+			warnings.append({"code": "scaled_skeleton", "severity": "warning",
+				"message": "the Skeleton3D (or a parent) is scaled by %.3f; IK and spring bones assume unit scale" % scale_factor})
+		var zero_bones: Array = limbs.get("zero_length_bones", [])
+		if not zero_bones.is_empty():
+			warnings.append({"code": "zero_length_bones", "severity": "warning",
+				"message": "%d bone(s) share their parent's origin (zero length): %s" % [zero_bones.size(), ", ".join(zero_bones.slice(0, 6))]})
+		if pose.pose == "T":
+			warnings.append({"code": "t_pose", "severity": "info",
+				"message": "the arms rest horizontally (T-pose); the motion cycles lower them by default - pass arm_down to tune"})
+		if not roles.has("arm_l") or not roles.has("arm_r"):
+			warnings.append({"code": "no_arms", "severity": "warning",
+				"message": "no upper-arm bones were detected, so arm swing is skipped"})
+	var capabilities := RigAnalysis.capabilities(roles, bone_names.size())
+	var missing := RigAnalysis.missing_roles(roles)
+	var saved := ""
+	if bool(params.get("save", false)):
+		var path := _profile_path(params, str(resolved.node.name))
+		if path.has("error"):
+			return path
+		var profile := {
+			"format": RigAnalysis.PROFILE_FORMAT,
+			"version": RigAnalysis.PROFILE_VERSION,
+			"name": str(path.name),
+			"skeleton": str(resolved.node.name),
+			"bone_count": bone_names.size(),
+			"roles": roles,
+			"missing": missing,
+			"pose": pose,
+			"axes": axes,
+			"limbs": limbs,
+			"capabilities": capabilities,
+		}
+		var written := _write_profile(str(path.path), profile, bool(params.get("overwrite", true)))
+		if written.has("error"):
+			return written
+		saved = str(path.path)
+	return {"data": {
+		"skeleton_path": str(resolved.path),
+		"kind": str(resolved.kind),
+		"bone_count": bone_names.size(),
+		"roles": roles,
+		"auto_roles": detected.roles,
+		"profile_roles": profile_roles,
+		"explicit_roles": explicit_roles,
+		"candidates": detected.candidates,
+		"unmatched_bones": detected.unmatched,
+		"missing": missing,
+		"pose": pose,
+		"axes": axes,
+		"limbs": limbs,
+		"capabilities": capabilities,
+		"warnings": warnings,
+		"suggested_ops": RigAnalysis.suggestions(roles, capabilities),
+		"saved": saved,
+		"undoable": false,
+	}}
+
+
+## Validate the profile file name and return `{path, name}`.
+func _profile_path(params: Dictionary, fallback_name: String) -> Dictionary:
+	var profile_name := str(params.get("name", "")).strip_edges()
+	if profile_name.is_empty():
+		profile_name = fallback_name.strip_edges()
+	if profile_name.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Cannot derive a profile name; pass 'name'")
+	if profile_name.contains("/") or profile_name.contains("\\") or profile_name.contains(":") or profile_name.contains("."):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"'name' must be a plain file name without separators or extension (got '%s')" % profile_name)
+	return {"path": "%s/%s.json" % [RigAnalysis.PROFILE_DIR, profile_name], "name": profile_name}
+
+
+func _write_profile(path: String, profile: Dictionary, overwrite: bool) -> Dictionary:
+	if not overwrite and FileAccess.file_exists(path):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"%s already exists. Pass overwrite=true to replace it." % path)
+	var directory := path.get_base_dir()
+	if not directory.is_empty() and not DirAccess.dir_exists_absolute(directory):
+		var made := DirAccess.make_dir_recursive_absolute(directory)
+		if made != OK:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"Cannot create %s (%s)" % [directory, error_string(made)])
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"Cannot write %s (%s)" % [path, error_string(FileAccess.get_open_error())])
+	file.store_string(JSON.stringify(profile, "  "))
+	file.close()
+	return {"ok": true}
+
+
+## Skeleton-space upper-arm rest direction per side (Godot bones point along +Y).
+func _arm_rest_directions(skeleton: Skeleton3D, roles: Dictionary) -> Dictionary:
+	var out := {}
+	for side in ["l", "r"]:
+		var arm := str(roles.get("arm_" + side, ""))
+		if arm.is_empty():
+			continue
+		var index := skeleton.find_bone(arm)
+		if index < 0:
+			continue
+		out[side] = (skeleton.get_bone_global_rest(index).basis * Vector3.UP).normalized()
+	return out
+
+
+## Facing (ankle -> toe), lateral (right thigh -> left) and up axes, in skeleton
+## space; the motion recipes derive their travel from the same vectors.
+func _rig_axes(skeleton: Skeleton3D, roles: Dictionary) -> Dictionary:
+	var forward := _forward_dir(skeleton, roles)
+	var lateral := Vector3.ZERO
+	var left := str(roles.get("thigh_l", ""))
+	var right := str(roles.get("thigh_r", ""))
+	if not left.is_empty() and not right.is_empty():
+		var left_index := skeleton.find_bone(left)
+		var right_index := skeleton.find_bone(right)
+		if left_index >= 0 and right_index >= 0:
+			lateral = skeleton.get_bone_global_rest(left_index).origin \
+				- skeleton.get_bone_global_rest(right_index).origin
+	lateral.y = 0.0
+	if lateral.length_squared() > 0.000001:
+		lateral = lateral.normalized()
+	else:
+		lateral = forward.cross(Vector3.UP).normalized()
+	return {
+		"forward": ValueCodec.serialize(forward),
+		"lateral": ValueCodec.serialize(lateral),
+		"up": ValueCodec.serialize(Vector3.UP),
+		"facing_source": "ankle_to_toe" if roles.has("foot_l") and roles.has("toe_l") else "default",
+	}
+
+
+## Limb segments, total lengths/reach and zero-length bones.
+func _limb_metrics(skeleton: Skeleton3D, roles: Dictionary) -> Dictionary:
+	var out := {"legs": {}, "arms": {}, "zero_length_bones": []}
+	var zero_bones: Array = out.zero_length_bones
+	for index in skeleton.get_bone_count():
+		var parent := skeleton.get_bone_parent(index)
+		if parent < 0:
+			continue
+		var origin := skeleton.get_bone_global_rest(index).origin
+		var parent_origin := skeleton.get_bone_global_rest(parent).origin
+		if origin.distance_to(parent_origin) < 0.0001:
+			zero_bones.append(skeleton.get_bone_name(index))
+	for side in ["l", "r"]:
+		var thigh := str(roles.get("thigh_" + side, ""))
+		var shin := str(roles.get("shin_" + side, ""))
+		var foot := str(roles.get("foot_" + side, ""))
+		if not thigh.is_empty() and not shin.is_empty():
+			var upper := _rest_distance(skeleton, thigh, shin)
+			var lower := _rest_distance(skeleton, shin, foot) if not foot.is_empty() else 0.0
+			out.legs[side] = {
+				"thigh": thigh, "shin": shin, "foot": foot,
+				"upper": _round(upper), "lower": _round(lower), "total": _round(upper + lower),
+			}
+		var arm := str(roles.get("arm_" + side, ""))
+		var forearm := str(roles.get("forearm_" + side, ""))
+		var hand := str(roles.get("hand_" + side, ""))
+		if not arm.is_empty():
+			var upper_arm := _rest_distance(skeleton, arm, forearm) if not forearm.is_empty() else 0.0
+			var lower_arm := _rest_distance(skeleton, forearm, hand) if not forearm.is_empty() and not hand.is_empty() else 0.0
+			out.arms[side] = {
+				"upper_arm": arm, "forearm": forearm, "hand": hand,
+				"upper": _round(upper_arm), "lower": _round(lower_arm), "total": _round(upper_arm + lower_arm),
+			}
+	if not out.legs.is_empty():
+		var leg_total := 0.0
+		for side in out.legs:
+			leg_total = maxf(leg_total, float(out.legs[side].total))
+		out["leg_length"] = _round(leg_total)
+		out["hip_height"] = 0.0
+		var hips := str(roles.get("hips", ""))
+		var hips_index := skeleton.find_bone(hips) if not hips.is_empty() else -1
+		if hips_index >= 0:
+			out["hip_height"] = _round(skeleton.get_bone_global_rest(hips_index).origin.y)
+	if not out.arms.is_empty():
+		var arm_total := 0.0
+		for side in out.arms:
+			arm_total = maxf(arm_total, float(out.arms[side].total))
+		out["arm_length"] = _round(arm_total)
+		out["reach"] = _round(arm_total)
+	return out
+
+
+static func _rest_distance(skeleton: Skeleton3D, from_bone: String, to_bone: String) -> float:
+	var from_index := skeleton.find_bone(from_bone)
+	var to_index := skeleton.find_bone(to_bone)
+	if from_index < 0 or to_index < 0:
+		return 0.0
+	return skeleton.get_bone_global_rest(from_index).origin.distance_to(
+		skeleton.get_bone_global_rest(to_index).origin)
+
+
+# ============================================================================
+# sample
+# ============================================================================
+
+## FK probe: apply the clip to the skeleton in memory and report world positions
+## (and optional euler rotations) of requested bones at N times - plus derived
+## foot heights and contact windows. The skeleton's pose is restored afterwards;
+## nothing is committed.
+func inspect_sample(params: Dictionary) -> Dictionary:
+	var loaded := _load_readable_clip(params)
+	if loaded.has("error"):
+		return loaded
+	var unsupported := SpecIO.unsupported_tracks(loaded.anim)
+	if not unsupported.is_empty():
+		return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
+			"Animation '%s' has tracks FK sampling cannot use: %s"
+			% [loaded.anim_name, SpecIO.describe_unsupported(loaded.anim)])
+	var resolved := _resolve_skeleton(params)
+	if resolved.has("error"):
+		return resolved
+	if resolved.kind != "3d":
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "sample probes a Skeleton3D (3D FK)")
+	var skeleton: Skeleton3D = resolved.node
+	var length: float = loaded.anim.length
+	var times: Array = []
+	if params.has("times"):
+		var given = params.get("times", [])
+		if not (given is Array) or (given as Array).is_empty():
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'times' must be a non-empty array of seconds")
+		times = RigAnalysis.explicit_times(given, length, _SAMPLE_CAP)
+	else:
+		times = RigAnalysis.sample_times(length, int(params.get("samples", _SAMPLE_DEFAULT)))
+	var roles: Dictionary = _resolve_roles(params, skeleton)
+	if roles.has("_error"):
+		return roles["_error"]
+	var requested := _requested_bones(params, skeleton, roles)
+	var bone_names: Array = requested.names
+	if bone_names.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"No requested bone exists on this skeleton. Bones: %s" % _bone_name_list(skeleton))
+	var include_rotation := bool(params.get("include_rotation", false))
+	var threshold := maxf(0.0, float(params.get("contact_threshold", 0.02)))
+	var spec := SpecIO.from_animation(loaded.anim)
+	var snapshot := _pose_snapshot(skeleton)
+	var bone_data := {}
+	for bone_name in bone_names:
+		var entry := {"positions": []}
+		if include_rotation:
+			entry["euler_degrees"] = []
+		bone_data[bone_name] = entry
+	var feet := {}
+	for side in ["l", "r"]:
+		var foot := str(roles.get("foot_" + side, ""))
+		if not foot.is_empty() and skeleton.find_bone(foot) >= 0:
+			feet[side] = {"bone": foot, "heights": []}
+	var skeleton_xform := skeleton.global_transform
+	for time in times:
+		_apply_spec_at(skeleton, spec, float(time))
+		for bone_name in bone_names:
+			var index := skeleton.find_bone(bone_name)
+			if index < 0:
+				continue
+			var global := skeleton_xform * skeleton.get_bone_global_pose(index)
+			bone_data[bone_name].positions.append(_vec_array(global.origin))
+			if include_rotation:
+				bone_data[bone_name].euler_degrees.append(_euler_degrees(global.basis))
+		for side in feet:
+			var foot_index := skeleton.find_bone(str(feet[side].bone))
+			if foot_index >= 0:
+				feet[side].heights.append(_round((skeleton_xform * skeleton.get_bone_global_pose(foot_index)).origin.y))
+	_pose_restore(skeleton, snapshot)
+	for side in feet:
+		var heights: Array = feet[side].heights
+		var lowest := INF
+		var highest := -INF
+		for height in heights:
+			lowest = minf(lowest, float(height))
+			highest = maxf(highest, float(height))
+		feet[side]["min_height"] = _round(lowest) if not heights.is_empty() else 0.0
+		feet[side]["height_range"] = _round(highest - lowest) if not heights.is_empty() else 0.0
+		feet[side]["contacts"] = RigAnalysis.contact_windows(times, heights, threshold)
+	return {"data": {
+		"player_path": str(loaded.player_path),
+		"animation_name": str(loaded.anim_name),
+		"skeleton_path": str(resolved.path),
+		"length": length,
+		"sample_count": times.size(),
+		"times": times,
+		"bones": bone_data,
+		"missing_bones": requested.missing,
+		"bones_truncated": requested.truncated,
+		"feet": feet,
+		"contact_threshold": threshold,
+		"undoable": false,
+	}}
+
+
+## Requested bones (`bones`, `["*"]` for every bone) or the detected role set.
+func _requested_bones(params: Dictionary, skeleton: Skeleton3D, roles: Dictionary) -> Dictionary:
+	var raw = params.get("bones", [])
+	var names: Array = []
+	var missing: Array = []
+	if raw is Array and not (raw as Array).is_empty():
+		for value in raw:
+			var bone_name := str(value)
+			if bone_name == "*":
+				names.clear()
+				for index in skeleton.get_bone_count():
+					names.append(skeleton.get_bone_name(index))
+				break
+			if skeleton.find_bone(bone_name) >= 0:
+				names.append(bone_name)
+			else:
+				missing.append(bone_name)
+	else:
+		var wanted: Array = [] + RigAnalysis.CORE_ROLES + ["foot_l", "foot_r"] + RigAnalysis.OPTIONAL_ROLES
+		for role in wanted:
+			var bone_name := str(roles.get(role, ""))
+			if not bone_name.is_empty() and not names.has(bone_name):
+				names.append(bone_name)
+	var truncated := names.size() > _SAMPLE_MAX_BONES
+	return {
+		"names": names.slice(0, _SAMPLE_MAX_BONES),
+		"missing": missing,
+		"truncated": truncated,
+	}
+
+
+func _bone_name_list(skeleton: Skeleton3D, limit := 24) -> String:
+	var names: Array = []
+	for index in mini(skeleton.get_bone_count(), limit):
+		names.append(skeleton.get_bone_name(index))
+	if skeleton.get_bone_count() > limit:
+		names.append("...")
+	return ", ".join(names) if not names.is_empty() else "(none)"
+
+
+static func _vec_array(value: Vector3) -> Array:
+	return [_round(value.x), _round(value.y), _round(value.z)]
+
+
+static func _euler_degrees(basis: Basis) -> Array:
+	var euler := basis.get_euler()
+	return [_round(rad_to_deg(euler.x), 2), _round(rad_to_deg(euler.y), 2), _round(rad_to_deg(euler.z), 2)]
+
+
+static func _round(value: float, digits := 4) -> float:
+	var factor := pow(10.0, digits)
+	return roundf(value * factor) / factor
+
+
+# ============================================================================
 # dry_run
 # ============================================================================
 
@@ -618,8 +1015,8 @@ func inspect_dry_run(params: Dictionary) -> Dictionary:
 		handler = MotionHandler.new()
 	else:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-			"dry_run supports %s, %s, %s, %s, %s and %s (inspect ops are already read-only)"
-			% [OpRegistry.FAMILY_PRESETS, OpRegistry.FAMILY_FX, OpRegistry.FAMILY_GRAPH, OpRegistry.FAMILY_EDIT, OpRegistry.FAMILY_RIG, OpRegistry.FAMILY_MOTION])
+			"dry_run supports %s, %s, %s, %s, %s, %s and %s (inspect ops are already read-only)"
+			% [OpRegistry.FAMILY_PRESETS, OpRegistry.FAMILY_FX, OpRegistry.FAMILY_GRAPH, OpRegistry.FAMILY_EDIT, OpRegistry.FAMILY_LIBRARY, OpRegistry.FAMILY_RIG, OpRegistry.FAMILY_MOTION])
 	var result: Dictionary = handler.run(forwarded, null)
 	if result.has("data"):
 		result.data["dry_run"] = true

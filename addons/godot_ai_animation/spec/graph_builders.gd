@@ -182,6 +182,44 @@ static func blend_space(spec: Dictionary) -> Dictionary:
 
 # --- blend tree ------------------------------------------------------------
 
+## Wrap an existing root (blend space, state machine, tree, clip) in a one-shot
+## layer: BlendTree(Base -> Blend2, OneShot -> Shot -> Blend2 -> output).
+## Nothing is committed here; the caller writes `root` to an AnimationTree.
+static func wrap_one_shot(
+	base_root: AnimationNode, animation: String, fadein := 0.1, fadeout := 0.2,
+	mix_mode := "blend", autorestart := false,
+) -> Dictionary:
+	if base_root == null:
+		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM, "wrap_one_shot needs a base root node")
+	if animation.is_empty():
+		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM, "wrap_one_shot needs an animation name")
+	var shot := AnimationNodeOneShot.new()
+	shot.fadein_time = fadein
+	shot.fadeout_time = fadeout
+	shot.autorestart = autorestart
+	if mix_mode == "add":
+		shot.mix_mode = AnimationNodeOneShot.MIX_MODE_ADD
+	elif mix_mode == "blend":
+		shot.mix_mode = AnimationNodeOneShot.MIX_MODE_BLEND
+	else:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Invalid mix_mode '%s'. Valid: blend, add" % mix_mode)
+	var clip := AnimationNodeAnimation.new()
+	clip.animation = StringName(animation)
+	var tree := AnimationNodeBlendTree.new()
+	tree.add_node(StringName("Base"), base_root, Vector2(0.0, 0.0))
+	tree.add_node(StringName("OneShot"), shot, Vector2(220.0, 0.0))
+	tree.add_node(StringName("Shot"), clip, Vector2(220.0, 140.0))
+	tree.connect_node(StringName("OneShot"), 0, StringName("Shot"))
+	var blend := AnimationNodeBlend2.new()
+	tree.add_node(StringName("Blend2"), blend, Vector2(440.0, 0.0))
+	tree.connect_node(StringName("Blend2"), 0, StringName("Base"))
+	tree.connect_node(StringName("Blend2"), 1, StringName("OneShot"))
+	if tree.has_node(StringName("output")):
+		tree.connect_node(StringName("output"), 0, StringName("Blend2"))
+	return {"root": tree, "node_count": tree.get_node_list().size(), "issues": _collect_issues(tree, [])}
+
+
 ## Build an AnimationNodeBlendTree from a recursive node spec. Nodes are added
 ## to the graph and wired with connect_node (the API Godot's editor uses).
 static func blend_tree(spec: Dictionary) -> Dictionary:

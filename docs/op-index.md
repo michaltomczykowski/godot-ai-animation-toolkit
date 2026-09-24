@@ -376,6 +376,8 @@ Handler: `res://addons/godot_ai_animation/handlers/inspect.gd`
 | `compare` | Diff two clips: length, loop mode, track paths, key counts and value deltas. | `player_path`, `animation_name`, `other_animation_name`, `other_player_path`, `tolerance`, `max_keys` |
 | `stats` | Clip/track/key totals, track-type histogram and loop-mode breakdown. | `player_path` |
 | `motion_report` | Per-track motion quality: key density, peak speed/acceleration, loop-seam pops, hemisphere flips, constant tracks - each with a fix hint. | `player_path`, `animation_name`, `max_tracks` |
+| `rig_profile` | Understand a rig: detected roles with candidates, T/A pose, limb lengths/reach, facing/lateral axes, capabilities, missing roles and suggested ops; save=true writes a reusable profile. | `skeleton_path`, `roles`, `profile`, `save`, `name`, `overwrite` |
+| `sample` | FK probe: world positions (and optional euler rotations) of requested bones at N times, plus derived foot heights and ground-contact windows. Pose is restored afterwards. | `player_path`, `animation_name`, `skeleton_path`, `roles`, `profile`, `bones`, `times`, `samples`, `include_rotation`, `contact_threshold` |
 | `dry_run` | Run any presets/edit op and report the result without committing. | `tool`, `forward_op`, `player_path`, `animation_name` |
 | `help` | Op index from the registry: names, summaries, params and examples. | `tool`, `op_name` |
 
@@ -383,7 +385,7 @@ Handler: `res://addons/godot_ai_animation/handlers/inspect.gd`
 
 | Param | Type | Notes |
 | --- | --- | --- |
-| `op` | string: describe \| timeline \| audit \| compare \| stats \| motion_report \| dry_run \| help | Which inspection to run. |
+| `op` | string: describe \| timeline \| audit \| compare \| stats \| motion_report \| rig_profile \| sample \| dry_run \| help | Which inspection to run. |
 | `player_path` | string | Scene path to an AnimationPlayer. Omit for audit/stats to scan every player in the edited scene. |
 | `animation_name` | string | Clip to inspect (describe/timeline/compare). Omit for describe to summarise every clip on the player. |
 | `other_animation_name` | string | compare: the clip to diff against. |
@@ -396,8 +398,19 @@ Handler: `res://addons/godot_ai_animation/handlers/inspect.gd`
 | `include_info` | boolean (default `true`) | audit: include info-level findings (unused clips, constant tracks). |
 | `tolerance` | number | compare: value comparison tolerance (default 0.0001). |
 | `tool` | string: animation_presets \| animation_fx \| animation_graph \| animation_edit \| animation_library \| animation_rig \| animation_motion | dry_run: which tool to run. help: which tool's ops to list (omit for all). |
-| `forward_op` | string | dry_run: the presets/fx/edit op to run (e.g. "retime"); its own params go in the same call. |
+| `forward_op` | string | dry_run: the generator or edit op to run (e.g. "retime"); its own params go in the same call. |
 | `op_name` | string | help: only this op (omit to list the tool's whole index). |
+| `skeleton_path` | string | rig_profile/sample: scene path to the Skeleton3D (default: the first one in the scene). |
+| `roles` | object | rig_profile/sample: explicit bone roles, e.g. {"thigh_l": "B-thigh.L"}; they win over detection. |
+| `profile` | string | rig_profile/sample: a saved rig profile (name or res:// path) whose roles are reused. |
+| `save` | boolean (default `false`) | rig_profile: write the profile to res://animation_toolkit/rig_profiles/<name>.json. |
+| `name` | string | rig_profile: profile file name (default: the skeleton node name). |
+| `overwrite` | boolean (default `false`) | rig_profile: replace an existing profile file. |
+| `bones` | array | sample: bones to probe (["*"] = every bone; default: the detected role bones). |
+| `times` | array | sample: explicit sample times in seconds (alternative to samples). |
+| `samples` | integer | sample: evenly spaced samples over the clip (default 24, max 240). |
+| `include_rotation` | boolean (default `false`) | sample: also report each bone's euler rotation in degrees. |
+| `contact_threshold` | number | sample: height above the lowest foot sample counted as ground contact (default 0.02). |
 
 Required: `op`.
 
@@ -410,6 +423,8 @@ Required: `op`.
 {"animation_name":"walk","op":"compare","other_animation_name":"walk_fast","player_path":"/Main"}
 {"op":"stats"}
 {"animation_name":"walk","op":"motion_report","player_path":"/Main"}
+{"name":"hero","op":"rig_profile","save":true,"skeleton_path":"/Main/Rig/Skeleton3D"}
+{"animation_name":"walk","bones":["B-foot.L","B-foot.R"],"op":"sample","player_path":"/Main/Rig/AnimationPlayer","samples":24}
 {"animation_name":"walk","factor":0.5,"forward_op":"retime","op":"dry_run","player_path":"/Main","tool":"animation_edit"}
 {"op":"help","tool":"animation_edit"}
 ```
@@ -422,7 +437,7 @@ Handler: `res://addons/godot_ai_animation/handlers/library.gd`
 
 | op | What it does | Params |
 | --- | --- | --- |
-| `template_save` | Save a presets/fx call (its op and params) as a named template in the project library. | `name`, `tool`, `forward_op`, `description`, `library_path`, `overwrite`, `dry_run` |
+| `template_save` | Save a presets/fx/motion/rig call (its op and params) as a named template in the project library. | `name`, `tool`, `forward_op`, `description`, `library_path`, `overwrite`, `dry_run` |
 | `template_apply` | Apply a saved template through its original tool, with per-call overrides. | `name`, `library_path`, `player_path`, `target_path`, `animation_name`, `overwrite`, `dry_run` |
 | `template_list` | List the saved templates with their tool, op, description and params. | `library_path` |
 | `template_delete` | Remove a template from the library file. | `name`, `library_path` |
@@ -436,8 +451,8 @@ Handler: `res://addons/godot_ai_animation/handlers/library.gd`
 | --- | --- | --- |
 | `op` | string: template_save \| template_apply \| template_list \| template_delete \| spec_export \| spec_import \| spec_apply | Which library op to run. |
 | `name` | string | Template name (save/apply/delete). |
-| `tool` | string: animation_presets \| animation_fx | template_save: which tool the stored op belongs to. |
-| `forward_op` | string | template_save: the presets/fx op to store (e.g. "bounce"); its params go in the same call. |
+| `tool` | string: animation_presets \| animation_fx \| animation_motion \| animation_rig | template_save: which tool the stored op belongs to. |
+| `forward_op` | string | template_save: the presets/fx/motion/rig op to store (e.g. "bounce"); its params go in the same call. |
 | `description` | string | template_save: a note for other agents/users. |
 | `library_path` | string | Template library file (default res://animation_toolkit/library.json). |
 | `path` | string | spec_export/import/apply: JSON spec file. Export defaults to res://animation_toolkit/clips/<clip>.json. |
@@ -481,12 +496,12 @@ Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 | `spring_setup` | Attach spring bones (SpringBoneSimulator3D) to a skeleton, one spring setting per entry. | `skeleton_path`, `springs`, `name`, `active`, `mutable_bone_axes`, `dry_run` |
 | `look_at_setup` | Attach a look-at modifier so one bone tracks a target node (created in front of the bone when omitted). | `skeleton_path`, `bone`, `target_path`, `target_name`, `forward_axis`, `origin_from`, `origin_bone`, `origin_node`, `origin_offset`, `origin_safe_margin`, `use_angle_limitation`, `primary_limit_angle`, `secondary_limit_angle`, `use_secondary_rotation`, `primary_axis`, `relative`, `duration`, `name`, `active`, `dry_run` |
 | `retarget_setup` | Retarget a source skeleton's poses onto a child target skeleton through a RetargetModifier3D and a bone-name profile. | `skeleton_path`, `target_path`, `profile`, `position`, `rotation`, `scale`, `use_global_pose`, `move_target`, `name`, `active`, `dry_run` |
-| `walk_cycle` | Build a looping in-place walk cycle (legs, knees, counter-swinging arms, hip bob) from bone roles. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `swing_axis`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
-| `idle_breathing` | Build a subtle looping idle: chest/spine breathing, a light head counter-move and an optional hip bob. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `amplitude`, `head_amplitude`, `bob`, `axis`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
-| `blink` | Build a quick blink clip on the eye/eyelid bones, scale or rotate, optionally several blinks. | `player_path`, `skeleton_path`, `animation_name`, `bones`, `mode`, `closed_scale`, `angle`, `axis`, `blinks`, `duration`, `loop_mode`, `overwrite`, `dry_run` |
-| `jumping_jack` | Build a looping jumping jack: arms swing down to overhead while the legs spread apart and back together, with a small rise. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `amplitude`, `stride`, `bob`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
-| `squat` | Build a looping squat with planted feet: the hips drop, the knees bend forward and the leg chains are solved to keep the ankles in place. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `bob`, `amplitude`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
-| `punch` | Build a looping boxing combo: guard, then alternating straight punches with a torso twist. `cycles` punches fit in the clip. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `cycles`, `amplitude`, `bob`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
+| `walk_cycle` | Build a looping in-place walk cycle (legs, knees, counter-swinging arms, hip bob) from bone roles. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `swing_axis`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
+| `idle_breathing` | Build a subtle looping idle: chest/spine breathing, a light head counter-move and an optional hip bob. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `amplitude`, `head_amplitude`, `bob`, `axis`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
+| `blink` | Build a quick blink clip on the eye/eyelid bones, scale or rotate, optionally several blinks. | `player_path`, `skeleton_path`, `animation_name`, `bones`, `mode`, `closed_scale`, `angle`, `axis`, `blinks`, `duration`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
+| `jumping_jack` | Build a looping jumping jack: arms swing down to overhead while the legs spread apart and back together, with a small rise. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `amplitude`, `stride`, `bob`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
+| `squat` | Build a looping squat with planted feet: the hips drop, the knees bend forward and the leg chains are solved to keep the ankles in place. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `bob`, `amplitude`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
+| `punch` | Build a looping boxing combo: guard, then alternating straight punches with a torso twist. `cycles` punches fit in the clip. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `cycles`, `amplitude`, `bob`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
 | `bake_pose_sequence` | Sample a skeleton over time into a clip: seek the source clip, run the active modifiers (IK, springs, retarget), key the final pose. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `fps`, `bones`, `positions`, `scales`, `source_animation`, `loop_mode`, `overwrite`, `dry_run` |
 
 ### `animation_rig` parameters
@@ -538,7 +553,7 @@ Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 | `primary_axis` | string: x \| y \| z | look_at_setup: primary rotation axis (y). |
 | `relative` | boolean | look_at_setup: relative to initial orientation (off). |
 | `duration` | number | look_at_setup: turn time, seconds (0 = instant). |
-| `profile` | string | retarget_setup: auto | humanoid | res:// SkeletonProfile path. |
+| `profile` | string | retarget_setup: auto | humanoid | res:// SkeletonProfile path. Recipes: a saved rig profile (name or res:// path). |
 | `position` | boolean | retarget_setup: bone positions (off). |
 | `rotation` | boolean (default `true`) | retarget_setup: bone rotations (on). |
 | `scale` | boolean | retarget_setup: bone scales (off). |
@@ -598,22 +613,23 @@ Handler: `res://addons/godot_ai_animation/handlers/motion.gd`
 
 | op | What it does | Params |
 | --- | --- | --- |
-| `walk_cycle` | Build a looping walk with planted feet: pelvis bob/sway/yaw/roll, counter-rotating torso, arm swing with elbow follow-through, head stabilisation. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `root_motion`, `set_root_motion`, `speed`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `sway`, `lean`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
-| `run_cycle` | Build a looping run: flight phase, forward lean, bigger stride and arm swing, bent elbows. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `root_motion`, `set_root_motion`, `speed`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `sway`, `lean`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
-| `idle_cycle` | Build a looping idle: a pronounced look-around and torso twist over subtle breathing, weight shift and seeded micro-motion. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `amplitude`, `head_amplitude`, `bob`, `sway`, `lean`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
-| `cycle` | Generic entry point: build the cycle named by `preset` (walk, run or idle) with the same parameters as the dedicated ops. | `preset`, `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `root_motion`, `set_root_motion`, `speed`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `sway`, `lean`, `roles`, `loop_mode`, `overwrite`, `amplitude`, `head_amplitude`, `dry_run` |
+| `walk_cycle` | Build a looping walk with planted feet: pelvis bob/sway/yaw/roll, counter-rotating torso, arm swing with elbow follow-through, head stabilisation. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `root_motion`, `set_root_motion`, `speed`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `sway`, `lean`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
+| `run_cycle` | Build a looping run: flight phase, forward lean, bigger stride and arm swing, bent elbows. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `root_motion`, `set_root_motion`, `speed`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `sway`, `lean`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
+| `idle_cycle` | Build a looping idle: a pronounced look-around and torso twist over subtle breathing, weight shift and seeded micro-motion. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `amplitude`, `head_amplitude`, `bob`, `sway`, `lean`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
+| `cycle` | Generic entry point: build the cycle named by `preset` (walk, run or idle) with the same parameters as the dedicated ops. | `preset`, `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `root_motion`, `set_root_motion`, `speed`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `sway`, `lean`, `roles`, `profile`, `loop_mode`, `overwrite`, `amplitude`, `head_amplitude`, `dry_run` |
+| `character_setup` | One call, one undo: build idle + walk + run (optionally jump/turn), wire the locomotion AnimationTree and set the root-motion track; returns the speed parameter and a game-side snippet. | `player_path`, `skeleton_path`, `roles`, `profile`, `style`, `samples`, `speed`, `run_speed`, `duration`, `run_duration`, `idle_duration`, `root_motion`, `include_jump`, `include_turn`, `height`, `crouch`, `distance`, `jump_duration`, `angle`, `direction`, `turn_duration`, `tree_path`, `active`, `overwrite`, `dry_run` |
 | `secondary_motion` | Bake offline spring bones into an existing clip: hair/tail/cloth roots lag behind their animated parent, deterministically. | `player_path`, `skeleton_path`, `animation_name`, `bones`, `stiffness`, `damping`, `samples`, `dry_run` |
-| `jump` | Build a one-shot jump: anticipation crouch, launch, air arc, landing absorb and recovery; feet planted before takeoff and after landing. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `height`, `crouch`, `distance`, `style`, `overrides`, `samples`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
-| `turn_cycle` | Build an in-place pivot turn with anticipation, a stepping foot and a settle; one-shot, direction left/right. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `angle`, `direction`, `style`, `overrides`, `samples`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
-| `strafe_cycle` | Build a looping sideways gait (leading foot steps out, trailing closes) with the knees still facing forward; speed-driven like the walk. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `direction`, `speed`, `stride`, `style`, `overrides`, `samples`, `root_motion`, `set_root_motion`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
-| `walk_start` | Build a short blend into a gait: rest -> the walk pose at `phase`, so it matches the cycle frame-for-frame. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `phase`, `style`, `overrides`, `samples`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
-| `walk_stop` | Build a short blend out of a gait: the walk pose at `phase` -> rest with a settle. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `phase`, `style`, `overrides`, `samples`, `roles`, `loop_mode`, `overwrite`, `dry_run` |
+| `jump` | Build a one-shot jump: anticipation crouch, launch, air arc, landing absorb and recovery; feet planted before takeoff and after landing. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `height`, `crouch`, `distance`, `style`, `overrides`, `samples`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
+| `turn_cycle` | Build an in-place pivot turn with anticipation, a stepping foot and a settle; one-shot, direction left/right. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `angle`, `direction`, `style`, `overrides`, `samples`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
+| `strafe_cycle` | Build a looping sideways gait (leading foot steps out, trailing closes) with the knees still facing forward; speed-driven like the walk. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `direction`, `speed`, `stride`, `style`, `overrides`, `samples`, `root_motion`, `set_root_motion`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
+| `walk_start` | Build a short blend into a gait: rest -> the walk pose at `phase`, so it matches the cycle frame-for-frame. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `phase`, `style`, `overrides`, `samples`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
+| `walk_stop` | Build a short blend out of a gait: the walk pose at `phase` -> rest with a settle. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `phase`, `style`, `overrides`, `samples`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
 
 ### `animation_motion` parameters
 
 | Param | Type | Notes |
 | --- | --- | --- |
-| `op` | string: walk_cycle \| run_cycle \| idle_cycle \| cycle \| jump \| turn_cycle \| strafe_cycle \| walk_start \| walk_stop \| secondary_motion | Cycle/move to build, or secondary_motion to bake spring bones into an existing clip. |
+| `op` | string: walk_cycle \| run_cycle \| idle_cycle \| cycle \| jump \| turn_cycle \| strafe_cycle \| walk_start \| walk_stop \| character_setup \| secondary_motion | Cycle/move to build, character_setup for the whole locomotion set, or secondary_motion to bake spring bones into an existing clip. |
 | `preset` | string: walk \| run \| idle | cycle: which cycle to build (walk). |
 | `player_path` | string | Scene path to the AnimationPlayer that receives the clip. |
 | `skeleton_path` | string | Scene path to the Skeleton3D (default: the first one). |
@@ -641,11 +657,21 @@ Handler: `res://addons/godot_ai_animation/handlers/motion.gd`
 | `amplitude` | number | idle_cycle: breathing chest rotation, degrees (1.6). |
 | `head_amplitude` | number | idle_cycle: head nod/drift, degrees (0.8). |
 | `roles` | object | Bone roles, e.g. {"thigh_l": "B-thigh.L"}; missing ones auto-detect. |
+| `profile` | string | Saved rig profile (name or res:// path) from animation_inspect rig_profile; supplies the roles. |
 | `bones` | array | secondary_motion: jiggle bones to bake (must be unkeyed in the clip). |
 | `stiffness` | number | secondary_motion: spring stiffness, 1/s^2 (120; hair ~120, heavy tail ~30). |
 | `damping` | number | secondary_motion: spring damping, 1/s (12; lower swings longer). |
 | `loop_mode` | string: none \| linear \| pingpong | Loop mode (none; cycles use linear). |
-| `overwrite` | boolean | Replace an existing clip with the same name (off). |
+| `overwrite` | boolean | Replace an existing clip with the same name (off; character_setup defaults to on). |
+| `active` | boolean | character_setup: enable the AnimationTree right away (off; an active tree drives the scene while you edit). |
+| `tree_path` | string | character_setup: scene path for the AnimationTree (default: an existing tree wired to the player, else a new sibling). |
+| `idle_duration` | number | character_setup: idle clip length in seconds (3.0). |
+| `run_duration` | number | character_setup: run clip length in seconds (0.6). |
+| `run_speed` | number | character_setup: run speed in m/s, the blend space's max (4.0; must exceed speed). |
+| `include_jump` | boolean | character_setup: also build a jump clip and a one-shot layer with a request parameter (off). |
+| `include_turn` | boolean | character_setup: also build a turn_<direction> clip (off). |
+| `jump_duration` | number | character_setup: jump clip length in seconds (1.2). |
+| `turn_duration` | number | character_setup: turn clip length in seconds (0.7). |
 | `dry_run` | boolean | Report without committing (off). |
 
 Required: `op`.
@@ -657,6 +683,7 @@ Required: `op`.
 {"animation_name":"run","duration":0.6,"loop_mode":"linear","op":"run_cycle","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"animation_name":"idle","duration":3.0,"loop_mode":"linear","op":"idle_cycle","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"animation_name":"run","duration":0.6,"loop_mode":"linear","op":"cycle","player_path":"/Main/Rig/AnimationPlayer","preset":"run","skeleton_path":"/Main/Rig/Skeleton3D"}
+{"include_jump":true,"op":"character_setup","player_path":"/Main/Rig/AnimationPlayer","run_speed":4.0,"skeleton_path":"/Main/Rig/Skeleton3D","speed":1.4}
 {"animation_name":"walk","bones":["B-hair01","B-hair02"],"damping":12.0,"op":"secondary_motion","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D","stiffness":120.0}
 {"animation_name":"jump","crouch":0.25,"duration":1.2,"height":0.6,"op":"jump","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"angle":90,"animation_name":"turn_left","direction":"left","duration":0.7,"op":"turn_cycle","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}

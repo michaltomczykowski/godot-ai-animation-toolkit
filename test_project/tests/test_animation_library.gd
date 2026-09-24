@@ -17,6 +17,7 @@ const LibraryHandler := preload("res://addons/godot_ai_animation/handlers/librar
 
 const LIBRARY := "res://tests/tmp_library.json"
 const SPEC := "res://tests/tmp_spec.json"
+const DUMMY := "res://models/human_dummy/HumanCharacterDummy_F.fbx"
 
 var _handler: LibraryHandler
 var _undo_redo: EditorUndoRedoManager
@@ -372,6 +373,90 @@ func test_spec_apply_inline_and_validation() -> void:
 func _scene_root_name() -> String:
 	var scene_root := EditorInterface.get_edited_scene_root()
 	return scene_root.name if scene_root != null else ""
+
+
+# --- motion / rig templates ------------------------------------------------
+
+func _find_of_type(node: Node, type_name: String) -> Node:
+	if node.is_class(type_name):
+		return node
+	for child in node.get_children():
+		var found := _find_of_type(child, type_name)
+		if found != null:
+			return found
+	return null
+
+
+func _assign_owners(node: Node, owner: Node) -> void:
+	for child in node.get_children():
+		child.owner = owner
+		_assign_owners(child, owner)
+
+
+func _dummy_rig(prefix: String) -> Dictionary:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		return {"error": "no scene"}
+	if not ResourceLoader.exists(DUMMY):
+		return {"error": "the human dummy asset is missing"}
+	var root: Node = (load(DUMMY) as PackedScene).instantiate()
+	root.name = prefix + "Dummy"
+	scene_root.add_child(root)
+	_assign_owners(root, scene_root)
+	var skeleton := _find_of_type(root, "Skeleton3D") as Skeleton3D
+	var player := _find_of_type(root, "AnimationPlayer") as AnimationPlayer
+	if skeleton == null or player == null:
+		_remove_node("/" + scene_root.name + "/" + str(root.name))
+		return {"error": "the dummy has no skeleton/player"}
+	return {
+		"root_path": "/" + scene_root.name + "/" + str(root.name),
+		"skeleton_path": "/" + scene_root.name + "/" + str(scene_root.get_path_to(skeleton)),
+		"player_path": "/" + scene_root.name + "/" + str(scene_root.get_path_to(player)),
+		"skeleton": skeleton,
+		"player": player,
+	}
+
+
+func test_template_motion_and_rig_calls() -> void:
+	var rig := _dummy_rig("LibMotion")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var saved := _handler.run({
+		"op": "template_save", "name": "slow_sneak", "tool": "animation_motion",
+		"forward_op": "walk_cycle", "duration": 1.2, "style": "sneaky", "loop_mode": "linear",
+		"library_path": LIBRARY,
+	}, null)
+	assert_true(saved.has("data"), "motion template saves: %s" % str(saved))
+	assert_eq(str(saved.data.tool), "animation_motion")
+	assert_eq(str(saved.data.op), "walk_cycle")
+	var applied := _handler.run({
+		"op": "template_apply", "name": "slow_sneak", "library_path": LIBRARY,
+		"player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
+		"animation_name": "sneak", "overwrite": true,
+	}, null)
+	assert_true(applied.has("data"), "motion template applies: %s" % str(applied))
+	assert_eq(str(applied.data.applied_tool), "animation_motion")
+	assert_true(_fetch_anim(rig.player_path, "sneak") != null, "the motion clip is built")
+	var recipe_saved := _handler.run({
+		"op": "template_save", "name": "jack", "tool": "animation_rig",
+		"forward_op": "jumping_jack", "duration": 1.0, "loop_mode": "linear",
+		"library_path": LIBRARY,
+	}, null)
+	assert_true(recipe_saved.has("data"), "rig template saves: %s" % str(recipe_saved))
+	var recipe_applied := _handler.run({
+		"op": "template_apply", "name": "jack", "library_path": LIBRARY,
+		"player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
+		"animation_name": "jack", "overwrite": true,
+	}, null)
+	assert_true(recipe_applied.has("data"), "rig template applies: %s" % str(recipe_applied))
+	assert_eq(str(recipe_applied.data.applied_tool), "animation_rig")
+	assert_true(_fetch_anim(rig.player_path, "jack") != null, "the recipe clip is built")
+	assert_true(editor_undo(_undo_redo), "undo should succeed")
+	assert_true(_fetch_anim(rig.player_path, "jack") == null, "one undo removes the recipe clip")
+	_remove_node(rig.root_path)
+	_remove_file(LIBRARY)
+	_remove_file(SPEC)
 
 
 func test_registry_matches_library_schema() -> void:
