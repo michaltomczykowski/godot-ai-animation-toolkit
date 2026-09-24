@@ -1,8 +1,10 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **phases 0–10 done** — v1.4.0 (8 tools, 98 ops) released 2026-09-24.
-Every roadmap phase is implemented and shipped; see the deferred list at the end
-of phase 10 for candidate v1.5 work.
+Status: **phases 0–12 done** — v1.6.0 (8 tools, 100 ops) released 2026-09-24.
+Phases 11 (contact authoring + visual verification) and 12 (spine chain + twist
+distribution) ship without a new demo recording: the door/punch showcase was
+dropped after its rebuild still read as broken, and the ops stand on their own
+behind the editor suites. See the end of the file for their scope.
 Last updated: 2026-09-24.
 
 Phase 3 note: the generators landed as their own family, `animation_fx`, instead
@@ -435,6 +437,41 @@ Deferred (candidate v1.5): `crouch_walk`, gesture pack, foot ground-lock for
 imported clips, twist dispersion (BoneTwistDisperser3D), gaze baking,
 angular-velocity limiting, preview-scene builder.
 
+## Phase 11 — contact authoring and visual verification (v1.5.0, shipped in v1.6.0)
+
+The rejected door/punch demo exposed three authoring gaps, all now filled:
+
+1. **Contact keys** — `pose_to_clip` keys accept `aim: [{chain, target, pole?}]`.
+   `spec/pose_solver.gd` solves the three-bone chain analytically (law of
+   cosines in the plane spanned by the root-to-target line and the pole hint) and
+   the *keys* carry the solution, so a hand or foot holds a world-space contact
+   with no modifier and no runtime target node. The live skeleton is only posed
+   to solve and is restored. Tier-1: `tier1_pose_solver.gd` (34 checks over FK,
+   reach, pole, base-bend and clamping).
+2. **Multi-step pivots** — `turn_cycle steps: 2` splits a 180-degree turn into
+   two pivots with the opposite foot lifting in each, so it reads as weight
+   shifts rather than a spin. `steps: 1` is byte-identical to the old output.
+3. **Visual verification** — `animation_inspect preview` renders the posed
+   character to PNGs at clip times in a private offscreen viewport (one editor
+   frame per image, hence a deferred reply; headless editors report that they
+   cannot rasterise). The edited scene is never touched.
+
+Also in this phase: the `animation_rig` schema was trimmed back under the
+8192-byte server cap after `aim` was added (323 bytes of headroom), and the
+`animation_inspect` spec is registered as deferred-capable so the preview
+reply is accepted.
+
+Status: shipped in v1.6.0 — ops, tier-1 checks, editor suites and docs. **No
+demo recording**: the showcase was dropped (see below).
+
+**Dropped: the door/punch demo.** It was rebuilt twice on the new chain tooling
+and still read as broken on screen, so the scratch scene, its builder suite and
+the draft recordings were deleted rather than shipped. What the phase produced is
+still useful on its own — contact keys, split pivots and offscreen previews are
+verified by tests, not by a film — and `animation_inspect preview` is the tool
+for looking at a clip next time. Demo recordings are now optional per phase:
+only when a demo earns its keep.
+
 ### Risks / mitigations
 
 1. Editor-time modifier processing (the AnimationTree lesson): verify first,
@@ -449,6 +486,56 @@ angular-velocity limiting, preview-scene builder.
 6. Every unverified setter name gets confirmed against the live 4.7 ClassDB
    before it is coded.
 
+## Phase 12 — spine chain and twist distribution (v1.6.0, done)
+
+The door/punch demo's second pass showed the real culprit behind the "spinning
+spine" the demos kept showing: every recipe hard-coded its own per-bone twist
+multipliers, and a couple of them compounded the *running* total. The fix is a
+shared chain plus a shared distributor, so a parameter means the same *total*
+rotation on a 3-bone and a 6-bone spine.
+
+1. **Chain detection** — `RigAnalysis.spine_chain(parent_of, roles, max_bones)`
+   walks down from the hips through the head's ancestry (with a torso-named-child
+   fallback) and returns the torso chain; both families take an explicit
+   `spine_chain` when given, validated as one parent chain. Resolution lives in
+   `bone_animation.gd: resolve_spine_chain` and reaches `ctx.spine_chain`.
+   Tier-1: `tier1_spine_chain.gd` (16 checks).
+2. **Twist distributor** — `spec/spine_twist.gd` turns a total in degrees into
+   per-bone degrees (`amplitudes`/`distribute`) with weights, a `spread` knob,
+   an optional per-bone clamp, and `lags` for the phase ramp. Tier-1:
+   `tier1_spine_twist.gd` (59 checks).
+3. **Recipes wired through it** — `idle_keys` (the old spine 0.5 + chest 1.0 +
+   harmonics, which summed to ~2x the parameter, is now one shared twist with a
+   hips weight shift), `gait_keys` (chain-weighted counter-rotation; the
+   `chest_yaw` override was dead because a local of the same name shadowed it),
+   `turn_keys` (the bounded per-step lead now ramps up the chain and the head
+   trails it), `jump_keys` (the lean spreads up the whole chain), and in the rig
+   family `idle_breathing` (the whole chain breathes) and `punch` (`amplitude` is
+   now the *total* torso twist).
+4. **`twist_setup`** — the engine does the distributing: a
+   `BoneTwistDisperser3D` over the detected or explicit chain with the `even` /
+   `weighted` modes, `weight_position`, `damping` and `twist_from_rest`, created
+   inactive like every modifier setup. Godot 4.7 only builds a disperser's joint
+   list once the modifier has been in the tree for a frame (and has no bone-name
+   setter), so custom per-joint amounts stay in the Inspector; the op reports the
+   joint bones it will use.
+5. **New params** — `spine_chain` and `twist_spread` (motion), `spine_chain` and
+   `disperse` (rig). The rig schema was trimmed to 341 bytes of headroom to fit
+   them under the 8192-byte server cap.
+
+Editor suites: 163 tests, including a new regression that a 40-degree idle twist
+never puts more than a share on one bone (`test_idle_twist_is_shared_over_the_
+spine_chain`), the `twist_setup` op test, and the existing turn-step bound.
+
+### Phase 12 risks / mitigations
+
+1. Godot 4.7 has no `TwistModifier3D`; the disperser's setters are per-setting
+   (`set_disperse_mode(index, mode)`) and were confirmed against ClassDB first.
+2. A sine channel swings twice its amplitude: "inside the requested twist" means
+   peak-to-peak, which the tests state explicitly.
+3. Recipe defaults are in the same units as before (the idle's `twist` default
+   moved 12 -> 22 so the *total* matches the old summed output).
+
 ## Risks / notes
 
 - `mirror` needs per-value-type negation (2D vs 3D, position/rotation/scale).
@@ -462,5 +549,6 @@ angular-velocity limiting, preview-scene builder.
 1. Ops implemented (single undo, typed errors).
 2. Tier-1 pure checks + editor suite rows, golden fixtures where useful.
 3. `docs/tool-reference.md` regenerated; README table updated.
-4. Demo recorded (Movie Maker → ffmpeg pipeline) + release notes + tag.
+4. Release notes + tag; a recorded demo when the phase has one worth showing
+   (optional — phases 11 and 12 shipped without one).
 5. CI green on Windows + Linux and both core legs (v4.2.1 and main).
