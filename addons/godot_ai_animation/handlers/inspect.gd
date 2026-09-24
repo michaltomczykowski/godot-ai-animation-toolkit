@@ -31,7 +31,7 @@ const _SAMPLE_MAX_BONES := 64
 
 
 ## Rollup entry registered with the Godot AI tool registry.
-func run(params: Dictionary, _ctx) -> Dictionary:
+func run(params: Dictionary, ctx) -> Dictionary:
 	var op: String = params.get("op", "")
 	match op:
 		"describe":
@@ -50,6 +50,8 @@ func run(params: Dictionary, _ctx) -> Dictionary:
 			return inspect_rig_profile(params)
 		"sample":
 			return inspect_sample(params)
+		"preview":
+			return inspect_preview(params, ctx)
 		"dry_run":
 			return inspect_dry_run(params)
 		"help":
@@ -977,6 +979,265 @@ static func _euler_degrees(basis: Basis) -> Array:
 static func _round(value: float, digits := 4) -> float:
 	var factor := pow(10.0, digits)
 	return roundf(value * factor) / factor
+
+
+# ============================================================================
+# preview
+# ============================================================================
+
+## Render the posed character offscreen at one or more clip times and save PNGs,
+## so an agent can *see* a clip (contact, foot planting, follow-through) instead
+## of only reading key values.
+##
+## The edited scene is never touched: the character subtree is duplicated into a
+## private SubViewport with its own world, posed from the clip, framed by a
+## camera, and freed again.
+##
+## The renderer only rasterises a viewport once per editor frame, which a
+## synchronous tool call cannot reach, so this op is deferred: it returns
+## `{"_deferred": true}` and pushes the real payload after one frame per image.
+## Headless servers cannot rasterise at all and say so immediately.
+func inspect_preview(params: Dictionary, ctx) -> Dictionary:
+	var loaded := _load_readable_clip(params)
+	if loaded.has("error"):
+		return loaded
+	var resolved := _resolve_skeleton(params)
+	if resolved.has("error"):
+		return resolved
+	if resolved.kind != "3d":
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "preview renders a Skeleton3D")
+	var skeleton: Skeleton3D = resolved.node
+	var unsupported := SpecIO.unsupported_tracks(loaded.anim)
+	if not unsupported.is_empty():
+		return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
+			"Animation '%s' has tracks preview cannot pose: %s"
+			% [loaded.anim_name, SpecIO.describe_unsupported(loaded.anim)])
+	var length: float = loaded.anim.length
+	var times: Array = []
+	if params.has("times"):
+		var given = params.get("times", [])
+		if not (given is Array) or (given as Array).is_empty():
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'times' must be a non-empty array of seconds")
+		times = RigAnalysis.explicit_times(given, length, _SAMPLE_CAP)
+	else:
+		times = RigAnalysis.sample_times(length, int(params.get("samples", 4)))
+	var width := clampi(int(params.get("width", 480)), 64, 2048)
+	var height := clampi(int(params.get("height", 270)), 64, 2048)
+	if OS.has_feature("headless") or DisplayServer.get_name() == "headless":
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"preview needs a rendering device; headless editors cannot rasterise frames")
+	if ctx == null or not ctx.has_method("send_deferred"):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"preview renders on later editor frames: call it through the Godot AI tool, not dry_run or batch_execute")
+	var spec := SpecIO.from_animation(loaded.anim)
+	var output_dir := str(params.get("output_dir", "res://animation_toolkit/previews"))
+	var basename := str(params.get("basename", loaded.anim_name))
+	var overwrite := bool(params.get("overwrite", true))
+	var source := _preview_source(params, resolved)
+	if source == null:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"preview could not find the character node to copy")
+	var margin := float(params.get("margin", 1.35))
+	# Frame every frame identically: union the posed bone bounds over all times
+	# (the live skeleton is posed and restored, never left modified).
+	var snapshot := _pose_snapshot(skeleton)
+	var bounds := AABB()
+	var first_bounds := true
+	for time in times:
+		_apply_spec_at(skeleton, spec, float(time))
+		var posed := _preview_bounds(skeleton)
+		bounds = posed if first_bounds else bounds.merge(posed)
+		first_bounds = false
+	_pose_restore(skeleton, snapshot)
+	if first_bounds or (bounds.end - bounds.position).length() < 0.001:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "preview needs bones to frame the camera")
+	var dir_error := DirAccess.make_dir_recursive_absolute(output_dir)
+	if dir_error != OK and dir_error != ERR_ALREADY_EXISTS:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"preview could not create %s (error %d)" % [output_dir, dir_error])
+	_render_preview_frames({
+		"source": source,
+		"spec": spec,
+		"times": times,
+		"bounds": bounds,
+		"margin": margin,
+		"width": width,
+		"height": height,
+		"background": str(params.get("background", "#2b2f36")),
+		"yaw": float(params.get("yaw", 28.0)),
+		"elevation": float(params.get("elevation", 8.0)),
+		"output_dir": output_dir,
+		"basename": basename,
+		"overwrite": overwrite,
+		"player_path": str(loaded.player_path),
+		"animation_name": str(loaded.anim_name),
+		"skeleton_path": str(resolved.path),
+		"length": length,
+	}, ctx)
+	return {"_deferred": true}
+
+
+## One image per editor frame: pose, wait for the renderer, read back, save.
+func _render_preview_frames(state: Dictionary, ctx) -> void:
+	var paths: Array = []
+	var times: Array = state.times
+	for index in times.size():
+		var time := float(times[index])
+		var viewport := _build_preview_viewport(int(state.width), int(state.height), str(state.background))
+		if viewport == null:
+			ctx.send_deferred(ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"preview could not create a render viewport"))
+			return
+		var character := (state.source as Node3D).duplicate() as Node3D
+		viewport.add_child(character)
+		var posed_skeleton := _find_skeleton(character) as Skeleton3D
+		if posed_skeleton == null:
+			viewport.queue_free()
+			ctx.send_deferred(ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"preview could not duplicate the skeleton"))
+			return
+		_apply_spec_at(posed_skeleton, state.spec, time)
+		var camera := _build_preview_camera(viewport, float(state.yaw), float(state.elevation))
+		_frame_preview_camera(camera, state.bounds as AABB, float(state.margin))
+		await RenderingServer.frame_post_draw
+		var image := viewport.get_texture().get_image()
+		if image == null or image.is_empty():
+			viewport.queue_free()
+			ctx.send_deferred(ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"preview could not read back a frame at t=%s" % str(time)))
+			return
+		var path := "%s/%s_%02d.png" % [str(state.output_dir).trim_suffix("/"), str(state.basename), index]
+		if FileAccess.file_exists(path) and not bool(state.overwrite):
+			viewport.queue_free()
+			ctx.send_deferred(ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"preview file already exists: %s (pass overwrite=true)" % path))
+			return
+		var error := image.save_png(path)
+		viewport.queue_free()
+		if error != OK:
+			ctx.send_deferred(ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"preview could not write %s (error %d)" % [path, error]))
+			return
+		paths.append(path)
+	ctx.send_deferred({"data": {
+		"player_path": str(state.player_path),
+		"animation_name": str(state.animation_name),
+		"skeleton_path": str(state.skeleton_path),
+		"length": _round(float(state.length)),
+		"times": times,
+		"paths": paths,
+		"width": int(state.width),
+		"height": int(state.height),
+		"bounds_center": _vec_array((state.bounds as AABB).get_center()),
+		"bounds_extent": _vec_array((state.bounds as AABB).end - (state.bounds as AABB).position),
+		"undoable": false,
+		"note": "each frame rendered a private copy of the character; the edited scene is unchanged",
+	}})
+
+
+## Private SubViewport with its own world, a neutral background and two lights.
+## It is parented to the editor's root window so it is inside the tree (a
+## viewport outside the tree never rasterises) and freed by the caller.
+func _build_preview_viewport(width: int, height: int, background: String) -> SubViewport:
+	var viewport := SubViewport.new()
+	viewport.name = "AnimationToolkitPreview"
+	viewport.size = Vector2i(width, height)
+	viewport.own_world_3d = true
+	viewport.transparent_bg = false
+	viewport.msaa_3d = Viewport.MSAA_2X
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	var loop := Engine.get_main_loop() as SceneTree
+	if loop == null or loop.root == null:
+		viewport.free()
+		return null
+	loop.root.add_child(viewport)
+	var world := Node3D.new()
+	world.name = "PreviewWorld"
+	viewport.add_child(world)
+	var color := Color(background) if background.is_valid_html_color() else Color(0.17, 0.18, 0.21)
+	var environment := Environment.new()
+	environment.background_mode = Environment.BG_COLOR
+	environment.background_color = color
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	environment.ambient_light_color = Color(0.72, 0.75, 0.82)
+	environment.ambient_light_energy = 0.9
+	var world_environment := WorldEnvironment.new()
+	world_environment.environment = environment
+	world.add_child(world_environment)
+	var key_light := DirectionalLight3D.new()
+	key_light.rotation_degrees = Vector3(-35.0, -40.0, 0.0)
+	key_light.light_energy = 1.5
+	world.add_child(key_light)
+	var fill_light := DirectionalLight3D.new()
+	fill_light.rotation_degrees = Vector3(-15.0, 140.0, 0.0)
+	fill_light.light_energy = 0.5
+	world.add_child(fill_light)
+	return viewport
+
+
+## Camera parented to the viewport (not the world node) so it survives the free.
+func _build_preview_camera(viewport: SubViewport, yaw: float, elevation: float) -> Camera3D:
+	var camera := Camera3D.new()
+	camera.fov = 40.0
+	camera.current = true
+	viewport.add_child(camera)
+	camera.set_meta("yaw", yaw)
+	camera.set_meta("elevation", elevation)
+	return camera
+
+
+## Frame `camera` on the character's bone bounds from the requested angle.
+func _frame_preview_camera(camera: Camera3D, bounds: AABB, margin: float) -> void:
+	var center := bounds.get_center()
+	var radius := maxf((bounds.end - bounds.position).length() * 0.5, 0.1)
+	var yaw := deg_to_rad(float(camera.get_meta("yaw", 28.0)))
+	var elevation := deg_to_rad(float(camera.get_meta("elevation", 8.0)))
+	var offset := Vector3(
+		sin(yaw) * cos(elevation), sin(elevation), cos(yaw) * cos(elevation))
+	var distance := radius * margin / tan(deg_to_rad(camera.fov) * 0.5)
+	camera.look_at_from_position(center + offset.normalized() * distance, center, Vector3.UP)
+
+
+## The node copied into the preview viewport: `character_path` when given, else
+## the skeleton's outermost Node3D ancestor below the scene root (copying the
+## whole character keeps skin bindings, meshes and props intact).
+func _preview_source(params: Dictionary, resolved: Dictionary) -> Node:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var character_path := str(params.get("character_path", ""))
+	if not character_path.is_empty():
+		if scene_root == null:
+			return null
+		var found := ValueCodec.resolve_scene_path(character_path, scene_root)
+		return found as Node3D
+	var node: Node = resolved.node
+	while node.get_parent() is Node3D and node.get_parent() != scene_root:
+		node = node.get_parent()
+	return node as Node3D
+
+
+## World-space bounds of every bone origin plus a rough skin margin.
+func _preview_bounds(skeleton: Skeleton3D) -> AABB:
+	var bounds := AABB()
+	var first := true
+	var xform := skeleton.global_transform
+	for index in skeleton.get_bone_count():
+		var point: Vector3 = xform * skeleton.get_bone_global_pose(index).origin
+		if first:
+			bounds = AABB(point, Vector3.ZERO)
+			first = false
+		else:
+			bounds = bounds.expand(point)
+	return bounds.grow(0.12)
+
+
+func _find_skeleton(node: Node) -> Node:
+	if node is Skeleton3D or node is Skeleton2D:
+		return node
+	for child in node.get_children():
+		var found := _find_skeleton(child)
+		if found != null:
+			return found
+	return null
 
 
 # ============================================================================

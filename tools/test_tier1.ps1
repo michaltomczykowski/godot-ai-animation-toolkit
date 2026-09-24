@@ -18,7 +18,10 @@ $scripts = @(
 	"res://tests/tier1_pose_math.gd",
 	"res://tests/tier1_motion_drivers.gd",
 	"res://tests/tier1_quality_modifiers.gd",
-	"res://tests/tier1_rig_analysis.gd"
+	"res://tests/tier1_rig_analysis.gd",
+	"res://tests/tier1_pose_solver.gd",
+	"res://tests/tier1_spine_twist.gd",
+	"res://tests/tier1_spine_chain.gd"
 )
 foreach ($script in $scripts) {
 	Write-Output "== $script"

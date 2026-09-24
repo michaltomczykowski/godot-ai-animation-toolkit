@@ -214,6 +214,93 @@ static func _missing_from(roles: Dictionary, wanted: Array) -> Array:
 	return missing
 
 
+## Bones whose names mark them as part of the torso chain, used to keep a
+## spine walk from wandering into the arms or the root bone.
+const _TORSO_KEYWORDS := [
+	"hips", "pelvis", "spine", "chest", "torso", "abdomen", "belly", "waist",
+	"upperchest", "upper_chest", "rib", "neck", "head",
+]
+
+## Longest chain the twist distribution will walk. A real torso is at most
+## pelvis + a few spine bones + neck + head; the cap is a runaway guard.
+const SPINE_CHAIN_MAX := 8
+
+
+## The torso chain, hips first and head last, for twist distribution.
+##
+## `parent_of` maps a bone name to its parent bone name (`""` for a root), so
+## this stays headless-testable; a caller with a Skeleton3D builds that map from
+## `get_bone_parent`. The walk goes *down* from the hips the way a skeleton is
+## built (the pelvis is the root of the torso, the spine hangs below it) and
+## follows the real parent links, so every name returned is genuinely
+## ancestral - a chain of unrelated bones would twist a limb.
+##
+## Where the head is detected, the walk follows the head's own ancestry exactly,
+## which keeps `upperChest`/`neck` intermediates on rigs that have them. Without
+## a head (or on a head that is not below the hips) it takes the first child that
+## names itself as torso, so odd intermediates still work while arms do not.
+static func spine_chain(parent_of: Dictionary, roles: Dictionary, max_bones := SPINE_CHAIN_MAX) -> Array:
+	var children := {}
+	for bone in parent_of:
+		var parent := str(parent_of[bone])
+		if parent.is_empty():
+			continue
+		if not children.has(parent):
+			children[parent] = []
+		(children[parent] as Array).append(str(bone))
+	# depth from each bone up to the head: 0 is the head itself.
+	var depth := {}
+	var head := str(roles.get("head", ""))
+	if not head.is_empty() and parent_of.has(head):
+		var walker := head
+		var steps := 0
+		while not walker.is_empty() and not depth.has(walker):
+			depth[walker] = steps
+			steps += 1
+			if steps > SPINE_CHAIN_MAX + 2:
+				break
+			walker = str(parent_of.get(walker, ""))
+	var start := str(roles.get("hips", ""))
+	if start.is_empty() or not parent_of.has(start):
+		start = str(roles.get("chest", ""))
+	if start.is_empty() or not parent_of.has(start):
+		start = str(roles.get("spine", ""))
+	if start.is_empty() or not parent_of.has(start):
+		return []
+	var chain: Array = [start]
+	var current := start
+	while chain.size() < maxi(1, max_bones):
+		if not head.is_empty() and current == head:
+			break
+		var next := ""
+		var best_depth := 1 << 30
+		for child in children.get(current, []):
+			var name := str(child)
+			if chain.has(name):
+				continue
+			if depth.has(name) and int(depth[name]) < best_depth:
+				best_depth = int(depth[name])
+				next = name
+		if next.is_empty():
+			for child in children.get(current, []):
+				if _is_torso_bone(str(child)) and not chain.has(str(child)):
+					next = str(child)
+					break
+		if next.is_empty():
+			break
+		chain.append(next)
+		current = next
+	return chain
+
+
+static func _is_torso_bone(bone_name: String) -> bool:
+	var lower := bone_name.to_lower()
+	for keyword in _TORSO_KEYWORDS:
+		if lower.contains(str(keyword)):
+			return true
+	return false
+
+
 ## Short, actionable next-op hints for an agent that just read a profile.
 static func suggestions(roles: Dictionary, caps: Dictionary) -> Array:
 	var out: Array = []

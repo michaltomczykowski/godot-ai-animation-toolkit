@@ -611,13 +611,57 @@ func test_sample_returns_positions_feet_and_restores_pose() -> void:
 	_teardown_rig(rig)
 
 
+## `preview` validates like the other probes, then refuses politely when it
+## cannot render: headless servers have no rasteriser, and the render itself is
+## deferred to editor frames, so a direct call (tests, dry_run) has no transport
+## to push the reply through.
+func test_preview_validates_then_reports_why_it_cannot_render() -> void:
+	var rig := _rig("Preview")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var motion := MotionHandler.new()
+	var walked := motion.run({
+		"op": "walk_cycle", "player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
+		"duration": 1.0, "loop_mode": "linear", "animation_name": "walk",
+	}, null)
+	if not walked.has("data"):
+		skip("walk_cycle failed: %s" % str(walked))
+		_teardown_rig(rig)
+		return
+	var skeleton: Skeleton3D = rig.skeleton
+	var before := skeleton.get_bone_pose_rotation(skeleton.find_bone("B-thigh.L"))
+	var bad_times := _handler.run({
+		"op": "preview", "player_path": rig.player_path, "animation_name": "walk",
+		"skeleton_path": rig.skeleton_path, "times": [],
+	}, null)
+	assert_is_error(bad_times, ErrorCodes.INVALID_PARAMS)
+	assert_contains(bad_times.error.message, "times")
+	var ghost_clip := _handler.run({
+		"op": "preview", "player_path": rig.player_path, "animation_name": "ghost",
+	}, null)
+	assert_is_error(ghost_clip, ErrorCodes.INVALID_PARAMS)
+	var result := _handler.run({
+		"op": "preview", "player_path": rig.player_path, "animation_name": "walk",
+		"skeleton_path": rig.skeleton_path, "times": [0.0, 0.5],
+	}, null)
+	assert_is_error(result, ErrorCodes.INVALID_PARAMS)
+	if DisplayServer.get_name() == "headless" or OS.has_feature("headless"):
+		assert_contains(result.error.message, "rendering device")
+	else:
+		assert_contains(result.error.message, "Godot AI tool")
+	assert_true(skeleton.get_bone_pose_rotation(skeleton.find_bone("B-thigh.L")).is_equal_approx(before),
+		"preview leaves the edited scene's pose alone")
+	_teardown_rig(rig)
+
+
 func test_registry_matches_inspect_schema() -> void:
 	var info := OpRegistry.family(OpRegistry.FAMILY_INSPECT)
 	assert_false(info.is_empty(), "the inspect family is registered")
 	assert_false(bool(info.requires_writable), "inspect does not require a writable project")
 	assert_false(bool(info.undoable), "inspect never touches the undo stack")
 	var op_enum: Array = info.schema.properties.op.enum
-	assert_eq(op_enum.size(), 10, "the inspect schema lists every op")
+	assert_eq(op_enum.size(), 11, "the inspect schema lists every op")
 	for descriptor in info.ops:
 		assert_true(op_enum.has(descriptor.name), "%s is in the schema enum" % descriptor.name)
 		for param in descriptor.params:

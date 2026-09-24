@@ -7,7 +7,7 @@ on:
   pull_request:
 
 env:
-  GODOT_VERSION: "4.7.0"
+  GODOT_VERSION: "4.7.2"
   # Pinned Godot AI release the toolkit is validated against.
   CORE_REF: "v4.2.1"
 

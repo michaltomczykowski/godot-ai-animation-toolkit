@@ -58,6 +58,8 @@ static func families() -> Dictionary:
 			"ops": _inspect_ops(),
 			"requires_writable": false,
 			"undoable": false,
+			"deferred": true,
+			"timeout_ms": 30000,
 		},
 		FAMILY_FX: {
 			"handler": "res://addons/godot_ai_animation/handlers/fx.gd",
@@ -642,9 +644,9 @@ static func _inspect_description() -> String:
 		+ "(scene-wide numbers), motion_report (key density, spikes, seam pops, "
 		+ "flips), rig_profile (roles/candidates, T/A pose, limb reach, "
 		+ "capabilities; saves a reusable profile), sample (FK probe: world "
-		+ "positions, foot heights, contact windows), dry_run (run any generator "
-		+ "or edit op uncommitted), help (op index). Never mutates the scene or "
-		+ "the undo stack. Requires the Godot AI addon."
+		+ "positions, foot heights, contact windows), preview (deferred offscreen "
+		+ "PNGs), dry_run (any generator/edit op, uncommitted), help (op index). "
+		+ "Never mutates the scene or the undo stack. Requires the Godot AI addon."
 	)
 
 
@@ -654,7 +656,7 @@ static func _inspect_schema() -> Dictionary:
 		"properties": {
 			"op": {
 				"type": "string",
-				"enum": ["describe", "timeline", "audit", "compare", "stats", "motion_report", "rig_profile", "sample", "dry_run", "help"],
+				"enum": ["describe", "timeline", "audit", "compare", "stats", "motion_report", "rig_profile", "sample", "preview", "dry_run", "help"],
 				"description": "Which inspection to run.",
 			},
 			"player_path": {
@@ -716,7 +718,11 @@ static func _inspect_schema() -> Dictionary:
 			},
 			"skeleton_path": {
 				"type": "string",
-				"description": "rig_profile/sample: scene path to the Skeleton3D (default: the first one in the scene).",
+				"description": "rig_profile/sample/preview: scene path to the Skeleton3D (default: the first one in the scene).",
+			},
+			"character_path": {
+				"type": "string",
+				"description": "preview: node copied into the frame, props included (default: the skeleton's outermost ancestor).",
 			},
 			"roles": {
 				"type": "object",
@@ -738,7 +744,7 @@ static func _inspect_schema() -> Dictionary:
 			"overwrite": {
 				"type": "boolean",
 				"default": false,
-				"description": "rig_profile: replace an existing profile file.",
+				"description": "rig_profile: replace an existing profile file. preview: replace existing PNGs (on).",
 			},
 			"bones": {
 				"type": "array",
@@ -748,11 +754,11 @@ static func _inspect_schema() -> Dictionary:
 			"times": {
 				"type": "array",
 				"items": {"type": "number"},
-				"description": "sample: explicit sample times in seconds (alternative to samples).",
+				"description": "sample/preview: explicit sample times in seconds (alternative to samples).",
 			},
 			"samples": {
 				"type": "integer",
-				"description": "sample: evenly spaced samples over the clip (default 24, max 240).",
+				"description": "sample/preview: evenly spaced samples over the clip (sample 24, preview 4; max 240).",
 			},
 			"include_rotation": {
 				"type": "boolean",
@@ -763,6 +769,17 @@ static func _inspect_schema() -> Dictionary:
 				"type": "number",
 				"description": "sample: height above the lowest foot sample counted as ground contact (default 0.02).",
 			},
+			"width": {"type": "integer", "description": "preview: frame width in pixels (480)."},
+			"height": {"type": "integer", "description": "preview: frame height in pixels (270)."},
+			"output_dir": {
+				"type": "string",
+				"description": "preview: directory for the PNGs (res://animation_toolkit/previews).",
+			},
+			"basename": {"type": "string", "description": "preview: file name prefix (default: the clip name)."},
+			"yaw": {"type": "number", "description": "preview: camera yaw in degrees, 0 = front (28)."},
+			"elevation": {"type": "number", "description": "preview: camera elevation in degrees (8)."},
+			"margin": {"type": "number", "description": "preview: framing margin around the bones (1.35)."},
+			"background": {"type": "string", "description": "preview: frame background colour (#2b2f36)."},
 		},
 		"required": ["op"],
 	}
@@ -817,6 +834,12 @@ static func _inspect_ops() -> Array:
 			"summary": "FK probe: world positions (and optional euler rotations) of requested bones at N times, plus derived foot heights and ground-contact windows. Pose is restored afterwards.",
 			"params": ["player_path", "animation_name", "skeleton_path", "roles", "profile", "bones", "times", "samples", "include_rotation", "contact_threshold"],
 			"example": {"op": "sample", "player_path": "/Main/Rig/AnimationPlayer", "animation_name": "walk", "bones": ["B-foot.L", "B-foot.R"], "samples": 24},
+		},
+		{
+			"name": "preview",
+			"summary": "Render the posed character offscreen to PNGs at clip times so an agent can see contact, foot planting and follow-through. A private copy of the character subtree is posed in an offscreen viewport; the edited scene is never touched. The reply is deferred (one editor frame per image) and needs a rendering device.",
+			"params": ["player_path", "animation_name", "skeleton_path", "character_path", "times", "samples", "width", "height", "output_dir", "basename", "yaw", "elevation", "margin", "background", "overwrite"],
+			"example": {"op": "preview", "player_path": "/Main/Rig/AnimationPlayer", "animation_name": "reach", "skeleton_path": "/Main/Rig/Skeleton3D", "times": [0.0, 0.4], "output_dir": "res://animation_toolkit/previews", "yaw": 28},
 		},
 		{
 			"name": "dry_run",
@@ -1379,11 +1402,11 @@ static func _rig_description() -> String:
 	return (
 		"Rig authoring: bones (rig_chain), poses (pose_save/pose_apply/pose_blend/"
 		+ "pose_to_clip/pose_list), rig dumps (rig_get), modifiers (ik_setup, "
-		+ "spring_setup, look_at_setup, retarget_setup) and procedural recipes "
-		+ "(walk_cycle, idle_breathing, blink, jumping_jack, squat, punch, "
-		+ "bake_pose_sequence). Modifiers are created inactive because an active "
-		+ "one also drives the scene while you edit it. Clips are ordinary "
-		+ "transform tracks, so every other op works on them."
+		+ "spring_setup, look_at_setup, retarget_setup, twist_setup) and "
+		+ "procedural recipes (walk_cycle, idle_breathing, blink, jumping_jack, "
+		+ "squat, punch, bake_pose_sequence). Torso twist/lean is distributed over "
+		+ "the detected spine chain. Modifiers are created inactive because an "
+		+ "active one also drives the scene while you edit it."
 	)
 
 
@@ -1393,41 +1416,41 @@ static func _rig_schema() -> Dictionary:
 		"properties": {
 			"op": {
 				"type": "string",
-				"enum": ["pose_save", "pose_apply", "pose_blend", "pose_to_clip", "pose_list", "rig_get", "rig_chain", "ik_setup", "spring_setup", "look_at_setup", "retarget_setup", "walk_cycle", "idle_breathing", "blink", "jumping_jack", "squat", "punch", "bake_pose_sequence"],
+				"enum": ["pose_save", "pose_apply", "pose_blend", "pose_to_clip", "pose_list", "rig_get", "rig_chain", "ik_setup", "spring_setup", "look_at_setup", "retarget_setup", "twist_setup", "walk_cycle", "idle_breathing", "blink", "jumping_jack", "squat", "punch", "bake_pose_sequence"],
 				"description": "Rig op to run.",
 			},
 			"roles": {
 				"type": "object",
-				"description": "Recipes: bone roles, e.g. {\"thigh_l\": \"B-thigh.L\"}; missing ones auto-detect.",
+				"description": "Recipes: bone roles {\"thigh_l\": \"B-thigh.L\"}; rest auto-detect.",
 			},
-			"stride": {"type": "number", "description": "walk_cycle: leg swing, degrees (25). jumping_jack: leg spread (18)."},
+			"stride": {"type": "number", "description": "walk_cycle: leg swing deg (25); jumping_jack: spread (18)."},
 			"knee_bend": {"type": "number", "description": "walk_cycle: knee bend, degrees (30)."},
-			"arm_swing": {"type": "number", "description": "walk_cycle: arm counter-swing, degrees (20)."},
-			"arm_down": {"type": "number", "description": "walk_cycle: lower the arms this many degrees from the rest pose (T-pose rigs)."},
-			"bob": {"type": "number", "description": "Metres: walk_cycle / idle_breathing hip bob, jumping_jack rise, squat depth, punch crouch."},
+			"arm_swing": {"type": "number", "description": "walk_cycle: arm counter-swing deg (20)."},
+			"arm_down": {"type": "number", "description": "walk_cycle: lower arms this many degrees from rest (T-pose)."},
+			"bob": {"type": "number", "description": "Metres: walk/idle bob, jumping_jack rise, squat depth, punch crouch."},
 			"swing_axis": {"type": "string", "enum": ["x", "y", "z"], "description": "walk_cycle: swing axis (x)."},
 			"axis": {"type": "string", "enum": ["x", "y", "z"], "description": "idle_breathing / blink: rotation axis (x)."},
-			"amplitude": {"type": "number", "description": "Degrees: idle_breathing chest rotation (2), jumping_jack arm swing (80), squat arms-forward (65), punch torso twist (12)."},
-			"head_amplitude": {"type": "number", "description": "idle_breathing: head counter-rotation, degrees (1)."},
+			"amplitude": {"type": "number", "description": "Degrees: idle_breathing chest (2), jumping_jack arms (80), squat arms (65), punch twist (12)."},
+			"head_amplitude": {"type": "number", "description": "idle_breathing: head counter-rotation, deg (1)."},
 			"mode": {"type": "string", "enum": ["scale", "rotate"], "description": "blink: how the lid closes (scale)."},
-			"closed_scale": {"type": "number", "description": "blink scale mode: closed Y scale (0.05)."},
-			"angle": {"type": "number", "description": "blink rotate mode: closing angle, degrees (25)."},
+			"closed_scale": {"type": "number", "description": "blink scale: closed Y scale (0.05)."},
+			"angle": {"type": "number", "description": "blink rotate: closing angle, deg (25)."},
 			"blinks": {"type": "integer", "description": "blink: blinks per clip (1)."},
-			"cycles": {"type": "integer", "description": "punch: punches per clip (2; odd counts end mid-combo)."},
+			"cycles": {"type": "integer", "description": "punch: punches per clip (2; odd ends mid-combo)."},
 			"fps": {"type": "integer", "description": "bake_pose_sequence: samples/s (30)."},
-			"source_animation": {"type": "string", "description": "bake_pose_sequence: clip to sample (default: playing)."},
+			"source_animation": {"type": "string", "description": "bake_pose_sequence: clip to sample."},
 			"skeleton_path": {
 				"type": "string",
-				"description": "Skeleton3D/Skeleton2D scene path (default: first one).",
+				"description": "Skeleton3D/2D path (default: first one).",
 			},
 			"bones": {
 				"type": "array",
 				"items": {"type": ["string", "object"]},
-				"description": "rig_chain: [{name, parent?, position?, rotation?, scale?, length?}] rests (degrees). Other ops: bone filter.",
+				"description": "rig_chain: [{name, parent?, position?, rotation?, scale?, length?}]; else a bone filter.",
 			},
 			"node_path": {
 				"type": "string",
-				"description": "rig_chain: Node3D/Node2D subtree to turn into a skeleton (locals become rests).",
+				"description": "rig_chain: Node3D/Node2D subtree to become a skeleton (locals = rests).",
 			},
 			"kind": {
 				"type": "string",
@@ -1439,59 +1462,68 @@ static func _rig_schema() -> Dictionary:
 				"items": {"type": "string"},
 				"description": "ik_setup: bones root -> effector.",
 			},
-			"target_path": {"type": "string", "description": "ik_setup: existing target; created at the chain tip if omitted."},
+			"target_path": {"type": "string", "description": "ik_setup: target node; created at the tip if omitted."},
 			"target_name": {"type": "string", "description": "ik_setup: name of the created target (IKTarget)."},
-			"pole_path": {"type": "string", "description": "ik_setup two_bone: pole node for the bend direction."},
+			"pole_path": {"type": "string", "description": "ik_setup two_bone: pole node for the bend."},
 			"use_virtual_end": {
 				"type": "boolean",
-				"description": "ik_setup two_bone: last chain bone is the effector (off).",
+				"description": "ik_setup two_bone: last chain bone = effector (off).",
 			},
 			"end_bone_length": {"type": "number", "description": "ik_setup: virtual end length (0.1)."},
 			"active": {
 				"type": "boolean",
-				"description": "Modifier setups: enable now (off; it also drives the scene while you edit).",
+				"description": "Modifier setups: enable now (off).",
 			},
 			"springs": {
 				"type": "array",
 				"items": {"type": "object"},
-				"description": "spring_setup: per spring {root_bone, end_bone?, stiffness?, drag?, gravity?, radius?, ...}; end_bone defaults to the leaf.",
+				"description": "spring_setup: [{root_bone, end_bone?, stiffness?, drag?, gravity?, radius?}]; end_bone = leaf.",
 			},
 			"mutable_bone_axes": {"type": "boolean", "description": "spring_setup: allow any-axis rotation (off)."},
-			"bone": {"type": "string", "description": "look_at_setup: bone that tracks the target."},
-			"forward_axis": {"type": "string", "enum": ["+x", "-x", "+y", "-y", "+z", "-z"], "description": "look_at_setup: look direction (+z)."},
-			"origin_from": {"type": "string", "enum": ["self", "bone", "external_node"], "description": "look_at_setup: look-direction source (self)."},
-			"origin_bone": {"type": "string", "description": "look_at_setup: origin bone (origin_from=bone)."},
-			"origin_node": {"type": "string", "description": "look_at_setup: origin node (origin_from=external_node)."},
-			"origin_offset": {"description": "look_at_setup: origin offset."},
-			"origin_safe_margin": {"type": "number", "description": "look_at_setup: origin dead zone."},
-			"use_angle_limitation": {"type": "boolean", "description": "look_at_setup: clamp the rotation (off)."},
-			"primary_limit_angle": {"type": "number", "description": "look_at_setup: primary limit, degrees."},
-			"secondary_limit_angle": {"type": "number", "description": "look_at_setup: secondary limit, degrees."},
-			"use_secondary_rotation": {"type": "boolean", "description": "look_at_setup: secondary axis rotation (off)."},
-			"primary_axis": {"type": "string", "enum": ["x", "y", "z"], "description": "look_at_setup: primary rotation axis (y)."},
-			"relative": {"type": "boolean", "description": "look_at_setup: relative to initial orientation (off)."},
-			"duration": {"type": "number", "description": "look_at_setup: turn time, seconds (0 = instant)."},
+			"bone": {"type": "string", "description": "look_at: bone that tracks the target."},
+			"spine_chain": {
+				"type": "array",
+				"items": {"type": "string"},
+				"description": "Recipes: torso chain, hips first (auto-detected).",
+			},
+			"disperse": {
+				"type": "object",
+				"description": "twist_setup: {root_bone, end_bone?, mode? even|weighted, weight_position?, damping?, twist_from_rest?}; root/end default to the chain.",
+			},
+			"forward_axis": {"type": "string", "enum": ["+x", "-x", "+y", "-y", "+z", "-z"], "description": "look_at: look direction (+z)."},
+			"origin_from": {"type": "string", "enum": ["self", "bone", "external_node"], "description": "look_at: look-direction source (self)."},
+			"origin_bone": {"type": "string", "description": "look_at: origin bone (origin_from=bone)."},
+			"origin_node": {"type": "string", "description": "look_at: origin node (with external_node)."},
+			"origin_offset": {"description": "look_at: origin offset."},
+			"origin_safe_margin": {"type": "number", "description": "look_at: origin dead zone."},
+			"use_angle_limitation": {"type": "boolean", "description": "look_at: clamp the rotation (off)."},
+			"primary_limit_angle": {"type": "number", "description": "look_at: primary limit, degrees."},
+			"secondary_limit_angle": {"type": "number", "description": "look_at: secondary limit, degrees."},
+			"use_secondary_rotation": {"type": "boolean", "description": "look_at: secondary axis rotation (off)."},
+			"primary_axis": {"type": "string", "enum": ["x", "y", "z"], "description": "look_at: primary rotation axis (y)."},
+			"relative": {"type": "boolean", "description": "look_at: relative to rest (off)."},
+			"duration": {"type": "number", "description": "look_at: turn time, seconds (0 = instant)."},
 			"profile": {
 				"type": "string",
-				"description": "retarget_setup: auto | humanoid | res:// SkeletonProfile path. Recipes: a saved rig profile (name or res:// path).",
+				"description": "retarget_setup: auto|humanoid|res:// path; recipes: saved rig profile.",
 			},
 			"position": {"type": "boolean", "description": "retarget_setup: bone positions (off)."},
 			"rotation": {"type": "boolean", "default": true, "description": "retarget_setup: bone rotations (on)."},
 			"scale": {"type": "boolean", "description": "retarget_setup: bone scales (off)."},
-			"use_global_pose": {"type": "boolean", "description": "retarget_setup: global poses (off; matching lengths)."},
+			"use_global_pose": {"type": "boolean", "description": "retarget_setup: global poses (off; length match)."},
 			"move_target": {"type": "boolean", "description": "retarget_setup: move target under modifier (on)."},
 			"name": {
 				"type": "string",
 				"description": "Pose name under res://animation_toolkit/poses/.",
 			},
 			"path": {"type": "string", "description": "Explicit pose JSON path."},
-			"pose": {"type": "object", "description": "Inline pose (as returned by pose_save)."},
-			"from": {"description": "pose_blend: first pose (inline or saved name)."},
-			"to": {"description": "pose_blend: second pose (inline or saved name)."},
+			"pose": {"type": "object", "description": "Inline pose (as pose_save returns)."},
+			"from": {"description": "pose_blend: first pose (inline|name)."},
+			"to": {"description": "pose_blend: second pose (inline|name)."},
 			"factor": {"type": "number", "description": "pose_blend: 0=from, 1=to (0.5)."},
 			"mirror": {
 				"type": "boolean",
-				"description": "Mirror poses across X (off; L/R swap).",
+				"description": "Mirror across X (off; swaps L/R).",
 			},
 			"blend": {
 				"type": "number",
@@ -1501,12 +1533,12 @@ static func _rig_schema() -> Dictionary:
 				"type": "boolean",
 				"description": "pose_apply: reset poses first (off).",
 			},
-			"player_path": {"type": "string", "description": "pose_to_clip: AnimationPlayer to receive the clip."},
+			"player_path": {"type": "string", "description": "pose_to_clip: AnimationPlayer for the clip."},
 			"animation_name": {"type": "string", "description": "pose_to_clip: clip name (pose_clip)."},
 			"keys": {
 				"type": "array",
 				"items": {"type": "object"},
-				"description": "pose_to_clip: [{pose|name|path, time, transition?, mirror?}].",
+				"description": "pose_to_clip: [{pose|name|path, time, transition?, mirror?, aim?}].",
 			},
 			"positions": {
 				"type": "boolean",
@@ -1526,7 +1558,7 @@ static func _rig_schema() -> Dictionary:
 			},
 			"overwrite": {
 				"type": "boolean",
-				"description": "Replace an existing pose file or clip (off).",
+				"description": "Replace an existing pose or clip (off).",
 			},
 			"dry_run": {
 				"type": "boolean",
@@ -1559,7 +1591,7 @@ static func _rig_ops() -> Array:
 		},
 		{
 			"name": "pose_to_clip",
-			"summary": "Keyframe a pose sequence into an Animation clip (one rotation track per bone).",
+			"summary": "Keyframe a pose sequence into an Animation clip; a key's `aim` solves a three-bone chain so the end bone's origin lands on a world `target`, bending into the `pole` half-plane (or the base pose's bend when `pole` is omitted). The skeleton pose is left untouched, so contact keys bake exact contact into the clip.",
 			"params": ["player_path", "skeleton_path", "animation_name", "keys", "positions", "scales", "loop_mode", "pose_dir", "overwrite"],
 			"example": {"op": "pose_to_clip", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "wave", "loop_mode": "linear", "keys": [{"name": "idle", "time": 0.0}, {"name": "wave_mid", "time": 0.5, "transition": "ease_in_out"}, {"name": "idle", "time": 1.0}]},
 		},
@@ -1606,6 +1638,12 @@ static func _rig_ops() -> Array:
 			"example": {"op": "retarget_setup", "skeleton_path": "/Main/Source/Skeleton3D", "target_path": "/Main/Target/Skeleton3D", "profile": "auto"},
 		},
 		{
+			"name": "twist_setup",
+			"summary": "Attach a BoneTwistDisperser3D so a twist on one bone is spread over the bones above it: the root/end default to the detected spine chain and `mode` picks even or weighted distribution (`weight_position`/`damping` shape the falloff). Godot builds the per-joint list at runtime, so custom amounts live in the modifier's Inspector. Created inactive, like every modifier setup.",
+			"params": ["skeleton_path", "disperse", "spine_chain", "name", "active"],
+			"example": {"op": "twist_setup", "skeleton_path": "/Main/Rig/Skeleton3D", "disperse": {"root_bone": "B-hips", "end_bone": "B-chest", "mode": "even"}},
+		},
+		{
 			"name": "walk_cycle",
 			"summary": "Build a looping in-place walk cycle (legs, knees, counter-swinging arms, hip bob) from bone roles.",
 			"params": ["player_path", "skeleton_path", "animation_name", "duration", "stride", "knee_bend", "arm_swing", "arm_down", "bob", "swing_axis", "roles", "profile", "loop_mode", "overwrite"],
@@ -1613,8 +1651,8 @@ static func _rig_ops() -> Array:
 		},
 		{
 			"name": "idle_breathing",
-			"summary": "Build a subtle looping idle: chest/spine breathing, a light head counter-move and an optional hip bob.",
-			"params": ["player_path", "skeleton_path", "animation_name", "duration", "amplitude", "head_amplitude", "bob", "axis", "roles", "profile", "loop_mode", "overwrite"],
+			"summary": "Build a subtle looping idle: the whole torso chain breathes (ramping from the lower spine to the chest), the head counter-moves, and an optional hip bob rides along.",
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "amplitude", "head_amplitude", "bob", "axis", "roles", "profile", "spine_chain", "loop_mode", "overwrite"],
 			"example": {"op": "idle_breathing", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "idle", "duration": 3.0, "loop_mode": "linear"},
 		},
 		{
@@ -1637,8 +1675,8 @@ static func _rig_ops() -> Array:
 		},
 		{
 			"name": "punch",
-			"summary": "Build a looping boxing combo: guard, then alternating straight punches with a torso twist. `cycles` punches fit in the clip.",
-			"params": ["player_path", "skeleton_path", "animation_name", "duration", "cycles", "amplitude", "bob", "roles", "profile", "loop_mode", "overwrite"],
+			"summary": "Build a looping boxing combo: guard, then alternating straight punches. `amplitude` is the *total* torso twist in degrees, spread up the spine chain (most of it in the upper chest); `cycles` punches fit in the clip.",
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "cycles", "amplitude", "bob", "roles", "profile", "spine_chain", "loop_mode", "overwrite"],
 			"example": {"op": "punch", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "boxing", "duration": 0.8, "cycles": 2, "loop_mode": "linear"},
 		},
 		{
@@ -1705,7 +1743,7 @@ static func _motion_schema() -> Dictionary:
 			},
 			"overrides": {
 				"type": "object",
-				"description": "Deep tuning, e.g. {\"stride\": 18, \"lag\": 0.1}; walk/run keys: stride, knee_bend, arm_swing, arm_twist, bob, sway, hip_yaw, hip_roll, chest_yaw, lean, foot_lift, elbow, elbow_swing, lag, stance, crouch; idle keys: amplitude, head_amplitude, look, twist, bob, sway, shift, noise, lean, arm_sway, elbow, arm_twist.",
+				"description": "Deep tuning, e.g. {\"stride\": 18, \"lag\": 0.1}; walk/run keys: stride, knee_bend, arm_swing, arm_twist, bob, sway, hip_yaw, hip_roll, chest_yaw, twist_spread, lean, foot_lift, elbow, elbow_swing, lag, stance, crouch; idle keys: amplitude, head_amplitude, look, twist, bob, sway, shift, noise, lean, arm_sway, elbow, arm_twist, twist_spread.",
 			},
 			"samples": {
 				"type": "number",
@@ -1731,6 +1769,10 @@ static func _motion_schema() -> Dictionary:
 			"angle": {
 				"type": "number",
 				"description": "turn_cycle: turn angle in degrees (90).",
+			},
+			"steps": {
+				"type": "integer",
+				"description": "turn_cycle: pivot steps the turn is split into (1).",
 			},
 			"height": {
 				"type": "number",
@@ -1783,6 +1825,15 @@ static func _motion_schema() -> Dictionary:
 			"head_amplitude": {
 				"type": "number",
 				"description": "idle_cycle: head nod/drift, degrees (0.8).",
+			},
+			"spine_chain": {
+				"type": "array",
+				"items": {"type": "string"},
+				"description": "Torso chain for twist/lean, hips first (auto-detected; must be one parent chain).",
+			},
+			"twist_spread": {
+				"type": "number",
+				"description": "0 keeps the twist on the hips, 1 spreads it over the whole chain (1; also an override key).",
 			},
 			"roles": {
 				"type": "object",
@@ -1864,12 +1915,13 @@ static func _motion_ops() -> Array:
 		"player_path", "skeleton_path", "animation_name", "duration", "style",
 		"overrides", "samples", "root_motion", "set_root_motion", "speed", "stride",
 		"knee_bend", "arm_swing", "arm_down", "bob", "sway", "lean", "roles",
-		"profile", "loop_mode", "overwrite",
+		"profile", "spine_chain", "twist_spread", "loop_mode", "overwrite",
 	]
 	var idle_params := [
 		"player_path", "skeleton_path", "animation_name", "duration", "style",
 		"overrides", "samples", "amplitude", "head_amplitude", "bob", "sway",
-		"lean", "roles", "profile", "loop_mode", "overwrite",
+		"lean", "roles", "profile", "spine_chain", "twist_spread", "loop_mode",
+		"overwrite",
 	]
 	return _with_dry_run([
 		{
@@ -1910,14 +1962,14 @@ static func _motion_ops() -> Array:
 		},
 		{
 			"name": "jump",
-			"summary": "Build a one-shot jump: anticipation crouch, launch, air arc, landing absorb and recovery; feet planted before takeoff and after landing.",
-			"params": ["player_path", "skeleton_path", "animation_name", "duration", "height", "crouch", "distance", "style", "overrides", "samples", "roles", "profile", "loop_mode", "overwrite"],
+			"summary": "Build a one-shot jump: anticipation crouch, launch, air arc, landing absorb and recovery; feet planted before takeoff and after landing, and the lean is spread up `spine_chain`.",
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "height", "crouch", "distance", "style", "overrides", "samples", "roles", "profile", "spine_chain", "loop_mode", "overwrite"],
 			"example": {"op": "jump", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "jump", "duration": 1.2, "height": 0.6, "crouch": 0.25},
 		},
 		{
 			"name": "turn_cycle",
-			"summary": "Build an in-place pivot turn with anticipation, a stepping foot and a settle; one-shot, direction left/right.",
-			"params": ["player_path", "skeleton_path", "animation_name", "duration", "angle", "direction", "style", "overrides", "samples", "roles", "profile", "loop_mode", "overwrite"],
+			"summary": "Build an in-place pivot turn with anticipation, a stepping foot and a settle; one-shot, direction left/right. `steps` splits a big turn into that many pivot steps (opposite foot each) so a 180-degree turn reads as weight shifts, not a spin; the torso lead is bounded per step and spread over `spine_chain`, so a long spine cannot corkscrew; re-base the root yaw between steps in your driver.",
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "angle", "direction", "steps", "style", "overrides", "samples", "roles", "profile", "spine_chain", "loop_mode", "overwrite"],
 			"example": {"op": "turn_cycle", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "turn_left", "duration": 0.7, "angle": 90, "direction": "left"},
 		},
 		{

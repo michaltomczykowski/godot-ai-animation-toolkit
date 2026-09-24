@@ -89,6 +89,7 @@ func _register() -> void:
 		spec.promoted = true
 		spec.requires_writable = bool(info.get("requires_writable", true))
 		spec.undoable = bool(info.get("undoable", true))
+		spec.deferred = bool(info.get("deferred", false))
 		spec.timeout_ms = int(info.get("timeout_ms", 5000))
 		if not registry.call("register", spec):
 			registered_all = false

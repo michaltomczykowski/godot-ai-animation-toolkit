@@ -12,6 +12,7 @@ extends RefCounted
 ## the curve shape is in the samples.
 
 const MotionDrivers := preload("res://addons/godot_ai_animation/spec/motion_drivers.gd")
+const SpineTwist := preload("res://addons/godot_ai_animation/spec/spine_twist.gd")
 
 ## Style presets are multipliers over the base config, applied before
 ## `overrides` so callers can still tune individual values.
@@ -80,7 +81,10 @@ static func idle_config(style: String, overrides: Dictionary = {}) -> Dictionary
 		"amplitude": 1.6,
 		"head_amplitude": 0.8,
 		"look": 18.0,
-		"twist": 12.0,
+		## The *total* torso twist in degrees, shared over the spine chain: the old
+		## value was 12 with every bone taking its own multiplier, which summed to
+		## roughly twice this number.
+		"twist": 22.0,
 		"bob": 0.006,
 		"sway": 0.018,
 		"shift": 1.4,
@@ -150,7 +154,11 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 	var lag := float(config.lag)
 	var hip_yaw := float(config.hip_yaw) * float(signs.yaw)
 	var hip_roll := float(config.hip_roll) * float(signs.roll)
-	var chest_yaw := -0.8 * hip_yaw
+	# The torso counter-rotation: the hips lead, the spine and chest follow the
+	# other way, the head stabilises. Expressed as chain weights so it holds on
+	# any spine, and `chest_yaw` (previously shadowed by a local of the same name
+	# and therefore dead) now scales the counter for rigs that want more or less.
+	var counter := absf(float(config.get("chest_yaw", -0.8))) * 0.8
 	var lean := float(config.lean) * float(signs.lean)
 
 	var pelvis_rotation := [
@@ -158,21 +166,17 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 		_channel(forward, hip_roll, 1.0, 0.0, 0.0, "sine"),
 		_channel(lateral, 0.0, 1.0, 0.0, 0.0, "sine", 0.5 * lean),
 	]
-	var spine_rotation := [
-		_channel(up, 0.4 * chest_yaw, 1.0, 0.0, 0.0, "cosine"),
-		_channel(lateral, 0.0, 1.0, 0.0, 0.0, "sine", 0.5 * lean),
-	]
-	var chest_rotation := [
-		_channel(up, 0.6 * chest_yaw, 1.0, 0.0, 0.0, "cosine"),
-	]
-	var head_rotation := [
-		_channel(up, -0.5 * chest_yaw, 1.0, 0.0, lag, "cosine"),
-		_channel(lateral, 0.0, 1.0, 0.0, 0.0, "sine", -0.35 * lean),
-	]
+	# hips lead forward, everything above counter-rotates: [hips, spine, chest,
+	# head] as [-counter on the torso, half back on the head to stabilise].
+	var torso_weights := [0.0, -counter, -counter, counter * 0.5]
+	var torso_channels := _twist_channels(
+		ctx, config, hip_yaw, up, torso_weights, _spread(config), lag)
+	var spine_lean := [_channel(lateral, 0.0, 1.0, 0.0, 0.0, "sine", 0.5 * lean)]
+	var head_lean := [_channel(lateral, 0.0, 1.0, 0.0, 0.0, "sine", -0.35 * lean)]
 	var bob_channel := _channel(up, -0.5 * float(config.bob), 2.0, 0.0, 0.0, "cosine")
 	var sway_channel := _channel(lateral, -float(config.sway), 1.0, 0.0, 0.0, "sine")
 
-	var spine := str(roles.get("spine", ""))
+	var chain := _twist_chain(ctx, roles)
 	var chest := str(roles.get("chest", ""))
 	var head := str(roles.get("head", ""))
 
@@ -191,15 +195,15 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 			_append_position(keys, hips, time, offset)
 		_solve_leg(ctx, keys, "l", t, time, offset, pelvis_world, hips_animated, hips_origin, stance, span, ground_speed, rooted, length)
 		_solve_leg(ctx, keys, "r", t, time, offset, pelvis_world, hips_animated, hips_origin, stance, span, ground_speed, rooted, length)
-		if not spine.is_empty() and spine != chest:
-			var world := MotionDrivers.compose_rotation(spine_rotation, t)
-			_append_rotation(keys, spine, time, MotionDrivers.rotation_delta(_rest_basis(ctx, spine), world))
-		if not chest.is_empty():
-			var world := MotionDrivers.compose_rotation(chest_rotation, t)
-			_append_rotation(keys, chest, time, MotionDrivers.rotation_delta(_rest_basis(ctx, chest), world))
-		if not head.is_empty():
-			var world := MotionDrivers.compose_rotation(head_rotation, t)
-			_append_rotation(keys, head, time, MotionDrivers.rotation_delta(_rest_basis(ctx, head), world))
+		# The hips carry no twist share (the pelvis channels already lead), so
+		# every chain bone above them is keyed from the distributed torso channels.
+		for slot in chain:
+			var bone := str(slot)
+			if bone == hips or bone.is_empty():
+				continue
+			var own: Array = head_lean if bone == head else spine_lean
+			var world := _compose_with_twist(own, torso_channels, bone, t)
+			_append_rotation(keys, bone, time, MotionDrivers.rotation_delta(_rest_basis(ctx, bone), world))
 		_solve_arms(ctx, keys, time, t)
 
 	# A rooted cycle ends further forward than it started: the hips travel must
@@ -471,6 +475,10 @@ static func jump_keys(ctx: Dictionary) -> Dictionary:
 	var hips_origin: Vector3 = ctx.get("hips_origin", Vector3.ZERO)
 	var hips_rest := _rest_basis(ctx, hips)
 	var keys := {}
+	# The lean ramp over the torso: [spine, chest, head] used to take 0.5/0.4/0.0
+	# of the lean, i.e. 0.9 total with the head left behind.
+	var lean_chain := _twist_chain(ctx, roles)
+	var lean_shares := _ramp_shares(lean_chain, str(roles.get("head", "")), 0.35, 0.5, 0.25)
 	var phases := [
 		{"t": 0.0, "y": 0.0, "air": false, "lean": 0.0, "swing": 0.0, "bend": float(config.get("elbow", 12.0))},
 		{"t": 0.2, "y": -crouch, "air": false, "lean": 0.5, "swing": -0.9, "bend": float(config.get("elbow", 12.0)) + 15.0},
@@ -509,14 +517,20 @@ static func jump_keys(ctx: Dictionary) -> Dictionary:
 				var foot_rest := _rest_basis(ctx, foot_bone)
 				var flat := MotionDrivers.hold_global_delta(shin_solve.global, shin_rest, foot_rest, foot_rest)
 				_append_rotation(keys, foot_bone, time, Quaternion.IDENTITY.slerp(flat, 0.0 if bool(phase.air) else 1.0), transition)
-		var spine := str(roles.get("spine", ""))
-		var chest := str(roles.get("chest", ""))
-		if not spine.is_empty() and spine != chest:
-			var spine_world := Quaternion(ctx.lateral, deg_to_rad(float(phase.lean) * lean * 0.5))
-			_append_rotation(keys, spine, time, MotionDrivers.rotation_delta(_rest_basis(ctx, spine), spine_world), "ease_in_out")
-		if not chest.is_empty():
-			var chest_world := Quaternion(ctx.lateral, deg_to_rad(float(phase.lean) * lean * 0.4))
-			_append_rotation(keys, chest, time, MotionDrivers.rotation_delta(_rest_basis(ctx, chest), chest_world), "ease_in_out")
+		# The lean runs up the whole torso: the lowest bone takes most of it, the
+		# head takes a little, and any extra spine bone joins in - previously only
+		# the spine and chest existed, so a 6-bone spine bent in two places.
+		var lean_degrees := float(phase.lean) * lean
+		for slot in lean_chain:
+			var bone := str(slot)
+			if bone == hips or bone.is_empty():
+				continue
+			var share := float(lean_shares.get(bone, 0.0))
+			if is_zero_approx(share):
+				continue
+			var bone_world := Quaternion(ctx.lateral, deg_to_rad(lean_degrees * share))
+			_append_rotation(keys, bone, time,
+				MotionDrivers.rotation_delta(_rest_basis(ctx, bone), bone_world), "ease_in_out")
 		var arm_swing := float(phase.swing) * float(config.get("arm_swing", 65.0))
 		_solve_arm_chain(ctx, keys, "l", time, -arm_swing, float(phase.bend), "ease_in_out")
 		_solve_arm_chain(ctx, keys, "r", time, -arm_swing, float(phase.bend), "ease_in_out")
@@ -541,11 +555,17 @@ static func turn_config(style: String, overrides: Dictionary = {}) -> Dictionary
 		"elbow": 12.0,
 		"lean": 4.0,
 		"foot_lift": 0.05,
+		"steps": 1.0,
 	}, style, overrides)
 
 
 ## An in-place pivot turn: anticipation, a body sweep with one foot lifting and
 ## re-planting, then a settle. One-shot; `angle` is signed by `direction`.
+##
+## `steps` splits a big turn into that many pivot steps (each with its own
+## anticipation, opposite foot, and settle) so a 180-degree turn reads as two
+## weight shifts instead of one spin. The clip only carries the body rotation,
+## so the driver re-bases the root yaw between steps.
 static func turn_keys(ctx: Dictionary) -> Dictionary:
 	var config: Dictionary = ctx.config
 	var length := maxf(float(ctx.length), 0.01)
@@ -556,71 +576,98 @@ static func turn_keys(ctx: Dictionary) -> Dictionary:
 	var direction := str(ctx.get("direction", "left"))
 	var direction_sign := 1.0 if direction == "left" else -1.0
 	var angle := float(config.get("turn_angle", 90.0)) * direction_sign
+	var steps := clampi(int(config.get("steps", 1.0)), 1, 8)
+	var step_angle := angle / float(steps)
+	var step_length := length / float(steps)
 	var keys := {}
+	var markers: Array = []
 	var hips_origin: Vector3 = ctx.get("hips_origin", Vector3.ZERO)
 	var hips_rest := _rest_basis(ctx, hips)
 	var phases := [
 		{"t": 0.0, "yaw": 0.0, "bob": 0.0, "arm": 0.0},
-		{"t": 0.14, "yaw": -0.06 * angle, "bob": -0.02, "arm": -0.25},
-		{"t": 0.55, "yaw": 0.72 * angle, "bob": -0.035, "arm": 0.55},
-		{"t": 0.8, "yaw": 1.045 * angle, "bob": -0.012, "arm": 0.2},
-		{"t": 1.0, "yaw": angle, "bob": 0.0, "arm": 0.0},
+		{"t": 0.14, "yaw": -0.06 * step_angle, "bob": -0.02, "arm": -0.25},
+		{"t": 0.55, "yaw": 0.72 * step_angle, "bob": -0.035, "arm": 0.55},
+		{"t": 0.8, "yaw": 1.045 * step_angle, "bob": -0.012, "arm": 0.2},
+		{"t": 1.0, "yaw": step_angle, "bob": 0.0, "arm": 0.0},
 	]
-	var step_side := "r" if direction == "left" else "l"
-	for phase in phases:
-		var time := float(phase.t) * length
-		var world := Quaternion(up, deg_to_rad(float(phase.yaw) * float(signs.yaw)))
-		var hips_animated := Basis(world) * hips_rest
-		var offset := up * float(phase.bob)
-		if not hips.is_empty():
-			_append_rotation(keys, hips, time, MotionDrivers.rotation_delta(hips_rest, world))
-			_append_position(keys, hips, time, offset)
-		for side in ["l", "r"]:
-			var leg: Dictionary = ctx.legs[side]
-			var lift := 0.0
-			if side == step_side:
-				# The trailing foot lifts through the middle of the turn.
-				var mid := absf(float(phase.t) - 0.5)
-				lift = maxf(0.0, 1.0 - mid / 0.3) * float(config.get("foot_lift", 0.05))
-			var hip_pos: Vector3 = hips_origin + offset + Basis(world) * (leg.hip - hips_origin)
-			var ankle_target: Vector3 = hips_origin + Basis(world) * (leg.ankle - hips_origin) + up * lift
-			var knee := MotionDrivers.knee_position(hip_pos, ankle_target, float(leg.upper), float(leg.lower), ctx.forward)
-			var thigh_rest := _rest_basis(ctx, leg.thigh)
-			var shin_rest := _rest_basis(ctx, leg.shin)
-			var thigh_solve := MotionDrivers.aim_delta(hips_animated, hips_rest, thigh_rest, (knee - hip_pos).normalized())
-			var shin_solve := MotionDrivers.aim_delta(thigh_solve.global, thigh_rest, shin_rest, (ankle_target - knee).normalized())
-			_append_rotation(keys, leg.thigh, time, thigh_solve.delta, "ease_in_out")
-			_append_rotation(keys, leg.shin, time, shin_solve.delta, "ease_in_out")
-			var foot_bone := str(leg.get("foot", ""))
-			if not foot_bone.is_empty():
-				var foot_rest := _rest_basis(ctx, foot_bone)
-				# The planted foot turns with the body; the stepping one follows.
-				var foot_target := Basis(world) * foot_rest
-				var flat := MotionDrivers.hold_global_delta(shin_solve.global, shin_rest, foot_rest, foot_target)
-				_append_rotation(keys, foot_bone, time, Quaternion.IDENTITY.slerp(flat, 0.0 if lift > 0.001 else 1.0), "ease_in_out")
-		var chest := str(roles.get("chest", ""))
-		if not chest.is_empty():
-			# The chest and head lead the turn, then settle back.
-			var lead := 0.28 if float(phase.t) < 0.6 else 0.08
-			var chest_world := Quaternion(up, deg_to_rad(float(phase.yaw) * float(signs.yaw) * (1.0 + lead)))
-			_append_rotation(keys, chest, time, MotionDrivers.rotation_delta(_rest_basis(ctx, chest), chest_world), "ease_in_out")
-		var head := str(roles.get("head", ""))
-		if not head.is_empty():
-			var head_world := Quaternion(up, deg_to_rad(float(phase.yaw) * float(signs.yaw) * 0.25))
-			_append_rotation(keys, head, time, MotionDrivers.rotation_delta(_rest_basis(ctx, head), head_world), "ease_in_out")
-		# Arms counterbalance the sweep so a T-pose rest does not stay spread.
-		var arm_swing := float(config.get("arm_swing", 12.0)) * float(phase.arm)
-		_solve_arm_chain(ctx, keys, "l", time, arm_swing, float(config.get("elbow", 12.0)) + 8.0, "ease_in_out")
-		_solve_arm_chain(ctx, keys, "r", time, arm_swing, float(config.get("elbow", 12.0)) + 8.0, "ease_in_out")
-	var markers := [
-		{"name": "anticipate", "time": 0.14 * length},
-		{"name": "step", "time": 0.5 * length},
-		{"name": "settle", "time": 0.8 * length},
-	]
+	# Lead distribution over the torso above the hips: the chest leads the sweep,
+	# the head trails it, and any extra spine bone splits the difference.
+	var lead_chain := _twist_chain(ctx, roles)
+	var lead_shares := _lead_shares(lead_chain, str(roles.get("head", "")))
+	for step_index in steps:
+		var start_yaw := float(step_index) * step_angle
+		# The first step lifts the trailing foot; the next mirrors it.
+		var step_side := "r" if (direction == "left") == (step_index % 2 == 0) else "l"
+		for phase_index in phases.size():
+			# Every step but the first starts where the previous one settled, so
+			# only the first step keys the neutral start of its window.
+			if step_index > 0 and phase_index == 0:
+				continue
+			var phase: Dictionary = phases[phase_index]
+			var local := float(phase.t)
+			var time := (float(step_index) + local) * step_length
+			var yaw := start_yaw + float(phase.yaw)
+			var world := Quaternion(up, deg_to_rad(yaw * float(signs.yaw)))
+			var hips_animated := Basis(world) * hips_rest
+			var offset := up * float(phase.bob)
+			if not hips.is_empty():
+				_append_rotation(keys, hips, time, MotionDrivers.rotation_delta(hips_rest, world))
+				_append_position(keys, hips, time, offset)
+			for side in ["l", "r"]:
+				var leg: Dictionary = ctx.legs[side]
+				var lift := 0.0
+				if side == step_side:
+					# The trailing foot lifts through the middle of the step.
+					var mid := absf(local - 0.5)
+					lift = maxf(0.0, 1.0 - mid / 0.3) * float(config.get("foot_lift", 0.05))
+				var hip_pos: Vector3 = hips_origin + offset + Basis(world) * (leg.hip - hips_origin)
+				var ankle_target: Vector3 = hips_origin + Basis(world) * (leg.ankle - hips_origin) + up * lift
+				var knee := MotionDrivers.knee_position(hip_pos, ankle_target, float(leg.upper), float(leg.lower), ctx.forward)
+				var thigh_rest := _rest_basis(ctx, leg.thigh)
+				var shin_rest := _rest_basis(ctx, leg.shin)
+				var thigh_solve := MotionDrivers.aim_delta(hips_animated, hips_rest, thigh_rest, (knee - hip_pos).normalized())
+				var shin_solve := MotionDrivers.aim_delta(thigh_solve.global, thigh_rest, shin_rest, (ankle_target - knee).normalized())
+				_append_rotation(keys, leg.thigh, time, thigh_solve.delta, "ease_in_out")
+				_append_rotation(keys, leg.shin, time, shin_solve.delta, "ease_in_out")
+				var foot_bone := str(leg.get("foot", ""))
+				if not foot_bone.is_empty():
+					var foot_rest := _rest_basis(ctx, foot_bone)
+					# The planted foot turns with the body; the stepping one follows.
+					var foot_target := Basis(world) * foot_rest
+					var flat := MotionDrivers.hold_global_delta(shin_solve.global, shin_rest, foot_rest, foot_target)
+					_append_rotation(keys, foot_bone, time, Quaternion.IDENTITY.slerp(flat, 0.0 if lift > 0.001 else 1.0), "ease_in_out")
+			# The torso above the hips carries a bounded lead: a fraction of *this
+			# step's* angle, never of the running total, so a multi-step turn cannot
+			# compound it into a corkscrew. Distributing it over the chain means a
+			# 3-bone and a 6-bone spine both get a smooth lead instead of one
+			# chest bone taking it all.
+			var lead_fraction := 0.28 if local < 0.6 else 0.08
+			for slot in lead_chain:
+				var bone := str(slot)
+				if bone == hips or bone.is_empty():
+					continue
+				var share := lead_fraction * float(lead_shares.get(bone, 0.0)) * absf(step_angle)
+				var bone_yaw := (yaw + share) * float(signs.yaw)
+				var bone_world := Quaternion(up, deg_to_rad(bone_yaw))
+				_append_rotation(keys, bone, time,
+					MotionDrivers.rotation_delta(_rest_basis(ctx, bone), bone_world), "ease_in_out")
+			# Arms counterbalance the sweep so a T-pose rest does not stay spread.
+			var arm_swing := float(config.get("arm_swing", 12.0)) * float(phase.arm)
+			_solve_arm_chain(ctx, keys, "l", time, arm_swing, float(config.get("elbow", 12.0)) + 8.0, "ease_in_out")
+			_solve_arm_chain(ctx, keys, "r", time, arm_swing, float(config.get("elbow", 12.0)) + 8.0, "ease_in_out")
+		var suffix := "" if step_index == 0 else "_%d" % (step_index + 1)
+		markers.append({"name": "anticipate" + suffix, "time": (float(step_index) + 0.14) * step_length})
+		markers.append({"name": "step" + suffix, "time": (float(step_index) + 0.5) * step_length})
+		markers.append({"name": "settle" + suffix, "time": (float(step_index) + 0.8) * step_length})
 	return {
 		"keys": keys,
 		"markers": markers,
-		"meta": {"angle": angle, "direction": direction},
+		"meta": {
+			"angle": angle,
+			"direction": direction,
+			"steps": steps,
+			"step_angle": step_angle,
+		},
 	}
 
 
@@ -710,65 +757,79 @@ static func idle_keys(ctx: Dictionary) -> Dictionary:
 	var twist := float(config.twist)
 	# Breathing is the under-layer; the visible motion is the look-around and
 	# the torso twist. Every channel is integer-frequency, so the loop closes.
+	# The twist is distributed over the chain instead of each bone taking its own
+	# multiplier, so `twist` means the same total degrees on any rig.
+	var twist_channels := _twist_channels(ctx, config, twist, up, [], _spread(config))
 	var breath := [_channel(lateral, -float(config.amplitude) * scale, 1.0, 0.0, 0.0, "sine")]
-	var spine_motion := [
-		_channel(lateral, -0.6 * float(config.amplitude) * scale, 1.0, 0.0, 0.03, "sine"),
-		_channel(up, 0.5 * twist, 1.0, 0.25, 0.05, "sine"),
-		_channel(up, 0.15 * twist, 2.0, 0.62, 0.05, "sine"),
-		_channel(lateral, 0.15 * twist, 1.0, 0.25, 0.08, "sine"),
-	]
-	var chest_motion := [
-		_channel(up, twist, 1.0, 0.25, 0.0, "sine"),
-		_channel(up, 0.3 * twist, 2.0, 0.62, 0.0, "sine"),
-		_channel(lateral, 0.25 * twist, 1.0, 0.25, 0.05, "sine"),
-	]
+	# A quarter of the twist rides along as a weight shift on the hips, which is
+	# what made the old per-bone roll channels look like a ribcage rotating.
+	var hips_shift := [_channel(lateral, 0.25 * twist * scale, 1.0, 0.25, 0.05, "sine")]
 	var head_motion := [
 		_channel(up, look, 1.0, 0.25, 0.02, "sine"),
 		_channel(up, 0.3 * look, 2.0, 0.62, 0.02, "sine"),
 		_channel(lateral, -0.35 * float(config.head_amplitude), 1.0, 0.0, 0.06, "sine"),
 		_channel(forward, 0.12 * look, 1.0, 0.25, 0.05, "sine"),
 	]
+	# Seeded micro-motion, per chain bone: the torso breathes unevenly and the
+	# head is never quite still.
 	var noise_amount := float(config.noise)
+	var noise_channels := {}
 	if not is_zero_approx(noise_amount):
-		spine_motion.append(_channel(up, noise_amount * scale, 1.0, 0.0, 0.0, "noise", 0.0, 21, 3))
-		spine_motion.append(_channel(lateral, noise_amount * scale, 1.0, 0.35, 0.0, "noise", 0.0, 22, 3))
-		head_motion.append(_channel(up, 0.8 * noise_amount * scale, 1.0, 0.0, 0.0, "noise", 0.0, 23, 3))
-		head_motion.append(_channel(lateral, 0.6 * noise_amount * scale, 1.0, 0.5, 0.0, "noise", 0.0, 24, 3))
+		var chain_bones := _twist_chain(ctx, roles)
+		for slot in chain_bones:
+			var bone := str(slot)
+			var amount := noise_amount * scale * (0.5 if bone == str(roles.get("spine", "")) else 1.0)
+			noise_channels[bone] = [
+				_channel(up, amount, 1.0, 0.0, 0.0, "noise", 0.0, 21, 3),
+				_channel(lateral, amount, 1.0, 0.35, 0.0, "noise", 0.0, 22, 3),
+			]
+		head_motion.append_array([
+			_channel(up, 0.8 * noise_amount * scale, 1.0, 0.0, 0.0, "noise", 0.0, 23, 3),
+			_channel(lateral, 0.6 * noise_amount * scale, 1.0, 0.5, 0.0, "noise", 0.0, 24, 3),
+		])
 	var lean := float(config.lean)
 	var sway_channel := _channel(lateral, -float(config.sway), 1.0, 0.0, 0.0, "sine")
 	var bob_channel := _channel(up, -0.5 * float(config.bob), 2.0, 0.0, 0.0, "cosine")
 	var roll_channel := _channel(forward, float(config.shift) * float(signs.roll), 1.0, 0.0, 0.0, "sine")
-	var hips_yaw_channel := _channel(up, -0.2 * twist, 1.0, 0.25, 0.03, "sine")
+	var chain := _twist_chain(ctx, roles)
+	var chest := str(roles.get("chest", ""))
+	var head := str(roles.get("head", ""))
 
 	for index in times.size():
 		var t := float(index) / float(steps)
 		var time := float(times[index])
 		if not hips.is_empty():
+			# duplicate(): append_array would otherwise grow hips_shift itself and
+			# stack the twist channels once per sample.
+			var hips_motion: Array = hips_shift.duplicate()
+			hips_motion.append_array((twist_channels.get(hips, []) as Array))
 			var world := (
 				Quaternion(lateral, deg_to_rad(-lean * 0.35 * scale))
 				* Quaternion(forward, deg_to_rad(MotionDrivers.channel_value(roll_channel, t)))
-				* Quaternion(up, deg_to_rad(MotionDrivers.channel_value(hips_yaw_channel, t)))
+				* MotionDrivers.compose_rotation(hips_motion, t)
 			)
 			_append_rotation(keys, hips, time, MotionDrivers.rotation_delta(_rest_basis(ctx, hips), world))
 			_append_position(keys, hips, time,
 				lateral * MotionDrivers.channel_value(sway_channel, t)
 				+ up * MotionDrivers.channel_value(bob_channel, t))
-		var spine := str(roles.get("spine", ""))
-		var chest := str(roles.get("chest", ""))
-		var head := str(roles.get("head", ""))
-		if not spine.is_empty() and spine != chest:
-			var world := MotionDrivers.compose_rotation(spine_motion, t) * Quaternion(lateral, deg_to_rad(-lean * 0.5 * scale))
-			_append_rotation(keys, spine, time, MotionDrivers.rotation_delta(_rest_basis(ctx, spine), world))
-		if not chest.is_empty():
-			var world := (
-				MotionDrivers.compose_rotation(chest_motion, t)
-				* MotionDrivers.compose_rotation(breath, t)
-				* Quaternion(lateral, deg_to_rad(-lean * 0.5 * scale))
-			)
-			_append_rotation(keys, chest, time, MotionDrivers.rotation_delta(_rest_basis(ctx, chest), world))
-		if not head.is_empty():
-			var world := MotionDrivers.compose_rotation(head_motion, t) * Quaternion(lateral, deg_to_rad(lean * 0.4 * scale))
-			_append_rotation(keys, head, time, MotionDrivers.rotation_delta(_rest_basis(ctx, head), world))
+		# Every chain bone above the hips takes its share of the twist; the chest
+		# keeps the breathing under-layer and the head keeps its look-around.
+		for slot in chain:
+			var bone := str(slot)
+			if bone == hips or bone.is_empty():
+				continue
+			var own: Array = []
+			if bone == chest:
+				own = breath.duplicate()
+				own.append_array((noise_channels.get(bone, []) as Array))
+			elif bone == head:
+				own = head_motion.duplicate()
+			else:
+				own = (noise_channels.get(bone, []) as Array).duplicate()
+			var pose := _compose_with_twist(own, twist_channels, bone, t)
+			var lean_share := lean * 0.4 * scale if bone == head else -lean * 0.5 * scale
+			pose = pose * Quaternion(lateral, deg_to_rad(lean_share))
+			_append_rotation(keys, bone, time, MotionDrivers.rotation_delta(_rest_basis(ctx, bone), pose))
 		_solve_idle_arms(ctx, keys, time, t)
 	return {"keys": keys, "markers": [], "meta": {}}
 
@@ -788,6 +849,92 @@ static func _solve_idle_arms(ctx: Dictionary, keys: Dictionary, time: float, t: 
 
 
 # --- helpers ----------------------------------------------------------------
+
+## The torso chain a recipe should twist: the context's detected chain, or the
+## scalar roles as a fallback so hand-built and 2D contexts still move something.
+static func _twist_chain(ctx: Dictionary, roles: Dictionary) -> Array:
+	var chain: Array = ctx.get("spine_chain", [])
+	if not chain.is_empty():
+		return chain
+	var out: Array = []
+	for role in ["hips", "spine", "chest", "head"]:
+		var name := str(roles.get(role, ""))
+		if not name.is_empty() and not out.has(name):
+			out.append(name)
+	return out
+
+
+## Per-bone twist channels over the chain: one sine plus a second harmonic per
+## bone, with the degree values coming from the shared distributor so a recipe
+## parameter means the same *total* twist on any rig.
+##
+## `total_degrees` may be negative (counter-rotation); `weights` and `spread` let
+## a recipe choose the shape - the gait uses a hips-leads profile, the idle the
+## default. Returns `{bone_name: [channel, ...]}`.
+static func _twist_channels(
+	ctx: Dictionary, config: Dictionary, total_degrees: float, axis: Vector3,
+	weights: Array = [], spread := 1.0, lag_span := 0.06, clamp_degrees := 0.0,
+) -> Dictionary:
+	var out: Dictionary = {}
+	var chain := _twist_chain(ctx, ctx.get("roles", {}))
+	if chain.is_empty() or is_zero_approx(total_degrees):
+		return out
+	var degrees: Array = SpineTwist.amplitudes(
+		chain.size(), total_degrees, weights, spread, clamp_degrees)
+	var lags: Array = SpineTwist.lags(chain.size(), 0.0, lag_span)
+	for index in chain.size():
+		var amount := float(degrees[index])
+		if is_zero_approx(amount):
+			continue
+		out[str(chain[index])] = [
+			_channel(axis, amount, 1.0, 0.25, float(lags[index]), "sine"),
+			_channel(axis, amount * 0.3, 2.0, 0.62, float(lags[index]), "sine"),
+		]
+	return out
+
+
+## How far up the chain a twist travels: 0 keeps it on the hips, 1 uses the full
+## profile. Overridable per call as `twist_spread`.
+static func _spread(config: Dictionary) -> float:
+	return clampf(float(config.get("twist_spread", 1.0)), 0.0, 1.0)
+
+
+## Per-bone lead fractions for a turn sweep: the lead ramps up the torso and the
+## head trails it, so the sweep is shared instead of landing on one chest bone.
+## Values are multipliers of a step's angle (1.0 = a full step's worth of lead).
+static func _lead_shares(chain: Array, head: String) -> Dictionary:
+	return _ramp_shares(chain, head, 0.35, 1.0, -0.2)
+
+
+## Ramps a value from `first` at the lowest bone to `last` at the highest, with a
+## separate value for the head. Every value is a multiplier the recipe applies to
+## its own amplitude, so the total stays comparable to the old per-bone constants.
+static func _ramp_shares(chain: Array, head: String, first: float, last: float, head_value: float) -> Dictionary:
+	var out: Dictionary = {}
+	var torso: Array = []
+	for slot in chain:
+		var bone := str(slot)
+		if not bone.is_empty():
+			torso.append(bone)
+	if torso.size() == 1:
+		out[str(torso[0])] = 1.0
+		return out
+	var span := maxf(1.0, float(torso.size() - 1))
+	for index in torso.size():
+		var bone := str(torso[index])
+		if not head.is_empty() and bone == head:
+			out[bone] = head_value
+		else:
+			out[bone] = lerpf(first, last, float(index) / span)
+	return out
+
+
+## Compose a recipe's own channels with any distributed twist for that bone.
+static func _compose_with_twist(own: Array, twist: Dictionary, bone: String, t: float) -> Quaternion:
+	var channels: Array = own.duplicate(true)
+	channels.append_array((twist.get(bone, []) as Array))
+	return MotionDrivers.compose_rotation(channels, t)
+
 
 static func _rest_basis(ctx: Dictionary, bone: String) -> Basis:
 	if bone.is_empty():

@@ -27,7 +27,7 @@ const _CYCLE_KINDS := {
 	"walk_stop": "walk_stop",
 }
 
-const _GAIT_KEYS := ["stride", "knee_bend", "arm_swing", "arm_twist", "bob", "sway", "hip_yaw", "hip_roll", "chest_yaw", "lean", "foot_lift", "elbow", "elbow_swing", "lag", "stance", "crouch", "toe_roll"]
+const _GAIT_KEYS := ["stride", "knee_bend", "arm_swing", "arm_twist", "bob", "sway", "hip_yaw", "hip_roll", "chest_yaw", "lean", "foot_lift", "elbow", "elbow_swing", "lag", "stance", "crouch", "toe_roll", "twist_spread"]
 
 const _OVERRIDE_KEYS := {
 	"walk": _GAIT_KEYS,
@@ -35,9 +35,9 @@ const _OVERRIDE_KEYS := {
 	"strafe": _GAIT_KEYS,
 	"walk_start": _GAIT_KEYS,
 	"walk_stop": _GAIT_KEYS,
-	"idle": ["amplitude", "head_amplitude", "look", "twist", "bob", "sway", "shift", "noise", "lean", "arm_sway", "elbow", "arm_twist"],
+	"idle": ["amplitude", "head_amplitude", "look", "twist", "bob", "sway", "shift", "noise", "lean", "arm_sway", "elbow", "arm_twist", "twist_spread"],
 	"jump": ["jump_height", "jump_crouch", "jump_distance", "arm_swing", "elbow", "lean", "foot_lift"],
-	"turn": ["turn_angle", "arm_swing", "elbow", "lean", "foot_lift", "toe_roll"],
+	"turn": ["turn_angle", "arm_swing", "elbow", "lean", "foot_lift", "toe_roll", "steps"],
 }
 
 
@@ -695,6 +695,9 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 	for side in ["l", "r"]:
 		var arm := str(roles.get("arm_" + side, ""))
 		arm_down[side] = _aim_delta(skeleton, arm, Vector3.DOWN, arm_amount) if not arm.is_empty() else Quaternion.IDENTITY
+	var chain := _spine_chain(params, skeleton, roles)
+	if chain.has("error"):
+		return chain
 	return {
 		"resolved": resolved,
 		"skeleton": skeleton,
@@ -705,6 +708,7 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 			"length": length,
 			"samples": rate,
 			"roles": roles,
+			"spine_chain": chain.chain,
 			"forward": forward,
 			"up": up,
 			"lateral": lateral,
@@ -716,6 +720,14 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 			"root_motion": bool(params.get("root_motion", false)),
 		},
 	}
+
+
+## The torso chain the twist distribution walks: an explicit `spine_chain` param
+## when given (validated against the skeleton), otherwise detected from the bone
+## parents. Returns `{"chain": [...]}` or an error, so a typo fails loudly
+## instead of twisting a limb.
+func _spine_chain(params: Dictionary, skeleton: Skeleton3D, roles: Dictionary) -> Dictionary:
+	return resolve_spine_chain(params, skeleton, roles)
 
 
 ## Global rest basis/origin per role bone (skeleton space).

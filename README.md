@@ -2,7 +2,7 @@
 
 A standalone [Godot](https://godotengine.org) addon that gives
 [Godot AI](https://github.com/hi-godot/godot-ai) agents eight animation tools
-(98 ops) — **no core patches**:
+(100 ops) — **no core patches**:
 
 - **`animation_presets`** — build clips in one call (the presets scoped out of
   core during the animation PR review: a generalized `pulse` plus `bounce`,
@@ -21,26 +21,29 @@ A standalone [Godot](https://godotengine.org) addon that gives
 - **`animation_library`** — reusable templates (`template_save/apply/list/delete`)
   and JSON clip specs (`spec_export/import/apply`).
 - **`animation_rig`** — skeletons from scratch (`rig_chain`), IK (`ik_setup`),
-  spring bones, look-at and retargeting modifiers, skeleton poses
-  (`pose_save`, `pose_apply`, `pose_blend`, `pose_to_clip`, `pose_list`,
-  `rig_get`), procedural recipes (`walk_cycle`, `idle_breathing`, `blink`,
-  `jumping_jack`, `squat`, `punch`) and `bake_pose_sequence` (live modifiers →
-  a plain clip).
+  spring bones, look-at, retargeting and twist-disperser modifiers, skeleton poses
+  (`pose_save`, `pose_apply`, `pose_blend`, `pose_to_clip` — whose keys can carry
+  an analytic three-bone `aim` solve that lands the hand/foot exactly on a world
+  target — `pose_list`, `rig_get`), procedural recipes (`walk_cycle`,
+  `idle_breathing`, `blink`, `jumping_jack`, `squat`, `punch`) and
+  `bake_pose_sequence` (live modifiers → a plain clip).
 - **`animation_motion`** — procedural humanoid locomotion and idle:
   `walk_cycle`, `run_cycle`, `idle_cycle` and a generic `cycle` build densely
   sampled clips with two-bone IK leg solves (planted feet), pelvis
-  bob/sway/yaw/roll, counter-rotating torso, proper arm swing with forward
-  elbow follow-through, and an idle that looks around and twists the torso;
-  `style`/`overrides` tune the motion, `root_motion` keys forward travel,
-  `character_setup` builds idle + walk + run and the locomotion tree in one
-  call, and `secondary_motion` bakes offline spring bones (hair/tail/cloth)
-  into a clip.
+  bob/sway/yaw/roll, a counter-rotating torso distributed over the detected spine
+  chain, proper arm swing with forward elbow follow-through, and an idle that
+  looks around and twists the torso; `spine_chain` / `twist_spread` shape how far
+  up the spine a twist travels, `style`/`overrides` tune the motion,
+  `root_motion` keys forward travel, `character_setup` builds idle + walk + run
+  and the locomotion tree in one call, and `secondary_motion` bakes offline
+  spring bones (hair/tail/cloth) into a clip.
 - **`animation_inspect`** — read-only reasoning and QA: `describe`, `timeline`,
   `audit` (broken paths, dead clips, loop seams, autoplay conflicts),
   `compare`, `stats`, `motion_report` (key density, peaks, seam pops,
   hemisphere flips), `rig_profile` (bone roles/candidates, T/A pose, limb
   reach, capabilities; saves a reusable profile), `sample` (FK probe: world
-  bone positions, foot heights, contact windows), `dry_run` (run any op without
+  bone positions, foot heights, contact windows), `preview` (offscreen PNGs of
+  the posed character, so a clip can be *seen*), `dry_run` (run any op without
   committing), `help`.
 
 All eight sit on one declarative clip-spec engine, so every op is a pure
@@ -205,12 +208,19 @@ remapping).
 
 `animation_rig` builds and drives skeletons: bones from a spec or a node
 subtree (`rig_chain`), IK (`ik_setup` — two-bone and chain solvers), spring
-bones, look-at and retargeting modifiers, and skeleton poses as portable
-rest-relative data. On top of that sit seven sparse rig recipes — `walk_cycle`
-(with `arm_down` for T-pose rigs), `idle_breathing`, `blink`, `jumping_jack`,
-`squat`, `punch` and `bake_pose_sequence`, which samples a source clip with the
-active modifiers running and keys the final pose into a new clip. (For smooth
-character locomotion, see `animation_motion` below.)
+bones, look-at, retargeting and twist-disperser (`twist_setup`) modifiers, and
+skeleton poses as portable rest-relative data. On top of that sit seven sparse
+rig recipes — `walk_cycle` (with `arm_down` for T-pose rigs), `idle_breathing`,
+`blink`, `jumping_jack`, `squat`, `punch` and `bake_pose_sequence`, which samples
+a source clip with the active modifiers running and keys the final pose into a
+new clip. (For smooth character locomotion, see `animation_motion` below.)
+
+Torso twist and lean are **distributed over the detected spine chain** rather
+than hard-coded per bone, in both families: `spine_chain` overrides the detected
+chain (it must be one parent chain), and `twist_spread` slides a twist between
+the hips alone and the whole chain. A parameter therefore means the same *total*
+rotation on a 3-bone and a 6-bone spine, which is what stops a long spine from
+winding up mid-clip.
 
 Bone clips are ordinary transform tracks, so everything else in the toolkit
 works on them — `retime`, `mirror`, `reverse`, `amplitude`, JSON export,

@@ -388,6 +388,71 @@ func test_pose_to_clip_positions_and_validation() -> void:
 	_teardown(rig)
 
 
+## An aim key solves root/mid/end so the end bone's origin lands on a world
+## target, keeps that contact through the clip, and leaves the live skeleton
+## pose untouched.
+func test_pose_to_clip_aim_keys() -> void:
+	var rig := _rig("RigAim")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var skeleton: Skeleton3D = rig.skeleton
+	var chain: Array = ["B-upperArm.L", "B-forearm.L", "B-hand.L"]
+	var shoulder: Vector3 = skeleton.get_bone_global_rest(skeleton.find_bone(chain[0])).origin
+	var elbow: Vector3 = skeleton.get_bone_global_rest(skeleton.find_bone(chain[1])).origin
+	var wrist: Vector3 = skeleton.get_bone_global_rest(skeleton.find_bone(chain[2])).origin
+	var arm: float = shoulder.distance_to(elbow) + elbow.distance_to(wrist)
+	var direction := Vector3(0.0, 0.2, 1.0).normalized()
+	var first: Vector3 = skeleton.global_transform * (shoulder + direction * (arm * 0.7))
+	var second: Vector3 = skeleton.global_transform * (shoulder + direction * (arm * 0.4))
+	var result := _handler.run({
+		"op": "pose_to_clip", "pose_dir": POSE_DIR,
+		"player_path": rig.player_path,
+		"skeleton_path": rig.skeleton_path,
+		"animation_name": "contact",
+		"keys": [
+			{"time": 0.0, "aim": [{"chain": chain, "target": [first.x, first.y, first.z], "pole": [0, -1, 0]}]},
+			{"time": 0.5, "aim": [{"chain": chain, "target": [second.x, second.y, second.z]}]},
+		],
+	}, null)
+	assert_true(result.has("data"), "expected data, got: %s" % str(result))
+	var anim: Animation = rig.player.get_animation("contact")
+	assert_true(anim != null, "the clip exists")
+	for bone in ["B-upperArm.L", "B-forearm.L"]:
+		assert_true(_track_index(anim, ":" + str(bone), Animation.TYPE_ROTATION_3D) >= 0,
+			"%s has a rotation track" % str(bone))
+	skeleton.reset_bone_poses()
+	for key_index in 2:
+		for track in anim.get_track_count():
+			if anim.track_get_type(track) != Animation.TYPE_ROTATION_3D:
+				continue
+			var index := skeleton.find_bone(str(anim.track_get_path(track)).get_slice(":", 1))
+			if index >= 0:
+				skeleton.set_bone_pose_rotation(index, anim.track_get_key_value(track, key_index))
+		skeleton.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
+		var hand: int = skeleton.find_bone("B-hand.L")
+		var contact: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(hand).origin
+		var wanted: Vector3 = first if key_index == 0 else second
+		assert_true(contact.distance_to(wanted) < 0.01,
+			"key %d holds contact (off by %.4f m)" % [key_index, contact.distance_to(wanted)])
+	skeleton.reset_bone_poses()
+	var bad_chain := _handler.run({
+		"op": "pose_to_clip", "pose_dir": POSE_DIR,
+		"player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
+		"animation_name": "bad_aim",
+		"keys": [{"time": 0.0, "aim": [{"chain": ["B-upperArm.L", "B-hand.L"], "target": [0, 1, 1]}]}],
+	}, null)
+	assert_is_error(bad_chain, ErrorCodes.INVALID_PARAMS)
+	var ghost_bone := _handler.run({
+		"op": "pose_to_clip", "pose_dir": POSE_DIR,
+		"player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
+		"animation_name": "ghost_aim",
+		"keys": [{"time": 0.0, "aim": [{"chain": ["ghost", "B-forearm.L", "B-hand.L"], "target": [0, 1, 1]}]}],
+	}, null)
+	assert_is_error(ghost_bone, ErrorCodes.NODE_NOT_FOUND)
+	_teardown(rig)
+
+
 ## A player inside a scene instance is saved as an override of the source
 ## scene, and the editor drops overrides inside a non-editable instance. The
 ## toolkit turns Editable Children on for those levels and swaps in a
@@ -864,6 +929,85 @@ func test_look_at_setup_tracks_a_target() -> void:
 
 # --- retarget_setup --------------------------------------------------------
 
+func test_twist_setup_disperses_over_the_chain() -> void:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		skip("no edited scene")
+		return
+	var rig_path := "/" + scene_root.name + "/TwistRig"
+	var bones := [
+		{"name": "B-hips", "position": [0, 0.9, 0]},
+		{"name": "B-spine", "parent": "B-hips", "position": [0, 0.2, 0]},
+		{"name": "B-chest", "parent": "B-spine", "position": [0, 0.25, 0]},
+		{"name": "B-head", "parent": "B-chest", "position": [0, 0.3, 0]},
+	]
+	var built := _handler.run({
+		"op": "rig_chain", "skeleton_path": rig_path, "name": "TwistRig", "bones": bones,
+	}, null)
+	assert_true(built.has("data"), "the test rig builds, got: %s" % str(built))
+	var result := _handler.run({
+		"op": "twist_setup", "skeleton_path": rig_path,
+	}, null)
+	assert_true(result.has("data"), "expected data, got: %s" % str(result))
+	assert_eq(str(result.data.root_bone), "B-hips", "the chain root is the twist bone")
+	assert_eq(str(result.data.end_bone), "B-head", "the chain end is the twist tip")
+	assert_eq(str(result.data.mode), "weighted", "no joint amounts means the engine distributes")
+	assert_true(not bool(result.data.active), "the modifier starts inactive")
+	assert_eq((result.data.joint_bones as Array).size(), 4, "root -> end inclusive is the joint list")
+	var modifier := ValueCodec.resolve_scene_path(str(result.data.modifier_path), scene_root)
+	assert_true(modifier is BoneTwistDisperser3D, "a BoneTwistDisperser3D was added (%s)" % str(result.data.modifier_class))
+	assert_true(modifier.get_parent() == ValueCodec.resolve_scene_path(rig_path, scene_root),
+		"the modifier is a child of the skeleton")
+	var disperser := modifier as BoneTwistDisperser3D
+	assert_eq(disperser.get_root_bone_name(0), "B-hips")
+	assert_eq(disperser.get_end_bone_name(0), "B-head")
+	assert_eq(disperser.get_disperse_mode(0), BoneTwistDisperser3D.DISPERSE_MODE_WEIGHTED)
+	assert_true(not disperser.active, "the modifier is inactive")
+	var even := _handler.run({
+		"op": "twist_setup", "skeleton_path": rig_path, "name": "TwistEven",
+		"disperse": {"root_bone": "B-hips", "end_bone": "B-chest", "mode": "even",
+			"weight_position": 0.25, "twist_from_rest": false, "damping": 0.8},
+	}, null)
+	assert_true(even.has("data"), "an even disperser over part of the chain is accepted, got: %s" % str(even))
+	assert_eq(str(even.data.mode), "even")
+	assert_eq((even.data.joint_bones as Array).size(), 3, "hips, spine, chest")
+	var even_modifier := ValueCodec.resolve_scene_path(str(even.data.modifier_path), scene_root) as BoneTwistDisperser3D
+	assert_eq(even_modifier.get_end_bone_name(0), "B-chest")
+	assert_eq(even_modifier.get_disperse_mode(0), BoneTwistDisperser3D.DISPERSE_MODE_EVEN)
+	assert_eq(even_modifier.get_weight_position(0), 0.25)
+	assert_true(not even_modifier.is_twist_from_rest(0), "twist_from_rest=false is applied")
+	assert_true(even_modifier.get_damping_curve(0) != null, "a damping curve is built")
+	var bad_end := _handler.run({
+		"op": "twist_setup", "skeleton_path": rig_path,
+		"disperse": {"root_bone": "B-head", "end_bone": "B-hips"},
+	}, null)
+	assert_is_error(bad_end, ErrorCodes.INVALID_PARAMS)
+	var custom_mode := _handler.run({
+		"op": "twist_setup", "skeleton_path": rig_path, "disperse": {"mode": "custom"},
+	}, null)
+	assert_is_error(custom_mode, ErrorCodes.INVALID_PARAMS)
+	var bad_mode := _handler.run({
+		"op": "twist_setup", "skeleton_path": rig_path, "disperse": {"mode": "sideways"},
+	}, null)
+	assert_is_error(bad_mode, ErrorCodes.VALUE_OUT_OF_RANGE)
+	var joints := _handler.run({
+		"op": "twist_setup", "skeleton_path": rig_path,
+		"disperse": {"joints": [{"bone": "B-spine", "amount": 0.5}]},
+	}, null)
+	assert_is_error(joints, ErrorCodes.INVALID_PARAMS)
+	var broken_chain := _handler.run({
+		"op": "twist_setup", "skeleton_path": rig_path,
+		"spine_chain": ["B-chest", "B-hips"],
+	}, null)
+	assert_is_error(broken_chain, ErrorCodes.INVALID_PARAMS)
+	var missing_bone := _handler.run({
+		"op": "twist_setup", "skeleton_path": rig_path,
+		"spine_chain": ["B-hips", "B-nope"],
+	}, null)
+	assert_is_error(missing_bone, ErrorCodes.NODE_NOT_FOUND)
+	_remove_node(rig_path)
+
+
 func test_retarget_setup_maps_and_moves() -> void:
 	var scene_root := EditorInterface.get_edited_scene_root()
 	if scene_root == null:
@@ -1264,7 +1408,7 @@ func test_registry_matches_rig_schema() -> void:
 	var info := OpRegistry.family(OpRegistry.FAMILY_RIG)
 	assert_false(info.is_empty(), "the rig family is registered")
 	var op_enum: Array = info.schema.properties.op.enum
-	assert_eq(op_enum.size(), 18, "the rig schema lists every op")
+	assert_eq(op_enum.size(), 19, "the rig schema lists every op")
 	for descriptor in info.ops:
 		assert_true(op_enum.has(descriptor.name), "%s is in the schema enum" % descriptor.name)
 		for param in descriptor.params:

@@ -195,6 +195,7 @@ directly, or through `custom_manage(op="invoke")`.
 | `motion_report` | Per-track motion quality: key density, peak speed/acceleration, loop-seam pops, quaternion hemisphere flips and constant tracks, each with a `fix` hint. |
 | `rig_profile` | Understand a rig without touching it: detected roles with ranked candidates, T/A pose, limb lengths and reach, facing/lateral/up axes, capabilities (walk/run/jump/turn/strafe/blink/IK/springs), missing roles, warnings and suggested next ops. `save=true` writes `res://animation_toolkit/rig_profiles/<name>.json`; rig and motion ops accept that file (or its name) as their `profile` param, so detection is never guessed twice. |
 | `sample` | FK probe: apply the clip to the skeleton in memory and report world positions (and optional euler rotations) of requested bones at N times, plus derived foot heights and ground-contact windows. The skeleton's pose is restored afterwards. |
+| `preview` | Renders the posed character to PNGs at clip times, so a clip can be *seen* (contact, foot planting, follow-through) instead of only read. A private copy of the character subtree (`character_path`, default the skeleton's outermost ancestor) is posed in an offscreen viewport with its own lights, framed by a camera (`yaw`, `elevation`, `margin`) and freed again; the edited scene is never touched. Params: `times` or `samples`, `width`/`height`, `output_dir`, `basename`, `background`, `overwrite`. The reply is **deferred** (one editor frame per image) and needs a rendering device - headless editors get an explicit error. |
 | `dry_run` | Runs any generator or edit op (`forward_op` from `animation_presets`, `animation_fx`, `animation_graph`, `animation_edit`, `animation_library`, `animation_rig`, `animation_motion`) and reports what it *would* produce — nothing is committed. |
 | `help` | The op index straight from the registry: names, summaries, params and examples. |
 
@@ -225,6 +226,10 @@ directly, or through `custom_manage(op="invoke")`.
 
 {"op": "animation_inspect", "params": {"op": "sample", "player_path": "/Main/Rig/AnimationPlayer",
   "animation_name": "walk", "skeleton_path": "/Main/Rig/Skeleton3D", "samples": 24}}
+
+{"op": "animation_inspect", "params": {"op": "preview", "player_path": "/Main/Rig/AnimationPlayer",
+  "animation_name": "reach", "skeleton_path": "/Main/Rig/Skeleton3D", "times": [0.0, 0.4],
+  "output_dir": "res://animation_toolkit/previews"}}
 
 {"op": "animation_inspect", "params": {"op": "dry_run", "tool": "animation_edit",
   "forward_op": "retime", "player_path": "/Main", "animation_name": "walk", "factor": 0.5}}
@@ -404,17 +409,18 @@ both human-dummy variants.
 | `spring_setup` | Attach a `SpringBoneSimulator3D` with one spring per `springs` entry (root/end bone, stiffness, drag, gravity, radius, rotation axis, centre, collisions). `end_bone` defaults to the root's leaf. |
 | `look_at_setup` | Attach a `LookAtModifier3D` so one bone tracks a target node (created a metre in front of the bone when omitted), with origin, limits, secondary rotation and turn duration. |
 | `retarget_setup` | Attach a `RetargetModifier3D` under a source Skeleton3D so a child target skeleton follows it in model space, with an `auto` bone-name profile (built from the source), `humanoid`, or a `res://` profile. Reports mapped/unmapped bones. |
+| `twist_setup` | Attach a `BoneTwistDisperser3D` so a twist applied to one bone is spread over the bones above it. `disperse` takes `{root_bone?, end_bone?, mode? (even\|weighted), weight_position?, damping?, twist_from_rest?}`; the root/end default to the detected (or explicit) spine chain and the response lists the joint bones it will use. |
 | `walk_cycle` | Build a looping in-place walk from bone roles (auto-detected by name or given in `roles`): thigh swing, knee bend, counter-swinging arms and a hip bob. `arm_down` lowers the arms from the rest pose for T-pose rigs. |
-| `idle_breathing` | Build a subtle looping idle: chest (then spine) breathing, a light head counter-move and an optional hip bob. |
+| `idle_breathing` | Build a subtle looping idle: the whole torso chain breathes (ramping from the lower spine to the chest), a light head counter-move and an optional hip bob. |
 | `blink` | Build a quick blink on the eye/eyelid bones - `scale` (default) or `rotate` - with an optional number of blinks per clip. |
 | `jumping_jack` | Build a looping jack: arms swing from the rest pose to overhead (`amplitude`), thighs spread (`stride`), hips rise (`bob`). |
 | `squat` | Build a looping squat with planted feet: the hips drop by `bob` metres and a two-bone solve bends each leg so the ankles stay at their rest positions (`amplitude` eases the arms forward). |
-| `punch` | Build a looping boxing combo: guard, `cycles` alternating straight punches along the rig's facing direction (ankle -> toe), `amplitude` torso twist, `bob` crouch. |
+| `punch` | Build a looping boxing combo: guard, `cycles` alternating straight punches along the rig's facing direction (ankle -> toe), `bob` crouch. `amplitude` is the *total* torso twist in degrees, shared up the spine chain. |
 | `bake_pose_sequence` | Sample a skeleton into a clip: seek the source clip on its AnimationPlayer, run the active modifiers (IK, springs, retarget) through the skeleton's update, then key the final pose (captured at `modification_processed`). Restores the pose afterwards, so the modifiers can be switched off once the baked clip plays. |
 | `pose_save` | Capture a Skeleton3D/Skeleton2D pose (inline and/or `res://animation_toolkit/poses/<name>.json`). |
 | `pose_apply` | Write a pose back: `blend` 0-1 toward it, `mirror` (L/R swap), `reset_first`, `bones` subset. One undo action. |
 | `pose_blend` | Slerp/lerp two poses into a third (optionally mirrored and/or saved). |
-| `pose_to_clip` | Keyframe a `[{pose, time, transition?}]` sequence into an Animation clip. |
+| `pose_to_clip` | Keyframe a `[{pose, time, transition?, mirror?, aim?}]` sequence into an Animation clip. An `aim` entry solves a three-bone chain so the end bone's origin lands on a world `target` (see below). |
 | `pose_list` | List saved pose files with their bone counts. |
 | `rig_get` | Dump bones (index/parent/rest), the current pose, modifiers, spring settings, and issues. |
 
@@ -439,12 +445,46 @@ Notes:
   `rotation` is in degrees (XYZ euler for 3D, about Z for 2D), and `length` is
   the Bone2D length. Parents may be bones from the same spec or bones that
   already exist on the skeleton; cycles and unknown parents are refused.
+- **Torso twist and lean are distributed over the spine chain**, not hard-coded
+  per bone. Both families detect the chain (hips -> spine -> chest -> neck ->
+  head on the human dummy) and take an explicit `spine_chain` when given, which
+  must be one parent chain. The same distributor (`spec/spine_twist.gd`) serves
+  the recipes, so a parameter means the same *total* on any rig:
+  - `idle_cycle`: `overrides.twist` is the total twist in degrees, shared over
+    the chain; `twist_spread` (0-1, also an override key) keeps it on the lower
+    spine at 0 and spreads it over the whole chain at 1.
+  - `walk_cycle` / `run_cycle` / `strafe_cycle`: the counter-rotation is weighted
+    by chain position, and `overrides.chest_yaw` scales it (it used to be
+    shadowed by a local of the same name, so setting it did nothing).
+  - `turn_cycle`: the lead ramps up the chain and the head trails it, bounded per
+    step, so a multi-step turn cannot corkscrew the spine.
+  - `jump`: the lean ramps up the whole chain instead of bending at two bones.
+  - `punch`: `amplitude` is the total torso twist, most of it in the upper chest.
+- **`twist_setup` hands the distributing to the engine.** Godot 4.7 only builds a
+  disperser's per-joint list once the modifier has been in the tree for a frame
+  and the amounts are index-based, so the op sets root/end and the engine's
+  `even` / `weighted` modes (plus `weight_position`, `damping`,
+  `twist_from_rest`) and reports the joint bones it will use; custom per-joint
+  amounts are set in the modifier's Inspector. An `end_bone` that is not below
+  the `root_bone` is refused.
 - **Bone clips are ordinary clips.** 3D bones key `TYPE_ROTATION_3D` tracks at
   paths like `Skeleton3D:B-thigh.R`; 2D bones key `Skeleton2D/Bone:rotation`
   value tracks. Every other toolkit op therefore works on them: `retime`,
   `mirror`, `reverse`, `amplitude`, `spec_export`, templates.
 - **Lean clips**: `pose_to_clip` only emits tracks for bones that actually move,
   so a pose pair that waves an arm produces one track, not one per bone.
+- **Contact keys (`aim`)**: a key may carry
+  `aim: [{chain: [root, mid, end], target: [x, y, z], pole?: [x, y, z]}]`. The
+  chain is solved analytically (law of cosines in the plane spanned by the
+  shoulder-to-target line and the pole) so the **end bone's origin sits exactly
+  on the world target**, and the keys carry that solution — no modifier, no
+  runtime target node. The target is clamped to the chain's reach (and flagged
+  in the response), `pole` chooses which way the mid bone bends (without it the
+  base pose's bend is kept), and the base `pose` for that key is applied first,
+  so an aim key can ride on a body pose. An aim-only key (no `pose`) starts from
+  rest. The live skeleton is posed only to solve and is restored afterwards, so
+  this is safe to run on a scene you are editing. Chain bones must be three
+  (`root -> mid -> end`) and the solver is 3D-only.
 - **Mirroring** follows the reflection rule: a rotation keeps its angle and
   mirrors its axis (`q = (x, -y, -z, w)`), positions negate X, scale is kept.
   L/R bones swap by name (`.L`/`.R`, `_L`/`_R`, `-L`/`-R`, `Left`/`Right`).
@@ -507,12 +547,12 @@ follow-through, and the result looks smooth at any playback rate.
 
 | op | Notes |
 | --- | --- |
-| `walk_cycle` | Full gait: contact/passing timing, pelvis bob (2x) + sway + yaw + roll, counter-rotating spine/chest, arm swing with elbow and clavicle follow-through, head stabilisation, planted feet with heel-strike/toe-off roll. `speed` solves the stride from a target m/s. `stride`, `knee_bend` (a planted crouch), `arm_swing`, `bob`, `sway`, `lean`, `arm_down`. |
+| `walk_cycle` | Full gait: contact/passing timing, pelvis bob (2x) + sway + yaw + roll, counter-rotating torso shared up the spine chain, arm swing with elbow and clavicle follow-through, head stabilisation, planted feet with heel-strike/toe-off roll. `speed` solves the stride from a target m/s. `stride`, `knee_bend` (a planted crouch), `arm_swing`, `bob`, `sway`, `lean`, `arm_down`, `chest_yaw`, `twist_spread`. |
 | `run_cycle` | Same engine with a flight phase, a forward lean, a wider stride, bent elbows and a bigger bob. Use a shorter `duration` (0.5-0.7 s). |
 | `strafe_cycle` | Looping sideways gait: the leading foot steps out, the trailing foot closes, the knees still bend forward and the pelvis shifts along the travel axis. `direction` left/right, `speed`-driven like the walk. |
-| `idle_cycle` | A loopable idle with presence: a pronounced look-around (head yaw, with a second harmonic so it lingers left/right) and torso twist (chest, spine at half with lag, hips counter) over breathing, weight shift and seeded micro-noise. `look`, `twist`, `amplitude`, `head_amplitude`, `bob`, `sway`, `lean`. |
+| `idle_cycle` | A loopable idle with presence: a pronounced look-around (head yaw, with a second harmonic so it lingers left/right) and a torso twist shared up the spine chain over breathing, weight shift and seeded micro-noise. `look`, `twist` (the *total* twist in degrees, 22), `twist_spread`, `amplitude`, `head_amplitude`, `bob`, `sway`, `lean`. |
 | `jump` | One-shot jump: anticipation crouch, launch, air arc, descend, landing absorb and recovery. Feet are planted before takeoff and after landing; `height`, `crouch`, `distance` (forward travel). Emits `takeoff` / `apex` / `land` markers. |
-| `turn_cycle` | One-shot in-place pivot turn: anticipation, a stepping foot, stance feet held at their rest orientation, overshoot settle. `angle`, `direction`. Emits `anticipate` / `step` / `settle`. |
+| `turn_cycle` | One-shot in-place pivot turn: anticipation, a stepping foot, stance feet held at their rest orientation, overshoot settle. `angle`, `direction`, `steps`. Emits `anticipate` / `step` / `settle` per step. |
 | `walk_start` / `walk_stop` | Short blend in/out of a gait. The gait-facing end is sampled from the cycle at `phase`, so it matches frame-for-frame and can be concatenated or cross-faded. |
 | `cycle` | Generic entry point: `preset` = `walk` / `run` / `idle`, same params as the dedicated ops. |
 | `character_setup` | One call, one undo: builds `idle` + `walk` + `run` (plus `jump`/`turn_<dir>` when `include_jump`/`include_turn`), wires a locomotion blend space on speed — a jump one-shot layer when requested — creates the `AnimationTree`, sets the root-motion track on player and tree, and returns `speed_parameter`, `speed_values`, `jump_request_parameter` and a game-side `apply_snippet`. `speed`/`run_speed` become the blend positions; `overwrite` defaults to true so a re-run refreshes the set. |
@@ -535,6 +575,19 @@ How motion is generated:
 - **Phase markers.** Gaits emit `contact.L/R`, `toe_off.L/R` and `passing.L/R`;
   jump and turn emit their phase cues. Hook footstep audio or gameplay events on
   them, or use them to phase-sync blends.
+- **Multi-step pivots.** `turn_cycle steps: 2` splits a 180-degree turn into two
+  pivots — each with its own anticipation, settle and the *opposite* foot lifting
+  — so it reads as two weight shifts instead of one spin. The clip only carries
+  body rotation, so re-base the root yaw between steps in your driver (or play
+  the clip in place and rotate the rig in script); `steps: 1` is the classic
+  single pivot. The torso lead is a bounded fraction of *each step's* angle and
+  ramps up `spine_chain` (the head trails it), which is what stops a long spine
+  from corkscrewing over a multi-step turn.
+- **One torso chain, one meaning.** The chain is detected from the bone parents
+  (or given as `spine_chain`, which must be one parent chain), and the
+  per-bone amounts come from a shared distributor, so `twist`/`chest_yaw`/`lean`
+  mean the same *total* on a 3-bone and a 6-bone spine. `twist_spread` (0-1)
+  slides the idle and gait twist between the hips alone and the whole chain.
 - **Loop closure by construction.** Integer frequencies and a final sample that
   re-evaluates phase 0 make every track close exactly; the commit pass also
   aligns quaternion hemispheres and snaps the loop seam.
@@ -575,7 +628,7 @@ How motion is generated:
 {"op": "animation_motion", "params": {"op": "idle_cycle",
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
   "animation_name": "idle", "duration": 3.0, "loop_mode": "linear",
-  "overrides": {"look": 18, "twist": 12}}}
+  "overrides": {"look": 18, "twist": 22, "twist_spread": 0.8}}}
 
 {"op": "animation_motion", "params": {"op": "secondary_motion",
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",

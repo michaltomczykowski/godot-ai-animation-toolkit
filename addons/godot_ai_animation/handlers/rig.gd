@@ -9,6 +9,8 @@ extends "res://addons/godot_ai_animation/handlers/bone_animation.gd"
 ## (`Skeleton2D/Bone:rotation`), so every existing toolkit op works on them.
 
 const PoseMath := preload("res://addons/godot_ai_animation/spec/pose_math.gd")
+const PoseSolver := preload("res://addons/godot_ai_animation/spec/pose_solver.gd")
+const SpineTwist := preload("res://addons/godot_ai_animation/spec/spine_twist.gd")
 const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
 
 const POSE_DIR := "res://animation_toolkit/poses"
@@ -18,16 +20,16 @@ const MAX_BAKE_SAMPLES := 1200
 
 
 ## Rollup entry registered with the Godot AI tool registry.
-func run(params: Dictionary, _ctx) -> Dictionary:
+func run(params: Dictionary, ctx) -> Dictionary:
 	_dry_run = bool(params.get("dry_run", false))
-	var result := _dispatch(params)
+	var result := _dispatch(params, ctx)
 	if _dry_run and result.has("data"):
 		result.data["dry_run"] = true
 		result.data["undoable"] = false
 	return result
 
 
-func _dispatch(params: Dictionary) -> Dictionary:
+func _dispatch(params: Dictionary, ctx = null) -> Dictionary:
 	var op: String = params.get("op", "")
 	match op:
 		"pose_save":
@@ -52,6 +54,8 @@ func _dispatch(params: Dictionary) -> Dictionary:
 			return look_at_setup(params)
 		"retarget_setup":
 			return retarget_setup(params)
+		"twist_setup":
+			return twist_setup(params, ctx)
 		"walk_cycle":
 			return walk_cycle(params)
 		"idle_breathing":
@@ -232,12 +236,24 @@ func rig_pose_to_clip(params: Dictionary) -> Dictionary:
 	# Resolve every key's pose first so a bad reference fails before any commit.
 	var resolved_keys: Array = []
 	var bones: Array = []
+	var contacts: Array = []
 	var length := 0.0
 	for index in keys.size():
 		var key: Dictionary = keys[index]
 		var key_params: Dictionary = key.duplicate()
 		if not key_params.has("pose_dir"):
 			key_params["pose_dir"] = params.get("pose_dir", "")
+		# An aim-only key defaults to a rest pose over its chain bones.
+		if key.get("aim", null) != null and not key_params.has("pose") \
+				and not key_params.has("name") and not key_params.has("path"):
+			var base := PoseMath.make_pose()
+			for aim in key.aim:
+				if not (aim is Dictionary):
+					continue
+				for bone in (aim as Dictionary).get("chain", []):
+					PoseMath.set_bone(base, str(bone), Quaternion.IDENTITY, Vector3.ZERO, Vector3.ONE)
+			if PoseMath.bone_count(base) > 0:
+				key_params["pose"] = PoseMath.to_json(base)
 		var pose_loaded := _resolve_pose(key_params)
 		if pose_loaded.has("error"):
 			return ErrorCodes.make(pose_loaded.error.code,
@@ -248,6 +264,14 @@ func rig_pose_to_clip(params: Dictionary) -> Dictionary:
 		var pose: Dictionary = pose_loaded.pose
 		if bool(key.get("mirror", false)):
 			pose = PoseMath.mirror_pose(pose).pose
+		var aimed := _apply_aims(resolved, pose, key.get("aim", []))
+		if aimed.has("error"):
+			return ErrorCodes.make(aimed.error.code,
+				"keys[%d]: %s" % [index, str(aimed.error.message)])
+		pose = aimed.pose
+		for contact in aimed.get("contacts", []):
+			contact["time"] = time
+			contacts.append(contact)
 		for bone in PoseMath.bone_names(pose):
 			if not bones.has(bone):
 				bones.append(bone)
@@ -355,6 +379,9 @@ func rig_pose_to_clip(params: Dictionary) -> Dictionary:
 		"scales": include_scales,
 		"library_created": created_library,
 		"overwritten": existing.old_anim != null,
+		"aim_contacts": contacts.size(),
+		"aim_clamped": contacts.any(func(contact): return bool(contact.clamped)),
+		"contacts": contacts,
 		"undoable": true,
 	}}
 
@@ -1089,6 +1116,140 @@ func look_at_setup(params: Dictionary) -> Dictionary:
 
 ## Attach a RetargetModifier3D under a source Skeleton3D so a child target
 ## skeleton follows its poses in model space (different rests are fine).
+# ============================================================================
+# twist_setup
+# ============================================================================
+
+## Attach a BoneTwistDisperser3D to a Skeleton3D so a twist applied to one bone
+## is spread over the bones above it. The root/end default to the detected
+## (or explicit) spine chain, and the joint amounts default to the same
+## distribution the motion recipes use, so the modifier and the clips agree.
+func twist_setup(params: Dictionary, ctx = null) -> Dictionary:
+	var resolved := _resolve_skeleton(params)
+	if resolved.has("error"):
+		return resolved
+	if resolved.kind != "3d":
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"twist_setup supports Skeleton3D (BoneTwistDisperser3D)")
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var skeleton: Skeleton3D = resolved.node
+	var spec = params.get("disperse", {})
+	if not (spec is Dictionary):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'disperse' must be an object")
+	var spec_dict: Dictionary = spec
+	var roles := _resolve_roles(params, skeleton)
+	if roles.has("_error"):
+		return roles["_error"]
+	var chain := _torso_chain(params, skeleton, roles)
+	if chain.has("error"):
+		return chain
+	var chain_bones: Array = chain.chain
+	if chain_bones.size() < 2:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"twist_setup needs at least two torso bones; pass 'spine_chain': [hips, spine, chest]")
+	var root_name := str(spec_dict.get("root_bone", ""))
+	if root_name.is_empty():
+		root_name = str(chain_bones[0])
+	if skeleton.find_bone(root_name) < 0:
+		return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
+			"disperse.root_bone '%s' is not on this skeleton" % root_name)
+	var end_name := str(spec_dict.get("end_bone", ""))
+	if end_name.is_empty():
+		end_name = str(chain_bones[chain_bones.size() - 1])
+	if skeleton.find_bone(end_name) < 0:
+		return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
+			"disperse.end_bone '%s' is not on this skeleton" % end_name)
+	# The joint list the modifier exposes is root -> end inclusive. Godot only
+	# builds it once the modifier has been in the tree for a frame, and the
+	# per-joint amounts are index-based, so `joints` is not accepted here: the
+	# even/weighted modes do the distributing, and the Inspector owns custom.
+	var joint_bones := _twist_joint_bones(skeleton, root_name, end_name)
+	if joint_bones.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"disperse.end_bone '%s' is not a descendant of root_bone '%s'" % [end_name, root_name])
+	var mode_name := str(spec_dict.get("mode", "weighted"))
+	if spec_dict.has("joints"):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"Godot builds a disperser's per-joint list at runtime, so twist_setup distributes for you: use disperse.mode even|weighted (or set custom amounts in the modifier's Inspector). Mode: %s, joints: %s" % [mode_name, ", ".join(joint_bones)])
+	var mode := -1
+	match mode_name:
+		"even":
+			mode = BoneTwistDisperser3D.DISPERSE_MODE_EVEN
+		"weighted":
+			mode = BoneTwistDisperser3D.DISPERSE_MODE_WEIGHTED
+		"custom":
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"disperse.mode=custom needs per-joint amounts, which Godot builds at runtime - set them in the modifier's Inspector, or use even|weighted. Joints here: %s" % ", ".join(joint_bones))
+		_:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+				"Unknown disperse.mode '%s'. Valid: even, weighted" % mode_name)
+	var active := bool(params.get("active", false))
+	var disperser := BoneTwistDisperser3D.new()
+	disperser.name = str(params.get("name", "TwistDisperser"))
+	var setup: Array = [
+		{"property": "active", "value": active},
+		{"method": "set_setting_count", "args": [1]},
+		{"method": "set_root_bone_name", "args": [0, root_name]},
+		{"method": "set_end_bone_name", "args": [0, end_name]},
+		{"method": "set_disperse_mode", "args": [0, mode]},
+	]
+	if spec_dict.has("weight_position"):
+		setup.append({"method": "set_weight_position", "args": [0, clampf(float(spec_dict.weight_position), 0.0, 1.0)]})
+	if spec_dict.has("damping"):
+		setup.append({"method": "set_damping_curve", "args": [0, _damping_curve(float(spec_dict.damping))]})
+	if spec_dict.has("twist_from_rest"):
+		setup.append({"method": "set_twist_from_rest", "args": [0, bool(spec_dict.twist_from_rest)]})
+	if params.has("mutable_bone_axes"):
+		setup.append({"method": "set_mutable_bone_axes", "args": [bool(params.mutable_bone_axes)]})
+	if params.has("influence"):
+		setup.append({"property": "influence", "value": clampf(float(params.influence), 0.0, 1.0)})
+	_commit_node_add("MCP: Twist disperser", skeleton, disperser, setup)
+	var data := {
+		"skeleton_path": resolved.path,
+		"kind": resolved.kind,
+		"modifier_class": "BoneTwistDisperser3D",
+		"modifier_path": ValueCodec.from_node(disperser, scene_root),
+		"root_bone": root_name,
+		"end_bone": end_name,
+		"mode": mode_name,
+		"joint_bones": joint_bones,
+		"chain": chain_bones,
+		"active": active,
+		"undoable": true,
+		"note": "the modifier disperses root -> end inclusive (%s); Godot builds the per-joint list at runtime, so custom amounts live in its Inspector" % ", ".join(joint_bones),
+	}
+	if not active:
+		data["active_note"] = "inactive: an active disperser also rewrites the twist while you edit the scene - pass active=true (or enable the modifier) when it is ready"
+	return {"data": data}
+
+
+## The bones a disperser will expose as joints: the root, everything between it
+## and the end, and the end, in that order. Empty when the end is not below the
+## root.
+func _twist_joint_bones(skeleton: Skeleton3D, root_name: String, end_name: String) -> Array:
+	var root_index := skeleton.find_bone(root_name)
+	var end_index := skeleton.find_bone(end_name)
+	if root_index < 0 or end_index < 0:
+		return []
+	var bones: Array = []
+	var current := end_index
+	while current >= 0:
+		bones.push_front(str(skeleton.get_bone_name(current)))
+		if current == root_index:
+			break
+		current = skeleton.get_bone_parent(current)
+	return bones if not bones.is_empty() and str(bones[0]) == root_name else []
+
+
+## A damping curve from one 0-1 number: flat 1.0 at 1, easing to 0.4 at 0.
+func _damping_curve(amount: float) -> Curve:
+	var curve := Curve.new()
+	var value := clampf(amount, 0.0, 1.0)
+	curve.add_point(Vector2(0.0, lerpf(0.4, 1.0, value)))
+	curve.add_point(Vector2(1.0, 1.0))
+	return curve
+
+
 func retarget_setup(params: Dictionary) -> Dictionary:
 	var resolved := _resolve_skeleton(params)
 	if resolved.has("error"):
@@ -1309,6 +1470,21 @@ func walk_cycle(params: Dictionary) -> Dictionary:
 	return committed
 
 
+## The torso chain a rig recipe distributes over: the detected (or explicit)
+## `spine_chain`, falling back to the role bones. Returns `{"chain": [...]}` or
+## an error, so an explicit typo still fails loudly.
+func _torso_chain(params: Dictionary, skeleton: Skeleton3D, roles: Dictionary) -> Dictionary:
+	var resolved := resolve_spine_chain(params, skeleton, roles)
+	if resolved.has("error"):
+		return resolved
+	var chain: Array = []
+	for role in ["hips", "spine", "chest", "head"]:
+		var bone := str(roles.get(role, ""))
+		if not bone.is_empty() and not chain.has(bone):
+			chain.append(bone)
+	return {"chain": chain if not chain.is_empty() else resolved.chain}
+
+
 ## A subtle looping idle: chest/spine breathing, a light head counter-move and
 ## an optional hip bob.
 func idle_breathing(params: Dictionary) -> Dictionary:
@@ -1345,15 +1521,27 @@ func idle_breathing(params: Dictionary) -> Dictionary:
 			{"time": length * 0.6, "delta": Quaternion(axis, amount * 0.85)},
 			{"time": length, "delta": Quaternion(axis, 0.0)},
 		]
-	var keys := {chest: {"rotation": breathe.call(amplitude)}}
-	if roles.has("spine") and str(roles.spine) != chest:
-		keys[str(roles.spine)] = {"rotation": breathe.call(amplitude * 0.6)}
-	if roles.has("head"):
-		keys[str(roles.head)] = {"rotation": [
-			{"time": 0.0, "delta": Quaternion(axis, 0.0)},
-			{"time": length * 0.35, "delta": Quaternion(axis, -head_amplitude)},
-			{"time": length, "delta": Quaternion(axis, 0.0)},
-		]}
+	var keys := {}
+	# The breathing moves the whole chain, not just a spine/chest pair: the
+	# lowest torso bone takes 0.6 of the amplitude and it ramps to the chest,
+	# the head counter-moves. Before, a 6-bone spine only breathed in two places.
+	var chain := _torso_chain(params, skeleton, roles)
+	if chain.has("error"):
+		return chain
+	var chain_bones: Array = chain.chain
+	var breathe_by_bone := {}
+	for index in chain_bones.size():
+		var bone := str(chain_bones[index])
+		if bone.is_empty() or bone == str(roles.get("hips", "")):
+			continue
+		var amount := amplitude
+		if bone == str(roles.get("head", "")):
+			amount = -head_amplitude
+		elif chain_bones.size() > 1:
+			amount = amplitude * lerpf(0.6, 1.0, float(index) / float(chain_bones.size() - 1))
+		breathe_by_bone[bone] = breathe.call(amount)
+	for bone in breathe_by_bone:
+		keys[bone] = {"rotation": breathe_by_bone[bone]}
 	if roles.has("hips") and not is_zero_approx(bob):
 		keys[str(roles.hips)] = {"position": [
 			{"time": 0.0, "delta": Vector3.ZERO},
@@ -1626,9 +1814,12 @@ func punch(params: Dictionary) -> Dictionary:
 		states.append("l" if cycle % 2 == 0 else "r")
 		times.append(base + span)
 		states.append("")
+	var chain := _torso_chain(params, skeleton, roles)
+	if chain.has("error"):
+		return chain
 	var keys := {}
 	for index in times.size():
-		var deltas := _punch_deltas(skeleton, roles, str(states[index]), twist, crouch)
+		var deltas := _punch_deltas(skeleton, roles, str(states[index]), twist, crouch, chain.chain)
 		for bone in deltas:
 			var entry: Dictionary = deltas[bone]
 			if not keys.has(bone):
@@ -1649,7 +1840,7 @@ func punch(params: Dictionary) -> Dictionary:
 
 ## Pose the boxing stance at one moment (`punching` is "l", "r" or "" for the
 ## guard) and return rest-relative deltas per bone.
-static func _punch_deltas(skeleton: Skeleton3D, roles: Dictionary, punching: String, twist: float, crouch: float) -> Dictionary:
+static func _punch_deltas(skeleton: Skeleton3D, roles: Dictionary, punching: String, twist: float, crouch: float, chain: Array) -> Dictionary:
 	skeleton.reset_bone_poses()
 	var out := {}
 	var hips := str(roles.get("hips", ""))
@@ -1665,12 +1856,21 @@ static func _punch_deltas(skeleton: Skeleton3D, roles: Dictionary, punching: Str
 		twist_sign = 1.0
 	elif punching == "r":
 		twist_sign = -1.0
-	for part in ["chest", "spine"]:
-		var bone := str(roles.get(part, ""))
-		if bone.is_empty():
-			continue
-		var amount := twist if part == "chest" else twist * 0.5
-		out[bone] = {"rotation": Quaternion(Vector3.UP, deg_to_rad(amount * twist_sign))}
+	# `amplitude` is the *total* torso twist in degrees, shared over the chain:
+	# mostly in the upper chest, a little in the lower spine, so a long spine
+	# gets a smooth rotation instead of one bone snapping the whole torso.
+	var torso: Array = []
+	for slot in chain:
+		var name := str(slot)
+		if not name.is_empty() and name != hips:
+			torso.append(name)
+	var weights: Array = []
+	for index in torso.size():
+		weights.append(0.2 if torso.size() < 2 else lerpf(0.2, 1.0, float(index) / float(torso.size() - 1)))
+	var degrees: Array = SpineTwist.amplitudes(maxi(1, torso.size()), twist, weights) if not torso.is_empty() else []
+	for index in torso.size():
+		var bone := str(torso[index])
+		out[bone] = {"rotation": Quaternion(Vector3.UP, deg_to_rad(float(degrees[index]) * twist_sign))}
 	for side in ["l", "r"]:
 		var arm := str(roles.get("arm_" + side, ""))
 		var forearm := str(roles.get("forearm_" + side, ""))
@@ -1906,6 +2106,104 @@ func _capture_pose(resolved: Dictionary, bones_filter: Array) -> Dictionary:
 	if PoseMath.bone_count(pose) == 0:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "The skeleton has no bones to capture")
 	return {"pose": pose}
+
+
+## Solve every `aim` entry on top of `pose` and return the resolved pose.
+##
+## Each entry is `{chain: [root, mid, end], target: [x, y, z], pole?: [x, y, z]}`:
+## the end bone's origin lands on `target` (world space) and the mid bone bends
+## into the `pole` half-plane, or keeps the base pose's bend without one. The
+## skeleton pose is always restored afterwards.
+func _apply_aims(resolved: Dictionary, pose: Dictionary, aims) -> Dictionary:
+	if not (aims is Array) or (aims as Array).is_empty():
+		return {"pose": pose}
+	if resolved.kind != "3d":
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'aim' needs a Skeleton3D")
+	var skeleton: Skeleton3D = resolved.node
+	var bones: Array = PoseMath.bone_names(pose)
+	for aim in aims:
+		var entry := _aim_entry(aim)
+		if entry.has("error"):
+			return entry
+		for bone in entry.chain:
+			if skeleton.find_bone(str(bone)) < 0:
+				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
+					"aim chain bone '%s' is not on this skeleton" % str(bone))
+			if not bones.has(bone):
+				bones.append(bone)
+	var snapshot := _pose_snapshot(skeleton)
+	for bone in PoseMath.bone_names(pose):
+		var index := skeleton.find_bone(bone)
+		if index < 0:
+			continue
+		var rest := skeleton.get_bone_rest(index)
+		var absolute := PoseMath.delta_to_pose(
+			pose.bones[bone], rest.basis.get_rotation_quaternion(), rest.origin)
+		skeleton.set_bone_pose_rotation(index, absolute.rotation)
+		skeleton.set_bone_pose_position(index, absolute.position)
+		skeleton.set_bone_pose_scale(index, absolute.scale)
+	var world := skeleton.global_transform
+	var contacts: Array = []
+	for aim in aims:
+		var entry := _aim_entry(aim)
+		var target: Vector3 = world.affine_inverse() * (entry.target as Vector3)
+		var pole: Vector3 = world.basis.inverse() * (entry.pole as Vector3)
+		var root_index := skeleton.find_bone(entry.chain[0])
+		var parent_delta := Transform3D.IDENTITY
+		var parent_index := skeleton.get_bone_parent(root_index)
+		if parent_index >= 0:
+			parent_delta = skeleton.get_bone_global_pose(parent_index) \
+				* skeleton.get_bone_global_rest(parent_index).affine_inverse()
+		var rest_globals: Array = []
+		var base_deltas: Array = []
+		for slot in 3:
+			var index := skeleton.find_bone(entry.chain[slot])
+			rest_globals.append(skeleton.get_bone_global_rest(index))
+			base_deltas.append(_pose_delta_rotation(skeleton, index))
+		var solved := PoseSolver.solve_chain(rest_globals, parent_delta, base_deltas, target, pole)
+		if solved.has("error"):
+			_pose_restore(skeleton, snapshot)
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "aim: %s" % str(solved.error))
+		for slot in 3:
+			var index := skeleton.find_bone(entry.chain[slot])
+			# The solver returns rest-relative deltas; the skeleton wants rest * delta.
+			var rest_quat: Quaternion = skeleton.get_bone_rest(index).basis.get_rotation_quaternion()
+			skeleton.set_bone_pose_rotation(index,
+				(rest_quat * (solved.rotations[slot] as Quaternion)).normalized())
+		contacts.append({
+			"chain": (entry.chain as Array).duplicate(),
+			"target": [entry.target.x, entry.target.y, entry.target.z],
+			"reach": snappedf(float(solved.reach), 0.0001),
+			"clamped": bool(solved.clamped),
+		})
+	var captured := _capture_pose(resolved, bones)
+	_pose_restore(skeleton, snapshot)
+	if captured.has("error"):
+		return captured
+	return {"pose": captured.pose, "contacts": contacts}
+
+
+## Validate one aim entry into `{chain: Array, target: Vector3, pole: Vector3}`.
+func _aim_entry(aim) -> Dictionary:
+	if not (aim is Dictionary):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "each aim entry must be an object")
+	var chain: Array = (aim as Dictionary).get("chain", [])
+	if chain.size() != 3:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"aim.chain needs exactly three bone names (root, mid, end)")
+	var names: Array = []
+	for bone in chain:
+		names.append(str(bone))
+	if not (aim as Dictionary).has("target"):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "aim needs 'target': [x, y, z]")
+	var target_value = (aim as Dictionary).get("target")
+	if not (target_value is Array or target_value is Dictionary or target_value is Vector3):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "aim.target must be [x, y, z]")
+	return {
+		"chain": names,
+		"target": _spec_vector3(target_value),
+		"pole": _spec_vector3((aim as Dictionary).get("pole", Vector3.ZERO)),
+	}
 
 
 ## Apply a pose as one undo action. `blend` lerps from the current pose.

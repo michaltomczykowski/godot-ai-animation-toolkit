@@ -108,6 +108,23 @@ func _pose_of(rig: Dictionary, anim: Animation, time: float, bone: String) -> Tr
 	return skeleton.get_bone_global_pose(skeleton.find_bone(bone))
 
 
+## World yaw (radians) of a rotation track's nearest key, as a bone basis.
+func _yaw_of(rig: Dictionary, anim: Animation, track: int, time: float) -> float:
+	var skeleton: Skeleton3D = rig.skeleton
+	skeleton.reset_bone_poses()
+	var key := _nearest_key_index(anim, track, time)
+	if key < 0:
+		return 0.0
+	var path := str(anim.track_get_path(track))
+	var index := skeleton.find_bone(path.get_slice(":", 1))
+	if index < 0:
+		return 0.0
+	var value: Quaternion = anim.track_get_key_value(track, key)
+	skeleton.set_bone_pose_rotation(index, value)
+	skeleton.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
+	return skeleton.get_bone_global_pose(index).basis.get_euler().y
+
+
 func _nearest_key_index(anim: Animation, track: int, time: float) -> int:
 	var best := -1
 	var best_distance := INF
@@ -145,6 +162,16 @@ func _spread(anim: Animation, track: int) -> float:
 	for key in anim.track_get_key_count(track):
 		spread = maxf(spread, first.angle_to(anim.track_get_key_value(track, key)))
 	return spread
+
+
+## Per-bone rotation spread along a bone chain, keyed by bone name. Bones the
+## recipe left alone are reported as 0.0 so the caller can compare the chain.
+func _chain_spreads(anim: Animation, bones: Array) -> Dictionary:
+	var out := {}
+	for bone in bones:
+		var track := _track_index(anim, ":%s" % str(bone), Animation.TYPE_ROTATION_3D)
+		out[str(bone)] = 0.0 if track < 0 else _spread(anim, track)
+	return out
 
 
 # --- motion pack ------------------------------------------------------------
@@ -235,6 +262,75 @@ func test_turn_cycle_rotates_and_settles() -> void:
 	var foot_end := _pose_of(rig, anim, 1.0, "B-foot.R").origin
 	assert_true(absf((foot_end - foot_rest).dot(Vector3.UP)) < 0.05, "the feet are back on the ground")
 	assert_true(anim.get_marker_names().has("anticipate"), "turn phase markers exist")
+	_teardown(rig)
+
+
+## `steps: 2` splits a 180-degree turn into two pivots with the opposite foot
+## lifting in each, so it reads as weight shifts instead of one spin.
+func test_turn_cycle_splits_into_pivot_steps() -> void:
+	var rig := _rig("MotionTurnSteps")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "turn_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "turn_back",
+		"duration": 1.4, "angle": 180, "direction": "left", "steps": 2,
+	}, null)
+	assert_true(result.has("data"), "the stepped turn builds: %s" % str(result))
+	assert_eq(int(result.data.steps), 2, "the result reports two pivot steps")
+	var anim: Animation = rig.player.get_animation("turn_back")
+	assert_true(anim != null, "the clip exists")
+	var hips := _track_index(anim, ":B-hips", Animation.TYPE_ROTATION_3D)
+	assert_true(hips >= 0, "the hips are keyed")
+	assert_eq(anim.track_get_key_count(hips), 9,
+		"two steps key five phases, sharing the boundary settle (got %d)"
+			% anim.track_get_key_count(hips))
+	var first: Quaternion = anim.track_get_key_value(hips, 0)
+	var middle: Quaternion = anim.track_get_key_value(hips, 4)
+	var last: Quaternion = anim.track_get_key_value(hips, 8)
+	assert_true(absf(anim.track_get_key_time(hips, 4) - 0.7) < 0.01,
+		"the first step settles at the halfway time (%f)" % anim.track_get_key_time(hips, 4))
+	assert_true(absf(rad_to_deg(first.angle_to(middle)) - 90.0) < 2.0,
+		"the first pivot settles at half the turn (%s deg)" % rad_to_deg(first.angle_to(middle)))
+	assert_true(absf(rad_to_deg(first.angle_to(last)) - 180.0) < 2.0,
+		"the full turn still lands on 180 degrees (%s deg)" % rad_to_deg(first.angle_to(last)))
+	var names := anim.get_marker_names()
+	assert_true(names.has("anticipate") and names.has("anticipate_2"),
+		"each step gets its own markers (%s)" % str(names))
+	# The chest leads each step by a bounded amount. Scaling the running total
+	# instead corkscrewed the spine: at the end of step two the chest used to be
+	# a full extra turn past the hips.
+	var chest := _track_index(anim, ":B-chest", Animation.TYPE_ROTATION_3D)
+	var head := _track_index(anim, ":B-head", Animation.TYPE_ROTATION_3D)
+	assert_true(chest >= 0 and head >= 0, "the chest and head are keyed")
+	var worst_lead := 0.0
+	var worst_lag := 0.0
+	for index in 21:
+		var time := float(index) / 20.0 * 1.4
+		var hips_yaw := _yaw_of(rig, anim, hips, time)
+		var chest_yaw := _yaw_of(rig, anim, chest, time)
+		var head_yaw := _yaw_of(rig, anim, head, time)
+		# Euler yaw wraps at +/-180, so compare through the shortest arc.
+		var lead := wrapf(rad_to_deg(chest_yaw - hips_yaw), -180.0, 180.0)
+		var lag := wrapf(rad_to_deg(head_yaw - hips_yaw), -180.0, 180.0)
+		worst_lead = maxf(worst_lead, lead)
+		worst_lag = maxf(worst_lag, -lag)
+	assert_true(worst_lead < 45.0,
+		"the chest never leads the hips by more than 45 degrees (worst %.1f)" % worst_lead)
+	assert_true(worst_lag < 45.0,
+		"the head never trails the hips by more than 45 degrees (worst %.1f)" % worst_lag)
+	# The first step lifts the right foot, the second the left one.
+	var right_lift := 0.0
+	var left_lift := 0.0
+	for index in 20:
+		var time := float(index) / 19.0 * 1.4
+		right_lift = maxf(right_lift, _pose_of(rig, anim, time, "B-foot.R").origin.y)
+		left_lift = maxf(left_lift, _pose_of(rig, anim, time, "B-foot.L").origin.y)
+	var right_rest: float = rig.skeleton.get_bone_global_rest(rig.skeleton.find_bone("B-foot.R")).origin.y
+	var left_rest: float = rig.skeleton.get_bone_global_rest(rig.skeleton.find_bone("B-foot.L")).origin.y
+	assert_true(right_lift > right_rest + 0.02, "the right foot steps in the first pivot")
+	assert_true(left_lift > left_rest + 0.02, "the left foot steps in the second pivot")
 	_teardown(rig)
 
 
@@ -523,6 +619,64 @@ func test_walk_arms_swing_forward_with_forward_elbow() -> void:
 
 
 # --- idle -------------------------------------------------------------------
+
+func test_idle_twist_is_shared_over_the_spine_chain() -> void:
+	var rig := _rig("MotionTwist")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var chain := ["B-hips", "B-spine", "B-chest", "B-neck", "B-head"]
+	var result := _handler.run({
+		"op": "idle_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "idle_twist",
+		"duration": 3.0, "loop_mode": "linear", "overrides": {"twist": 40.0},
+	}, null)
+	assert_true(result.has("data"), "expected data, got: %s" % str(result))
+	var anim: Animation = rig.player.get_animation("idle_twist")
+	assert_true(anim != null, "the clip exists")
+	var spreads := _chain_spreads(anim, chain)
+	for bone in chain:
+		assert_gt(float(spreads[bone]), 0.0, "%s takes part in the twist" % bone)
+	# 40 degrees of twist is shared: a sine channel swings twice its amplitude, so
+	# the old per-bone multipliers (chest alone: 1.0 + 0.3 of 40 degrees) reached
+	# more than a full turn of spread on one bone. Now the biggest torso bone is
+	# the upper chest at a ~27 degree peak-to-peak.
+	for bone in ["B-hips", "B-spine", "B-chest", "B-neck"]:
+		assert_true(float(spreads[bone]) < deg_to_rad(40.0),
+			"%s stays inside the shared twist (%s rad)" % [bone, str(spreads[bone])])
+	assert_true(float(spreads["B-chest"]) < deg_to_rad(30.0),
+		"the chest takes a share, not the whole twist (%s rad)" % str(spreads["B-chest"]))
+	var tight := _handler.run({
+		"op": "idle_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "idle_tight",
+		"duration": 3.0, "loop_mode": "linear",
+		"overrides": {"twist": 40.0, "twist_spread": 0.0},
+	}, null)
+	assert_true(tight.has("data"), "twist_spread is an accepted override, got: %s" % str(tight))
+	var tight_anim: Animation = rig.player.get_animation("idle_tight")
+	var tight_spreads := _chain_spreads(tight_anim, chain)
+	assert_true(float(tight_spreads["B-chest"]) < float(spreads["B-chest"]) * 0.5,
+		"twist_spread 0 keeps the movement out of the chest (%s rad)" % str(tight_spreads["B-chest"]))
+	assert_true(float(tight_spreads["B-hips"]) > float(spreads["B-hips"]),
+		"twist_spread 0 hands the twist to the hips (%s rad)" % str(tight_spreads["B-hips"]))
+	var explicit := _handler.run({
+		"op": "idle_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "idle_chain",
+		"duration": 3.0, "loop_mode": "linear",
+		"spine_chain": ["B-hips", "B-spine", "B-chest"],
+	}, null)
+	assert_true(explicit.has("data"), "an explicit spine_chain is accepted, got: %s" % str(explicit))
+	var chain_anim: Animation = rig.player.get_animation("idle_chain")
+	assert_eq(_track_index(chain_anim, ":B-head", Animation.TYPE_ROTATION_3D), -1,
+		"a headless chain leaves the head out of the torso twist")
+	var broken := _handler.run({
+		"op": "idle_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "idle_bad", "duration": 3.0,
+		"spine_chain": ["B-chest", "B-hips"],
+	}, null)
+	assert_is_error(broken, ErrorCodes.INVALID_PARAMS)
+	_teardown(rig)
+
 
 func test_idle_cycle_breathing_shift_and_loop() -> void:
 	var rig := _rig("MotionIdle")

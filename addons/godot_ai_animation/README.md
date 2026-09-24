@@ -122,12 +122,13 @@ compressed tracks rather than rewriting them lossily.
 | `spring_setup` | Attach spring bones (stiffness, drag, gravity, radius, collisions). |
 | `look_at_setup` | One bone tracks a target, with origin, limits, secondary rotation, turn duration. |
 | `retarget_setup` | Retarget a source skeleton onto a child target (auto / humanoid / res:// profile). |
+| `twist_setup` | Spread a twist over the bones above it with a `BoneTwistDisperser3D` (even or weighted, over the detected or explicit `spine_chain`). |
 | `walk_cycle` | Looping in-place walk: thigh swing, knee bend, counter-swinging arms (`arm_down` for T-pose rigs), hip bob. For smooth character cycles prefer `animation_motion` below. |
-| `idle_breathing` | Subtle idle: chest/spine breathing, head counter-move, hip bob. For a richer loop prefer `animation_motion`'s `idle_cycle`. |
+| `idle_breathing` | Subtle idle: the whole torso chain breathes, the head counter-moves, an optional hip bob. For a richer loop prefer `animation_motion`'s `idle_cycle`. |
 | `blink` | Scale/rotate lid bones closed, N blinks per clip. |
 | `jumping_jack` | Looping jack: arms down to overhead, legs spread, rise. |
 | `squat` | Looping squat with the ankles planted by a two-bone solve. |
-| `punch` | Boxing combo: guard, alternating straight punches, torso twist. |
+| `punch` | Boxing combo: guard, alternating straight punches, `amplitude` total torso twist shared up the spine chain. |
 | `bake_pose_sequence` | Sample a clip and the active modifiers into a new keyed clip (final pose captured at `modification_processed`). |
 | `pose_save` | Capture a skeleton pose as portable rest-relative data. |
 | `pose_apply` | Write a pose back (blend / mirror / reset options). |
@@ -140,20 +141,23 @@ compressed tracks rather than rewriting them lossily.
 
 | op | What it builds |
 | --- | --- |
-| `walk_cycle` | Dense procedural walk: planted feet (two-bone IK leg solve, heel-to-toe roll), pelvis bob/sway/yaw/roll, counter-rotating torso, arm swing with elbow/clavicle follow-through; `speed` solves the stride. |
+| `walk_cycle` | Dense procedural walk: planted feet (two-bone IK leg solve, heel-to-toe roll), pelvis bob/sway/yaw/roll, counter-rotating torso shared up the spine chain, arm swing with elbow/clavicle follow-through; `speed` solves the stride. |
 | `run_cycle` | Same engine with a flight phase, forward lean, wider stride and bent elbows. |
 | `strafe_cycle` | Looping sideways gait (leading foot out, trailing closes) with the knees facing forward; `direction`, `speed`. |
-| `idle_cycle` | Looping idle with a look-around and torso twist over breathing, weight shift and seeded micro-noise; arms hang and sway. |
+| `idle_cycle` | Looping idle with a look-around and a torso twist shared up the spine chain, over breathing, weight shift and seeded micro-noise; arms hang and sway. |
 | `jump` | One-shot jump: anticipation, launch, air arc, landing absorb, recovery; `height`, `crouch`, `distance`; phase markers. |
-| `turn_cycle` | One-shot in-place pivot turn with anticipation and settle; `angle`, `direction`. |
+| `turn_cycle` | One-shot in-place pivot turn with anticipation and settle; `angle`, `direction`, `steps`. |
 | `walk_start` / `walk_stop` | Short blends in/out of a gait, sampled at `phase` so they match the cycle frame-for-frame. |
 | `cycle` | Generic entry: `preset` = walk / run / idle. |
 | `secondary_motion` | Bake offline spring bones (hair/tail/cloth) into an existing clip, deterministically. |
 
 Styles (`default` / `relaxed` / `heavy` / `sneaky`) scale a config before
 `overrides`; `root_motion` keys forward travel at the implied `speed`; T-pose
-rigs get their arms lowered automatically. Pure curve/IK/spring math lives in
-`spec/motion_drivers.gd` and cycle definitions in `spec/motion_specs.gd`.
+rigs get their arms lowered automatically. `spine_chain` overrides the detected
+torso chain and `twist_spread` (0-1) moves a twist between the hips alone and
+the whole chain, so twist/lean parameters mean the same total on any rig. Pure
+curve/IK/spring math lives in `spec/motion_drivers.gd`, cycle definitions in
+`spec/motion_specs.gd` and the twist distributor in `spec/spine_twist.gd`.
 
 ## `animation_inspect`
 

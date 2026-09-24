@@ -28,6 +28,35 @@ static func _loop_mode(params: Dictionary) -> Dictionary:
 	return {"ok": _LOOP_MODES[mode]}
 
 
+## The torso chain a twist distribution walks: an explicit `spine_chain` param
+## when given (validated against the skeleton, so a typo fails loudly instead of
+## twisting a limb), otherwise detected from the bone parents. Returns
+## `{"chain": [...]}` or an error. Shared by the rig and motion families.
+static func resolve_spine_chain(params: Dictionary, skeleton: Skeleton3D, roles: Dictionary) -> Dictionary:
+	var explicit = params.get("spine_chain", [])
+	if explicit is Array and not (explicit as Array).is_empty():
+		var chain: Array = []
+		var previous := -1
+		for value in explicit:
+			var name := str(value)
+			var index := skeleton.find_bone(name)
+			if index < 0:
+				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
+					"spine_chain bone '%s' is not on this skeleton" % name)
+			if previous >= 0 and skeleton.get_bone_parent(index) != previous:
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+					"spine_chain must be one parent chain, but '%s' does not follow '%s'"
+						% [name, skeleton.get_bone_name(previous)])
+			chain.append(name)
+			previous = index
+		return {"chain": chain}
+	var parent_of := {}
+	for index in skeleton.get_bone_count():
+		var parent := skeleton.get_bone_parent(index)
+		parent_of[str(skeleton.get_bone_name(index))] = str(skeleton.get_bone_name(parent)) if parent >= 0 else ""
+	return {"chain": RigAnalysis.spine_chain(parent_of, roles)}
+
+
 ## Bone roles for the procedural recipes: explicit `roles` overrides win, then a
 ## saved `profile` (name or res:// path), then name-based auto-detection
 ## (`spec/rig_analysis.gd`). Shared by the rig and motion families.
