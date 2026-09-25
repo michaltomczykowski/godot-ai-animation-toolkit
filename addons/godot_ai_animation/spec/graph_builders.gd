@@ -141,19 +141,25 @@ static func blend_space(spec: Dictionary) -> Dictionary:
 	if dimensions != 1 and dimensions != 2:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'dimensions' must be 1 or 2")
 	var space: AnimationRootNode
+	# `sync` stays the caller's switch, but it now lands on `sync_mode`: the
+	# `sync` property is deprecated in 4.7 and its `set_use_sync` setter will go.
+	# True is SYNC_MODE_INDEPENDENT (inactive animations advance at weight 0),
+	# false is SYNC_MODE_NONE (they freeze).
+	var sync_mode: int = AnimationNodeBlendSpace1D.SYNC_MODE_INDEPENDENT \
+		if bool(spec.get("sync", true)) else AnimationNodeBlendSpace1D.SYNC_MODE_NONE
 	if dimensions == 1:
 		var space_1d := AnimationNodeBlendSpace1D.new()
 		space_1d.set_min_space(float(spec.get("min", 0.0)))
 		space_1d.set_max_space(float(spec.get("max", 1.0)))
 		space_1d.set_snap(float(spec.get("snap", 0.1)))
-		space_1d.set_use_sync(bool(spec.get("sync", true)))
+		space_1d.sync_mode = sync_mode
 		space = space_1d
 	else:
 		var space_2d := AnimationNodeBlendSpace2D.new()
 		space_2d.set_min_space(_coerce_vector2(spec.get("min"), Vector2.ZERO))
 		space_2d.set_max_space(_coerce_vector2(spec.get("max"), Vector2.ONE))
 		space_2d.set_snap(_coerce_vector2(spec.get("snap"), Vector2(0.1, 0.1)))
-		space_2d.set_use_sync(bool(spec.get("sync", true)))
+		space_2d.sync_mode = sync_mode
 		space = space_2d
 	var count := 0
 	for index in points.size():

@@ -305,6 +305,42 @@ func test_audit_flags_broken_path_and_loop_snap() -> void:
 	_teardown(fixture)
 
 
+## Phase 15 evidence: `audit` collects the animations an AnimationTree
+## references by walking the tree, and it does it with `AnimationNode`'s
+## `get_child_count()`/`get_child()` - which do not exist (AnimationNode is a
+## Resource). Any scene with a tree therefore errors out mid-audit.
+func test_audit_survives_an_animation_tree() -> void:
+	var fixture := _fixture("AuditTree")
+	if fixture.has("error"):
+		skip(fixture.error)
+		return
+	var spec := ClipSpec.make(1.0, Animation.LOOP_NONE)
+	ClipSpec.add_value_track(spec, "AuditTarget:position", [
+		{"time": 0.0, "value": Vector2(0, 0)},
+		{"time": 1.0, "value": Vector2(1, 0)},
+	])
+	_add_clip(fixture.player_path, "tree_clip", spec)
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var player: AnimationPlayer = ValueCodec.resolve_scene_path(str(fixture.player_path), scene_root)
+	var tree := AnimationTree.new()
+	tree.name = "AuditTree"
+	player.get_parent().add_child(tree)
+	tree.owner = scene_root
+	tree.anim_player = player.get_path()
+	var state_machine := AnimationNodeStateMachine.new()
+	var walk_state := AnimationNodeAnimation.new()
+	walk_state.animation = &"tree_clip"
+	state_machine.add_node("Walk", walk_state)
+	tree.tree_root = state_machine
+	var result := _handler.run({
+		"op": "audit", "player_path": fixture.player_path, "include_info": false,
+	}, null)
+	assert_true(result.has("data"), "the audit completes with a tree present: %s" % str(result))
+	if result.has("data"):
+		assert_true(int(result.data.clips_scanned) >= 1, "the clip behind the tree is still scanned")
+	_teardown(fixture)
+
+
 func test_audit_flags_autoplay_conflict() -> void:
 	var scene_root := EditorInterface.get_edited_scene_root()
 	if scene_root == null:
@@ -465,6 +501,139 @@ func test_dry_run_presets_does_not_commit() -> void:
 	var player := ValueCodec.resolve_scene_path(fixture.player_path, scene_root) as AnimationPlayer
 	assert_false(player.has_animation("pulse"), "dry_run must not create the clip")
 	_teardown(fixture)
+
+
+func test_dry_run_leaves_no_trace_in_any_family() -> void:
+	# `dry_run` is advertised on every mutating op, so the contract has to hold
+	# for all of them - not just the two the forwarder happened to cover. Each op
+	# below is run with its OWN `dry_run: true` and must leave the node tree, the
+	# clip data, the undo history and the filesystem exactly as they were.
+	var fixture := _fixture("DryAll")
+	if fixture.has("error"):
+		skip(fixture.error)
+		return
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var player := ValueCodec.resolve_scene_path(fixture.player_path, scene_root) as AnimationPlayer
+	var library_dir := "res://templates"
+	var probe := "res://templates/dry_run_probe.json"
+	var cases: Array = [
+		["animation_presets", "pulse", {
+			"player_path": fixture.player_path, "target_path": str(fixture.target),
+			"animation_name": "dry_preset", "duration": 0.6,
+		}],
+		["animation_edit", "retime", {
+			"player_path": fixture.player_path, "animation_name": "clip", "factor": 0.5,
+		}],
+		["animation_graph", "state_machine", {
+			"player_path": fixture.player_path, "tree_path": "/root/DryTree",
+			"states": [{"name": "idle", "animation": "clip"}],
+		}],
+		["animation_fx", "shake", {
+			"player_path": fixture.player_path, "target_path": str(fixture.target),
+			"intensity": 8.0, "duration": 0.4, "seed": 7,
+		}],
+		# animation_motion and animation_rig need a skeleton; their dry_run
+		# coverage lives in those suites, which own a rigged fixture.
+	]
+	for case in cases:
+		var tool := str(case[0])
+		var before_nodes := _node_fingerprint(scene_root)
+		var before_clips := _clip_fingerprint(player)
+		var before_version := _undo_version()
+		var params: Dictionary = (case[2] as Dictionary).duplicate()
+		params["op"] = str(case[1])
+		params["dry_run"] = true
+		var handler: Object = _handler_for(tool)
+		if handler == null:
+			assert_true(false, "%s has a handler to test" % tool)
+			continue
+		var result: Dictionary = handler.run(params, null)
+		assert_true(result.has("data"),
+			"%s/%s dry_run reports a result (%s)" % [tool, str(case[1]), str(result.get("error", result))])
+		assert_eq(_node_fingerprint(scene_root), before_nodes,
+			"%s/%s dry_run adds or removes no nodes" % [tool, str(case[1])])
+		assert_eq(_clip_fingerprint(player), before_clips,
+			"%s/%s dry_run leaves every clip untouched" % [tool, str(case[1])])
+		assert_eq(_undo_version(), before_version,
+			"%s/%s dry_run commits no undo action" % [tool, str(case[1])])
+	# A library write is the leak a node-tree snapshot cannot see: the file lands
+	# on disk and the clip-scene looks untouched.
+	var had_dir := DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(library_dir))
+	var before_files := _dir_fingerprint(library_dir)
+	var library_params := {
+		"op": "template_save", "name": "dry_run_probe", "tool": "animation_presets",
+		"forward_op": "pulse", "library_path": probe, "dry_run": true,
+	}
+	var library_result: Dictionary = _handler_for("animation_library").run(library_params, null)
+	assert_true(library_result.has("data"),
+		"library/template_save dry_run reports a result (%s)" % str(library_result.get("error", library_result)))
+	assert_eq(_dir_fingerprint(library_dir), before_files,
+		"library/template_save dry_run writes no file")
+	assert_eq(DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(library_dir)) and not had_dir, false,
+		"library/template_save dry_run does not even create the directory")
+	_teardown(fixture)
+
+
+## Every node in the edited scene, by path and class, so an added or removed
+## node cannot hide behind a clip check.
+func _node_fingerprint(root: Node) -> Array:
+	var out: Array = []
+	var stack: Array = [root]
+	while not stack.is_empty():
+		var node: Node = stack.pop_back()
+		out.append("%s:%s" % [str(node.get_path()), node.get_class()])
+		for child in node.get_children():
+			stack.append(child)
+	out.sort()
+	return out
+
+
+## Clip name, length, loop mode and track count for every clip in the player.
+func _clip_fingerprint(player: AnimationPlayer) -> Array:
+	var out: Array = []
+	for name in player.get_animation_list():
+		var anim: Animation = player.get_animation(str(name))
+		if anim == null:
+			continue
+		out.append("%s:%.4f:%d:%d" % [str(name), anim.length, anim.loop_mode, anim.get_track_count()])
+	out.sort()
+	return out
+
+
+func _dir_fingerprint(res_dir: String) -> Array:
+	var absolute := ProjectSettings.globalize_path(res_dir)
+	var out: Array = []
+	var dir := DirAccess.open(absolute)
+	if dir == null:
+		return out
+	dir.list_dir_begin()
+	var entry := dir.get_next()
+	while not entry.is_empty():
+		if not dir.current_is_dir():
+			out.append(entry)
+		entry = dir.get_next()
+	out.sort()
+	return out
+
+
+## The scene history's version, which moves on every committed action. A dry run
+## that quietly commits would show up here even if it changed nothing visible.
+func _undo_version() -> int:
+	var undo := EditorInterface.get_editor_undo_redo()
+	var id := undo.get_object_history_id(EditorInterface.get_edited_scene_root())
+	if id < 0:
+		return -1
+	return int(undo.get_history_undo_redo(id).get_version())
+
+
+func _handler_for(tool: String) -> Object:
+	var script_path := str(OpRegistry.family(tool).get("handler", ""))
+	if script_path.is_empty() or not ResourceLoader.exists(script_path):
+		return null
+	var script = load(script_path)
+	if script == null:
+		return null
+	return script.new()
 
 
 func test_help_lists_ops_and_params() -> void:

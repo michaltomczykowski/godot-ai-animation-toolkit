@@ -6,9 +6,23 @@ Exposed to agents as the promoted first-class tools
 (AnimationTree authoring), **`custom_animation_edit`** (edit existing clips),
 **`custom_animation_inspect`** (read-only inspection), **`custom_animation_library`**
 (reusable templates + JSON clip specs), **`custom_animation_rig`** (skeleton
-poses and pose-driven clips) and **`custom_animation_motion`** (procedural
-humanoid cycles and secondary spring bones), all reachable through
+poses, pose-driven clips and procedural recipes) and
+**`custom_animation_motion`** (procedural humanoid cycles and secondary spring
+bones), all reachable through
 `custom_manage(op="invoke", tool_name=...)`.
+
+A ninth family, **`animation_rig_modifiers`** (the five modifier setups:
+`ik_setup`, `spring_setup`, `look_at_setup`, `retarget_setup`, `twist_setup`),
+shares the `animation_rig` handler and is documented in the `animation_rig`
+section below. It is **not promoted**: the Godot AI server promotes at most
+eight tools, so with nine families one has to give up its slot. Call it as
+`custom_manage(op="invoke", tool_name="animation_rig_modifiers",
+params={"op": "ik_setup", ...})`.
+
+`dry_run: true` is side-effect free on every op that advertises it: no scene
+node is added or changed, no clip is written, no undo action is committed and
+**no file is created** (`pose_save`, `template_save`, `template_delete` and
+`rig_profile` all report what they would write instead).
 
 A generated per-op index with every parameter lives in
 [`op-index.md`](op-index.md) — it is rendered from
@@ -399,6 +413,11 @@ Notes:
 
 ## `animation_rig`
 
+Served by **two** catalog families: `animation_rig` (promoted — this section's
+poses, inspection and recipes) and `animation_rig_modifiers` (not promoted —
+the five `*_setup` rows below, because the server promotes at most eight
+tools). Call both through `custom_manage`, and pass the same params either way.
+
 Phase 6a/6b: **poses and rig building**. A pose is portable, rest-relative data
 — `{bone: {rotation delta, position delta, scale}}` — so it survives rig
 changes, blends, mirrors and JSON round-trips, and so the same pose applies to
@@ -410,7 +429,7 @@ both human-dummy variants.
 | `ik_setup` | Attach a 3D IK modifier to a Skeleton3D, wire it to a target node and (optionally) a pole. `kind=spline` is the exception: `SplineIK3D` follows a **Path3D** (`target_path`, created at the end bone when omitted) because it has no target setting anywhere in its class chain. Chains are validated: `two_bone` needs exactly three parent-ordered bones (or two with `use_virtual_end`), the chain solvers a root and an end with the end below it. Default markers come from the **rest** frame, and a second marker asking for the same name gets its own (`IKTarget2`) so both paths still resolve. |
 | `spring_setup` | Attach a `SpringBoneSimulator3D` with one spring per `springs` entry (root/end bone, stiffness, drag, gravity, radius, rotation axis, centre, collisions). `end_bone` defaults to the root's leaf. |
 | `look_at_setup` | Attach a `LookAtModifier3D` so one bone tracks a target node (created a metre in front of the bone when omitted), with origin, limits, secondary rotation and turn duration. |
-| `retarget_setup` | Attach a `RetargetModifier3D` under a source Skeleton3D so a child target skeleton follows it in model space, with an `auto` bone-name profile (built from the source), `humanoid`, or a `res://` profile. Refuses a map that matches nothing (or misses the hips/leg core the source actually has) instead of building a modifier that moves nothing, and reports `source_only_bones`, `target_only_bones` and mapped-parent mismatches. `move_target=false` **reconfigures the modifier that is already there** rather than adding an inert second one. |
+| `retarget_setup` | Attach a `RetargetModifier3D` under a source Skeleton3D so a child target skeleton follows it in model space, with an `auto` bone-name profile (built from the source), `humanoid`, or a `res://` profile. Refuses a map that matches nothing (or misses the hips/leg core the source actually has) instead of building a modifier that moves nothing, and reports `source_only_bones`, `target_only_bones` and mapped-parent mismatches. `move_target=false` **reconfigures the modifier that is already there** rather than adding an inert second one — and only for the source that modifier was built for. |
 | `twist_setup` | Attach a `BoneTwistDisperser3D` so a twist applied to one bone is spread over the bones above it. `disperse` takes `{root_bone?, end_bone?, mode? (even\|weighted), weight_position?, extend_end_bone?, twist_from_rest?, twist_from?}`; the root/end default to the detected (or explicit) spine chain. Parameters Godot only reads in another mode are rejected instead of queued and ignored (`damping` is custom-mode only, `weight_position` is weighted-only, `twist_from_rest=false` needs an explicit reference quaternion), and a two-joint range sets `extend_end_bone` and warns that the twist lands whole. The response's `joint_bones` is the *predicted* list; `rig_get` reports the real one (`joints_pending` until Godot has built it on a later frame). |
 | `walk_cycle` | Build a looping in-place walk from bone roles (auto-detected by name or given in `roles`): thigh swing, knee bend, counter-swinging arms and a hip bob. `arm_down` lowers the arms from the rest pose for T-pose rigs. |
 | `idle_breathing` | Build a subtle looping idle: the whole torso chain breathes (ramping from the lower spine to the chest), a light head counter-move and an optional hip bob. |
@@ -428,6 +447,19 @@ both human-dummy variants.
 
 Notes:
 
+- **Every `*_setup` verifies itself and rolls back on failure.** After the undo
+  action commits, the op reads the modifier's settings back through the
+  modifier and resolves what it just wired: `ik_setup` checks that the target
+  (and pole) settings point at nodes that exist, `retarget_setup` checks that
+  the target became a child of the modifier and that every mapped bone resolves
+  on both skeletons, and spline IK additionally requires the `Path3D` to have
+  curve points. If any of that is false the action is undone and the call
+  returns a typed error — no setup reports success it cannot confirm.
+- **A retarget target must end up a direct child of the modifier.**
+  `RetargetModifier3D` only drives its own children, so a target left inside
+  another node (a wrapper, a nested instanced scene) is refused with an
+  explanation rather than accepted and left inert. Pass `move_target=false` to
+  reconfigure an existing modifier instead of moving anything.
 - **Modifiers are created inactive** (`active` defaults to false), because an
   active `SkeletonModifier3D` also drives the skeleton while you edit the scene.
   Pass `active=true` (or enable the modifier) when the scene is ready.

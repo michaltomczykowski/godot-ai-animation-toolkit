@@ -1,37 +1,111 @@
 # Changelog
 
-## 0.2.1 — unreleased
+## 1.9.0 — audit remediation
 
-- The `showcase` op now also demos the `spin` preset (a second 3D cube), so the
-  generated demo covers all seven clip presets; `test_project/showcase.tscn`
-  and the README GIF regenerated.
-- Tests: 27 editor rows, 40 tier-1 checks.
+Phase 15. Every item below was reproduced by a failing test first, then fixed,
+then re-verified. The theme: no tool may report success it cannot confirm, and
+`dry_run` may not touch anything.
 
-## 0.2.0
+### No setup reports success it cannot confirm
 
-- New `float` preset: 3D bob through the target's transform (rise + scale +
-  optional turn); refuses `loop_mode="linear"` like `drift` (the clip ends at a
-  net offset).
-- New `stagger` op: reveal an ordered list of targets in **one clip** (one
-  track per target, key times offset by `stagger`, one undo action) with
-  `fade_in` / `slide_in` / `pop_in` effects, from `target_paths` or the editor
-  selection (`use_selection`).
-- The `showcase` op now also builds a small 3D island (camera, light, cube) so
-  the `float` preset is demoed; `test_project/showcase.tscn` regenerated and the
-  README GIF re-recorded.
-- Tests: 27 editor rows (6 new) + 40 tier-1 checks (10 new).
+- `*_setup` ops now verify their own wiring **after** the undo action commits
+  and **roll it back** if it did not take (`_undo_and_fail` in the shared
+  handler base). `ik_setup` reads the modifier's target/pole settings back and
+  resolves them; `retarget_setup` confirms the target became a child of the
+  modifier and that every mapped bone resolves on both skeletons; spline IK
+  additionally requires the `Path3D` to have curve points.
+- A retarget target that ends up nested in another node is **refused** with an
+  explanation. `RetargetModifier3D` only drives its own children, so such a
+  target was accepted, reported as set up, and then never moved.
+- `move_target=false` reconfigures an existing modifier only for the source it
+  was built for; another skeleton's profile against a different source is
+  refused rather than silently applied to bones that do not exist.
+- Spring `centre_path` and collision shapes resolve **relative to the
+  `SpringBoneSimulator3D`**, not the edited-scene root, and collision nodes are
+  reparented under the simulator (undoably; reported as `collisions_moved`).
+- `graph wire` honours `create=false`: the "is this already wired?" check no
+  longer creates the tree it was checking for.
 
-## 0.1.0
+### `dry_run` is side-effect free
 
-- Initial release: `animation_presets` custom tool with seven ops —
-  `pulse`, `bounce`, `orbit`, `sweep`, `drift`, `spin` (3D quaternion turn),
-  and `showcase` (builds a runnable demo of every preset).
-- Each preset commits one scene-pinned undo action; Control `pivot_offset`
-  recentering rides the same action for `bounce`/`sweep`.
-- Self-contained implementation: depends only on the Godot AI custom-tools
-  registration API.
-- Tests: 21 editor-suite rows + 30 headless tier-1 checks; CI runs the tier-1
-  checks on Linux and Windows and the editor suite headless against a pinned
-  Godot AI release (plus informational `main` drift detection).
-- Docs: tool reference, recipes → preset mapping, and two demo GIFs
-  (`docs/images/`); `test_project/showcase.tscn` is the committed demo output.
+- A table-driven test runs one op per family with its own `dry_run: true` and
+  asserts the node tree, every clip, the undo history version and the filesystem
+  are unchanged. It found two real leaks, now fixed:
+  - `template_save` / `template_delete` wrote (or deleted) the library file.
+  - `inspect rig_profile` wrote a profile file.
+- `pose_save` and `rig_profile` now advertise `dry_run`, and every file write in
+  the library and rig handlers goes through a single guarded choke point.
+
+### Correctness fixes found by the audit
+
+- `look_at_setup` passes its limit angles in **degrees** where the modifier wants
+  radians (`primary=45.0` for a 45° limit).
+- `animation_inspect` walks `AnimationNode` sub-nodes by type instead of calling
+  a method that does not exist — an animation tree made the audit crash.
+- `SpineTwist` divided by a **signed** sum, so a hips-leads/chest-counters
+  profile (negative sum) fell back to a divisor of 1.0 and came out with several
+  times the requested twist. Signs are now preserved and the scale is honest.
+- `foot_slide` counts contact from both feet (a one-sided test sank the planted
+  foot) and no longer claims more contact time than the clip contains.
+- Torso twist/lean uses the **detected** spine chain (the neck participates)
+  before falling back to the role chain.
+- Quaternion `scale_delta` is measured from the track's baseline, so
+  `amplitude(0)` no longer snaps to rest; quaternion equality uses an angular
+  tolerance, so `cleanup` no longer flattens half a degree of motion.
+- The clip reducer re-measures after its last pass, and `max_keys` below the
+  endpoint count is refused-and-flagged (`cap_below_endpoints`) instead of
+  quietly returning the endpoints.
+- `add_noise` rounds a fractional frequency up to a whole cycle, so the noise
+  has no seam at the clip's end.
+- `character_setup` puts its blend points at the **solved** speed and lists any
+  speed it could not reach in `speed_warnings`.
+- `walk_start` / `walk_stop` sample the cycle through a real `Animation` track,
+  so a transition meets the cycle at the phase you asked for (nearest-key
+  sampling snapped to whichever key was closer).
+- The right foot's passing marker was parenthesised wrongly.
+- `jump` no longer accepts a `foot_lift` override and `turn` no longer accepts
+  `lean` / `toe_roll`: none of them were read, so they were accepted, reported
+  as success, and did nothing. They are now refused with the valid key list.
+- `sync` on blend spaces now lands on `sync_mode` (`SYNC_MODE_INDEPENDENT` /
+  `SYNC_MODE_NONE`); the boolean property's setter is deprecated in 4.7.
+- Resources are no longer passed to `EditorUndoRedoManager.add_do_reference` /
+  `add_undo_reference` ("Do not use for resources" in the Godot docs). Node
+  references — the documented use — are unchanged.
+
+### Catalog and contract
+
+- The rig family is split in two: `animation_rig` (promoted) and
+  `animation_rig_modifiers` (the five `*_setup` ops, **not** promoted, because
+  the Godot AI server promotes at most eight tools). Each half's schema is
+  derived from the ops it owns, so neither advertises the other's parameters and
+  each has headroom under the 8192-byte cap.
+- Registration is **atomic** (`batch_register`): a rejected family no longer
+  leaves earlier families committed and dispatchable while the server's tool list
+  never hears about them, and a Godot AI reload re-registers automatically
+  instead of dropping every tool until the editor restarts.
+- A rejected registration now pushes an error naming the family, instead of a
+  retry that ends in a warning about two tools that do not exist.
+- The tier-1 registry check grew teeth: every op's `params` **and** its
+  `example` keys must be declared in that family's schema (forwarder ops may use
+  their target op's keys, and those are checked against the target). It caught
+  three examples that had drifted.
+- A new CI gate reports a suite that fails to load instead of skipping it: a
+  parse error in one test file used to leave the run green with 25 tests missing.
+
+### Tooling
+
+- `tools/test_tier1.ps1` imports the project first, so a fresh checkout no longer
+  fails the audio-fixture suite on an unimported resource (the failure CI hit on
+  Linux).
+- The release zip includes `LICENSE`.
+- Docs, `CHANGELOG.md` and the ROADMAP are current; `docs/op-index.md` is
+  generated from the registry and checked by tier-1.
+
+### Tests
+
+187 editor tests (8 suites) and 12 tier-1 suites, all passing. Four tests that
+encoded a bug were repaired rather than the bug: a curve-less `Path3D` was
+accepted for spline IK, a wrapped instanced retarget target was expected to
+work, a 1.5 s contact time was expected inside a 1 s clip, and the punch test
+asserted a per-bone twist magnitude that the detected-chain fix legitimately
+changed.

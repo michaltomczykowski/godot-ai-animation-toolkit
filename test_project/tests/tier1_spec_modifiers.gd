@@ -470,7 +470,17 @@ func _check_roundtrip() -> void:
 
 func _check_registry() -> void:
 	var families := OpRegistry.families()
-	_expect_eq(families.size(), 8, "eight tool families are registered")
+	_expect_eq(families.size(), 9, "nine tool families are registered")
+	# The Godot AI server promotes at most eight tools, sorted by name, so
+	# exactly one family opts out and keeps the promoted set full. If the cap
+	# ever grows, this is the assertion that tells us to promote it instead.
+	var promoted: Array = []
+	for family_name in families:
+		if bool(families[family_name].get("promoted", true)):
+			promoted.append(str(family_name))
+	_expect(promoted.size() == 8, "eight families stay promoted (got %d)" % promoted.size())
+	_expect(not bool(families[OpRegistry.FAMILY_RIG_MODIFIERS].get("promoted", true)),
+		"the modifier half opts out of promotion so it does not crowd one out")
 	for family_name in OpRegistry.family_names():
 		var info: Dictionary = families[family_name]
 		var description := str(info.get("description", ""))
@@ -496,6 +506,24 @@ func _check_registry() -> void:
 			_expect(op_enum.has(descriptor.name), "%s/%s is in the schema enum" % [family_name, descriptor.name])
 			_expect(not str(descriptor.get("summary", "")).is_empty(), "%s/%s has a summary" % [family_name, descriptor.name])
 			_expect(not (descriptor.get("example", {}) as Dictionary).is_empty(), "%s/%s has an example" % [family_name, descriptor.name])
+			for example_key in (descriptor.get("example", {}) as Dictionary):
+				var key_name := str(example_key)
+				if properties.has(key_name):
+					continue
+				# `dry_run` and `template_save` forward their remaining keys to a
+				# target op, so their examples may use the TARGET's parameters. The
+				# key still has to be real - it must be declared by the op the
+				# example names, or the example is a lie the schema cannot catch.
+				var forwarded := false
+				if descriptor.name in ["dry_run", "template_save"]:
+					var example: Dictionary = descriptor.get("example", {})
+					var target: Dictionary = OpRegistry.find_op(
+						str(example.get("tool", "")), str(example.get("forward_op", "")))
+					forwarded = not target.is_empty() \
+						and (target.get("params", []) as Array).has(key_name)
+				_expect(forwarded,
+					"%s/%s example key '%s' is declared in the schema (or by its forward_op)"
+					% [family_name, descriptor.name, key_name])
 			for param in descriptor.get("params", []):
 				_expect(properties.has(param),
 					"%s/%s param '%s' is declared in the schema" % [family_name, descriptor.name, param])

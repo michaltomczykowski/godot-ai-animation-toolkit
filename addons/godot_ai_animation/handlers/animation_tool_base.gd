@@ -176,27 +176,27 @@ func _stage_animation_changes(
 	for level in _instance_levels(player):
 		undo.add_do_method(level.parent, "set_editable_instance", level.instance, true)
 		undo.add_undo_method(level.parent, "set_editable_instance", level.instance, false)
+	# Only the player and its library are tracked here. `add_do_reference` is for
+	# nodes created by the do call, and the Godot docs are explicit: "Do not use
+	# for resources." The library and the clips are resources, so referencing them
+	# left the undo manager holding entries it should never own; the add/remove
+	# methods above are the whole undo story.
 	if created_library:
 		undo.add_do_method(player, "add_animation_library", "", library)
 		undo.add_undo_method(player, "remove_animation_library", "")
-		undo.add_do_reference(library)
 	elif relocalized:
 		undo.add_do_method(player, "remove_animation_library", "")
 		undo.add_do_method(player, "add_animation_library", "", target_library)
-		undo.add_do_reference(target_library)
 		undo.add_undo_method(player, "remove_animation_library", "")
 		undo.add_undo_method(player, "add_animation_library", "", library)
-		undo.add_undo_reference(library)
 	for clip_name in removed:
 		undo.add_do_method(target_library, "remove_animation", clip_name)
 	for clip_name in added:
 		undo.add_do_method(target_library, "add_animation", clip_name, added[clip_name])
-		undo.add_do_reference(added[clip_name])
 	for clip_name in added:
 		undo.add_undo_method(target_library, "remove_animation", clip_name)
 	for clip_name in removed:
 		undo.add_undo_method(target_library, "add_animation", clip_name, removed[clip_name])
-		undo.add_do_reference(removed[clip_name])
 	return target_library
 
 
@@ -324,6 +324,36 @@ static func _unique_child_name(parent: Node, desired: String, taken: Dictionary)
 		index += 1
 	taken[candidate] = true
 	return candidate
+
+
+## Roll back the action that was just committed and return a typed error. A
+## setup op that cannot confirm the wiring it created must not report success:
+## the caller gets the error and the scene is left exactly as it was.
+func _undo_and_fail(code: String, message: String) -> Dictionary:
+	var undo := ToolContext.undo_redo
+	if undo != null:
+		undo.undo()
+	return ErrorCodes.make(code, "%s The change was rolled back." % message)
+
+
+## Post-commit check that a modifier setting points at the node the op promised:
+## "" when it resolves to `expected` (or to something else when `expected` is
+## null), a message naming the mismatch otherwise. Modifier paths resolve
+## relative to the modifier, so this is also the check that catches a path built
+## for the wrong parent.
+func _verify_setting_node(modifier: Node, getter: String, args: Array, expected: Node) -> String:
+	if not modifier.has_method(getter):
+		return ""
+	var stored: Variant = modifier.callv(getter, args)
+	if not (stored is NodePath) or str(stored).is_empty():
+		return "the %s setting of %s is empty after the commit" % [getter, modifier.name]
+	var resolved: Node = modifier.get_node_or_null(stored)
+	if resolved == null:
+		return "%s could not resolve its %s '%s' (it points at nothing)" % [modifier.name, getter, str(stored)]
+	if expected != null and resolved != expected:
+		return "%s's %s resolves to '%s', not the node it was given ('%s')" % [
+			modifier.name, getter, str(resolved.name), str(expected.name)]
+	return ""
 
 
 ## Global scale of a skeleton's owning node, for the "springs and IK assume unit

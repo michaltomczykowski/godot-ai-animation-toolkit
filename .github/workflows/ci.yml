@@ -149,9 +149,11 @@ jobs:
       - name: Build release zip
         run: |
           mkdir -p dist
+          # The licence ships with the addon: someone who unzips this into a
+          # project has to get the terms, not just the code.
           git archive --format=zip \
             --output "dist/godot-ai-animation-toolkit-${GITHUB_REF_NAME#v}.zip" \
-            HEAD addons/godot_ai_animation
+            HEAD addons/godot_ai_animation LICENSE
 
       - name: Create GitHub release
         env:

@@ -28,7 +28,8 @@ extends RefCounted
 const DEFAULT_WEIGHTS := [0.20, 0.30, 0.35, 0.15]
 
 ## Below this, a weights array is treated as cancelling out and is normalized by
-## magnitude instead, so a hips-leads/chest-counterrides profile stays usable.
+## magnitude instead, so a hips-leads/chest-counterrides profile stays usable
+## (and keeps the signs its weights asked for).
 const _SIGNED_SUM_FLOOR := 0.05
 
 
@@ -54,8 +55,17 @@ static func amplitudes(
 	for value in profile:
 		signed_sum += float(value)
 		magnitude += absf(float(value))
-	var divisor := signed_sum if absf(signed_sum) >= _SIGNED_SUM_FLOOR else magnitude
-	if divisor < 0.000001:
+	# The divisor normalises the shares to the request, and it must never turn a
+	# sign upside down: a counter-rotation profile (hips lead, torso counters) has
+	# a NEGATIVE signed sum, and dividing by it flipped every bone's direction.
+	# A positive sum divides by itself so the shares add up to the request; a sum
+	# that is too small (or negative) divides by magnitude, which keeps the
+	# authored signs and nets below the request - the same rule a cancelling
+	# profile has always used. The near-zero guard used to be a signed
+	# comparison, so it replaced every negative divisor with 1.0 and a hips-led
+	# counter-rotation came out with several times the requested twist.
+	var divisor := signed_sum if signed_sum >= _SIGNED_SUM_FLOOR else magnitude
+	if absf(divisor) < 0.000001:
 		divisor = 1.0
 	var limit := absf(clamp_degrees)
 	for value in profile:

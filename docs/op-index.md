@@ -382,7 +382,7 @@ Handler: `res://addons/godot_ai_animation/handlers/inspect.gd`
 | `stats` | Clip/track/key totals, track-type histogram and loop-mode breakdown. | `player_path` |
 | `motion_report` | Per-track motion quality: key density, peak speed/acceleration, loop-seam pops, hemisphere flips, constant tracks - each with a fix hint. | `player_path`, `animation_name`, `max_tracks` |
 | `motion_audit` | Play the clip on a Skeleton3D (posed and restored, never saved) and grade it: per-foot ground-contact windows and the horizontal slide while planted, hip bob and travel, each pass/fail against a budget with a fix hint. The numeric answer to 'is this walk actually planted?' - a moonwalk reports a slide in metres, not a vibe. Needs foot/hips roles (auto-detected or via roles/profile). | `player_path`, `animation_name`, `skeleton_path`, `roles`, `profile`, `samples`, `contact_threshold`, `max_slide`, `max_hip_bob` |
-| `rig_profile` | Understand a rig: detected roles with candidates, T/A pose, limb lengths/reach, facing/lateral axes, capabilities, missing roles and suggested ops; save=true writes a reusable profile. | `skeleton_path`, `roles`, `profile`, `save`, `name`, `overwrite` |
+| `rig_profile` | Understand a rig: detected roles with candidates, T/A pose, limb lengths/reach, facing/lateral axes, capabilities, missing roles and suggested ops; save=true writes a reusable profile. | `skeleton_path`, `roles`, `profile`, `save`, `name`, `overwrite`, `dry_run` |
 | `sample` | FK probe: world positions (and optional euler rotations) of requested bones at N times, plus derived foot heights and ground-contact windows. Pose is restored afterwards. | `player_path`, `animation_name`, `skeleton_path`, `roles`, `profile`, `bones`, `times`, `samples`, `include_rotation`, `contact_threshold` |
 | `preview` | Render the posed character offscreen to PNGs at clip times so an agent can see contact, foot planting and follow-through. A private copy of the character subtree is posed in an offscreen viewport; the edited scene is never touched. The reply is deferred (one editor frame per image) and needs a rendering device. | `player_path`, `animation_name`, `skeleton_path`, `character_path`, `times`, `samples`, `width`, `height`, `output_dir`, `basename`, `yaw`, `elevation`, `margin`, `background`, `overwrite` |
 | `dry_run` | Run any presets/edit op and report the result without committing. | `tool`, `forward_op`, `player_path`, `animation_name` |
@@ -429,6 +429,7 @@ Handler: `res://addons/godot_ai_animation/handlers/inspect.gd`
 | `elevation` | number | preview: camera elevation in degrees (8). |
 | `margin` | number | preview: framing margin around the bones (1.35). |
 | `background` | string | preview: frame background colour (#2b2f36). |
+| `dry_run` | boolean | rig_profile: report without writing the profile file (off). |
 
 Required: `op`.
 
@@ -460,7 +461,7 @@ Handler: `res://addons/godot_ai_animation/handlers/library.gd`
 | `template_save` | Save a presets/fx/motion/rig call (its op and params) as a named template in the project library. | `name`, `tool`, `forward_op`, `description`, `library_path`, `overwrite`, `dry_run` |
 | `template_apply` | Apply a saved template through its original tool, with per-call overrides. | `name`, `library_path`, `player_path`, `target_path`, `animation_name`, `overwrite`, `dry_run` |
 | `template_list` | List the saved templates with their tool, op, description and params. | `library_path` |
-| `template_delete` | Remove a template from the library file. | `name`, `library_path` |
+| `template_delete` | Remove a template from the library file. | `name`, `library_path`, `dry_run` |
 | `spec_export` | Write a clip to a JSON spec file (typed values, method and audio tracks included). | `player_path`, `animation_name`, `path`, `overwrite` |
 | `spec_import` | Read and validate a spec file or inline spec, reporting tracks, keys and issues. | `path`, `spec` |
 | `spec_apply` | Build a clip from a spec file or inline spec, optionally remapping every track onto another node. | `player_path`, `animation_name`, `path`, `spec`, `target_path`, `overwrite`, `dry_run` |
@@ -499,7 +500,7 @@ Required: `op`.
 
 ## `animation_rig`
 
-Rig authoring: poses, clips from poses, rig inspection.
+Rig authoring: poses, clips from poses, rig inspection, recipes.
 
 Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 
@@ -512,11 +513,6 @@ Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 | `pose_list` | List the pose files saved in the project's pose directory. | `directory`, `dry_run` |
 | `rig_get` | Dump a skeleton's bones, rests, pose, modifiers and springs, plus issues. | `skeleton_path`, `include_pose`, `dry_run` |
 | `rig_chain` | Build bones on a skeleton from a bone spec, or turn a Node3D/Node2D subtree into a skeleton. | `skeleton_path`, `bones`, `node_path`, `kind`, `name`, `overwrite`, `dry_run` |
-| `ik_setup` | Attach a 3D IK modifier to a skeleton and wire it to a target node. kind=spline follows a Path3D (target_path) instead, because SplineIK3D solves against a path. | `skeleton_path`, `kind`, `chain`, `target_path`, `target_name`, `pole_path`, `use_virtual_end`, `end_bone_length`, `name`, `active`, `dry_run` |
-| `spring_setup` | Attach spring bones (SpringBoneSimulator3D) to a skeleton, one spring setting per entry. | `skeleton_path`, `springs`, `name`, `active`, `mutable_bone_axes`, `dry_run` |
-| `look_at_setup` | Attach a look-at modifier so one bone tracks a target node (created in front of the bone when omitted). | `skeleton_path`, `bone`, `target_path`, `target_name`, `forward_axis`, `origin_from`, `origin_bone`, `origin_node`, `origin_offset`, `origin_safe_margin`, `use_angle_limitation`, `primary_limit_angle`, `secondary_limit_angle`, `use_secondary_rotation`, `primary_axis`, `relative`, `duration`, `name`, `active`, `dry_run` |
-| `retarget_setup` | Retarget a source skeleton's poses onto a child target skeleton through a RetargetModifier3D and a bone-name profile. | `skeleton_path`, `target_path`, `profile`, `position`, `rotation`, `scale`, `use_global_pose`, `move_target`, `name`, `active`, `dry_run` |
-| `twist_setup` | Attach a BoneTwistDisperser3D so a twist on one bone is spread over the bones above it: the root/end default to the detected spine chain and `mode` picks even or weighted distribution (`weight_position`/`damping` shape the falloff). Godot builds the per-joint list at runtime, so custom amounts live in the modifier's Inspector. Created inactive, like every modifier setup. | `skeleton_path`, `disperse`, `spine_chain`, `name`, `active`, `dry_run` |
 | `walk_cycle` | Build a looping in-place walk cycle (legs, knees, counter-swinging arms, hip bob) from bone roles. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `swing_axis`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
 | `idle_breathing` | Build a subtle looping idle: the whole torso chain breathes (ramping from the lower spine to the chest), the head counter-moves, and an optional hip bob rides along. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `amplitude`, `head_amplitude`, `bob`, `axis`, `roles`, `profile`, `spine_chain`, `loop_mode`, `overwrite`, `dry_run` |
 | `blink` | Build a quick blink clip on the eye/eyelid bones, scale or rotate, optionally several blinks. | `player_path`, `skeleton_path`, `animation_name`, `bones`, `mode`, `closed_scale`, `angle`, `axis`, `blinks`, `duration`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
@@ -529,7 +525,7 @@ Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 
 | Param | Type | Notes |
 | --- | --- | --- |
-| `op` | string: pose_save \| pose_apply \| pose_blend \| pose_to_clip \| pose_list \| rig_get \| rig_chain \| ik_setup \| spring_setup \| look_at_setup \| retarget_setup \| twist_setup \| walk_cycle \| idle_breathing \| blink \| jumping_jack \| squat \| punch \| bake_pose_sequence | Rig op to run. |
+| `op` | string: pose_save \| pose_apply \| pose_blend \| pose_to_clip \| pose_list \| rig_get \| rig_chain \| walk_cycle \| idle_breathing \| blink \| jumping_jack \| squat \| punch \| bake_pose_sequence | Rig op to run. |
 | `roles` | object | Recipes: bone roles {"thigh_l": "B-thigh.L"}; rest auto-detect. |
 | `stride` | number | walk_cycle: leg swing deg (25); jumping_jack: spread (18). |
 | `knee_bend` | number | walk_cycle: knee bend, degrees (30). |
@@ -551,37 +547,9 @@ Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 | `bones` | array | rig_chain: [{name, parent?, position?, rotation?, scale?, length?}]; else a bone filter. |
 | `node_path` | string | rig_chain: Node3D/Node2D subtree to become a skeleton (locals = rests). |
 | `kind` | string: 3d \| 2d \| two_bone \| ccdik \| fabrik \| jacobian \| spline | rig_chain: 3d|2d. ik_setup: solver (two_bone|ccdik|fabrik|jacobian|spline; spline follows a Path3D). |
-| `chain` | array | ik_setup: bones root -> effector (3 for two_bone, else root + end). |
-| `target_path` | string | ik_setup: target node (a Path3D for spline); created at the tip if omitted. |
-| `target_name` | string | ik_setup: name of the created target (IKTarget). |
-| `pole_path` | string | ik_setup two_bone: pole node for the bend. |
-| `use_virtual_end` | boolean | ik_setup two_bone: last chain bone = effector (off). |
-| `end_bone_length` | number | ik_setup: virtual end length (0.1). |
-| `active` | boolean | Modifier setups: enable now (off). |
-| `springs` | array | spring_setup: [{root_bone, end_bone?, stiffness?, drag?, gravity?, radius?}]; end_bone = leaf. |
-| `mutable_bone_axes` | boolean | spring_setup: allow any-axis rotation (off). |
-| `bone` | string | look_at: bone that tracks the target. |
 | `spine_chain` | array | Recipes: torso chain, hips first (auto-detected). |
-| `disperse` | object | twist_setup: {root_bone, end_bone?, mode? even|weighted, weight_position?, damping?, twist_from_rest?}; root/end default to the chain. |
-| `forward_axis` | string: +x \| -x \| +y \| -y \| +z \| -z | look_at: look direction (+z). |
-| `origin_from` | string: self \| bone \| external_node | look_at: look-direction source (self). |
-| `origin_bone` | string | look_at: origin bone (origin_from=bone). |
-| `origin_node` | string | look_at: origin node (with external_node). |
-| `origin_offset` | any | look_at: origin offset. |
-| `origin_safe_margin` | number | look_at: origin dead zone. |
-| `use_angle_limitation` | boolean | look_at: clamp the rotation (off). |
-| `primary_limit_angle` | number | look_at: primary limit, degrees. |
-| `secondary_limit_angle` | number | look_at: secondary limit, degrees. |
-| `use_secondary_rotation` | boolean | look_at: secondary axis rotation (off). |
-| `primary_axis` | string: x \| y \| z | look_at: primary rotation axis (y). |
-| `relative` | boolean | look_at: relative to rest (off). |
 | `duration` | number | look_at: turn time, seconds (0 = instant). |
 | `profile` | string | retarget_setup: auto|humanoid|res:// path; recipes: saved rig profile. |
-| `position` | boolean | retarget_setup: bone positions (off). |
-| `rotation` | boolean (default `true`) | retarget_setup: bone rotations (on). |
-| `scale` | boolean | retarget_setup: bone scales (off). |
-| `use_global_pose` | boolean | retarget_setup: global poses (off; length match). |
-| `move_target` | boolean | retarget_setup: move target under modifier (on). |
 | `name` | string | Pose name under res://animation_toolkit/poses/. |
 | `path` | string | Explicit pose JSON path. |
 | `pose` | object | Inline pose (as pose_save returns). |
@@ -615,11 +583,6 @@ Required: `op`.
 {"op":"pose_list"}
 {"op":"rig_get","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"bones":[{"name":"spine","position":[0,0.2,0]},{"name":"chest","parent":"spine","position":[0,0.3,0]}],"op":"rig_chain","skeleton_path":"/Main/Rig/Skeleton3D"}
-{"chain":["B-upperArm.L","B-forearm.L","B-hand.L"],"kind":"two_bone","op":"ik_setup","skeleton_path":"/Main/Rig/Skeleton3D","target_name":"HandTarget"}
-{"op":"spring_setup","skeleton_path":"/Main/Rig/Skeleton3D","springs":[{"drag":0.2,"gravity":0.1,"radius":0.05,"root_bone":"B-hair01","stiffness":0.3}]}
-{"bone":"B-head","forward_axis":"+z","op":"look_at_setup","skeleton_path":"/Main/Rig/Skeleton3D","target_name":"HeadTarget"}
-{"op":"retarget_setup","profile":"auto","skeleton_path":"/Main/Source/Skeleton3D","target_path":"/Main/Target/Skeleton3D"}
-{"disperse":{"end_bone":"B-chest","mode":"even","root_bone":"B-hips"},"op":"twist_setup","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"animation_name":"walk","duration":1.0,"loop_mode":"linear","op":"walk_cycle","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"animation_name":"idle","duration":3.0,"loop_mode":"linear","op":"idle_breathing","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"animation_name":"blink","bones":["eyelid.L","eyelid.R"],"op":"blink","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
@@ -717,4 +680,71 @@ Required: `op`.
 {"animation_name":"strafe_left","direction":"left","duration":0.9,"loop_mode":"linear","op":"strafe_cycle","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D","speed":0.8}
 {"animation_name":"walk_start","duration":0.35,"op":"walk_start","phase":0.0,"player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"animation_name":"walk_stop","duration":0.35,"op":"walk_stop","phase":0.5,"player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
+```
+
+## `animation_rig_modifiers`
+
+Skeleton modifier setup: IK, springs, look-at, retarget, twist.
+
+Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
+
+| op | What it does | Params |
+| --- | --- | --- |
+| `ik_setup` | Attach a 3D IK modifier to a skeleton and wire it to a target node. kind=spline follows a Path3D (target_path) instead, because SplineIK3D solves against a path. | `skeleton_path`, `kind`, `chain`, `target_path`, `target_name`, `pole_path`, `use_virtual_end`, `end_bone_length`, `name`, `active`, `dry_run` |
+| `spring_setup` | Attach spring bones (SpringBoneSimulator3D) to a skeleton, one spring setting per entry. | `skeleton_path`, `springs`, `name`, `active`, `mutable_bone_axes`, `dry_run` |
+| `look_at_setup` | Attach a look-at modifier so one bone tracks a target node (created in front of the bone when omitted). | `skeleton_path`, `bone`, `target_path`, `target_name`, `forward_axis`, `origin_from`, `origin_bone`, `origin_node`, `origin_offset`, `origin_safe_margin`, `use_angle_limitation`, `primary_limit_angle`, `secondary_limit_angle`, `use_secondary_rotation`, `primary_axis`, `relative`, `duration`, `name`, `active`, `dry_run` |
+| `retarget_setup` | Retarget a source skeleton's poses onto a child target skeleton through a RetargetModifier3D and a bone-name profile. | `skeleton_path`, `target_path`, `profile`, `position`, `rotation`, `scale`, `use_global_pose`, `move_target`, `name`, `active`, `dry_run` |
+| `twist_setup` | Attach a BoneTwistDisperser3D so a twist on one bone is spread over the bones above it: the root/end default to the detected spine chain and `mode` picks even or weighted distribution (`weight_position`/`damping` shape the falloff). Godot builds the per-joint list at runtime, so custom amounts live in the modifier's Inspector. Created inactive, like every modifier setup. | `skeleton_path`, `disperse`, `spine_chain`, `name`, `active`, `dry_run` |
+
+### `animation_rig_modifiers` parameters
+
+| Param | Type | Notes |
+| --- | --- | --- |
+| `op` | string: ik_setup \| spring_setup \| look_at_setup \| retarget_setup \| twist_setup | Rig op to run. |
+| `skeleton_path` | string | Skeleton3D/2D path (default: first one). |
+| `kind` | string: 3d \| 2d \| two_bone \| ccdik \| fabrik \| jacobian \| spline | rig_chain: 3d|2d. ik_setup: solver (two_bone|ccdik|fabrik|jacobian|spline; spline follows a Path3D). |
+| `chain` | array | ik_setup: bones root -> effector (3 for two_bone, else root + end). |
+| `target_path` | string | ik_setup: target node (a Path3D for spline); created at the tip if omitted. |
+| `target_name` | string | ik_setup: name of the created target (IKTarget). |
+| `pole_path` | string | ik_setup two_bone: pole node for the bend. |
+| `use_virtual_end` | boolean | ik_setup two_bone: last chain bone = effector (off). |
+| `end_bone_length` | number | ik_setup: virtual end length (0.1). |
+| `active` | boolean | Modifier setups: enable now (off). |
+| `springs` | array | spring_setup: [{root_bone, end_bone?, stiffness?, drag?, gravity?, radius?}]; end_bone = leaf. |
+| `mutable_bone_axes` | boolean | spring_setup: allow any-axis rotation (off). |
+| `bone` | string | look_at: bone that tracks the target. |
+| `spine_chain` | array | Recipes: torso chain, hips first (auto-detected). |
+| `disperse` | object | twist_setup: {root_bone, end_bone?, mode? even|weighted, weight_position?, damping?, twist_from_rest?}; root/end default to the chain. |
+| `forward_axis` | string: +x \| -x \| +y \| -y \| +z \| -z | look_at: look direction (+z). |
+| `origin_from` | string: self \| bone \| external_node | look_at: look-direction source (self). |
+| `origin_bone` | string | look_at: origin bone (origin_from=bone). |
+| `origin_node` | string | look_at: origin node (with external_node). |
+| `origin_offset` | any | look_at: origin offset. |
+| `origin_safe_margin` | number | look_at: origin dead zone. |
+| `use_angle_limitation` | boolean | look_at: clamp the rotation (off). |
+| `primary_limit_angle` | number | look_at: primary limit, degrees. |
+| `secondary_limit_angle` | number | look_at: secondary limit, degrees. |
+| `use_secondary_rotation` | boolean | look_at: secondary axis rotation (off). |
+| `primary_axis` | string: x \| y \| z | look_at: primary rotation axis (y). |
+| `relative` | boolean | look_at: relative to rest (off). |
+| `duration` | number | look_at: turn time, seconds (0 = instant). |
+| `profile` | string | retarget_setup: auto|humanoid|res:// path; recipes: saved rig profile. |
+| `position` | boolean | retarget_setup: bone positions (off). |
+| `rotation` | boolean (default `true`) | retarget_setup: bone rotations (on). |
+| `scale` | boolean | retarget_setup: bone scales (off). |
+| `use_global_pose` | boolean | retarget_setup: global poses (off; length match). |
+| `move_target` | boolean | retarget_setup: move target under modifier (on). |
+| `name` | string | Pose name under res://animation_toolkit/poses/. |
+| `dry_run` | boolean | Report without committing (off). |
+
+Required: `op`.
+
+### Examples
+
+```json
+{"chain":["B-upperArm.L","B-forearm.L","B-hand.L"],"kind":"two_bone","op":"ik_setup","skeleton_path":"/Main/Rig/Skeleton3D","target_name":"HandTarget"}
+{"op":"spring_setup","skeleton_path":"/Main/Rig/Skeleton3D","springs":[{"drag":0.2,"gravity":0.1,"radius":0.05,"root_bone":"B-hair01","stiffness":0.3}]}
+{"bone":"B-head","forward_axis":"+z","op":"look_at_setup","skeleton_path":"/Main/Rig/Skeleton3D","target_name":"HeadTarget"}
+{"op":"retarget_setup","profile":"auto","skeleton_path":"/Main/Source/Skeleton3D","target_path":"/Main/Target/Skeleton3D"}
+{"disperse":{"end_bone":"B-chest","mode":"even","root_bone":"B-hips"},"op":"twist_setup","skeleton_path":"/Main/Rig/Skeleton3D"}
 ```

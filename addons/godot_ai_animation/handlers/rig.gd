@@ -862,6 +862,14 @@ func ik_setup(params: Dictionary) -> Dictionary:
 	entries.append_array(pole_entries)
 	entries.append({"parent": skeleton, "node": modifier, "setup": setup})
 	_commit_node_add_many("MCP: IK setup (%s)" % kind, entries)
+	# Failsafe: the settings are readable once the action has run, so confirm the
+	# modifier really points at the markers it was given.
+	if not _dry_run:
+		var wiring := _verify_setting_node(modifier, "get_target_node", [0], target_node)
+		if wiring.is_empty() and pole != null:
+			wiring = _verify_setting_node(modifier, "get_pole_node", [0], pole)
+		if not wiring.is_empty():
+			return _undo_and_fail(ErrorCodes.INVALID_PARAMS, wiring)
 	var data := {
 		"skeleton_path": resolved.path,
 		"kind": resolved.kind,
@@ -945,6 +953,11 @@ func _ik_setup_spline(skeleton: Skeleton3D, scene_root: Node, params: Dictionary
 		if not (found is Path3D):
 			return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
 				"spline IK follows a Path3D, not a %s - point target_path at a Path3D with a Curve3D" % found.get_class())
+		# A path with no curve is a path the solver cannot follow, so refuse it
+		# before anything is added to the scene.
+		if (found as Path3D).curve == null or (found as Path3D).curve.point_count < 1:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"The Path3D '%s' has no curve points, so SplineIK3D would have nothing to follow - add points to its Curve3D first" % str(found.name))
 		path_node = found
 	if path_node == null:
 		var tip := _bone_tip_3d(skeleton, skeleton.find_bone(str(chain[chain.size() - 1])))
@@ -982,6 +995,16 @@ func _ik_setup_spline(skeleton: Skeleton3D, scene_root: Node, params: Dictionary
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, setup_error)
 	entries.append({"parent": skeleton, "node": modifier, "setup": setup})
 	_commit_node_add_many("MCP: IK setup (spline)", entries)
+	# Failsafe: a spline solver needs both a path it can resolve and a curve with
+	# something in it, so confirm both instead of reporting an inert modifier.
+	if not _dry_run:
+		var wiring := _verify_setting_node(modifier, "get_path_3d", [0], path_node)
+		if not wiring.is_empty():
+			return _undo_and_fail(ErrorCodes.INVALID_PARAMS, wiring)
+		if (path_node as Path3D).curve == null or (path_node as Path3D).curve.point_count < 1:
+			return _undo_and_fail(ErrorCodes.INVALID_PARAMS,
+				"The path '%s' has no curve points, so the spline solver has nothing to follow"
+					% str(path_node.name))
 	var data := {
 		"skeleton_path": str(skeleton.get_path()),
 		"kind": "3d",
@@ -1063,14 +1086,14 @@ func spring_setup(params: Dictionary) -> Dictionary:
 			if collider == null:
 				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
 					"springs[%d]: collision %s" % [index, ValueCodec.format_node_error(str(path), scene_root)])
-			collisions.append(str(skeleton.get_path_to(collider)))
+			collisions.append({"node": collider, "path": _spring_path_to(skeleton, collider)})
 		var exclude: Array = []
 		for path in spring.get("exclude_collisions", []):
 			var excluded := ValueCodec.resolve_scene_path(str(path), scene_root)
 			if excluded == null:
 				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
 					"springs[%d]: exclude collision %s" % [index, ValueCodec.format_node_error(str(path), scene_root)])
-			exclude.append(str(skeleton.get_path_to(excluded)))
+			exclude.append({"node": excluded, "path": _spring_path_to(skeleton, excluded)})
 		planned.append({
 			"spec": spring, "root": root_name, "end": end_name,
 			"collisions": collisions, "exclude": exclude,
@@ -1110,18 +1133,44 @@ func spring_setup(params: Dictionary) -> Dictionary:
 			if center_node == null:
 				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
 					"springs[%d]: center node %s" % [index, ValueCodec.format_node_error(str(spec.center_node), scene_root)])
-			setup.append({"method": "set_center_node", "args": [index, NodePath(str(skeleton.get_path_to(center_node)))]})
+			setup.append({"method": "set_center_node",
+				"args": [index, NodePath(_spring_path_to(skeleton, center_node))]})
 		if spec.has("enable_all_child_collisions"):
 			setup.append({"method": "set_enable_all_child_collisions", "args": [index, bool(spec.enable_all_child_collisions)]})
 		if not entry.collisions.is_empty():
 			setup.append({"method": "set_collision_count", "args": [index, (entry.collisions as Array).size()]})
 			for collision_index in (entry.collisions as Array).size():
-				setup.append({"method": "set_collision_path", "args": [index, collision_index, NodePath(str(entry.collisions[collision_index]))]})
+				setup.append({"method": "set_collision_path",
+					"args": [index, collision_index, NodePath((entry.collisions as Array)[collision_index].path)]})
 		if not entry.exclude.is_empty():
 			setup.append({"method": "set_exclude_collision_count", "args": [index, (entry.exclude as Array).size()]})
 			for collision_index in (entry.exclude as Array).size():
-				setup.append({"method": "set_exclude_collision_path", "args": [index, collision_index, NodePath(str(entry.exclude[collision_index]))]})
+				setup.append({"method": "set_exclude_collision_path",
+					"args": [index, collision_index, NodePath((entry.exclude as Array)[collision_index].path)]})
 	_commit_node_add("MCP: Spring bones (%d)" % planned.size(), skeleton, simulator, setup)
+	# Godot only uses a collision that is a child of the simulator, and this one
+	# was just created, so the supplied collisions are moved under it (undoably,
+	# keeping their world transform) instead of being wired as dead references.
+	var moved_collisions: Array = []
+	var undo := ToolContext.undo_redo
+	for entry: Dictionary in planned:
+		for kind_key in ["collisions", "exclude"]:
+			for collision in entry.get(kind_key, []):
+				var collider: Node = (collision as Dictionary).node
+				if collider.get_parent() == simulator:
+					continue
+				var collider_parent := collider.get_parent()
+				if collider_parent == null or not _instance_levels(collider_parent).is_empty():
+					return _undo_and_fail(ErrorCodes.INVALID_PARAMS,
+						"Collision '%s' lives inside an instanced scene, so moving it under the new SpringBoneSimulator3D would not survive the save - move it into the edited scene first"
+							% str(collider.name))
+				if _dry_run or undo == null:
+					continue
+				undo.add_do_method(collider, "reparent", simulator, true)
+				undo.add_undo_method(collider, "reparent", collider_parent, true)
+				moved_collisions.append(ValueCodec.from_node(collider, scene_root))
+	if not moved_collisions.is_empty() and undo != null and not _dry_run:
+		undo.commit_action()
 	var data := {
 		"skeleton_path": resolved.path,
 		"kind": resolved.kind,
@@ -1129,10 +1178,13 @@ func spring_setup(params: Dictionary) -> Dictionary:
 		"modifier_path": ValueCodec.from_node(simulator, scene_root),
 		"spring_count": planned.size(),
 		"springs": planned.map(func(entry): return {"root_bone": str(entry.root), "end_bone": str(entry.end)}),
+		"collisions_moved": moved_collisions,
 		"active": active,
 		"warnings": warnings,
 		"undoable": true,
 	}
+	if not moved_collisions.is_empty():
+		data["collisions_note"] = "Godot only reads a collision that is a child of the simulator, so %d node(s) were moved under it (one undo puts them back)" % moved_collisions.size()
 	if not active:
 		data["active_note"] = "inactive: an active spring simulator also drives the skeleton while you edit the scene - pass active=true (or enable the modifier) when it is ready"
 	return {"data": data}
@@ -1225,10 +1277,15 @@ func look_at_setup(params: Dictionary) -> Dictionary:
 		setup.append({"method": "set_origin_safe_margin", "args": [float(params.origin_safe_margin)]})
 	if bool(params.get("use_angle_limitation", false)):
 		setup.append({"method": "set_use_angle_limitation", "args": [true]})
+		# Godot documents these limits in radians; the op advertises degrees (the
+		# unit an author thinks in), so the value is converted here rather than
+		# forwarded - 45 degrees used to reach the modifier as 45 radians.
 		if params.has("primary_limit_angle"):
-			setup.append({"method": "set_primary_limit_angle", "args": [float(params.primary_limit_angle)]})
+			setup.append({"method": "set_primary_limit_angle",
+				"args": [deg_to_rad(float(params.primary_limit_angle))]})
 		if params.has("secondary_limit_angle"):
-			setup.append({"method": "set_secondary_limit_angle", "args": [float(params.secondary_limit_angle)]})
+			setup.append({"method": "set_secondary_limit_angle",
+				"args": [deg_to_rad(float(params.secondary_limit_angle))]})
 	if bool(params.get("use_secondary_rotation", false)):
 		setup.append({"method": "set_use_secondary_rotation", "args": [true]})
 	if params.has("primary_axis"):
@@ -1408,6 +1465,28 @@ func twist_setup(params: Dictionary, ctx = null) -> Dictionary:
 	return {"data": data}
 
 
+## True when at least one bone the profile names exists on the target: a profile
+## whose bones are all missing would leave the modifier driving nothing.
+static func _profile_bones_resolve(profile: SkeletonProfile, target: Skeleton3D) -> bool:
+	for index in profile.get_bone_size():
+		if target.find_bone(str(profile.get_bone_name(index))) >= 0:
+			return true
+	return false
+
+
+## A `NodePath` to `node` as the SpringBoneSimulator3D - a child of the
+## skeleton - will read it. Godot resolves `center_node` and the collision paths
+## from the simulator, so a path measured from the skeleton points one level off
+## (and silently resolves to the wrong node, or to nothing).
+static func _spring_path_to(skeleton: Skeleton3D, node: Node) -> String:
+	var from_skeleton := str(skeleton.get_path_to(node))
+	if from_skeleton == ".":
+		return ".."
+	if from_skeleton.is_empty():
+		return ""
+	return "../" + from_skeleton
+
+
 ## The bones a disperser will expose as joints: the root, everything between it
 ## and the end, and the end, in that order. Empty when the end is not below the
 ## root.
@@ -1479,7 +1558,7 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 			"The '%s' profile maps no bones: its %d bones are not named the same way in both skeletons. Use profile=auto for same-name rigs, or author a SkeletonProfile with the target rig's names - unmatched profile bones: %s"
 				% [str(resolved_profile.source), (resolved_profile.profile as SkeletonProfile).get_bone_size(),
 					", ".join((resolved_profile.unmapped as Array).slice(0, 6))])
-	var missing_core := _retarget_missing_core(mapped_bones, source)
+	var missing_core := _retarget_missing_core(mapped_bones, source, target)
 	if not missing_core.is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"The '%s' profile maps %d bone(s) but misses the body core (%s), so the target would not be posed. Rename/profile the missing bones, or retarget a rig whose names match."
@@ -1527,6 +1606,17 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 	while move_node.scene_file_path.is_empty() and move_node.get_parent() != null \
 			and move_node.get_parent() != scene_root:
 		move_node = move_node.get_parent()
+	# A RetargetModifier3D transfers to its child *Skeleton3D*, so moving a
+	# wrapper (the usual instanced-character root) leaves the skeleton a
+	# grandchild and the modifier drives nothing. Evidence (phase 15): a wrapped
+	# target's pose never changed, while the op reported success. Refuse the
+	# arrangement instead of returning an inert modifier. Only relevant when the
+	# target is actually about to be moved - a target that already sits under the
+	# modifier needs no move.
+	if move_target and not already_under_modifier and move_node != target:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"The target Skeleton3D is wrapped in '%s', and RetargetModifier3D only drives a Skeleton3D that is a direct child of the modifier - moving the wrapper would leave the skeleton outside its reach. Pass a target skeleton that is its own scene root, or reparent it next to the source skeleton first."
+				% str(move_node.name))
 	if not already_under_modifier and not move_target:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"The target skeleton must be a child of the RetargetModifier3D. Pass move_target=true to move it there, or parent it under a RetargetModifier3D yourself.")
@@ -1547,6 +1637,14 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 		if existing_modifier == null:
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"The target's parent is not a RetargetModifier3D after all - re-run retarget_setup")
+		# Reconfiguring in place only works for the source the modifier was built
+		# for. Its profile's names come from one skeleton's bone list, so applying
+		# another skeleton's map here reports success and silently retargets
+		# against bones that do not exist.
+		if existing_modifier.get_parent() != source:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"That RetargetModifier3D belongs to '%s', not '%s'. Each modifier is bound to the source it was built for - pass move_target=true with a target that is not already under a modifier, or re-run against the original source."
+				% [existing_modifier.get_parent().name, source.name])
 	var modifier: RetargetModifier3D = existing_modifier if existing_modifier != null else RetargetModifier3D.new()
 	var modifier_created := existing_modifier == null
 	if modifier_created:
@@ -1580,7 +1678,6 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 			undo.add_do_method(source, "add_child", modifier, true)
 			undo.add_do_method(modifier, "set_owner", scene_root)
 			undo.add_do_reference(modifier)
-			undo.add_do_reference(profile)
 		for call in setup:
 			if call.has("property"):
 				undo.add_do_property(modifier, call.property, call.value)
@@ -1601,6 +1698,22 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 		elif modifier_created:
 			undo.add_undo_method(source, "remove_child", modifier)
 		undo.commit_action()
+	# Failsafe: the modifier is only useful if the target skeleton is a direct
+	# child of it, and a profile is only useful if its bones resolved. Check
+	# after the commit (the settings are readable then) and roll the whole thing
+	# back rather than reporting a setup that cannot work.
+	if not _dry_run:
+		var direct := false
+		for child in modifier.get_children():
+			if child == target:
+				direct = true
+		if not direct:
+			return _undo_and_fail(ErrorCodes.INVALID_PARAMS,
+				"The retarget modifier was created but the target skeleton is not one of its children, so it would drive nothing")
+		if modifier.profile != null and modifier.get_profile().get_bone_size() > 0 \
+				and not _profile_bones_resolve(modifier.get_profile(), target):
+			return _undo_and_fail(ErrorCodes.INVALID_PARAMS,
+				"The retarget profile's bones do not resolve on the target skeleton, so the modifier would drive nothing")
 	var data := {
 		"skeleton_path": resolved.path,
 		"kind": resolved.kind,
@@ -1733,15 +1846,18 @@ func _torso_chain(params: Dictionary, skeleton: Skeleton3D, roles: Dictionary) -
 	var resolved := resolve_spine_chain(params, skeleton, roles)
 	if resolved.has("error"):
 		return resolved
-	var explicit: Array = params.get("spine_chain", [])
-	if not explicit.is_empty():
+	# The detected chain already includes intermediates (a neck, an upper chest);
+	# rebuilding it from the four scalar roles dropped them, so the roles are only
+	# a fallback for a rig where detection found nothing.
+	var detected: Array = resolved.chain
+	if not detected.is_empty():
 		return resolved
 	var chain: Array = []
 	for role in ["hips", "spine", "chest", "head"]:
 		var bone := str(roles.get(role, ""))
 		if not bone.is_empty() and not chain.has(bone):
 			chain.append(bone)
-	return {"chain": chain if not chain.is_empty() else resolved.chain}
+	return {"chain": chain}
 
 
 ## A subtle looping idle: chest/spine breathing, a light head counter-move and
@@ -2672,6 +2788,10 @@ static func _pose_dir(params: Dictionary) -> String:
 
 
 func _write_pose_file(path: String, pose: Dictionary, overwrite: bool) -> Dictionary:
+	# A dry run reports the path it WOULD write and leaves the disk alone. The
+	# pose still comes back in the reply, so the caller loses nothing.
+	if _dry_run:
+		return {"ok": true, "dry_run": true}
 	if not overwrite and FileAccess.file_exists(path):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"%s already exists. Pass overwrite=true to replace it." % path)
@@ -3053,19 +3173,29 @@ func _resolve_retarget_profile(params: Dictionary, source: Skeleton3D, target: S
 	}
 
 
-## Bones a map has to cover or the modifier cannot pose the body: whatever
-## roles the source rig actually has, hips first and then the leg chain. A rig
-## without legs (a finger chain, a prop) is not asked for them.
-func _retarget_missing_core(mapped: Array, source: Skeleton3D) -> Array:
+## Bones a map has to cover or the modifier cannot pose the body: the roles both
+## skeletons actually have, hips first and then the leg chain. A role only the
+## source has is not a gap - retargeting onto a reduced proxy skeleton (Godot
+## explicitly supports dummy bones for that) is a legitimate setup.
+func _retarget_missing_core(mapped: Array, source: Skeleton3D, target: Skeleton3D) -> Array:
 	var source_names: Array = []
 	for index in source.get_bone_count():
 		source_names.append(str(source.get_bone_name(index)))
-	var roles := (RigAnalysis.detect_roles(source_names) as Dictionary).get("roles", {}) as Dictionary
+	var source_roles := (RigAnalysis.detect_roles(source_names) as Dictionary).get("roles", {}) as Dictionary
+	var target_names: Array = []
+	for index in target.get_bone_count():
+		target_names.append(str(target.get_bone_name(index)))
+	var target_roles := (RigAnalysis.detect_roles(target_names) as Dictionary).get("roles", {}) as Dictionary
 	var required: Array = []
 	for key in ["hips", "thigh_l", "thigh_r", "shin_l", "shin_r"]:
-		var bone_name := str(roles.get(key, ""))
-		if not bone_name.is_empty() and not required.has(bone_name):
-			required.append(bone_name)
+		var bone_name := str(source_roles.get(key, ""))
+		if bone_name.is_empty() or not required.has(bone_name):
+			continue
+		# Both sides need the role, and it has to be the same bone, or there is
+		# nothing to map it to.
+		if str(target_roles.get(key, "")) != bone_name:
+			continue
+		required.append(bone_name)
 	var missing: Array = []
 	for bone_name in required:
 		if not mapped.has(bone_name):

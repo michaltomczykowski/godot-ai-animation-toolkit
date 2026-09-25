@@ -435,6 +435,11 @@ func _load_library(path: String, _allow_missing: bool = false) -> Dictionary:
 
 
 func _save_library(path: String, library: Dictionary) -> Dictionary:
+	# A dry run must not touch the disk. It still validates by loading the current
+	# library first (the callers do), and the reply still describes the result, so
+	# the only thing a dry run skips is the write itself.
+	if _dry_run:
+		return {"ok": true, "dry_run": true}
 	var data := {
 		"format": LIBRARY_FORMAT,
 		"version": LIBRARY_VERSION,
@@ -459,6 +464,10 @@ func _read_json(path: String) -> Dictionary:
 
 
 func _write_json(path: String, data: Dictionary, overwrite: bool) -> Dictionary:
+	# The single choke point for every file this handler writes, so a dry run
+	# cannot reach disk from any op: no directory is created, no file is opened.
+	if _dry_run:
+		return {"ok": true, "dry_run": true}
 	if not overwrite and FileAccess.file_exists(path):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"%s already exists. Pass overwrite=true to replace it." % path)

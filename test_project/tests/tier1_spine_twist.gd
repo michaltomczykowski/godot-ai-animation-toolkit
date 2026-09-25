@@ -124,6 +124,25 @@ func _check_counter_weights() -> void:
 	# Normalizing by magnitude keeps the hips at their authored share.
 	_expect_approx(float(counter[0]) + float(counter[1]) + float(counter[2]) + float(counter[3]), 0.0,
 		"the counter profile is self cancelling")
+	# A hips-leads profile has a negative signed sum. The old near-zero guard was
+	# a signed comparison, so it replaced that divisor with 1.0 and every share
+	# came out at full weight - a torso counter-rotating as hard as the hips
+	# lead. Normalising by magnitude keeps the authored signs and the scale.
+	var leading: Array = SpineTwist.amplitudes(4, 8.0, [0.0, -1.0, -1.0, 0.5])
+	_expect(float(leading[1]) < 0.0, "the counter bone still turns the other way (%f)" % float(leading[1]))
+	_expect(float(leading[3]) > 0.0, "the stabilising head comes back the first way")
+	_expect_approx(float(leading[1]), -3.2,
+		"a -1 weight out of a 2.5 magnitude is -0.4 of the request (got %f)" % float(leading[1]))
+	_expect_approx(float(leading[3]), 1.6,
+		"the head's +0.5 weight is +0.2 of the request (got %f)" % float(leading[3]))
+	var scaled: Array = SpineTwist.amplitudes(4, 16.0, [0.0, -1.0, -1.0, 0.5])
+	_expect_approx(float(scaled[1]), float(leading[1]) * 2.0, "doubling the request doubles the shares")
+	# A positive-sum profile still divides by its own sum, so it adds up exactly.
+	var balanced: Array = SpineTwist.amplitudes(4, 10.0, [0.4, 0.3, -0.2, -0.1])
+	_expect(float(balanced[0]) > 0.0, "a positive profile keeps its leading sign")
+	_expect(float(balanced[2]) < 0.0, "and its counter sign")
+	_expect_approx(_sum(balanced), 10.0,
+		"a positive-sum profile sums to the request (got %f)" % _sum(balanced))
 
 
 func _check_distribute() -> void:

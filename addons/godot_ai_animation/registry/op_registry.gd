@@ -18,6 +18,7 @@ const FAMILY_FX := "animation_fx"
 const FAMILY_GRAPH := "animation_graph"
 const FAMILY_LIBRARY := "animation_library"
 const FAMILY_RIG := "animation_rig"
+const FAMILY_RIG_MODIFIERS := "animation_rig_modifiers"
 const FAMILY_MOTION := "animation_motion"
 
 const MAX_DESCRIPTION_CHARS := 600
@@ -90,13 +91,27 @@ static func families() -> Dictionary:
 		},
 		FAMILY_RIG: {
 			"handler": "res://addons/godot_ai_animation/handlers/rig.gd",
-			"summary": "Rig authoring: poses, clips from poses, rig inspection.",
+			"summary": "Rig authoring: poses, clips from poses, rig inspection, recipes.",
 			"description": _rig_description(),
-			"schema": _rig_schema(),
+			"schema": _schema_for(_rig_schema(), _rig_ops()),
 			"ops": _rig_ops(),
 			"requires_writable": true,
 			"undoable": true,
 			## bake_pose_sequence drives a full skeleton update per sample.
+			"timeout_ms": 30000,
+		},
+		FAMILY_RIG_MODIFIERS: {
+			"handler": "res://addons/godot_ai_animation/handlers/rig.gd",
+			"summary": "Skeleton modifier setup: IK, springs, look-at, retarget, twist.",
+			"description": _rig_modifiers_description(),
+			"schema": _schema_for(_rig_schema(), _rig_modifiers_ops()),
+			"ops": _rig_modifiers_ops(),
+			"requires_writable": true,
+			"undoable": true,
+			## Not promoted: the server promotes at most eight tools, and with nine
+			## families this one would be sorted out of the promoted set anyway. It
+			## stays fully callable as custom_tool:animation_rig_modifiers.
+			"promoted": false,
 			"timeout_ms": 30000,
 		},
 		FAMILY_MOTION: {
@@ -116,7 +131,7 @@ static func families() -> Dictionary:
 static func family_names() -> Array:
 	return [
 		FAMILY_PRESETS, FAMILY_FX, FAMILY_GRAPH, FAMILY_EDIT, FAMILY_INSPECT,
-		FAMILY_LIBRARY, FAMILY_RIG, FAMILY_MOTION,
+		FAMILY_LIBRARY, FAMILY_RIG, FAMILY_MOTION, FAMILY_RIG_MODIFIERS,
 	]
 
 
@@ -797,6 +812,10 @@ static func _inspect_schema() -> Dictionary:
 			"elevation": {"type": "number", "description": "preview: camera elevation in degrees (8)."},
 			"margin": {"type": "number", "description": "preview: framing margin around the bones (1.35)."},
 			"background": {"type": "string", "description": "preview: frame background colour (#2b2f36)."},
+			"dry_run": {
+				"type": "boolean",
+				"description": "rig_profile: report without writing the profile file (off).",
+			},
 		},
 		"required": ["op"],
 	}
@@ -849,7 +868,7 @@ static func _inspect_ops() -> Array:
 		{
 			"name": "rig_profile",
 			"summary": "Understand a rig: detected roles with candidates, T/A pose, limb lengths/reach, facing/lateral axes, capabilities, missing roles and suggested ops; save=true writes a reusable profile.",
-			"params": ["skeleton_path", "roles", "profile", "save", "name", "overwrite"],
+			"params": ["skeleton_path", "roles", "profile", "save", "name", "overwrite", "dry_run"],
 			"example": {"op": "rig_profile", "skeleton_path": "/Main/Rig/Skeleton3D", "save": true, "name": "hero"},
 		},
 		{
@@ -1393,7 +1412,7 @@ static func _library_ops() -> Array:
 		{
 			"name": "template_delete",
 			"summary": "Remove a template from the library file.",
-			"params": ["name", "library_path"],
+			"params": ["name", "library_path", "dry_run"],
 			"example": {"op": "template_delete", "name": "button_pop"},
 		},
 		{
@@ -1424,12 +1443,21 @@ static func _library_ops() -> Array:
 static func _rig_description() -> String:
 	return (
 		"Rig authoring: bones (rig_chain), poses (pose_save/pose_apply/pose_blend/"
-		+ "pose_to_clip/pose_list), rig dumps (rig_get), modifiers (ik_setup, "
-		+ "spring_setup, look_at_setup, retarget_setup, twist_setup) and "
-		+ "procedural recipes (walk_cycle, idle_breathing, blink, jumping_jack, "
-		+ "squat, punch, bake_pose_sequence). Torso twist/lean is distributed over "
-		+ "the detected spine chain. Modifiers are created inactive because an "
-		+ "active one also drives the scene while you edit it."
+		+ "pose_to_clip/pose_list), rig dumps (rig_get) and procedural recipes "
+		+ "(walk_cycle, idle_breathing, blink, jumping_jack, squat, punch, "
+		+ "bake_pose_sequence). Torso twist/lean is distributed over the detected "
+		+ "spine chain. Modifier setup lives in animation_rig_modifiers."
+	)
+
+
+static func _rig_modifiers_description() -> String:
+	return (
+		"Skeleton modifier setup: TwoBoneIK3D (ik_setup, including spline "
+		+ "chains), SpringBoneModifier3D (spring_setup), LookAtModifier3D "
+		+ "(look_at_setup), RetargetModifier3D (retarget_setup) and "
+		+ "TwistModifier3D (twist_setup). Each setup is verified after it commits "
+		+ "and rolled back if the wiring did not take. Modifiers are created "
+		+ "inactive because an active one also drives the scene while you edit it."
 	)
 
 
@@ -1592,6 +1620,34 @@ static func _rig_schema() -> Dictionary:
 	}
 
 
+## A schema holding only the properties `ops` actually declare, taken from a
+## bigger one. The rig family used to publish 73 properties for 19 ops and sat
+## ~340 bytes under the server's 8192-byte cap; splitting the modifier ops out
+## gives each half a schema sized to what it accepts, and keeps one list of
+## property definitions as the single source of truth.
+static func _schema_for(schema: Dictionary, ops: Array) -> Dictionary:
+	var wanted := {"op": true}
+	for entry in ops:
+		for key in (entry as Dictionary).get("params", []):
+			wanted[str(key)] = true
+	var properties := {}
+	for key in (schema.get("properties", {}) as Dictionary).keys():
+		if wanted.has(str(key)):
+			properties[key] = schema.properties[key]
+	# Narrow the op enum to the ops this half owns. Copying the parent enum would
+	# advertise the other half's ops, and a caller that picked one would get a
+	# family that does not handle it.
+	var op_property: Dictionary = (schema.get("properties", {}).get("op", {}) as Dictionary).duplicate()
+	op_property["enum"] = []
+	for entry in ops:
+		op_property["enum"].append(str((entry as Dictionary).get("name", "")))
+	properties["op"] = op_property
+	var out := {"type": "object", "properties": properties}
+	if schema.has("required"):
+		out["required"] = (schema.get("required", []) as Array).duplicate()
+	return out
+
+
 static func _rig_ops() -> Array:
 	return _with_dry_run([
 		{
@@ -1637,36 +1693,6 @@ static func _rig_ops() -> Array:
 			"example": {"op": "rig_chain", "skeleton_path": "/Main/Rig/Skeleton3D", "bones": [{"name": "spine", "position": [0, 0.2, 0]}, {"name": "chest", "parent": "spine", "position": [0, 0.3, 0]}]},
 		},
 		{
-			"name": "ik_setup",
-			"summary": "Attach a 3D IK modifier to a skeleton and wire it to a target node. kind=spline follows a Path3D (target_path) instead, because SplineIK3D solves against a path.",
-			"params": ["skeleton_path", "kind", "chain", "target_path", "target_name", "pole_path", "use_virtual_end", "end_bone_length", "name", "active"],
-			"example": {"op": "ik_setup", "skeleton_path": "/Main/Rig/Skeleton3D", "kind": "two_bone", "chain": ["B-upperArm.L", "B-forearm.L", "B-hand.L"], "target_name": "HandTarget"},
-		},
-		{
-			"name": "spring_setup",
-			"summary": "Attach spring bones (SpringBoneSimulator3D) to a skeleton, one spring setting per entry.",
-			"params": ["skeleton_path", "springs", "name", "active", "mutable_bone_axes"],
-			"example": {"op": "spring_setup", "skeleton_path": "/Main/Rig/Skeleton3D", "springs": [{"root_bone": "B-hair01", "stiffness": 0.3, "drag": 0.2, "gravity": 0.1, "radius": 0.05}]},
-		},
-		{
-			"name": "look_at_setup",
-			"summary": "Attach a look-at modifier so one bone tracks a target node (created in front of the bone when omitted).",
-			"params": ["skeleton_path", "bone", "target_path", "target_name", "forward_axis", "origin_from", "origin_bone", "origin_node", "origin_offset", "origin_safe_margin", "use_angle_limitation", "primary_limit_angle", "secondary_limit_angle", "use_secondary_rotation", "primary_axis", "relative", "duration", "name", "active"],
-			"example": {"op": "look_at_setup", "skeleton_path": "/Main/Rig/Skeleton3D", "bone": "B-head", "target_name": "HeadTarget", "forward_axis": "+z"},
-		},
-		{
-			"name": "retarget_setup",
-			"summary": "Retarget a source skeleton's poses onto a child target skeleton through a RetargetModifier3D and a bone-name profile.",
-			"params": ["skeleton_path", "target_path", "profile", "position", "rotation", "scale", "use_global_pose", "move_target", "name", "active"],
-			"example": {"op": "retarget_setup", "skeleton_path": "/Main/Source/Skeleton3D", "target_path": "/Main/Target/Skeleton3D", "profile": "auto"},
-		},
-		{
-			"name": "twist_setup",
-			"summary": "Attach a BoneTwistDisperser3D so a twist on one bone is spread over the bones above it: the root/end default to the detected spine chain and `mode` picks even or weighted distribution (`weight_position`/`damping` shape the falloff). Godot builds the per-joint list at runtime, so custom amounts live in the modifier's Inspector. Created inactive, like every modifier setup.",
-			"params": ["skeleton_path", "disperse", "spine_chain", "name", "active"],
-			"example": {"op": "twist_setup", "skeleton_path": "/Main/Rig/Skeleton3D", "disperse": {"root_bone": "B-hips", "end_bone": "B-chest", "mode": "even"}},
-		},
-		{
 			"name": "walk_cycle",
 			"summary": "Build a looping in-place walk cycle (legs, knees, counter-swinging arms, hip bob) from bone roles.",
 			"params": ["player_path", "skeleton_path", "animation_name", "duration", "stride", "knee_bend", "arm_swing", "arm_down", "bob", "swing_axis", "roles", "profile", "loop_mode", "overwrite"],
@@ -1707,6 +1733,49 @@ static func _rig_ops() -> Array:
 			"summary": "Sample a skeleton over time into a clip: seek the source clip, run the active modifiers (IK, springs, retarget), key the final pose.",
 			"params": ["player_path", "skeleton_path", "animation_name", "duration", "fps", "bones", "positions", "scales", "source_animation", "loop_mode", "overwrite"],
 			"example": {"op": "bake_pose_sequence", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "walk_baked", "duration": 1.0, "loop_mode": "linear"},
+		},
+	])
+
+
+# ============================================================================
+# animation_rig_modifiers
+# ============================================================================
+
+## The five modifier setups, split out of `animation_rig` because the server
+## promotes at most eight tools: with nine families in the catalog, this one
+## stays reachable through custom_manage instead of crowding out a promoted
+## tool. It is deliberately NOT promoted (see `families()`).
+static func _rig_modifiers_ops() -> Array:
+	return _with_dry_run([
+		{
+			"name": "ik_setup",
+			"summary": "Attach a 3D IK modifier to a skeleton and wire it to a target node. kind=spline follows a Path3D (target_path) instead, because SplineIK3D solves against a path.",
+			"params": ["skeleton_path", "kind", "chain", "target_path", "target_name", "pole_path", "use_virtual_end", "end_bone_length", "name", "active"],
+			"example": {"op": "ik_setup", "skeleton_path": "/Main/Rig/Skeleton3D", "kind": "two_bone", "chain": ["B-upperArm.L", "B-forearm.L", "B-hand.L"], "target_name": "HandTarget"},
+		},
+		{
+			"name": "spring_setup",
+			"summary": "Attach spring bones (SpringBoneSimulator3D) to a skeleton, one spring setting per entry.",
+			"params": ["skeleton_path", "springs", "name", "active", "mutable_bone_axes"],
+			"example": {"op": "spring_setup", "skeleton_path": "/Main/Rig/Skeleton3D", "springs": [{"root_bone": "B-hair01", "stiffness": 0.3, "drag": 0.2, "gravity": 0.1, "radius": 0.05}]},
+		},
+		{
+			"name": "look_at_setup",
+			"summary": "Attach a look-at modifier so one bone tracks a target node (created in front of the bone when omitted).",
+			"params": ["skeleton_path", "bone", "target_path", "target_name", "forward_axis", "origin_from", "origin_bone", "origin_node", "origin_offset", "origin_safe_margin", "use_angle_limitation", "primary_limit_angle", "secondary_limit_angle", "use_secondary_rotation", "primary_axis", "relative", "duration", "name", "active"],
+			"example": {"op": "look_at_setup", "skeleton_path": "/Main/Rig/Skeleton3D", "bone": "B-head", "target_name": "HeadTarget", "forward_axis": "+z"},
+		},
+		{
+			"name": "retarget_setup",
+			"summary": "Retarget a source skeleton's poses onto a child target skeleton through a RetargetModifier3D and a bone-name profile.",
+			"params": ["skeleton_path", "target_path", "profile", "position", "rotation", "scale", "use_global_pose", "move_target", "name", "active"],
+			"example": {"op": "retarget_setup", "skeleton_path": "/Main/Source/Skeleton3D", "target_path": "/Main/Target/Skeleton3D", "profile": "auto"},
+		},
+		{
+			"name": "twist_setup",
+			"summary": "Attach a BoneTwistDisperser3D so a twist on one bone is spread over the bones above it: the root/end default to the detected spine chain and `mode` picks even or weighted distribution (`weight_position`/`damping` shape the falloff). Godot builds the per-joint list at runtime, so custom amounts live in the modifier's Inspector. Created inactive, like every modifier setup.",
+			"params": ["skeleton_path", "disperse", "spine_chain", "name", "active"],
+			"example": {"op": "twist_setup", "skeleton_path": "/Main/Rig/Skeleton3D", "disperse": {"root_bone": "B-hips", "end_bone": "B-chest", "mode": "even"}},
 		},
 	])
 

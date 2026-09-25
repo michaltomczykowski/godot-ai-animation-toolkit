@@ -13,6 +13,7 @@ extends RefCounted
 
 const MotionDrivers := preload("res://addons/godot_ai_animation/spec/motion_drivers.gd")
 const SpineTwist := preload("res://addons/godot_ai_animation/spec/spine_twist.gd")
+const ValueCodec := preload("res://addons/godot_ai_animation/utils/value_codec.gd")
 
 ## Style presets are multipliers over the base config, applied before
 ## `overrides` so callers can still tune individual values.
@@ -415,7 +416,10 @@ static func _gait_markers(length: float, stance: float) -> Array:
 		"passing.L": (stance + 1.0) * 0.5 * length,
 		"contact.R": 0.5 * length,
 		"toe_off.R": fposmod((0.5 + stance) * length, maxf(length, 0.001)),
-		"passing.R": fposmod((0.5 + stance + 1.0) * 0.5 * length, maxf(length, 0.001)),
+		# The same mid-swing point as the left foot, half a cycle later. The old
+		# parenthesisation averaged the phase sum instead, landing the marker at
+		# 0.06 of the clip - inside the right foot's stance, before its swing.
+		"passing.R": fposmod((0.5 + (stance + 1.0) * 0.5) * length, maxf(length, 0.001)),
 	}
 	var out: Array = []
 	for marker_name in times:
@@ -710,7 +714,7 @@ static func transition_keys(ctx: Dictionary, stopping: bool) -> Dictionary:
 		var source: Dictionary = gait_keys_dict[bone]
 		var entry := {}
 		if source.has("rotation"):
-			var target_rotation: Quaternion = _nearest_delta(source.rotation, target_time)
+			var target_rotation: Quaternion = _delta_at(source.rotation, target_time)
 			var rotation_keys: Array = []
 			if stopping:
 				rotation_keys.append({"time": 0.0, "delta": target_rotation, "transition": "ease_in_out"})
@@ -721,7 +725,7 @@ static func transition_keys(ctx: Dictionary, stopping: bool) -> Dictionary:
 				rotation_keys.append({"time": length, "delta": target_rotation, "transition": "ease_in_out"})
 			entry["rotation"] = rotation_keys
 		if source.has("position"):
-			var target_position: Vector3 = _nearest_vec(source.position, target_time)
+			var target_position: Vector3 = _vec_at(source.position, target_time)
 			var position_keys: Array = []
 			if stopping:
 				position_keys.append({"time": 0.0, "delta": target_position, "transition": "ease_in_out"})
@@ -742,26 +746,39 @@ static func transition_keys(ctx: Dictionary, stopping: bool) -> Dictionary:
 	}
 
 
-static func _nearest_delta(rotation_keys: Array, time: float) -> Quaternion:
-	var best := Quaternion.IDENTITY
-	var best_distance := INF
-	for key in rotation_keys:
-		var distance := absf(float(key.get("time", 0.0)) - time)
-		if distance < best_distance:
-			best_distance = distance
-			best = key.get("delta", Quaternion.IDENTITY)
-	return best
+## Sample one delta channel at `time` through a real `Animation` track, so the
+## transition curve the clip will actually play is the curve used here. The old
+## nearest-key lookup returned the CLOSEST key instead of interpolating, so
+## `walk_start` met the cycle on whichever key was luckier and popped whenever
+## the requested phase fell between two sparse keys.
+static func _sample_delta(keys: Array, time: float, rotation: bool) -> Variant:
+	if keys.is_empty():
+		return Quaternion.IDENTITY if rotation else Vector3.ZERO
+	var anim := Animation.new()
+	var track := anim.add_track(
+		Animation.TYPE_ROTATION_3D if rotation else Animation.TYPE_POSITION_3D)
+	for key in keys:
+		var at := float(key.get("time", 0.0))
+		var transition := ValueCodec.parse_transition(key.get("transition", 1.0))
+		# The typed insert helpers take no transition, and the transition weight is
+		# the whole point: it is what makes playback ease instead of run straight
+		# from key to key, so the generic insert carries it.
+		if rotation:
+			anim.track_insert_key(track, at,
+				(key.get("delta", Quaternion.IDENTITY) as Quaternion).normalized(), transition)
+		else:
+			anim.track_insert_key(track, at, key.get("delta", Vector3.ZERO), transition)
+	anim.length = maxf(float(keys[keys.size() - 1].get("time", 0.0)), 0.001)
+	return anim.rotation_track_interpolate(track, time) if rotation \
+		else anim.position_track_interpolate(track, time)
 
 
-static func _nearest_vec(position_keys: Array, time: float) -> Vector3:
-	var best := Vector3.ZERO
-	var best_distance := INF
-	for key in position_keys:
-		var distance := absf(float(key.get("time", 0.0)) - time)
-		if distance < best_distance:
-			best_distance = distance
-			best = key.get("delta", Vector3.ZERO)
-	return best
+static func _delta_at(rotation_keys: Array, time: float) -> Quaternion:
+	return _sample_delta(rotation_keys, time, true) as Quaternion
+
+
+static func _vec_at(position_keys: Array, time: float) -> Vector3:
+	return _sample_delta(position_keys, time, false) as Vector3
 
 
 # --- idle -------------------------------------------------------------------

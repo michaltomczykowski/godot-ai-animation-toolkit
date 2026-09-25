@@ -20,17 +20,21 @@ A standalone [Godot](https://godotengine.org) addon that gives
   `additive_lean` setups.
 - **`animation_library`** — reusable templates (`template_save/apply/list/delete`)
   and JSON clip specs (`spec_export/import/apply`).
-- **`animation_rig`** — skeletons from scratch (`rig_chain`), IK (`ik_setup`),
-  spring bones, look-at, retargeting and twist-disperser modifiers, skeleton poses
+- **`animation_rig`** — skeletons from scratch (`rig_chain`), skeleton poses
   (`pose_save`, `pose_apply`, `pose_blend`, `pose_to_clip` — whose keys can carry
   an analytic three-bone `aim` solve that lands the hand/foot exactly on a world
   target — `pose_list`, `rig_get`), procedural recipes (`walk_cycle`,
   `idle_breathing`, `blink`, `jumping_jack`, `squat`, `punch`) and
   `bake_pose_sequence` (live modifiers → a plain clip, baked deterministically
-  and with every touched skeleton restored). Chains are validated, `spline` IK
-  follows a `Path3D` rather than a marker, a retarget that would map nothing is
-  refused instead of created, and parameters Godot ignores in the chosen mode
-  are rejected instead of quietly queued.
+  and with every touched skeleton restored).
+- **`animation_rig_modifiers`** — the five modifier setups: `ik_setup` (including
+  `kind=spline`, which follows a `Path3D` rather than a marker), `spring_setup`,
+  `look_at_setup`, `retarget_setup` and `twist_setup`. Every setup **verifies its
+  own wiring after committing and rolls the action back if it did not take**, and
+  parameters Godot ignores in the chosen mode are rejected instead of quietly
+  queued. Not promoted to a first-class tool (the server promotes at most eight),
+  so call it with
+  `custom_manage(op="invoke", tool_name="animation_rig_modifiers", params={...})`.
 - **`animation_motion`** — procedural humanoid locomotion and idle:
   `walk_cycle`, `run_cycle`, `strafe_cycle`, `idle_cycle` and a generic `cycle`
   build densely sampled clips with two-bone IK leg solves (planted feet), pelvis
@@ -255,6 +259,23 @@ templates.
   "duration": 2.0,
   "bob": 0.32,
   "loop_mode": "linear"
+}}
+```
+
+The modifier setups live in their own (non-promoted) family, so they go through
+`custom_manage`:
+
+```json
+{"tool": "custom_manage", "params": {
+  "op": "invoke",
+  "tool_name": "animation_rig_modifiers",
+  "params": {
+    "op": "ik_setup",
+    "skeleton_path": "/Main/Rig/Skeleton3D",
+    "chain": ["B-upperArm.L", "B-forearm.L", "B-hand.L"],
+    "target_name": "HandTarget",
+    "active": true
+  }
 }}
 ```
 

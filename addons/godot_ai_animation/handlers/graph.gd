@@ -361,6 +361,10 @@ func _graph_context(params: Dictionary) -> Dictionary:
 	var context_error := _context_error()
 	if not context_error.is_empty():
 		return context_error
+	# `create: false` is the documented way to ask "is this already wired?" without
+	# putting a tree in the scene. It used to be accepted and ignored, so the call
+	# created the very node the caller was checking for.
+	var may_create := bool(params.get("create", true))
 	var resolved := _resolve_player(player_path)
 	if resolved.has("error"):
 		return resolved
@@ -377,6 +381,9 @@ func _graph_context(params: Dictionary) -> Dictionary:
 					"Node at %s is not an AnimationTree (got %s)" % [tree_path, node.get_class()])
 			tree = node
 		else:
+			if not may_create:
+				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
+					"No AnimationTree at %s and create=false" % tree_path)
 			var parent := ValueCodec.resolve_scene_path(tree_path.get_base_dir(), scene_root)
 			if parent == null:
 				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
@@ -566,7 +573,6 @@ func _commit_graph(context: Dictionary, root: AnimationNode, action_label: Strin
 		if root != null:
 			undo.add_do_property(tree, "tree_root", root)
 			undo.add_undo_property(tree, "tree_root", old_root)
-			undo.add_do_reference(root)
 		var wanted_player := _anim_player_path(context, tree)
 		if tree.anim_player != wanted_player:
 			undo.add_do_property(tree, "anim_player", wanted_player)

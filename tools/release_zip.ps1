@@ -29,7 +29,7 @@ if (Test-Path -LiteralPath $zip) {
 	Remove-Item -LiteralPath $zip -Force
 }
 
-git -C $root archive --format=zip --output "$zip" HEAD addons/godot_ai_animation
+git -C $root archive --format=zip --output "$zip" HEAD addons/godot_ai_animation LICENSE
 if ($LASTEXITCODE -ne 0) {
 	throw "git archive failed"
 }

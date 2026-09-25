@@ -413,7 +413,9 @@ static func foot_slide(times: Array, positions: Array, threshold: float = 0.02,
 	for index in times.size():
 		var position: Vector3 = positions[index]
 		var time := float(times[index])
-		var contact: bool = position.y <= floor_height + threshold
+		# Symmetric: a foot well BELOW the floor is not in contact either - the
+		# one-sided test called any sunk foot planted.
+		var contact: bool = absf(position.y - floor_height) <= threshold
 		if contact:
 			planted += 1
 			if start < 0.0:
@@ -441,12 +443,22 @@ static func foot_slide(times: Array, positions: Array, threshold: float = 0.02,
 		total_net += _flat_distance(anchor, last_planted)
 		total_path += path
 		worst = maxf(worst, _flat_distance(anchor, last_planted))
-	# Contact time: every planted sample owns the average gap to its neighbour,
-	# so a coarse sample rate cannot understate how long the foot was down.
-	var period := 0.0
-	if times.size() > 1:
-		period = (float(times[times.size() - 1]) - float(times[0])) / float(times.size() - 1)
-	var contact_time := float(planted) * period
+	# Contact time: the span actually spent planted, not `samples x gap`. The
+	# old count over-reported by up to a whole sample period (five samples across
+	# one second all planted claimed 1.25 s of contact) and skewed `mean` with it.
+	var contact_time := 0.0
+	if planted > 0 and times.size() > 1:
+		for index in times.size():
+			var height: float = (positions[index] as Vector3).y
+			if absf(height - floor_height) > threshold:
+				continue
+			# Each planted sample owns the gap to the next sample, bounded by the
+			# gap to the previous one, so the total can never exceed the clip.
+			var next_index := mini(index + 1, times.size() - 1)
+			var previous_index := maxi(index - 1, 0)
+			var forward := float(times[next_index]) - float(times[index])
+			var backward := float(times[index]) - float(times[previous_index])
+			contact_time += minf(forward, backward) if index > 0 else forward
 	out["windows"] = windows
 	out["worst"] = worst
 	out["path"] = total_path

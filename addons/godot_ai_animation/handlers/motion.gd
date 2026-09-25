@@ -36,8 +36,11 @@ const _OVERRIDE_KEYS := {
 	"walk_start": _GAIT_KEYS,
 	"walk_stop": _GAIT_KEYS,
 	"idle": ["amplitude", "head_amplitude", "look", "twist", "bob", "sway", "shift", "noise", "lean", "arm_sway", "elbow", "arm_twist", "twist_spread"],
-	"jump": ["jump_height", "jump_crouch", "jump_distance", "arm_swing", "elbow", "lean", "foot_lift"],
-	"turn": ["turn_angle", "arm_swing", "elbow", "lean", "foot_lift", "toe_roll", "steps"],
+	# Only keys a recipe actually reads are accepted. `jump` never applied
+	# `foot_lift` and `turn` never applied `lean`/`toe_roll`, so they used to be
+	# accepted, reported as success and change nothing; now they are refused.
+	"jump": ["jump_height", "jump_crouch", "jump_distance", "arm_swing", "elbow", "lean"],
+	"turn": ["turn_angle", "arm_swing", "elbow", "foot_lift", "steps"],
 }
 
 
@@ -351,15 +354,24 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 			"warnings": clip_warnings,
 		}
 	# The locomotion tree: a 1D blend space on speed (idle at 0, walk and run at
-	# their solved speeds), optionally under a jump one-shot layer.
+	# the speeds their clips actually have - the stride cap can make a requested
+	# speed unreachable, and a blend point at a speed no clip has would ask the
+	# mixer to invent one).
+	var walk_solved := float((clips.get(str(clips_by_kind.walk), {}) as Dictionary).get("speed", walk_speed))
+	var run_solved := float((clips.get(str(clips_by_kind.run), {}) as Dictionary).get("speed", run_speed))
+	var speed_warnings: Array = []
+	for pair in [[str(clips_by_kind.walk), walk_speed, walk_solved], [str(clips_by_kind.run), run_speed, run_solved]]:
+		if absf(float(pair[1]) - float(pair[2])) > 0.01:
+			speed_warnings.append("%s: requested %.2f m/s, the stride cap allows %.2f m/s - the blend point uses the solved speed"
+				% [str(pair[0]), float(pair[1]), float(pair[2])])
 	var built_space := GraphBuilders.blend_space({
 		"dimensions": 1,
 		"points": [
 			{"animation": str(clips_by_kind.idle), "position": 0.0, "name": "idle"},
-			{"animation": str(clips_by_kind.walk), "position": walk_speed, "name": "walk"},
-			{"animation": str(clips_by_kind.run), "position": run_speed, "name": "run"},
+			{"animation": str(clips_by_kind.walk), "position": walk_solved, "name": "walk"},
+			{"animation": str(clips_by_kind.run), "position": run_solved, "name": "run"},
 		],
-		"min": 0.0, "max": run_speed, "snap": 0.01, "sync": true,
+		"min": 0.0, "max": run_solved, "snap": 0.01, "sync": true,
 	})
 	if built_space.has("error"):
 		return built_space
@@ -427,7 +439,6 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 			undo.add_do_reference(tree)
 		undo.add_do_property(tree, "tree_root", tree_root)
 		undo.add_undo_property(tree, "tree_root", old_root)
-		undo.add_do_reference(tree_root)
 		if tree.anim_player != wanted_player:
 			undo.add_do_property(tree, "anim_player", wanted_player)
 			undo.add_undo_property(tree, "anim_player", old_anim_player)
@@ -469,11 +480,11 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 		"root_motion": root_motion,
 		"root_motion_track": root_motion_track,
 		"speed_parameter": speed_parameter,
-		"speed_values": {"idle": 0.0, "walk": walk_speed, "run": run_speed},
+		"speed_values": {"idle": 0.0, "walk": walk_solved, "run": run_solved},
 		"jump_request_parameter": jump_request,
 		"parameters": parameter_paths,
 		"apply_snippet": _apply_snippet(tree_label, speed_parameter, jump_request),
-		"warnings": warnings,
+		"warnings": warnings + speed_warnings,
 		"undoable": true,
 		"note": "inactive tree by default; pass active=true (or enable the tree) when the scene is ready",
 	}}

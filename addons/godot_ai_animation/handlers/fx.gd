@@ -556,7 +556,6 @@ func fx_sprite_frames(params: Dictionary) -> Dictionary:
 	var undo := ToolContext.undo_redo
 	undo.add_do_property(node, "sprite_frames", built.frames)
 	undo.add_undo_property(node, "sprite_frames", old_frames)
-	undo.add_do_reference(built.frames)
 	undo.add_do_method(sprite, "play", animation_name)
 	if old_playing:
 		undo.add_undo_method(sprite, "play")

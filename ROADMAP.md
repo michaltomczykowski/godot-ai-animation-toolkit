@@ -1,16 +1,20 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **phases 0–13 done** — v1.7.0 (8 tools, 102 ops) released 2026-09-24:
-Phase 13 adds the numeric motion gate (`motion_audit`) and the lighter-clip
-half (`reduce`), and fixes the planted feet of root-motion walks. Phases 11 (11)
-and 12 (12) ship without a new demo recording: the door/punch showcase was
-dropped after its rebuild still read as broken, and the ops stand on their own
-behind the editor suites. See the end of the file for their scope.
-Phases **14–16 are planned** from a read-only audit of the 3D layer: make the
-setup ops stop reporting success when they do nothing, then make the procedural
-motion read as animation rather than maths, then prove both with tests CI
-actually runs. **Phase 14 is implemented and green (177 editor tests, 12 tier-1
-suites now gating CI); 15 and 16 are next.**
+Status: **phases 0–15 done, Phase 16 in progress** — v1.9.0 closes the audit
+remediation's first half: every doc-ambiguous claim was settled by a failing
+test and **all four were true**, so look-at angles are radians now, the audit
+survives a blend tree, a retarget target nested in a wrapper is refused instead
+of accepted and inert, and spring collision paths resolve through the simulator.
+The rule underneath all of it: **no setup reports success it cannot confirm** —
+the modifier ops verify their own wiring after the commit and roll the action
+back if it did not take. `dry_run` is now side-effect free including file writes
+(caught by a table-driven test), the rig family is split so all nine stay
+reachable under the server's eight promoted slots, registration is atomic and
+survives a Godot AI reload, and a CI run can no longer go green with a test file
+that failed to load. Remaining in Phase 16: nested-target `NodePath`s, look-at
+marker name collisions, the graph tree-fallback/output wiring, write-path
+confinement and `rig_chain` bone-name validation. Phases 17 (motion quality) and
+18 (golden verification) follow.
 Last updated: 2026-09-25.
 
 Phase 3 note: the generators landed as their own family, `animation_fx`, instead
@@ -668,7 +672,201 @@ it makes the promised result the actual result. Delivered:
    labels its list as predicted and `rig_get` reports the real one with
    `joints_pending` rather than pretending a synchronous op can know it.
 
-## Phase 15 — looks like animation, not maths (v1.9.0, planned)
+## Phase 15 — audit remediation: evidence, then correctness (v1.9.0, done)
+
+**Batch 0 answered all four questions, and every claim was true:**
+
+1. `AnimationNode` has no `get_child_count()` — `Invalid call` on any blend tree.
+2. `look_at_setup` wrote `primary_limit_angle = 45.0` where the modifier wants
+   0.7854 (radians).
+3. A wrapped retarget target received **nothing** (`angle=0.000` inside
+   `modification_processed`), while a bare direct child got `angle=0.700` — the
+   arrangement was the problem, not the op. So: **refuse wrapped targets**.
+4. `../../SpringCenter` did not resolve through the simulator; the collision path
+   was empty.
+
+**The failsafe is unconditional**, which is why the wrapped-target question could
+not change user-visible behaviour: `ik_setup`, `retarget_setup` and spline IK
+verify their own wiring after the commit and roll it back on failure, so a setup
+either works or returns a typed error.
+
+Everything in Batch 1 landed with coverage: the `SpineTwist` divisor (signs
+preserved, scale honest), symmetric contact and honest `contact_time`,
+detected-first `_torso_chain`, quaternion `scale_delta` from the baseline,
+angular quaternion tolerance, the reducer's final re-measure and
+`cap_below_endpoints`, engine-sampled walk transitions, refused-but-never-ignored
+`jump`/`turn` override keys, `character_setup` blend points at solved speeds, the
+noise cycle rounding, the right-foot passing marker — plus the repaired tests
+(spline curve-less path, instanced retarget bake, impossible contact time, the
+punch per-bone magnitude). The 1.5 s contact expectation and the identity
+right-arm mirror case were rewritten rather than satisfied.
+
+The post-commit verification and the first engine-doc fixes shipped in the same
+release (below); see `CHANGELOG.md` for the itemised list.
+
+### Phase 15 risks / mitigations
+
+A second read-only audit (four passes, every engine claim adjudicated against
+the Godot 4.7 class reference and the Godot AI core at
+`src/godot_ai/services/promoted_tools.py`) found more defects in shipped
+behaviour. Two of them are **doc-ambiguous**, so they are settled by evidence
+before any code changes; everything else is verified with a file:line.
+
+**Batch 0 - evidence first, no behaviour change.** Each test must fail before its
+fix lands:
+1. **Wrapped retarget target.** The docs say `RetargetModifier3D` transfers to
+   "the child Skeleton" without saying whether that means a *direct* child, and
+   `retarget_setup` moves the target's **scene root** so a skinned mesh keeps
+   its binding. Test: wrap a target as `Node3D -> Skeleton3D` (the human-dummy
+   shape), rotate a mapped source bone, capture inside
+   `modification_processed`, and assert whether the target pose changed.
+2. **Spring paths.** `center_node` and the collision/exclude paths are built
+   relative to the `Skeleton3D`; the docs say a collision must be a child of the
+   `SpringBoneSimulator3D` or "it has no effect". Test resolution *through the
+   simulator*.
+3. **Look-at limit units.** The docs say `primary/secondary_limit_angle` are in
+   **radians**; the registry advertises **degrees** and the value passes through
+   unchanged. Test the converted value on the modifier.
+4. **AnimationTree walk.** `AnimationNode` is a Resource with no
+   `get_child_count()`/`get_child()`, so `audit` dies on any scene with a blend
+   tree. Test the audit against such a scene.
+
+**The failsafe that answers the first risk.** Whether or not the evidence comes
+out either way, no setup op may report success it cannot confirm: the
+modifier-creating ops get a **post-commit verification** that checks the wiring
+they just created (the target the setting resolves to, the bones that resolved,
+the rows the keyframes landed in) and, when the check fails, **rolls the undo
+action back and returns a typed error naming the fix**. A wrapped retarget
+target therefore never yields "done, just inert": either the evidence shows it
+works and the op keeps today's arrangement, or the op refuses it with an
+actionable message.
+
+**Batch 1 - pure-math correctness**, each with tier-1 or editor coverage:
+1. `SpineTwist.amplitudes` guards its divisor with `divisor < 0.000001`, which
+   fires for **negative** signed sums, so counter-rotation profiles are scaled
+   by 1.0 instead of their own sum (`spec/spine_twist.gd:57-59`).
+2. `RigAnalysis.foot_slide` treats a foot *below* the floor as contact
+   (`y <= floor + threshold`, `spec/rig_analysis.gd:416`) and reports
+   `contact_time = planted * period`, which over-counts by up to one period and
+   skews `mean` (`:444-455`).
+3. `_torso_chain` still prefers the scalar-role chain over the detected one, so
+   a detected neck/intermediate is dropped by `idle_breathing`, `punch` and
+   `twist_setup` (`handlers/rig.gd:1728-1744`).
+4. `ClipSpec.scale_delta` scales quaternions from identity, ignoring the
+   baseline every other branch honours, so `amplitude(factor=0)` snaps a
+   non-neutral pose to rest (`spec/clip_spec.gd:387-388`).
+5. Quaternion equality uses a cosine threshold, which is quadratic near
+   identity, so `cleanup` flattens real sub-degree motion
+   (`spec/clip_spec.gd:280-303`).
+6. `QualityModifiers.reduce` returns two keys for `max_keys=1` (the endpoints
+   are seeded before the cap) and can report a stale `worst_error`
+   (`spec/quality_modifiers.gd:235-256`).
+7. `walk_start`/`walk_stop` sample the gait with nearest-key lookup, so they are
+   not frame-accurate at low `samples` (`spec/motion_specs.gd:702-764`).
+8. `jump`/`turn` accept `foot_lift`, `knee_bend`, `lean` and `toe_roll` and
+   ignore them; `character_setup` places blend points at requested rather than
+   solved speeds; the right-foot passing marker lands in the previous stance
+   (`spec/motion_specs.gd:409-423, 475-694`, `handlers/motion.gd:325-363`).
+9. `add_noise` with a fractional frequency still breaks loop seams.
+10. **Repair the tests that encode the bugs**: a spline test that hands in a
+    curve-less `Path3D`, a retarget bake test that passes because the target is
+    never driven, a foot-slide expectation of 1.5 s for a 1 s interval, a
+    `_expect(true, ...)` that cannot fail, and a mirror test that never gives
+    the right arm a distinct value.
+
+### Phase 15 risks / mitigations
+
+1. Batch 0 can change a decision: if a wrapped target *does* receive poses, the
+   "refuse it" rule is dropped and only the test is kept. The post-commit
+   verification above is unconditional either way, so no user ever gets a
+   silently inert setup.
+2. These fixes change generated output (twist scaling, contact metrics, `cleanup`,
+   `reduce` caps). No golden fixtures exist yet (Phase 18), so every batch adds
+   explicit numeric assertions first and the goldens are recorded after Phase 17.
+
+## Phase 16 — audit remediation: engine and contract correctness (v1.10.0, in progress)
+
+**Batch 2 - what the docs say the code does not do — DONE (shipped in v1.9.0):**
+- Look-at limit angles are converted from the documented degrees to radians, and
+  the unit is echoed in the reply.
+- The `AnimationNode` walk uses the real per-type accessors instead of node
+  methods, so a blend tree no longer crashes the audit.
+- `Resource`s stop going into `add_do_reference`/`add_undo_reference`; the docs
+  say "Do not use for resources". `Node` references (the documented use) stay.
+- `AnimationNodeBlendSpace1D/2D.set_use_sync()` is deprecated in 4.7, so `sync`
+  now lands on `sync_mode` (`SYNC_MODE_INDEPENDENT` / `SYNC_MODE_NONE`).
+- Spring collision nodes are simulator children (reparented undoably) and the
+  paths are built from the simulator, which is what Batch 0 proved.
+- Retarget reconfiguration requires the existing modifier's parent to be the same
+  source, so another skeleton's modifier is never hijacked.
+- `graph wire` honours `create=false` instead of creating the tree the caller
+  was checking for.
+
+**Batch 3 - the Godot AI contract and scene safety — MOSTLY DONE (v1.9.0):**
+- **Atomic registration and reload survival — DONE.** One `batch_register()` call
+  (validate all, then commit, then notify once), a poll that notices the core
+  replaced its singleton and re-registers, and an error naming the family when a
+  registration is rejected. The old per-family loop could leave earlier families
+  committed and dispatchable while the server's list never heard about them.
+- **Schemas that match reality — DONE where it is expressible.** The registry
+  check now validates every op's `params` **and** its `example` keys against that
+  family's own schema (forwarder ops may use their target op's keys, and those
+  are checked against the target), which caught three drifted examples. Per-op
+  *required* lists are not expressible in one family schema; the handlers enforce
+  them with typed `MISSING_REQUIRED_PARAM` errors, and the family-level
+  `required` stays accurate for the family envelope (`op`).
+- **Strict `dry_run` — DONE for the mutation points that matter, with a test
+  that keeps it that way.** A table-driven test runs one op per family with its
+  own `dry_run: true` and asserts the node tree, every clip, the undo-history
+  version and the filesystem are untouched. It found two real leaks (the library
+  file write and `rig_profile`'s profile write); both are fixed, and every file
+  write in the library/rig/inspect handlers now goes through a guarded choke
+  point. `preview` remains the one intentional writer and says so in its own
+  error text.
+- **Nine families — DONE.** `animation_rig` keeps poses, `rig_chain`, `rig_get`,
+  the recipes and `bake_pose_sequence`; **`animation_rig_modifiers`** takes the
+  five `*_setup` ops and is registered `promoted: false` (the server promotes the
+  first `MAX_PROMOTED_TOOLS = 8` names, so one family has to give up its slot).
+  Each half's schema is derived from the ops it owns, so neither advertises the
+  other's parameters and each has headroom under the 8192-byte cap.
+- **A green run no longer hides a dead suite — DONE.** The CI harness reports a
+  `test_*.gd` that fails to load or instantiate instead of skipping it; a parse
+  error in one file used to leave the run green with 25 tests missing.
+- **Truthful batch metadata — DEFERRED.** The `deferred` flag's server-side
+  meaning could not be verified from this repo, so it was left alone rather than
+  guessed at; `undoable`/`requires_writable` are accurate today (`requires_writable`
+  stays false for `animation_inspect` because its one writer touches a file, not
+  the scene).
+- **Scene safety — PARTIAL.** `create=false` is done. Still open: nested targets
+  getting correct modifier-relative `NodePath`s, collision-safe look-at marker
+  names, never falling back to an unrelated `AnimationTree`, wiring a recursive
+  blend tree to `output` and reporting `parameters/playback`, confining file
+  writes to `res://animation_toolkit/...` with sanitised basenames, and
+  `rig_chain` rejecting `:` in bone names.
+
+**Batch 4 - hygiene — MOSTLY DONE (v1.9.0):** the CI gate reports a suite that
+fails to load (a green run can no longer hide a dead test file);
+`tools/test_tier1.ps1` imports the project first, so a fresh local clone works;
+the release zip ships the MIT `LICENSE`; `CHANGELOG.md` is rewritten for 1.9.0;
+the tool reference documents the nine families, the non-promoted modifier half,
+the dry-run guarantee and the self-verifying setup ops. **Still open:** the
+ROADMAP header's phase count, the test-project CI plugin description, the four
+incompatible invocation-envelope examples in the tool reference, and trimming
+the pose-half schema beyond what the op-derived split already removed.
+
+### Phase 16 risks / mitigations
+
+1. The split changes the public surface: one family stops being first-class, so
+   the README and tool reference say so plainly and agents use `custom_manage`
+   for modifier ops. **Mitigated** - the split, its docs and the tier-1
+   assertions (8 promoted + 1 opted out) are in place.
+2. Strict `dry_run` changes what some ops return; each path gets a test asserting
+   the scene, the files and the sprite are untouched. **Mitigated** - the
+   table-driven test covers all six mutating families plus the file writes.
+3. Relaxing the `deferred` flag widens what `batch_execute` admits, so the
+   rollback-on-error path is exercised for the newly admitted read-only ops.
+
+## Phase 17 — looks like animation, not maths (v1.11.0, planned)
 
 The generator's arithmetic is sound; its *shapes* are the problem. This phase
 changes what the clips look like, in the order of how much a viewer notices.
@@ -708,9 +906,9 @@ changes what the clips look like, in the order of how much a viewer notices.
    the viewer sees — the root-motion-canceled one — with the extracted motion
    supplying world travel, and `root_motion_local` is set explicitly. Today's
    audit only applies the spec locally, so a real `AnimationTree` playback test
-   (Phase 16) is the gate for this change.
+   (Phase 18) is the gate for this change.
 
-## Phase 16 — prove it (v1.10.0, planned)
+## Phase 18 — prove it (v1.12.0, planned)
 
 1. **Direct `MotionSpecs` contract tests** — the generator has none: key times
    and counts, style/override resolution, markers, returned speed/stride/cadence,
@@ -726,7 +924,7 @@ changes what the clips look like, in the order of how much a viewer notices.
 4. **Golden clips** — normalized walk/run/idle fixtures in the existing
    `godot-ai-animation-clip` JSON, with quaternion-sign normalization and
    tolerances, plus a "generate twice, identical" determinism test. The goldens
-   are recorded once Phase 15 has settled, then gate drift.
+   are recorded once Phase 17 has settled, then gate drift.
 
 ## Risks / notes
 

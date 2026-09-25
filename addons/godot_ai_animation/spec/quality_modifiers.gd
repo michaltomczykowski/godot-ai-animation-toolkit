@@ -59,7 +59,7 @@ static func smooth(spec: Dictionary, strength: float, passes: int, track_path: S
 				if neighbour == null:
 					continue
 				keys[index]["value"] = ClipSpec.lerp_value(previous_values[index], neighbour, amount)
-				changed += 1
+		changed += 1
 	return {"spec": out, "changed": changed}
 
 
@@ -130,11 +130,15 @@ static func _sample_times(length: float, fps: float) -> PackedFloat32Array:
 
 ## Add deterministic, smooth micro-motion to value-ish keys. `amount` is degrees
 ## for rotation tracks (a small rotation about a seeded axis) and units for
-## vectors; `frequency` is how many noise cycles fit across the track.
-## Returns `{spec, changed}`.
+## vectors; `frequency` is how many noise cycles fit across the track. A looping
+## track rounds the frequency to whole cycles, so the noise returns to where it
+## started and the seam stays closed - `notes.frequency_rounded` says when that
+## changed the request. Returns `{spec, changed}`.
 static func add_noise(spec: Dictionary, amount: float, frequency: float, seed_value: int, track_path: String = "") -> Dictionary:
 	var out := ClipSpec.clone(spec)
 	var changed := 0
+	var rounded := 0
+	var cycles := maxf(1.0, round(frequency)) if int(spec.get("loop_mode", Animation.LOOP_NONE)) != Animation.LOOP_NONE else frequency
 	for track in _select_tracks(out, track_path):
 		var keys: Array = track.get("keys", [])
 		var type := int(track.get("type", -1))
@@ -144,8 +148,10 @@ static func add_noise(spec: Dictionary, amount: float, frequency: float, seed_va
 		# axis is angular jitter, and the first and last keys of a loop ended up
 		# on unrelated axes so the seam never closed.
 		var axis := _seeded_axis(track_seed)
+		if not is_equal_approx(cycles, frequency):
+			rounded += 1
 		for index in keys.size():
-			var x := frequency * float(index) / maxf(float(keys.size() - 1), 1.0)
+			var x := cycles * float(index) / maxf(float(keys.size() - 1), 1.0)
 			var value: Variant = keys[index].get("value")
 			if typeof(value) == TYPE_QUATERNION or type == Animation.TYPE_ROTATION_3D:
 				var degrees := MotionDrivers.signal_value("noise", x, track_seed, 3) * amount
@@ -175,8 +181,8 @@ static func add_noise(spec: Dictionary, amount: float, frequency: float, seed_va
 				keys[index]["value"] = float(value) + MotionDrivers.signal_value("noise", x, track_seed, 3) * amount
 			else:
 				continue
-			changed += 1
-	return {"spec": out, "changed": changed}
+		changed += 1
+	return {"spec": out, "changed": changed, "frequency_rounded": rounded}
 
 
 static func _seeded_axis(seed_value: int) -> Vector3:
@@ -207,6 +213,7 @@ static func reduce(spec: Dictionary, angle_degrees: float, value_tolerance: floa
 	var removed := 0
 	var kept_total := 0
 	var tracks_changed := 0
+	var cap_below_endpoints := 0
 	for track in out.get("tracks", []):
 		if not ClipSpec.is_value_type(int(track.get("type", -1))) \
 				or not (track_path.is_empty() or _matches(track, track_path)):
@@ -222,10 +229,13 @@ static func reduce(spec: Dictionary, angle_degrees: float, value_tolerance: floa
 			tracks_changed += 1
 			track["keys"] = kept
 		worst = maxf(worst, float(reduced.get("error", 0.0)))
+		if bool(reduced.get("cap_below_endpoints", false)):
+			cap_below_endpoints += 1
 		kept_total += kept.size()
 	return {
 		"spec": out, "removed": removed, "kept": kept_total,
 		"tracks_changed": tracks_changed, "worst": worst,
+		"cap_below_endpoints": cap_below_endpoints > 0,
 	}
 
 
@@ -238,6 +248,11 @@ static func _reduce_track(track: Dictionary, budget: float, max_keys: int) -> Di
 		return {"keys": keys, "error": 0.0, "added": 0}
 	var exact := int(track.get("interp", Animation.INTERPOLATION_LINEAR)) != Animation.INTERPOLATION_LINEAR
 	var selected: Array = [keys[0], keys[keys.size() - 1]]
+	# Both endpoints always survive, so a cap below two cannot be honoured and
+	# used to be reported as if it were: the loop's cap check ran only after the
+	# endpoints were already in the list, and `max_keys=1` returned two keys.
+	if max_keys > 0 and max_keys < 2:
+		return {"keys": selected, "error": 0.0, "added": 0, "cap_below_endpoints": true}
 	var added := 0
 	var error := 0.0
 	while selected.size() < keys.size():
@@ -253,7 +268,11 @@ static func _reduce_track(track: Dictionary, budget: float, max_keys: int) -> Di
 		selected.append(keys[index])
 		selected.sort_custom(func(a, b): return float(a.get("time", 0.0)) < float(b.get("time", 0.0)))
 		added += 1
-	return {"keys": selected, "error": error, "added": added}
+	# Re-measure the list that is actually being returned: breaking out on the
+	# cap (or on a key already held) left `error` describing an earlier, smaller
+	# selection, so the reply could claim a worse error than the result has.
+	var final_error := _measure_reduction(track, selected, exact)
+	return {"keys": selected, "error": float(final_error.error), "added": added}
 
 
 static func _holds_key(selected: Array, key: Dictionary) -> bool:

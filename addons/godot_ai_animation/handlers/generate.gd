@@ -894,9 +894,10 @@ func preset_showcase(params: Dictionary) -> Dictionary:
 	var undo := ToolContext.undo_redo
 	undo.add_do_method(parent, "add_child", showcase, true)
 	undo.add_undo_method(parent, "remove_child", showcase)
+	# The showcase is a node the do call creates, which is what a reference is
+	# for. Its clips are resources and are reached through it, so they are not
+	# referenced: the Godot docs are explicit, "Do not use for resources."
 	undo.add_do_reference(showcase)
-	for anim in animations:
-		undo.add_do_reference(anim)
 	undo.commit_action()
 	## Owners are set after the commit (redo re-adds the same node instances,
 	## so the assignment persists) — a Callable bound to this lazily loaded

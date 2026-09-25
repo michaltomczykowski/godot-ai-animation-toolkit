@@ -513,6 +513,93 @@ func test_walk_transitions_match_the_cycle() -> void:
 	_teardown(rig)
 
 
+func test_walk_transition_meets_the_cycle_mid_phase() -> void:
+	var rig := _rig("MotionPhase")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	# Sparse sampling puts the phase target between two gait keys, which is where
+	# the old nearest-key lookup snapped to the phase-0 key instead of
+	# interpolating: the transition used to land on the WRONG point of the cycle.
+	var sparse := 4.0
+	var cycle := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "cycle",
+		"duration": 0.4, "loop_mode": "linear", "samples": sparse,
+	}, null)
+	var start := _handler.run({
+		"op": "walk_start", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "start",
+		"duration": 0.4, "phase": 0.5, "samples": sparse,
+	}, null)
+	assert_true(cycle.has("data") and start.has("data"),
+		"the sparse cycle and its transition build (%s)" % str([cycle, start]))
+	var cycle_anim: Animation = rig.player.get_animation("cycle")
+	var start_anim: Animation = rig.player.get_animation("start")
+	# A transition at phase p samples the cycle at p * its own length.
+	var target := 0.5 * 0.4
+	for bone in ["B-foot.L", "B-thigh.R", "B-spine"]:
+		var expected := _pose_of(rig, cycle_anim, target, bone)
+		var reached := _pose_of(rig, start_anim, 0.4, bone)
+		var rest: Transform3D = rig.skeleton.get_bone_global_rest(rig.skeleton.find_bone(bone))
+		var wanted_distance := expected.origin.distance_to(rest.origin)
+		assert_true(reached.origin.distance_to(expected.origin) < maxf(0.02, wanted_distance * 0.25),
+			"walk_start lands on the cycle at %s (%.3f m from it, wanted %.3f)"
+			% [bone, reached.origin.distance_to(expected.origin), wanted_distance])
+	_teardown(rig)
+
+
+func test_dry_run_creates_no_clip_no_tree_and_no_undo_action() -> void:
+	var rig := _rig("MotionDry")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var before_nodes := _node_paths(EditorInterface.get_edited_scene_root())
+	var before_clips := _clip_names(rig.player)
+	var before_version := _undo_version()
+	var result := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "dry_walk",
+		"duration": 0.8, "loop_mode": "linear", "root_motion": true, "dry_run": true,
+	}, null)
+	assert_true(result.has("data"), "walk_cycle dry_run reports a result (%s)" % str(result.get("error", result)))
+	assert_true(bool(result.data.dry_run), "dry_run is reported")
+	assert_eq(_node_paths(EditorInterface.get_edited_scene_root()), before_nodes,
+		"dry_run adds no AnimationTree and no player")
+	assert_eq(_clip_names(rig.player), before_clips, "dry_run writes no clip")
+	assert_eq(_undo_version(), before_version, "dry_run commits no undo action")
+	_teardown(rig)
+
+
+func _node_paths(root: Node) -> Array:
+	var out: Array = []
+	var stack: Array = [root]
+	while not stack.is_empty():
+		var node: Node = stack.pop_back()
+		out.append("%s:%s" % [str(node.get_path()), node.get_class()])
+		for child in node.get_children():
+			stack.append(child)
+	out.sort()
+	return out
+
+
+func _clip_names(player: AnimationPlayer) -> Array:
+	var out: Array = []
+	for name in player.get_animation_list():
+		var anim: Animation = player.get_animation(str(name))
+		out.append("%s:%.4f:%d" % [str(name), anim.length, anim.get_track_count()])
+	out.sort()
+	return out
+
+
+func _undo_version() -> int:
+	var undo := EditorInterface.get_editor_undo_redo()
+	var id := undo.get_object_history_id(EditorInterface.get_edited_scene_root())
+	if id < 0:
+		return -1
+	return int(undo.get_history_undo_redo(id).get_version())
+
+
 func test_root_motion_wires_and_undoes() -> void:
 	var rig := _rig("MotionRootWiring")
 	if rig.has("error"):

@@ -297,7 +297,11 @@ static func values_equal(a: Variant, b: Variant, tolerance: float) -> bool:
 		TYPE_QUATERNION:
 			var qa := a as Quaternion
 			var qb := b as Quaternion
-			return absf(qa.dot(qb)) >= 1.0 - tolerance
+			# Compare by ANGLE, not by the dot product: `abs(dot) >= 1 - tolerance`
+			# is quadratic near identity, so a 1e-4 cosine budget swallowed half a
+			# degree and cleanup flattened real motion into a constant pose. The
+			# tolerance is in radians, which is what callers can reason about.
+			return qa.angle_to(qb) <= tolerance
 		TYPE_STRING, TYPE_STRING_NAME:
 			return str(a) == str(b)
 	return a == b
@@ -364,7 +368,8 @@ static func negate_axes(value: Variant, axes: String, pivot: Variant = null) -> 
 
 
 ## Scale a value's distance from `baseline` by `factor` (1.0 = unchanged,
-## 0.0 = collapsed onto the baseline). Quaternions slerp from identity.
+## 0.0 = collapsed onto the baseline). Quaternions scale the rotation relative
+## to the baseline quaternion.
 static func scale_delta(value: Variant, baseline: Variant, factor: float) -> Variant:
 	if typeof(value) != typeof(baseline):
 		return value
@@ -385,7 +390,12 @@ static func scale_delta(value: Variant, baseline: Variant, factor: float) -> Var
 				base.a + (cur.a - base.a) * factor,
 			)
 		TYPE_QUATERNION:
-			return Quaternion.IDENTITY.slerp(value as Quaternion, factor)
+			# Scale the rotation *away from the baseline*, like every branch above:
+			# slerping from identity ignored the baseline, so `amplitude(factor=0)`
+			# snapped a non-neutral pose to rest instead of collapsing the motion.
+			var base := baseline as Quaternion
+			return (base * Quaternion.IDENTITY.inverse()) \
+				.slerp((base.inverse() * (value as Quaternion)), factor) * base
 	return value
 
 

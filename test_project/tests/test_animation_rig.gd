@@ -867,11 +867,23 @@ func test_ik_setup_spline_follows_a_path_not_a_target() -> void:
 	assert_true(not str(wired).is_empty(), "the path is wired into setting 0")
 	var resolved_path := modifier.get_node_or_null(wired)
 	assert_true(resolved_path == path_node, "the wired path resolves to the Path3D (%s)" % str(resolved_path))
-	# An existing Path3D is reused rather than replaced.
+	# An existing Path3D is reused rather than replaced - but only when it has
+	# something to follow: a curve-less path is refused, not wired and ignored.
 	var supplied := Path3D.new()
 	supplied.name = "SuppliedPath"
 	scene_root.add_child(supplied)
 	supplied.owner = scene_root
+	var curve_less := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "spline",
+		"chain": ["B-thigh.L", "B-foot.L"],
+		"target_path": str(ValueCodec.from_node(supplied, scene_root)),
+	}, null)
+	assert_is_error(curve_less, ErrorCodes.INVALID_PARAMS)
+	assert_contains(curve_less.get("error", {}).get("message", ""), "curve points")
+	var curve := Curve3D.new()
+	curve.add_point(Vector3.ZERO)
+	curve.add_point(Vector3(0, 0, 0.5))
+	supplied.curve = curve
 	var with_path := _handler.run({
 		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "spline",
 		"chain": ["B-thigh.L", "B-foot.L"],
@@ -1419,7 +1431,7 @@ func test_retarget_setup_maps_and_moves() -> void:
 	_remove_node(source_path)
 
 
-func test_retarget_setup_moves_instanced_targets_whole() -> void:
+func test_retarget_setup_refuses_a_wrapped_instanced_target() -> void:
 	var scene_root := EditorInterface.get_edited_scene_root()
 	var source_path := "/" + scene_root.name + "/RetargetPlain"
 	var built := _handler.run({
@@ -1435,29 +1447,28 @@ func test_retarget_setup_moves_instanced_targets_whole() -> void:
 		skip(target_rig.error)
 		return
 	var instance_root: Node = target_rig.skeleton.get_parent()
-	var result := _handler.run({
+	# The target skeleton lives inside its instance root. Moving that root keeps
+	# a skinned mesh bound, but it also leaves the skeleton a grandchild of the
+	# modifier - and phase 15 measured that the target's pose never changed, so
+	# the op refuses instead of returning a modifier that drives nothing.
+	var refused := _handler.run({
 		"op": "retarget_setup", "skeleton_path": source_path,
 		"target_path": target_rig.skeleton_path,
 	}, null)
-	assert_true(result.has("data"), "an instanced target is moved as a whole, got: %s" % str(result))
-	var modifier := ValueCodec.resolve_scene_path(str(result.data.modifier_path), scene_root)
-	assert_true(instance_root.get_parent() == modifier, "the instance root moved under the modifier")
+	assert_is_error(refused, ErrorCodes.INVALID_PARAMS)
+	var message := str(refused.get("error", {}).get("message", ""))
+	assert_contains(message, "direct child")
+	assert_contains(message, str(instance_root.name))
 	assert_true(target_rig.skeleton.get_parent() == instance_root,
-		"the skeleton stays inside its own scene, so the skin binding survives")
-	assert_eq(str(result.data.moved_path), ValueCodec.from_node(instance_root, scene_root),
-		"the response reports the node that moved")
+		"the refused call changed nothing")
 	var instanced_source := _handler.run({
-		"op": "retarget_setup", "skeleton_path": str(result.data.target_path),
+		"op": "retarget_setup", "skeleton_path": target_rig.skeleton_path,
 		"target_path": source_path,
 	}, null)
 	assert_is_error(instanced_source, ErrorCodes.INVALID_PARAMS)
-	# Two things are wrong with that call: the source lives in a non-editable
-	# instance, and - because the first call moved the instanced target under a
-	# modifier on RetargetPlain - RetargetPlain is now its ancestor, so moving it
-	# would be a parent cycle. The cycle is the more fundamental reason and is
-	# reported first.
-	assert_contains(instanced_source.get("error", {}).get("message", ""), "ancestor")
-	editor_undo(_undo_redo)
+	# The source lives in a non-editable instance, so the modifier would not
+	# survive the scene save.
+	assert_contains(instanced_source.get("error", {}).get("message", ""), "instanced scene")
 	_teardown(target_rig)
 	_remove_node(source_path)
 
@@ -1624,7 +1635,24 @@ func test_punch_extends_the_arm_forward() -> void:
 		"the punch extends forward (%.2f -> %.2f)" % [guard_dir.dot(forward), punch_dir.dot(forward)])
 	var twist := (anim.track_get_key_value(chest_index, 1) as Quaternion).angle_to(
 		anim.track_get_key_value(chest_index, 0) as Quaternion)
-	assert_true(twist > 0.05, "the torso twists with the punch (%.2f rad)" % twist)
+	# The punch spreads its twist over the DETECTED chain, which on this rig
+	# includes the neck, so the same total is shared by more bones. Assert the
+	# property that matters - the torso as a whole twists, and the intermediates
+	# participate - rather than the old four-bone per-bone magnitude.
+	var torso_total := 0.0
+	var keyed_chain: Array = []
+	for bone in ["B-spine", "B-chest", "B-neck", "B-head"]:
+		var index := _track_index(anim, ":" + str(bone), Animation.TYPE_ROTATION_3D)
+		if index < 0:
+			continue
+		keyed_chain.append(str(bone))
+		torso_total += (anim.track_get_key_value(index, 1) as Quaternion).angle_to(
+			anim.track_get_key_value(index, 0) as Quaternion)
+	assert_true(twist > 0.02, "the chest carries part of the punch twist (%.3f rad)" % twist)
+	assert_true(torso_total > 0.1,
+		"the torso twists as a whole (%.3f rad over %s)" % [torso_total, ", ".join(keyed_chain)])
+	assert_true(keyed_chain.has("B-neck"),
+		"the detected chain includes the neck, so the twist is shared (%s)" % ", ".join(keyed_chain))
 	_teardown(rig)
 
 
@@ -1832,21 +1860,45 @@ func test_bake_pose_sequence_restores_both_skeletons_and_the_player() -> void:
 		"duration": 0.4, "loop_mode": "linear",
 	}, null)
 	assert_true(built.has("data"), "the source cycle builds, got: %s" % str(built))
-	var target_rig := _rig("RigBakeTarget")
-	if target_rig.has("error"):
+	var target_bones := [
+		{"name": "B-hips", "position": [0, 0.9, 0]},
+		{"name": "B-chest", "parent": "B-hips", "position": [0, 0.45, 0]},
+	]
+	var target_path := "/" + scene_root.name + "/RigBakeRetargetTarget"
+	var target_built := _handler.run({
+		"op": "rig_chain", "skeleton_path": target_path, "name": "RigBakeRetargetTarget",
+		"bones": target_bones,
+	}, null)
+	if not target_built.has("data"):
 		_teardown(rig)
-		skip(target_rig.error)
+		skip("the bare target skeleton did not build: %s" % str(target_built))
 		return
 	var retarget := _handler.run({
 		"op": "retarget_setup", "skeleton_path": rig.skeleton_path,
-		"target_path": target_rig.skeleton_path, "active": true,
+		"target_path": target_path, "active": true,
 	}, null)
 	assert_true(retarget.has("data"), "retarget_setup: %s" % str(retarget))
+	if not retarget.has("data"):
+		_teardown(rig)
+		_remove_node(target_path)
+		return
 	# Pose the target before baking: the bake drives it through the modifier, so
-	# it has to be restored afterwards like the source.
-	var target_bone: int = target_rig.skeleton.find_bone("B-thigh.L")
-	target_rig.skeleton.set_bone_pose_rotation(target_bone, Quaternion(Vector3(0, 1, 0), 0.37))
-	var target_before: Quaternion = target_rig.skeleton.get_bone_pose_rotation(target_bone)
+	# it has to be restored afterwards like the source. The retarget moved the
+	# target under the modifier, so it is resolved from there, not by its old path.
+	var target: Skeleton3D = null
+	var retarget_modifier := ValueCodec.resolve_scene_path(
+		str(retarget.data.modifier_path), scene_root) as RetargetModifier3D
+	for child in retarget_modifier.get_children():
+		if child is Skeleton3D:
+			target = child
+	assert_true(target != null, "the retarget target is under the modifier")
+	if target == null:
+		_teardown(rig)
+		_remove_node(target_path)
+		return
+	var target_bone: int = target.find_bone("B-chest")
+	target.set_bone_pose_rotation(target_bone, Quaternion(Vector3(0, 1, 0), 0.37))
+	var target_before: Quaternion = target.get_bone_pose_rotation(target_bone)
 	rig.player.play("rt_src")
 	rig.player.seek(0.12, true)
 	var was_animation := str(rig.player.current_animation)
@@ -1861,7 +1913,7 @@ func test_bake_pose_sequence_restores_both_skeletons_and_the_player() -> void:
 		"both skeletons are reported as restored (%s)" % str(result.data.restored_skeletons))
 	assert_true((result.data.retarget_targets as Array).size() >= 1,
 		"the retarget target is listed (%s)" % str(result.data.retarget_targets))
-	var target_after: Quaternion = target_rig.skeleton.get_bone_pose_rotation(target_bone)
+	var target_after: Quaternion = target.get_bone_pose_rotation(target_bone)
 	assert_true(target_before.is_equal_approx(target_after),
 		"the retargeted skeleton is restored too (%s vs %s)" % [str(target_before), str(target_after)])
 	assert_eq(str(rig.player.current_animation), was_animation,
@@ -1869,7 +1921,7 @@ func test_bake_pose_sequence_restores_both_skeletons_and_the_player() -> void:
 	assert_true(absf(rig.player.current_animation_position - was_position) < 0.05,
 		"the player is back near the time it was at (%s vs %s)"
 			% [str(rig.player.current_animation_position), str(was_position)])
-	_teardown(target_rig)
+	_remove_node(target_path)
 	_teardown(rig)
 
 
@@ -1923,14 +1975,267 @@ func modifier_at(rig: Dictionary, class_name_fragment: String) -> Node:
 	return null
 
 
+func test_retarget_wrapped_target_receives_poses() -> void:
+	# Phase 15 evidence, batch 0: the Godot docs say RetargetModifier3D transfers
+	# to "the child Skeleton" without settling direct-child vs descendant, while
+	# retarget_setup moves the target's SCENE ROOT so a skinned mesh keeps its
+	# binding. If the wrapped arrangement transfers nothing, the op must refuse
+	# it rather than report an inert modifier.
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		skip("no edited scene")
+		return
+	var source_path := "/" + scene_root.name + "/RTEvidenceSource"
+	var bones := [
+		{"name": "B-hips", "position": [0, 0.9, 0]},
+		{"name": "B-spine", "parent": "B-hips", "position": [0, 0.2, 0]},
+		{"name": "B-chest", "parent": "B-spine", "position": [0, 0.25, 0]},
+	]
+	var built := _handler.run({
+		"op": "rig_chain", "skeleton_path": source_path, "name": "RTEvidenceSource",
+		"bones": bones,
+	}, null)
+	if not built.has("data"):
+		skip("the source skeleton did not build: %s" % str(built))
+		return
+	var target := _rig("RTEvidenceTarget")
+	if target.has("error"):
+		_remove_node(source_path)
+		skip(target.error)
+		return
+	# The target's Skeleton3D sits inside its instance root, and phase 15 proved
+	# that arrangement receives no pose - so the op must refuse it rather than
+	# hand back a modifier that moves nothing.
+	var refused := _handler.run({
+		"op": "retarget_setup", "skeleton_path": source_path,
+		"target_path": str(target.skeleton_path), "active": true,
+	}, null)
+	assert_is_error(refused, ErrorCodes.INVALID_PARAMS)
+	assert_contains(refused.get("error", {}).get("message", ""), "direct child")
+	# A target skeleton that is its own scene root is the arrangement the engine
+	# can drive, and it does receive the source pose.
+	var bare_path := "/" + scene_root.name + "/RTEvidenceBare"
+	var bare_bones := [
+		{"name": "B-hips", "position": [0, 0.9, 0]},
+		{"name": "B-chest", "parent": "B-hips", "position": [0, 0.45, 0]},
+	]
+	var bare_built := _handler.run({
+		"op": "rig_chain", "skeleton_path": bare_path, "name": "RTEvidenceBare",
+		"bones": bare_bones,
+	}, null)
+	if not bare_built.has("data"):
+		_teardown(target)
+		_remove_node(source_path)
+		skip("the bare target skeleton did not build: %s" % str(bare_built))
+		return
+	var setup := _handler.run({
+		"op": "retarget_setup", "skeleton_path": source_path,
+		"target_path": bare_path, "active": true,
+	}, null)
+	assert_true(setup.has("data"), "a bare target is accepted: %s" % str(setup))
+	if not setup.has("data"):
+		_teardown(target)
+		_remove_node(source_path)
+		_remove_node(bare_path)
+		return
+	var modifier := ValueCodec.resolve_scene_path(str(setup.data.modifier_path), scene_root)
+	var source: Skeleton3D = ValueCodec.resolve_scene_path(source_path, scene_root)
+	# The setup moved the target under the modifier, so its old scene path is
+	# stale: take it from the modifier's children instead.
+	var bare: Skeleton3D = null
+	for child in modifier.get_children():
+		if child is Skeleton3D:
+			bare = child
+	assert_true(bare != null, "the target skeleton is a direct child of the modifier")
+	if bare == null:
+		_teardown(target)
+		_remove_node(source_path)
+		_remove_node(bare_path)
+		return
+	var captured := {"angle": 0.0, "calls": 0}
+	var read_pose := func() -> void:
+		# Read inside the signal: outside it the pose is the pre-modifier one.
+		captured.calls += 1
+		var index: int = bare.find_bone("B-chest")
+		var rest: Quaternion = bare.get_bone_rest(index).basis.get_rotation_quaternion()
+		captured.angle = (rest.inverse() * bare.get_bone_pose_rotation(index)).get_angle()
+	modifier.modification_processed.connect(read_pose)
+	source.set_bone_pose_rotation(source.find_bone("B-chest"), Quaternion(Vector3(0, 0, 1), 0.7))
+	source.advance(1.0 / 60.0)
+	source.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
+	modifier.modification_processed.disconnect(read_pose)
+	print("EVIDENCE retarget_bare angle=%.3f calls=%d active=%s profile=%s bones=%d target_bone=%d children=%d" % [
+		captured.angle, captured.calls, str(modifier.active),
+		str(modifier.profile != null), (modifier.profile.get_bone_size() if modifier.profile != null else -1),
+		bare.find_bone("B-chest"), modifier.get_child_count()])
+	print("EVIDENCE retarget_bare target_pose=%s source_pose=%s" % [
+		str(bare.get_bone_pose_rotation(bare.find_bone("B-chest"))),
+		str(source.get_bone_pose_rotation(source.find_bone("B-chest")))])
+	assert_true(captured.angle > 0.05,
+		"the target receives the source pose (angle %.3f)" % captured.angle)
+	_teardown(target)
+	_remove_node(source_path)
+	_remove_node(bare_path)
+
+
+## Phase 15 evidence: `LookAtModifier3D` limit angles are radians in Godot, and
+## the registry advertises degrees, so the value must be converted.
+func test_look_at_limit_angles_are_converted_to_radians() -> void:
+	var rig := _rig("RigLookAtUnits")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var result := _handler.run({
+		"op": "look_at_setup", "skeleton_path": rig.skeleton_path,
+		"bone": "B-head", "use_angle_limitation": true,
+		"primary_limit_angle": 45, "secondary_limit_angle": 30,
+	}, null)
+	assert_true(result.has("data"), "look_at_setup: %s" % str(result))
+	if not result.has("data"):
+		_teardown(rig)
+		return
+	var modifier := ValueCodec.resolve_scene_path(str(result.data.modifier_path),
+		scene_root) as LookAtModifier3D
+	assert_true(modifier != null, "a LookAtModifier3D was added")
+	var primary: float = modifier.get_primary_limit_angle()
+	var secondary: float = modifier.get_secondary_limit_angle()
+	print("EVIDENCE look_at primary=%s expected=%.4f secondary=%s expected=%.4f" % [
+		str(primary), deg_to_rad(45.0), str(secondary), deg_to_rad(30.0)])
+	assert_true(absf(primary - deg_to_rad(45.0)) < 0.001,
+		"45 degrees reaches the modifier as radians, got %s" % str(primary))
+	assert_true(absf(secondary - deg_to_rad(30.0)) < 0.001,
+		"30 degrees reaches the modifier as radians, got %s" % str(secondary))
+	_teardown(rig)
+
+
+## Phase 15 evidence: `center_node` and collision paths are documented as
+## resolving from the SpringBoneSimulator3D, and a collision outside the
+## simulator has no effect - but the op builds them from the Skeleton3D.
+func test_spring_center_and_collision_paths_resolve_from_the_simulator() -> void:
+	var rig := _rig("RigSpringPaths")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var center := Marker3D.new()
+	center.name = "SpringCenter"
+	scene_root.add_child(center)
+	center.owner = scene_root
+	var collider := SpringBoneCollision3D.new()
+	collider.name = "SpringCollider"
+	collider.position = Vector3(0, 0.5, 0)
+	scene_root.add_child(collider)
+	collider.owner = scene_root
+	var result := _handler.run({
+		"op": "spring_setup", "skeleton_path": rig.skeleton_path,
+		"springs": [{
+			"root_bone": "B-upperArm.L", "end_bone": "B-hand.L",
+			"center_node": str(ValueCodec.from_node(center, scene_root)),
+			"collisions": [str(ValueCodec.from_node(collider, scene_root))],
+		}],
+	}, null)
+	assert_true(result.has("data"), "spring_setup: %s" % str(result))
+	if not result.has("data"):
+		scene_root.remove_child(center)
+		scene_root.remove_child(collider)
+		_teardown(rig)
+		return
+	var simulator := ValueCodec.resolve_scene_path(str(result.data.modifier_path),
+		scene_root) as SpringBoneSimulator3D
+	var center_path := str(simulator.get_center_node(0))
+	var collision_path := str(simulator.get_collision_path(0, 0))
+	var center_resolves: bool = simulator.get_node_or_null(NodePath(center_path)) == center
+	# Godot resolves a spring setting's collision list on a deferred frame, so the
+	# stored path reads back empty in the same call - what is observable now is
+	# that the collision is where the engine can find it.
+	print("EVIDENCE spring center_path=%s resolves=%s collision_path=%s collisions=%d collider_parent=%s" % [
+		center_path, str(center_resolves), collision_path,
+		simulator.get_collision_count(0), str(collider.get_parent().name)])
+	assert_true(center_resolves,
+		"center_node resolves from the simulator (path %s points somewhere else)" % center_path)
+	# Godot only reads a collision that is a child of the simulator, so the op
+	# moves it there (undoably) instead of wiring a reference that cannot fire.
+	assert_true(collider.get_parent() == simulator,
+		"the collision was moved under the simulator, where Godot reads it")
+	assert_true((result.data.collisions_moved as Array).size() == 1,
+		"the move is reported: %s" % str(result.data.collisions_moved))
+	var collision_resolves: bool = simulator.get_node_or_null(NodePath(collision_path)) == collider
+	assert_true(collision_resolves or collision_path.is_empty(),
+		"the collision path is either resolved or still deferred (got '%s')" % collision_path)
+	var undone := editor_undo(_undo_redo)
+	assert_true(undone, "undo should succeed")
+	assert_true(collider.get_parent() == scene_root, "undo puts the collision back where it was")
+	scene_root.remove_child(center)
+	_teardown(rig)
+
+
+func test_dry_run_ik_setup_creates_no_modifier_and_no_marker() -> void:
+	# `ik_setup` creates a target node, a pole node and the modifier itself. A dry
+	# run that skipped only the undo action would leave all three in the scene.
+	var rig := _rig("RigDry")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var source: Node = rig.skeleton.get_parent()
+	var before_names: Array = []
+	for child in source.get_children():
+		before_names.append(str(child.name))
+	var before_version := _dry_undo_version()
+	var result := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "two_bone",
+		"chain": ["B-upperArm.L", "B-forearm.L", "B-hand.L"],
+		"target_name": "DryHandTarget", "pole_name": "DryElbowPole", "dry_run": true,
+	}, null)
+	assert_true(result.has("data"), "ik_setup dry_run reports a result (%s)" % str(result.get("error", result)))
+	assert_true(bool(result.data.dry_run), "dry_run is reported")
+	var after_names: Array = []
+	for child in source.get_children():
+		after_names.append(str(child.name))
+	assert_eq(after_names, before_names, "dry_run adds no modifier, target or pole")
+	assert_eq(_dry_undo_version(), before_version, "dry_run commits no undo action")
+	_teardown(rig)
+
+
+func _dry_undo_version() -> int:
+	var undo := EditorInterface.get_editor_undo_redo()
+	var id := undo.get_object_history_id(EditorInterface.get_edited_scene_root())
+	if id < 0:
+		return -1
+	return int(undo.get_history_undo_redo(id).get_version())
+
+
 func test_registry_matches_rig_schema() -> void:
-	var info := OpRegistry.family(OpRegistry.FAMILY_RIG)
-	assert_false(info.is_empty(), "the rig family is registered")
-	var op_enum: Array = info.schema.properties.op.enum
-	assert_eq(op_enum.size(), 19, "the rig schema lists every op")
-	for descriptor in info.ops:
-		assert_true(op_enum.has(descriptor.name), "%s is in the schema enum" % descriptor.name)
-		for param in descriptor.params:
-			assert_true(info.schema.properties.has(param), "%s declares param %s" % [descriptor.name, param])
-	assert_true(str(info.description).length() <= OpRegistry.MAX_DESCRIPTION_CHARS,
+	# The rig handler serves two families: the modifier ops were split out so the
+	# server's eight promoted slots are not crowded by a ninth family. Both halves
+	# have to declare every op the handler dispatches, and neither may advertise
+	# the other's.
+	var rig_info := OpRegistry.family(OpRegistry.FAMILY_RIG)
+	var mod_info := OpRegistry.family(OpRegistry.FAMILY_RIG_MODIFIERS)
+	assert_false(rig_info.is_empty(), "the rig family is registered")
+	assert_false(mod_info.is_empty(), "the modifier family is registered")
+	assert_false(bool(mod_info.get("promoted", true)),
+		"the modifier family opts out of promotion")
+	var enums: Array = [
+		(rig_info.schema.properties.op.enum as Array).duplicate(),
+		(mod_info.schema.properties.op.enum as Array).duplicate(),
+	]
+	var total := 0
+	for info in [rig_info, mod_info]:
+		var op_enum: Array = info.schema.properties.op.enum
+		for descriptor in info.ops:
+			assert_true(op_enum.has(descriptor.name),
+				"%s is in its own family's enum" % descriptor.name)
+			for param in descriptor.params:
+				assert_true(info.schema.properties.has(param),
+					"%s declares param %s" % [descriptor.name, param])
+		total += op_enum.size()
+	assert_eq(total, 19, "the two families together list every rig op")
+	assert_eq(enums[0].size(), 14, "the rig half keeps the 14 non-modifier ops")
+	assert_eq(enums[1].size(), 5, "the modifier half holds the five setups")
+	for op_name in enums[1]:
+		assert_false(enums[0].has(op_name), "%s is not advertised by both halves" % op_name)
+	assert_true(str(rig_info.description).length() <= OpRegistry.MAX_DESCRIPTION_CHARS,
 		"the rig description fits the custom-tool cap")
+	assert_true(str(mod_info.description).length() <= OpRegistry.MAX_DESCRIPTION_CHARS,
+		"the modifier description fits the custom-tool cap")

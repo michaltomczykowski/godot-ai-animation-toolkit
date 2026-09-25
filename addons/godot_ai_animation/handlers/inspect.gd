@@ -6,6 +6,8 @@ extends "res://addons/godot_ai_animation/handlers/bone_animation.gd"
 ## Nothing here mutates the scene or the undo stack, so an agent can reason about
 ## a project's animation state (and dry-run any generate/edit call) before
 ## touching it. Findings carry a `fix` hint naming the op that resolves them.
+## The one exception is `rig_profile`, which WRITES a profile file when given a
+## `path`; that write honours `dry_run` like every other op in the catalog.
 
 const SpecIO := preload("res://addons/godot_ai_animation/spec/spec_io.gd")
 const QualityModifiers := preload("res://addons/godot_ai_animation/spec/quality_modifiers.gd")
@@ -32,6 +34,7 @@ const _SAMPLE_MAX_BONES := 64
 
 ## Rollup entry registered with the Godot AI tool registry.
 func run(params: Dictionary, ctx) -> Dictionary:
+	_dry_run = bool(params.get("dry_run", false))
 	var op: String = params.get("op", "")
 	match op:
 		"describe":
@@ -892,6 +895,10 @@ func _profile_path(params: Dictionary, fallback_name: String) -> Dictionary:
 
 
 func _write_profile(path: String, profile: Dictionary, overwrite: bool) -> Dictionary:
+	# `rig_profile` is the only op in this family that writes, so it honours
+	# dry_run: the profile still comes back in the reply, the file is not touched.
+	if _dry_run:
+		return {"ok": true, "dry_run": true}
 	if not overwrite and FileAccess.file_exists(path):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"%s already exists. Pass overwrite=true to replace it." % path)
@@ -1615,8 +1622,29 @@ func _collect_tree_refs(node: AnimationNode, refs: Dictionary) -> void:
 		return
 	if node is AnimationNodeAnimation:
 		refs[str((node as AnimationNodeAnimation).animation)] = true
-	for index in node.get_child_count():
-		_collect_tree_refs(node.get_child(index), refs)
+		return
+	# AnimationNode is a Resource, not a Node: it has no child list. Blend trees
+	# and state machines name their sub-nodes, blend spaces hold points, so each
+	# kind is walked through its own API.
+	if node is AnimationNodeBlendTree:
+		var tree := node as AnimationNodeBlendTree
+		for name in tree.get_node_list():
+			_collect_tree_refs(tree.get_node(name), refs)
+		return
+	if node is AnimationNodeStateMachine:
+		var machine := node as AnimationNodeStateMachine
+		for name in machine.get_node_list():
+			_collect_tree_refs(machine.get_node(name), refs)
+		return
+	if node is AnimationNodeBlendSpace1D:
+		var space_1d := node as AnimationNodeBlendSpace1D
+		for index in space_1d.get_blend_point_count():
+			_collect_tree_refs(space_1d.get_blend_point_node(index), refs)
+		return
+	if node is AnimationNodeBlendSpace2D:
+		var space_2d := node as AnimationNodeBlendSpace2D
+		for index in space_2d.get_blend_point_count():
+			_collect_tree_refs(space_2d.get_blend_point_node(index), refs)
 
 
 func _finding(

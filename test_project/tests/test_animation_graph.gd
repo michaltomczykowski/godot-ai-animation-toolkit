@@ -216,6 +216,32 @@ func test_blend_space_1d_and_2d() -> void:
 	_teardown(rig)
 
 
+func test_blend_space_uses_sync_mode_not_the_deprecated_sync_flag() -> void:
+	var rig := _rig("GraphSync")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	for dimensions in [1, 2]:
+		var result := _handler.run({
+			"op": "blend_space", "player_path": rig.player_path, "dimensions": dimensions,
+			"points": [
+				{"animation": "idle", "position": 0.0 if dimensions == 1 else {"x": 0, "y": 0}},
+				{"animation": "walk", "position": 1.0 if dimensions == 1 else {"x": 1, "y": 1}},
+			],
+			"sync": dimensions == 1,
+		}, null)
+		assert_has_key(result, "data")
+		var space := _find_tree().tree_root as AnimationRootNode
+		assert_true(space != null, "a %dD blend space is built" % dimensions)
+		var want := AnimationNodeBlendSpace1D.SYNC_MODE_INDEPENDENT if dimensions == 1 \
+			else AnimationNodeBlendSpace1D.SYNC_MODE_NONE
+		# `get` rather than a typed access: sync_mode belongs to the blend-space
+		# subclasses, not to the AnimationRootNode base.
+		assert_eq(int(space.get("sync_mode")), want,
+			"%dD: sync=%s lands on SYNC_MODE %d" % [dimensions, str(dimensions == 1), want])
+	_teardown(rig)
+
+
 func test_blend_tree_nested() -> void:
 	var rig := _rig("GraphTree")
 	if rig.has("error"):
@@ -242,6 +268,38 @@ func test_blend_tree_nested() -> void:
 
 
 # --- wire / graph_get ------------------------------------------------------
+
+func test_wire_with_create_false_never_creates_a_tree() -> void:
+	# `create` was advertised but ignored, so the "is it already wired?" check
+	# created the very tree the caller was asking about.
+	var rig := _rig("GraphNoCreate")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var wanted := "/" + _scene_root_name() + "/GraphNoCreateTree"
+	var refused := _handler.run({
+		"op": "wire", "player_path": rig.player_path, "tree_path": wanted, "create": false,
+	}, null)
+	assert_is_error(refused, ErrorCodes.NODE_NOT_FOUND)
+	var scene_root := EditorInterface.get_edited_scene_root()
+	assert_true(ValueCodec.resolve_scene_path(wanted, scene_root) == null,
+		"create=false put no AnimationTree in the scene")
+	assert_true(_find_tree() == null, "and no tree appeared anywhere")
+	# The default still creates, so the refusal is about the flag and not the op.
+	var created := _handler.run({
+		"op": "wire", "player_path": rig.player_path, "tree_path": wanted,
+	}, null)
+	assert_has_key(created, "data")
+	assert_true(ValueCodec.resolve_scene_path(wanted, scene_root) is AnimationTree,
+		"without the flag the tree is created as documented")
+	# Once it exists, create=false succeeds against the same path.
+	var reused := _handler.run({
+		"op": "wire", "player_path": rig.player_path, "tree_path": wanted, "create": false,
+	}, null)
+	assert_has_key(reused, "data")
+	assert_false(bool(reused.data.created), "create=false reuses the existing tree")
+	_teardown(rig)
+
 
 func test_wire_creates_tree_and_sets_parameter() -> void:
 	var rig := _rig("GraphWire")

@@ -116,6 +116,21 @@ func _check_reduce() -> void:
 	var loose := QualityModifiers.reduce(spike, 0.5, 2.0, "")
 	_expect_eq((loose.spec.tracks[0].keys as Array).size(), 2, "a budget wider than the spike drops it")
 	_expect(float(loose.worst) <= 2.0, "the measured error stays inside the loose budget")
+	# `max_keys` below the endpoint count cannot be honoured, and the reply says so
+	# instead of quietly returning the two endpoints as if the cap were met.
+	var under := QualityModifiers.reduce(spike, 0.5, 0.01, "", 1)
+	_expect_eq((under.spec.tracks[0].keys as Array).size(), 2,
+		"max_keys=1 still keeps the two endpoints")
+	_expect(bool(under.cap_below_endpoints), "and the reply flags the cap as unhonoured")
+	# The reported error is re-measured on the keys actually returned: a three
+	# key spike kept at full detail used to report the two-key error instead.
+	var exact_spike := QualityModifiers.reduce(spike, 0.5, 0.0, "")
+	_expect_approx(float(exact_spike.worst), 0.0,
+		"a track that keeps every key reports no error (%f)" % float(exact_spike.worst))
+	var three := _float_track(1.0, [0.0, 1.0, 0.0])
+	var held := QualityModifiers.reduce(three, 0.5, 0.01, "")
+	_expect_approx(float(held.worst), 0.0,
+		"a returned track that hits every key reports zero error (%f)" % float(held.worst))
 	# Rotation tracks are budgeted in degrees, and the reported worst error is one.
 	var degrees := ClipSpec.make(1.0, Animation.LOOP_NONE)
 	var keys: Array = []
@@ -163,7 +178,20 @@ func _check_foot_slide() -> void:
 		0.02)
 	_expect_approx(float(still.worst), 0.0, "a planted foot that does not move has no slide")
 	_expect_eq((still.windows as Array).size(), 1, "the contact window is found")
-	_expect_approx(float(still.contact_time), 1.5, "contact time counts the planted samples")
+	# The foot is down over t=0..1.5, so the contact time is 1.5 s. It used to
+	# be `planted samples x gap` (3 x 0.5), which counted the first sample's gap
+	# twice and could exceed the clip.
+	_expect_approx(float(still.contact_time), 1.5, "contact time is the span actually spent planted")
+	# Contact is symmetric: a foot far BELOW the floor is not planted either.
+	var sunk := RigAnalysis.foot_slide(
+		[0.0, 0.5, 1.0], [Vector3(0, -1.0, 0), Vector3(0, -1.0, 0), Vector3(0, -1.0, 0)], 0.02, 0.0)
+	_expect_eq(int(sunk.planted_samples), 0, "a foot well below the floor is not in contact")
+	_expect_approx(float(sunk.contact_time), 0.0, "and it has no contact time")
+	var all_down := RigAnalysis.foot_slide(
+		[0.0, 0.5, 1.0, 1.5, 2.0],
+		[Vector3.ZERO, Vector3.ZERO, Vector3.ZERO, Vector3.ZERO, Vector3.ZERO], 0.02, 0.0)
+	_expect_approx(float(all_down.contact_time), 2.0,
+		"five planted samples over two seconds cover the clip, no more")
 	# A planted foot that creeps: the slide is its net displacement in metres.
 	var creep := RigAnalysis.foot_slide(
 		[0.0, 0.5, 1.0, 1.5, 2.0],

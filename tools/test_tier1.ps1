@@ -23,6 +23,15 @@ $scripts = @(
 	"res://tests/tier1_spine_twist.gd",
 	"res://tests/tier1_spine_chain.gd"
 )
+# Import first. A fresh checkout has no .godot/imported, and a suite that loads a
+# real asset (tier1_spec_json reads tests/fixtures/cue.wav) fails on a Resource
+# that was never imported - the same failure CI hit on Linux. This is a no-op
+# once the project has been opened in the editor.
+Write-Output "== import"
+& $Godot --headless --path $project --import
+if ($LASTEXITCODE -ne 0) {
+	exit $LASTEXITCODE
+}
 foreach ($script in $scripts) {
 	Write-Output "== $script"
 	& $Godot --headless --path $project --script $script
