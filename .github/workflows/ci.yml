@@ -65,6 +65,9 @@ jobs:
           cmd /c mklink /J "$PWD\test_project\addons\godot_ai" "$PWD\.ci\godot-ai\plugin\addons\godot_ai"
           cmd /c mklink /J "$PWD\test_project\addons\godot_ai_animation" "$PWD\addons\godot_ai_animation"
 
+      - name: Import project
+        run: godot --headless --path test_project --import
+
       - name: Tier-1 checks
         run: godot --headless --path test_project --script "res://tests/${{ matrix.script }}.gd"
 
