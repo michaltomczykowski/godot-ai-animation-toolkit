@@ -215,6 +215,50 @@ func _check_knee() -> void:
 	_expect((knee - Vector3(0, 0.5, 0.2)).dot(Vector3(0, 0, 1)) > 0.0, "knee bends with the forward axis")
 	var unreachable := MotionDrivers.knee_position(hip, Vector3(0, 0, 0), 0.2, 0.2, Vector3(0, 0, 1))
 	_expect_approx((unreachable - hip).length(), 0.2, "an over-stretched target still respects the thigh length")
+	_check_leg_reach()
+
+
+## The honest part of the two-bone solve: it reports an unreachable target
+## instead of silently substituting a reachable one, and both bones aim at the
+## SAME reachable point, so the foot lands where the leg can actually get to.
+func _check_leg_reach() -> void:
+	var hip := Vector3(0, 1.0, 0)
+	var upper := 0.5
+	var lower := 0.5
+	var reach := upper + lower
+	# A target well inside the reach: nothing is clamped.
+	var inside := MotionDrivers.solve_leg(hip, Vector3(0, 0.4, 0), upper, lower, Vector3(0, 0, 1))
+	_expect(not bool(inside.clamped), "a reachable target is not clamped")
+	_expect_approx(float(inside.shortfall), 0.0, "a reachable target has no shortfall")
+	_expect_approx((inside.knee - hip).length(), upper, "the thigh is fully used")
+	_expect_approx(((inside.effective_ankle as Vector3) - (inside.knee as Vector3)).length(), lower,
+		"the shin is fully used")
+	# A target beyond the leg: clamped to the reach, reported, and the foot ends
+	# up on the EFFECTIVE ankle rather than the unreachable one.
+	var far := MotionDrivers.solve_leg(hip, Vector3(0, -2.0, 0), upper, lower, Vector3(0, 0, 1))
+	_expect(bool(far.clamped), "an over-stretched target is reported as clamped")
+	_expect(float(far.shortfall) > 1.0, "the shortfall is measured (%.3f m)" % float(far.shortfall))
+	var effective: Vector3 = far.effective_ankle
+	_expect_approx((effective - hip).length(), reach - 0.001,
+		"the effective ankle sits at the edge of the reach")
+	_expect_approx((far.knee as Vector3).distance_to(effective), lower,
+		"the shin still reaches the effective ankle exactly")
+	_expect_approx((far.knee as Vector3).distance_to(hip), upper,
+		"and the thigh is fully extended")
+	# A target INSIDE the minimum fold (|upper-lower|) is clamped too - the leg
+	# cannot fold through itself.
+	var folded := MotionDrivers.solve_leg(hip, hip + Vector3(0, 0.01, 0), 0.5, 0.2, Vector3(0, 0, 1))
+	_expect(bool(folded.clamped), "a target inside the minimum fold is clamped")
+	# The pole follows the hint, including when the hint is parallel to the leg
+	# (the singular case a cross product against UP could not answer).
+	var hip_high := Vector3(0, 1.0, 0)
+	var straight_down := Vector3(0, -1, 0)
+	var forward := MotionDrivers.solve_leg(hip_high, hip_high + straight_down * 0.6, 0.5, 0.5, Vector3(0, 0, 1))
+	var backward := MotionDrivers.solve_leg(hip_high, hip_high + straight_down * 0.6, 0.5, 0.5, Vector3(0, 0, -1))
+	_expect(not (forward.knee as Vector3).is_equal_approx(backward.knee as Vector3),
+		"the measured rest bend decides which way a straight leg folds")
+	_expect((forward.knee as Vector3).z > 0.0, "a +z hint folds the knee forward")
+	_expect((backward.knee as Vector3).z < 0.0, "a -z hint folds it backward")
 
 
 func _check_spring() -> void:

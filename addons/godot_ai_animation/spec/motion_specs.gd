@@ -131,6 +131,8 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 	var leg: Dictionary = ctx.legs.l
 	var leg_length := float(leg.upper) + float(leg.lower)
 	var warnings: Array = []
+	var clamped := false
+	var clamp_shortfall := 0.0
 	var stride_degrees := float(config.stride)
 	var speed_target := float(ctx.get("speed", 0.0))
 	if speed_target > 0.0:
@@ -172,14 +174,16 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 	var torso_weights := [0.0, -counter, -counter, counter * 0.5]
 	var torso_channels := _twist_channels(
 		ctx, config, hip_yaw, up, torso_weights, _spread(config), lag)
-	var spine_lean := [_channel(lateral, 0.0, 1.0, 0.0, 0.0, "sine", 0.5 * lean)]
-	var head_lean := [_channel(lateral, 0.0, 1.0, 0.0, 0.0, "sine", -0.35 * lean)]
 	var bob_channel := _channel(up, -0.5 * float(config.bob), 2.0, 0.0, 0.0, "cosine")
 	var sway_channel := _channel(lateral, -float(config.sway), 1.0, 0.0, 0.0, "sine")
 
 	var chain := _twist_chain(ctx, roles)
 	var chest := str(roles.get("chest", ""))
 	var head := str(roles.get("head", ""))
+	# The lean is split across the torso, with the head counter-leaning. `chain`
+	# has to exist first, so the shares are computed here rather than next to the
+	# other channels.
+	var lean_shares := _lean_shares(chain, head, -0.35)
 
 	for index in times.size():
 		var t := float(index) / float(steps)
@@ -194,15 +198,24 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 		if not hips.is_empty():
 			_append_rotation(keys, hips, time, MotionDrivers.rotation_delta(_rest_basis(ctx, hips), pelvis_world))
 			_append_position(keys, hips, time, offset)
-		_solve_leg(ctx, keys, "l", t, time, offset, pelvis_world, hips_animated, hips_origin, stance, span, ground_speed, rooted, length)
-		_solve_leg(ctx, keys, "r", t, time, offset, pelvis_world, hips_animated, hips_origin, stance, span, ground_speed, rooted, length)
+		var left := _solve_leg(ctx, keys, "l", t, time, offset, pelvis_world, hips_animated, hips_origin, stance, span, ground_speed, rooted, length)
+		var right := _solve_leg(ctx, keys, "r", t, time, offset, pelvis_world, hips_animated, hips_origin, stance, span, ground_speed, rooted, length)
+		# A target the leg cannot reach is shortened to what it CAN reach, and the
+		# worst shortfall of the clip is reported rather than hidden.
+		for solved in [left, right]:
+			if bool((solved as Dictionary).get("clamped", false)):
+				clamped = true
+				clamp_shortfall = maxf(clamp_shortfall, float((solved as Dictionary).get("shortfall", 0.0)))
 		# The hips carry no twist share (the pelvis channels already lead), so
 		# every chain bone above them is keyed from the distributed torso channels.
 		for slot in chain:
 			var bone := str(slot)
 			if bone == hips or bone.is_empty():
 				continue
-			var own: Array = head_lean if bone == head else spine_lean
+			# The lean is this bone's share of the total, so the fold a viewer sees
+			# is the requested lean whatever the spine length.
+			var own: Array = [_channel(lateral, 0.0, 1.0, 0.0, 0.0, "sine",
+				lean * float(lean_shares.get(bone, 0.0)))]
 			var world := _compose_with_twist(own, torso_channels, bone, t)
 			_append_rotation(keys, bone, time, MotionDrivers.rotation_delta(_rest_basis(ctx, bone), world))
 		_solve_arms(ctx, keys, time, t)
@@ -218,6 +231,8 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 			"speed": ground_speed,
 			"stride_used": stride_degrees,
 			"cadence": 120.0 / length,
+			"clamped": clamped,
+			"clamp_shortfall_m": clamp_shortfall,
 			"warnings": warnings,
 		},
 	}
@@ -227,7 +242,7 @@ static func _solve_leg(
 	ctx: Dictionary, keys: Dictionary, side: String, t: float, time: float,
 	offset: Vector3, pelvis_world: Quaternion, hips_animated: Basis, hips_origin: Vector3,
 	stance: float, span: float, ground_speed: float, rooted: bool, length: float,
-) -> void:
+) -> Dictionary:
 	var leg: Dictionary = ctx.legs[side]
 	var up: Vector3 = ctx.up
 	var step_axis: Vector3 = ctx.get("step_axis", ctx.forward)
@@ -241,17 +256,22 @@ static func _solve_leg(
 		+ up * (lift * float(foot.height))
 	)
 	var hip_pos: Vector3 = hips_origin + offset + Basis(pelvis_world) * (leg.hip - hips_origin)
-	var knee := MotionDrivers.knee_position(hip_pos, ankle_target, float(leg.upper), float(leg.lower), knee_hint)
+	var solved := MotionDrivers.solve_leg(hip_pos, ankle_target, float(leg.upper),
+		float(leg.lower), _rest_bend(ctx, leg, knee_hint))
+	var knee: Vector3 = solved.knee
+	# The shin aims at the REACHABLE ankle, so a target the leg cannot reach
+	# shortens the step honestly instead of leaving the foot in the air.
+	var effective: Vector3 = solved.effective_ankle
 	var hips_rest := _rest_basis(ctx, ctx.get("hips", ""))
 	var thigh_rest := _rest_basis(ctx, leg.thigh)
 	var shin_rest := _rest_basis(ctx, leg.shin)
 	var thigh_solve := MotionDrivers.aim_delta(hips_animated, hips_rest, thigh_rest, (knee - hip_pos).normalized())
-	var shin_solve := MotionDrivers.aim_delta(thigh_solve.global, thigh_rest, shin_rest, (ankle_target - knee).normalized())
+	var shin_solve := MotionDrivers.aim_delta(thigh_solve.global, thigh_rest, shin_rest, (effective - knee).normalized())
 	_append_rotation(keys, leg.thigh, time, thigh_solve.delta)
 	_append_rotation(keys, leg.shin, time, shin_solve.delta)
 	var foot_bone := str(leg.get("foot", ""))
 	if foot_bone.is_empty():
-		return
+		return solved
 	# Foot roll: keep the sole flat while planted, pitch it through heel strike
 	# and toe-off, and hold the toe on the ground while the foot rolls over it.
 	var foot_rest := _rest_basis(ctx, foot_bone)
@@ -264,11 +284,12 @@ static func _solve_leg(
 	_append_rotation(keys, foot_bone, time, Quaternion.IDENTITY.slerp(delta, weight))
 	var toe_bone := str(leg.get("toe", ""))
 	if toe_bone.is_empty():
-		return
+		return solved
 	var toe_rest := _rest_basis(ctx, toe_bone)
 	var toe_hold := MotionDrivers.hold_global_delta(foot_target, foot_rest, toe_rest, toe_rest)
 	var toe_weight := weight if pitch < -1.0 else 0.0
 	_append_rotation(keys, toe_bone, time, Quaternion.IDENTITY.slerp(toe_hold, toe_weight))
+	return solved
 
 
 static func _solve_arms(ctx: Dictionary, keys: Dictionary, time: float, t: float) -> void:
@@ -531,11 +552,14 @@ static func jump_keys(ctx: Dictionary) -> Dictionary:
 			var ankle_target: Vector3 = leg.ankle + travel
 			if bool(phase.air):
 				ankle_target += up * (float(phase.y) * 0.55)
-			var knee := MotionDrivers.knee_position(hip_pos, ankle_target, float(leg.upper), float(leg.lower), forward)
+			var jump_solved := MotionDrivers.solve_leg(hip_pos, ankle_target,
+				float(leg.upper), float(leg.lower), _rest_bend(ctx, leg, forward))
+			var knee: Vector3 = jump_solved.knee
+			var effective: Vector3 = jump_solved.effective_ankle
 			var thigh_rest := _rest_basis(ctx, leg.thigh)
 			var shin_rest := _rest_basis(ctx, leg.shin)
 			var thigh_solve := MotionDrivers.aim_delta(hips_animated, hips_rest, thigh_rest, (knee - hip_pos).normalized())
-			var shin_solve := MotionDrivers.aim_delta(thigh_solve.global, thigh_rest, shin_rest, (ankle_target - knee).normalized())
+			var shin_solve := MotionDrivers.aim_delta(thigh_solve.global, thigh_rest, shin_rest, (effective - knee).normalized())
 			var transition := "ease_in_out" if float(phase.t) < 0.7 else "ease_out"
 			_append_rotation(keys, leg.thigh, time, thigh_solve.delta, transition)
 			_append_rotation(keys, leg.shin, time, shin_solve.delta, transition)
@@ -646,7 +670,9 @@ static func turn_keys(ctx: Dictionary) -> Dictionary:
 			var yaw := start_yaw + float(phase.yaw)
 			var world := Quaternion(up, deg_to_rad(yaw * float(signs.yaw)))
 			var hips_animated := Basis(world) * hips_rest
-			var offset := up * float(phase.bob)
+			# The turn's phase bobs are metres, so they scale with the rig like every
+			# other default distance.
+			var offset := up * (float(phase.bob) * float(ctx.get("distance_scale", 1.0)))
 			if not hips.is_empty():
 				_append_rotation(keys, hips, time, MotionDrivers.rotation_delta(hips_rest, world))
 				_append_position(keys, hips, time, offset)
@@ -659,11 +685,14 @@ static func turn_keys(ctx: Dictionary) -> Dictionary:
 					lift = maxf(0.0, 1.0 - mid / 0.3) * float(config.get("foot_lift", 0.05))
 				var hip_pos: Vector3 = hips_origin + offset + Basis(world) * (leg.hip - hips_origin)
 				var ankle_target: Vector3 = hips_origin + Basis(world) * (leg.ankle - hips_origin) + up * lift
-				var knee := MotionDrivers.knee_position(hip_pos, ankle_target, float(leg.upper), float(leg.lower), ctx.forward)
+				var turn_solved := MotionDrivers.solve_leg(hip_pos, ankle_target,
+					float(leg.upper), float(leg.lower), _rest_bend(ctx, leg, ctx.forward))
+				var knee: Vector3 = turn_solved.knee
+				var effective: Vector3 = turn_solved.effective_ankle
 				var thigh_rest := _rest_basis(ctx, leg.thigh)
 				var shin_rest := _rest_basis(ctx, leg.shin)
 				var thigh_solve := MotionDrivers.aim_delta(hips_animated, hips_rest, thigh_rest, (knee - hip_pos).normalized())
-				var shin_solve := MotionDrivers.aim_delta(thigh_solve.global, thigh_rest, shin_rest, (ankle_target - knee).normalized())
+				var shin_solve := MotionDrivers.aim_delta(thigh_solve.global, thigh_rest, shin_rest, (effective - knee).normalized())
 				_append_rotation(keys, leg.thigh, time, thigh_solve.delta, "ease_in_out")
 				_append_rotation(keys, leg.shin, time, shin_solve.delta, "ease_in_out")
 				var foot_bone := str(leg.get("foot", ""))
@@ -794,6 +823,38 @@ static func _vec_at(position_keys: Array, time: float) -> Vector3:
 
 # --- idle -------------------------------------------------------------------
 
+## Per-bone lean shares for a torso chain. Every bone used to take the FULL
+## lean, so a seven-bone spine folded seven times as much as a three-bone one and
+## the same `lean` meant something different on every rig. The torso's shares now
+## sum to 1.0 - so the requested lean IS the total fold, on any spine - while the
+## head keeps its own `head_share` (it counter-leans rather than adding to the
+## fold). A three-bone torso is unchanged, which is the shape the presets were
+## tuned against.
+static func _lean_shares(chain: Array, head: String, head_share: float) -> Dictionary:
+	var out: Dictionary = {}
+	var torso: Array = []
+	for slot in chain:
+		var bone := str(slot)
+		if not bone.is_empty() and bone != head:
+			torso.append(bone)
+	var share := 1.0 / maxf(1.0, float(torso.size()))
+	for bone in torso:
+		out[bone] = share
+	if not head.is_empty():
+		out[head] = head_share
+	return out
+
+
+## The pole direction for a leg: the rig's own measured rest bend (rest knee
+## minus rest hip). A straight-legged rest pose leaves nothing to measure, so
+## that falls back to the same hint the call site had before.
+static func _rest_bend(ctx: Dictionary, leg: Dictionary, fallback: Vector3) -> Vector3:
+	var rest_knee: Vector3 = leg.get("knee", Vector3.ZERO)
+	if rest_knee.length_squared() < 0.000001:
+		return fallback
+	return rest_knee - (leg.hip as Vector3)
+
+
 static func idle_keys(ctx: Dictionary) -> Dictionary:
 	var config: Dictionary = ctx.config
 	var length := maxf(float(ctx.length), 0.001)
@@ -848,6 +909,9 @@ static func idle_keys(ctx: Dictionary) -> Dictionary:
 	var chain := _twist_chain(ctx, roles)
 	var chest := str(roles.get("chest", ""))
 	var head := str(roles.get("head", ""))
+	# The idle leans the opposite way to the walk, with the head holding its own
+	# share; both are shares of the total, so the fold is spine-length independent.
+	var lean_shares := _lean_shares(chain, head, 0.4)
 	# The pelvis moving without the legs re-solving IS foot drift: a viewer sees
 	# the character skate. `planted` (on by default) solves both legs against
 	# their rest ankle targets every sample; `planted: false` keeps the old
@@ -895,7 +959,9 @@ static func idle_keys(ctx: Dictionary) -> Dictionary:
 			else:
 				own = (noise_channels.get(bone, []) as Array).duplicate()
 			var pose := _compose_with_twist(own, twist_channels, bone, t)
-			var lean_share := lean * 0.4 * scale if bone == head else -lean * 0.5 * scale
+			# This bone's share of the total lean, so the fold does not grow with
+			# the number of spine bones (the head keeps its own share).
+			var lean_share := lean * scale * float(lean_shares.get(bone, 0.0))
 			pose = pose * Quaternion(lateral, deg_to_rad(lean_share))
 			_append_rotation(keys, bone, time, MotionDrivers.rotation_delta(_rest_basis(ctx, bone), pose))
 		_solve_idle_arms(ctx, keys, time, t)
@@ -916,12 +982,15 @@ static func _solve_idle_leg(
 	# The ankle target IS the rest ankle: a standing foot does not move, it only
 	# stops following the pelvis.
 	var ankle_target: Vector3 = leg.ankle
-	var knee := MotionDrivers.knee_position(hip_pos, ankle_target, float(leg.upper), float(leg.lower), knee_hint)
+	var solved := MotionDrivers.solve_leg(hip_pos, ankle_target, float(leg.upper),
+		float(leg.lower), _rest_bend(ctx, leg, knee_hint))
+	var knee: Vector3 = solved.knee
 	var thigh_rest := _rest_basis(ctx, leg.thigh)
 	var shin_rest := _rest_basis(ctx, leg.shin)
 	var hips_rest := _rest_basis(ctx, ctx.get("hips", ""))
 	var thigh_solve := MotionDrivers.aim_delta(hips_animated, hips_rest, thigh_rest, (knee - hip_pos).normalized())
-	var shin_solve := MotionDrivers.aim_delta(thigh_solve.global, thigh_rest, shin_rest, (ankle_target - knee).normalized())
+	var shin_solve := MotionDrivers.aim_delta(thigh_solve.global, thigh_rest, shin_rest,
+		((solved.effective_ankle as Vector3) - knee).normalized())
 	_append_rotation(keys, leg.thigh, time, thigh_solve.delta)
 	_append_rotation(keys, leg.shin, time, shin_solve.delta)
 	var foot_bone := str(leg.get("foot", ""))

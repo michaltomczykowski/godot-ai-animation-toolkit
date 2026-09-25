@@ -32,6 +32,44 @@ const _GAIT_KEYS := ["stride", "knee_bend", "arm_swing", "arm_twist", "bob", "sw
 ## Overrides that are switches rather than numbers, so they are not coerced.
 const _BOOLEAN_OVERRIDES := ["planted"]
 
+## The reference leg length the recipe defaults were tuned against: a
+## human_dummy-scale character (roughly 0.85 m from hip to ankle). Defaults below
+## are expressed as a fraction of this, then multiplied by the rig's OWN measured
+## leg, so a 1.2 m child and a 2.4 m giant get a proportional bob, foot lift,
+## crouch and jump instead of the same five centimetres.
+const _REFERENCE_LEG := 0.85
+const _DISTANCE_DEFAULTS := ["bob", "sway", "foot_lift", "jump_crouch", "jump_height", "crouch"]
+
+
+## Re-express the distance defaults as fractions of the rig's measured leg. An
+## explicit value (a top-level param or an override) keeps its meaning in metres;
+## only untouched defaults move.
+func _scale_distances_to_rig(config: Dictionary, params: Dictionary, overrides: Dictionary, ctx: Dictionary) -> void:
+	var leg := _measured_leg(ctx)
+	if leg <= 0.0001:
+		return
+	var factor := leg / _REFERENCE_LEG
+	# The turn's bob lives in its phase table rather than the config, so the
+	# factor is handed over for it to use.
+	ctx["distance_scale"] = factor
+	if is_equal_approx(factor, 1.0):
+		return
+	for key in _DISTANCE_DEFAULTS:
+		if params.has(key) or overrides.has(key) or not config.has(key):
+			continue
+		config[key] = float(config[key]) * factor
+
+
+## Longest measured hip-to-ankle distance of the two legs, in metres.
+func _measured_leg(ctx: Dictionary) -> float:
+	var legs: Dictionary = ctx.get("legs", {})
+	var longest := 0.0
+	for side in legs:
+		var leg: Dictionary = legs[side]
+		var span := float(leg.get("upper", 0.0)) + float(leg.get("lower", 0.0))
+		longest = maxf(longest, span)
+	return longest
+
 const _OVERRIDE_KEYS := {
 	"walk": _GAIT_KEYS,
 	"run": _GAIT_KEYS,
@@ -188,6 +226,7 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 	var rate := float(built.rate)
 	var ctx: Dictionary = built.ctx
 	ctx["config"] = config
+	_scale_distances_to_rig(config, params, overrides, ctx)
 	ctx["speed"] = maxf(float(params.get("speed", 0.0)), 0.0)
 	var direction := str(params.get("direction", "left"))
 	if direction != "left" and direction != "right":
@@ -830,6 +869,10 @@ func _leg_map(skeleton: Skeleton3D, roles: Dictionary, rest: Dictionary) -> Dict
 			"toe": str(roles.get("toe_" + side, "")),
 			"hip": rest[thigh].origin,
 			"ankle": ankle,
+			## The shin's rest origin IS the knee, so this is the rig's own measured
+			## bend direction - the pole the two-bone solve should aim for, instead
+			## of guessing the knee side with a cross product.
+			"knee": rest[shin].origin,
 			"upper": (rest[shin].origin - rest[thigh].origin).length(),
 			"lower": lower,
 		}

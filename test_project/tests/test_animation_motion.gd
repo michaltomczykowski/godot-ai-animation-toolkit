@@ -930,6 +930,177 @@ func test_idle_keeps_its_feet_planted() -> void:
 	_teardown(rig)
 
 
+func test_default_distances_scale_with_the_rig() -> void:
+	# Bob, foot lift, crouch and jump height defaulted to FIXED metres, so a
+	# 1.2 m character got the same five centimetres of lift as a 2.4 m one. They
+	# are now fractions of the measured leg, while an explicit value stays metres.
+	var rig := _rig("MotionScale")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var normal := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "scale_1x",
+		"duration": 1.0, "loop_mode": "linear",
+	}, null)
+	assert_true(normal.has("data"), "the walk builds (%s)" % str(normal.get("error", normal)))
+	# A doubled rig: the same skeleton instance scaled 2x, which is the only way
+	# to measure "half the height" without a second model in the repo.
+	var parent := Node3D.new()
+	parent.name = "MotionScaleDouble"
+	scene_root.add_child(parent)
+	var packed = load(DUMMY) as PackedScene
+	if packed == null:
+		skip("the dummy asset is missing")
+		return
+	var doubled := packed.instantiate()
+	doubled.name = "Dummy2x"
+	parent.add_child(doubled)
+	for child in doubled.get_children():
+		child.owner = scene_root
+	doubled.owner = scene_root
+	var skeleton_2x := _find_of_type(doubled, "Skeleton3D") as Skeleton3D
+	var player_2x := _find_of_type(doubled, "AnimationPlayer") as AnimationPlayer
+	assert_true(skeleton_2x != null and player_2x != null, "the doubled rig has a skeleton and a player")
+	if skeleton_2x == null or player_2x == null:
+		_remove_node("/" + str(scene_root.name) + "/MotionScaleDouble")
+		_teardown(rig)
+		return
+	# Bone rest poses are read in SKELETON space, and `get_bone_global_rest` is
+	# explicitly unaffected by the node's scale, so the rig is made taller the way
+	# a real one would be: every bone's rest position pushed out along the chain.
+	# That doubles the measured leg without touching the proportions.
+	for index in skeleton_2x.get_bone_count():
+		var bone_rest := skeleton_2x.get_bone_rest(index)
+		bone_rest.origin *= 2.0
+		skeleton_2x.set_bone_rest(index, bone_rest)
+	var big := _handler.run({
+		"op": "walk_cycle", "skeleton_path": "/" + str(scene_root.name) + "/MotionScaleDouble/Dummy2x/" + str(skeleton_2x.name),
+		"player_path": "/" + str(scene_root.name) + "/MotionScaleDouble/Dummy2x/" + str(player_2x.name),
+		"animation_name": "scale_2x", "duration": 1.0, "loop_mode": "linear",
+	}, null)
+	assert_true(big.has("data"), "the doubled walk builds (%s)" % str(big.get("error", big)))
+	var small_lift := _hip_bob(rig.player.get_animation("scale_1x"))
+	var big_lift := _hip_bob(player_2x.get_animation("scale_2x"))
+	assert_gt(small_lift, 0.0005, "the reference rig bobs (%.4f m)" % small_lift)
+	# Doubling the rig must roughly double the vertical motion, not leave it at
+	# the same five centimetres. (The upper bound allows for the bob channel
+	# being halved inside the gait.)
+	assert_true(big_lift > small_lift * 1.6,
+		"a doubled rig bobs further (%.4f m vs %.4f m)" % [big_lift, small_lift])
+	assert_true(big_lift < small_lift * 4.0,
+		"and not absurdly further (%.4f m vs %.4f m)" % [big_lift, small_lift])
+	# An explicit value is metres and is left alone.
+	var explicit := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "scale_explicit",
+		"duration": 1.0, "loop_mode": "linear", "overrides": {"bob": 0.5},
+	}, null)
+	assert_true(explicit.has("data"), "the explicit walk builds (%s)" % str(explicit.get("error", explicit)))
+	var explicit_bob := _hip_bob(rig.player.get_animation("scale_explicit"))
+	assert_true(explicit_bob > small_lift * 2.0,
+		"an explicit bob is taken in metres (%.4f m vs the default %.4f m)"
+		% [explicit_bob, small_lift])
+	_remove_node("/" + str(scene_root.name) + "/MotionScaleDouble")
+	_teardown(rig)
+
+
+## Peak vertical travel of the hips track, in metres: the bob.
+func _hip_bob(anim: Animation) -> float:
+	var track := _track_index(anim, ":B-hips", Animation.TYPE_POSITION_3D)
+	if track < 0:
+		return 0.0
+	var lowest := INF
+	var highest := -INF
+	for index in anim.track_get_key_count(track):
+		var value: Vector3 = anim.track_get_key_value(track, index)
+		lowest = minf(lowest, value.y)
+		highest = maxf(highest, value.y)
+	return highest - lowest
+
+
+func test_lean_is_shared_over_the_spine_not_repeated_per_bone() -> void:
+	# Every torso bone used to take the FULL lean, so a long spine folded N times
+	# as much as a short one and `lean` meant something different on every rig.
+	# Measuring the DIFFERENCE against a lean-less clip isolates the lean from the
+	# sway/twist channels that share the same bones.
+	var rig := _rig("MotionLean")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	for lean_degrees in [9.0, 18.0]:
+		var with_lean := _handler.run({
+			"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+			"player_path": rig.player_path, "animation_name": "lean_%d" % int(lean_degrees),
+			"duration": 1.0, "loop_mode": "linear", "lean": lean_degrees,
+		}, null)
+		assert_true(with_lean.has("data"), "the walk builds (%s)" % str(with_lean.get("error", with_lean)))
+	var flat := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "lean_flat",
+		"duration": 1.0, "loop_mode": "linear", "lean": 0.0,
+	}, null)
+	assert_true(flat.has("data"), "the lean-less walk builds (%s)" % str(flat.get("error", flat)))
+	var baseline: Animation = rig.player.get_animation("lean_flat")
+	var results: Array = []
+	for lean_degrees in [9.0, 18.0]:
+		var anim: Animation = rig.player.get_animation("lean_%d" % int(lean_degrees))
+		var torso := 0.0
+		var counted: Array = []
+		for bone in ["B-spine", "B-chest", "B-upperChest", "B-neck"]:
+			var index := _track_index(anim, ":" + str(bone), Animation.TYPE_ROTATION_3D)
+			if index < 0:
+				continue
+			counted.append(str(bone))
+			torso += _lateral_delta(anim, index, baseline)
+		assert_true(counted.size() >= 2,
+			"a few torso bones carry the lean (%s)" % ", ".join(counted))
+		# The total across the torso is the requested lean - not the lean times the
+		# number of bones.
+		var want := deg_to_rad(lean_degrees)
+		assert_true(absf(torso - want) < want * 0.35,
+			"a %d degree lean folds %.2f degrees across the torso (%.2f wanted)"
+			% [int(lean_degrees), rad_to_deg(torso), lean_degrees])
+		results.append(torso)
+	if results.size() == 2:
+		# Twice the lean, twice the fold: a per-bone copy would have doubled per
+		# bone and quadrupled on a two-bone chain... it must scale linearly.
+		assert_true(absf((results[1] as float) - 2.0 * (results[0] as float)) < 0.02,
+			"the fold scales linearly with the request (%.3f vs %.3f)"
+			% [results[1] as float, 2.0 * (results[0] as float)])
+	_teardown(rig)
+
+
+## How far `lean` tilted one bone sideways, as a difference against the same
+## clip built with no lean at all (both at their first key, where the lean is a
+## constant offset).
+func _lateral_delta(anim: Animation, track: int, baseline: Animation) -> float:
+	var path := anim.track_get_path(track)
+	var reference := -1
+	for index in baseline.get_track_count():
+		if baseline.track_get_path(index) == path \
+				and baseline.track_get_type(index) == Animation.TYPE_ROTATION_3D:
+			reference = index
+			break
+	if reference < 0:
+		return 0.0
+	var here: Quaternion = anim.track_get_key_value(track, 0)
+	var there: Quaternion = baseline.track_get_key_value(reference, 0)
+	return absf(_lateral_angle(here * there.inverse()))
+
+
+## The signed angle of `delta` about the world lateral axis, in radians.
+func _lateral_angle(delta: Quaternion) -> float:
+	if absf(delta.w) >= 0.999999:
+		return 0.0
+	var axis := Vector3(delta.x, delta.y, delta.z)
+	if axis.length_squared() <= 0.000001:
+		return 0.0
+	return 2.0 * acos(clampf(delta.w, -1.0, 1.0)) \
+		* signf(axis.normalized().dot(Vector3(1, 0, 0)))
+
+
 func test_idle_cycle_breathing_shift_and_loop() -> void:
 	var rig := _rig("MotionIdle")
 	if rig.has("error"):

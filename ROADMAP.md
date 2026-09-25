@@ -919,8 +919,46 @@ changes what the clips look like, in the order of how much a viewer notices.
    `planted` is also the first boolean override, so the coercion no longer turns
    it into a float.
 
-**Still open:** the knee pole and reach clamping, rig-scaled defaults, the rig
-frame from rest geometry, lean distribution and the root-motion contract.
+**Also done in this pass:**
+
+3. **Knees keep their mind — DONE.** The two-bone solve now returns the knee
+   *and the effective ankle* - the closest point the leg can reach - so both
+   bones aim at one reachable target. The shin used to aim at the *requested*
+   ankle even after the knee had been computed from a clamped distance, which
+   left the foot floating in any pose deeper than the leg's reach. The pole comes
+   from the rig's **own measured rest bend** (the shin's rest origin, which is the
+   knee) instead of a cross product against `UP`, which is zero exactly when the
+   leg is straight up. `clamped` and `clamp_shortfall_m` are reported in the
+   gait's meta, so a clipped step is visible rather than silent.
+4. **Motion scales with the rig — DONE.** `bob`, `sway`, `foot_lift`,
+   `jump_crouch` and `jump_height` defaulted to fixed metres, so a 1.2 m child
+   got the same five centimetres of lift as a 2.4 m giant. Untouched defaults are
+   now fractions of the rig's **measured** leg (calibrated so the human dummy is
+   unchanged), the turn's phase-table bob scales with the same factor, and an
+   explicit value still means metres. The test makes the dummy's bones twice as
+   long — which is the only way to change a rig's height for the solver, since
+   `get_bone_global_rest` is in skeleton space and unaffected by node scale - and
+   checks the bob follows.
+6. **Lean is distributed like twist — DONE.** Every torso bone took the *full*
+   lean, so a seven-bone spine folded seven times as much as a three-bone one and
+   `lean` meant something different on every rig. The shares now sum to 1.0 over
+   the torso (a three-bone spine is unchanged, which is what the presets were
+   tuned against) while the head keeps its counter-lean. Measured end to end by
+   differencing against a `lean: 0` clip, because the lean shares bones with sway
+   and twist and cannot be read off the peak-to-peak alone.
+
+**Still open, and why:**
+
+5. **A real rig frame** (up/forward/lateral from rest geometry, orthogonalised,
+   replacing the hard-coded `Vector3.UP`, with the contact/slide metrics sharing
+   the frame). Left for its own pass on purpose: it changes the frame every
+   metric is measured in, so it wants the Phase 18 golden fixtures in place to
+   catch a regression in the *numbers*, not just in the shape. The knee pole in
+   step 3 already removed the one place where a degenerate frame bit hardest.
+7. **The root-motion contract** — the legs solved in the frame the viewer sees
+   (the root-motion-canceled one), with the extracted motion supplying world
+   travel and `root_motion_local` set explicitly. The ROADMAP's own rule applies:
+   the gate for this is a real `AnimationTree` playback test, which is Phase 18.
 
 1. **A swing is an arc, not a step.** Foot height is currently 0 or 1 across
    the whole swing, so the foot teleports up at toe-off and back down at heel

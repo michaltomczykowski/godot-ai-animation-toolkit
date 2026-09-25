@@ -161,17 +161,48 @@ static func hold_global_delta(
 
 ## Knee position for a two-bone leg: law of cosines in the plane spanned by the
 ## hip->ankle line and `forward`, so the ankle stays where it was asked to be.
-static func knee_position(hip: Vector3, ankle: Vector3, upper: float, lower: float, forward: Vector3) -> Vector3:
-	var to_ankle := ankle - hip
-	var distance := clampf(to_ankle.length(), absf(upper - lower) + 0.001, upper + lower - 0.001)
-	var direction := to_ankle.normalized()
+## Two-bone leg solve. Returns the knee plus the **effective ankle** - the
+## closest point the leg can actually reach - so both bones aim at one reachable
+## target. The shin used to aim at the *requested* ankle even when the knee had
+## been computed from a clamped distance, which left the foot floating in any
+## pose deeper than the leg's reach.
+##
+## `pole_hint` is the leg's own measured rest bend (rest knee minus rest hip),
+## which keeps the knee on the side the rig was built with. A cross product
+## against UP used to pick the side, and that cross is zero exactly when the leg
+## is straight up - the one pose where the guess mattered most.
+##
+## `clamped` and `shortfall` report a target the leg cannot reach instead of
+## hiding the substitution.
+static func solve_leg(
+	hip: Vector3, ankle_target: Vector3, upper: float, lower: float, pole_hint: Vector3,
+) -> Dictionary:
+	var to_ankle := ankle_target - hip
+	var wanted := to_ankle.length()
+	var minimum := absf(upper - lower) + 0.001
+	var maximum := upper + lower - 0.001
+	var distance := clampf(wanted, minimum, maximum)
+	var direction := (to_ankle / wanted) if wanted > _EPSILON else Vector3.FORWARD
+	var effective := hip + direction * distance
 	var along := (upper * upper - lower * lower + distance * distance) / (2.0 * distance)
 	var height := sqrt(maxf(upper * upper - along * along, 0.0))
-	var perpendicular := forward - direction * direction.dot(forward)
+	var perpendicular := pole_hint - direction * direction.dot(pole_hint)
 	if perpendicular.length_squared() < _EPSILON:
 		perpendicular = Vector3.UP.cross(direction)
+	if perpendicular.length_squared() < _EPSILON:
+		perpendicular = Vector3.FORWARD.cross(direction)
 	perpendicular = perpendicular.normalized()
-	return hip + direction * along + perpendicular * height
+	return {
+		"knee": hip + direction * along + perpendicular * height,
+		"effective_ankle": effective,
+		"clamped": wanted > maximum + _EPSILON or wanted < minimum - _EPSILON,
+		"shortfall": maxf(0.0, wanted - distance),
+	}
+
+
+## The knee position alone, for callers that do not need the reach report.
+static func knee_position(hip: Vector3, ankle: Vector3, upper: float, lower: float, forward: Vector3) -> Vector3:
+	return solve_leg(hip, ankle, upper, lower, forward)["knee"] as Vector3
 
 
 # --- secondary motion -------------------------------------------------------
