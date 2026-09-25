@@ -436,7 +436,27 @@ static func close_loop(keys: Array, length: float) -> void:
 		last["value"] = first_value
 		last["time"] = length
 		return
+	# A track that already arrives at the first value one key early (a hold at the
+	# end of a phase table, which is what the strafe's does) would otherwise get a
+	# closing key that duplicates the one before it: a zero-length step at the
+	# seam, which reads as a dead frame and a velocity discontinuity.
+	if _same_value(last.get("value"), first_value):
+		var moved: Dictionary = last.duplicate()
+		moved["value"] = first_value
+		moved["time"] = length
+		keys[keys.size() - 1] = moved
+		return
 	var closing := {"time": length, "value": first_value}
 	if first.has("transition"):
 		closing["transition"] = first.get("transition")
 	keys.append(closing)
+
+
+## Whether two keyed values are the same point in space, with quaternions
+## compared by rotation (a quaternion and its negation are the same rotation).
+static func _same_value(a: Variant, b: Variant) -> bool:
+	if a is Quaternion and b is Quaternion:
+		return absf((a as Quaternion).angle_to(b as Quaternion)) < 0.000001
+	if a is Vector3 and b is Vector3:
+		return (a as Vector3).distance_to(b as Vector3) < 0.000001
+	return a == b

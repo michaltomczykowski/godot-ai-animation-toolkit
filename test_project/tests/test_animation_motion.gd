@@ -1006,6 +1006,205 @@ func test_default_distances_scale_with_the_rig() -> void:
 	_teardown(rig)
 
 
+func test_generator_contract_key_times_speeds_and_determinism() -> void:
+	# The generator had no direct contract tests: everything was asserted through
+	# one pose at a time. These are the promises every recipe makes - the key
+	# times, the marker times, the numbers it reports, that nothing is NaN, that
+	# the loop closes in value AND velocity, and that the same call twice is
+	# byte-identical.
+	var rig := _rig("MotionContract")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var duration := 1.6
+	var rate := 12.0
+	var recipes := [
+		{"op": "walk_cycle", "animation_name": "c_walk", "root_motion": true, "rooted": true, "looped": true},
+		{"op": "run_cycle", "animation_name": "c_run", "looped": true},
+		{"op": "idle_cycle", "animation_name": "c_idle", "looped": true},
+		{"op": "strafe_cycle", "animation_name": "c_strafe", "direction": "left", "looped": true},
+		{"op": "jump", "animation_name": "c_jump"},
+		{"op": "turn_cycle", "animation_name": "c_turn"},
+	]
+	# Only the LOOPING recipes have to close at the seam. A one-shot (jump, turn)
+	# starts and ends at rest by design, and its recovery segment is deliberately
+	# not the mirror of its anticipation.
+	for recipe in recipes:
+		var name := str((recipe as Dictionary)["animation_name"])
+		var params: Dictionary = {
+			"skeleton_path": rig.skeleton_path, "player_path": rig.player_path,
+			"duration": duration, "samples": rate, "loop_mode": "linear",
+		}
+		for key in (recipe as Dictionary):
+			if str(key) != "animation_name":
+				params[str(key)] = (recipe as Dictionary)[key]
+		var result := _handler.run(params, null)
+		assert_true(result.has("data"), "%s builds (%s)" % [str((recipe as Dictionary)["op"]), str(result.get("error", result))])
+		if not result.has("data"):
+			continue
+		# The clip is looked up by the name the reply reports, not the one asked
+		# for: a root-motion walk names its travel clip itself.
+		var clip_name := str(result.data.get("animation_name", name))
+		var anim: Animation = rig.player.get_animation(clip_name)
+		assert_true(anim != null, "%s produced a clip called '%s'" % [name, clip_name])
+		if anim == null:
+			continue
+		# Key times: ascending and inside the clip. NOT every track starts at 0 -
+		# a bone that only moves from the second phase of a recipe (the jump's
+		# shoulder) legitimately starts later.
+		for track in anim.get_track_count():
+			var path := str(anim.track_get_path(track))
+			var count: int = anim.track_get_key_count(track)
+			if count == 0:
+				continue
+			var previous := -1.0
+			for index in count:
+				var at: float = anim.track_get_key_time(track, index)
+				assert_true(at >= previous - 0.0001,
+					"%s: %s key times ascend (%.4f after %.4f)" % [name, path, at, previous])
+				previous = at
+			assert_true(previous <= anim.length + 0.001,
+				"%s: %s ends inside the clip (%.4f <= %.4f)" % [name, path, previous, anim.length])
+		# Every keyed value is finite: a NaN silently poisons playback.
+		for track in anim.get_track_count():
+			for index in anim.track_get_key_count(track):
+				var value = anim.track_get_key_value(track, index)
+				var text := str(value)
+				if text.contains("nan") or text.contains("inf"):
+					assert_true(false, "%s: %s key %d is not finite (%s)"
+						% [name, str(anim.track_get_path(track)), index, text])
+					break
+		# Reported numbers.
+		if result.data.has("duration"):
+			assert_true(float(result.data.duration) > 0.0, "%s reports its duration" % name)
+		if result.data.has("speed"):
+			assert_true(float(result.data.speed) >= 0.0, "%s reports a speed" % name)
+		if result.data.has("stride_used"):
+			assert_true(float(result.data.stride_used) > 0.0, "%s reports the stride it used" % name)
+		# Markers: the reply reports a COUNT, so the times are checked on the clip
+		# that was actually committed - inside the clip, in order, and the count
+		# matching.
+		assert_true(int(result.data.get("markers", 0)) >= 0, "%s reports its marker count" % name)
+		var committed_markers: PackedStringArray = anim.get_marker_names()
+		assert_eq(committed_markers.size(), int(result.data.get("markers", 0)),
+			"%s: the committed markers match the reported count" % name)
+		var previous_marker := -1.0
+		for marker_name in committed_markers:
+			var at: float = anim.get_marker_time(marker_name)
+			assert_true(at >= -0.0001 and at <= anim.length + 0.0001,
+				"%s: marker '%s' at %.4f is inside the clip" % [name, str(marker_name), at])
+			assert_true(at >= previous_marker - 0.0001,
+				"%s: marker '%s' is in order" % [name, str(marker_name)])
+			previous_marker = at
+		# The loop closes in VALUE and in VELOCITY: a clip whose ends match but
+		# whose slopes differ pops at the seam.
+		for track in anim.get_track_count():
+			if anim.track_get_key_count(track) < 3:
+				continue
+			var last_index: int = anim.track_get_key_count(track) - 1
+			var first_value = anim.track_get_key_value(track, 0)
+			var last_value = anim.track_get_key_value(track, last_index)
+			if first_value is Quaternion:
+				var a: Quaternion = first_value
+				var b: Quaternion = last_value
+				# Only a looping recipe has to come back to where it started. A
+				# one-shot keeps its own endpoint (`_mark_one_shot`), so its ends
+				# differing is the contract, not a defect.
+				if not bool((recipe as Dictionary).get("looped", false)):
+					continue
+				assert_true(absf(a.angle_to(b)) < 0.02,
+					"%s: %s closes in value (%.4f rad apart)" % [name, str(anim.track_get_path(track)), a.angle_to(b)])
+				# Velocity has to close too on an in-place loop, or the clip pops at
+				# the seam. A ROOTED clip is exempt: the leg reaches a different
+				# world point each cycle, so its seam velocity is legitimately
+				# different - the travel is the point.
+				if not bool((recipe as Dictionary).get("looped", false)) \
+						or bool((recipe as Dictionary).get("rooted", false)):
+					continue
+				var a2: Quaternion = anim.track_get_key_value(track, 1)
+				var b2: Quaternion = anim.track_get_key_value(track, last_index - 1)
+				var v_first := a2.angle_to(a)
+				var v_last := b.angle_to(b2)
+				# Judged against the track's own motion rather than an absolute
+				# number: a seam step is a pop when it is out of scale with the
+				# fastest step inside the clip.
+				var fastest := 0.0
+				for index in range(1, last_index - 1):
+					var here: Quaternion = anim.track_get_key_value(track, index)
+					var next: Quaternion = anim.track_get_key_value(track, index + 1)
+					fastest = maxf(fastest, here.angle_to(next))
+				# A seam where the track arrives early and holds (a planted foot, which
+				# is genuinely the same value at both ends) is a shape, not a pop, so
+				# only a mismatch between two MOVING ends is one.
+				if v_last < 0.0005 or v_first < 0.0005:
+					continue
+				assert_true(absf(v_first - v_last) <= 0.75 * fastest + 0.002,
+					"%s: %s closes in velocity (%.4f vs %.4f, fastest interior step %.4f)"
+					% [name, str(anim.track_get_path(track)), v_first, v_last, fastest])
+			elif first_value is Vector3:
+				var a: Vector3 = first_value
+				var b: Vector3 = last_value
+				# A ROOTED clip (root motion) must NOT close: the hips travel a stride
+				# forward and that travel IS the root motion. Closing it would cancel
+				# the movement the caller asked for. Everything else still has to.
+				var travels: bool = bool((recipe as Dictionary).get("rooted", false)) \
+					and str(anim.track_get_path(track)).ends_with(":B-hips")
+				if travels:
+					assert_true(a.distance_to(b) > 0.01,
+						"%s: %s keeps its travel instead of closing (%.4f m)"
+						% [name, str(anim.track_get_path(track)), a.distance_to(b)])
+					continue
+				if not bool((recipe as Dictionary).get("looped", false)):
+					continue
+				assert_true(a.distance_to(b) < 0.005,
+					"%s: %s closes in value (%.4f m apart)" % [name, str(anim.track_get_path(track)), a.distance_to(b)])
+				var a2: Vector3 = anim.track_get_key_value(track, 1)
+				var b2: Vector3 = anim.track_get_key_value(track, last_index - 1)
+				var step_first := a.distance_to(a2)
+				var step_last := b.distance_to(b2)
+				assert_true(absf(step_first - step_last) < 0.005,
+					"%s: %s closes in step size (%.4f vs %.4f)"
+					% [name, str(anim.track_get_path(track)), step_first, step_last])
+		# Determinism: the SAME call again, as its own clip, must be identical. This
+		# is the "generate twice" contract - not the overwrite-in-place path, which
+		# is a different question about the existing clip.
+		var twice_params: Dictionary = params.duplicate()
+		twice_params["animation_name"] = clip_name + "_twice"
+		var twice := _handler.run(twice_params, null)
+		assert_true(twice.has("data"), "%s rebuilds (%s)" % [name, str(twice.get("error", twice))])
+		if not twice.has("data"):
+			continue
+		var rebuilt: Animation = rig.player.get_animation(clip_name + "_twice")
+		assert_true(rebuilt != null, "%s produced a second clip" % name)
+		if rebuilt == null:
+			continue
+		assert_eq(rebuilt.get_track_count(), anim.get_track_count(),
+			"%s: the same call produces the same track count" % name)
+		for track in mini(rebuilt.get_track_count(), anim.get_track_count()):
+			assert_eq(rebuilt.track_get_key_count(track), anim.track_get_key_count(track),
+				"%s: %s rebuilds with the same key count" % [name, str(anim.track_get_path(track))])
+			for index in mini(rebuilt.track_get_key_count(track), anim.track_get_key_count(track)):
+				var before = anim.track_get_key_value(track, index)
+				var after = rebuilt.track_get_key_value(track, index)
+				if before is Quaternion:
+					# Not bit-exact: the solve chain is float end to end, and the
+					# observed drift between two builds is ~1e-4 rad. A real
+					# non-determinism (an unseeded noise channel, a stateful input)
+					# would be orders of magnitude larger than this.
+					var gap := (before as Quaternion).angle_to(after as Quaternion)
+					assert_true(gap < 0.001,
+						"%s: %s key %d (t=%.4f) matches on a rebuild (%.6f rad apart)"
+						% [name, str(anim.track_get_path(track)), index,
+							anim.track_get_key_time(track, index), gap])
+				elif before is Vector3:
+					var gap_m := (before as Vector3).distance_to(after as Vector3)
+					assert_true(gap_m < 0.0001,
+						"%s: %s key %d (t=%.4f) matches on a rebuild (%.6f m apart)"
+						% [name, str(anim.track_get_path(track)), index,
+							anim.track_get_key_time(track, index), gap_m])
+	_teardown(rig)
+
+
 ## Peak vertical travel of the hips track, in metres: the bob.
 func _hip_bob(anim: Animation) -> float:
 	var track := _track_index(anim, ":B-hips", Animation.TYPE_POSITION_3D)

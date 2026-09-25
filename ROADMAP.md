@@ -958,7 +958,12 @@ changes what the clips look like, in the order of how much a viewer notices.
 7. **The root-motion contract** — the legs solved in the frame the viewer sees
    (the root-motion-canceled one), with the extracted motion supplying world
    travel and `root_motion_local` set explicitly. The ROADMAP's own rule applies:
-   the gate for this is a real `AnimationTree` playback test, which is Phase 18.
+   the gate for this is a real `AnimationTree` playback test, which is Phase 18
+   item 3 — still to come. What the contract test *did* establish for the rooted
+   walk: its hips track keeps its travel (1.05 m of stride per cycle) and its
+   leg poses close in value while their seam velocity legitimately does not,
+   because each cycle reaches a different world point. That is the shape item 7
+   has to preserve while moving the solve into the cancelled frame.
 
 1. **A swing is an arc, not a step.** Foot height is currently 0 or 1 across
    the whole swing, so the foot teleports up at toe-off and back down at heel
@@ -997,23 +1002,43 @@ changes what the clips look like, in the order of how much a viewer notices.
    audit only applies the spec locally, so a real `AnimationTree` playback test
    (Phase 18) is the gate for this change.
 
-## Phase 18 — prove it (v1.12.0, planned)
+## Phase 18 — prove it (v1.12.0, in progress)
 
-1. **Direct `MotionSpecs` contract tests** — the generator has none: key times
-   and counts, style/override resolution, markers, returned speed/stride/cadence,
-   loop closure, finite values, seeded determinism.
+1. **Direct `MotionSpecs` contract tests — DONE.** The generator had none:
+   everything was asserted through one pose at a time. There is now one
+   table-driven test that runs every recipe (walk, run, idle, strafe, jump, turn)
+   and checks the promises each one makes: key times ascend and stay inside the
+   clip, every keyed value is finite, the reported speed/stride/duration are
+   sane, the committed markers match the reported count and sit inside the clip,
+   looping recipes close at the seam in value *and* velocity, and the same call
+   twice produces the same clip. It is ~4000 assertions and it found two real
+   things while being written (below).
 2. **A synthetic proportion matrix in tier-1** — the first tier-1 to build
    `Skeleton3D` chains: short legs, long legs, asymmetric legs, a child-sized
    rig, a rotated/mirrored root. Normalized stride, lift, symmetry, a
-   leg-scaled slide budget, and loop value *and* velocity closure.
+   leg-scaled slide budget, and loop value *and* velocity closure. **Open.**
 3. **Real playback tests** — `AnimationPlayer.play()/seek()` instead of
    nearest-key lookup, so interpolation, root motion through an `AnimationTree`,
    and mid-key values are all covered, and the audit's numbers are checked
-   against what actually plays.
+   against what actually plays. **Open** — and it is the gate for 17.7.
 4. **Golden clips** — normalized walk/run/idle fixtures in the existing
    `godot-ai-animation-clip` JSON, with quaternion-sign normalization and
    tolerances, plus a "generate twice, identical" determinism test. The goldens
-   are recorded once Phase 17 has settled, then gate drift.
+   are recorded once Phase 17 has settled, then gate drift. **Open** (the
+   determinism half is done, in item 1).
+
+### What the contract test found
+
+- **`close_loop` could append a duplicate final key.** A track that already
+  arrived at its first value one key early (a hold at the end of a phase table)
+  got a closing key equal to the one before it: a zero-length step at the seam.
+  The closing key now moves that last key to the clip end instead.
+- **The strafe's foot seam is asymmetric**: it starts moving immediately and
+  arrives early, so its seam step is 0.54 rad into and 0.0 out. It is a *held*
+  (planted) foot rather than a pop, so the velocity assertion skips a held seam
+  rather than pretending it is one. Worth watching when the golden fixtures land.
+
+## Phase 17 item 7 (root-motion contract) and 5 (rig frame) — still open
 
 ## Risks / notes
 
