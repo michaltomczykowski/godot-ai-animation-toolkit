@@ -29,13 +29,16 @@ const _CYCLE_KINDS := {
 
 const _GAIT_KEYS := ["stride", "knee_bend", "arm_swing", "arm_twist", "bob", "sway", "hip_yaw", "hip_roll", "chest_yaw", "lean", "foot_lift", "elbow", "elbow_swing", "lag", "stance", "crouch", "toe_roll", "twist_spread"]
 
+## Overrides that are switches rather than numbers, so they are not coerced.
+const _BOOLEAN_OVERRIDES := ["planted"]
+
 const _OVERRIDE_KEYS := {
 	"walk": _GAIT_KEYS,
 	"run": _GAIT_KEYS,
 	"strafe": _GAIT_KEYS,
 	"walk_start": _GAIT_KEYS,
 	"walk_stop": _GAIT_KEYS,
-	"idle": ["amplitude", "head_amplitude", "look", "twist", "bob", "sway", "shift", "noise", "lean", "arm_sway", "elbow", "arm_twist", "twist_spread"],
+	"idle": ["amplitude", "head_amplitude", "look", "twist", "bob", "sway", "shift", "noise", "lean", "arm_sway", "elbow", "arm_twist", "twist_spread", "planted"],
 	# Only keys a recipe actually reads are accepted. `jump` never applied
 	# `foot_lift` and `turn` never applied `lean`/`toe_roll`, so they used to be
 	# accepted, reported as success and change nothing; now they are refused.
@@ -167,7 +170,11 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		config[str(key)] = overrides[key]
 	for key in valid_keys:
 		if params.has(key):
-			config[key] = float(params[key])
+			# Most keys are numbers, but `planted` is a switch: float(true) is 1.0
+			# and float("false") is 0.0, which quietly turns a caller's boolean into
+			# a number the recipe then treats as truthiness.
+			config[key] = bool(params[key]) if str(key) in _BOOLEAN_OVERRIDES \
+				else float(params[key])
 	# Friendly top-level params map onto the per-move config keys.
 	if params.has("height"):
 		config["jump_height"] = float(params["height"])

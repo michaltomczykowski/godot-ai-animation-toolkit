@@ -889,10 +889,38 @@ description.
 3. Relaxing the `deferred` flag widens what `batch_execute` admits, so the
    rollback-on-error path is exercised for the newly admitted read-only ops.
 
-## Phase 17 — looks like animation, not maths (v1.11.0, planned)
+## Phase 17 — looks like animation, not maths (v1.11.0, in progress)
 
 The generator's arithmetic is sound; its *shapes* are the problem. This phase
 changes what the clips look like, in the order of how much a viewer notices.
+
+**Done so far:**
+
+1. **A swing is an arc, not a step — DONE.** `_foot_trajectory` returned
+   `height: 1.0` for the *whole* swing phase, so the ankle sat on a flat plateau
+   `foot_lift` metres up and the foot teleported at toe-off and heel strike. The
+   lift is now a hump that is exactly 0 at both contacts, peaks just before
+   mid-swing, and has zero slope at the contacts and the apex. Tier-1 checks the
+   profile per sample: 0 through stance, 0 again at the wrap, one rise and one
+   fall, no flat run, and soft landings. (The *`samples`-does-nothing-for-jump-
+   and-turn* half of this item is deliberately NOT done: those two are built from
+   hand-authored phase tables with anticipation/launch/air/land shaping, and
+   resampling them linearly would make them worse. The tool reference now says
+   which families `samples` governs.)
+2. **Idle keeps its feet — DONE.** The idle moved the pelvis (bob, sway, twist,
+   lean) and never re-solved the legs, so both feet travelled with the hips and
+   the character skated. Both legs are now solved against their rest ankle
+   targets every sample, behind a new `planted` param that defaults to **true**;
+   `planted: false` keeps the old pelvis-only clip for callers who key the feet
+   themselves. The test measures the property, not a proxy: the foot bone's
+   **world** position across the clip stays within 2 cm of its rest spot and
+   never lifts (a foot pinned to its world orientation still rotates *locally*
+   as the shin moves under it, so the local delta is the wrong measure).
+   `planted` is also the first boolean override, so the coercion no longer turns
+   it into a float.
+
+**Still open:** the knee pole and reach clamping, rig-scaled defaults, the rig
+frame from rest geometry, lean distribution and the root-motion contract.
 
 1. **A swing is an arc, not a step.** Foot height is currently 0 or 1 across
    the whole swing, so the foot teleports up at toe-off and back down at heel

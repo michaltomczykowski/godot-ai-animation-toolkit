@@ -1932,6 +1932,11 @@ static func _motion_schema() -> Dictionary:
 				"type": "number",
 				"description": "0 keeps the twist on the hips, 1 spreads it over the whole chain (1; also an override key).",
 			},
+			"planted": {
+				"type": "boolean",
+				"default": true,
+				"description": "idle_cycle: solve both legs against their rest ankles so the feet stay on the floor while the pelvis moves (on; pass false for the old pelvis-only clip, e.g. when you key the feet yourself).",
+			},
 			"roles": {
 				"type": "object",
 				"description": "Bone roles, e.g. {\"thigh_l\": \"B-thigh.L\"}; missing ones auto-detect.",
@@ -2017,8 +2022,8 @@ static func _motion_ops() -> Array:
 	var idle_params := [
 		"player_path", "skeleton_path", "animation_name", "duration", "style",
 		"overrides", "samples", "amplitude", "head_amplitude", "bob", "sway",
-		"lean", "roles", "profile", "spine_chain", "twist_spread", "loop_mode",
-		"overwrite",
+		"lean", "roles", "profile", "spine_chain", "twist_spread", "planted",
+		"loop_mode", "overwrite",
 	]
 	return _with_dry_run([
 		{

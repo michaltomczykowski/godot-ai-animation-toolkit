@@ -9,6 +9,7 @@ extends SceneTree
 ## (Named without the `test_` prefix so the editor suite runner ignores it.)
 
 const MotionDrivers := preload("res://addons/godot_ai_animation/spec/motion_drivers.gd")
+const MotionSpecs := preload("res://addons/godot_ai_animation/spec/motion_specs.gd")
 
 var _checks := 0
 var _failures := 0
@@ -24,11 +25,75 @@ func _init() -> void:
 	_check_knee()
 	_check_spring()
 	_check_smoothing()
+	_check_foot_trajectory()
 	if _failures == 0:
 		print("TIER1 PASS (%d checks)" % _checks)
 	else:
 		print("TIER1 FAIL (%d/%d checks failed)" % [_failures, _checks])
 	quit(0 if _failures == 0 else 1)
+
+
+## The foot's lift profile. It used to be 1.0 across the whole swing, so the
+## ankle jumped to full height at toe-off and dropped at heel strike - a step,
+## not an arc. The contract: exactly 0 at both contacts, a single peak in
+## between, and no plateau anywhere.
+func _check_foot_trajectory() -> void:
+	var stance := 0.6
+	var span := 0.7
+	var samples := 200
+	# Rooted (the real walk: the ankle is a world point) and unrooted.
+	for rooted in [true, false]:
+		var label := "rooted" if rooted else "in-place"
+		var heights: Array = []
+		var apex := 0.0
+		var apex_at := 0.0
+		for index in samples + 1:
+			var p := float(index) / float(samples)
+			var foot: Dictionary = MotionSpecs._foot_trajectory(p, stance, span, 1.4, 1.0, rooted)
+			var height := float(foot.height)
+			heights.append(height)
+			if height > apex:
+				apex = height
+				apex_at = p
+			if p < stance:
+				_expect_approx(height, 0.0, "%s: the stance foot is on the ground (p=%.3f)" % [label, p])
+		# Heel strike is the wrap point: the lift has to arrive back at 0 there.
+		var last: Dictionary = MotionSpecs._foot_trajectory(
+			1.0 - 0.0005, stance, span, 1.4, 1.0, rooted)
+		_expect(float(last.height) < 0.01,
+			"%s: the swing lands back at ground level (got %.4f)" % [label, float(last.height)])
+		_expect(apex > 0.9, "%s: the swing lifts nearly full height (%.3f)" % [label, apex])
+		# The apex sits inside the swing, and before its middle (a foot clears the
+		# ground early and comes down late).
+		var swing_start := stance
+		_expect(apex_at > swing_start + 0.1 and apex_at < swing_start + (1.0 - swing_start) * 0.75,
+			"%s: the apex is inside the swing at p=%.3f" % [label, apex_at])
+		# No plateau: a run of identical non-zero values means the foot is parked
+		# in the air, which is the defect this replaces.
+		var plateau := 0
+		for index in range(1, heights.size()):
+			if absf(float(heights[index]) - float(heights[index - 1])) < 0.0001 \
+					and float(heights[index]) > 0.05:
+				plateau += 1
+		_expect(plateau < heights.size() / 20,
+			"%s: the lift is a curve, not a plateau (%d flat samples)" % [label, plateau])
+		# It rises and then falls exactly once.
+		var rises := 0
+		for index in range(1, heights.size()):
+			if float(heights[index]) > float(heights[index - 1]) + 0.0005:
+				rises += 1
+		_expect(rises >= 1 and rises < heights.size() / 2,
+			"%s: one rise, one fall (%d rising samples)" % [label, rises])
+		# Smoothstep at both ends: the foot leaves and lands horizontally, so the
+		# first and last steps of the arc are tiny.
+		var first_step: float = float(heights[0]) - 0.0
+		var contact_step := -1.0
+		for index in range(1, heights.size()):
+			if float(heights[index]) < 0.05:
+				contact_step = absf(float(heights[index]) - float(heights[index - 1]))
+				break
+		_expect(first_step < 0.02 or contact_step < 0.02,
+			"%s: the arc leaves and lands softly (%.4f)" % [label, minf(first_step, contact_step)])
 
 
 func _expect(condition: bool, message: String) -> void:

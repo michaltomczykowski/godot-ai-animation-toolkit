@@ -875,6 +875,61 @@ func test_idle_twist_is_shared_over_the_spine_chain() -> void:
 	_teardown(rig)
 
 
+func test_idle_keeps_its_feet_planted() -> void:
+	# The pelvis breathes, sways and twists; if the legs are not re-solved, both
+	# feet travel with it and the character skates in place. `planted` (the
+	# default) solves them against their rest ankles, and `planted: false` keeps
+	# the old pelvis-only clip.
+	var rig := _rig("MotionIdlePlant")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var planted := _handler.run({
+		"op": "idle_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "idle_planted",
+		"duration": 3.0, "loop_mode": "linear", "planted": true,
+	}, null)
+	assert_true(planted.has("data"), "planted idle builds (%s)" % str(planted.get("error", planted)))
+	var loose := _handler.run({
+		"op": "idle_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "idle_loose",
+		"duration": 3.0, "loop_mode": "linear", "planted": false,
+	}, null)
+	assert_true(loose.has("data"), "pelvis-only idle builds (%s)" % str(loose.get("error", loose)))
+	var anim: Animation = rig.player.get_animation("idle_planted")
+	var pelvis_only: Animation = rig.player.get_animation("idle_loose")
+	for side in [".L", ".R"]:
+		var bone := "B-foot" + str(side)
+		var foot := _track_index(anim, ":" + bone, Animation.TYPE_ROTATION_3D)
+		var shin := _track_index(anim, ":B-shin" + str(side), Animation.TYPE_ROTATION_3D)
+		assert_true(foot >= 0, "B-foot%s is keyed when planted" % str(side))
+		assert_true(shin >= 0, "B-shin%s is keyed when planted" % str(side))
+		# "Planted" is a claim about the WORLD: the ankle must not travel with the
+		# pelvis. The local foot delta is not the measure (a foot pinned to its
+		# world orientation still rotates locally as the shin moves under it), so
+		# measure the foot bone's world position across the clip instead.
+		var rest_ankle: Vector3 = rig.skeleton.get_bone_global_rest(
+			rig.skeleton.find_bone(bone)).origin
+		var travel := 0.0
+		var furthest := 0.0
+		for step in 13:
+			var pose := _pose_of(rig, anim, 3.0 * float(step) / 12.0, bone)
+			travel = maxf(travel, pose.origin.distance_to(rest_ankle))
+			furthest = maxf(furthest, pose.origin.y - rest_ankle.y)
+		assert_true(travel < 0.02,
+			"the planted %s stays on its rest spot (%.3f m of travel)" % [bone, travel])
+		assert_true(furthest < 0.01,
+			"and never lifts off the floor (%.3f m up)" % furthest)
+		# The shin has to do the work, or the foot is static for the wrong reason.
+		assert_gt(_spread(anim, shin), 0.005,
+			"the shin%s absorbs the weight shift" % str(side))
+		# The pelvis-only clip keys no legs at all, which is what `planted: false`
+		# documents.
+		assert_true(_track_index(pelvis_only, ":B-shin" + str(side), Animation.TYPE_ROTATION_3D) < 0,
+			"planted: false leaves B-shin%s alone" % str(side))
+	_teardown(rig)
+
+
 func test_idle_cycle_breathing_shift_and_loop() -> void:
 	var rig := _rig("MotionIdle")
 	if rig.has("error"):

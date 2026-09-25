@@ -366,7 +366,18 @@ static func _foot_trajectory(p: float, stance: float, span: float, ground_speed:
 		var travel := ground_speed * length
 		from = 0.5 * span + (phase_offset - 1.0) * travel
 		to = 0.5 * span + phase_offset * travel
-	return {"forward": lerpf(from, to, MotionDrivers.smoothstep(swing)), "height": 1.0}
+	# The lift is a hump, not a plateau. It used to be 1.0 for the WHOLE swing, so
+	# the foot teleported up at toe-off and dropped back at heel strike on a flat
+	# step. This is exactly 0 at both contacts (where the foot is on the ground)
+	# and peaks just before mid-swing, with zero slope at the contacts and at the
+	# apex so neither end of the arc pops.
+	const LIFT_APEX := 0.45
+	var height := 0.0
+	if swing < LIFT_APEX:
+		height = MotionDrivers.smoothstep(swing / LIFT_APEX)
+	else:
+		height = 1.0 - MotionDrivers.smoothstep((swing - LIFT_APEX) / (1.0 - LIFT_APEX))
+	return {"forward": lerpf(from, to, MotionDrivers.smoothstep(swing)), "height": height}
 
 
 ## 1 while the foot should stay flat on the ground, 0 while it can follow the
@@ -837,6 +848,13 @@ static func idle_keys(ctx: Dictionary) -> Dictionary:
 	var chain := _twist_chain(ctx, roles)
 	var chest := str(roles.get("chest", ""))
 	var head := str(roles.get("head", ""))
+	# The pelvis moving without the legs re-solving IS foot drift: a viewer sees
+	# the character skate. `planted` (on by default) solves both legs against
+	# their rest ankle targets every sample; `planted: false` keeps the old
+	# pelvis-only clip for callers who key the feet themselves.
+	var planted := bool(config.get("planted", true))
+	var hips_origin: Vector3 = ctx.get("hips_origin", Vector3.ZERO)
+	var hips_rest := _rest_basis(ctx, hips)
 
 	for index in times.size():
 		var t := float(index) / float(steps)
@@ -852,9 +870,16 @@ static func idle_keys(ctx: Dictionary) -> Dictionary:
 				* MotionDrivers.compose_rotation(hips_motion, t)
 			)
 			_append_rotation(keys, hips, time, MotionDrivers.rotation_delta(_rest_basis(ctx, hips), world))
-			_append_position(keys, hips, time,
+			var hips_offset := (
 				lateral * MotionDrivers.channel_value(sway_channel, t)
-				+ up * MotionDrivers.channel_value(bob_channel, t))
+				+ up * MotionDrivers.channel_value(bob_channel, t)
+			)
+			_append_position(keys, hips, time, hips_offset)
+			if planted:
+				var hips_animated := Basis(world) * hips_rest
+				for side in ["l", "r"]:
+					_solve_idle_leg(ctx, keys, str(side), time, hips_offset, world,
+						hips_animated, hips_origin)
 		# Every chain bone above the hips takes its share of the twist; the chest
 		# keeps the breathing under-layer and the head keeps its look-around.
 		for slot in chain:
@@ -875,6 +900,38 @@ static func idle_keys(ctx: Dictionary) -> Dictionary:
 			_append_rotation(keys, bone, time, MotionDrivers.rotation_delta(_rest_basis(ctx, bone), pose))
 		_solve_idle_arms(ctx, keys, time, t)
 	return {"keys": keys, "markers": [], "meta": {}}
+
+
+## One leg of a standing idle, solved so the ankle stays on its rest world
+## point while the pelvis breathes, sways and twists. Without this the feet
+## travel with the hips and the character skates in place.
+static func _solve_idle_leg(
+	ctx: Dictionary, keys: Dictionary, side: String, time: float,
+	hips_offset: Vector3, pelvis_world: Quaternion, hips_animated: Basis,
+	hips_origin: Vector3,
+) -> void:
+	var leg: Dictionary = ctx.legs[side]
+	var knee_hint: Vector3 = ctx.get("knee_hint", ctx.forward)
+	var hip_pos: Vector3 = hips_origin + hips_offset + Basis(pelvis_world) * (leg.hip - hips_origin)
+	# The ankle target IS the rest ankle: a standing foot does not move, it only
+	# stops following the pelvis.
+	var ankle_target: Vector3 = leg.ankle
+	var knee := MotionDrivers.knee_position(hip_pos, ankle_target, float(leg.upper), float(leg.lower), knee_hint)
+	var thigh_rest := _rest_basis(ctx, leg.thigh)
+	var shin_rest := _rest_basis(ctx, leg.shin)
+	var hips_rest := _rest_basis(ctx, ctx.get("hips", ""))
+	var thigh_solve := MotionDrivers.aim_delta(hips_animated, hips_rest, thigh_rest, (knee - hip_pos).normalized())
+	var shin_solve := MotionDrivers.aim_delta(thigh_solve.global, thigh_rest, shin_rest, (ankle_target - knee).normalized())
+	_append_rotation(keys, leg.thigh, time, thigh_solve.delta)
+	_append_rotation(keys, leg.shin, time, shin_solve.delta)
+	var foot_bone := str(leg.get("foot", ""))
+	if foot_bone.is_empty():
+		return
+	# A planted foot keeps its rest orientation in the world, so it stays flat on
+	# the floor while the shin moves under it.
+	var foot_rest := _rest_basis(ctx, foot_bone)
+	_append_rotation(keys, foot_bone, time,
+		MotionDrivers.hold_global_delta(shin_solve.global, shin_rest, foot_rest, foot_rest))
 
 
 ## Idle arms: the static arm-down offset (so T-pose rests hang naturally) plus a
