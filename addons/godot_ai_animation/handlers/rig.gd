@@ -11,6 +11,7 @@ extends "res://addons/godot_ai_animation/handlers/bone_animation.gd"
 const PoseMath := preload("res://addons/godot_ai_animation/spec/pose_math.gd")
 const PoseSolver := preload("res://addons/godot_ai_animation/spec/pose_solver.gd")
 const SpineTwist := preload("res://addons/godot_ai_animation/spec/spine_twist.gd")
+const SpecJson := preload("res://addons/godot_ai_animation/spec/spec_json.gd")
 const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
 
 const POSE_DIR := "res://animation_toolkit/poses"
@@ -469,6 +470,7 @@ func rig_get(params: Dictionary) -> Dictionary:
 				"length": bone.get_length(),
 			})
 	var modifiers: Array = []
+	var twists: Array = []
 	for child in resolved.node.get_children():
 		if child is SkeletonModifier3D:
 			var modifier := child as SkeletonModifier3D
@@ -478,6 +480,30 @@ func rig_get(params: Dictionary) -> Dictionary:
 				"active": modifier.active,
 				"influence": modifier.influence,
 			})
+			# Godot builds a disperser's per-joint list on the frame after the
+			# modifier enters the tree, so this is where the real list is read
+			# back - twist_setup can only report the predicted one.
+			if modifier is BoneTwistDisperser3D:
+				var disperser := modifier as BoneTwistDisperser3D
+				for setting in disperser.get_setting_count():
+					var joints: Array = []
+					for joint in disperser.get_joint_count(setting):
+						joints.append(str(disperser.get_joint_bone_name(setting, joint)))
+					twists.append({
+						"modifier": str(disperser.name),
+						"setting": setting,
+						"root_bone": str(disperser.get_root_bone_name(setting)),
+						"end_bone": str(disperser.get_end_bone_name(setting)),
+						"mode": disperser.get_disperse_mode(setting),
+						"joint_count": joints.size(),
+						"joint_bones": joints,
+						# Godot resolves the bone names into a joint list on a
+						# deferred frame, so a freshly added disperser reports an
+						# empty list until one has passed.
+						"joints_pending": joints.is_empty(),
+						"extend_end_bone": disperser.is_end_bone_extended(setting),
+						"twist_from_rest": disperser.is_twist_from_rest(setting),
+					})
 	var springs: Array = []
 	var stack_summary := {}
 	if resolved.kind == "2d":
@@ -498,6 +524,7 @@ func rig_get(params: Dictionary) -> Dictionary:
 		"bones": bones,
 		"modifiers": modifiers,
 		"spring_settings": springs,
+		"twist_settings": twists,
 		"modification_stack": stack_summary,
 		"issues": issues,
 	}}
@@ -725,23 +752,18 @@ func ik_setup(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM,
 			"ik_setup needs 'chain': bone names from the chain root to the effector")
 	var use_virtual_end := bool(params.get("use_virtual_end", false))
-	if kind == "two_bone":
-		if chain.size() < (2 if use_virtual_end else 3):
-			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-				"two_bone IK needs chain [root, middle, end] (or [root, middle] with use_virtual_end=true)")
-	elif chain.size() < 2:
-		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-			"%s IK needs a chain with at least a root and an end bone" % kind)
 	var scene_root := EditorInterface.get_edited_scene_root()
 	var skeleton: Skeleton3D = resolved.node
-	for bone_name in chain:
-		if skeleton.find_bone(str(bone_name)) < 0:
-			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-				"Bone '%s' not found on %s" % [str(bone_name), resolved.path])
+	var chain_error := _ik_chain_error(skeleton, chain, kind, use_virtual_end)
+	if not chain_error.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, chain_error)
+	if kind == "spline":
+		return _ik_setup_spline(skeleton, scene_root, params, chain)
 	var warnings: Array = []
 	var scale := _skeleton_scale(skeleton)
 	if not is_equal_approx(scale, 1.0):
 		warnings.append("the skeleton is scaled (%.2f): IK assumes unit scale" % scale)
+	var taken_names := {}
 	var target_path := str(params.get("target_path", ""))
 	var target: Node3D = null
 	if not target_path.is_empty():
@@ -772,9 +794,9 @@ func ik_setup(params: Dictionary) -> Dictionary:
 		# convention faces +Z), projected perpendicular to the chain.
 		var root_index := skeleton.find_bone(str(chain[0]))
 		var middle_index := skeleton.find_bone(str(chain[1]))
-		var root_pose := skeleton.get_bone_global_pose(root_index)
-		var middle_pose := skeleton.get_bone_global_pose(middle_index)
-		var end_pose := skeleton.get_bone_global_pose(end_index)
+		var root_pose := skeleton.get_bone_global_rest(root_index)
+		var middle_pose := skeleton.get_bone_global_rest(middle_index)
+		var end_pose := skeleton.get_bone_global_rest(end_index)
 		var chain_dir := end_pose.origin - root_pose.origin
 		if chain_dir.length() < 0.001:
 			chain_dir = middle_pose.basis.y
@@ -787,7 +809,7 @@ func ik_setup(params: Dictionary) -> Dictionary:
 		var pole_position := middle_pose.origin + side * 0.5
 		pole_direction = (middle_pose.basis.inverse() * side).normalized()
 		var marker := Marker3D.new()
-		marker.name = str(params.get("pole_name", "IKPole"))
+		marker.name = _unique_child_name(scene_root, str(params.get("pole_name", "IKPole")), taken_names)
 		pole_entries.append({"parent": scene_root, "node": marker,
 			"setup": [{"method": "set_global_position", "args": [skeleton.global_transform * pole_position]}]})
 		pole = marker
@@ -806,7 +828,7 @@ func ik_setup(params: Dictionary) -> Dictionary:
 	var target_node: Node3D = target
 	if target_node == null:
 		var marker := Marker3D.new()
-		marker.name = str(params.get("target_name", "IKTarget"))
+		marker.name = _unique_child_name(scene_root, str(params.get("target_name", "IKTarget")), taken_names)
 		entries.append({"parent": scene_root, "node": marker,
 			"setup": [{"method": "set_global_position", "args": [tip.position]}]})
 		target_node = marker
@@ -817,12 +839,12 @@ func ik_setup(params: Dictionary) -> Dictionary:
 	setup.append({"method": "set_root_bone_name", "args": [0, str(chain[0])]})
 	if kind == "two_bone":
 		setup.append({"method": "set_middle_bone_name", "args": [0, str(chain[1])]})
-		if chain.size() >= 3:
-			setup.append({"method": "set_end_bone_name", "args": [0, str(chain[2])]})
-		else:
+		if use_virtual_end:
 			setup.append({"method": "set_use_virtual_end", "args": [0, true]})
 			setup.append({"method": "set_extend_end_bone", "args": [0, true]})
 			setup.append({"method": "set_end_bone_length", "args": [0, float(params.get("end_bone_length", 0.1))]})
+		else:
+			setup.append({"method": "set_end_bone_name", "args": [0, str(chain[2])]})
 		if pole != null:
 			setup.append({"method": "set_pole_node", "args": [0, _modifier_target_path(skeleton, modifier, pole, scene_root)]})
 			if pole_created:
@@ -831,8 +853,14 @@ func ik_setup(params: Dictionary) -> Dictionary:
 	else:
 		setup.append({"method": "set_end_bone_name", "args": [0, str(chain[chain.size() - 1])]})
 	setup.append({"method": "set_target_node", "args": [0, target_rel]})
-	entries.append({"parent": skeleton, "node": modifier, "setup": setup})
+	var setup_error := _setup_calls_error(modifier, setup)
+	if not setup_error.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, setup_error)
+	# Markers first: the commit runs each entry's setup calls right after adding
+	# it, so a pole wired before its Marker3D exists would make Godot warn
+	# "Pole node not found" and leave the solver without a bend direction.
 	entries.append_array(pole_entries)
+	entries.append({"parent": skeleton, "node": modifier, "setup": setup})
 	_commit_node_add_many("MCP: IK setup (%s)" % kind, entries)
 	var data := {
 		"skeleton_path": resolved.path,
@@ -848,6 +876,129 @@ func ik_setup(params: Dictionary) -> Dictionary:
 		"active": active,
 		"warnings": warnings,
 		"undoable": true,
+	}
+	if not active:
+		data["active_note"] = "inactive: an active IK modifier also drives the skeleton while you edit the scene - pass active=true (or enable the modifier) when it is ready"
+	return {"data": data}
+
+
+## ik_setup's chain contract: unique bone names that form the chain the solver
+## will actually use. `two_bone` needs exactly three bones (or two with a
+## virtual end) and each must be the direct parent of the next; the chain
+## solvers take a root and an end and let Godot derive the joints between them,
+## so those only have to be ancestor-ordered. "" means the chain is usable.
+func _ik_chain_error(skeleton: Skeleton3D, chain: Array, kind: String, use_virtual_end: bool) -> String:
+	var names: Array = []
+	for bone_name in chain:
+		var bone_str := str(bone_name)
+		if names.has(bone_str):
+			return "the chain repeats the bone '%s'" % bone_str
+		if skeleton.find_bone(bone_str) < 0:
+			return "bone '%s' not found on %s" % [bone_str, skeleton.get_path()]
+		names.append(bone_str)
+	if kind == "two_bone":
+		var wanted := 2 if use_virtual_end else 3
+		if names.size() != wanted:
+			return ("two_bone IK needs exactly three bones [root, middle, end] (or two with "
+				+ "use_virtual_end=true), got %d" % names.size())
+		if not _is_bone_parent(skeleton, names[0], names[1]):
+			return "'%s' is not the parent of '%s' - give the chain root to end" % [names[0], names[1]]
+		if not use_virtual_end and not _is_bone_parent(skeleton, names[1], names[2]):
+			return "'%s' is not the parent of '%s' - give the chain root to end" % [names[1], names[2]]
+		return ""
+	if names.size() < 2:
+		return "%s IK needs a chain with at least a root and an end bone" % kind
+	# Walk up from the end bone: the root has to be somewhere on its parent path.
+	var root_str := str(names[0])
+	var cursor := skeleton.find_bone(str(names[names.size() - 1]))
+	while cursor >= 0 and skeleton.get_bone_name(cursor) != root_str:
+		cursor = skeleton.get_bone_parent(cursor)
+	if cursor < 0:
+		return "'%s' is not a descendant of '%s' - give the chain root to end" % [str(names[names.size() - 1]), root_str]
+	return ""
+
+
+static func _is_bone_parent(skeleton: Skeleton3D, parent_name: String, child_name: String) -> bool:
+	var child := skeleton.find_bone(child_name)
+	return child >= 0 and skeleton.get_bone_parent(child) == skeleton.find_bone(parent_name)
+
+
+## SplineIK3D is a ChainIK3D that follows a Path3D: its class chain
+## (SplineIK3D -> ChainIK3D -> IKModifier3D) has no `set_target_node` at all, so
+## the marker target the other solvers use would leave it unconfigured. It gets
+## a path instead - the caller's `target_path`, or a straight two-point path
+## created at the end bone so the modifier can solve straight away.
+func _ik_setup_spline(skeleton: Skeleton3D, scene_root: Node, params: Dictionary, chain: Array) -> Dictionary:
+	var warnings: Array = []
+	var scale := _skeleton_scale(skeleton)
+	if not is_equal_approx(scale, 1.0):
+		warnings.append("the skeleton is scaled (%.2f): IK assumes unit scale" % scale)
+	var taken_names := {}
+	var entries: Array = []
+	var path_node: Path3D = null
+	var path_created := false
+	var path_ref := str(params.get("target_path", ""))
+	if not path_ref.is_empty():
+		var found := ValueCodec.resolve_scene_path(path_ref, scene_root)
+		if found == null:
+			return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND, ValueCodec.format_node_error(path_ref, scene_root))
+		if not (found is Path3D):
+			return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
+				"spline IK follows a Path3D, not a %s - point target_path at a Path3D with a Curve3D" % found.get_class())
+		path_node = found
+	if path_node == null:
+		var tip := _bone_tip_3d(skeleton, skeleton.find_bone(str(chain[chain.size() - 1])))
+		if tip.get("warning") != null:
+			warnings.append(str(tip.warning))
+		var root_pose: Transform3D = skeleton.get_bone_global_rest(skeleton.find_bone(str(chain[0])))
+		var span: float = (tip.position - skeleton.global_transform * root_pose.origin).length()
+		if span < 0.001:
+			span = 0.1
+		var curve := Curve3D.new()
+		curve.add_point(Vector3.ZERO)
+		curve.add_point(skeleton.global_transform.basis.z.normalized() * span)
+		var created := Path3D.new()
+		created.curve = curve
+		created.name = _unique_child_name(scene_root, str(params.get("path_name", "IKPath")), taken_names)
+		entries.append({"parent": scene_root, "node": created,
+			"setup": [{"method": "set_global_position", "args": [tip.position]}]})
+		path_node = created
+		path_created = true
+		warnings.append("created a straight path at the end bone - author a Curve3D on %s to steer the chain" % created.name)
+	var modifier: SkeletonModifier3D = ClassDB.instantiate(IK_3D_KINDS["spline"])
+	if modifier == null:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "SplineIK3D is not available in this Godot build")
+	modifier.name = str(params.get("name", "IKSpline"))
+	var active := bool(params.get("active", false))
+	var setup: Array = [
+		{"property": "active", "value": active},
+		{"method": "set_setting_count", "args": [1]},
+		{"method": "set_root_bone_name", "args": [0, str(chain[0])]},
+		{"method": "set_end_bone_name", "args": [0, str(chain[chain.size() - 1])]},
+		{"method": "set_path_3d", "args": [0, _modifier_target_path(skeleton, modifier, path_node, scene_root)]},
+	]
+	var setup_error := _setup_calls_error(modifier, setup)
+	if not setup_error.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, setup_error)
+	entries.append({"parent": skeleton, "node": modifier, "setup": setup})
+	_commit_node_add_many("MCP: IK setup (spline)", entries)
+	var data := {
+		"skeleton_path": str(skeleton.get_path()),
+		"kind": "3d",
+		"ik_kind": "spline",
+		"modifier_class": IK_3D_KINDS["spline"],
+		"modifier_path": ValueCodec.from_node(modifier, scene_root),
+		"path_path": ValueCodec.from_node(path_node, scene_root),
+		"path_created": path_created,
+		"target_path": "",
+		"target_created": false,
+		"chain": chain,
+		"pole_path": "",
+		"pole_created": false,
+		"active": active,
+		"warnings": warnings,
+		"undoable": true,
+		"spline_note": "spline IK solves against a Path3D (target_path), not a marker target - SplineIK3D has no target setting",
 	}
 	if not active:
 		data["active_note"] = "inactive: an active IK modifier also drives the skeleton while you edit the scene - pass active=true (or enable the modifier) when it is ready"
@@ -1184,6 +1335,10 @@ func twist_setup(params: Dictionary, ctx = null) -> Dictionary:
 			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 				"Unknown disperse.mode '%s'. Valid: even, weighted" % mode_name)
 	var active := bool(params.get("active", false))
+	var twist_from_rest := bool(spec_dict.get("twist_from_rest", true))
+	if not twist_from_rest and not spec_dict.has("twist_from"):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"disperse.twist_from_rest=false needs disperse.twist_from: the quaternion the chain is measured against, otherwise Godot measures against identity and the disperser does nothing useful. Read one from pose_save on the reference pose, or drop twist_from_rest.")
 	var disperser := BoneTwistDisperser3D.new()
 	disperser.name = str(params.get("name", "TwistDisperser"))
 	var setup: Array = [
@@ -1194,15 +1349,42 @@ func twist_setup(params: Dictionary, ctx = null) -> Dictionary:
 		{"method": "set_disperse_mode", "args": [0, mode]},
 	]
 	if spec_dict.has("weight_position"):
+		if mode != BoneTwistDisperser3D.DISPERSE_MODE_WEIGHTED:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"disperse.weight_position only applies to mode=weighted (this is mode=%s)" % mode_name)
 		setup.append({"method": "set_weight_position", "args": [0, clampf(float(spec_dict.weight_position), 0.0, 1.0)]})
 	if spec_dict.has("damping"):
-		setup.append({"method": "set_damping_curve", "args": [0, _damping_curve(float(spec_dict.damping))]})
-	if spec_dict.has("twist_from_rest"):
-		setup.append({"method": "set_twist_from_rest", "args": [0, bool(spec_dict.twist_from_rest)]})
+		# Damping curves are read in custom mode only; accepting it elsewhere
+		# would queue a resource Godot never looks at.
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"disperse.damping only applies to mode=custom, and custom amounts are built by Godot at runtime - drop damping, or set the damping curve in the modifier's Inspector")
+	if twist_from_rest:
+		setup.append({"method": "set_twist_from_rest", "args": [0, true]})
+	else:
+		var reference: Dictionary = SpecJson.decode_value(spec_dict.twist_from)
+		if reference.has("error"):
+			return reference
+		if not (reference.ok is Quaternion):
+			return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
+				"disperse.twist_from must be a quaternion value ({kind: quaternion, x, y, z, w})")
+		setup.append({"method": "set_twist_from_rest", "args": [0, false]})
+		setup.append({"method": "set_twist_from", "args": [0, reference.ok]})
+	# A two-bone range has no joint between the ends, so there is nothing to
+	# distribute across: extend past the end bone instead, which is what
+	# extend_end_bone is for. Three or more joints distribute as asked.
+	var extend_end := bool(spec_dict.get("extend_end_bone", joint_bones.size() < 3))
+	setup.append({"method": "set_extend_end_bone", "args": [0, extend_end]})
+	var warnings: Array = []
+	if joint_bones.size() < 3:
+		warnings.append("the range %s -> %s has %d joint(s), so the twist is applied whole rather than shared; pass a longer disperse.root_bone/end_bone pair to share it"
+			% [root_name, end_name, joint_bones.size()])
 	if params.has("mutable_bone_axes"):
 		setup.append({"method": "set_mutable_bone_axes", "args": [bool(params.mutable_bone_axes)]})
 	if params.has("influence"):
 		setup.append({"property": "influence", "value": clampf(float(params.influence), 0.0, 1.0)})
+	var setup_error := _setup_calls_error(disperser, setup)
+	if not setup_error.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, setup_error)
 	_commit_node_add("MCP: Twist disperser", skeleton, disperser, setup)
 	var data := {
 		"skeleton_path": resolved.path,
@@ -1213,10 +1395,13 @@ func twist_setup(params: Dictionary, ctx = null) -> Dictionary:
 		"end_bone": end_name,
 		"mode": mode_name,
 		"joint_bones": joint_bones,
+		"joint_bones_predicted": true,
+		"extend_end_bone": extend_end,
 		"chain": chain_bones,
 		"active": active,
+		"warnings": warnings,
 		"undoable": true,
-		"note": "the modifier disperses root -> end inclusive (%s); Godot builds the per-joint list at runtime, so custom amounts live in its Inspector" % ", ".join(joint_bones),
+		"note": "the modifier disperses root -> end inclusive (%s); Godot builds the per-joint list on the frame after it enters the tree, so read the real one back with rig_get's twist_settings" % ", ".join(joint_bones),
 	}
 	if not active:
 		data["active_note"] = "inactive: an active disperser also rewrites the twist while you edit the scene - pass active=true (or enable the modifier) when it is ready"
@@ -1273,12 +1458,32 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 	if target == source:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"The target skeleton cannot be the source skeleton")
-	if source.is_ancestor_of(target):
+	# A target that already hangs off a RetargetModifier3D on this source is being
+	# re-targeted, not placed: it is legitimately inside the source subtree, and
+	# any other target inside the source would be cyclic.
+	var already_under_modifier := target.get_parent() is RetargetModifier3D and source.is_ancestor_of(target)
+	if not already_under_modifier and source.is_ancestor_of(target):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"The target skeleton is already inside the source skeleton (%s)" % target_path)
+	if target.is_ancestor_of(source):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"The target skeleton is an ancestor of the source, so moving the target under a retarget modifier would make a parent cycle (%s)" % target_path)
 	var resolved_profile := _resolve_retarget_profile(params, source, target)
 	if resolved_profile.has("error"):
 		return resolved_profile
+	# A map that matches nothing (or only the head) produces a modifier that
+	# looks set up and moves nothing, so refuse it with the reason.
+	var mapped_bones: Array = resolved_profile.mapped
+	if mapped_bones.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"The '%s' profile maps no bones: its %d bones are not named the same way in both skeletons. Use profile=auto for same-name rigs, or author a SkeletonProfile with the target rig's names - unmatched profile bones: %s"
+				% [str(resolved_profile.source), (resolved_profile.profile as SkeletonProfile).get_bone_size(),
+					", ".join((resolved_profile.unmapped as Array).slice(0, 6))])
+	var missing_core := _retarget_missing_core(mapped_bones, source)
+	if not missing_core.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"The '%s' profile maps %d bone(s) but misses the body core (%s), so the target would not be posed. Rename/profile the missing bones, or retarget a rig whose names match."
+				% [str(resolved_profile.source), mapped_bones.size(), ", ".join(missing_core)])
 	# The modifier lives under the source skeleton and the target moves under the
 	# modifier, so both have to be scene-owned: inside a non-editable instance
 	# the editor would drop the new nodes (and can free them again) on save/undo.
@@ -1292,9 +1497,16 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 		warnings.append("%d of %d profile bones are not in both skeletons and will not retarget: %s" % [
 			(resolved_profile.unmapped as Array).size(), profile.get_bone_size(),
 			", ".join((resolved_profile.unmapped as Array).slice(0, 8))])
-	var scale := _skeleton_scale(source)
-	if not is_equal_approx(scale, 1.0):
-		warnings.append("the source skeleton is scaled (%.2f): retargeting assumes unit scale" % scale)
+	if not (resolved_profile.topology as Array).is_empty():
+		warnings.append("%d mapped bone(s) have different parents in the two skeletons, so the target pose will differ from the source: %s" % [
+			(resolved_profile.topology as Array).size(),
+			", ".join((resolved_profile.topology as Array).slice(0, 4))])
+	var source_scale := _skeleton_scale(source)
+	var target_scale := _skeleton_scale(target)
+	if not is_equal_approx(source_scale, 1.0):
+		warnings.append("the source skeleton is scaled (%.2f): retargeting assumes unit scale" % source_scale)
+	if not is_equal_approx(target_scale, 1.0):
+		warnings.append("the target skeleton is scaled (%.2f): retargeting assumes unit scale" % target_scale)
 	var flags := 0
 	if bool(params.get("position", false)):
 		flags |= RetargetModifier3D.TRANSFORM_FLAG_POSITION
@@ -1307,7 +1519,6 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 			"Enable at least one of position/rotation/scale (rotation is on by default)")
 	var active := bool(params.get("active", false))
 	var move_target := bool(params.get("move_target", true))
-	var already_under_modifier := target.get_parent() is RetargetModifier3D and source.is_ancestor_of(target)
 	# Move the target's scene root (its instance root when it comes from an
 	# instanced scene) rather than the bare skeleton: a skinned mesh is bound to
 	# its skeleton by a path inside its own scene, so pulling the skeleton out
@@ -1324,26 +1535,62 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 		if move_parent == null or not _instance_levels(move_parent).is_empty():
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"The target lives inside a nested instanced scene, so moving it would not survive the scene save - move it into the edited scene first (or pass move_target=false and parent it yourself)")
-	var modifier := RetargetModifier3D.new()
-	modifier.name = str(params.get("name", "Retarget"))
+		if move_node.is_ancestor_of(source):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"The target's scene root is an ancestor of the source skeleton, so reparenting it under a retarget modifier would make a parent cycle")
+	# A target that already sits under a RetargetModifier3D is reconfigured in
+	# place: adding a second modifier under the source would do nothing, because
+	# the modifier only drives its own children.
+	var existing_modifier: RetargetModifier3D = null
+	if already_under_modifier:
+		existing_modifier = target.get_parent() as RetargetModifier3D
+		if existing_modifier == null:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"The target's parent is not a RetargetModifier3D after all - re-run retarget_setup")
+	var modifier: RetargetModifier3D = existing_modifier if existing_modifier != null else RetargetModifier3D.new()
+	var modifier_created := existing_modifier == null
+	if modifier_created:
+		modifier.name = str(params.get("name", "Retarget"))
+	var previous := {
+		"active": modifier.active,
+		"profile": modifier.profile,
+		"enable_flags": modifier.get_enable_flags(),
+		"use_global_pose": modifier.use_global_pose,
+	}
+	var use_global_pose := bool(params.get("use_global_pose", false))
 	var setup: Array = [
-		{"property": "active", "value": active},
-		{"property": "profile", "value": profile},
-		{"method": "set_enable_flags", "args": [flags]},
-		{"method": "set_use_global_pose", "args": [bool(params.get("use_global_pose", false))]},
+		{"property": "active", "value": active, "previous": previous.active},
+		{"property": "profile", "value": profile, "previous": previous.profile},
+		{"method": "set_enable_flags", "args": [flags],
+			"previous_args": [previous.enable_flags]},
+		{"method": "set_use_global_pose", "args": [use_global_pose],
+			"previous_args": [previous.use_global_pose]},
 	]
+	if use_global_pose:
+		# In global mode Godot retargets the whole pose, so the per-transform
+		# enable flags are ignored - say so rather than echoing a lie.
+		warnings.append("use_global_pose=true retargets the whole pose: position/rotation/scale enable flags are ignored in that mode")
+	var setup_error := _setup_calls_error(modifier, setup)
+	if not setup_error.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, setup_error)
 	if not _dry_run:
 		_create_scene_pinned_action("MCP: Retarget setup")
 		var undo := ToolContext.undo_redo
-		undo.add_do_method(source, "add_child", modifier, true)
-		undo.add_do_method(modifier, "set_owner", scene_root)
-		undo.add_do_reference(modifier)
-		undo.add_do_reference(profile)
+		if modifier_created:
+			undo.add_do_method(source, "add_child", modifier, true)
+			undo.add_do_method(modifier, "set_owner", scene_root)
+			undo.add_do_reference(modifier)
+			undo.add_do_reference(profile)
 		for call in setup:
 			if call.has("property"):
 				undo.add_do_property(modifier, call.property, call.value)
+				# Reconfiguring snapshots the old value so undo restores it.
+				if not modifier_created:
+					undo.add_undo_property(modifier, call.property, call.previous)
 			else:
 				_add_do_call(undo, modifier, call.method, call.get("args", []))
+				if not modifier_created:
+					_add_undo_call(undo, modifier, call.method, call.previous_args)
 		if move_target and not already_under_modifier:
 			var old_parent := move_node.get_parent()
 			undo.add_do_method(move_node, "reparent", modifier, true)
@@ -1351,7 +1598,7 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 			# its old parent before the modifier (its current parent) is removed.
 			undo.add_undo_method(move_node, "reparent", old_parent, true)
 			undo.add_undo_method(source, "remove_child", modifier)
-		else:
+		elif modifier_created:
 			undo.add_undo_method(source, "remove_child", modifier)
 		undo.commit_action()
 	var data := {
@@ -1359,15 +1606,23 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 		"kind": resolved.kind,
 		"modifier_class": "RetargetModifier3D",
 		"modifier_path": ValueCodec.from_node(modifier, scene_root),
+		"modifier_created": modifier_created,
 		"target_path": ValueCodec.from_node(target, scene_root),
 		"moved_target": move_target and not already_under_modifier,
 		"moved_path": ValueCodec.from_node(move_node, scene_root) if move_target and not already_under_modifier else "",
 		"profile_source": str(resolved_profile.source),
 		"profile_bones": profile.get_bone_size(),
-		"mapped_bones": (resolved_profile.mapped as Array).size(),
+		"mapped_bones": mapped_bones.size(),
 		"unmapped_bones": resolved_profile.unmapped,
-		"enable_flags": flags,
-		"use_global_pose": bool(params.get("use_global_pose", false)),
+		"source_only_bones": resolved_profile.source_only,
+		"target_only_bones": resolved_profile.target_only,
+		"parent_mismatches": resolved_profile.topology,
+		"source_scale": source_scale,
+		"target_scale": target_scale,
+		"enable_flags": flags if not use_global_pose else 0,
+		"effective_flags": "global pose (per-transform flags ignored)" if use_global_pose \
+			else "position/rotation/scale enable flags",
+		"use_global_pose": use_global_pose,
 		"active": active,
 		"warnings": warnings,
 		"undoable": true,
@@ -1470,12 +1725,16 @@ func walk_cycle(params: Dictionary) -> Dictionary:
 	return committed
 
 
-## The torso chain a rig recipe distributes over: the detected (or explicit)
-## `spine_chain`, falling back to the role bones. Returns `{"chain": [...]}` or
-## an error, so an explicit typo still fails loudly.
+## The torso chain a rig recipe distributes over. An explicit `spine_chain` is
+## honoured as given - it used to be validated and then replaced by a
+## role-derived chain, which dropped the neck and any named intermediate. Without
+## one, the detected chain is used, falling back to the scalar roles.
 func _torso_chain(params: Dictionary, skeleton: Skeleton3D, roles: Dictionary) -> Dictionary:
 	var resolved := resolve_spine_chain(params, skeleton, roles)
 	if resolved.has("error"):
+		return resolved
+	var explicit: Array = params.get("spine_chain", [])
+	if not explicit.is_empty():
 		return resolved
 	var chain: Array = []
 	for role in ["hips", "spine", "chest", "head"]:
@@ -1945,7 +2204,9 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 	if track_root.is_empty() or track_root == ".":
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"The skeleton must live under the player's root_node")
-	# Remember the current pose so the bake leaves the scene as it found it.
+	# Remember the current pose so the bake leaves the scene as it found it. A
+	# RetargetModifier3D writes to its target's skeleton, so the target counts as
+	# "the scene" here too - restoring only the source left the target posed.
 	var restore: Array = []
 	for index in skeleton.get_bone_count():
 		restore.append({
@@ -1953,6 +2214,18 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 			"position": skeleton.get_bone_pose_position(index),
 			"scale": skeleton.get_bone_pose_scale(index),
 		})
+	var retarget_targets: Array = []
+	var retarget_restores: Array = []
+	for child in skeleton.get_children():
+		if child is RetargetModifier3D and (child as RetargetModifier3D).active:
+			for grandchild in child.get_children():
+				var found_skeleton := _skeleton_below(grandchild)
+				if found_skeleton != null and not retarget_targets.has(found_skeleton):
+					retarget_targets.append(found_skeleton)
+					retarget_restores.append({
+						"skeleton": found_skeleton,
+						"pose": _pose_snapshot(found_skeleton),
+					})
 	var indices: Array = []
 	for index in skeleton.get_bone_count():
 		var bone_name := skeleton.get_bone_name(index)
@@ -1970,6 +2243,8 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 	for index in indices:
 		keys[skeleton.get_bone_name(index)] = {"rotation": [], "position": [], "scale": []}
 	var was_playing := player.is_playing()
+	var was_animation := player.current_animation
+	var was_position := player.current_animation_position
 	if not source.is_empty():
 		player.play(source)
 	# Active modifiers (IK, springs, retarget) only run in the skeleton's
@@ -1981,6 +2256,14 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 	for child in skeleton.get_children():
 		if child is SkeletonModifier3D and (child as SkeletonModifier3D).active:
 			modifiers.append(child)
+	# Stateful modifiers carry internal velocity/spring state between updates, so
+	# a second bake would start from wherever the first one ended. Reset what can
+	# be reset (SpringBoneSimulator3D.reset()) so the result only depends on fps.
+	var reset_modifiers: Array = []
+	for modifier in modifiers:
+		if (modifier as SkeletonModifier3D).has_method("reset"):
+			(modifier as SkeletonModifier3D).call("reset")
+			reset_modifiers.append((modifier as SkeletonModifier3D).get_class())
 	var sampled: Dictionary = {}
 	var capture := func() -> void:
 		sampled.clear()
@@ -1992,13 +2275,24 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 			}
 	for modifier in modifiers:
 		(modifier as SkeletonModifier3D).modification_processed.connect(capture)
+	# Sample 0 is the state after one step of modifier time, so the baked clip
+	# starts where playback would put it rather than at an unresolved step.
+	var missing_capture_at := -1.0
 	for sample in samples:
 		var time := minf(sample * step, length)
 		if not source.is_empty():
 			player.seek(time, true)
 		sampled.clear()
 		if not modifiers.is_empty():
+			# advance() accumulates the delta and the deferred update consumes it,
+			# so the pair gives the modifiers exactly `step` instead of whatever
+			# the editor's frame time was - springs integrate deterministically.
+			skeleton.advance(step)
 			skeleton.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
+			# `sampled` stays empty when no modifier reported in, which would mean
+			# the clip would hold pre-modifier poses.
+			if sampled.is_empty() and missing_capture_at < 0.0:
+				missing_capture_at = time
 		for index in indices:
 			var bone_name := skeleton.get_bone_name(index)
 			var entry: Dictionary = keys[bone_name]
@@ -2017,12 +2311,14 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 	for modifier in modifiers:
 		if (modifier as SkeletonModifier3D).modification_processed.is_connected(capture):
 			(modifier as SkeletonModifier3D).modification_processed.disconnect(capture)
-	if not source.is_empty() and not was_playing:
-		player.stop()
-	for index in skeleton.get_bone_count():
-		skeleton.set_bone_pose_rotation(index, restore[index].rotation)
-		skeleton.set_bone_pose_position(index, restore[index].position)
-		skeleton.set_bone_pose_scale(index, restore[index].scale)
+	if missing_capture_at >= 0.0:
+		_restore_bake_state(skeleton, restore, retarget_restores, player,
+			was_playing, was_animation, was_position)
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"The active modifier on %s never reported modification_processed at t=%.3f, so the sampled pose would be the pre-modifier one. Nothing was written - make the modifier active, or bake with the modifiers disabled."
+				% [resolved.path, missing_capture_at])
+	_restore_bake_state(skeleton, restore, retarget_restores, player,
+		was_playing, was_animation, was_position)
 	var anim_name := str(params.get("animation_name", "baked"))
 	var spec := ClipSpec.make(length, loop_result.ok)
 	for bone_name in keys:
@@ -2065,8 +2361,66 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 		"library_created": created_library,
 		"overwritten": existing.old_anim != null,
 		"undoable": true,
+		"modifiers": _modifier_names(modifiers),
+		"reset_modifiers": reset_modifiers,
+		"sample_delta": step,
+		"restored_skeletons": [resolved.path] + _skeleton_paths(retarget_restores,
+			EditorInterface.get_edited_scene_root()),
+		"retarget_targets": _skeleton_paths(retarget_restores,
+			EditorInterface.get_edited_scene_root()),
 		"note": "the skeleton's pose was restored after sampling; disable the source modifiers once you play the baked clip",
 	}}
+
+
+## Class names of the modifier stack that participated, for the reply.
+static func _modifier_names(modifiers: Array) -> Array:
+	var names: Array = []
+	for modifier in modifiers:
+		names.append((modifier as SkeletonModifier3D).get_class())
+	return names
+
+
+## Put every skeleton the bake touched and the player back the way they were:
+## the source pose, each retarget target's pose, and the player's animation,
+## time and play state.
+func _restore_bake_state(skeleton: Skeleton3D, restore: Array, retarget_restores: Array,
+		player: AnimationPlayer, was_playing: bool, was_animation: String,
+		was_position: float) -> void:
+	# Player first: seeking it back writes the animation's pose into the bones,
+	# so the bone restore has to come after it to be the last word.
+	if was_animation.is_empty():
+		player.stop()
+	else:
+		player.play(was_animation)
+		player.seek(was_position, true)
+		if not was_playing:
+			player.pause()
+	for entry in retarget_restores:
+		_pose_restore(entry.skeleton, entry.pose)
+	for index in skeleton.get_bone_count():
+		skeleton.set_bone_pose_rotation(index, restore[index].rotation)
+		skeleton.set_bone_pose_position(index, restore[index].position)
+		skeleton.set_bone_pose_scale(index, restore[index].scale)
+
+
+## The Skeleton3D at or below a node (a retarget modifier drives its target's
+## skeleton, which may sit inside the target's own scene).
+static func _skeleton_below(node: Node) -> Skeleton3D:
+	if node is Skeleton3D:
+		return node
+	for child in node.get_children():
+		var found := _skeleton_below(child)
+		if found != null:
+			return found
+	return null
+
+
+## Scene paths of the snapshot entries built for retarget targets.
+static func _skeleton_paths(entries: Array, scene_root: Node) -> Array:
+	var paths: Array = []
+	for entry in entries:
+		paths.append(ValueCodec.from_node(entry.skeleton, scene_root))
+	return paths
 
 
 # ============================================================================
@@ -2147,7 +2501,10 @@ func _apply_aims(resolved: Dictionary, pose: Dictionary, aims) -> Dictionary:
 	for aim in aims:
 		var entry := _aim_entry(aim)
 		var target: Vector3 = world.affine_inverse() * (entry.target as Vector3)
-		var pole: Vector3 = world.basis.inverse() * (entry.pole as Vector3)
+		# The pole is a world point like the target, so it needs the same full
+		# inverse: basis.inverse() alone left the skeleton's world translation in
+		# the pole, which moved the bend direction on any translated skeleton.
+		var pole: Vector3 = world.affine_inverse() * (entry.pole as Vector3)
 		var root_index := skeleton.find_bone(entry.chain[0])
 		var parent_delta := Transform3D.IDENTITY
 		var parent_index := skeleton.get_bone_parent(root_index)
@@ -2517,13 +2874,14 @@ static func _node_rotation(node: Node, kind: String) -> Variant:
 
 
 ## World position of a 3D chain's tip: the end bone's first child, or a 10 cm
-## virtual tip along the bone when it has no child.
+## virtual tip along the bone when it has no child. Read from the global *rest*
+## frame, so a default marker does not land wherever the editor happened to be
+## playing or posing.
 func _bone_tip_3d(skeleton: Skeleton3D, bone_index: int) -> Dictionary:
 	var children := skeleton.get_bone_children(bone_index)
 	if not children.is_empty():
-		var child_pose := skeleton.get_bone_global_pose(children[0])
-		return {"position": skeleton.global_transform * child_pose.origin, "warning": null}
-	var pose := skeleton.get_bone_global_pose(bone_index)
+		return {"position": skeleton.global_transform * skeleton.get_bone_global_rest(children[0]).origin, "warning": null}
+	var pose := skeleton.get_bone_global_rest(bone_index)
 	var tip := pose.origin + pose.basis.y.normalized() * 0.1
 	return {
 		"position": skeleton.global_transform * tip,
@@ -2663,4 +3021,53 @@ func _resolve_retarget_profile(params: Dictionary, source: Skeleton3D, target: S
 			mapped.append(bone_name)
 		else:
 			unmapped.append(bone_name)
-	return {"profile": profile, "source": profile_source, "mapped": mapped, "unmapped": unmapped}
+	# Bones that only one side has, and mapped bones whose parents disagree:
+	# both mean the modifier will drive a different shape than the source.
+	var source_only: Array = []
+	var target_only: Array = []
+	for index in source.get_bone_count():
+		var bone_name := str(source.get_bone_name(index))
+		if target.find_bone(bone_name) < 0:
+			source_only.append(bone_name)
+	for index in target.get_bone_count():
+		var bone_name := str(target.get_bone_name(index))
+		if source.find_bone(bone_name) < 0:
+			target_only.append(bone_name)
+	var topology: Array = []
+	for bone_name in mapped:
+		var source_parent := source.get_bone_parent(source.find_bone(str(bone_name)))
+		var target_parent := target.get_bone_parent(target.find_bone(str(bone_name)))
+		var source_parent_name := "" if source_parent < 0 else str(source.get_bone_name(source_parent))
+		var target_parent_name := "" if target_parent < 0 else str(target.get_bone_name(target_parent))
+		if source_parent_name != target_parent_name:
+			topology.append("%s: source parent '%s' vs target parent '%s'" % [
+				str(bone_name), source_parent_name, target_parent_name])
+	return {
+		"profile": profile,
+		"source": profile_source,
+		"mapped": mapped,
+		"unmapped": unmapped,
+		"source_only": source_only,
+		"target_only": target_only,
+		"topology": topology,
+	}
+
+
+## Bones a map has to cover or the modifier cannot pose the body: whatever
+## roles the source rig actually has, hips first and then the leg chain. A rig
+## without legs (a finger chain, a prop) is not asked for them.
+func _retarget_missing_core(mapped: Array, source: Skeleton3D) -> Array:
+	var source_names: Array = []
+	for index in source.get_bone_count():
+		source_names.append(str(source.get_bone_name(index)))
+	var roles := (RigAnalysis.detect_roles(source_names) as Dictionary).get("roles", {}) as Dictionary
+	var required: Array = []
+	for key in ["hips", "thigh_l", "thigh_r", "shin_l", "shin_r"]:
+		var bone_name := str(roles.get(key, ""))
+		if not bone_name.is_empty() and not required.has(bone_name):
+			required.append(bone_name)
+	var missing: Array = []
+	for bone_name in required:
+		if not mapped.has(bone_name):
+			missing.append(bone_name)
+	return missing

@@ -551,11 +551,21 @@ static func jump_keys(ctx: Dictionary) -> Dictionary:
 		{"name": "apex", "time": 0.47 * length},
 		{"name": "land", "time": 0.8 * length},
 	]
+	_mark_one_shot(keys)
 	return {
 		"keys": keys,
 		"markers": markers,
 		"meta": {"height": height, "crouch": crouch, "distance": distance},
 	}
+
+
+## A one-shot recipe ends somewhere else than it started (a jump lands, a turn
+## faces another way), so its tracks must not be loop-closed: with
+## `loop_mode: linear` the closing pass overwrote the last key with the first and
+## threw the endpoint away.
+static func _mark_one_shot(keys: Dictionary) -> void:
+	for bone_name in keys:
+		(keys[bone_name] as Dictionary)["loop_close"] = false
 
 
 # --- turn -------------------------------------------------------------------
@@ -671,6 +681,7 @@ static func turn_keys(ctx: Dictionary) -> Dictionary:
 		markers.append({"name": "anticipate" + suffix, "time": (float(step_index) + 0.14) * step_length})
 		markers.append({"name": "step" + suffix, "time": (float(step_index) + 0.5) * step_length})
 		markers.append({"name": "settle" + suffix, "time": (float(step_index) + 0.8) * step_length})
+	_mark_one_shot(keys)
 	return {
 		"keys": keys,
 		"markers": markers,
@@ -721,6 +732,9 @@ static func transition_keys(ctx: Dictionary, stopping: bool) -> Dictionary:
 			entry["position"] = position_keys
 		if not entry.is_empty():
 			keys[bone] = entry
+	# A transition lands on (or starts from) a gait pose, so it is a one-shot
+	# too: loop-closing it would overwrite the pose the next clip continues from.
+	_mark_one_shot(keys)
 	return {
 		"keys": keys,
 		"markers": [{"name": "settled", "time": length}],

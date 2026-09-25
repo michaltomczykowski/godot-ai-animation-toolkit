@@ -241,6 +241,116 @@ func test_jump_arc_and_markers() -> void:
 	_teardown(rig)
 
 
+func test_one_shot_recipes_keep_their_endpoint_when_looping() -> void:
+	var rig := _rig("MotionOneShot")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	# loop_mode=linear on a one-shot used to run the loop-closing pass, which
+	# overwrote the last key with the first and threw the endpoint away. A jump
+	# returns to the same height, so the observable case is a transition that
+	# ends somewhere else: it starts at rest and ends in a gait pose.
+	var start := _handler.run({
+		"op": "walk_start", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "start_looped",
+		"duration": 0.4, "phase": 0.5, "loop_mode": "linear",
+	}, null)
+	assert_true(start.has("data"), "walk_start builds: %s" % str(start))
+	var start_anim: Animation = rig.player.get_animation("start_looped")
+	var start_thigh := _track_index(start_anim, ":B-thigh.L", Animation.TYPE_ROTATION_3D)
+	var start_first: Quaternion = start_anim.track_get_key_value(start_thigh, 0)
+	var start_last: Quaternion = start_anim.track_get_key_value(start_thigh,
+		start_anim.track_get_key_count(start_thigh) - 1)
+	assert_true(rad_to_deg(start_first.angle_to(start_last)) > 3.0,
+		"the transition keeps its gait endpoint (%.1f deg)" % rad_to_deg(start_first.angle_to(start_last)))
+	var turn := _handler.run({
+		"op": "turn_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "turn_looped",
+		"duration": 0.6, "angle": 90, "loop_mode": "linear",
+	}, null)
+	assert_true(turn.has("data"), "turn builds: %s" % str(turn))
+	var turn_anim: Animation = rig.player.get_animation("turn_looped")
+	var turn_hips := _track_index(turn_anim, ":B-hips", Animation.TYPE_ROTATION_3D)
+	var turn_first: Quaternion = turn_anim.track_get_key_value(turn_hips, 0)
+	var turn_last: Quaternion = turn_anim.track_get_key_value(turn_hips,
+		turn_anim.track_get_key_count(turn_hips) - 1)
+	assert_true(rad_to_deg(turn_first.angle_to(turn_last)) > 45.0,
+		"the turn still ends turned (%.1f deg)" % rad_to_deg(turn_first.angle_to(turn_last)))
+	# A cyclic recipe is unaffected: its first and last keys still match.
+	var walk := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "walk_looped",
+		"duration": 0.8, "loop_mode": "linear",
+	}, null)
+	assert_true(walk.has("data"), "walk builds: %s" % str(walk))
+	var walk_anim: Animation = rig.player.get_animation("walk_looped")
+	var walk_hips := _track_index(walk_anim, ":B-hips", Animation.TYPE_POSITION_3D)
+	assert_true((walk_anim.track_get_key_value(walk_hips, 0) as Vector3).is_equal_approx(
+			walk_anim.track_get_key_value(walk_hips, walk_anim.track_get_key_count(walk_hips) - 1) as Vector3),
+		"a looping cycle still closes on itself")
+	_teardown(rig)
+
+
+func test_motion_rejects_non_finite_parameters() -> void:
+	var rig := _rig("MotionFinite")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var bad_duration := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "walk_nan",
+		"duration": NAN,
+	}, null)
+	assert_is_error(bad_duration, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_contains(bad_duration.get("error", {}).get("message", ""), "finite")
+	var bad_override := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "walk_inf",
+		"overrides": {"lean": INF},
+	}, null)
+	assert_is_error(bad_override, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_contains(bad_override.get("error", {}).get("message", ""), "overrides.lean")
+	var good := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "walk_ok", "duration": 0.8,
+	}, null)
+	assert_true(good.has("data"), "a normal call still builds: %s" % str(good))
+	_teardown(rig)
+
+
+func test_motion_honours_an_explicit_spine_chain() -> void:
+	var rig := _rig("MotionChain")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	# An explicit chain used to be validated and then replaced by the
+	# role-derived one, so a named intermediate never got a track.
+	var result := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "chain_walk",
+		"duration": 0.8, "spine_chain": ["B-hips", "B-spine", "B-chest"],
+	}, null)
+	assert_true(result.has("data"), "walk builds: %s" % str(result))
+	assert_eq((result.data.spine_chain as Array).size(), 3, "the explicit chain is used as given")
+	var anim: Animation = rig.player.get_animation("chain_walk")
+	for bone in ["B-spine", "B-chest"]:
+		var index := _track_index(anim, ":" + str(bone), Animation.TYPE_ROTATION_3D)
+		assert_true(index >= 0, "%s is keyed on the explicit chain" % str(bone))
+	# The neck is not one of the scalar roles, so keying it proves the explicit
+	# chain was used instead of the role-derived one.
+	var upper := _handler.run({
+		"op": "idle_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "chain_idle",
+		"duration": 2.0, "spine_chain": ["B-chest", "B-neck", "B-head"],
+	}, null)
+	assert_true(upper.has("data"), "an intermediate bone can be named: %s" % str(upper))
+	assert_eq((upper.data.spine_chain as Array).size(), 3, "the explicit chain is used as given")
+	var upper_anim: Animation = rig.player.get_animation("chain_idle")
+	assert_true(_track_index(upper_anim, ":B-neck", Animation.TYPE_ROTATION_3D) >= 0,
+		"the named intermediate is keyed")
+	_teardown(rig)
+
+
 func test_turn_cycle_rotates_and_settles() -> void:
 	var rig := _rig("MotionTurn")
 	if rig.has("error"):

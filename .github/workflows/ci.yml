@@ -13,12 +13,28 @@ env:
 
 jobs:
   tier1:
-    name: Tier 1 / ${{ matrix.os }}
+    name: Tier 1 / ${{ matrix.os }} / ${{ matrix.script }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+        # The same twelve pure suites tools/test_tier1.ps1 runs locally. One
+        # matrix leg per suite so a failure names the suite, and so a suite that
+        # only ever ran on a developer's machine still gates the release.
+        script:
+          - tier1_value_codec
+          - tier1_spec_modifiers
+          - tier1_fx_specs
+          - tier1_graph_builders
+          - tier1_spec_json
+          - tier1_pose_math
+          - tier1_motion_drivers
+          - tier1_quality_modifiers
+          - tier1_rig_analysis
+          - tier1_pose_solver
+          - tier1_spine_twist
+          - tier1_spine_chain
     steps:
       - name: Checkout toolkit
         uses: actions/checkout@v4
@@ -50,7 +66,7 @@ jobs:
           cmd /c mklink /J "$PWD\test_project\addons\godot_ai_animation" "$PWD\addons\godot_ai_animation"
 
       - name: Tier-1 checks
-        run: godot --headless --path test_project --script res://tests/tier1_value_codec.gd
+        run: godot --headless --path test_project --script "res://tests/${{ matrix.script }}.gd"
 
   editor-suite:
     name: Editor suite / core ${{ matrix.core-ref }}

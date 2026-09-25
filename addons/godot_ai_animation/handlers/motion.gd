@@ -109,6 +109,7 @@ func _run_cycle(params: Dictionary, kind: String) -> Dictionary:
 	committed.data["style"] = prepared.style
 	committed.data["samples"] = prepared.rate
 	committed.data["roles"] = prepared.ctx.roles
+	committed.data["spine_chain"] = prepared.ctx.spine_chain
 	committed.data["root_motion"] = bool(prepared.ctx.get("root_motion", false))
 	committed.data["root_motion_track"] = root_motion_track
 	committed.data["speed"] = float(prepared.meta.get("speed",
@@ -667,8 +668,19 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"Cannot find bones for: %s. Pass 'roles' to name them explicitly (e.g. {\"thigh_l\": \"B-thigh.L\"})." % ", ".join(missing))
 	var length := float(params.get("duration", 1.0))
-	if length <= 0.0:
-		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "duration must be > 0")
+	if not is_finite(length) or length <= 0.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "duration must be a finite number > 0")
+	# Every numeric recipe parameter reaches the clip as a key value, so a NaN or
+	# infinity from a bad call would be written straight into the animation.
+	for key in params:
+		var value: Variant = params[key]
+		if value is float and not is_finite(value):
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+				"'%s' must be a finite number (got %s)" % [str(key), str(value)])
+		if value is Array or value is Dictionary:
+			var bad := _first_non_finite(value, str(key))
+			if not bad.is_empty():
+				return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, bad)
 	var loop_result := _loop_mode(params)
 	if loop_result.has("error"):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, loop_result.error)
@@ -720,6 +732,25 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 			"root_motion": bool(params.get("root_motion", false)),
 		},
 	}
+
+
+## "overrides.lean must be a finite number (got nan)" for the first non-finite
+## number inside a nested param, or "" when they are all finite.
+static func _first_non_finite(value: Variant, path: String) -> String:
+	if value is float and not is_finite(value):
+		return "'%s' must be a finite number (got %s)" % [path, str(value)]
+	if value is Array:
+		for index in (value as Array).size():
+			var found := _first_non_finite((value as Array)[index], "%s[%d]" % [path, index])
+			if not found.is_empty():
+				return found
+		return ""
+	if value is Dictionary:
+		for key in (value as Dictionary).keys():
+			var found := _first_non_finite((value as Dictionary)[key], "%s.%s" % [path, str(key)])
+			if not found.is_empty():
+				return found
+	return ""
 
 
 ## The torso chain the twist distribution walks: an explicit `spine_chain` param

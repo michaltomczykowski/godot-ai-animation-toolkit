@@ -512,7 +512,7 @@ Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 | `pose_list` | List the pose files saved in the project's pose directory. | `directory`, `dry_run` |
 | `rig_get` | Dump a skeleton's bones, rests, pose, modifiers and springs, plus issues. | `skeleton_path`, `include_pose`, `dry_run` |
 | `rig_chain` | Build bones on a skeleton from a bone spec, or turn a Node3D/Node2D subtree into a skeleton. | `skeleton_path`, `bones`, `node_path`, `kind`, `name`, `overwrite`, `dry_run` |
-| `ik_setup` | Attach a 3D IK modifier (two-bone or chain solver) to a skeleton and wire it to a target node. | `skeleton_path`, `kind`, `chain`, `target_path`, `target_name`, `pole_path`, `use_virtual_end`, `end_bone_length`, `name`, `active`, `dry_run` |
+| `ik_setup` | Attach a 3D IK modifier to a skeleton and wire it to a target node. kind=spline follows a Path3D (target_path) instead, because SplineIK3D solves against a path. | `skeleton_path`, `kind`, `chain`, `target_path`, `target_name`, `pole_path`, `use_virtual_end`, `end_bone_length`, `name`, `active`, `dry_run` |
 | `spring_setup` | Attach spring bones (SpringBoneSimulator3D) to a skeleton, one spring setting per entry. | `skeleton_path`, `springs`, `name`, `active`, `mutable_bone_axes`, `dry_run` |
 | `look_at_setup` | Attach a look-at modifier so one bone tracks a target node (created in front of the bone when omitted). | `skeleton_path`, `bone`, `target_path`, `target_name`, `forward_axis`, `origin_from`, `origin_bone`, `origin_node`, `origin_offset`, `origin_safe_margin`, `use_angle_limitation`, `primary_limit_angle`, `secondary_limit_angle`, `use_secondary_rotation`, `primary_axis`, `relative`, `duration`, `name`, `active`, `dry_run` |
 | `retarget_setup` | Retarget a source skeleton's poses onto a child target skeleton through a RetargetModifier3D and a bone-name profile. | `skeleton_path`, `target_path`, `profile`, `position`, `rotation`, `scale`, `use_global_pose`, `move_target`, `name`, `active`, `dry_run` |
@@ -550,9 +550,9 @@ Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 | `skeleton_path` | string | Skeleton3D/2D path (default: first one). |
 | `bones` | array | rig_chain: [{name, parent?, position?, rotation?, scale?, length?}]; else a bone filter. |
 | `node_path` | string | rig_chain: Node3D/Node2D subtree to become a skeleton (locals = rests). |
-| `kind` | string: 3d \| 2d \| two_bone \| ccdik \| fabrik \| jacobian \| spline | rig_chain: 3d|2d. ik_setup: solver (two_bone). |
-| `chain` | array | ik_setup: bones root -> effector. |
-| `target_path` | string | ik_setup: target node; created at the tip if omitted. |
+| `kind` | string: 3d \| 2d \| two_bone \| ccdik \| fabrik \| jacobian \| spline | rig_chain: 3d|2d. ik_setup: solver (two_bone|ccdik|fabrik|jacobian|spline; spline follows a Path3D). |
+| `chain` | array | ik_setup: bones root -> effector (3 for two_bone, else root + end). |
+| `target_path` | string | ik_setup: target node (a Path3D for spline); created at the tip if omitted. |
 | `target_name` | string | ik_setup: name of the created target (IKTarget). |
 | `pole_path` | string | ik_setup two_bone: pole node for the bend. |
 | `use_virtual_end` | boolean | ik_setup two_bone: last chain bone = effector (off). |

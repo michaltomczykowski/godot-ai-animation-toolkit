@@ -26,13 +26,19 @@ A standalone [Godot](https://godotengine.org) addon that gives
   an analytic three-bone `aim` solve that lands the hand/foot exactly on a world
   target — `pose_list`, `rig_get`), procedural recipes (`walk_cycle`,
   `idle_breathing`, `blink`, `jumping_jack`, `squat`, `punch`) and
-  `bake_pose_sequence` (live modifiers → a plain clip).
+  `bake_pose_sequence` (live modifiers → a plain clip, baked deterministically
+  and with every touched skeleton restored). Chains are validated, `spline` IK
+  follows a `Path3D` rather than a marker, a retarget that would map nothing is
+  refused instead of created, and parameters Godot ignores in the chosen mode
+  are rejected instead of quietly queued.
 - **`animation_motion`** — procedural humanoid locomotion and idle:
-  `walk_cycle`, `run_cycle`, `idle_cycle` and a generic `cycle` build densely
-  sampled clips with two-bone IK leg solves (planted feet), pelvis
+  `walk_cycle`, `run_cycle`, `strafe_cycle`, `idle_cycle` and a generic `cycle`
+  build densely sampled clips with two-bone IK leg solves (planted feet), pelvis
   bob/sway/yaw/roll, a counter-rotating torso distributed over the detected spine
   chain, proper arm swing with forward elbow follow-through, and an idle that
-  looks around and twists the torso; `spine_chain` / `twist_spread` shape how far
+  looks around and twists the torso; `jump` and `turn_cycle` are one-shots with
+  phase markers, `walk_start`/`walk_stop` blend in and out of a gait at a given
+  `phase`; `spine_chain` / `twist_spread` shape how far
   up the spine a twist travels, `style`/`overrides` tune the motion,
   `root_motion` keys forward travel, `character_setup` builds idle + walk + run
   and the locomotion tree in one call, and `secondary_motion` bakes offline

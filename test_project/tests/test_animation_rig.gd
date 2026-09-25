@@ -834,6 +834,163 @@ func test_ik_setup_chain_kinds_and_validation() -> void:
 	_teardown(rig)
 
 
+func test_ik_setup_spline_follows_a_path_not_a_target() -> void:
+	var rig := _rig("RigIKSpline")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var result := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "spline",
+		"chain": ["B-upperArm.R", "B-hand.R"],
+	}, null)
+	assert_true(result.has("data"), "spline ik_setup: %s" % str(result))
+	if not result.has("data"):
+		_teardown(rig)
+		return
+	assert_true(bool(result.data.path_created), "a path was created when none was given")
+	assert_eq(str(result.data.target_path), "", "spline IK has no marker target")
+	assert_contains(str(result.data.spline_note), "Path3D")
+	var modifier := ValueCodec.resolve_scene_path(str(result.data.modifier_path), scene_root)
+	assert_true(modifier is SplineIK3D, "a SplineIK3D was added (%s)" % str(result.data.modifier_class))
+	assert_eq((modifier as ChainIK3D).get_root_bone_name(0), "B-upperArm.R")
+	assert_eq((modifier as ChainIK3D).get_end_bone_name(0), "B-hand.R")
+	# SplineIK3D has no set_target_node anywhere in its class chain, so the path
+	# is the only thing that can drive it.
+	assert_true(not (modifier as SkeletonModifier3D).has_method("set_target_node"),
+		"SplineIK3D really has no target setter in this build")
+	var path_node := ValueCodec.resolve_scene_path(str(result.data.path_path), scene_root)
+	assert_true(path_node is Path3D, "the created path is a Path3D")
+	assert_true((path_node as Path3D).curve != null, "the created path has a curve")
+	assert_true((path_node as Path3D).curve.point_count >= 2, "the curve has two points")
+	var wired := (modifier as SplineIK3D).get_path_3d(0)
+	assert_true(not str(wired).is_empty(), "the path is wired into setting 0")
+	var resolved_path := modifier.get_node_or_null(wired)
+	assert_true(resolved_path == path_node, "the wired path resolves to the Path3D (%s)" % str(resolved_path))
+	# An existing Path3D is reused rather than replaced.
+	var supplied := Path3D.new()
+	supplied.name = "SuppliedPath"
+	scene_root.add_child(supplied)
+	supplied.owner = scene_root
+	var with_path := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "spline",
+		"chain": ["B-thigh.L", "B-foot.L"],
+		"target_path": str(ValueCodec.from_node(supplied, scene_root)),
+	}, null)
+	assert_true(with_path.has("data"), "spline ik_setup with a path: %s" % str(with_path))
+	if not with_path.has("data"):
+		_teardown(rig)
+		return
+	assert_false(bool(with_path.data.path_created), "the supplied path is reused")
+	var second := ValueCodec.resolve_scene_path(str(with_path.data.modifier_path), scene_root)
+	assert_true(second.get_node_or_null((second as SplineIK3D).get_path_3d(0)) == supplied,
+		"the supplied path is what the modifier follows")
+	# A marker is not a path: the op has to say so instead of queueing a call the
+	# class does not have.
+	var marker := Marker3D.new()
+	marker.name = "NotAPath"
+	scene_root.add_child(marker)
+	marker.owner = scene_root
+	var wrong_type := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "spline",
+		"chain": ["B-thigh.L", "B-foot.L"],
+		"target_path": str(ValueCodec.from_node(marker, scene_root)),
+	}, null)
+	assert_is_error(wrong_type, ErrorCodes.WRONG_TYPE)
+	assert_contains(wrong_type.error.message, "Path3D")
+	_teardown(rig)
+
+
+func test_ik_setup_chain_validation_and_unique_marker_names() -> void:
+	var rig := _rig("RigIKChains")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var scene_root := EditorInterface.get_edited_scene_root()
+	# A two_bone chain is exactly three parent-ordered bones; a four-bone list
+	# used to build the target from the fourth bone and solve on the third.
+	var four := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "two_bone",
+		"chain": ["B-upperArm.L", "B-forearm.L", "B-hand.L", "B-hand.R"],
+	}, null)
+	assert_is_error(four, ErrorCodes.INVALID_PARAMS)
+	assert_contains(four.get("error", {}).get("message", ""), "exactly three bones")
+	var non_ancestral := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "two_bone",
+		"chain": ["B-upperArm.L", "B-shin.L", "B-foot.L"],
+	}, null)
+	assert_is_error(non_ancestral, ErrorCodes.INVALID_PARAMS)
+	assert_contains(non_ancestral.error.message, "not the parent")
+	var repeated := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "two_bone",
+		"chain": ["B-upperArm.L", "B-forearm.L", "B-forearm.L"],
+	}, null)
+	assert_is_error(repeated, ErrorCodes.INVALID_PARAMS)
+	assert_contains(repeated.error.message, "repeats")
+	var chain_solver_backwards := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "ccdik",
+		"chain": ["B-hand.R", "B-upperArm.R"],
+	}, null)
+	assert_is_error(chain_solver_backwards, ErrorCodes.INVALID_PARAMS)
+	assert_contains(chain_solver_backwards.error.message, "descendant")
+	# Two markers with the same requested name must both keep a resolving path:
+	# Godot renames the second on add, which used to leave its NodePath dangling.
+	var first := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "two_bone",
+		"chain": ["B-thigh.L", "B-shin.L", "B-foot.L"], "target_name": "IKTarget",
+	}, null)
+	assert_true(first.has("data"), "left leg IK: %s" % str(first))
+	var second_leg := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "two_bone",
+		"chain": ["B-thigh.R", "B-shin.R", "B-foot.R"], "target_name": "IKTarget",
+	}, null)
+	assert_true(second_leg.has("data"), "right leg IK: %s" % str(second_leg))
+	assert_true(str(second_leg.data.target_path) != str(first.data.target_path),
+		"the second target got its own name (%s)" % str(second_leg.data.target_path))
+	for result in [first, second_leg]:
+		var modifier := ValueCodec.resolve_scene_path(str(result.data.modifier_path), scene_root)
+		var target_node := modifier.get_node_or_null((modifier as TwoBoneIK3D).get_target_node(0))
+		assert_true(target_node != null, "the target path resolves (%s)" % str((modifier as TwoBoneIK3D).get_target_node(0)))
+		var pole_node := modifier.get_node_or_null((modifier as TwoBoneIK3D).get_pole_node(0))
+		assert_true(pole_node != null, "the pole path resolves (%s)" % str((modifier as TwoBoneIK3D).get_pole_node(0)))
+	_teardown(rig)
+
+
+func test_ik_default_markers_ignore_the_current_pose() -> void:
+	var rig := _rig("RigIKRest")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var skeleton := ValueCodec.resolve_scene_path(rig.skeleton_path, scene_root) as Skeleton3D
+	var chain := ["B-upperArm.L", "B-forearm.L", "B-hand.L"]
+	var neutral := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "two_bone",
+		"chain": chain, "target_name": "RestTarget",
+	}, null)
+	assert_true(neutral.has("data"), "neutral setup: %s" % str(neutral))
+	var neutral_target := ValueCodec.resolve_scene_path(str(neutral.data.target_path), scene_root) as Marker3D
+	var neutral_pole := ValueCodec.resolve_scene_path(str(neutral.data.pole_path), scene_root) as Marker3D
+	# Pose the chain, then set it up again: the default markers must land in the
+	# rest frame, not wherever the editor was left.
+	skeleton.set_bone_pose_rotation(0, Quaternion.IDENTITY)
+	for bone_name in chain:
+		skeleton.set_bone_pose_rotation(skeleton.find_bone(bone_name), Quaternion(Vector3(1, 0, 0), 0.9))
+	var posed := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "two_bone",
+		"chain": chain, "target_name": "PosedTarget",
+	}, null)
+	assert_true(posed.has("data"), "posed setup: %s" % str(posed))
+	var posed_target := ValueCodec.resolve_scene_path(str(posed.data.target_path), scene_root) as Marker3D
+	var posed_pole := ValueCodec.resolve_scene_path(str(posed.data.pole_path), scene_root) as Marker3D
+	assert_true(posed_target.global_position.distance_to(neutral_target.global_position) < 0.001,
+		"the target lands in the rest frame (%s vs %s)"
+			% [str(posed_target.global_position), str(neutral_target.global_position)])
+	assert_true(posed_pole.global_position.distance_to(neutral_pole.global_position) < 0.001,
+		"the pole lands in the rest frame")
+	_teardown(rig)
+
+
 # --- spring_setup ----------------------------------------------------------
 
 func test_spring_setup_builds_springs() -> void:
@@ -966,7 +1123,8 @@ func test_twist_setup_disperses_over_the_chain() -> void:
 	var even := _handler.run({
 		"op": "twist_setup", "skeleton_path": rig_path, "name": "TwistEven",
 		"disperse": {"root_bone": "B-hips", "end_bone": "B-chest", "mode": "even",
-			"weight_position": 0.25, "twist_from_rest": false, "damping": 0.8},
+			"twist_from_rest": false,
+			"twist_from": {"kind": "quaternion", "x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0}},
 	}, null)
 	assert_true(even.has("data"), "an even disperser over part of the chain is accepted, got: %s" % str(even))
 	assert_eq(str(even.data.mode), "even")
@@ -974,9 +1132,66 @@ func test_twist_setup_disperses_over_the_chain() -> void:
 	var even_modifier := ValueCodec.resolve_scene_path(str(even.data.modifier_path), scene_root) as BoneTwistDisperser3D
 	assert_eq(even_modifier.get_end_bone_name(0), "B-chest")
 	assert_eq(even_modifier.get_disperse_mode(0), BoneTwistDisperser3D.DISPERSE_MODE_EVEN)
-	assert_eq(even_modifier.get_weight_position(0), 0.25)
 	assert_true(not even_modifier.is_twist_from_rest(0), "twist_from_rest=false is applied")
-	assert_true(even_modifier.get_damping_curve(0) != null, "a damping curve is built")
+	assert_true(even_modifier.get_twist_from(0).is_equal_approx(Quaternion.IDENTITY),
+		"the explicit reference quaternion is applied")
+	# Parameters Godot only reads in another mode used to be accepted and queued,
+	# which produced a modifier that quietly ignored them.
+	var ignored_damping := _handler.run({
+		"op": "twist_setup", "skeleton_path": rig_path,
+		"disperse": {"mode": "even", "damping": 0.8},
+	}, null)
+	assert_is_error(ignored_damping, ErrorCodes.INVALID_PARAMS)
+	assert_contains(ignored_damping.get("error", {}).get("message", ""), "custom")
+	var ignored_weight := _handler.run({
+		"op": "twist_setup", "skeleton_path": rig_path,
+		"disperse": {"mode": "even", "weight_position": 0.25},
+	}, null)
+	assert_is_error(ignored_weight, ErrorCodes.INVALID_PARAMS)
+	assert_contains(ignored_weight.get("error", {}).get("message", ""), "weighted")
+	var no_reference := _handler.run({
+		"op": "twist_setup", "skeleton_path": rig_path,
+		"disperse": {"twist_from_rest": false},
+	}, null)
+	assert_is_error(no_reference, ErrorCodes.INVALID_PARAMS)
+	assert_contains(no_reference.get("error", {}).get("message", ""), "twist_from")
+	var bad_reference := _handler.run({
+		"op": "twist_setup", "skeleton_path": rig_path,
+		"disperse": {"twist_from_rest": false, "twist_from": 0.5},
+	}, null)
+	assert_is_error(bad_reference, ErrorCodes.WRONG_TYPE)
+	# A two-bone range has no joint to share across, so it extends past the end.
+	var short_range := _handler.run({
+		"op": "twist_setup", "skeleton_path": rig_path, "name": "TwistShort",
+		"disperse": {"root_bone": "B-hips", "end_bone": "B-spine"},
+	}, null)
+	assert_true(short_range.has("data"), "a two-bone range is still allowed: %s" % str(short_range))
+	assert_true(bool(short_range.data.extend_end_bone),
+		"a two-joint range extends past the end bone")
+	assert_true((short_range.data.warnings as Array).size() >= 1,
+		"the short range says the twist is applied whole")
+	var long_range := _handler.run({
+		"op": "twist_setup", "skeleton_path": rig_path, "name": "TwistLong",
+		"disperse": {"root_bone": "B-hips", "end_bone": "B-chest"},
+	}, null)
+	assert_false(bool(long_range.data.extend_end_bone),
+		"a three-joint range distributes as asked")
+	# rig_get reports the disperser's real settings. The per-joint list is built
+	# by Godot on a deferred frame, so a modifier added in this same call reports
+	# it as pending rather than pretending the prediction is the real one.
+	var read_back := _handler.run({"op": "rig_get", "skeleton_path": rig_path}, null)
+	assert_true(read_back.has("data"), "rig_get: %s" % str(read_back))
+	var twists: Array = read_back.data.twist_settings
+	assert_eq(twists.size(), 4, "every disperser is reported (%d)" % twists.size())
+	var first_twist: Dictionary = twists[0]
+	assert_eq(str(first_twist.root_bone), "B-hips")
+	assert_eq(str(first_twist.end_bone), "B-head")
+	assert_eq(int(first_twist.mode), BoneTwistDisperser3D.DISPERSE_MODE_WEIGHTED)
+	assert_eq(int(first_twist.joint_count), 0, "the joint list is not built yet")
+	assert_true(bool(first_twist.joints_pending), "and rig_get says so")
+	var short_twist: Dictionary = twists[2]
+	assert_true(bool(short_twist.extend_end_bone),
+		"the two-bone range is reported as extended")
 	var bad_end := _handler.run({
 		"op": "twist_setup", "skeleton_path": rig_path,
 		"disperse": {"root_bone": "B-head", "end_bone": "B-hips"},
@@ -1006,6 +1221,141 @@ func test_twist_setup_disperses_over_the_chain() -> void:
 	}, null)
 	assert_is_error(missing_bone, ErrorCodes.NODE_NOT_FOUND)
 	_remove_node(rig_path)
+
+
+func test_retarget_rejects_a_profile_that_maps_nothing() -> void:
+	var rig := _rig("RigRetargetMap")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var source_path := "/" + scene_root.name + "/RT_NoMapSource"
+	var target_path := "/" + scene_root.name + "/RT_NoMapTarget"
+	# Same chain, different names: the canonical humanoid profile cannot match
+	# "B-hips"/"B-thigh.L", which used to produce a modifier that moved nothing.
+	var source_bones := [
+		{"name": "B-hips", "position": [0, 0.9, 0]},
+		{"name": "B-thigh.L", "parent": "B-hips", "position": [0.1, -0.4, 0]},
+		{"name": "B-thigh.R", "parent": "B-hips", "position": [-0.1, -0.4, 0]},
+	]
+	var target_bones := [
+		{"name": "pelvis", "position": [0, 0.9, 0]},
+		{"name": "leg_l", "parent": "pelvis", "position": [0.1, -0.4, 0]},
+		{"name": "leg_r", "parent": "pelvis", "position": [-0.1, -0.4, 0]},
+	]
+	_handler.run({"op": "rig_chain", "skeleton_path": source_path, "name": "RT_NoMapSource",
+		"bones": source_bones}, null)
+	_handler.run({"op": "rig_chain", "skeleton_path": target_path, "name": "RT_NoMapTarget",
+		"bones": target_bones}, null)
+	var nothing := _handler.run({
+		"op": "retarget_setup", "skeleton_path": source_path, "target_path": target_path,
+		"profile": "humanoid",
+	}, null)
+	assert_is_error(nothing, ErrorCodes.INVALID_PARAMS)
+	assert_contains(nothing.get("error", {}).get("message", ""), "maps no bones")
+	# The response would also be useful when the map exists but is incomplete, so
+	# the mismatching names are reported in both directions.
+	var partial_source := [
+		{"name": "B-hips", "position": [0, 0.9, 0]},
+		{"name": "B-head", "parent": "B-hips", "position": [0, 0.4, 0]},
+	]
+	var partial_target := [
+		{"name": "B-hips", "position": [0, 0.9, 0]},
+		{"name": "B-head", "parent": "B-hips", "position": [0, 0.4, 0]},
+		{"name": "B-hat", "parent": "B-head", "position": [0, 0.2, 0]},
+	]
+	_remove_node(source_path)
+	_remove_node(target_path)
+	_handler.run({"op": "rig_chain", "skeleton_path": source_path, "name": "RT_NoMapSource",
+		"bones": partial_source}, null)
+	_handler.run({"op": "rig_chain", "skeleton_path": target_path, "name": "RT_NoMapTarget",
+		"bones": partial_target}, null)
+	var partial := _handler.run({
+		"op": "retarget_setup", "skeleton_path": source_path, "target_path": target_path,
+	}, null)
+	assert_true(partial.has("data"), "a partial map still sets up: %s" % str(partial))
+	assert_true((partial.data.source_only_bones as Array).is_empty(), "nothing is source-only")
+	assert_true((partial.data.target_only_bones as Array).has("B-hat"),
+		"the target-only bone is reported (%s)" % str(partial.data.target_only_bones))
+	assert_true(float(partial.data.source_scale) > 0.0, "the source scale is reported")
+	assert_true(float(partial.data.target_scale) > 0.0, "the target scale is reported")
+	_remove_node(source_path)
+	_remove_node(target_path)
+	_teardown(rig)
+
+
+func test_retarget_move_false_reconfigures_the_existing_modifier() -> void:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var source_path := "/" + scene_root.name + "/RT_ReconfigSource"
+	var target_path := "/" + scene_root.name + "/RT_ReconfigTarget"
+	var bones := [
+		{"name": "B-hips", "position": [0, 0.9, 0]},
+		{"name": "B-head", "parent": "B-hips", "position": [0, 0.4, 0]},
+	]
+	_handler.run({"op": "rig_chain", "skeleton_path": source_path, "name": "RT_ReconfigSource",
+		"bones": bones}, null)
+	_handler.run({"op": "rig_chain", "skeleton_path": target_path, "name": "RT_ReconfigTarget",
+		"bones": bones}, null)
+	var first := _handler.run({
+		"op": "retarget_setup", "skeleton_path": source_path, "target_path": target_path,
+	}, null)
+	assert_true(first.has("data"), "the first setup moves the target: %s" % str(first))
+	var modifier_path := str(first.data.modifier_path)
+	# A second call with move_target=false used to add a second modifier that had
+	# no target child and therefore did nothing. The target has moved under the
+	# modifier, so it is addressed by the path the first call reported.
+	var again := _handler.run({
+		"op": "retarget_setup", "skeleton_path": source_path,
+		"target_path": str(first.data.target_path),
+		"move_target": false, "position": true, "rotation": true, "active": true,
+	}, null)
+	assert_true(again.has("data"), "move_target=false reconfigures in place: %s" % str(again))
+	assert_false(bool(again.data.modifier_created), "no second modifier is created")
+	assert_eq(str(again.data.modifier_path), modifier_path, "the same modifier is configured")
+	var source := ValueCodec.resolve_scene_path(source_path, scene_root)
+	var modifiers := 0
+	for child in source.get_children():
+		if child is RetargetModifier3D:
+			modifiers += 1
+	assert_eq(modifiers, 1, "the source still has exactly one retarget modifier")
+	var modifier := ValueCodec.resolve_scene_path(modifier_path, scene_root) as RetargetModifier3D
+	assert_eq(modifier.get_enable_flags(),
+		RetargetModifier3D.TRANSFORM_FLAG_POSITION | RetargetModifier3D.TRANSFORM_FLAG_ROTATION,
+		"the enable flags were reconfigured")
+	assert_true(modifier.active, "the modifier was activated")
+	var undone := editor_undo(_undo_redo)
+	assert_true(undone, "undo should succeed")
+	assert_eq(modifier.get_enable_flags(), RetargetModifier3D.TRANSFORM_FLAG_ROTATION,
+		"undo restores the old flags")
+	assert_false(modifier.active, "undo restores active=false")
+	_remove_node(source_path)
+	_remove_node(target_path)
+
+
+func test_retarget_rejects_an_ancestor_target_cycle() -> void:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var outer_path := "/" + scene_root.name + "/RT_Outer"
+	var inner_path := outer_path + "/RT_Inner"
+	var built := _handler.run({
+		"op": "rig_chain", "skeleton_path": outer_path, "name": "RT_Outer",
+		"bones": [{"name": "B-hips", "position": [0, 0.9, 0]}],
+	}, null)
+	if not built.has("data"):
+		skip("the outer skeleton did not build")
+		return
+	var inner := _handler.run({
+		"op": "rig_chain", "skeleton_path": inner_path, "name": "RT_Inner",
+		"bones": [{"name": "B-hips", "position": [0, 0.9, 0]}],
+	}, null)
+	assert_true(inner.has("data"), "the nested skeleton builds: %s" % str(inner))
+	# source inside the target: reparenting the target's scene root under a
+	# retarget modifier would make the modifier its own ancestor.
+	var cycle := _handler.run({
+		"op": "retarget_setup", "skeleton_path": inner_path, "target_path": outer_path,
+	}, null)
+	assert_is_error(cycle, ErrorCodes.INVALID_PARAMS)
+	assert_contains(cycle.get("error", {}).get("message", ""), "ancestor")
+	_remove_node(outer_path)
 
 
 func test_retarget_setup_maps_and_moves() -> void:
@@ -1101,7 +1451,12 @@ func test_retarget_setup_moves_instanced_targets_whole() -> void:
 		"target_path": source_path,
 	}, null)
 	assert_is_error(instanced_source, ErrorCodes.INVALID_PARAMS)
-	assert_contains(instanced_source.error.message, "instanced scene")
+	# Two things are wrong with that call: the source lives in a non-editable
+	# instance, and - because the first call moved the instanced target under a
+	# modifier on RetargetPlain - RetargetPlain is now its ancestor, so moving it
+	# would be a parent cycle. The cycle is the more fundamental reason and is
+	# reported first.
+	assert_contains(instanced_source.get("error", {}).get("message", ""), "ancestor")
 	editor_undo(_undo_redo)
 	_teardown(target_rig)
 	_remove_node(source_path)
@@ -1402,6 +1757,170 @@ func test_bake_pose_sequence_captures_ik() -> void:
 	scene_root.remove_child(target)
 	target.queue_free()
 	_teardown(rig)
+
+
+func test_bake_pose_sequence_is_repeatable_with_a_spring() -> void:
+	var rig := _rig("RigBakeSpring")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var built := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "spring_src",
+		"duration": 0.5, "loop_mode": "linear",
+	}, null)
+	assert_true(built.has("data"), "the source cycle builds, got: %s" % str(built))
+	var springs := _handler.run({
+		"op": "spring_setup", "skeleton_path": rig.skeleton_path,
+		"springs": [{"root_bone": "B-upperArm.L", "end_bone": "B-hand.L",
+			"stiffness": 0.4, "drag": 0.3, "gravity": 0.6}],
+		"active": true,
+	}, null)
+	assert_true(springs.has("data"), "spring_setup: %s" % str(springs))
+	# A spring is stateful: without a fixed per-sample delta and a reset, the
+	# second bake continues from the first one's end state.
+	var first := _handler.run({
+		"op": "bake_pose_sequence", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "bake_a",
+		"source_animation": "spring_src", "duration": 0.5, "fps": 10, "loop_mode": "linear",
+	}, null)
+	assert_true(first.has("data"), "first bake: %s" % str(first))
+	assert_true((first.data.modifiers as Array).has("SpringBoneSimulator3D"),
+		"the spring modifier is reported (%s)" % str(first.data.modifiers))
+	assert_true((first.data.reset_modifiers as Array).has("SpringBoneSimulator3D"),
+		"the stateful modifier was reset before sampling")
+	assert_true(absf(float(first.data.sample_delta) - 0.1) < 0.0001,
+		"the sample delta is the fps step (%s)" % str(first.data.sample_delta))
+	var second := _handler.run({
+		"op": "bake_pose_sequence", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "bake_b",
+		"source_animation": "spring_src", "duration": 0.5, "fps": 10, "loop_mode": "linear",
+	}, null)
+	assert_true(second.has("data"), "second bake: %s" % str(second))
+	var a: Animation = rig.player.get_animation("bake_a")
+	var b: Animation = rig.player.get_animation("bake_b")
+	assert_true(a != null and b != null, "both baked clips exist")
+	assert_eq(b.track_get_track_count() if b.has_method("track_get_track_count") else b.get_track_count(),
+		a.get_track_count(), "both bakes have the same track count")
+	var differing := 0
+	for index in a.get_track_count():
+		if str(a.track_get_path(index)) != str(b.track_get_path(index)):
+			continue
+		for key in a.track_get_key_count(index):
+			var left: Variant = a.track_get_key_value(index, key)
+			var right: Variant = b.track_get_key_value(index, key)
+			if left is Quaternion:
+				if not (left as Quaternion).is_equal_approx(right as Quaternion):
+					differing += 1
+			elif left is Vector3:
+				if not (left as Vector3).is_equal_approx(right as Vector3):
+					differing += 1
+	assert_eq(differing, 0, "two bakes of the same clip are key-identical")
+	_teardown(rig)
+
+
+func test_bake_pose_sequence_restores_both_skeletons_and_the_player() -> void:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var rig := _rig("RigBakeRetarget")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var built := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "rt_src",
+		"duration": 0.4, "loop_mode": "linear",
+	}, null)
+	assert_true(built.has("data"), "the source cycle builds, got: %s" % str(built))
+	var target_rig := _rig("RigBakeTarget")
+	if target_rig.has("error"):
+		_teardown(rig)
+		skip(target_rig.error)
+		return
+	var retarget := _handler.run({
+		"op": "retarget_setup", "skeleton_path": rig.skeleton_path,
+		"target_path": target_rig.skeleton_path, "active": true,
+	}, null)
+	assert_true(retarget.has("data"), "retarget_setup: %s" % str(retarget))
+	# Pose the target before baking: the bake drives it through the modifier, so
+	# it has to be restored afterwards like the source.
+	var target_bone: int = target_rig.skeleton.find_bone("B-thigh.L")
+	target_rig.skeleton.set_bone_pose_rotation(target_bone, Quaternion(Vector3(0, 1, 0), 0.37))
+	var target_before: Quaternion = target_rig.skeleton.get_bone_pose_rotation(target_bone)
+	rig.player.play("rt_src")
+	rig.player.seek(0.12, true)
+	var was_animation := str(rig.player.current_animation)
+	var was_position: float = rig.player.current_animation_position
+	var result := _handler.run({
+		"op": "bake_pose_sequence", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "rt_baked",
+		"source_animation": "rt_src", "duration": 0.4, "fps": 8, "loop_mode": "linear",
+	}, null)
+	assert_true(result.has("data"), "bake over a retarget: %s" % str(result))
+	assert_true((result.data.restored_skeletons as Array).size() >= 2,
+		"both skeletons are reported as restored (%s)" % str(result.data.restored_skeletons))
+	assert_true((result.data.retarget_targets as Array).size() >= 1,
+		"the retarget target is listed (%s)" % str(result.data.retarget_targets))
+	var target_after: Quaternion = target_rig.skeleton.get_bone_pose_rotation(target_bone)
+	assert_true(target_before.is_equal_approx(target_after),
+		"the retargeted skeleton is restored too (%s vs %s)" % [str(target_before), str(target_after)])
+	assert_eq(str(rig.player.current_animation), was_animation,
+		"the player is back on the animation it was playing")
+	assert_true(absf(rig.player.current_animation_position - was_position) < 0.05,
+		"the player is back near the time it was at (%s vs %s)"
+			% [str(rig.player.current_animation_position), str(was_position)])
+	_teardown(target_rig)
+	_teardown(rig)
+
+
+func test_bake_pose_sequence_reports_the_modifier_stack_it_used() -> void:
+	var rig := _rig("RigBakeStack")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var built := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "stack_src",
+		"duration": 0.3, "loop_mode": "linear",
+	}, null)
+	assert_true(built.has("data"), "the source cycle builds, got: %s" % str(built))
+	var bare := _handler.run({
+		"op": "bake_pose_sequence", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "stack_bare",
+		"source_animation": "stack_src", "duration": 0.3, "fps": 6, "loop_mode": "linear",
+	}, null)
+	assert_true(bare.has("data"), "bake without modifiers: %s" % str(bare))
+	assert_true((bare.data.modifiers as Array).is_empty(), "no modifiers are reported")
+	assert_eq((bare.data.restored_skeletons as Array).size(), 1, "only the source is restored")
+	# An inactive modifier is not part of the stack the bake captured through.
+	var setup := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path,
+		"kind": "two_bone", "chain": ["B-upperArm.L", "B-forearm.L", "B-hand.L"],
+		"active": false,
+	}, null)
+	assert_true(setup.has("data"), "ik_setup: %s" % str(setup))
+	var inactive := _handler.run({
+		"op": "bake_pose_sequence", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "stack_inactive",
+		"source_animation": "stack_src", "duration": 0.3, "fps": 6, "loop_mode": "linear",
+	}, null)
+	assert_true(inactive.has("data"), "bake with an inactive modifier: %s" % str(inactive))
+	assert_true((inactive.data.modifiers as Array).is_empty(),
+		"the inactive modifier is not listed (%s)" % str(inactive.data.modifiers))
+	# Activating it is what puts it in the reply, so the user can see what the
+	# baked clip was captured through.
+	(modifier_at(rig, "IKSsetup") as SkeletonModifier3D).active = true
+	_teardown(rig)
+
+
+func modifier_at(rig: Dictionary, class_name_fragment: String) -> Node:
+	for child in rig.skeleton.get_children():
+		if child is SkeletonModifier3D and str(child.get_class()).contains(class_name_fragment):
+			return child
+	for child in rig.skeleton.get_children():
+		if child is SkeletonModifier3D:
+			return child
+	return null
 
 
 func test_registry_matches_rig_schema() -> void:

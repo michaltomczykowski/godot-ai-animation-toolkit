@@ -1478,14 +1478,14 @@ static func _rig_schema() -> Dictionary:
 			"kind": {
 				"type": "string",
 				"enum": ["3d", "2d", "two_bone", "ccdik", "fabrik", "jacobian", "spline"],
-				"description": "rig_chain: 3d|2d. ik_setup: solver (two_bone).",
+				"description": "rig_chain: 3d|2d. ik_setup: solver (two_bone|ccdik|fabrik|jacobian|spline; spline follows a Path3D).",
 			},
 			"chain": {
 				"type": "array",
 				"items": {"type": "string"},
-				"description": "ik_setup: bones root -> effector.",
+				"description": "ik_setup: bones root -> effector (3 for two_bone, else root + end).",
 			},
-			"target_path": {"type": "string", "description": "ik_setup: target node; created at the tip if omitted."},
+			"target_path": {"type": "string", "description": "ik_setup: target node (a Path3D for spline); created at the tip if omitted."},
 			"target_name": {"type": "string", "description": "ik_setup: name of the created target (IKTarget)."},
 			"pole_path": {"type": "string", "description": "ik_setup two_bone: pole node for the bend."},
 			"use_virtual_end": {
@@ -1638,7 +1638,7 @@ static func _rig_ops() -> Array:
 		},
 		{
 			"name": "ik_setup",
-			"summary": "Attach a 3D IK modifier (two-bone or chain solver) to a skeleton and wire it to a target node.",
+			"summary": "Attach a 3D IK modifier to a skeleton and wire it to a target node. kind=spline follows a Path3D (target_path) instead, because SplineIK3D solves against a path.",
 			"params": ["skeleton_path", "kind", "chain", "target_path", "target_name", "pole_path", "use_virtual_end", "end_bone_length", "name", "active"],
 			"example": {"op": "ik_setup", "skeleton_path": "/Main/Rig/Skeleton3D", "kind": "two_bone", "chain": ["B-upperArm.L", "B-forearm.L", "B-hand.L"], "target_name": "HandTarget"},
 		},

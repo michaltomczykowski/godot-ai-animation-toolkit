@@ -6,7 +6,12 @@ half (`reduce`), and fixes the planted feet of root-motion walks. Phases 11 (11)
 and 12 (12) ship without a new demo recording: the door/punch showcase was
 dropped after its rebuild still read as broken, and the ops stand on their own
 behind the editor suites. See the end of the file for their scope.
-Last updated: 2026-09-24.
+Phases **14–16 are planned** from a read-only audit of the 3D layer: make the
+setup ops stop reporting success when they do nothing, then make the procedural
+motion read as animation rather than maths, then prove both with tests CI
+actually runs. **Phase 14 is implemented and green (177 editor tests, 12 tier-1
+suites now gating CI); 15 and 16 are next.**
+Last updated: 2026-09-25.
 
 Phase 3 note: the generators landed as their own family, `animation_fx`, instead
 of growing the `animation_presets` schema to ~60 params. The "one tool per
@@ -589,6 +594,139 @@ Editor suites: 165 tests, including the audit's pass/fail/in-place cases and the
    and headless readers get the tier-1 math instead.
 3. `reduce` is greedy, so a pathological track can stop above the budget when a
    re-insert stops helping; the reply's `worst_error` says so.
+
+## Phase 14 — stable by default (v1.8.0, done)
+
+A read-only audit of the 3D layer found a cluster of **setup ops that report
+success and do nothing** (or the wrong thing), plus a CI job that only ran one
+of the twelve tier-1 suites. Nothing here changes what a good clip looks like;
+it makes the promised result the actual result. Delivered:
+
+1. **CI runs the tests it claims to.** `ci.yml` ran only
+   `tier1_value_codec.gd`, so eleven pure suites (motion drivers, pose solver,
+   quality modifiers, rig analysis, spine, spec modifiers) never gated a
+   release. The tier-1 list is now a matrix axis over the same twelve scripts
+   `tools/test_tier1.ps1` runs, on both OSes, `fail-fast: false`.
+2. **`spline` IK, implemented properly.** The advertised kind was configured
+   like a target solver (`set_target_node`), which `SplineIK3D` does not have
+   anywhere in its class chain — the op returned a valid path for a modifier
+   that cannot move. It gets its own branch: a `Path3D` (created at the end bone
+   when omitted), the real `set_path_3d(index, path)` setter, no marker target,
+   no pole. The existing `target_path` param is reused, because the rig schema
+   is within a few hundred bytes of the 8192-byte cap, and the Godot 4.7 API
+   was confirmed against ClassDB first (the path setter is indexed, unlike the
+   other solvers').
+3. **IK chains and markers stop lying.** A newly added `IKTarget`/`IKPole` is
+   renamed by Godot on a name clash while the stored `NodePath` keeps the old
+   one, so the *second* leg or arm pointed at nothing; names are now allocated
+   uniquely, and the markers are added before the modifier that references them
+   (the old order made Godot warn "Pole node not found"). Chains are validated
+   as chains: unique, ancestor-ordered, exactly three bones for `two_bone`,
+   `[root, end]` for the chain solvers — a four-bone list used to build the
+   target from the fourth bone and solve on the third. Default targets/poles
+   come from the global **rest** frame, not whatever the editor was playing.
+4. **Retarget fail-safes.** A zero-bone (or core-incomplete) map is an error,
+   not a modifier that moves nothing; the reply lists bones unique to each side
+   and mapped-parent mismatches; `move_target=false` configures the modifier
+   that is already there instead of adding an inert second one (a pre-existing
+   check made that path unreachable, which is why it was never noticed); a
+   target that is an ancestor of the source is rejected; both skeletons' scale
+   is reported, and global-pose mode says the per-transform flags are ignored.
+5. **`bake_pose_sequence` became deterministic.** Each sample advances the
+   skeleton by exactly the fps step — `advance()` accumulates and the deferred
+   update consumes it, so springs integrate the same way twice — and stateful
+   modifiers are reset first (two bakes of the same clip are now key-identical,
+   asserted). It captures and restores *both* skeletons of a retarget and the
+   player's animation, time and play state, and refuses to write a clip when no
+   modifier reported in, instead of silently baking pre-modifier poses.
+6. **Twist, chains, noise, loops, inputs.** Rejected the `damping` value that
+   only exists in custom mode, `weight_position` outside weighted mode, and
+   `twist_from_rest=false` with no reference quaternion; a two-joint range now
+   sets `extend_end_bone` and warns instead of silently applying the twist
+   whole, and `rig_get` reports the real joint list (`joints_pending` until
+   Godot builds it a frame later). The explicit `spine_chain` is honoured
+   instead of being replaced by a role-derived one. `pose_to_clip` converts the
+   pole with the same full affine inverse as the target. `add_noise` uses one
+   seeded axis per track instead of one per key. Loop closure applies to cyclic
+   recipes only, so a one-shot turn, jump or `walk_start` keeps the endpoint the
+   next clip continues from. Generation rejects non-finite parameters
+   (including nested overrides) before anything is written.
+
+### Phase 14 risks / mitigations
+
+1. `SplineIK3D`'s 4.7 API was unverified until the editor was live; it is
+   confirmed (`set_path_3d(index, path)`, and no target setter anywhere in
+   `SplineIK3D -> ChainIK3D -> IKModifier3D`), and every queued setup call is
+   now checked against ClassDB before the undo action commits, so a future
+   engine rename fails as a typed error instead of inside the action.
+2. The schema cap is the real constraint on new params, so Phase 14 reuses
+   params (`target_path` doubles as the spline path) and documents the rest in
+   the descriptor instead of growing the rig schema.
+3. The bake's determinism claim is asserted, not assumed: two bakes of the same
+   clip with a live spring must be key-identical, and the test runs in CI.
+4. Godot resolves a disperser's joint list on a deferred frame, so the response
+   labels its list as predicted and `rig_get` reports the real one with
+   `joints_pending` rather than pretending a synchronous op can know it.
+
+## Phase 15 — looks like animation, not maths (v1.9.0, planned)
+
+The generator's arithmetic is sound; its *shapes* are the problem. This phase
+changes what the clips look like, in the order of how much a viewer notices.
+
+1. **A swing is an arc, not a step.** Foot height is currently 0 or 1 across
+   the whole swing, so the foot teleports up at toe-off and back down at heel
+   strike on a flat plateau; it becomes a hump that is exactly zero at both
+   contacts. Jump and turn sample their phase tables at the requested key
+   density (today `samples` does nothing for them), use the `lean`, `foot_lift`
+   and `knee_bend` they already accept, and keep the air target airborne until
+   the body has actually landed.
+2. **Idle keeps its feet.** Idle bobs and sways the pelvis and never re-solves
+   the legs, so the feet drift with the weight shift. Both behaviours ship
+   behind a new `planted` param: `true` (the default; the current drift is a
+   defect) solves both legs against fixed rest ankle targets, `false` preserves
+   today's pelvis-only clip for callers who key the feet themselves.
+3. **Knees keep their mind.** Reach clamping becomes honest — both bones solve
+   against one clamped effective target and the reply says `clamped` — and the
+   pole comes from the measured rest bend plus a per-leg sign, so the knee side
+   is preserved through singular targets instead of being re-guessed from a
+   cross product that can be zero.
+4. **Motion scales with the rig.** Default bob, lift, crouch, jump height and
+   turn bob are fractions of measured leg length and hip height rather than
+   fixed metres (explicit metre values keep their meaning); blend-space
+   positions use each clip's *actual* solved speed, and the reply reports the
+   gap when the stride cap had to clamp it.
+5. **A real rig frame.** Up, forward and lateral are built from rest geometry
+   and orthogonalised, replacing the hard-coded `Vector3.UP` that mis-bobs any
+   non-Y-up rig; the contact/slide metrics use the same frame, so they are
+   invariant under a rotated, scaled or mirrored root. The rest map becomes the
+   union of roles, spine chain and solve bones, so a detected neck or upper
+   chest is no longer keyed against an identity fallback.
+6. **Lean is distributed like twist.** Every torso bone currently receives the
+   full lean, so a seven-bone spine folds seven times as much as a three-bone
+   one; the sum stays the same instead.
+7. **The root-motion contract, settled last.** The legs are solved in the frame
+   the viewer sees — the root-motion-canceled one — with the extracted motion
+   supplying world travel, and `root_motion_local` is set explicitly. Today's
+   audit only applies the spec locally, so a real `AnimationTree` playback test
+   (Phase 16) is the gate for this change.
+
+## Phase 16 — prove it (v1.10.0, planned)
+
+1. **Direct `MotionSpecs` contract tests** — the generator has none: key times
+   and counts, style/override resolution, markers, returned speed/stride/cadence,
+   loop closure, finite values, seeded determinism.
+2. **A synthetic proportion matrix in tier-1** — the first tier-1 to build
+   `Skeleton3D` chains: short legs, long legs, asymmetric legs, a child-sized
+   rig, a rotated/mirrored root. Normalized stride, lift, symmetry, a
+   leg-scaled slide budget, and loop value *and* velocity closure.
+3. **Real playback tests** — `AnimationPlayer.play()/seek()` instead of
+   nearest-key lookup, so interpolation, root motion through an `AnimationTree`,
+   and mid-key values are all covered, and the audit's numbers are checked
+   against what actually plays.
+4. **Golden clips** — normalized walk/run/idle fixtures in the existing
+   `godot-ai-animation-clip` JSON, with quaternion-sign normalization and
+   tolerances, plus a "generate twice, identical" determinism test. The goldens
+   are recorded once Phase 15 has settled, then gate drift.
 
 ## Risks / notes
 

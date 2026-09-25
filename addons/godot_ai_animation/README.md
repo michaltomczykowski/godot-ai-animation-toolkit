@@ -19,8 +19,10 @@ engine:
 - **`animation_rig`** (promoted to `custom_animation_rig`) — skeleton poses:
   capture, apply, blend, keyframe into clips, inspect rigs.
 - **`animation_motion`** (promoted to `custom_animation_motion`) — procedural
-  humanoid cycles: `walk_cycle`, `run_cycle`, `idle_cycle`, `cycle`, plus
-  `secondary_motion` (offline spring bones).
+  humanoid cycles: `walk_cycle`, `run_cycle`, `idle_cycle`, `cycle`, `jump`,
+  `turn_cycle`, `strafe_cycle`, the `walk_start` / `walk_stop` transitions,
+  `character_setup` (whole locomotion set in one undo), plus `secondary_motion`
+  (offline spring bones).
 - **`animation_inspect`** (promoted to `custom_animation_inspect`) — read-only
   inspection, auditing and dry runs.
 
@@ -119,24 +121,24 @@ compressed tracks rather than rewriting them lossily.
 | op | What it does |
 | --- | --- |
 | `rig_chain` | Build bones from a spec or turn a Node3D/Node2D subtree into a skeleton. |
-| `ik_setup` | Attach a two-bone / CCDIK / FABRIK / Jacobian / spline IK modifier wired to a target and pole. |
+| `ik_setup` | Attach a two-bone / CCDIK / FABRIK / Jacobian IK modifier wired to a target and pole; `spline` follows a `Path3D` instead. Validated chains, rest-frame default markers. |
 | `spring_setup` | Attach spring bones (stiffness, drag, gravity, radius, collisions). |
 | `look_at_setup` | One bone tracks a target, with origin, limits, secondary rotation, turn duration. |
-| `retarget_setup` | Retarget a source skeleton onto a child target (auto / humanoid / res:// profile). |
-| `twist_setup` | Spread a twist over the bones above it with a `BoneTwistDisperser3D` (even or weighted, over the detected or explicit `spine_chain`). |
+| `retarget_setup` | Retarget a source skeleton onto a child target (auto / humanoid / res:// profile); refuses an empty map and reconfigures an existing modifier. |
+| `twist_setup` | Spread a twist over the bones above it with a `BoneTwistDisperser3D` (even or weighted, over the detected or explicit `spine_chain`); rejects parameters the mode ignores. |
 | `walk_cycle` | Looping in-place walk: thigh swing, knee bend, counter-swinging arms (`arm_down` for T-pose rigs), hip bob. For smooth character cycles prefer `animation_motion` below. |
 | `idle_breathing` | Subtle idle: the whole torso chain breathes, the head counter-moves, an optional hip bob. For a richer loop prefer `animation_motion`'s `idle_cycle`. |
 | `blink` | Scale/rotate lid bones closed, N blinks per clip. |
 | `jumping_jack` | Looping jack: arms down to overhead, legs spread, rise. |
 | `squat` | Looping squat with the ankles planted by a two-bone solve. |
 | `punch` | Boxing combo: guard, alternating straight punches, `amplitude` total torso twist shared up the spine chain. |
-| `bake_pose_sequence` | Sample a clip and the active modifiers into a new keyed clip (final pose captured at `modification_processed`). |
+| `bake_pose_sequence` | Sample a clip and the active modifiers into a new keyed clip (deterministic per-sample advance, both skeletons restored). |
 | `pose_save` | Capture a skeleton pose as portable rest-relative data. |
 | `pose_apply` | Write a pose back (blend / mirror / reset options). |
 | `pose_blend` | Blend two poses (slerp rotations, lerp positions). |
 | `pose_to_clip` | Keyframe a pose sequence into a clip (lean: only moving bones). |
 | `pose_list` | List saved pose files. |
-| `rig_get` | Dump bones, rests, pose, modifiers, springs + issues. |
+| `rig_get` | Dump bones, rests, pose, modifiers, springs, twist joint lists + issues. |
 
 ## `animation_motion`
 
@@ -150,6 +152,7 @@ compressed tracks rather than rewriting them lossily.
 | `turn_cycle` | One-shot in-place pivot turn with anticipation and settle; `angle`, `direction`, `steps`. |
 | `walk_start` / `walk_stop` | Short blends in/out of a gait, sampled at `phase` so they match the cycle frame-for-frame. |
 | `cycle` | Generic entry: `preset` = walk / run / idle. |
+| `character_setup` | The whole locomotion set in one undo: idle + walk + run (+ optional jump/turn), the AnimationTree wired, the root-motion track set; returns the speed parameter and a game-side snippet. |
 | `secondary_motion` | Bake offline spring bones (hair/tail/cloth) into an existing clip, deterministically. |
 
 Styles (`default` / `relaxed` / `heavy` / `sneaky`) scale a config before
@@ -182,8 +185,16 @@ undoable commands) rejects it — call it directly.
 - `spec/clip_spec.gd` — declarative clip data (tracks, typed keys, markers).
 - `spec/spec_builder.gd` / `spec/spec_io.gd` — spec ⇄ `Animation`.
 - `spec/spec_modifiers.gd` — pure spec → spec transforms (tier-1 tested).
-- `spec/quality_modifiers.gd` — smoothing, engine-exact resampling, micro-noise,
-  overlap and layering, plus the `motion_report` analysis (tier-1 tested).
+- `spec/quality_modifiers.gd` — smoothing, engine-exact resampling, measured
+  key reduction (`reduce`), micro-noise, overlap and layering, plus the
+  `motion_report` analysis (tier-1 tested).
+- `spec/pose_solver.gd` — pure chain (FK/aim/two-bone) solving with reach
+  clamping (tier-1 tested).
+- `spec/rig_analysis.gd` — pure rig analysis: bone-name role detection with
+  ranked candidates, spine-chain discovery, T/A-pose classification, contact /
+  foot-slide math and rig-profile validation.
+- `spec/spine_twist.gd` — pure twist distribution over a bone chain (even /
+  weighted shares, per-bone amounts).
 - `spec/motion_drivers.gd` — pure procedural motion math: curves, periodic
   noise, rest-relative rotation conversion, aim/knee solves, spring simulation.
 - `spec/motion_specs.gd` — walk/run/idle cycle definitions and style bundles.

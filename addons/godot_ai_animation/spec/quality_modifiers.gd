@@ -140,11 +140,14 @@ static func add_noise(spec: Dictionary, amount: float, frequency: float, seed_va
 		var type := int(track.get("type", -1))
 		var property := ClipSpec.property_of(str(track.get("path", "")))
 		var track_seed := seed_value + str(track.get("path", "")).hash()
+		# One axis per track, not per key: rotating every key around a different
+		# axis is angular jitter, and the first and last keys of a loop ended up
+		# on unrelated axes so the seam never closed.
+		var axis := _seeded_axis(track_seed)
 		for index in keys.size():
 			var x := frequency * float(index) / maxf(float(keys.size() - 1), 1.0)
 			var value: Variant = keys[index].get("value")
 			if typeof(value) == TYPE_QUATERNION or type == Animation.TYPE_ROTATION_3D:
-				var axis := _seeded_axis(track_seed + index)
 				var degrees := MotionDrivers.signal_value("noise", x, track_seed, 3) * amount
 				keys[index]["value"] = (value as Quaternion * Quaternion(axis, deg_to_rad(degrees))).normalized()
 			elif typeof(value) == TYPE_VECTOR3:

@@ -238,6 +238,17 @@ func _add_do_call(undo: Object, target: Object, method: String, args: Array = []
 		_: undo.add_do_method(target, method, args[0], args[1], args[2], args[3])
 
 
+## The undo counterpart of `_add_do_call`, for reconfiguring a node that already
+## exists: restore the old value when the action is undone.
+func _add_undo_call(undo: Object, target: Object, method: String, args: Array = []) -> void:
+	match args.size():
+		0: undo.add_undo_method(target, method)
+		1: undo.add_undo_method(target, method, args[0])
+		2: undo.add_undo_method(target, method, args[0], args[1])
+		3: undo.add_undo_method(target, method, args[0], args[1], args[2])
+		_: undo.add_undo_method(target, method, args[0], args[1], args[2], args[3])
+
+
 ## Add nodes in one scene-pinned undo action, each owned by the edited scene
 ## root so the scene save keeps them, then run their setup calls
 ## ([{method, args?} | {property, value}]). Entries are
@@ -283,6 +294,36 @@ func _commit_node_add_many(action_label: String, entries: Array) -> void:
 ## Single-node convenience wrapper around `_commit_node_add_many`.
 func _commit_node_add(action_label: String, parent: Node, node: Node, setup: Array = []) -> void:
 	_commit_node_add_many(action_label, [{"parent": parent, "node": node, "setup": setup}])
+
+
+## First setup call the node's class does not implement, or "" when every call
+## is real. Modifier APIs differ between engine versions and a queued call only
+## fails when the undo action runs - after the op has already reported success.
+func _setup_calls_error(node: Node, setup: Array) -> String:
+	for call in setup:
+		if call.has("property"):
+			continue
+		var method := str(call.get("method", ""))
+		if method.is_empty():
+			return "a setup entry for %s has no method" % node.name
+		if not node.has_method(method):
+			return "%s has no '%s' method in this Godot build" % [node.get_class(), method]
+	return ""
+
+
+## A child name no sibling and no other node in the same pending action already
+## uses. Godot renames an added child on a clash, which would break a NodePath
+## built from the requested name before the add. `taken` accumulates the names
+## this action has already claimed.
+static func _unique_child_name(parent: Node, desired: String, taken: Dictionary) -> String:
+	var base := desired if not desired.is_empty() else "Node"
+	var candidate := base
+	var index := 2
+	while parent.has_node(NodePath(candidate)) or taken.has(candidate):
+		candidate = "%s%d" % [base, index]
+		index += 1
+	taken[candidate] = true
+	return candidate
 
 
 ## Global scale of a skeleton's owning node, for the "springs and IK assume unit
