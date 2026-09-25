@@ -1205,6 +1205,108 @@ func test_generator_contract_key_times_speeds_and_determinism() -> void:
 	_teardown(rig)
 
 
+func test_real_playback_interpolates_wraps_and_matches_the_data() -> void:
+	# Every other test in this suite applies the NEAREST key to the skeleton by
+	# hand, so nothing has ever checked what the engine actually plays: the
+	# interpolation between keys, the wrap at the end of a looping clip, or that
+	# the pose on screen is the pose the data describes. This one lets the real
+	# AnimationPlayer do the work.
+	var rig := _rig("MotionPlayback")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var player: AnimationPlayer = rig.player
+	var built := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "play_walk",
+		"duration": 1.0, "loop_mode": "linear", "samples": 8.0,
+	}, null)
+	assert_true(built.has("data"), "the walk builds (%s)" % str(built.get("error", built)))
+	var anim: Animation = player.get_animation("play_walk")
+	assert_true(anim != null and anim.get_track_count() > 0, "the clip has tracks")
+	if anim == null:
+		_teardown(rig)
+		return
+	var bone := "B-thigh.L"
+	var track := _track_index(anim, ":" + bone, Animation.TYPE_ROTATION_3D)
+	assert_true(track >= 0, "%s has a rotation track" % bone)
+	if track < 0:
+		_teardown(rig)
+		return
+	# play() + seek(update=true) + advance(0) is the documented way to make the
+	# player evaluate a time immediately, without waiting for a frame. The blend
+	# time goes to zero first: with the default blend, the first evaluations are a
+	# partial weight and the pose is not yet the clip's.
+	var blend: float = player.playback_default_blend_time
+	player.playback_default_blend_time = 0.0
+	player.play("play_walk")
+	player.seek(0.0, true)
+	player.advance(0.0)
+	# 1. Mid-key sampling is INTERPOLATED, not snapped: the played value at a time
+	# between two keys differs from both of them. Under the nearest-key helper this
+	# was impossible to see.
+	var a: Quaternion = anim.track_get_key_value(track, 0)
+	var b: Quaternion = anim.track_get_key_value(track, 1)
+	if absf(a.angle_to(b)) > 0.01:
+		var mid_time: float = (anim.track_get_key_time(track, 0) + anim.track_get_key_time(track, 1)) * 0.5
+		player.seek(mid_time, true)
+		player.advance(0.0)
+		var index: int = rig.skeleton.find_bone(bone)
+		var played: Quaternion = rig.skeleton.get_bone_pose_rotation(index)
+		var expected: Quaternion = anim.rotation_track_interpolate(track, mid_time)
+		# Not bit-exact, and it cannot be: the played value comes back through the
+		# skeleton's pose application, which normalises the local rotation against
+		# the bone chain. The measured gap is ~7e-4 rad, so 2e-3 is the engine's
+		# real guarantee - well under a hundredth of a degree.
+		assert_true(played.angle_to(expected) < 0.002,
+			"the played %s at t=%.4f is the clip's own interpolation (%.5f rad apart)"
+			% [bone, mid_time, played.angle_to(expected)])
+		var from_first := played.angle_to(a)
+		var from_second := played.angle_to(b)
+		var span := a.angle_to(b)
+		assert_true(from_first < span * 0.98 and from_second < span * 0.98,
+			"the mid-key value is BETWEEN its keys, not snapped to one (%.4f / %.4f of %.4f)"
+			% [from_first, from_second, span])
+	# 2. What plays is what the data says, at several times across the clip.
+	for step in 9:
+		var at: float = anim.length * float(step) / 8.0
+		player.seek(at, true)
+		player.advance(0.0)
+		var index: int = rig.skeleton.find_bone(bone)
+		var played: Quaternion = rig.skeleton.get_bone_pose_rotation(index)
+		var expected: Quaternion = anim.rotation_track_interpolate(track, at)
+		assert_true(played.angle_to(expected) < 0.002,
+			"t=%.4f: the played %s matches the clip (%.5f rad apart)" % [at, bone, played.angle_to(expected)])
+	# 3. A looping clip WRAPS rather than clamping: past the end, playback is back
+	# at the start of the cycle.
+	player.seek(anim.length + 0.05, true)
+	player.advance(0.0)
+	var wrapped: Quaternion = rig.skeleton.get_bone_pose_rotation(rig.skeleton.find_bone(bone))
+	player.seek(0.05, true)
+	player.advance(0.0)
+	var wrapped_again: Quaternion = rig.skeleton.get_bone_pose_rotation(rig.skeleton.find_bone(bone))
+	assert_true(wrapped.angle_to(wrapped_again) < 0.001,
+		"seeking past the end wraps into the cycle (%.5f rad apart)" % wrapped.angle_to(wrapped_again))
+	# 4. The seam is continuous under real playback: the step across the wrap is no
+	# bigger than the biggest step inside the clip (a pop would dwarf it).
+	player.seek(anim.length - 0.001, true)
+	player.advance(0.0)
+	var before_wrap: Quaternion = rig.skeleton.get_bone_pose_rotation(rig.skeleton.find_bone(bone))
+	var seam := before_wrap.angle_to(wrapped)
+	var biggest := 0.0
+	for index in range(1, anim.track_get_key_count(track)):
+		var first: Quaternion = anim.track_get_key_value(track, index - 1)
+		var second: Quaternion = anim.track_get_key_value(track, index)
+		biggest = maxf(biggest, first.angle_to(second))
+	assert_true(seam <= biggest * 1.35 + 0.01,
+		"the loop seam is no bigger than the motion inside the clip (%.4f vs %.4f)" % [seam, biggest])
+	player.stop()
+	player.playback_default_blend_time = blend
+	player.seek(0.0, true)
+	player.advance(0.0)
+	_teardown(rig)
+
+
 ## Peak vertical travel of the hips track, in metres: the bob.
 func _hip_bob(anim: Animation) -> float:
 	var track := _track_index(anim, ":B-hips", Animation.TYPE_POSITION_3D)

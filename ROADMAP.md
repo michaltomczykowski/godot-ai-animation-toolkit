@@ -1017,15 +1017,26 @@ changes what the clips look like, in the order of how much a viewer notices.
    `Skeleton3D` chains: short legs, long legs, asymmetric legs, a child-sized
    rig, a rotated/mirrored root. Normalized stride, lift, symmetry, a
    leg-scaled slide budget, and loop value *and* velocity closure. **Open.**
-3. **Real playback tests** — `AnimationPlayer.play()/seek()` instead of
-   nearest-key lookup, so interpolation, root motion through an `AnimationTree`,
-   and mid-key values are all covered, and the audit's numbers are checked
-   against what actually plays. **Open** — and it is the gate for 17.7.
+3. **Real playback tests — DONE.** Every other test in the motion suite applies
+   the *nearest key* to the skeleton by hand, so nothing had ever checked what
+   the engine plays: the interpolation between keys, the wrap at the end of a
+   looping clip, or that the pose on screen is the pose the data describes. The
+   new test lets the real `AnimationPlayer` do the work (`play()` + `seek(t, true)`
+   + `advance(0)`, with the playback blend zeroed so the first evaluation is not
+   a partial weight) and asserts: a mid-key time gives a value genuinely *between*
+   its two keys (not snapped), the played pose equals the clip's own
+   `rotation_track_interpolate` at nine times across the clip, seeking past the
+   end of a looping clip *wraps* rather than clamps, and the seam step is no
+   bigger than the biggest step inside the clip. **What plays is now verified to
+   be what the data says**, to 2e-3 rad — the played value comes back through the
+   skeleton's pose application, which normalises the local rotation, so bit
+   equality is not the engine's contract and the measured gap is ~7e-4 rad.
 4. **Golden clips** — normalized walk/run/idle fixtures in the existing
    `godot-ai-animation-clip` JSON, with quaternion-sign normalization and
    tolerances, plus a "generate twice, identical" determinism test. The goldens
    are recorded once Phase 17 has settled, then gate drift. **Open** (the
-   determinism half is done, in item 1).
+   determinism half is done, in item 1, and the playback tolerance above is
+   measured rather than assumed).
 
 ### What the contract test found
 
