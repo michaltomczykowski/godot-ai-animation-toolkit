@@ -229,6 +229,50 @@ func _check_blend_tree() -> void:
 	_expect(not with_sm.has("error"), "state machines nest inside blend trees")
 	_expect(with_sm.root.get_node(StringName("StateMachine")) is AnimationNodeStateMachine,
 		"the nested state machine is added as a node")
+	_check_output_wiring()
+
+
+## A blend tree with an unconnected `output` node builds cleanly, reports no
+## issue, and then evaluates to nothing - the graph is there and no pose ever
+## plays. 4.7 cannot read a connection back, so the wiring is verified in the
+## SERIALIZED resource: that is what the editor and the engine load.
+func _check_output_wiring() -> void:
+	var output := StringName("output")
+	for label in ["flat", "nested"]:
+		var spec := {
+			"type": "blend2",
+			"inputs": [
+				{"type": "animation", "animation": "walk"},
+				{"type": "animation", "animation": "run"},
+			],
+		}
+		if label == "nested":
+			spec = {"type": "one_shot", "inputs": [spec]}
+		var built := GraphBuilders.blend_tree(spec)
+		_expect(not built.has("error"), "%s blend_tree builds" % label)
+		var tree: AnimationNodeBlendTree = built.root
+		_expect(tree.has_node(output), "%s: the output node exists" % label)
+		_expect(bool(built.get("output_wired", false)), "%s: the builder wired output" % label)
+		var source := str(built.get("output_source", ""))
+		_expect(not source.is_empty() and tree.has_node(StringName(source)),
+			"%s: the reported output source is a real node (%s)" % [label, source])
+		_expect(str(source) != str(output), "%s: output is not wired to itself" % label)
+		var path := "user://tier1_blend_tree_%s.tres" % label
+		var err := ResourceSaver.save(tree, path)
+		_expect(err == OK, "%s: the tree serializes (%d)" % [label, err])
+		if err != OK:
+			continue
+		var text := FileAccess.get_file_as_string(path)
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+		# 4.7 serialises connections as one flat array of
+		# [input_node, input_index, output_node, ...] triples.
+		var wired_token := '&"output", 0, &"%s"' % source
+		_expect(text.contains("node_connections"),
+			"%s: the saved tree records connections" % label)
+		_expect(text.contains(wired_token),
+			"%s: output input 0 is wired to '%s' in the saved tree" % [label, source])
+		_expect(text.contains(source),
+			"%s: the saved tree names '%s' as the output source" % [label, source])
 
 
 func _check_blend_tree_validation() -> void:

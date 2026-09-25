@@ -15,8 +15,8 @@ const LibraryHandler := preload("res://addons/godot_ai_animation/handlers/librar
 ## NOTE: GDScript tests must not call save_scene, scene_create, scene_open,
 ## quit_editor, or reload_plugin (see the core CLAUDE.md Known Issues).
 
-const LIBRARY := "res://tests/tmp_library.json"
-const SPEC := "res://tests/tmp_spec.json"
+const LIBRARY := "res://animation_toolkit/tmp_library.json"
+const SPEC := "res://animation_toolkit/tmp_spec.json"
 const DUMMY := "res://models/human_dummy/HumanCharacterDummy_F.fbx"
 
 var _handler: LibraryHandler

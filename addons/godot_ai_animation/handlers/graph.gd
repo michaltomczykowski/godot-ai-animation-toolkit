@@ -107,6 +107,10 @@ func graph_blend_tree(params: Dictionary) -> Dictionary:
 	return _commit_graph(context, built.root, "MCP: Animation blend tree", {
 		"node_count": int(built.node_count),
 		"animation_count": int(built.animation_count),
+		# 4.7 cannot read a blend tree's connections back, so the builder reports
+		# the one it wired: an unconnected `output` means the tree plays nothing.
+		"output_source": str(built.get("output_source", "")),
+		"output_wired": bool(built.get("output_wired", false)),
 	})
 
 
@@ -153,8 +157,10 @@ func graph_get(params: Dictionary) -> Dictionary:
 			player = resolved.player
 		tree = _find_tree(player)
 		if tree == null:
+			var wanted := ("drives %s" % player_path) if not player_path.is_empty() \
+				else "is unambiguous (one tree drives the player you named, or there is only one tree)"
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-				"No AnimationTree found in the edited scene (pass tree_path, or build one with wire)")
+				"No AnimationTree %s. Existing trees: %s. Pass the one you want as tree_path (or build one with wire)." % [wanted, _tree_candidates()])
 	var clips: Array = []
 	var player_for_clips := player
 	if player_for_clips == null:
@@ -427,9 +433,31 @@ func _find_tree(player: AnimationPlayer) -> AnimationTree:
 			var tree := node as AnimationTree
 			if tree.get_node_or_null(tree.anim_player) == player:
 				return tree
-	if not trees.is_empty():
-		return trees[0] as AnimationTree
-	return null
+		# The caller named a player and no tree drives it. Returning the first
+		# tree in the scene here wired somebody ELSE'S AnimationTree and reported
+		# success - the graph the caller asked about was never touched.
+		return null
+	# No player context: a single tree is unambiguous, more than one is not.
+	return trees[0] as AnimationTree if trees.size() == 1 else null
+
+
+## A short "path -> anim_player" list for an error message, so the caller can
+## pick a `tree_path` instead of guessing.
+func _tree_candidates() -> String:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		return "(no edited scene)"
+	var trees: Array = scene_root.find_children("*", "AnimationTree", true, false)
+	if trees.is_empty():
+		return "(none in the edited scene)"
+	var parts: Array = []
+	for node in trees:
+		var tree := node as AnimationTree
+		parts.append("%s -> %s" % [
+			ValueCodec.from_node(tree, scene_root),
+			str(tree.anim_player) if not str(tree.anim_player).is_empty() else "(unset)",
+		])
+	return ", ".join(parts)
 
 
 func _player_of_tree(tree: AnimationTree) -> AnimationPlayer:

@@ -8,6 +8,11 @@ extends RefCounted
 
 const ErrorCodes := preload("res://addons/godot_ai_animation/utils/error_codes.gd")
 
+## Every file this toolkit writes lives under here. A write path arrives as a
+## caller's string, and "res://" or a project file is one typo (or one confused
+## agent) away, so the writers are confined to this subtree.
+const WRITE_ROOT := "res://animation_toolkit/"
+
 ## Named transition vocabulary shared with the core animation tooling
 ## (docs/animation-recipes.md): linear/ease_in/ease_out/ease_in_out.
 const _NAMED_TRANSITIONS := {
@@ -39,6 +44,57 @@ static func loop_mode_to_string(mode: int) -> String:
 		_:
 			return "none"
 
+
+## Check a path this toolkit is about to write. Returns "" when it is allowed,
+## otherwise a message naming the rule that refused it.
+##
+## Two rules, both about the path arriving as a caller's string:
+## - it must be inside `WRITE_ROOT` (so `res://`, `user://` and an absolute path
+##   are all refused, as is `res://animation_toolkit/../scenes/Main.tscn` once
+##   simplified);
+## - its file name must be a plain name - no separators, no `..`, no leading dot
+##   and none of the characters Godot refuses in a node name.
+static func check_write_path(path: String) -> String:
+	var trimmed := path.strip_edges()
+	if trimmed.is_empty():
+		return "'path' must not be empty"
+	if not trimmed.begins_with("res://"):
+		return "Writes are confined to %s (got '%s', an absolute or user:// path)" % [WRITE_ROOT, trimmed]
+	var simplified := trimmed.simplify_path()
+	if not simplified.begins_with(WRITE_ROOT):
+		return "Writes are confined to %s (got '%s')" % [WRITE_ROOT, trimmed]
+	var file_name := simplified.get_file()
+	if file_name.is_empty() or file_name == ".":
+		return "'%s' does not name a file" % simplified
+	for bad in ["/", "\\", ":", ".."]:
+		if file_name.contains(str(bad)):
+			return "The file name '%s' must be a plain name" % file_name
+	if file_name.begins_with("."):
+		return "The file name '%s' must not start with a dot" % file_name
+	for bad in [".", "@", "\"", "%", "$", "&", "'", "*", ":", ";"]:
+		if file_name.contains(str(bad)) and str(bad) != ".":
+			return "The file name '%s' contains '%s', which is not allowed" % [file_name, str(bad)]
+	return ""
+
+
+## Join a caller-supplied directory and file name under `WRITE_ROOT`, refusing
+## anything that would escape it. `directory` may be "" (use the default) or a
+## path inside the root; `file_name` must be a plain file name.
+static func toolkit_write_path(directory: String, file_name: String) -> Dictionary:
+	if file_name.is_empty():
+		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM, "A file name is required")
+	var problem := check_write_path("%s%s" % [WRITE_ROOT, file_name])
+	if not problem.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, problem)
+	var base := directory.strip_edges()
+	if base.is_empty():
+		return {"ok": true, "path": "%s%s" % [WRITE_ROOT, file_name]}
+	if not base.begins_with(WRITE_ROOT):
+		base = WRITE_ROOT + base.trim_prefix("/")
+	var problem_dir := check_write_path("%sx" % base)
+	if not problem_dir.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Directory: %s" % problem_dir)
+	return {"ok": true, "path": "%s/%s" % [base, file_name]}
 
 ## The node animation track paths are stored relative to: the player's explicit
 ## `root_node` when set and resolvable, else its parent.

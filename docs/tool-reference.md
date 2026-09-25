@@ -24,6 +24,13 @@ node is added or changed, no clip is written, no undo action is committed and
 **no file is created** (`pose_save`, `template_save`, `template_delete` and
 `rig_profile` all report what they would write instead).
 
+Every file the toolkit writes is confined to `res://animation_toolkit/…` with a
+plain file name. `res://`, `user://`, an absolute path, a `..` escape and a
+project file such as `res://project.godot` are refused, and the refusal names
+the allowed root. Ops that promise undoability (`pose_apply` and the `*_setup`
+family) refuse outright when there is no editor undo history, so `undoable:
+true` is never a claim without an undo stack behind it.
+
 A generated per-op index with every parameter lives in
 [`op-index.md`](op-index.md) — it is rendered from
 `registry/op_registry.gd` and checked for freshness by the tier-1 suite.
@@ -314,8 +321,8 @@ and committed as ONE scene-pinned undo action.
 | --- | --- |
 | `state_machine` | An `AnimationNodeStateMachine` root from `states` + `transitions` (xfade, advance/switch modes, conditions, expressions, priority). |
 | `blend_space` | A 1D or 2D `AnimationNodeBlendSpace` from clips at positions. |
-| `blend_tree` | A recursive blend tree spec: `blend2`/`blend3`/`add2`/`add3`/`one_shot`/`time_scale`/`animation`, with nested state machines and blend spaces. |
-| `wire` | Ensures the tree exists, is active and pointed at the player; optionally sets a parameter. |
+| `blend_tree` | A recursive blend tree spec: `blend2`/`blend3`/`add2`/`add3`/`one_shot`/`time_scale`/`animation`, with nested state machines and blend spaces. The spec's root is wired to the tree's `output` node (an unconnected `output` builds cleanly and then plays nothing); the reply's `output_source` names the node it wired, which is the only way to read a connection back in 4.7. |
+| `wire` | Ensures the tree exists, is active and pointed at the player; optionally sets a parameter. `create=false` turns the call into a check: a missing tree is reported instead of created. A named player is never given another player's tree — the lookup follows `anim_player` exactly, and `graph_get` lists the existing trees when it finds none. |
 | `graph_get` | Dumps a graph: states, transitions, blend points, tree nodes, parameters, playback paths, and issues (missing clips, inactive tree, unresolved player). |
 | `locomotion` | Ready-made idle/walk/run: a speed blend space (default) or a state machine driven by `walking`/`running`. |
 | `one_shot_layer` | Layers a one-shot (jump/attack/hit) over the existing tree root, exposing `parameters/.../request`. |
@@ -425,7 +432,7 @@ both human-dummy variants.
 
 | op | What it does |
 | --- | --- |
-| `rig_chain` | Build bones from a spec (`bones`: name/parent/rest, rotation in degrees) or turn a Node3D/Node2D subtree into a skeleton. Creates the skeleton when `skeleton_path` is empty. |
+| `rig_chain` | Build bones from a spec (`bones`: name/parent/rest, rotation in degrees) or turn a Node3D/Node2D subtree into a skeleton. Creates the skeleton when `skeleton_path` is empty. A bone name containing `/` or `:` is refused before anything is committed: it would break the `Skeleton3D:<bone>:<property>` track paths built from it (dots are fine). |
 | `ik_setup` | Attach a 3D IK modifier to a Skeleton3D, wire it to a target node and (optionally) a pole. `kind=spline` is the exception: `SplineIK3D` follows a **Path3D** (`target_path`, created at the end bone when omitted) because it has no target setting anywhere in its class chain. Chains are validated: `two_bone` needs exactly three parent-ordered bones (or two with `use_virtual_end`), the chain solvers a root and an end with the end below it. Default markers come from the **rest** frame, and a second marker asking for the same name gets its own (`IKTarget2`) so both paths still resolve. |
 | `spring_setup` | Attach a `SpringBoneSimulator3D` with one spring per `springs` entry (root/end bone, stiffness, drag, gravity, radius, rotation axis, centre, collisions). `end_bone` defaults to the root's leaf. |
 | `look_at_setup` | Attach a `LookAtModifier3D` so one bone tracks a target node (created a metre in front of the bone when omitted), with origin, limits, secondary rotation and turn duration. |

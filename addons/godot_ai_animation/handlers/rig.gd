@@ -545,6 +545,9 @@ const IK_3D_KINDS := {
 ## Build bones on a skeleton: from a bone spec (`bones`), or by turning a
 ## Node3D / Node2D subtree into a skeleton (`node_path`).
 func rig_chain(params: Dictionary) -> Dictionary:
+	var undo_ready := _require_undo("rig_chain")
+	if not undo_ready.is_empty():
+		return undo_ready
 	var from_node := str(params.get("node_path", ""))
 	if not from_node.is_empty():
 		return _rig_chain_from_subtree(params, from_node)
@@ -737,6 +740,9 @@ func _build_chain(
 ## Attach an IK modifier to a Skeleton3D and point it at a target node. The
 ## modifier is created inactive unless active=true.
 func ik_setup(params: Dictionary) -> Dictionary:
+	var undo_ready := _require_undo("ik_setup")
+	if not undo_ready.is_empty():
+		return undo_ready
 	var resolved := _resolve_skeleton(params)
 	if resolved.has("error"):
 		return resolved
@@ -1035,6 +1041,9 @@ func _ik_setup_spline(skeleton: Skeleton3D, scene_root: Node, params: Dictionary
 ## Attach a SpringBoneSimulator3D to a Skeleton3D, one spring setting per entry
 ## in `springs`. Created inactive unless active=true.
 func spring_setup(params: Dictionary) -> Dictionary:
+	var undo_ready := _require_undo("spring_setup")
+	if not undo_ready.is_empty():
+		return undo_ready
 	var resolved := _resolve_skeleton(params)
 	if resolved.has("error"):
 		return resolved
@@ -1196,6 +1205,9 @@ func spring_setup(params: Dictionary) -> Dictionary:
 
 ## Attach a LookAtModifier3D to a Skeleton3D so one bone tracks a target node.
 func look_at_setup(params: Dictionary) -> Dictionary:
+	var undo_ready := _require_undo("look_at_setup")
+	if not undo_ready.is_empty():
+		return undo_ready
 	var resolved := _resolve_skeleton(params)
 	if resolved.has("error"):
 		return resolved
@@ -1238,7 +1250,13 @@ func look_at_setup(params: Dictionary) -> Dictionary:
 	var target_node: Node3D = target
 	if target_node == null:
 		var marker := Marker3D.new()
-		marker.name = str(params.get("target_name", "LookAtTarget"))
+		# A second look-at asking for the same marker name used to get renamed by
+		# Godot on add ("LookAtTarget2") while the modifier's target_node still
+		# pointed at "LookAtTarget" - so the second look-at drove the FIRST
+		# target. The modifier and the marker are wired by name, so the name has to
+		# be unique up front, like the IK markers already are.
+		var taken_names := {}
+		marker.name = _unique_child_name(scene_root, str(params.get("target_name", "LookAtTarget")), taken_names)
 		entries.append({"parent": scene_root, "node": marker,
 			"setup": [{"method": "set_global_position", "args": [skeleton.global_transform * (bone_pose.origin + ahead)]}]})
 		target_node = marker
@@ -1333,6 +1351,9 @@ func look_at_setup(params: Dictionary) -> Dictionary:
 ## (or explicit) spine chain, and the joint amounts default to the same
 ## distribution the motion recipes use, so the modifier and the clips agree.
 func twist_setup(params: Dictionary, ctx = null) -> Dictionary:
+	var undo_ready := _require_undo("twist_setup")
+	if not undo_ready.is_empty():
+		return undo_ready
 	var resolved := _resolve_skeleton(params)
 	if resolved.has("error"):
 		return resolved
@@ -1515,6 +1536,9 @@ func _damping_curve(amount: float) -> Curve:
 
 
 func retarget_setup(params: Dictionary) -> Dictionary:
+	var undo_ready := _require_undo("retarget_setup")
+	if not undo_ready.is_empty():
+		return undo_ready
 	var resolved := _resolve_skeleton(params)
 	if resolved.has("error"):
 		return resolved
@@ -2681,6 +2705,9 @@ func _aim_entry(aim) -> Dictionary:
 
 ## Apply a pose as one undo action. `blend` lerps from the current pose.
 func _apply_pose(resolved: Dictionary, pose: Dictionary, blend: float, reset_first: bool) -> Dictionary:
+	var undo_ready := _require_undo("pose_apply")
+	if not undo_ready.is_empty():
+		return undo_ready
 	var missing: Array = []
 	var applied := 0
 	_create_scene_pinned_action("MCP: Apply pose")
@@ -2786,8 +2813,12 @@ static func _pose_dir(params: Dictionary) -> String:
 	var directory := str(params.get("pose_dir", POSE_DIR))
 	return directory if not directory.is_empty() else POSE_DIR
 
-
 func _write_pose_file(path: String, pose: Dictionary, overwrite: bool) -> Dictionary:
+	# A pose path is a caller's string, so it is confined to the toolkit's own
+	# directory before anything touches the disk.
+	var problem := ValueCodec.check_write_path(path)
+	if not problem.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, problem)
 	# A dry run reports the path it WOULD write and leaves the disk alone. The
 	# pose still comes back in the reply, so the caller loses nothing.
 	if _dry_run:
@@ -2892,6 +2923,14 @@ static func _validate_bone_spec(spec: Array, existing_names: Dictionary = {}) ->
 		var name := str((spec[index] as Dictionary).get("name", ""))
 		if name.is_empty():
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "bones[%d] needs a 'name'" % index)
+		# A bone name ends up inside every track path that touches it
+		# (`Skeleton3D:<bone>:quaternion`). '/' or ':' there makes the path parse
+		# as a different node path, so the clip's tracks would silently point at
+		# the wrong thing. '.' is fine and is what real rigs use (B-upperArm.L).
+		for forbidden in ["/", ":"]:
+			if name.contains(str(forbidden)):
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+					"bones[%d] name '%s' contains '%s', which breaks the `Skeleton3D:<bone>:<property>` track path. Rename it (dots are fine)." % [index, name, str(forbidden)])
 		if names.has(name):
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Duplicate bone name '%s'" % name)
 		names.append(name)
@@ -3015,12 +3054,26 @@ func _bone_tip_3d(skeleton: Skeleton3D, bone_index: int) -> Dictionary:
 ## look-at settings resolve their paths against the modifier. Targets created by
 ## the same action are not in the tree yet, so their path is built by hand (they
 ## land directly under the edited scene root).
-static func _modifier_target_path(skeleton: Skeleton3D, modifier: Node, target: Node, scene_root: Node) -> NodePath:
+static func _modifier_target_path(skeleton: Skeleton3D, modifier: Node, target: Node, target_parent: Node) -> NodePath:
 	if target.is_inside_tree() and modifier.is_inside_tree():
 		return modifier.get_path_to(target)
-	var up := str(skeleton.get_path_to(scene_root))
-	var base := ".." if up.is_empty() else "../%s" % up
-	return NodePath("%s/%s" % [base, str(target.name)])
+	# The modifier is not in the tree yet, so the path is derived from the skeleton
+	# (where the modifier will hang) to the target, and needs one `..` more.
+	#
+	# A target the op CREATES is not in the tree either, so its path is built from
+	# the parent it is about to be added to plus its name. The old code used the
+	# target's bare name against the scene root, which resolved only for a marker
+	# placed directly there: a target the caller pointed at (say
+	# Rig/Targets/HandTarget) produced a path to some other node, and the modifier
+	# drove nothing.
+	var relative := ""
+	if target.is_inside_tree():
+		relative = str(skeleton.get_path_to(target))
+	elif target_parent != null and target_parent.is_inside_tree():
+		relative = "%s/%s" % [str(skeleton.get_path_to(target_parent)), str(target.name)]
+	if relative.is_empty() or relative == ".":
+		return NodePath(str(target.name))
+	return NodePath("../%s" % relative)
 
 
 ## "x" / "y" / "z" / "all" / "custom" -> SkeletonModifier3D.RotationAxis, or -1.

@@ -464,8 +464,13 @@ func _read_json(path: String) -> Dictionary:
 
 
 func _write_json(path: String, data: Dictionary, overwrite: bool) -> Dictionary:
-	# The single choke point for every file this handler writes, so a dry run
-	# cannot reach disk from any op: no directory is created, no file is opened.
+	# The single choke point for every file this handler writes. The path is a
+	# caller's string, so it is confined to the toolkit's own directory first: a
+	# dry run cannot reach disk from any op, and neither can a stray
+	# `library_path` pointing at a project file.
+	var problem := ValueCodec.check_write_path(path)
+	if not problem.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, problem)
 	if _dry_run:
 		return {"ok": true, "dry_run": true}
 	if not overwrite and FileAccess.file_exists(path):

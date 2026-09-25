@@ -101,11 +101,44 @@ then re-verified. The theme: no tool may report success it cannot confirm, and
 - Docs, `CHANGELOG.md` and the ROADMAP are current; `docs/op-index.md` is
   generated from the registry and checked by tier-1.
 
-### Tests
+### Scene safety (the second half of the audit)
 
-187 editor tests (8 suites) and 12 tier-1 suites, all passing. Four tests that
+- A nested target now gets a correct modifier-relative `NodePath`. The path was
+  built from the target's bare *name*, which only resolved for a target sitting
+  directly under the scene root — one at `Rig/Targets/HandTarget` produced a path
+  to some other node. It is now derived from the skeleton to the real target, or
+  to the parent a marker is about to join.
+- `look_at_setup` markers get collision-safe names like the IK markers already
+  did. Two look-ats asking for `LookAtTarget` used to collide: Godot renamed the
+  second marker while the modifier's target path still said the original name,
+  so the second look-at drove the **first** target.
+- A graph op no longer falls back to an unrelated `AnimationTree`. With a player
+  named and no tree of its own, the lookup returned the first tree in the scene,
+  so `state_machine` / `blend_space` / `wire` built the graph on somebody else's
+  player and reported success. The named player now gets its own tree, and
+  `graph_get` names the existing trees so the caller can pick one.
+- A recursive `blend_tree` spec is wired to its `output` node (and the reply
+  reports which node it wired). An unconnected `output` builds cleanly, reports
+  no issue, and then evaluates to nothing.
+- Every file the toolkit writes is confined to `res://animation_toolkit/…` with a
+  plain file name. `res://`, `user://`, absolute paths, `..` escapes and a
+  project file like `res://project.godot` are refused with a message naming the
+  allowed root.
+- `rig_chain` refuses a bone name containing `/` or `:` before committing
+  anything: such a name breaks every `Skeleton3D:<bone>:<property>` track path
+  built from it. Dots are unaffected (`B-upperArm.L`).
+- `pose_apply` and the six setup ops refuse outright when there is no editor undo
+  history, instead of applying and reporting `undoable: true`. The rollback
+  helper never claims a rollback it could not perform.
+- Fixed the rollback helper itself: `EditorUndoRedoManager` has no `undo()` (that
+  is on the history's `UndoRedo`), so a failing verification used to crash
+  instead of returning its error.
+
+### Tests
+191 editor tests (8 suites) and 12 tier-1 suites, all passing. Four tests that
 encoded a bug were repaired rather than the bug: a curve-less `Path3D` was
 accepted for spline IK, a wrapped instanced retarget target was expected to
 work, a 1.5 s contact time was expected inside a 1 s clip, and the punch test
 asserted a per-bone twist magnitude that the detected-chain fix legitimately
-changed.
+changed. The suite's own temp files moved under `res://animation_toolkit/`,
+which is where the write confinement now requires them to live.

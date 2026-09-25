@@ -269,6 +269,56 @@ func test_blend_tree_nested() -> void:
 
 # --- wire / graph_get ------------------------------------------------------
 
+func test_graph_ops_never_build_on_another_players_tree() -> void:
+	# With a player named and no tree of its own, the lookup used to return the
+	# FIRST AnimationTree in the scene, so state_machine/blend_space/wire silently
+	# built the graph on somebody else's player and reported success. The right
+	# behaviour is to give the player its OWN tree and leave the other alone.
+	var rig := _rig("GraphForeign")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var other := _add_player("GraphForeignOther", ["idle", "walk", "run"])
+	var foreign_path := "/" + _scene_root_name() + "/GraphForeignTree"
+	var foreign_call := _handler.run({
+		"op": "wire", "player_path": other, "tree_path": foreign_path,
+	}, null)
+	assert_has_key(foreign_call, "data")
+	var foreign_tree := ValueCodec.resolve_scene_path(foreign_path, scene_root) as AnimationTree
+	assert_true(foreign_tree != null, "the foreign tree exists")
+	# graph_get cannot create anything, so with the wrong-tree fallback gone it has
+	# to say so - naming the tree that does exist, so the caller can pick it.
+	var missed := _handler.run({"op": "graph_get", "player_path": rig.player_path}, null)
+	assert_is_error(missed, ErrorCodes.INVALID_PARAMS)
+	assert_contains(missed.error.message, "GraphForeignTree")
+	# A build op, by contrast, gives the player its own tree instead.
+	var built := _handler.run({
+		"op": "state_machine", "player_path": rig.player_path,
+		"states": [{"name": "idle", "animation": "idle"}],
+	}, null)
+	assert_true(built.has("data"),
+		"a graph op on a player with no tree still succeeds (%s)" % str(built.get("error", built)))
+	assert_eq(foreign_tree.tree_root is AnimationNodeStateMachine, false,
+		"the foreign tree was NOT given the new state machine")
+	var own := ValueCodec.resolve_scene_path(str(built.data.tree_path), scene_root) as AnimationTree
+	assert_true(own != null and own.tree_root is AnimationNodeStateMachine,
+		"the rig's player got its own state machine tree at %s (%s)"
+		% [str(built.data.tree_path), str(built.get("error", ""))])
+	assert_true(own != foreign_tree, "and it is not the other player's tree")
+	# Naming the path explicitly still builds on that tree.
+	var explicit := _handler.run({
+		"op": "blend_space", "player_path": other, "tree_path": foreign_path, "dimensions": 1,
+		"points": [{"animation": "idle", "position": 0.0}, {"animation": "walk", "position": 1.0}],
+	}, null)
+	assert_has_key(explicit, "data")
+	assert_true(foreign_tree.tree_root is AnimationNodeBlendSpace1D,
+		"an explicitly named tree is built on (%s)" % str(explicit.get("error", "")))
+	_remove_node(foreign_path)
+	_remove_node("/" + _scene_root_name() + "/GraphForeignOther")
+	_teardown(rig)
+
+
 func test_wire_with_create_false_never_creates_a_tree() -> void:
 	# `create` was advertised but ignored, so the "is it already wired?" check
 	# created the very tree the caller was asking about.

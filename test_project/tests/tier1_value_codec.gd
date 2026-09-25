@@ -19,6 +19,7 @@ func _init() -> void:
 	_check_loop_modes()
 	_check_serialize()
 	_check_paths()
+	_check_write_paths()
 	_check_coercion()
 	_check_builders()
 	if _failures == 0:
@@ -94,6 +95,51 @@ func _check_paths() -> void:
 	_expect(ValueCodec.format_node_error("/Root/Nope", root).contains("Nope"), "error names the node")
 	_expect(ValueCodec.from_node(child, root) == "/Root/Child", "from_node builds a scene path")
 	root.free()
+
+
+## A write path arrives as a caller's string, so it is confined to the toolkit's
+## own directory. Every case here is a path that would have written outside it.
+func _check_write_paths() -> void:
+	var allowed := [
+		"res://animation_toolkit/poses/wave.json",
+		"res://animation_toolkit/library.json",
+		"res://animation_toolkit/rig_profiles/hero.json",
+		"res://animation_toolkit/a-folder/some_file.json",
+	]
+	for path in allowed:
+		_expect(ValueCodec.check_write_path(str(path)).is_empty(),
+			"allowed: %s" % str(path))
+	var refused := {
+		"res://project.godot": "a project file",
+		"res://scenes/Main.tscn": "a scene file",
+		"res://": "the project root",
+		"res://animation_toolkit/../scenes/Main.tscn": "an escape via ..",
+		"res://animation_toolkit/poses/../../evil.json": "a deeper escape",
+		"user://anything.json": "a user:// path",
+		"C:/Windows/temp/x.json": "an absolute path",
+		"/etc/passwd": "a posix absolute path",
+		"res://other_addon/data.json": "another addon's directory",
+		"": "an empty path",
+		"res://animation_toolkit/": "a directory, not a file",
+		"res://animation_toolkit/.hidden.json": "a dot file",
+	}
+	for path in refused:
+		_expect(not ValueCodec.check_write_path(str(path)).is_empty(),
+			"refused (%s): %s" % [str(refused[path]), str(path)])
+	# The message has to say where writes DO go, so the caller can fix the path.
+	var problem := ValueCodec.check_write_path("res://project.godot")
+	_expect(problem.contains(ValueCodec.WRITE_ROOT),
+		"the refusal names the allowed root (%s)" % problem)
+	var joined := ValueCodec.toolkit_write_path("", "wave.json")
+	_expect(not joined.has("error") and str(joined.path) == "res://animation_toolkit/wave.json",
+		"toolkit_write_path defaults under the root (%s)" % str(joined))
+	var in_subdir := ValueCodec.toolkit_write_path("poses", "wave.json")
+	_expect(not in_subdir.has("error") and str(in_subdir.path) == "res://animation_toolkit/poses/wave.json",
+		"a relative directory is placed under the root (%s)" % str(in_subdir))
+	var escaping := ValueCodec.toolkit_write_path("../../scenes", "Main.tscn")
+	_expect(escaping.has("error"), "a directory that escapes the root is refused")
+	var bad_name := ValueCodec.toolkit_write_path("", "../evil.json")
+	_expect(bad_name.has("error"), "a file name that climbs out is refused")
 
 
 func _check_coercion() -> void:

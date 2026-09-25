@@ -244,10 +244,27 @@ static func blend_tree(spec: Dictionary) -> Dictionary:
 	var tree: AnimationNodeBlendTree = state.tree
 	for connection in state.connections:
 		tree.connect_node(StringName(connection.parent), int(connection.index), StringName(connection.child))
+	# A blend tree whose `output` node is left unconnected evaluates to nothing:
+	# the graph builds, nothing errors, and no pose ever plays. The spec's root is
+	# what the tree has to output.
+	#
+	# This is unconditional rather than "unless already connected" because 4.7
+	# exposes NO way to read a connection back (no is_node_connected, no
+	# get_node_connection - the dump says so too), so a "check first" test is not
+	# possible. It cannot duplicate: a fresh blend tree's `output` has nothing
+	# attached, and `_add_spec_node` refuses a spec node named `output` as a
+	# duplicate of the implicit one, so no spec can have wired it already.
+	var output_name := StringName("output")
+	var output_wired := false
+	if tree.has_node(output_name):
+		tree.connect_node(output_name, 0, StringName(root_name))
+		output_wired = true
 	return {
 		"root": tree,
 		"node_count": state.node_count,
 		"animation_count": state.animation_count,
+		"output_source": root_name if output_wired else "",
+		"output_wired": output_wired,
 		"issues": state.issues,
 	}
 

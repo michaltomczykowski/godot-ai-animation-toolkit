@@ -109,6 +109,17 @@ static func _instance_levels(node: Node) -> Array:
 	return levels
 
 
+## An op that promises undoability needs the editor's undo manager. There is
+## none outside a live editor session (a headless script, a harness, a reload
+## caught mid-action), and a pose applied with no way back would still be
+## reported as `undoable: true`. Refuse before touching anything.
+func _require_undo(what: String) -> Dictionary:
+	if ToolContext.undo_redo == null:
+		return ErrorCodes.make(ErrorCodes.EDITOR_NOT_READY,
+			"%s needs the editor's undo stack, which is not available here. Nothing was changed." % what)
+	return {}
+
+
 ## Resolve the existing animation a generator would replace. Returns
 ## `{old_anim: Animation|null}` when the name is free or `overwrite` is set,
 ## or `{error: <error dict>}` when the name is taken and overwrite is off.
@@ -331,9 +342,24 @@ static func _unique_child_name(parent: Node, desired: String, taken: Dictionary)
 ## the caller gets the error and the scene is left exactly as it was.
 func _undo_and_fail(code: String, message: String) -> Dictionary:
 	var undo := ToolContext.undo_redo
+	var rolled_back := false
 	if undo != null:
-		undo.undo()
-	return ErrorCodes.make(code, "%s The change was rolled back." % message)
+		# EditorUndoRedoManager has no undo() of its own - the history's UndoRedo
+		# does, and the history is chosen by the edited scene the action touched.
+		var scene_root := EditorInterface.get_edited_scene_root()
+		var history := -1
+		if scene_root != null:
+			history = undo.call("get_object_history_id", scene_root)
+		if history >= 0:
+			var history_undo = undo.call("get_history_undo_redo", history)
+			if history_undo != null:
+				history_undo.call("undo")
+				rolled_back = true
+	# Never claim a rollback that did not happen: an op that cannot undo is an op
+	# whose setup was refused up front (`_require_undo`).
+	var suffix := " The change was rolled back." if rolled_back \
+		else " Nothing was rolled back: this call has no undo history."
+	return ErrorCodes.make(code, "%s%s" % [message, suffix])
 
 
 ## Post-commit check that a modifier setting points at the node the op promised:

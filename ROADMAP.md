@@ -11,10 +11,14 @@ back if it did not take. `dry_run` is now side-effect free including file writes
 (caught by a table-driven test), the rig family is split so all nine stay
 reachable under the server's eight promoted slots, registration is atomic and
 survives a Godot AI reload, and a CI run can no longer go green with a test file
-that failed to load. Remaining in Phase 16: nested-target `NodePath`s, look-at
-marker name collisions, the graph tree-fallback/output wiring, write-path
-confinement and `rig_chain` bone-name validation. Phases 17 (motion quality) and
-18 (golden verification) follow.
+that failed to load. The remaining scene-safety pass is also in: nested targets
+get correct modifier-relative paths, look-at markers get collision-safe names, a
+graph op never borrows another player's tree, a recursive blend tree is wired to
+`output`, writes are confined to `res://animation_toolkit/...`, and `rig_chain`
+refuses bone names that would corrupt track paths. Left open in Phase 16: the
+`deferred` metadata flag (unverifiable from this repo) and four stale
+invocation-envelope examples in the tool reference. Phases 17 (motion quality)
+and 18 (golden verification) follow.
 Last updated: 2026-09-25.
 
 Phase 3 note: the generators landed as their own family, `animation_fx`, instead
@@ -837,12 +841,17 @@ actionable message.
   guessed at; `undoable`/`requires_writable` are accurate today (`requires_writable`
   stays false for `animation_inspect` because its one writer touches a file, not
   the scene).
-- **Scene safety — PARTIAL.** `create=false` is done. Still open: nested targets
-  getting correct modifier-relative `NodePath`s, collision-safe look-at marker
-  names, never falling back to an unrelated `AnimationTree`, wiring a recursive
-  blend tree to `output` and reporting `parameters/playback`, confining file
-  writes to `res://animation_toolkit/...` with sanitised basenames, and
-  `rig_chain` rejecting `:` in bone names.
+- **Scene safety — DONE.** `create=false` is honoured; nested targets get
+  correct modifier-relative `NodePath`s (derived from the skeleton to the real
+  target, or to the parent a marker is about to join, instead of from the target's
+  bare name); look-at markers get collision-safe names like the IK markers
+  already had; a graph op never falls back to an unrelated `AnimationTree` (it
+  gives the named player its own tree, or names the existing ones); a recursive
+  blend tree is wired to `output` and the reply says which node it wired; file
+  writes are confined to `res://animation_toolkit/...` with plain file names; and
+  `rig_chain` refuses `:` or `/` in a bone name before committing anything.
+  `pose_apply` and the six setup ops now refuse outright when there is no undo
+  history instead of promising `undoable: true`.
 
 **Batch 4 - hygiene — MOSTLY DONE (v1.9.0):** the CI gate reports a suite that
 fails to load (a green run can no longer hide a dead test file);

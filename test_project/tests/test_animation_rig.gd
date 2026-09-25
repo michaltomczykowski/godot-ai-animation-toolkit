@@ -10,8 +10,8 @@ const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registr
 const RigHandler := preload("res://addons/godot_ai_animation/handlers/rig.gd")
 
 const DUMMY := "res://models/human_dummy/HumanCharacterDummy_F.fbx"
-const POSE_FILE := "res://tests/tmp_pose.json"
-const POSE_DIR := "res://tests/tmp_poses"
+const POSE_FILE := "res://animation_toolkit/tmp_pose.json"
+const POSE_DIR := "res://animation_toolkit/tmp_poses"
 const POSE_DIR_PARAM := {"pose_dir": POSE_DIR}
 
 ## Tests for the animation_rig tool (Phase 6a: poses, pose clips, rig dump).
@@ -694,6 +694,48 @@ func test_rig_chain_appends_and_validates() -> void:
 	_teardown(rig)
 
 
+func test_rig_chain_rejects_bone_names_that_break_track_paths() -> void:
+	# `Skeleton3D:<bone>:<property>` is the path every clip track uses, so a bone
+	# name with '/' or ':' in it parses as a different node path and the tracks
+	# silently point somewhere else. Dots are legitimate and must keep working.
+	var rig := _rig("RigChainNames")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var scene_root := EditorInterface.get_edited_scene_root()
+	for bad in ["leg/L", "leg:lower", "a/b/c", "root:bone"]:
+		var refused := _handler.run({
+			"op": "rig_chain", "skeleton_path": rig.skeleton_path,
+			"bones": [{"name": str(bad)}, {"name": "child", "parent": str(bad)}],
+		}, null)
+		assert_is_error(refused, ErrorCodes.INVALID_PARAMS)
+		assert_contains(refused.error.message, "track path")
+	# Dots are legitimate (B-upperArm.L) and must keep working. Appended to the
+	# dummy, whose bone list has no `chain_*` names yet.
+	var dotted := _handler.run({
+		"op": "rig_chain", "skeleton_path": rig.skeleton_path,
+		"bones": [
+			{"name": "chain_hip", "parent": "B-hips"},
+			{"name": "chain_knee.L", "parent": "chain_hip"},
+		],
+	}, null)
+	assert_true(dotted.has("data"), "a dotted bone name is accepted (%s)" % str(dotted.get("error", dotted)))
+	var skeleton: Skeleton3D = rig.skeleton
+	assert_true(skeleton.find_bone("chain_hip") >= 0, "chain_hip exists")
+	assert_true(skeleton.find_bone("chain_knee.L") >= 0, "chain_knee.L exists")
+	# A bad name is refused BEFORE anything is committed, so the bones that came
+	# before it in the same call are not left behind either.
+	var before_count: int = skeleton.get_bone_count()
+	var half := _handler.run({
+		"op": "rig_chain", "skeleton_path": rig.skeleton_path,
+		"bones": [{"name": "good_bone"}, {"name": "bad/bone", "parent": "good_bone"}],
+	}, null)
+	assert_is_error(half, ErrorCodes.INVALID_PARAMS)
+	assert_eq(skeleton.get_bone_count(), before_count,
+		"the refused call added no bones at all")
+	_teardown(rig)
+
+
 func test_rig_chain_from_subtree() -> void:
 	var scene_root := EditorInterface.get_edited_scene_root()
 	if scene_root == null:
@@ -965,6 +1007,106 @@ func test_ik_setup_chain_validation_and_unique_marker_names() -> void:
 		assert_true(target_node != null, "the target path resolves (%s)" % str((modifier as TwoBoneIK3D).get_target_node(0)))
 		var pole_node := modifier.get_node_or_null((modifier as TwoBoneIK3D).get_pole_node(0))
 		assert_true(pole_node != null, "the pole path resolves (%s)" % str((modifier as TwoBoneIK3D).get_pole_node(0)))
+	_teardown(rig)
+
+
+func test_setup_targets_resolve_when_nested_below_the_scene_root() -> void:
+	# The modifier hangs off the skeleton, and its target path used to be built
+	# from the target's bare NAME - which only resolves for a target sitting
+	# directly under the scene root. A target under Rig/Targets/ got a path to
+	# some other node, and the setup either did nothing or was refused.
+	var rig := _rig("RigNested")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var holder := Node3D.new()
+	holder.name = "NestedTargets"
+	scene_root.add_child(holder)
+	var deep := Node3D.new()
+	deep.name = "Deep"
+	holder.add_child(deep)
+	var hand_target := Marker3D.new()
+	hand_target.name = "HandTarget"
+	deep.add_child(hand_target)
+	var elbow_pole := Marker3D.new()
+	elbow_pole.name = "ElbowPole"
+	deep.add_child(elbow_pole)
+	_assign_owners(holder, scene_root)
+	var holder_path := "/" + str(scene_root.name) + "/NestedTargets"
+	var hand_path := holder_path + "/Deep/HandTarget"
+	var pole_path := holder_path + "/Deep/ElbowPole"
+	var result := _handler.run({
+		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "two_bone",
+		"chain": ["B-upperArm.L", "B-forearm.L", "B-hand.L"],
+		"target_path": hand_path, "pole_path": pole_path,
+	}, null)
+	assert_true(result.has("data"), "a nested target is accepted (%s)" % str(result.get("error", result)))
+	var modifier := ValueCodec.resolve_scene_path(str(result.data.modifier_path), scene_root) as TwoBoneIK3D
+	assert_true(modifier != null, "the modifier exists")
+	if modifier != null:
+		var wired_target := modifier.get_node_or_null(modifier.get_target_node(0))
+		assert_true(wired_target == hand_target,
+			"the target path resolves to the nested node (path %s -> %s)"
+			% [str(modifier.get_target_node(0)), str(wired_target)])
+		var wired_pole := modifier.get_node_or_null(modifier.get_pole_node(0))
+		assert_true(wired_pole == elbow_pole,
+			"the pole path resolves to the nested node (path %s -> %s)"
+			% [str(modifier.get_pole_node(0)), str(wired_pole)])
+	# The same for a look-at marker and a spline path, which share the helper.
+	var head_target := Marker3D.new()
+	head_target.name = "HeadTarget"
+	deep.add_child(head_target)
+	_assign_owners(head_target, scene_root)
+	var look := _handler.run({
+		"op": "look_at_setup", "skeleton_path": rig.skeleton_path, "bone": "B-head",
+		"target_path": holder_path + "/Deep/HeadTarget",
+	}, null)
+	assert_true(look.has("data"), "a nested look-at target is accepted (%s)" % str(look.get("error", look)))
+	var look_modifier := ValueCodec.resolve_scene_path(str(look.data.modifier_path), scene_root) as LookAtModifier3D
+	assert_true(look_modifier != null, "the look-at modifier exists")
+	if look_modifier != null:
+		assert_true(look_modifier.get_node_or_null(look_modifier.get_target_node()) == head_target,
+			"the look-at target path resolves to the nested node (%s)" % str(look_modifier.get_target_node()))
+	_remove_node(holder_path)
+	_teardown(rig)
+
+
+func test_look_at_markers_get_collision_safe_names() -> void:
+	# Two look-ats asking for the same marker name used to collide: Godot
+	# renamed the second marker, but the modifier's target path still said the
+	# original name, so the second modifier drove the FIRST target. Earlier tests
+	# in this suite may have left a marker of the same name behind, so the
+	# property checked is that the two modifiers drive two DIFFERENT markers.
+	var rig := _rig("RigLookNames")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var mine: Array = []
+	for index in range(2):
+		var result := _handler.run({
+			"op": "look_at_setup", "skeleton_path": rig.skeleton_path, "bone": "B-head",
+			"target_name": "LookAtTarget",
+		}, null)
+		assert_true(result.has("data"), "look-at %d is set up (%s)" % [index + 1, str(result.get("error", result))])
+		mine.append(str(result.data.modifier_path))
+	assert_eq(mine.size(), 2, "two look-at modifiers were created")
+	var targets: Array = []
+	for path in mine:
+		var modifier := ValueCodec.resolve_scene_path(str(path), scene_root) as LookAtModifier3D
+		assert_true(modifier != null, "%s exists" % str(path))
+		if modifier == null:
+			continue
+		var target := modifier.get_node_or_null(modifier.get_target_node())
+		assert_true(target is Marker3D,
+			"%s resolves to a marker (%s)" % [str(path), str(modifier.get_target_node())])
+		if target != null:
+			targets.append(str(target.get_path()))
+	assert_eq(targets.size(), 2, "both modifiers resolve a target")
+	if targets.size() == 2:
+		assert_true(targets[0] != targets[1],
+			"the two look-ats drive two DIFFERENT markers (%s vs %s)" % [targets[0], targets[1]])
 	_teardown(rig)
 
 
