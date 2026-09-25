@@ -383,10 +383,10 @@ warning) when Godot AI is absent.
 ```
 
 `test_project/` is a Godot project wired to both addons; `tests/` holds the
-editor suites (144 rows across all eight tools) and the headless checks
+editor suites (191 rows across all nine tools) and the headless checks
 (`tier1_value_codec.gd`, `tier1_spec_modifiers.gd`, `tier1_fx_specs.gd`,
 `tier1_graph_builders.gd`, `tier1_spec_json.gd`, `tier1_pose_math.gd`,
-`tier1_motion_drivers.gd`, `tier1_quality_modifiers.gd`, 2100+ checks). The
+`tier1_motion_drivers.gd`, `tier1_quality_modifiers.gd`, 2700+ checks). The
 `demo_*.tscn` scenes are the ones recorded for the showcase videos — each is one
 toolkit call (plus autoplay) or one built demo subtree.
 

@@ -117,22 +117,22 @@ watch it. `test_project/showcase.tscn` is the committed output.
 ## Examples
 
 ```json
-{"op": "pulse", "params": {"op": "pulse", "player_path": "/Main/HUD",
+{"tool": "custom_animation_presets", "params": {"op": "pulse", "player_path": "/Main/HUD",
   "target_path": "Label", "property": "modulate:a",
   "from_value": 0.2, "to_value": 1.0, "loop_mode": "pingpong", "duration": 1.2}}
 
-{"op": "orbit", "params": {"op": "orbit", "player_path": "/Main/HUD",
+{"tool": "custom_animation_presets", "params": {"op": "orbit", "player_path": "/Main/HUD",
   "target_path": "Satellite", "radius": 80.0, "duration": 3.0, "loop_mode": "linear"}}
 
-{"op": "drift", "params": {"op": "drift", "player_path": "/Main",
+{"tool": "custom_animation_presets", "params": {"op": "drift", "player_path": "/Main",
   "target_path": "Scanline", "axis": "x", "distance": 480.0,
   "loop_mode": "pingpong", "duration": 2.0}}
 
-{"op": "float", "params": {"op": "float", "player_path": "/Main",
+{"tool": "custom_animation_presets", "params": {"op": "float", "player_path": "/Main",
   "target_path": "Pickup", "height": 0.4, "scale": 1.1,
   "loop_mode": "pingpong", "duration": 2.4}}
 
-{"op": "stagger", "params": {"op": "stagger", "player_path": "/Main/HUD",
+{"tool": "custom_animation_presets", "params": {"op": "stagger", "player_path": "/Main/HUD",
   "target_paths": ["Item1", "Item2", "Item3"], "effect": "slide_in",
   "direction": "left", "stagger": 0.08, "duration": 0.3}}
 ```
@@ -172,32 +172,32 @@ a `WRONG_TYPE` / `INVALID_PARAMS` error instead of being rewritten lossily.
 ### Examples
 
 ```json
-{"op": "animation_edit", "params": {"op": "retime", "player_path": "/Main/HUD",
+{"tool": "custom_animation_edit", "params": {"op": "retime", "player_path": "/Main/HUD",
   "animation_name": "open", "factor": 0.5}}
 
-{"op": "animation_edit", "params": {"op": "retarget", "player_path": "/Main/HUD",
+{"tool": "custom_animation_edit", "params": {"op": "retarget", "player_path": "/Main/HUD",
   "animation_name": "open", "from_path": "Panel", "to_path": "Popup/Panel",
   "mode": "prefix"}}
 
-{"op": "animation_edit", "params": {"op": "mirror", "player_path": "/Main",
+{"tool": "custom_animation_edit", "params": {"op": "mirror", "player_path": "/Main",
   "animation_name": "walk", "axis": "x", "pivot": {"x": 0, "y": 0}}}
 
-{"op": "animation_edit", "params": {"op": "merge", "player_path": "/Main",
+{"tool": "custom_animation_edit", "params": {"op": "merge", "player_path": "/Main",
   "animation_name": "intro", "new_name": "intro_loop", "gap": 0.1,
   "sources": [{"animation_name": "intro"}, {"animation_name": "loop"}]}}
 
-{"op": "animation_edit", "params": {"op": "loop", "player_path": "/Main",
+{"tool": "custom_animation_edit", "params": {"op": "loop", "player_path": "/Main",
   "animation_name": "walk", "loop_mode": "linear", "make_seamless": true}}
 
-{"op": "animation_edit", "params": {"op": "overlap", "player_path": "/Main",
+{"tool": "custom_animation_edit", "params": {"op": "overlap", "player_path": "/Main",
   "animation_name": "walk", "track_path": "Skeleton3D:B-forearm.L",
   "delay": 0.08, "wrap": true}}
 
-{"op": "animation_edit", "params": {"op": "layer", "player_path": "/Main",
+{"tool": "custom_animation_edit", "params": {"op": "layer", "player_path": "/Main",
   "animation_name": "walk", "source_animation": "breathing",
   "layer_mode": "add", "weight": 0.4}}
 
-{"op": "animation_edit", "params": {"op": "resample", "player_path": "/Main",
+{"tool": "custom_animation_edit", "params": {"op": "resample", "player_path": "/Main",
   "animation_name": "walk", "fps": 30, "interpolation": "linear"}}
 ```
 
@@ -240,21 +240,21 @@ directly, or through `custom_manage(op="invoke")`.
 ### Examples
 
 ```json
-{"op": "animation_inspect", "params": {"op": "describe", "player_path": "/Main/HUD"}}
+{"tool": "custom_animation_inspect", "params": {"op": "describe", "player_path": "/Main/HUD"}}
 
-{"op": "animation_inspect", "params": {"op": "audit", "severity": "warning"}}
+{"tool": "custom_animation_inspect", "params": {"op": "audit", "severity": "warning"}}
 
-{"op": "animation_inspect", "params": {"op": "rig_profile", "skeleton_path": "/Main/Rig/Skeleton3D",
+{"tool": "custom_animation_inspect", "params": {"op": "rig_profile", "skeleton_path": "/Main/Rig/Skeleton3D",
   "save": true, "name": "hero"}}
 
-{"op": "animation_inspect", "params": {"op": "sample", "player_path": "/Main/Rig/AnimationPlayer",
+{"tool": "custom_animation_inspect", "params": {"op": "sample", "player_path": "/Main/Rig/AnimationPlayer",
   "animation_name": "walk", "skeleton_path": "/Main/Rig/Skeleton3D", "samples": 24}}
 
-{"op": "animation_inspect", "params": {"op": "preview", "player_path": "/Main/Rig/AnimationPlayer",
+{"tool": "custom_animation_inspect", "params": {"op": "preview", "player_path": "/Main/Rig/AnimationPlayer",
   "animation_name": "reach", "skeleton_path": "/Main/Rig/Skeleton3D", "times": [0.0, 0.4],
   "output_dir": "res://animation_toolkit/previews"}}
 
-{"op": "animation_inspect", "params": {"op": "dry_run", "tool": "animation_edit",
+{"tool": "custom_animation_inspect", "params": {"op": "dry_run", "tool": "animation_edit",
   "forward_op": "retime", "player_path": "/Main", "animation_name": "walk", "factor": 0.5}}
 ```
 
@@ -298,16 +298,16 @@ Notes:
 ### Examples
 
 ```json
-{"op": "animation_fx", "params": {"op": "shake", "player_path": "/Main",
+{"tool": "custom_animation_fx", "params": {"op": "shake", "player_path": "/Main",
   "target_path": "Camera2D", "intensity": 10, "duration": 0.4, "seed": 7}}
 
-{"op": "animation_fx", "params": {"op": "typewriter", "player_path": "/Main/HUD",
+{"tool": "custom_animation_fx", "params": {"op": "typewriter", "player_path": "/Main/HUD",
   "target_path": "DialogLabel", "steps": 40, "duration": 1.6}}
 
-{"op": "animation_fx", "params": {"op": "wave", "player_path": "/Main/HUD",
+{"tool": "custom_animation_fx", "params": {"op": "wave", "player_path": "/Main/HUD",
   "target_paths": ["Card1", "Card2", "Card3"], "amplitude": 10, "phase_step": 0.15}}
 
-{"op": "animation_fx", "params": {"op": "sprite_frames", "sprite_path": "/Main/Player",
+{"tool": "custom_animation_fx", "params": {"op": "sprite_frames", "sprite_path": "/Main/Player",
   "texture": "res://art/run.png", "hframes": 6, "vframes": 1, "fps": 12}}
 ```
 
@@ -344,21 +344,21 @@ Notes:
 ### Examples
 
 ```json
-{"op": "animation_graph", "params": {"op": "state_machine", "player_path": "/Main",
+{"tool": "custom_animation_graph", "params": {"op": "state_machine", "player_path": "/Main",
   "states": [{"name": "idle", "animation": "idle"}, {"name": "walk", "animation": "walk"}],
   "transitions": [
     {"from": "idle", "to": "walk", "xfade": 0.2, "condition": "walking"},
     {"from": "walk", "to": "idle", "xfade": 0.2, "advance_expression": "!walking"}]}}
 
-{"op": "animation_graph", "params": {"op": "blend_space", "player_path": "/Main",
+{"tool": "custom_animation_graph", "params": {"op": "blend_space", "player_path": "/Main",
   "dimensions": 1, "min": 0, "max": 2,
   "points": [{"animation": "idle", "position": 0}, {"animation": "walk", "position": 1},
              {"animation": "run", "position": 2}]}}
 
-{"op": "animation_graph", "params": {"op": "locomotion", "player_path": "/Main",
+{"tool": "custom_animation_graph", "params": {"op": "locomotion", "player_path": "/Main",
   "mode": "state_machine", "start": "idle"}}
 
-{"op": "animation_graph", "params": {"op": "one_shot_layer", "player_path": "/Main",
+{"tool": "custom_animation_graph", "params": {"op": "one_shot_layer", "player_path": "/Main",
   "animation": "jump", "fadein": 0.1, "fadeout": 0.2}}
 ```
 
@@ -404,16 +404,16 @@ Notes:
 ### Examples
 
 ```json
-{"op": "animation_library", "params": {"op": "template_save", "name": "button_pop",
+{"tool": "custom_animation_library", "params": {"op": "template_save", "name": "button_pop",
   "tool": "animation_presets", "forward_op": "bounce", "intensity": 0.2, "duration": 0.5}}
 
-{"op": "animation_library", "params": {"op": "template_apply", "name": "button_pop",
+{"tool": "custom_animation_library", "params": {"op": "template_apply", "name": "button_pop",
   "player_path": "/Main/HUD", "target_path": "MenuButton"}}
 
-{"op": "animation_library", "params": {"op": "spec_export", "player_path": "/Main/HUD",
+{"tool": "custom_animation_library", "params": {"op": "spec_export", "player_path": "/Main/HUD",
   "animation_name": "open"}}
 
-{"op": "animation_library", "params": {"op": "spec_apply", "player_path": "/Main/HUD",
+{"tool": "custom_animation_library", "params": {"op": "spec_apply", "player_path": "/Main/HUD",
   "path": "res://animation_toolkit/clips/open.json",
   "target_path": "/Main/HUD/Panel2", "animation_name": "open_2"}}
 ```
@@ -562,16 +562,16 @@ Notes:
 ### Examples
 
 ```json
-{"op": "animation_rig", "params": {"op": "pose_save",
+{"tool": "custom_animation_rig", "params": {"op": "pose_save",
   "skeleton_path": "/Main/Rig/Skeleton3D", "name": "wave_mid"}}
 
-{"op": "animation_rig", "params": {"op": "pose_apply",
+{"tool": "custom_animation_rig", "params": {"op": "pose_apply",
   "skeleton_path": "/Main/Rig/Skeleton3D", "name": "wave_mid", "blend": 0.5}}
 
-{"op": "animation_rig", "params": {"op": "pose_blend",
+{"tool": "custom_animation_rig", "params": {"op": "pose_blend",
   "from": "idle", "to": "wave_mid", "factor": 0.35, "name": "wave_low"}}
 
-{"op": "animation_rig", "params": {"op": "pose_to_clip",
+{"tool": "custom_animation_rig", "params": {"op": "pose_to_clip",
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
   "animation_name": "wave", "loop_mode": "linear",
   "keys": [{"name": "idle", "time": 0.0},
@@ -654,38 +654,38 @@ How motion is generated:
 ### Examples
 
 ```json
-{"op": "animation_motion", "params": {"op": "walk_cycle",
+{"tool": "custom_animation_motion", "params": {"op": "walk_cycle",
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
   "animation_name": "walk", "duration": 1.0, "loop_mode": "linear"}}
 
-{"op": "animation_motion", "params": {"op": "character_setup",
+{"tool": "custom_animation_motion", "params": {"op": "character_setup",
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
   "speed": 1.4, "run_speed": 4.0, "include_jump": true}}
 
-{"op": "animation_motion", "params": {"op": "run_cycle",
+{"tool": "custom_animation_motion", "params": {"op": "run_cycle",
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
   "animation_name": "run", "duration": 0.6, "loop_mode": "linear", "style": "heavy"}}
 
-{"op": "animation_motion", "params": {"op": "idle_cycle",
+{"tool": "custom_animation_motion", "params": {"op": "idle_cycle",
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
   "animation_name": "idle", "duration": 3.0, "loop_mode": "linear",
   "overrides": {"look": 18, "twist": 22, "twist_spread": 0.8}}}
 
-{"op": "animation_motion", "params": {"op": "secondary_motion",
+{"tool": "custom_animation_motion", "params": {"op": "secondary_motion",
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
   "animation_name": "walk", "bones": ["B-hair01", "B-hair02"],
   "stiffness": 120.0, "damping": 12.0}}
 
-{"op": "animation_motion", "params": {"op": "jump",
+{"tool": "custom_animation_motion", "params": {"op": "jump",
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
   "animation_name": "jump", "duration": 1.2, "height": 0.6, "crouch": 0.25}}
 
-{"op": "animation_motion", "params": {"op": "strafe_cycle",
+{"tool": "custom_animation_motion", "params": {"op": "strafe_cycle",
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
   "animation_name": "strafe_left", "duration": 0.9, "direction": "left",
   "speed": 1.0, "loop_mode": "linear"}}
 
-{"op": "animation_motion", "params": {"op": "walk_start",
+{"tool": "custom_animation_motion", "params": {"op": "walk_start",
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
   "animation_name": "walk_start", "duration": 0.35, "phase": 0.0}}
 ```

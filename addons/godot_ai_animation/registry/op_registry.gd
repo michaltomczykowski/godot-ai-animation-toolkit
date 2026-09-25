@@ -881,6 +881,11 @@ static func _inspect_ops() -> Array:
 			"name": "preview",
 			"summary": "Render the posed character offscreen to PNGs at clip times so an agent can see contact, foot planting and follow-through. A private copy of the character subtree is posed in an offscreen viewport; the edited scene is never touched. The reply is deferred (one editor frame per image) and needs a rendering device.",
 			"params": ["player_path", "animation_name", "skeleton_path", "character_path", "times", "samples", "width", "height", "output_dir", "basename", "yaw", "elevation", "margin", "background", "overwrite"],
+			## The ONLY op that answers with `{"_deferred": true}` and pushes the real
+			## payload a frame later. The family's `deferred` flag is checked against
+			## this marker by the tier-1 suite, so the two cannot drift apart (the
+			## core errors at call time if a handler defers without the flag).
+			"defers": true,
 			"example": {"op": "preview", "player_path": "/Main/Rig/AnimationPlayer", "animation_name": "reach", "skeleton_path": "/Main/Rig/Skeleton3D", "times": [0.0, 0.4], "output_dir": "res://animation_toolkit/previews", "yaw": 28},
 		},
 		{

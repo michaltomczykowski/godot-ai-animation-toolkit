@@ -15,10 +15,11 @@ that failed to load. The remaining scene-safety pass is also in: nested targets
 get correct modifier-relative paths, look-at markers get collision-safe names, a
 graph op never borrows another player's tree, a recursive blend tree is wired to
 `output`, writes are confined to `res://animation_toolkit/...`, and `rig_chain`
-refuses bone names that would corrupt track paths. Left open in Phase 16: the
-`deferred` metadata flag (unverifiable from this repo) and four stale
-invocation-envelope examples in the tool reference. Phases 17 (motion quality)
-and 18 (golden verification) follow.
+refuses bone names that would corrupt track paths. Phase 16 is finished: the
+execution-contract flags (`deferred` / `requires_writable` / `undoable` /
+`timeout_ms`) were checked against the core's own documentation and were already
+correct, and the tier-1 suite now enforces the two that can drift. Phases 17
+(motion quality) and 18 (golden verification) follow.
 Last updated: 2026-09-25.
 
 Phase 3 note: the generators landed as their own family, `animation_fx`, instead
@@ -836,11 +837,22 @@ actionable message.
 - **A green run no longer hides a dead suite — DONE.** The CI harness reports a
   `test_*.gd` that fails to load or instantiate instead of skipping it; a parse
   error in one file used to leave the run green with 25 tests missing.
-- **Truthful batch metadata — DEFERRED.** The `deferred` flag's server-side
-  meaning could not be verified from this repo, so it was left alone rather than
-  guessed at; `undoable`/`requires_writable` are accurate today (`requires_writable`
-  stays false for `animation_inspect` because its one writer touches a file, not
-  the scene).
+- **Truthful batch metadata — VERIFIED CORRECT, now enforced.** The core's
+  `McpCustomToolSpec` documents what each flag means, and all three are true
+  here: `deferred` is a *capability* declaration (the handler may answer
+  `{"_deferred": true}` and push the payload later, and `custom_tool_wrapper.gd`
+  errors at call time if a handler defers without it) — only
+  `inspect preview` defers, and `animation_inspect` is the one family with the
+  flag; `requires_writable` is a readiness gate both sides honour (inspect is
+  `false` correctly even though `rig_profile` writes a file, because the gate is
+  about the *scene*); `undoable` gates participation in `undo=true`
+  `batch_execute` and only inspect is `false`, which the new `_require_undo`
+  guard now backs. `timeout_ms` is honoured on *every* call
+  (`ctx.deadline_msec`) and is the server's own budget plus a 2 s margin, so the
+  30 s on the rig/motion/inspect families is what a bake or a dense sample
+  actually needs. The tier-1 suite now asserts `deferred` matches the ops
+  marked `"defers": true` and that every `timeout_ms` is inside the core's
+  500-120000 range, so the flags cannot drift from behaviour.
 - **Scene safety — DONE.** `create=false` is honoured; nested targets get
   correct modifier-relative `NodePath`s (derived from the skeleton to the real
   target, or to the parent a marker is about to join, instead of from the target's
@@ -853,15 +865,17 @@ actionable message.
   `pose_apply` and the six setup ops now refuse outright when there is no undo
   history instead of promising `undoable: true`.
 
-**Batch 4 - hygiene — MOSTLY DONE (v1.9.0):** the CI gate reports a suite that
+**Batch 4 - hygiene — DONE (v1.9.0):** the CI gate reports a suite that
 fails to load (a green run can no longer hide a dead test file);
 `tools/test_tier1.ps1` imports the project first, so a fresh local clone works;
 the release zip ships the MIT `LICENSE`; `CHANGELOG.md` is rewritten for 1.9.0;
 the tool reference documents the nine families, the non-promoted modifier half,
-the dry-run guarantee and the self-verifying setup ops. **Still open:** the
-ROADMAP header's phase count, the test-project CI plugin description, the four
-incompatible invocation-envelope examples in the tool reference, and trimming
-the pose-half schema beyond what the op-derived split already removed.
+the dry-run guarantee and the self-verifying setup ops, and all 43 of its call
+examples now use the canonical `{"tool": "custom_<family>", "params": {...}}`
+envelope the README uses (they were `{"op": "<op or family>", ...}`, a shape
+nothing accepts). That file is hand-written, so the tier-1 suite now checks its
+examples name a real promoted tool. **Still open:** the test-project CI plugin
+description.
 
 ### Phase 16 risks / mitigations
 

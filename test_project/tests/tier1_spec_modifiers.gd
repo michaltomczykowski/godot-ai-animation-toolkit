@@ -488,6 +488,25 @@ func _check_registry() -> void:
 		_expect(description.length() <= OpRegistry.MAX_DESCRIPTION_CHARS,
 			"%s description fits the %d-char cap (got %d)" % [family_name, OpRegistry.MAX_DESCRIPTION_CHARS, description.length()])
 		_expect(ResourceLoader.exists(str(info.get("handler", ""))), "%s handler exists" % family_name)
+		## Execution-contract metadata, checked against the core's documented
+		## semantics (`McpCustomToolSpec`):
+		## - `deferred` is a CAPABILITY: the handler may answer with
+		##   `{"_deferred": true}` and push the payload later, and the wrapper
+		##   errors at call time if it defers without the flag. So the family flag
+		##   must be true exactly when one of its ops defers - no more, no less.
+		var defers := false
+		for descriptor in info.get("ops", []):
+			if bool(descriptor.get("defers", false)):
+				defers = true
+		_expect(bool(info.get("deferred", false)) == defers,
+			"%s deferred=%s matches the ops that defer (%s)"
+			% [family_name, str(bool(info.get("deferred", false))), str(defers)])
+		## `timeout_ms` becomes the call deadline AND the server's own budget plus
+		## a 2s margin, so an out-of-range value is refused at register time. The
+		## bounds come from `McpCustomToolSpec.MIN/MAX_TIMEOUT_MS`.
+		var timeout := int(info.get("timeout_ms", 4500))
+		_expect(timeout >= 500 and timeout <= 120000,
+			"%s timeout_ms is inside the core's 500-120000 range (%d)" % [family_name, timeout])
 		## The plugin's own gate uses Godot's compact JSON.stringify, but the
 		## Godot AI server re-measures the pushed schema with python json.dumps,
 		## whose default separators are ", " and ": " - a few hundred bytes
@@ -552,3 +571,36 @@ func _check_docs_fresh() -> void:
 	_expect(on_disk == rendered, "docs/op-index.md is up to date (run tools/gen_docs.ps1)")
 	if on_disk != rendered:
 		print("  hint: docs differ, regenerate with tools/gen_docs.ps1")
+	_check_hand_written_examples()
+
+
+## docs/tool-reference.md is written by hand, so nothing regenerates it. Its
+## call examples once used `{"op": "<op or family>", "params": {...}}`, which is
+## not a shape anything accepts: the promoted tools are called by NAME in a
+## `tool` field, exactly as the README shows.
+func _check_hand_written_examples() -> void:
+	var repo_root := ProjectSettings.globalize_path("res://").path_join("..").simplify_path()
+	var reference_path := repo_root.path_join("docs").path_join("tool-reference.md")
+	if not FileAccess.file_exists(reference_path):
+		return
+	var promoted: Array = []
+	for family_name in OpRegistry.family_names():
+		if bool(OpRegistry.family(family_name).get("promoted", true)):
+			promoted.append("custom_%s" % str(family_name))
+	var text := FileAccess.get_file_as_string(reference_path).replace("\r\n", "\n")
+	for line in text.split("\n"):
+		if not line.begins_with("{"):
+			continue
+		if line.begins_with('{"op":'):
+			_expect(false, "tool-reference.md uses a `tool` field, not `op`: %s" % line.substr(0, 60))
+			continue
+		if not line.begins_with('{"tool":'):
+			continue
+		var named := false
+		for tool_name in promoted:
+			if line.contains('"tool": "%s"' % str(tool_name)):
+				named = true
+				break
+		if not named:
+			_expect(line.contains('"tool": "custom_manage"'),
+				"tool-reference.md example names a real promoted tool: %s" % line.substr(0, 60))

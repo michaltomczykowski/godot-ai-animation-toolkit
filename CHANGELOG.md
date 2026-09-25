@@ -85,6 +85,14 @@ then re-verified. The theme: no tool may report success it cannot confirm, and
   instead of dropping every tool until the editor restarts.
 - A rejected registration now pushes an error naming the family, instead of a
   retry that ends in a warning about two tools that do not exist.
+- The execution-contract flags were checked against the core's own documentation
+  and were already correct — `deferred` is a capability declaration (only
+  `inspect preview` defers, and the wrapper errors if a handler defers without
+  the flag), `requires_writable` is a readiness gate, `undoable` gates
+  `undo=true` `batch_execute`, and `timeout_ms` is the deadline on *every* call.
+  They are now enforced too: tier-1 asserts `deferred` matches the ops marked
+  `"defers": true` and that every `timeout_ms` is inside the core's range, so a
+  flag cannot drift away from behaviour.
 - The tier-1 registry check grew teeth: every op's `params` **and** its
   `example` keys must be declared in that family's schema (forwarder ops may use
   their target op's keys, and those are checked against the target). It caught
@@ -98,6 +106,11 @@ then re-verified. The theme: no tool may report success it cannot confirm, and
   fails the audio-fixture suite on an unimported resource (the failure CI hit on
   Linux).
 - The release zip includes `LICENSE`.
+- All 43 call examples in `docs/tool-reference.md` used the envelope
+  `{"op": "<op or family>", "params": {...}}`, which nothing accepts — the
+  promoted tools are called by name in a `tool` field, as the README shows. They
+  now use the canonical shape, and since that file is hand-written, tier-1 checks
+  that every example names a real promoted tool.
 - Docs, `CHANGELOG.md` and the ROADMAP are current; `docs/op-index.md` is
   generated from the registry and checked by tier-1.
 
