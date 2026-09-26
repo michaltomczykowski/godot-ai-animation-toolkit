@@ -1307,6 +1307,21 @@ func test_real_playback_interpolates_wraps_and_matches_the_data() -> void:
 	_teardown(rig)
 
 
+## Peak travel of the hips track measured along one axis, in metres.
+func _hip_travel(anim: Animation, axis: Vector3) -> float:
+	var track := _track_index(anim, ":B-hips", Animation.TYPE_POSITION_3D)
+	if track < 0:
+		return 0.0
+	var lowest := INF
+	var highest := -INF
+	for index in anim.track_get_key_count(track):
+		var value: Vector3 = anim.track_get_key_value(track, index)
+		var along: float = value.dot(axis)
+		lowest = minf(lowest, along)
+		highest = maxf(highest, along)
+	return highest - lowest
+
+
 ## Peak vertical travel of the hips track, in metres: the bob.
 func _hip_bob(anim: Animation) -> float:
 	var track := _track_index(anim, ":B-hips", Animation.TYPE_POSITION_3D)

@@ -751,6 +751,13 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 	var thigh_l := str(roles.thigh_l)
 	var thigh_r := str(roles.thigh_r)
 	var forward: Vector3 = _forward_dir(skeleton, roles)
+	# `up` stays world UP on purpose. Building the frame from the bones (spine axis,
+	# hip offset, toe direction, orthogonalised) was tried and reverted: the
+	# contact/slide metrics in `rig_analysis` measure against a WORLD-Y floor, so
+	# a rig whose bones do not point along Y gets a correct bob and a wrong
+	# "planted" reading. Doing this properly means the metrics take the same rig
+	# frame, which changes the audit's published numbers - a Phase 18 golden
+	# fixture job, not a one-line swap. See the ROADMAP.
 	var up := Vector3.UP
 	var lateral: Vector3 = rest[thigh_l].origin - rest[thigh_r].origin
 	lateral.y = 0.0

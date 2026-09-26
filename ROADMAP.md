@@ -893,6 +893,8 @@ description.
 
 The generator's arithmetic is sound; its *shapes* are the problem. This phase
 changes what the clips look like, in the order of how much a viewer notices.
+**Five of the seven are done**; the two that are not are recorded below with what
+was measured about them, which is the most useful part of having tried.
 
 **Done so far:**
 
@@ -949,21 +951,32 @@ changes what the clips look like, in the order of how much a viewer notices.
 
 **Still open, and why:**
 
-5. **A real rig frame** (up/forward/lateral from rest geometry, orthogonalised,
-   replacing the hard-coded `Vector3.UP`, with the contact/slide metrics sharing
-   the frame). Left for its own pass on purpose: it changes the frame every
-   metric is measured in, so it wants the Phase 18 golden fixtures in place to
-   catch a regression in the *numbers*, not just in the shape. The knee pole in
-   step 3 already removed the one place where a degenerate frame bit hardest.
+5. **A real rig frame** — up/forward/lateral from rest geometry, orthogonalised,
+   replacing the hard-coded `Vector3.UP`. **Attempted, measured, reverted**, and
+   the reason is now known rather than guessed. Building the frame from the bones
+   (the spine's rest axis for up, the hip offset for lateral, heel-to-toe for
+   forward, each made perpendicular to the others) works for a Z-up rig — and
+   *breaks* the human dummy, because the contact/slide metrics in `rig_analysis`
+   measure against a **world-Y floor**. A rig whose bones do not point along Y
+   then gets a correct bob and a wrong "planted" reading: the two plant feet
+   tests failed with the foot 0.084 m off the floor. Two other findings came out
+   of the attempt and are worth keeping: a hips→spine position delta is *not* the
+   rig's up (a pelvis is offset sideways, so that vector is not even vertical on
+   a real rig — the bone **axis** is), and rotating a node proves nothing because
+   bone rest data lives in skeleton space, so the test has to build a genuinely
+   Z-up chain. Doing this properly means `rig_analysis` and the audit take the
+   same rig frame, which changes the numbers the audit publishes — a Phase 18
+   golden-fixture job, not a one-line swap. `up` therefore stays world UP, and
+   the reason is a comment at the assignment.
 7. **The root-motion contract** — the legs solved in the frame the viewer sees
    (the root-motion-canceled one), with the extracted motion supplying world
-   travel and `root_motion_local` set explicitly. The ROADMAP's own rule applies:
-   the gate for this is a real `AnimationTree` playback test, which is Phase 18
-   item 3 — still to come. What the contract test *did* establish for the rooted
-   walk: its hips track keeps its travel (1.05 m of stride per cycle) and its
-   leg poses close in value while their seam velocity legitimately does not,
-   because each cycle reaches a different world point. That is the shape item 7
-   has to preserve while moving the solve into the cancelled frame.
+   travel and `root_motion_local` set explicitly. The gate is Phase 18 item 3,
+   which now exists (real playback). What the contract and playback tests
+   established for the rooted walk, and what item 7 has to preserve: its hips
+   track keeps its travel (1.05 m of stride per cycle) and its leg poses close in
+   value while their seam velocity legitimately does not, because each cycle
+   reaches a different world point. Next step is a golden walk recorded *before*
+   the change, so a regression shows up as a number.
 
 1. **A swing is an arc, not a step.** Foot height is currently 0 or 1 across
    the whole swing, so the foot teleports up at toe-off and back down at heel
