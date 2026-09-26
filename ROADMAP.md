@@ -786,8 +786,10 @@ actionable message.
    verification above is unconditional either way, so no user ever gets a
    silently inert setup.
 2. These fixes change generated output (twist scaling, contact metrics, `cleanup`,
-   `reduce` caps). No golden fixtures exist yet (Phase 18), so every batch adds
-   explicit numeric assertions first and the goldens are recorded after Phase 17.
+   `reduce` caps). At the time this batch was written there were no golden
+   fixtures, so it added explicit numeric assertions first - and the goldens have
+   since landed (`test_project/tests/fixtures/golden_walk.json`), so a change like
+   this now shows up as a number instead of "it looks a bit different".
 
 ## Phase 16 — audit remediation: engine and contract correctness (v1.10.0, in progress)
 
@@ -1110,7 +1112,12 @@ measured about it, which is the most useful part of having tried.
   (planted) foot rather than a pop, so the velocity assertion skips a held seam
   rather than pretending it is one. Worth watching when the golden fixtures land.
 
-## Phase 17 item 7 (root-motion contract) and 5 (rig frame) — still open
+## Phase 17 item 7 (root-motion contract) and 5 (rig frame) — DONE
+
+Both closed in v1.11.0. Item 5's rig frame, the rest-map union and the
+frame-aware contact metrics are above under item 5; item 7's arithmetic and the
+two wrong answers that were implemented, measured and reverted are above under
+item 7. The engine half is pinned by `tests/tier1_root_motion.gd`.
 
 ## Risks / notes
 

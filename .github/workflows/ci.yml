@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        # The same twelve pure suites tools/test_tier1.ps1 runs locally. One
+        # The same thirteen pure suites tools/test_tier1.ps1 runs locally. One
         # matrix leg per suite so a failure names the suite, and so a suite that
         # only ever ran on a developer's machine still gates the release.
         script:
@@ -35,6 +35,7 @@ jobs:
           - tier1_pose_solver
           - tier1_spine_twist
           - tier1_spine_chain
+          - tier1_root_motion
     steps:
       - name: Checkout toolkit
         uses: actions/checkout@v4
@@ -72,11 +73,16 @@ jobs:
         run: godot --headless --path test_project --script "res://tests/${{ matrix.script }}.gd"
 
   editor-suite:
-    name: Editor suite / core ${{ matrix.core-ref }}
-    runs-on: ubuntu-latest
+    name: Editor suite / ${{ matrix.os }} / core ${{ matrix.core-ref }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        # The golden walk fixture is recorded on Windows and was only ever
+        # compared on Linux, so the cross-OS axis of the float maths was never
+        # exercised. Tier-1 already runs both; the editor suites now do too,
+        # because this is the only leg that runs the golden fixtures.
+        os: [ubuntu-latest, windows-latest]
         # The pinned release is the gate; `main` is informational drift detection.
         core-ref: ["v4.2.1", "main"]
     continue-on-error: ${{ matrix.core-ref == 'main' }}
