@@ -1,5 +1,90 @@
 # Changelog
 
+## 1.12.0 — prove it
+
+Phase 18. The phase where the question is not "does it work" but "how would we
+know". Four items, and the honest summary is that the fixtures found more than the
+features did.
+
+### A proportion matrix, and the three defects it found
+
+The motion suite proved everything on one human dummy: adult proportions,
+symmetric, and almost exactly the leg length the defaults were written against.
+Nothing said what happens to a child's leg or a giant's. `tier1_proportions.gd`
+now runs the same walk over rigs differing only in leg length (0.50 / 0.85 /
+1.70 m), leg symmetry and orientation, and asserts what must survive the
+difference.
+
+Two of its assertions are dimensionless on purpose. The **Froude number**
+`v/sqrt(gL)` is how gait speed is compared across body sizes at all, and the
+stance fraction is read off published gait (~0.60 of the cycle walking).
+Absolute speeds would have asserted the dummy's luck rather than the generator.
+
+It found three real defects, all fixed:
+
+- **The knee-bend crouch was in absolute metres.** `crouch + 0.003 m/deg *
+  knee_bend` added its term *after* the handler had scaled `config.crouch`, so
+  the same 30 degrees of knee bend bought 9 cm on every rig — 18% of a child's leg
+  against 6% of an adult's. It is now scaled, and the ratio is 0.1059 of the leg
+  on every proportion, which the matrix asserts directly.
+- **That crouch was also why a tall rig could not reach its own targets** — 9 cm
+  of extra drop on a 1.7 m leg was 0.041 m more reach than the leg could span.
+  Scaling it fixed the reach failure as a side effect, so the lift clamp that
+  looked like the cause was left alone and recorded as a latent sub-linearity.
+- **The stride came from the left leg while the distances scaled from the
+  longest**, so on a rig whose legs differ the two disagreed by the asymmetry.
+  Both now come from one leg.
+
+Also removed: a hard-coded 0.35 m fallback for an unmeasurable shin, which was
+longer than a whole child's leg, and `jump_config.foot_lift`, which `jump_keys`
+never read yet which was being rig-scaled on every run.
+
+The rest map, leg map and rig frame moved into the spec layer, so the handler and
+a headless test assemble a context the same way instead of keeping an
+editor-only copy that can drift. The golden confirmed the move changed nothing
+on the dummy — after a first version that quietly did.
+
+### Four goldens behind one implementation
+
+`tests/golden_digest.gd` quantizes a clip to integers at 1/2048 with quaternion
+sign normalized, and compares two digests. Walk, run and idle go through the real
+ops in the editor suite; a fourth is spec-level over a synthetic rig in tier-1,
+which is the one that runs on **both** platforms. Each fixture carries the engine
+that produced it, so a version bump that moves the numbers is explicable from the
+log rather than mysterious. Comparison answers with a drift *and* a shape
+difference, because a changed track count is a different kind of change from a
+drift.
+
+**The cross-OS question was settled by measurement.** The editor suites now run
+on Windows as well as Linux — which is how a bash-vs-PowerShell failure in the
+steps themselves was found and fixed — and the golden drifts **0 units on
+`ubuntu-latest` and `windows-latest` alike**. The float maths is bit-stable
+across platforms at this quantization, and the 2-unit tolerance (ten times the
+measured same-process floor of 1e-4 rad) is now justified rather than hoped for.
+Every fixture was verified in both directions: it passes against its own
+recording and fails when perturbed.
+
+### What the goldens were worth
+
+The walk golden caught an intended change at **83 units (2.3°)** — the fixture
+measures a 0.797 m leg, not the 0.85 m reference its defaults were written
+against — which turned an argument into a number. It also caught a refactor that
+was quietly changing a neck bone's rest pose, because it resolved the spine chain
+a second time.
+
+Two test fixtures were wrong before the code was, and both are worth recording:
+`set_bone_rest` is a **local** rest, so global-looking joint positions compound
+down the chain (a 0.5 m leg measured 0.76 m); and a first "asymmetric" rig varied
+lateral offset rather than leg length. An assertion that Froude must be constant
+across rigs was also wrong physics — a stride built from an angle scales speed
+with L, so Fr grows as sqrt(L) — and the matrix now asserts that law instead,
+which is a stronger statement: change the speed law and it fails.
+
+One more from the survey: `turn_config.turn_angle` was reported as not accepted
+as an override. It is, and is read. Recorded so it is not "fixed" twice.
+
+202 editor tests, 14 tier-1 suites (2 platforms each), 32 CI jobs.
+
 ## 1.11.0 — the shapes, and what the engine actually does
 
 Twelve commits past v1.9.0, covering the close of **Phase 16** (contract flags
