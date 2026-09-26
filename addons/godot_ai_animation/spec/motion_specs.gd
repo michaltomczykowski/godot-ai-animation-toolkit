@@ -494,16 +494,44 @@ static func context_from_skeleton(skeleton: Skeleton3D, roles: Dictionary,
 		"root_motion": false,
 	}
 	if scale_distances:
-		var leg := measured_leg(ctx)
-		if leg > 0.0001:
-			var factor := leg / reference_leg
-			ctx["distance_scale"] = factor
-			if not is_equal_approx(factor, 1.0):
-				for key in ["bob", "sway", "foot_lift", "jump_crouch", "jump_height", "crouch"]:
-					if not config.has(key):
-						continue
-					config[key] = float(config[key]) * factor
+		scale_distances_to_rig(config, ctx, [], reference_leg)
 	return ctx
+
+
+## The reference leg length the recipe defaults are written against: a
+## human_dummy-scale character, roughly 0.85 m from hip to ankle. Defaults are
+## expressed as a fraction of this and multiplied by the rig's OWN measured leg, so
+## a child and a giant get a proportional bob, foot lift, crouch and jump instead
+## of the same five centimetres.
+const REFERENCE_LEG := 0.85
+## The defaults that are distances rather than angles or ratios, and so are the
+## ones that have to scale with the rig.
+const DISTANCE_DEFAULTS := ["bob", "sway", "foot_lift", "jump_crouch", "jump_height", "crouch"]
+
+
+## Re-expresses the distance defaults as fractions of the rig's measured leg, in
+## place, and records the factor as `ctx.distance_scale` for the recipes that need
+## it directly (the turn's bob lives in a phase table, and the knee-bend crouch is
+## bought with degrees).
+##
+## `explicit` lists the keys the caller already set, so a value a user asked for
+## keeps its meaning in metres while untouched defaults move. It is a list rather
+## than a lookup of params and overrides because this has to be callable from a
+## headless test that has no params dict.
+static func scale_distances_to_rig(config: Dictionary, ctx: Dictionary,
+		explicit: Array = [], reference_leg: float = REFERENCE_LEG) -> float:
+	var leg := measured_leg(ctx)
+	if leg <= 0.0001:
+		return 1.0
+	var factor := leg / reference_leg
+	ctx["distance_scale"] = factor
+	if is_equal_approx(factor, 1.0):
+		return factor
+	for key in DISTANCE_DEFAULTS:
+		if explicit.has(key) or not config.has(key):
+			continue
+		config[key] = float(config[key]) * factor
+	return factor
 
 
 ## Parent index of every bone, for `RigAnalysis.spine_chain`.

@@ -17,7 +17,8 @@ difference.
 
 Two of its assertions are dimensionless on purpose. The **Froude number**
 `v/sqrt(gL)` is how gait speed is compared across body sizes at all, and the
-stance fraction is read off published gait (~0.60 of the cycle walking).
+stance fraction is read off published gait (~0.60 of the cycle walking - the one
+figure every source agrees on).
 Absolute speeds would have asserted the dummy's luck rather than the generator.
 
 It found three real defects, all fixed:
@@ -79,6 +80,18 @@ lateral offset rather than leg length. An assertion that Froude must be constant
 across rigs was also wrong physics — a stride built from an angle scales speed
 with L, so Fr grows as sqrt(L) — and the matrix now asserts that law instead,
 which is a stronger statement: change the speed law and it fails.
+
+One of the gait citations did not survive checking, which is worth saying plainly.
+The paper quoted for the Froude numbers also reports comfortable walking at
+"Fr ~0.4" for 1.8 m/s on an 0.827 m leg — and `v/sqrt(gL)` for those numbers is
+0.632, not 0.4; 0.4 would need a 2.06 m "leg". Its absolute values do not
+reproduce under its own stated formula, so nothing here leans on them. What the
+matrix asserts is the scaling law, which is arithmetic rather than literature,
+and a wide sanity band anchored on the standard ~0.5 walk-to-run transition.
+That anchor is doing real work: **the 1.7 m rig measures Fr 0.547 and crosses
+it**, because a stride built from an angle scales speed with leg length. The suite
+prints that rather than hiding it. Whether a long-legged rig should be handed a
+run config instead is an open product question, not a maths one.
 
 One more from the survey: `turn_config.turn_angle` was reported as not accepted
 as an override. It is, and is read. Recorded so it is not "fixed" twice.

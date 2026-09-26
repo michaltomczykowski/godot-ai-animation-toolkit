@@ -32,32 +32,17 @@ const _GAIT_KEYS := ["stride", "knee_bend", "arm_swing", "arm_twist", "bob", "sw
 ## Overrides that are switches rather than numbers, so they are not coerced.
 const _BOOLEAN_OVERRIDES := ["planted"]
 
-## The reference leg length the recipe defaults were tuned against: a
-## human_dummy-scale character (roughly 0.85 m from hip to ankle). Defaults below
-## are expressed as a fraction of this, then multiplied by the rig's OWN measured
-## leg, so a 1.2 m child and a 2.4 m giant get a proportional bob, foot lift,
-## crouch and jump instead of the same five centimetres.
-const _REFERENCE_LEG := 0.85
-const _DISTANCE_DEFAULTS := ["bob", "sway", "foot_lift", "jump_crouch", "jump_height", "crouch"]
-
-
-## Re-express the distance defaults as fractions of the rig's measured leg. An
-## explicit value (a top-level param or an override) keeps its meaning in metres;
-## only untouched defaults move.
+## The rig-relative rewrite of the distance defaults lives in the spec layer now
+## (`MotionSpecs.scale_distances_to_rig`), so a headless tier-1 test scales a
+## context with the same code the handler does rather than with a second copy that
+## can drift. It used to be here and there were two of them.
 func _scale_distances_to_rig(config: Dictionary, params: Dictionary, overrides: Dictionary, ctx: Dictionary) -> void:
-	var leg := MotionSpecs.measured_leg(ctx)
-	if leg <= 0.0001:
-		return
-	var factor := leg / _REFERENCE_LEG
-	# The turn's bob lives in its phase table rather than the config, so the
-	# factor is handed over for it to use.
-	ctx["distance_scale"] = factor
-	if is_equal_approx(factor, 1.0):
-		return
-	for key in _DISTANCE_DEFAULTS:
-		if params.has(key) or overrides.has(key) or not config.has(key):
-			continue
-		config[key] = float(config[key]) * factor
+	var explicit: Array = []
+	for key in params:
+		explicit.append(str(key))
+	for key in overrides:
+		explicit.append(str(key))
+	MotionSpecs.scale_distances_to_rig(config, ctx, explicit, MotionSpecs.REFERENCE_LEG)
 
 
 const _OVERRIDE_KEYS := {

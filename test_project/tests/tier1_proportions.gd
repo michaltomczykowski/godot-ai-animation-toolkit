@@ -14,13 +14,26 @@ extends SceneTree
 ##
 ## Two of its assertions are dimensionless on purpose. The FRONDE NUMBER
 ## Fr = v / sqrt(g * L) is the standard way gait speed is compared across body
-## sizes - it is what makes a child's cadence and an adult's comparable at all
-## (walk-to-run transition sits near Fr = 0.5 regardless of leg length). Without
-## it, "speed" is a metre value that a short rig can never reach and a long rig
-## exceeds for free, and a test asserting an absolute speed would be asserting
-## the dummy's luck. Stance fraction and stride-to-leg ratio are likewise read
-## off published gait (stance is about 60% of the cycle when walking; running
-## duty factor falls from ~0.45 toward ~0.28 as speed rises).
+## sizes - it is what makes a child's cadence and an adult's comparable at all.
+## Without it, "speed" is a metre value that a short rig can never reach and a
+## long rig exceeds for free, and a test asserting an absolute speed would be
+## asserting the dummy's luck. Stance fraction and duty factor are likewise read
+## off published gait: stance is about 60% of the cycle when walking (the one
+## gait figure every source here agrees on), and running duty factor falls from
+## ~0.45 toward ~0.28 as speed rises.
+##
+## A note on how far these citations are load-bearing, since one of them did not
+## survive checking. The ~0.5 walk-to-run transition is a standard reference
+## value and is used as the top of the walking band, but the paper quoted for it
+## also reports comfortable walking at "Fr ~0.4" for 1.8 m/s on an 0.827 m leg -
+## and v/sqrt(gL) for those numbers is 0.632, not 0.4. 0.4 would need a 2.06 m
+## "leg". So that paper's absolute Fr values do not reproduce under its own
+## stated formula, and nothing here leans on them. What is asserted instead is
+## the SCALING LAW, which is arithmetic rather than literature: a stride built
+## from an angle scales speed with L, so Fr must grow as sqrt(L), and the matrix
+## checks exactly that to 0.02. The absolute band is a sanity range, not a
+## measurement - it catches "this is not a walk at all", not "this is a real
+## walk".
 ##
 ## Foot slide is measured through RigAnalysis.foot_slide on COMPUTED positions,
 ## never skeleton.get_bone_global_pose(): a bare headless --script tree does not
@@ -161,37 +174,20 @@ func _roles() -> Dictionary:
 
 
 ## A walk built the way the handler builds one: the same rig-relative rewrite of
-## the distance defaults, so this tests the real assembly path rather than a
-## context assembled differently.
+## the distance defaults, by the SAME function the handler calls. This suite used
+## to carry its own copy of that rule, which meant the matrix was partly testing a
+## reimplementation - and a reimplementation cannot fail when the real one breaks.
 func _walk(skeleton: Skeleton3D, length := 1.0, samples := 24.0) -> Dictionary:
-	var ctx := MotionSpecs.context_from_skeleton(skeleton, _roles(), length, samples,
-		true, REFERENCE_LEG)
+	var ctx := MotionSpecs.context_from_skeleton(skeleton, _roles(), length, samples)
 	if ctx.has("error"):
 		return {"error": ctx.error}
-	ctx["config"] = MotionSpecs.walk_config("default", {})
-	_scale_defaults(ctx)
+	var config: Dictionary = MotionSpecs.walk_config("default", {})
+	ctx["config"] = config
+	MotionSpecs.scale_distances_to_rig(config, ctx, [], REFERENCE_LEG)
 	var built: Dictionary = MotionSpecs.gait_keys(ctx, false)
 	if built.has("error"):
 		return {"error": built.error}
 	return {"ctx": ctx, "built": built}
-
-
-## The handler's own rewrite, reproduced because it is the behaviour under test
-## (`scale_distances` in context_from_skeleton takes the config as an argument it
-## does not have; see the note there).
-func _scale_defaults(ctx: Dictionary) -> void:
-	var leg := MotionSpecs.measured_leg(ctx)
-	if leg <= 0.0001:
-		return
-	var factor := leg / REFERENCE_LEG
-	ctx["distance_scale"] = factor
-	if is_equal_approx(factor, 1.0):
-		return
-	var config: Dictionary = ctx["config"]
-	for key in ["bob", "sway", "foot_lift", "jump_crouch", "jump_height", "crouch"]:
-		if not config.has(key):
-			continue
-		config[key] = float(config[key]) * factor
 
 
 func _froude(speed: float, leg: float) -> float:
@@ -237,9 +233,20 @@ func _check_the_matrix_holds_every_proportion() -> void:
 		var hip_to_ankle := (_hip_to_ankle(ctx, "l") + _hip_to_ankle(ctx, "r")) * 0.5
 
 		# 1. DIMENSIONLESS SPEED. The stride is a fraction of the leg, so the speed
-		# a walk implies has to fall in the walking Froude band whatever the leg is.
+		# a walk implies has to fall in a walking Froude band whatever the leg is.
 		# This is the assertion that catches a rig-relative default being left in
 		# absolute metres.
+		#
+		# The band is deliberately tight at the top and the reason is the reference
+		# point: the walk-to-run transition is the Froude number at which gait stops
+		# being a walk, measured at ~0.5 across a range of heights and leg lengths.
+		# A "walk" that exceeds it is a run wearing a walk's config, so 0.60 would
+		# have quietly admitted one. A stride built from an angle scales speed with
+		# L, so Fr grows as sqrt(L) and a long enough rig crosses the transition on
+		# its own - the tall rig here does, and that is reported rather than
+		# banded away. Whether the generator should then switch to a run config is
+		# a product question, not a maths one; the number is printed so it is
+		# visible when that question gets asked.
 		var config: Dictionary = ctx.config
 		var stance := float(config.stance)
 		var span := 2.0 * measured * sin(deg_to_rad(float(config.stride)))
@@ -249,6 +256,9 @@ func _check_the_matrix_holds_every_proportion() -> void:
 		_expect(froude > 0.05 and froude < 0.60,
 			"%s: walking Froude %.3f is in the walking band 0.05-0.60 (speed %.3f m/s, hip-to-ankle %.3f m)"
 			% [label, froude, speed, hip_to_ankle])
+		if froude >= 0.5:
+			print("  note: %s reaches Fr %.3f, at or past the ~0.5 walk-to-run transition, because a stride built from an angle scales speed with leg length"
+				% [label, froude])
 
 		# 2. STANCE FRACTION. About 60% of the cycle when walking; the value is a
 		# ratio already, so this is a check that the recipe keeps it a ratio.

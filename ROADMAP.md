@@ -1081,8 +1081,9 @@ measured about it, which is the most useful part of having tried.
    orientation, asserting what must survive the difference. Two assertions are
    dimensionless on purpose: the **Froude number** `v/sqrt(gL)`, which is how gait
    speed is compared across body sizes at all, and the stance fraction (~0.60 of
-   the cycle when walking, published). Absolute speeds would have asserted the
-   fixture dummy's luck. **It found three real defects**, all fixed: the knee-bend
+   the cycle when walking - the one gait figure every source agrees on).
+   Absolute speeds would have asserted the fixture dummy's luck. **It found three
+   real defects**, all fixed: the knee-bend
    crouch was in absolute metres (9 cm of leg bend on every rig - 18% of a
    child's leg against 6% of an adult's, and enough extra reach demand to stop a
    tall rig reaching its own targets); the stride came from the left leg while
@@ -1096,6 +1097,17 @@ measured about it, which is the most useful part of having tried.
    stride built from an angle scales speed with L, so Fr grows as sqrt(L). The
    matrix asserts that law instead, which is stronger - change the speed law and
    it fails.
+   **On the citations, because one did not survive checking.** The paper quoted
+   for the Froude numbers also reports comfortable walking at "Fr ~0.4" for
+   1.8 m/s on an 0.827 m leg, and `v/sqrt(gL)` for those numbers is 0.632, not
+   0.4 - 0.4 would need a 2.06 m "leg". Its absolute values do not reproduce under
+   its own formula, so nothing leans on them. What is asserted is the scaling law,
+   which is arithmetic rather than literature, and a wide sanity band whose top is
+   anchored on the standard ~0.5 walk-to-run transition. That top is doing real
+   work: **the 1.7 m rig measures Fr 0.547 and crosses it**, because a stride
+   built from an angle scales speed with leg length. The suite prints that rather
+   than hiding it, and whether a long-legged rig should be handed a run config
+   instead is an open product question, not a maths one.
 3. **Real playback tests — DONE.** Every other test in the motion suite applies
    the *nearest key* to the skeleton by hand, so nothing had ever checked what
    the engine plays: the interpolation between keys, the wrap at the end of a
