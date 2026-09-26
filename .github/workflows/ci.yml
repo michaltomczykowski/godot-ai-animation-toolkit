@@ -15,6 +15,12 @@ jobs:
   tier1:
     name: Tier 1 / ${{ matrix.os }} / ${{ matrix.script }}
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        # The tier-1 steps use `set -o pipefail` and `tee`. windows-latest defaults
+        # to PowerShell, which cannot parse them - the editor job hit exactly this
+        # when it gained a Windows leg.
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
@@ -71,7 +77,30 @@ jobs:
         run: godot --headless --path test_project --import
 
       - name: Tier-1 checks
-        run: godot --headless --path test_project --script "res://tests/${{ matrix.script }}.gd"
+        run: |
+          set -o pipefail
+          godot --headless --path test_project --script "res://tests/${{ matrix.script }}.gd" 2>&1 | tee tier1.log
+
+      - name: The suite has to have actually run
+        if: always()
+        run: |
+          # A suite that prints nothing and exits 0 is GREEN and tests nothing.
+          # Every tier-1 script ends with TIER1 PASS or TIER1 FAIL, so the absence
+          # of both means the script never reached its report - a bad res:// path,
+          # a parse error, a silent headless no-op - and the exit code alone cannot
+          # tell that apart from success. This is the tier-1 twin of the editor
+          # job's parse-error gate.
+          if [ ! -f tier1.log ]; then
+            echo "::error::tier1.log was not written - the suite did not run"
+            exit 1
+          fi
+          if ! grep -q "TIER1 " tier1.log; then
+            echo "::error::no TIER1 PASS/FAIL line: res://tests/${{ matrix.script }}.gd never reported"
+            grep -c "Parse Error\|SCRIPT ERROR" tier1.log || true
+            tail -20 tier1.log
+            exit 1
+          fi
+          grep -q "TIER1 PASS" tier1.log
 
   editor-suite:
     name: Editor suite / ${{ matrix.os }} / core ${{ matrix.core-ref }}
