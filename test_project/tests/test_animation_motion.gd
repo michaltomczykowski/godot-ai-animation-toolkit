@@ -10,6 +10,7 @@ const ValueCodec := preload("res://addons/godot_ai_animation/utils/value_codec.g
 
 const MotionHandler := preload("res://addons/godot_ai_animation/handlers/motion.gd")
 const RigAnalysis := preload("res://addons/godot_ai_animation/spec/rig_analysis.gd")
+const GoldenDigest := preload("res://tests/golden_digest.gd")
 
 const DUMMY := "res://models/human_dummy/HumanCharacterDummy_F.fbx"
 
@@ -1557,119 +1558,64 @@ func test_chain_bones_outside_the_roles_use_their_own_rest_pose() -> void:
 
 
 func test_the_walk_matches_its_golden() -> void:
-	# The golden is a quantized digest of one walk clip, committed, so a change to
-	# the generator shows up as a NUMBER instead of "it looks a bit different".
-	# Quantizing is what gives the comparison an explicit tolerance: one step is
-	# 1/2048 of the unit, so float noise cannot fail it and a real change cannot
-	# hide. Missing file means "record it" - that is how the fixture was created.
+	_check_golden("walk_cycle", "golden_walk", "golden_walk.json")
+
+
+func test_the_run_matches_its_golden() -> void:
+	_check_golden("run_cycle", "golden_run", "golden_run.json")
+
+
+func test_the_idle_matches_its_golden() -> void:
+	_check_golden("idle_cycle", "golden_idle", "golden_idle.json")
+
+
+## Builds one clip through the real op and compares a quantized digest of it with a
+## committed fixture. The digest and the tolerance live in golden_digest.gd, which
+## a headless tier-1 suite also uses against a spec - so the walk, the run and the
+## idle are all gated by the same arithmetic, and a fourth golden later is one line.
+func _check_golden(op: String, animation_name: String, fixture: String) -> void:
 	var rig := _rig("MotionGolden")
 	if rig.has("error"):
 		skip(rig.error)
 		return
 	var built := _handler.run({
-		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
-		"player_path": rig.player_path, "animation_name": "golden_walk",
+		"op": op, "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": animation_name,
 		"duration": 1.0, "loop_mode": "linear", "samples": 8.0,
 	}, null)
-	assert_true(built.has("data"), "the walk builds (%s)" % str(built.get("error", built)))
-	var anim: Animation = rig.player.get_animation("golden_walk")
-	assert_true(anim != null and anim.get_track_count() > 0, "the clip has tracks")
+	assert_true(built.has("data"), "the %s builds (%s)" % [op, str(built.get("error", built))])
+	var anim: Animation = rig.player.get_animation(animation_name)
+	assert_true(anim != null and anim.get_track_count() > 0, "the %s clip has tracks" % op)
 	if anim == null:
 		_teardown(rig)
 		return
-	var digest := _clip_digest(anim)
-	var path := "res://tests/fixtures/golden_walk.json"
-	if not FileAccess.file_exists(path):
-		var file := FileAccess.open(path, FileAccess.WRITE)
-		assert_true(file != null, "the golden could be created (%s)" % str(FileAccess.get_open_error()))
-		if file != null:
-			file.store_string(JSON.stringify(digest, "  "))
-			file.close()
-			print("  recorded %s (%d tracks)" % [path, (digest.tracks as Array).size()])
+	var digest: Dictionary = GoldenDigest.from_animation(anim)
+	var path := "res://tests/fixtures/" + fixture
+	var loaded: Dictionary = GoldenDigest.load_or_record(path, digest)
+	assert_true(not loaded.has("error"), "the golden is usable (%s)" % str(loaded.get("error", "")))
+	if loaded.has("error"):
 		_teardown(rig)
 		return
-	var golden: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(path))
-	assert_true(golden is Dictionary and golden.has("tracks"), "the golden parses")
-	if not (golden is Dictionary) or not golden.has("tracks"):
+	if bool(loaded.get("recorded", false)):
+		print("  recorded %s (%d tracks, %s)" % [
+			str(loaded.get("path", path)), (digest.tracks as Array).size(), str(digest.godot)])
 		_teardown(rig)
 		return
-	assert_eq(float(golden.length), snappedf(anim.length, 0.0001),
-		"the golden's clip length still matches")
-	var golden_tracks: Array = golden.tracks
-	var fresh_tracks: Array = digest.tracks
-	assert_eq(fresh_tracks.size(), golden_tracks.size(),
-		"the walk keys the same number of tracks (%d vs %d)"
-		% [fresh_tracks.size(), golden_tracks.size()])
-	if fresh_tracks.size() == golden_tracks.size():
-		var worst := 0
-		var worst_where := ""
-		for index in fresh_tracks.size():
-			var fresh: Dictionary = fresh_tracks[index]
-			var old: Dictionary = golden_tracks[index]
-			if str(fresh.bone) != str(old.bone):
-				assert_true(false, "track %d is %s, the golden says %s" % [index, str(fresh.bone), str(old.bone)])
-				continue
-			var fresh_keys: Array = fresh.keys
-			var old_keys: Array = old.keys
-			if fresh_keys.size() != old_keys.size():
-				assert_true(false, "%s has %d keys, the golden has %d"
-					% [str(fresh.bone), fresh_keys.size(), old_keys.size()])
-				continue
-			for key_index in fresh_keys.size():
-				# An integer step of difference is one quantization unit per
-				# component, so 1 means "as close as this digest can see".
-				var gap: int = 0
-				for component in (fresh_keys[key_index] as Array).size():
-					gap = maxi(gap, absi(int((fresh_keys[key_index] as Array)[component])
-						- int((old_keys[key_index] as Array)[component])))
-				if gap > worst:
-					worst = gap
-					worst_where = "%s key %d" % [str(fresh.bone), key_index]
-		assert_true(worst <= 2,
-			"the walk still matches its golden (worst drift %d units at %s; 1 unit = 1/2048)"
-			% [worst, worst_where])
-		# Printed unconditionally, because this number is a cross-platform
-		# measurement and only a failure would otherwise reveal it. The golden is
-		# recorded on Windows and CI compares it on Linux as well, so the drift
-		# between two implementations of sin/cos/sqrt at float32 is worth watching
-		# while it is small rather than discovering it on the day it is not.
-		print("  golden walk: worst drift %d unit(s) at %s (tolerance 2; 1 unit = 1/2048)"
-			% [worst, worst_where])
+	var golden: Dictionary = loaded.golden
+	var result: Dictionary = GoldenDigest.compare(digest, golden)
+	assert_true(str(result.shape).is_empty(),
+		"the %s still has the golden's shape (%s)" % [op, str(result.shape)])
+	if str(result.shape).is_empty():
+		assert_true(int(result.worst) <= int(golden.get("tolerance", GoldenDigest.TOLERANCE)),
+			"the %s still matches its golden (worst drift %d units at %s; 1 unit = 1/2048)"
+				% [op, int(result.worst), str(result.where)])
+	# Printed whether or not it passed: this number is a cross-platform
+	# measurement, and only a failure would otherwise reveal it.
+	print("  golden %s: worst drift %d unit(s) at %s (tolerance %d; recorded on Godot %s, running %s)"
+		% [op, int(result.worst), str(result.where),
+			int(golden.get("tolerance", GoldenDigest.TOLERANCE)),
+			str(golden.get("godot", "?")), str(digest.godot)])
 	_teardown(rig)
-
-
-## A quantized, comparable digest of a clip: sorted tracks, and every key as
-## integers (quaternions scaled by 2048, vectors the same). Quaternion sign is
-## normalised first, because q and -q are the same rotation and the engine is
-## free to store either.
-func _clip_digest(anim: Animation) -> Dictionary:
-	const SCALE := 2048
-	var tracks: Array = []
-	for track in anim.get_track_count():
-		var kind := anim.track_get_type(track)
-		if kind != Animation.TYPE_ROTATION_3D and kind != Animation.TYPE_POSITION_3D:
-			continue
-		var path := str(anim.track_get_path(track))
-		var bone := path.get_slice(":", 1)
-		if bone.is_empty():
-			continue
-		var values: Array = []
-		for index in anim.track_get_key_count(track):
-			var value = anim.track_get_key_value(track, index)
-			if value is Quaternion:
-				var q: Quaternion = value
-				if q.w < 0.0:
-					q = Quaternion(-q.x, -q.y, -q.z, -q.w)
-				values.append([q.x, q.y, q.z, q.w].map(
-					func(v: float) -> int: return roundi(v * SCALE)))
-			else:
-				var v3: Vector3 = value
-				values.append([v3.x, v3.y, v3.z].map(
-					func(v: float) -> int: return roundi(v * SCALE)))
-		tracks.append({"bone": bone, "type": kind, "keys": values})
-	tracks.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		return str(a.bone) < str(b.bone))
-	return {"length": snappedf(anim.length, 0.0001), "scale": SCALE, "tracks": tracks}
 
 
 ## Peak travel of the hips track measured along one axis, in metres.

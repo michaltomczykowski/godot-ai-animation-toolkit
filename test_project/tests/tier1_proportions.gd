@@ -31,6 +31,7 @@ extends SceneTree
 
 const MotionSpecs := preload("res://addons/godot_ai_animation/spec/motion_specs.gd")
 const RigAnalysis := preload("res://addons/godot_ai_animation/spec/rig_analysis.gd")
+const GoldenDigest := preload("res://tests/golden_digest.gd")
 
 const GRAVITY := 9.81
 const REFERENCE_LEG := 0.85
@@ -45,11 +46,51 @@ func _initialize() -> void:
 
 func _run() -> void:
 	_check_the_matrix_holds_every_proportion()
+	_check_the_synthetic_walk_matches_its_golden()
 	if _failures == 0:
 		print("TIER1 PASS (%d checks)" % _checks)
 	else:
 		print("TIER1 FAIL (%d/%d checks failed)" % [_failures, _checks])
 	quit(0 if _failures == 0 else 1)
+
+
+## The same golden discipline as the editor suite, on a rig that is not the
+## fixture and needs no editor: this suite runs on ubuntu AND windows, so it is
+## the leg that would catch a platform difference in the generator's arithmetic
+## even if the editor fixtures were regenerated on one machine.
+##
+## It digests the SPEC rather than a committed clip - a headless suite has no
+## AnimationPlayer in the picture - so it is a separate fixture and not
+## comparable with the walk/run/idle ones. What it gates is the maths: stride,
+## stance, the two-bone solve, the rig frame.
+func _check_the_synthetic_walk_matches_its_golden() -> void:
+	var skeleton := _rig(REFERENCE_LEG)
+	var result := _walk(skeleton, 1.0, 12.0)
+	_expect(not result.has("error"), "the golden walk builds (%s)" % str(result.get("error", "")))
+	if result.has("error"):
+		return
+	var built: Dictionary = result.built
+	var digest: Dictionary = GoldenDigest.from_keys(built.keys, float(result.ctx.length))
+	var path := "res://tests/fixtures/golden_spec_walk.json"
+	var loaded: Dictionary = GoldenDigest.load_or_record(path, digest)
+	_expect(not loaded.has("error"), "the spec golden is usable (%s)" % str(loaded.get("error", "")))
+	if loaded.has("error"):
+		return
+	if bool(loaded.get("recorded", false)):
+		print("  recorded %s (%d tracks, %s)" % [
+			str(loaded.get("path", path)), (digest.tracks as Array).size(), str(digest.godot)])
+		return
+	var golden: Dictionary = loaded.golden
+	var compared: Dictionary = GoldenDigest.compare(digest, golden)
+	_expect(str(compared.shape).is_empty(),
+		"the synthetic walk still has the golden's shape (%s)" % str(compared.shape))
+	if str(compared.shape).is_empty():
+		_expect(int(compared.worst) <= int(golden.get("tolerance", GoldenDigest.TOLERANCE)),
+			"the synthetic walk matches its golden (worst drift %d units at %s; 1 unit = 1/2048)"
+				% [int(compared.worst), str(compared.where)])
+	print("  golden spec walk: worst drift %d unit(s) (tolerance %d; recorded on Godot %s, running %s)"
+		% [int(compared.worst), int(golden.get("tolerance", GoldenDigest.TOLERANCE)),
+			str(golden.get("godot", "?")), str(digest.godot)])
 
 
 ## A biped with the given BONE-LENGTH SUM per leg (thigh + shin), which is what

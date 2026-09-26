@@ -1,6 +1,9 @@
 {
+  "format": "godot-ai-animation-golden",
+  "godot": "4.7.2",
   "length": 1.0,
   "scale": 2048,
+  "tolerance": 2,
   "tracks": [
     {
       "bone": "B-chest",
@@ -1193,5 +1196,6 @@
       ],
       "type": 2
     }
-  ]
+  ],
+  "version": 1
 }
