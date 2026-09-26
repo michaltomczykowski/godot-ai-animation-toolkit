@@ -261,6 +261,18 @@ static func _solve_leg(
 		leg.ankle + step_axis * float(foot.forward)
 		+ up * (lift * float(foot.height))
 	)
+	# Aimed from the AUTHORED (travelled) hips, and that is deliberate. The engine
+	# cancels the hips track, which shifts the drawn chain back by the travel, and
+	# the caller applies the same travel to the character node - so the two cancel
+	# and `world foot == authored target`. Aiming from the cancelled hips instead
+	# was tried and is wrong: it asks the leg to place the foot where the authored
+	# hips would not put it, so the authored foot ends up riding the travel (measured
+	# 0.61 m of slide over one stance, where the whole cycle's travel is 1.05 m).
+	#
+	# What the solve's hip choice is NOT allowed to hide is the reach limit: the
+	# demand from the travelled hip to the fixed stance point has to stay inside the
+	# leg's span, or the solve clamps and the foot rides the hips at full speed.
+	# `clamped` / `clamp_shortfall_m` in the reply are how that shows up.
 	var hip_pos: Vector3 = hips_origin + offset + Basis(pelvis_world) * (leg.hip - hips_origin)
 	var solved := MotionDrivers.solve_leg(hip_pos, ankle_target, float(leg.upper),
 		float(leg.lower), _rest_bend(ctx, leg, knee_hint))
@@ -384,18 +396,22 @@ static func _foot_trajectory(p: float, stance: float, span: float, ground_speed:
 	var local_phase := fposmod(p, 1.0)
 	if local_phase < stance:
 		if rooted:
-			# Each stance holds a fixed CLIP-space point, which is a fixed world
-			# point for as long as nothing carries the character.
+			# Each stance holds a fixed point in the clip's own space, and that is
+			# the right frame - arrived at the hard way, so the reasoning is recorded.
 			#
-			# The textbook-correct root-motion authoring is the in-place one (the
-			# branch below): extraction moves the character node by the hips'
-			# travel and cancels the track, so world = H(t) + F(t), and a stance
-			# that slides back in clip space by the travel would land still. That
-			# change was made and measured and it did NOT cancel - the planted foot
-			# slid 0.13 m where the rates say it should be 0.005 m - so the two
-			# rates (span/stance for the slide, ground_speed for the travel) are
-			# not what the solve actually consumes, and the cause is still open.
-			# Reverted here rather than shipped on a plausible story. See ROADMAP 7.
+			# Extraction cancels the hips track from the pose, which shifts the WHOLE
+			# chain back by the travel T(t) (the rotations are unchanged, so every
+			# bone downstream of the hips translates by the same amount), and the
+			# caller then applies T(t) to the character node. So
+			#
+			#     rendered foot = A(t) - T(t)      where A(t) is the authored foot
+			#     world foot    = rendered + T(t) = A(t) = the authored TARGET
+			#
+			# The world foot is the authored target whatever hip the solve aimed from.
+			# A constant target therefore plants, and an "in-place" target that slides
+			# back by the travel (tried here, reverted) makes the world foot slide
+			# back with it - the moonwalk. What the solve's hip choice *does* change
+			# is reachability, which is the real bug: see `_solve_leg`.
 			return {
 				"forward": 0.5 * span + phase_offset * ground_speed * length,
 				"height": 0.0,

@@ -606,9 +606,17 @@ How motion is generated:
   the bone's rest frame — so the same numbers read the same way on any rig.
 - **Planted feet.** Per sample the hips and pelvis motion are applied, then each
   leg is solved (law of cosines in the sagittal plane) so the ankle follows its
-  trajectory: the stance foot slides back at the cycle's ground speed, the swing
-  foot arcs forward and up. The ankle is pitched through heel strike and toe-off
-  and the toe bone is held on the ground while the foot rolls over it.
+  trajectory: the stance foot holds a fixed point in the clip's own space and the
+  swing foot arcs forward and up. The ankle is pitched through heel strike and
+  toe-off and the toe bone is held on the ground while the foot rolls over it.
+  Holding the stance still in clip space is what makes it planted in *either*
+  mode: without root motion the game moves the character, with it the player
+  extracts the hips track — and since extraction cancels that track from the pose
+  and hands the travel to the caller, a bone's world position works out to exactly
+  its authored position either way. A target that "slides back" is only right when
+  nothing is carrying the character, so that branch is the in-place one. A stance
+  the leg cannot reach is shortened to what it can, and the reply says so in
+  `clamped` / `clamp_shortfall_m`.
 - **Speed-driven.** Pass `speed` (m/s) and the stride is solved from
   `speed * stance * duration / (2 * leg_length)`; unreachable speeds are clamped
   and reported in `warnings` with the duration that would work. `speed`,

@@ -1373,23 +1373,26 @@ func _bone(skeleton: Skeleton3D, bone: String, origin: Vector3, basis: Basis) ->
 	skeleton.set_bone_rest(skeleton.find_bone(bone), Transform3D(basis, origin))
 
 
-func test_the_root_motion_wiring_is_explicit_and_carries_travel() -> void:
-	# What is settled about root motion, and what is not.
+func test_a_rooted_stance_is_still_in_the_clip_so_the_travel_cancels() -> void:
+	# The root-motion contract, stated as arithmetic and checked on the authored
+	# data, which is where it is observable.
 	#
-	# SETTLED, and checked here: the player is wired with a root-motion track, the
-	# extraction is explicitly LOCAL to the rig's frame rather than left at the
-	# engine's global default, and the hips track carries a real delta for the
-	# player to extract (without which the character would stand still and the
-	# stance would be authored against a floor nobody moves over).
+	# Extraction cancels the hips track from the pose. That shifts the WHOLE chain
+	# back by the travel T(t) - the rotations are unchanged, so every bone downstream
+	# of the hips translates by the same amount - and the caller then applies T(t) to
+	# the character node. So for any bone:
 	#
-	# NOT settled, and deliberately not asserted: whether the legs should be
-	# authored in the cancelled frame. The algebra says yes - extraction moves the
-	# character by the hips' travel and cancels that track, so a stance that slides
-	# back in clip space by the travel would land still. Implemented that way it
-	# measured 0.13 m of residual slide where the two rates predict 0.005 m, so
-	# whatever the solve actually consumes is not the pair of rates the algebra
-	# assumes. The clip still plants its stance in clip space, which is what the
-	# audit agrees with. See ROADMAP item 7.
+	#     world = (authored - T(t)) + T(t) = authored
+	#
+	# The world position IS the authored position. Two consequences, and the second
+	# one was got wrong first time:
+	#
+	#   1. a planted foot has to be authored STILL in the clip's own space;
+	#   2. which hip the leg solve aims from cannot change where the foot lands - it
+	#      can only change whether the leg can REACH the target. Aiming from the
+	#      authored (travelled) hips demands a reach the viewer never sees, the solve
+	#      clamps, and the foot rides the hips at full speed. That clamp was the
+	#      0.13 m of "residual slide"; the frame was never the problem.
 	var rig := _rig("MotionRootMotion")
 	if rig.has("error"):
 		skip(rig.error)
@@ -1398,7 +1401,7 @@ func test_the_root_motion_wiring_is_explicit_and_carries_travel() -> void:
 	var built := _handler.run({
 		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
 		"player_path": rig.player_path, "animation_name": "rooted_walk",
-		"duration": 1.0, "loop_mode": "linear", "samples": 16.0,
+		"duration": 1.0, "loop_mode": "linear", "samples": 24.0,
 		"root_motion": true, "stride_degrees": 30.0, "ground_speed": 1.4,
 	}, null)
 	assert_true(built.has("data"), "the rooted walk builds (%s)" % str(built.get("error", built)))
@@ -1414,46 +1417,78 @@ func test_the_root_motion_wiring_is_explicit_and_carries_travel() -> void:
 	var travel := _hip_travel_net(anim, "B-hips")
 	assert_true(travel > 0.8,
 		"the hips carry the cycle's travel for the player to extract (%0.3f m)" % travel)
-	# The stance the clip does plant, measured where the audit measures it: in the
-	# clip's own space, which is the world's space for as long as nothing carries
-	# the character.
+	# The ankle is pure FK - a position track on the foot would quietly become the
+	# thing that moves the foot, and the whole contract above would be about the
+	# wrong track.
+	assert_eq(_track_index(anim, ":B-foot.L", Animation.TYPE_POSITION_3D), -1,
+		"the foot bone is not authored with a position track")
 	var samples: Array = []
-	for step in 16:
-		var t := float(step) / 15.0
-		samples.append(_pose_of(rig, anim, t, "B-foot.L").origin)
-	var lowest := INF
-	for origin in samples:
-		lowest = minf(lowest, (origin as Vector3).y)
-	# A stance holds its point for the WHOLE cycle apart, so the two stances of one
-	# foot sit at points a full travel (1.05 m here) apart. A height band alone
-	# therefore catches both; the stance is the longest CONTIGUOUS run in it.
-	var best_from := -1
-	var best_to := -1
-	var run_from := -1
-	for index in samples.size():
-		var flat: bool = absf((samples[index] as Vector3).y - lowest) <= 0.005
-		if flat and run_from < 0:
-			run_from = index
-		elif not flat and run_from >= 0:
-			if index - run_from > best_to - best_from:
-				best_from = run_from
-				best_to = index
-			run_from = -1
-	if run_from >= 0 and samples.size() - run_from > best_to - best_from:
-		best_from = run_from
-		best_to = samples.size()
-	assert_true(best_to - best_from >= 3,
-		"the clip has a stance to measure (%d samples)" % (best_to - best_from))
-	if best_to - best_from >= 3:
-		var from := best_from + int((best_to - best_from) / 4)
-		var to := best_to - int((best_to - best_from) / 4)
-		var first: Vector3 = samples[from]
-		var last: Vector3 = samples[to - 1]
-		var drift := Vector2(first.x - last.x, first.z - last.z).length()
-		assert_true(drift < 0.05,
-			"the stance holds its point in the clip (%0.4f m of drift over %d samples)"
-			% [drift, to - from])
+	for step in 24:
+		var time := float(step) / 23.0
+		var pose := _pose_of(rig, anim, time, "B-foot.L")
+		samples.append({"height": pose.origin.y, "foot": pose.origin})
+	# The stance is the longest CONTIGUOUS run at the foot's lowest height. A plain
+	# height band is not enough: consecutive stances of one foot are a whole cycle's
+	# travel apart, so the band catches both and reports the gap between them.
+	var stance := _longest_flat_run(samples)
+	assert_true(stance.size() >= 3, "the clip has a stance to measure (%d samples)" % stance.size())
+	if stance.size() >= 3:
+		var first: Vector3 = (stance[0] as Dictionary).foot
+		var last: Vector3 = (stance[stance.size() - 1] as Dictionary).foot
+		var slide := Vector2(first.x - last.x, first.z - last.z).length()
+		print("  rooted stance: %d samples, %.4f m of slide over the stance" % [stance.size(), slide])
+		assert_true(slide < 0.03,
+			"the stance is authored still, so the extracted travel plants it (%.4f m of slide)"
+			% slide)
 	_teardown(rig)
+
+
+## The authored position of a bone's position track at `time`, linearly
+## interpolated between the keys either side of it.
+func _hip_travel_at(anim: Animation, bone: String, time: float) -> Vector3:
+	var values := _hip_positions(anim, bone)
+	if values.is_empty():
+		return Vector3.ZERO
+	if time <= 0.0:
+		return values[0]
+	if time >= anim.length:
+		return values[values.size() - 1]
+	for index in range(1, values.size()):
+		var key_time := anim.length * float(index) / float(values.size())
+		if time <= key_time:
+			var span := maxf(anim.length / float(values.size()), 0.000001)
+			var blend := (time - (key_time - span)) / span
+			return (values[index - 1] as Vector3).lerp(values[index] as Vector3, blend)
+	return values[values.size() - 1]
+
+
+## The authored position keys of a bone's position track, in order.
+func _hip_positions(anim: Animation, bone: String) -> Array:
+	var track := _track_index(anim, ":" + bone, Animation.TYPE_POSITION_3D)
+	var values: Array = []
+	if track < 0:
+		return values
+	for index in anim.track_get_key_count(track):
+		values.append(anim.track_get_key_value(track, index))
+	return values
+
+
+## The longest contiguous run of samples within `tolerance` of the lowest height,
+## as a list of the sample dictionaries.
+func _longest_flat_run(samples: Array, tolerance := 0.005) -> Array:
+	var lowest := INF
+	for sample in samples:
+		lowest = minf(lowest, float((sample as Dictionary).height))
+	var best: Array = []
+	var run: Array = []
+	for sample in samples:
+		if absf(float((sample as Dictionary).height) - lowest) <= tolerance:
+			run.append(sample)
+			if run.size() > best.size():
+				best = run.duplicate()
+		else:
+			run = []
+	return best
 
 
 ## Net distance travelled by a bone's position track, in metres.

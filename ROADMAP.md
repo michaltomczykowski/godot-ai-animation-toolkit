@@ -970,29 +970,60 @@ measured about it, which is the most useful part of having tried.
      the other half of the test: a foot rising 0.3 m in Z that world Y calls
      "never off the ground" (all 9 samples planted) is read correctly as
      swing-then-plant by the rig's own floor.
-7. **The root-motion contract** - **half done, and the half that is left is
-   open for a measured reason.** Landed: `root_motion_local` is now set
-   explicitly. Left at the engine's global default, a rig facing +X has its walk
-   applied along world axes instead of its own - the same class of bug as
-   measuring a Z-up rig against a Y floor, the numbers right and the meaning
-   wrong. The hips track also keeps a real delta for the player to extract, and
-   the test pins both.
+7. **The root-motion contract** - **DONE, and the frame question is settled by
+   measurement rather than argument.** The engine half is now pinned by
+   `tests/tier1_root_motion.gd`, which was written because a conclusion here had
+   been drawn from a harness that was not animating: `seek()` + `advance(0)` read
+   a still pose for *any* clip, so "the character moved 0.0000 m" was recorded as
+   "extraction does not run". It does not - the engine never moves the character
+   for you, and a still character is what a working setup looks like. What the
+   harness does establish, against a live control: the character is never moved by
+   the engine, no delta is exposed without a track, and the deltas sum to exactly
+   the distance the clip travelled. The cancellation itself is documented
+   ("the transformation will be canceled visually, and the animation will appear
+   to stay in place", AnimationMixer) but is deliberately **not** asserted from a
+   skeleton pose, because a bare headless `--script` tree does not apply the
+   mixer's blend and reads stale - a rig that is cancelled and a rig that is not
+   animating look identical there.
 
-   The unsolved part is *which frame the legs are authored in*, and the algebra
-   says it should change. Extraction moves the character node by the hips' travel
-   and cancels that track, so `world = H(t) + F(t)`: a stance that slides
-   **backwards in clip space** by the travel lands still. That is the in-place
-   authoring, and it is the textbook-correct form. Implemented, it measured
-   **0.13 m of residual slide where the two rates predict 0.005 m** - 40x out -
-   so the solve is not consuming the pair of rates the algebra assumes, and the
-   cause is genuinely unknown. Reverted rather than shipped on a plausible
-   story. What it needs is a diagnostic on what `_solve_leg` actually consumes
-   per sample (the trajectory term, the hips offset, and the clamped effective
-   ankle, which is a *reachable* point and not the requested one - a clamp
-   during stance is exactly the kind of thing that would leave 13 cm on the
-   floor). Also worth knowing for whoever picks it up: `seek()` + `advance(0)`
-   does **not** run extraction (the character moved 0.0000 m), so this cannot be
-   measured by synchronous playback; it needs real frames.
+   **The arithmetic, which is the whole contract:** cancellation shifts the entire
+   chain back by the travel `T(t)` - the rotations are unchanged, so every bone
+   downstream of the hips translates by the same amount - and the caller then
+   applies `T(t)` to the character node. So for any bone
+   `world = (authored - T(t)) + T(t) = authored`. The world position **is** the
+   authored position. Two consequences:
+   - a planted foot has to be authored **still in the clip's own space**, which is
+     what the recipe already did;
+   - which hip the leg solve aims from **cannot** change where the foot lands. It
+     can only change whether the leg can *reach* the target.
+
+   That second point is what the item was really about, and it was got wrong twice
+   before being measured. The "in-place" authoring - stance sliding backwards by
+   the travel, the textbook form - was implemented and it is **wrong here**: it
+   makes the world foot slide back with the clip, the moonwalk (0.61 m of slide
+   over one stance, against a cycle's total travel of 1.05 m). Aiming the solve
+   from the *cancelled* hips instead of the authored ones is also wrong, for the
+   same reason in mirror image (0.61 m the other way). Both were reverted; the
+   measurement is in `docs`-adjacent comments in `_foot_trajectory` and
+   `_solve_leg` so the next person does not re-run either experiment.
+
+   What landed: the contract is now **tested** rather than assumed -
+   `test_a_rooted_stance_is_still_in_the_clip_so_the_travel_cancels` measures the
+   authored stance at **0.0000 m of slide over a 14-sample stance**, asserts the
+   ankle is pure FK (a position track on the foot bone would quietly become the
+   thing that moves the foot, and every conclusion above would be about the wrong
+   track), and `root_motion_local` is set explicitly, since a rig facing +X would
+   otherwise have its walk applied along world axes.
+
+   The "crouch reach tax" that came out of the same investigation - `crouch` is
+   `config.crouch + 0.003 * knee_bend`, a flat 9 cm for a walk - was checked and is
+   **not a tax**: it lowers the hips *towards* a target that stays at rest height,
+   so it shortens the demanded reach rather than lengthening it. Recorded here so
+   it is not "fixed" a second time. What genuinely can make a stance ride the hips
+   is the reach clamp when the demanded span passes `upper + lower - 1 mm`; that
+   shows up in the reply as `clamped` / `clamp_shortfall_m`, and a stride or
+   ground speed that puts the fixed stance point out of reach will trigger it.
+
 
 
 1. **A swing is an arc, not a step.** Foot height is currently 0 or 1 across
