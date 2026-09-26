@@ -1,6 +1,6 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **phases 0–15 done, Phase 16 in progress** — v1.9.0 closes the audit
+Status: **phases 0-17 done** -> v1.9.0 shipped; Phase 18 open
 remediation's first half: every doc-ambiguous claim was settled by a failing
 test and **all four were true**, so look-at angles are radians now, the audit
 survives a blend tree, a retarget target nested in a wrapper is refused instead
