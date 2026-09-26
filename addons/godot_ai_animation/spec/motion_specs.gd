@@ -14,6 +14,7 @@ extends RefCounted
 const MotionDrivers := preload("res://addons/godot_ai_animation/spec/motion_drivers.gd")
 const SpineTwist := preload("res://addons/godot_ai_animation/spec/spine_twist.gd")
 const ValueCodec := preload("res://addons/godot_ai_animation/utils/value_codec.gd")
+const RigAnalysis := preload("res://addons/godot_ai_animation/spec/rig_analysis.gd")
 
 ## Style presets are multipliers over the base config, applied before
 ## `overrides` so callers can still tune individual values.
@@ -438,6 +439,133 @@ static func _foot_trajectory(p: float, stance: float, span: float, ground_speed:
 	else:
 		height = 1.0 - MotionDrivers.smoothstep((swing - LIFT_APEX) / (1.0 - LIFT_APEX))
 	return {"forward": lerpf(from, to, MotionDrivers.smoothstep(swing)), "height": height}
+
+
+## Builds the context a recipe needs from a skeleton and a role map, with no
+## editor, no scene and no AnimationPlayer - every value derived from the rig's
+## own rest geometry. The motion handler assembles the same context the same way
+## (motion.gd `_build_context`), so this is not a second source of truth: it is
+## the same three measurements with the editor plumbing left out.
+##
+## `scale_distances` applies the same rig-relative rewrite to the distance
+## defaults that the handler does, so a caller that wants the handler's exact
+## numbers gets them; tier-1 leaves it off on purpose to build a context out of
+## raw rest geometry.
+## `chain` is the spine chain the recipe will walk. The handler passes the one it
+## already resolved from params (which honours an explicit `spine_chain`), because
+## the rest map has to cover the chain in use - resolving it a second time here
+## gave a different answer and moved a neck bone's rest pose. Callers with no
+## params of their own (tier-1) leave it empty and it is resolved from the
+## skeleton.
+static func context_from_skeleton(skeleton: Skeleton3D, roles: Dictionary,
+		length: float, samples: float, scale_distances: bool = false,
+		reference_leg: float = 0.85, chain: Array = []) -> Dictionary:
+	if chain.is_empty():
+		chain = RigAnalysis.spine_chain(_parent_of(skeleton), roles)
+	var rest := _rest_map_of(skeleton, roles, chain)
+	var legs := leg_map_from_rest(roles, rest)
+	if legs.size() < 2 or not rest.has(str(roles.get("hips", ""))):
+		return {"error": "the role map does not resolve both legs and a hips bone"}
+	var frame := RigAnalysis.rig_frame(skeleton, roles)
+	var config: Dictionary = {}
+	var ctx := {
+		"length": length,
+		"samples": samples,
+		"roles": roles,
+		"spine_chain": chain,
+		"forward": frame.forward,
+		"up": frame.up,
+		"lateral": frame.lateral,
+		"hips": str(roles.get("hips", "")),
+		"hips_origin": (rest[str(roles.get("hips", ""))] as Dictionary).origin,
+		"legs": legs,
+		"rest": rest,
+		"arm_down": {},
+		"root_motion": false,
+	}
+	if scale_distances:
+		var leg := measured_leg(ctx)
+		if leg > 0.0001:
+			var factor := leg / reference_leg
+			ctx["distance_scale"] = factor
+			if not is_equal_approx(factor, 1.0):
+				for key in ["bob", "sway", "foot_lift", "jump_crouch", "jump_height", "crouch"]:
+					if not config.has(key):
+						continue
+					config[key] = float(config[key]) * factor
+	return ctx
+
+
+## Parent index of every bone, for `RigAnalysis.spine_chain`.
+static func _parent_of(skeleton: Skeleton3D) -> Dictionary:
+	var parents := {}
+	for index in skeleton.get_bone_count():
+		parents[skeleton.get_bone_name(index)] = skeleton.get_bone_parent(index)
+	return parents
+
+
+## Global rest basis and origin for the union of the role bones and the spine
+## chain, so a bone the detector found that no role names still has its own rest
+## pose instead of an identity fallback.
+static func _rest_map_of(skeleton: Skeleton3D, roles: Dictionary, chain: Array) -> Dictionary:
+	var rest := {}
+	var wanted: Array = []
+	for role in roles:
+		wanted.append(str(roles[role]))
+	for bone in chain:
+		wanted.append(str(bone))
+	for bone in wanted:
+		if bone.is_empty() or rest.has(bone):
+			continue
+		var index := skeleton.find_bone(bone)
+		if index < 0:
+			continue
+		var xform := skeleton.get_bone_global_rest(index)
+		rest[bone] = {"global": xform.basis, "origin": xform.origin}
+	return rest
+
+
+## The per-side leg geometry a two-bone solve needs: the bones, the hip and ankle
+## rest points, the knee (which is the shin's own rest origin, so the pole is the
+## rig's measured bend rather than a guess) and the two bone lengths.
+static func leg_map_from_rest(roles: Dictionary, rest: Dictionary) -> Dictionary:
+	var legs := {}
+	for side in ["l", "r"]:
+		var thigh := str(roles.get("thigh_" + side, ""))
+		var shin := str(roles.get("shin_" + side, ""))
+		var foot := str(roles.get("foot_" + side, ""))
+		if not rest.has(thigh) or not rest.has(shin):
+			continue
+		var ankle: Vector3 = (rest[foot] as Dictionary).origin if rest.has(foot) else (rest[shin] as Dictionary).origin
+		var lower: float = (ankle - (rest[shin] as Dictionary).origin).length()
+		if lower <= 0.0001:
+			# A shin measured at zero means the foot and the knee are the same
+			# point, which is a rig with no shin rather than a very short one.
+			# The old fallback invented 35 cm here, which is longer than a whole
+			# child's leg and made the child rig stride further than it could walk.
+			lower = maxf((rest[shin] as Dictionary).origin.distance_to(rest[thigh].origin) * 0.5, 0.01)
+		legs[side] = {
+			"thigh": thigh,
+			"shin": shin,
+			"foot": foot,
+			"toe": str(roles.get("toe_" + side, "")),
+			"hip": (rest[thigh] as Dictionary).origin,
+			"ankle": ankle,
+			"knee": (rest[shin] as Dictionary).origin,
+			"upper": ((rest[shin] as Dictionary).origin - (rest[thigh] as Dictionary).origin).length(),
+			"lower": lower,
+		}
+	return legs
+
+
+## Longest measured hip-to-ankle distance of the two legs, in metres.
+static func measured_leg(ctx: Dictionary) -> float:
+	var legs: Dictionary = ctx.get("legs", {})
+	var longest := 0.0
+	for side in legs:
+		var leg: Dictionary = legs[side]
+		longest = maxf(longest, float(leg.get("upper", 0.0)) + float(leg.get("lower", 0.0)))
+	return longest
 
 
 ## 1 while the foot should stay flat on the ground, 0 while it can follow the

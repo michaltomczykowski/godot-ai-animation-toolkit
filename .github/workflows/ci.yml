@@ -86,6 +86,12 @@ jobs:
         # The pinned release is the gate; `main` is informational drift detection.
         core-ref: ["v4.2.1", "main"]
     continue-on-error: ${{ matrix.core-ref == 'main' }}
+    defaults:
+      run:
+        # The steps below are bash (`ln -s`, `set -o pipefail`, `tee`, `[ -f ]`).
+        # windows-latest defaults to PowerShell, which fails on all four, so the
+        # shell is pinned rather than left to the runner image.
+        shell: bash
     steps:
       - name: Checkout toolkit
         uses: actions/checkout@v4

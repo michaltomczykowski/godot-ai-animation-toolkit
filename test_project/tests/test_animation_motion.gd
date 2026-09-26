@@ -1622,6 +1622,13 @@ func test_the_walk_matches_its_golden() -> void:
 		assert_true(worst <= 2,
 			"the walk still matches its golden (worst drift %d units at %s; 1 unit = 1/2048)"
 			% [worst, worst_where])
+		# Printed unconditionally, because this number is a cross-platform
+		# measurement and only a failure would otherwise reveal it. The golden is
+		# recorded on Windows and CI compares it on Linux as well, so the drift
+		# between two implementations of sin/cos/sqrt at float32 is worth watching
+		# while it is small rather than discovering it on the day it is not.
+		print("  golden walk: worst drift %d unit(s) at %s (tolerance 2; 1 unit = 1/2048)"
+			% [worst, worst_where])
 	_teardown(rig)
 
 

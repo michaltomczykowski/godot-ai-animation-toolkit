@@ -45,7 +45,7 @@ const _DISTANCE_DEFAULTS := ["bob", "sway", "foot_lift", "jump_crouch", "jump_he
 ## explicit value (a top-level param or an override) keeps its meaning in metres;
 ## only untouched defaults move.
 func _scale_distances_to_rig(config: Dictionary, params: Dictionary, overrides: Dictionary, ctx: Dictionary) -> void:
-	var leg := _measured_leg(ctx)
+	var leg := MotionSpecs.measured_leg(ctx)
 	if leg <= 0.0001:
 		return
 	var factor := leg / _REFERENCE_LEG
@@ -59,16 +59,6 @@ func _scale_distances_to_rig(config: Dictionary, params: Dictionary, overrides: 
 			continue
 		config[key] = float(config[key]) * factor
 
-
-## Longest measured hip-to-ankle distance of the two legs, in metres.
-func _measured_leg(ctx: Dictionary) -> float:
-	var legs: Dictionary = ctx.get("legs", {})
-	var longest := 0.0
-	for side in legs:
-		var leg: Dictionary = legs[side]
-		var span := float(leg.get("upper", 0.0)) + float(leg.get("lower", 0.0))
-		longest = maxf(longest, span)
-	return longest
 
 const _OVERRIDE_KEYS := {
 	"walk": _GAIT_KEYS,
@@ -754,26 +744,30 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 	if loop_result.has("error"):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, loop_result.error)
 	var rate := clampf(float(params.get("samples", 24.0)), 4.0, 120.0)
-	# The spine chain is resolved first, because the rest map has to be the UNION
-	# of the roles and the chain. It used to cover the roles only, so a bone the
-	# detector finds but the roles do not name - a neck, an upper chest - was keyed
-	# against an identity fallback instead of its own rest pose.
+	# The rest map, the leg map and the rig frame are the three measurements a
+	# recipe needs, and they are the same three for everyone - so they live in the
+	# spec layer, where a headless test can reach them, and the handler reads them
+	# from there rather than keeping an editor-only copy that can drift. What is
+	# left here is the editor plumbing: resolving the spine chain from params, the
+	# arm-down targets, and the per-request fields.
 	var chain_first := _spine_chain(params, skeleton, roles)
 	if chain_first.has("error"):
 		return chain_first
-	var rest := _rest_map(skeleton, roles, chain_first.chain as Array)
-	var legs := _leg_map(skeleton, roles, rest)
+	var measured := MotionSpecs.context_from_skeleton(skeleton, roles, length, rate,
+		false, 0.85, chain_first.chain as Array)
+	if measured.has("error"):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, str(measured.error))
+	var rest: Dictionary = measured.rest
+	var legs: Dictionary = measured.legs
+	var chain: Array = measured.spine_chain
 	var hips := str(roles.get("hips", ""))
-	if legs.size() < 2 or not rest.has(hips):
-		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-			"Could not resolve the leg chain. Check 'roles' (hips, thigh/shin/foot per side) and that the bones exist on this skeleton.")
 	var thigh_l := str(roles.thigh_l)
 	var thigh_r := str(roles.thigh_r)
 	# One frame, shared with the audit (which measures contact in the same
 	# terms), so "planted" means the same thing on both sides. `up` is the spine
 	# bone's axis; see RigAnalysis.rig_frame for why it is not a position delta
 	# and why the contact metrics had to move before this could.
-	var frame := RigAnalysis.rig_frame(skeleton, roles)
+	var frame: Dictionary = measured
 	var up: Vector3 = frame.up
 	var forward: Vector3 = frame.forward
 	var lateral: Vector3 = frame.lateral
@@ -784,7 +778,6 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 	for side in ["l", "r"]:
 		var arm := str(roles.get("arm_" + side, ""))
 		arm_down[side] = _aim_delta(skeleton, arm, Vector3.DOWN, arm_amount) if not arm.is_empty() else Quaternion.IDENTITY
-	var chain := chain_first
 	return {
 		"resolved": resolved,
 		"skeleton": skeleton,
@@ -795,7 +788,7 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 			"length": length,
 			"samples": rate,
 			"roles": roles,
-			"spine_chain": chain.chain,
+			"spine_chain": chain_first.chain,
 			"forward": forward,
 			"up": up,
 			"lateral": lateral,
@@ -835,33 +828,6 @@ static func _first_non_finite(value: Variant, path: String) -> String:
 func _spine_chain(params: Dictionary, skeleton: Skeleton3D, roles: Dictionary) -> Dictionary:
 	return resolve_spine_chain(params, skeleton, roles)
 
-
-## Global rest basis/origin per bone, covering the UNION of the role bones and
-## the spine chain. The chain is included because the recipes key every bone the
-## detector found, not just the ones a role happens to name: a detected neck or
-## upper chest that was missing here was keyed against an identity fallback,
-## which is a rotation about nothing.
-func _rest_map(skeleton: Skeleton3D, roles: Dictionary, chain: Array = []) -> Dictionary:
-	var rest := {}
-	var wanted: Array = []
-	for role in roles:
-		wanted.append(str(roles[role]))
-	for bone in chain:
-		wanted.append(str(bone))
-	for bone in wanted:
-		if bone.is_empty() or rest.has(bone):
-			continue
-		var index := skeleton.find_bone(bone)
-		if index < 0:
-			continue
-		var xform := skeleton.get_bone_global_rest(index)
-		rest[bone] = {"global": xform.basis, "origin": xform.origin}
-	return rest
-
-
-## Arms on a T-pose rest are horizontal, so the swing axis would run along the
-## arm and do nothing. Detect that and lower the arms by default; A-pose rigs
-## keep their rest. An explicit `arm_down` always wins.
 func _default_arm_down(skeleton: Skeleton3D, roles: Dictionary) -> float:
 	for side in ["l", "r"]:
 		var arm := str(roles.get("arm_" + side, ""))
@@ -874,32 +840,3 @@ func _default_arm_down(skeleton: Skeleton3D, roles: Dictionary) -> float:
 		if absf(rest_dir.dot(Vector3.UP)) < 0.5:
 			return 78.0
 	return 0.0
-
-
-func _leg_map(skeleton: Skeleton3D, roles: Dictionary, rest: Dictionary) -> Dictionary:
-	var legs := {}
-	for side in ["l", "r"]:
-		var thigh := str(roles.get("thigh_" + side, ""))
-		var shin := str(roles.get("shin_" + side, ""))
-		var foot := str(roles.get("foot_" + side, ""))
-		if not rest.has(thigh) or not rest.has(shin):
-			continue
-		var ankle: Vector3 = rest[foot].origin if rest.has(foot) else rest[shin].origin
-		var lower: float = (ankle - (rest[shin].origin as Vector3)).length()
-		if lower <= 0.0001:
-			lower = 0.35
-		legs[side] = {
-			"thigh": thigh,
-			"shin": shin,
-			"foot": foot,
-			"toe": str(roles.get("toe_" + side, "")),
-			"hip": rest[thigh].origin,
-			"ankle": ankle,
-			## The shin's rest origin IS the knee, so this is the rig's own measured
-			## bend direction - the pole the two-bone solve should aim for, instead
-			## of guessing the knee side with a cross product.
-			"knee": rest[shin].origin,
-			"upper": (rest[shin].origin - rest[thigh].origin).length(),
-			"lower": lower,
-		}
-	return legs
