@@ -1,12 +1,12 @@
 # Changelog
 
-## Unreleased (after v1.9.0)
+## 1.11.0 — the shapes, and what the engine actually does
 
-Twelve commits past the v1.9.0 tag. **Phase 16 closed** (contract flags verified
-against the registry, canonical doc examples) and **Phase 17 is complete** - the
-seven items that decide whether a generated clip *looks* like animation. Two
+Twelve commits past v1.9.0, covering the close of **Phase 16** (contract flags
+verified against the registry, canonical doc examples) and all of **Phase 17** —
+the seven items that decide whether a generated clip *looks* like animation. Two
 early Phase 18 pieces are in as well: the generator contract test and a real
-playback test. Nothing here is released yet; `plugin.cfg` is still `1.9.0`.
+playback test.
 
 ### Phase 17 - the shapes were wrong, not the arithmetic
 
