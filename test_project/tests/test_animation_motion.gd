@@ -1307,6 +1307,164 @@ func test_real_playback_interpolates_wraps_and_matches_the_data() -> void:
 	_teardown(rig)
 
 
+func test_chain_bones_outside_the_roles_use_their_own_rest_pose() -> void:
+	# The rest map covered the ROLE bones only, so a bone the spine detector found
+	# but no role names - a neck, an upper chest - was keyed against an IDENTITY
+	# rest pose. That turns a small rest-relative delta into a rotation by the
+	# bone's whole rest orientation, which is tens of degrees. Any keyed bone that
+	# is not a role has to stay small.
+	var rig := _rig("MotionRestMap")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var built := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "rest_map_walk",
+		"duration": 1.0, "loop_mode": "linear",
+	}, null)
+	assert_true(built.has("data"), "the walk builds (%s)" % str(built.get("error", built)))
+	var anim: Animation = rig.player.get_animation("rest_map_walk")
+	assert_true(anim != null, "the clip exists")
+	if anim == null:
+		_teardown(rig)
+		return
+	# The dummy's role bones (named the same way the rest of this suite names
+	# them). Anything else the clip keys came from the spine detector.
+	var driven := [
+		"B-hips", "B-thigh.L", "B-shin.L", "B-foot.L", "B-toe.L",
+		"B-thigh.R", "B-shin.R", "B-foot.R", "B-toe.R",
+		"B-spine", "B-chest", "B-head", "B-jaw",
+		"B-upperArm.L", "B-forearm.L", "B-hand.L",
+		"B-upperArm.R", "B-forearm.R", "B-hand.R",
+	]
+	var checked: Array = []
+	for track in anim.get_track_count():
+		if anim.track_get_type(track) != Animation.TYPE_ROTATION_3D:
+			continue
+		var bone := str(anim.track_get_path(track)).get_slice(":", 1)
+		if driven.has(bone) or bone.is_empty():
+			continue
+		# A chain bone outside the roles: its swing must be a motion, not the
+		# bone's rest orientation applied as a delta.
+		var spread := _spread(anim, track)
+		checked.append(bone)
+		assert_true(spread < 0.6,
+			"%s is keyed and moves %.3f rad - an identity rest fallback would be far more"
+			% [bone, spread])
+	assert_gt(checked.size(), 0,
+		"the clip keys at least one chain bone outside the roles (%s)" % ", ".join(checked))
+	_teardown(rig)
+
+
+func test_the_walk_matches_its_golden() -> void:
+	# The golden is a quantized digest of one walk clip, committed, so a change to
+	# the generator shows up as a NUMBER instead of "it looks a bit different".
+	# Quantizing is what gives the comparison an explicit tolerance: one step is
+	# 1/2048 of the unit, so float noise cannot fail it and a real change cannot
+	# hide. Missing file means "record it" - that is how the fixture was created.
+	var rig := _rig("MotionGolden")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var built := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "golden_walk",
+		"duration": 1.0, "loop_mode": "linear", "samples": 8.0,
+	}, null)
+	assert_true(built.has("data"), "the walk builds (%s)" % str(built.get("error", built)))
+	var anim: Animation = rig.player.get_animation("golden_walk")
+	assert_true(anim != null and anim.get_track_count() > 0, "the clip has tracks")
+	if anim == null:
+		_teardown(rig)
+		return
+	var digest := _clip_digest(anim)
+	var path := "res://tests/fixtures/golden_walk.json"
+	if not FileAccess.file_exists(path):
+		var file := FileAccess.open(path, FileAccess.WRITE)
+		assert_true(file != null, "the golden could be created (%s)" % str(FileAccess.get_open_error()))
+		if file != null:
+			file.store_string(JSON.stringify(digest, "  "))
+			file.close()
+			print("  recorded %s (%d tracks)" % [path, (digest.tracks as Array).size()])
+		_teardown(rig)
+		return
+	var golden: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(path))
+	assert_true(golden is Dictionary and golden.has("tracks"), "the golden parses")
+	if not (golden is Dictionary) or not golden.has("tracks"):
+		_teardown(rig)
+		return
+	assert_eq(float(golden.length), snappedf(anim.length, 0.0001),
+		"the golden's clip length still matches")
+	var golden_tracks: Array = golden.tracks
+	var fresh_tracks: Array = digest.tracks
+	assert_eq(fresh_tracks.size(), golden_tracks.size(),
+		"the walk keys the same number of tracks (%d vs %d)"
+		% [fresh_tracks.size(), golden_tracks.size()])
+	if fresh_tracks.size() == golden_tracks.size():
+		var worst := 0
+		var worst_where := ""
+		for index in fresh_tracks.size():
+			var fresh: Dictionary = fresh_tracks[index]
+			var old: Dictionary = golden_tracks[index]
+			if str(fresh.bone) != str(old.bone):
+				assert_true(false, "track %d is %s, the golden says %s" % [index, str(fresh.bone), str(old.bone)])
+				continue
+			var fresh_keys: Array = fresh.keys
+			var old_keys: Array = old.keys
+			if fresh_keys.size() != old_keys.size():
+				assert_true(false, "%s has %d keys, the golden has %d"
+					% [str(fresh.bone), fresh_keys.size(), old_keys.size()])
+				continue
+			for key_index in fresh_keys.size():
+				# An integer step of difference is one quantization unit per
+				# component, so 1 means "as close as this digest can see".
+				var gap: int = 0
+				for component in (fresh_keys[key_index] as Array).size():
+					gap = maxi(gap, absi(int((fresh_keys[key_index] as Array)[component])
+						- int((old_keys[key_index] as Array)[component])))
+				if gap > worst:
+					worst = gap
+					worst_where = "%s key %d" % [str(fresh.bone), key_index]
+		assert_true(worst <= 2,
+			"the walk still matches its golden (worst drift %d units at %s; 1 unit = 1/2048)"
+			% [worst, worst_where])
+	_teardown(rig)
+
+
+## A quantized, comparable digest of a clip: sorted tracks, and every key as
+## integers (quaternions scaled by 2048, vectors the same). Quaternion sign is
+## normalised first, because q and -q are the same rotation and the engine is
+## free to store either.
+func _clip_digest(anim: Animation) -> Dictionary:
+	const SCALE := 2048
+	var tracks: Array = []
+	for track in anim.get_track_count():
+		var kind := anim.track_get_type(track)
+		if kind != Animation.TYPE_ROTATION_3D and kind != Animation.TYPE_POSITION_3D:
+			continue
+		var path := str(anim.track_get_path(track))
+		var bone := path.get_slice(":", 1)
+		if bone.is_empty():
+			continue
+		var values: Array = []
+		for index in anim.track_get_key_count(track):
+			var value = anim.track_get_key_value(track, index)
+			if value is Quaternion:
+				var q: Quaternion = value
+				if q.w < 0.0:
+					q = Quaternion(-q.x, -q.y, -q.z, -q.w)
+				values.append([q.x, q.y, q.z, q.w].map(
+					func(v: float) -> int: return roundi(v * SCALE)))
+			else:
+				var v3: Vector3 = value
+				values.append([v3.x, v3.y, v3.z].map(
+					func(v: float) -> int: return roundi(v * SCALE)))
+		tracks.append({"bone": bone, "type": kind, "keys": values})
+	tracks.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return str(a.bone) < str(b.bone))
+	return {"length": snappedf(anim.length, 0.0001), "scale": SCALE, "tracks": tracks}
+
+
 ## Peak travel of the hips track measured along one axis, in metres.
 func _hip_travel(anim: Animation, axis: Vector3) -> float:
 	var track := _track_index(anim, ":B-hips", Animation.TYPE_POSITION_3D)

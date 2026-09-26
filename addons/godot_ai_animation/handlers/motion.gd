@@ -742,7 +742,14 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 	if loop_result.has("error"):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, loop_result.error)
 	var rate := clampf(float(params.get("samples", 24.0)), 4.0, 120.0)
-	var rest := _rest_map(skeleton, roles)
+	# The spine chain is resolved first, because the rest map has to be the UNION
+	# of the roles and the chain. It used to cover the roles only, so a bone the
+	# detector finds but the roles do not name - a neck, an upper chest - was keyed
+	# against an identity fallback instead of its own rest pose.
+	var chain_first := _spine_chain(params, skeleton, roles)
+	if chain_first.has("error"):
+		return chain_first
+	var rest := _rest_map(skeleton, roles, chain_first.chain as Array)
 	var legs := _leg_map(skeleton, roles, rest)
 	var hips := str(roles.get("hips", ""))
 	if legs.size() < 2 or not rest.has(hips):
@@ -771,9 +778,7 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 	for side in ["l", "r"]:
 		var arm := str(roles.get("arm_" + side, ""))
 		arm_down[side] = _aim_delta(skeleton, arm, Vector3.DOWN, arm_amount) if not arm.is_empty() else Quaternion.IDENTITY
-	var chain := _spine_chain(params, skeleton, roles)
-	if chain.has("error"):
-		return chain
+	var chain := chain_first
 	return {
 		"resolved": resolved,
 		"skeleton": skeleton,
@@ -825,12 +830,20 @@ func _spine_chain(params: Dictionary, skeleton: Skeleton3D, roles: Dictionary) -
 	return resolve_spine_chain(params, skeleton, roles)
 
 
-## Global rest basis/origin per role bone (skeleton space).
-func _rest_map(skeleton: Skeleton3D, roles: Dictionary) -> Dictionary:
+## Global rest basis/origin per bone, covering the UNION of the role bones and
+## the spine chain. The chain is included because the recipes key every bone the
+## detector found, not just the ones a role happens to name: a detected neck or
+## upper chest that was missing here was keyed against an identity fallback,
+## which is a rotation about nothing.
+func _rest_map(skeleton: Skeleton3D, roles: Dictionary, chain: Array = []) -> Dictionary:
 	var rest := {}
+	var wanted: Array = []
 	for role in roles:
-		var bone := str(roles[role])
-		if rest.has(bone):
+		wanted.append(str(roles[role]))
+	for bone in chain:
+		wanted.append(str(bone))
+	for bone in wanted:
+		if bone.is_empty() or rest.has(bone):
 			continue
 		var index := skeleton.find_bone(bone)
 		if index < 0:
