@@ -1,5 +1,62 @@
 # Changelog
 
+## Unreleased (after v1.9.0)
+
+Twelve commits past the v1.9.0 tag. **Phase 16 closed** (contract flags verified
+against the registry, canonical doc examples) and **Phase 17 is complete** - the
+seven items that decide whether a generated clip *looks* like animation. Two
+early Phase 18 pieces are in as well: the generator contract test and a real
+playback test. Nothing here is released yet; `plugin.cfg` is still `1.9.0`.
+
+### Phase 17 - the shapes were wrong, not the arithmetic
+
+- **A swing is an arc, not a step.** Foot lift was 0 or 1 across the whole swing,
+  so the ankle teleported up at toe-off and dropped at heel strike. It is now a
+  hump: exactly 0 at both contacts, peaking just before mid-swing, with zero
+  slope at the contacts and the apex so neither end of the arc pops.
+- **Idle keeps its feet.** Idle bobbed and swayed the pelvis and never re-solved
+  the legs. It now defaults to `planted: true` and solves both legs against their
+  rest ankles.
+- **Honest reach, with the rig's own knee.** A target the leg cannot reach is now
+  shortened to what it *can* reach, and the reply says so: `clamped` and
+  `clamp_shortfall_m`. The knee pole is the rig's own measured rest bend rather
+  than a guess, so it works on a rig the toolkit has never seen.
+- **Defaults scale with the rig.** Default bob, sway, lift, crouch, jump height
+  and lean are derived from the measured leg length, so the same numbers read the
+  same way on a short or a tall rig. Explicit metre values are still honoured
+  exactly.
+- **A real rig frame.** `RigAnalysis.rig_frame()` builds up/forward/lateral from
+  rest geometry and the generator *and* the audit both take it, so "planted"
+  means the same thing on both sides. `up` is the spine bone's axis - local +Y is
+  a bone's head-to-tail direction - signed by the hips-to-head chain. A bone axis
+  carries the rig's *pose* as well as its convention, and the fixture's spine
+  rests 1.5 degrees off vertical, so the axis is read for the convention and
+  snapped within 10 degrees: the golden walk is unchanged, which is the proof that
+  this is a no-op for Y-up rigs and a real frame for genuinely rotated ones. The
+  rest map also covers the spine chain now, so a detected neck or upper chest is no
+  longer keyed against an identity fallback.
+- **Lean is shared, not repeated.** Every torso bone took the *full* lean, so the
+  requested 20 degrees read as 60. The total is distributed by chain weights.
+- **The root-motion contract, settled by measurement.** Extraction cancels the
+  hips track from the pose, which shifts the whole chain back by the travel, and
+  the caller applies the same travel to the node - so `world == authored` and a
+  planted foot has to be authored still in clip space, which is what the recipe
+  already did. Two plausible-sounding alternatives were implemented, measured
+  (0.61 m of slide each, the moonwalk) and reverted. `root_motion_local` is now
+  set explicitly instead of being left at the engine's global default.
+
+### Fixtures that make drift visible
+
+- **A golden walk** (`test_project/tests/fixtures/golden_walk.json`): a quantized
+  digest of one 8-sample walk, every key an integer at 1/2048, so a generator
+  change shows up as a number. Verified in both directions - it passes against its
+  own recording and *fails* when perturbed. It earned its keep immediately by
+  measuring 4.8 degrees of shin change that no behavioural test noticed.
+- **An engine-behaviour harness** (`tier1_root_motion.gd`), written because a
+  conclusion had been drawn from a harness that was not animating. It establishes
+  what the engine does with a root-motion track against a live control, and
+  deliberately does not assert the one thing it cannot observe there.
+
 ## 1.9.0 — audit remediation
 
 Phase 15. Every item below was reproduced by a failing test first, then fixed,
