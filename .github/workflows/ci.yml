@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        # The same thirteen pure suites tools/test_tier1.ps1 runs locally. One
+        # The same fourteen pure suites tools/test_tier1.ps1 runs locally. One
         # matrix leg per suite so a failure names the suite, and so a suite that
         # only ever ran on a developer's machine still gates the release.
         script:
@@ -36,6 +36,7 @@ jobs:
           - tier1_spine_twist
           - tier1_spine_chain
           - tier1_root_motion
+          - tier1_proportions
     steps:
       - name: Checkout toolkit
         uses: actions/checkout@v4

@@ -22,6 +22,7 @@ $scripts = @(
 	"res://tests/tier1_pose_solver.gd",
 	"res://tests/tier1_spine_twist.gd",
 	"res://tests/tier1_root_motion.gd",
+	"res://tests/tier1_proportions.gd",
 	"res://tests/tier1_spine_chain.gd"
 )
 # Import first. A fresh checkout has no .godot/imported, and a suite that loads a

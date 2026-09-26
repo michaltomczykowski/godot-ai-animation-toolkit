@@ -127,10 +127,20 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 	var hips := str(ctx.get("hips", ""))
 	var hips_origin: Vector3 = ctx.get("hips_origin", Vector3.ZERO)
 	var signs := _axis_signs(ctx)
-	var crouch := float(config.crouch) + 0.003 * float(config.knee_bend)
+	# The knee-bend crouch is bought with DEGREES, and a degree is not a distance,
+	# so the 0.003 m/deg has to come out of the same rig-relative scaling as every
+	# other default. It did not: it was added after the handler had already scaled
+	# `config.crouch`, so 30 degrees of knee bend was 9 cm on every rig - 18% of a
+	# child's leg against 6% of an adult's, a three-fold difference in how bent the
+	# knees were for the same request.
+	var crouch := float(config.crouch) \
+		+ 0.003 * float(config.knee_bend) * float(ctx.get("distance_scale", 1.0))
 	var stance := clampf(float(config.stance), 0.2, 0.8)
-	var leg: Dictionary = ctx.legs.l
-	var leg_length := float(leg.upper) + float(leg.lower)
+	# The stride comes from the LONGEST leg, which is the same leg the handler
+	# scaled the distances from. It used to come from the left leg alone, so on a
+	# rig whose legs differ the stride was built from one and the bob from the
+	# other - the short leg then got a stride scaled for the long one.
+	var leg_length := measured_leg(ctx)
 	var warnings: Array = []
 	var clamped := false
 	var clamp_shortfall := 0.0

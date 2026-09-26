@@ -1462,6 +1462,12 @@ func _hip_travel_at(anim: Animation, bone: String, time: float) -> Vector3:
 	return values[values.size() - 1]
 
 
+## Asserts two numbers agree, and says both when they do not.
+func _expect_close(got: float, want: float, tolerance: float, what: String) -> void:
+	assert_true(absf(got - want) <= tolerance,
+		"%s is %.5f, within %.5f of %.5f" % [what, got, tolerance, want])
+
+
 ## The authored position keys of a bone's position track, in order.
 func _hip_positions(anim: Animation, bone: String) -> Array:
 	var track := _track_index(anim, ":" + bone, Animation.TYPE_POSITION_3D)
@@ -1938,8 +1944,14 @@ func test_character_setup_builds_clips_and_tree() -> void:
 		"the speed parameter points into the wrapped blend space")
 	assert_eq(str(result.data.jump_request_parameter), "parameters/OneShot/request",
 		"the jump request parameter is reported")
-	assert_true(float(result.data.speed_values.walk) == 1.4 and float(result.data.speed_values.run) == 4.0,
-		"the blend space positions are the clip speeds")
+	# Compared with a tolerance and the values reported, not `==`. An exact float
+	# equality here could only ever have passed by luck: these speeds are derived
+	# from the rig's measured leg, so any change to how the leg is measured moves
+	# them, and a test that said only "false" would not say by how much.
+	var walk_speed := float(result.data.speed_values.walk)
+	var run_speed := float(result.data.speed_values.run)
+	_expect_close(walk_speed, 1.4, 0.02, "the walk clip's speed")
+	_expect_close(run_speed, 4.0, 0.05, "the run clip's speed")
 	assert_true(str(rig.player.root_motion_track).ends_with(":B-hips"), "root motion is wired")
 	var scene_root := EditorInterface.get_edited_scene_root()
 	var tree := _find_of_type(rig.player.get_parent(), "AnimationTree") as AnimationTree
