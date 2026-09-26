@@ -9,6 +9,7 @@ const ToolContext := preload("res://addons/godot_ai_animation/utils/tool_context
 const ValueCodec := preload("res://addons/godot_ai_animation/utils/value_codec.gd")
 
 const MotionHandler := preload("res://addons/godot_ai_animation/handlers/motion.gd")
+const RigAnalysis := preload("res://addons/godot_ai_animation/spec/rig_analysis.gd")
 
 const DUMMY := "res://models/human_dummy/HumanCharacterDummy_F.fbx"
 
@@ -1305,6 +1306,71 @@ func test_real_playback_interpolates_wraps_and_matches_the_data() -> void:
 	player.seek(0.0, true)
 	player.advance(0.0)
 	_teardown(rig)
+
+
+func test_a_z_up_rig_gets_a_z_up_frame_and_a_z_up_floor() -> void:
+	# The point of item 5. A rig that stands along +Z is not a character lying on
+	# its side: its "height" is Z and its ground is a Z plane. Read against world
+	# Y, a foot that rises 0.3 m reads as never leaving the ground, because all
+	# that movement is invisible to a Y measurement.
+	# A Skeleton3D needs no tree for rest data, so this stays pure.
+	var skeleton := Skeleton3D.new()
+	# Local +Y is a bone's head->tail direction, so the spine is rest-rotated to
+	# send +Y along +Z. The toes run along +Y, i.e. the rig faces sideways to Y.
+	var up_rest := Basis(Vector3.RIGHT, -PI * 0.5)
+	_bone(skeleton, "B-hips", Vector3.ZERO, Basis.IDENTITY)
+	_bone(skeleton, "B-spine", Vector3(0, 0, 0.30), up_rest)
+	_bone(skeleton, "B-chest", Vector3(0, 0, 0.60), up_rest)
+	_bone(skeleton, "B-head", Vector3(0, 0, 0.80), up_rest)
+	for side in ["L", "R"]:
+		var x := 0.10 if side == "L" else -0.10
+		_bone(skeleton, "B-thigh." + side, Vector3(x, 0, 0), Basis.IDENTITY)
+		_bone(skeleton, "B-shin." + side, Vector3(x, 0, -0.40), Basis.IDENTITY)
+		_bone(skeleton, "B-foot." + side, Vector3(x, 0, -0.80), Basis.IDENTITY)
+		_bone(skeleton, "B-toe." + side, Vector3(x, 0.15, -0.80), Basis.IDENTITY)
+	var roles := {"hips": "B-hips", "spine": "B-spine", "chest": "B-chest",
+		"head": "B-head", "thigh_l": "B-thigh.L", "shin_l": "B-shin.L",
+		"foot_l": "B-foot.L", "toe_l": "B-toe.L", "thigh_r": "B-thigh.R",
+		"shin_r": "B-shin.R", "foot_r": "B-foot.R", "toe_r": "B-toe.R"}
+	var frame := RigAnalysis.rig_frame(skeleton, roles)
+	var up: Vector3 = frame.up
+	assert_true(absf(up.dot(Vector3.BACK)) > 0.99,
+		"the rig's up is the rig's +Z, not world +Y (got %s)" % str(up))
+	assert_true(absf((frame.forward as Vector3).dot(Vector3.UP)) > 0.99,
+		"forward is horizontal to this rig, taken heel to toe (%s)" % str(frame.forward))
+	var lateral: Vector3 = frame.lateral
+	assert_true(absf(lateral.dot(Vector3.RIGHT)) > 0.99
+			and absf(lateral.dot(up)) < 0.01,
+		"lateral is across the hips and perpendicular to up (%s)" % str(lateral))
+	# A foot that swings 0.3 m "up" in Z and holds still in Y. World Y sees no
+	# movement at all and calls the whole clip planted; the rig's frame does not.
+	var times: Array = []
+	var positions: Array = []
+	for index in 9:
+		var t := float(index) * 0.1
+		times.append(t)
+		positions.append(Vector3(0.0, 0.0, 0.3 * sin(t / 0.8 * PI)))
+	var world := RigAnalysis.foot_slide(times, positions, 0.02, NAN, Vector3.UP)
+	var rig_frame := RigAnalysis.foot_slide(times, positions, 0.02, NAN, up)
+	assert_eq(int(world.planted_samples), positions.size(),
+		"read against world Y the foot never leaves the ground (the old reading)")
+	assert_true(int(rig_frame.planted_samples) < positions.size(),
+		"read against the rig's floor it does (%d of %d planted)"
+		% [int(rig_frame.planted_samples), positions.size()])
+	assert_true(float(rig_frame.contact_time) < 0.9,
+		"contact time is bounded by the clip, not inflated (%s)" % str(rig_frame.contact_time))
+	# A foot that really does slide along its own ground still registers.
+	var sliding_positions: Array = []
+	for index in 9:
+		sliding_positions.append(Vector3(float(index) * 0.02, 0.0, 0.0))
+	var slid := RigAnalysis.foot_slide(times, sliding_positions, 0.02, NAN, up)
+	assert_true(float(slid.worst) > 0.05,
+		"sliding along the rig's own ground is still caught (%s)" % str(float(slid.worst)))
+
+
+func _bone(skeleton: Skeleton3D, bone: String, origin: Vector3, basis: Basis) -> void:
+	skeleton.add_bone(bone)
+	skeleton.set_bone_rest(skeleton.find_bone(bone), Transform3D(basis, origin))
 
 
 func test_chain_bones_outside_the_roles_use_their_own_rest_pose() -> void:

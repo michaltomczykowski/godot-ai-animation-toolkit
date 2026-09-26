@@ -757,20 +757,14 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 			"Could not resolve the leg chain. Check 'roles' (hips, thigh/shin/foot per side) and that the bones exist on this skeleton.")
 	var thigh_l := str(roles.thigh_l)
 	var thigh_r := str(roles.thigh_r)
-	var forward: Vector3 = _forward_dir(skeleton, roles)
-	# `up` stays world UP on purpose. Building the frame from the bones (spine axis,
-	# hip offset, toe direction, orthogonalised) was tried and reverted: the
-	# contact/slide metrics in `rig_analysis` measure against a WORLD-Y floor, so
-	# a rig whose bones do not point along Y gets a correct bob and a wrong
-	# "planted" reading. Doing this properly means the metrics take the same rig
-	# frame, which changes the audit's published numbers - a Phase 18 golden
-	# fixture job, not a one-line swap. See the ROADMAP.
-	var up := Vector3.UP
-	var lateral: Vector3 = rest[thigh_l].origin - rest[thigh_r].origin
-	lateral.y = 0.0
-	if lateral.length_squared() < 0.000001:
-		lateral = forward.cross(up)
-	lateral = lateral.normalized()
+	# One frame, shared with the audit (which measures contact in the same
+	# terms), so "planted" means the same thing on both sides. `up` is the spine
+	# bone's axis; see RigAnalysis.rig_frame for why it is not a position delta
+	# and why the contact metrics had to move before this could.
+	var frame := RigAnalysis.rig_frame(skeleton, roles)
+	var up: Vector3 = frame.up
+	var forward: Vector3 = frame.forward
+	var lateral: Vector3 = frame.lateral
 	var arm_down := {}
 	var arm_amount := float(params.get("arm_down", -1.0))
 	if arm_amount < 0.0:

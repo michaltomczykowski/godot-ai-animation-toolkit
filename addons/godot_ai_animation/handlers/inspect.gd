@@ -640,6 +640,10 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 	var spec := SpecIO.from_animation(loaded.anim)
 	var snapshot := _pose_snapshot(skeleton)
 	var skeleton_xform := skeleton.global_transform
+	# The rig's own frame, so "height" means the same thing here as it does in
+	# the generator: a rig that stands along +Z is measured against its own floor.
+	var frame := RigAnalysis.rig_frame(skeleton, roles)
+	var up: Vector3 = frame.up
 	var feet := {}
 	for side in ["l", "r"]:
 		var foot := str(roles.get("foot_" + side, ""))
@@ -650,7 +654,7 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 			# sample" (a swing arc dips to that twice per cycle).
 			feet[side] = {
 				"bone": foot,
-				"ground": (skeleton_xform * skeleton.get_bone_global_rest(foot_index)).origin.y,
+				"ground": (skeleton_xform * skeleton.get_bone_global_rest(foot_index)).origin.dot(up),
 				"positions": [],
 			}
 	var hips := str(roles.get("hips", ""))
@@ -713,7 +717,7 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 	var in_place := body_travel < 0.05 * maxf(length, 0.001)
 	for side in feet:
 		var slide := RigAnalysis.foot_slide(times, (feet[side] as Dictionary).positions,
-			threshold, float((feet[side] as Dictionary).ground))
+			threshold, float((feet[side] as Dictionary).ground), up)
 		var worst := float(slide.worst)
 		var passed := worst <= slide_budget
 		foot_data[side] = {

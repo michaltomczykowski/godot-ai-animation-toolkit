@@ -382,22 +382,145 @@ static func contact_windows(times: Array, heights: Array, threshold: float = 0.0
 ## the floor has both. `path` (the accumulated travel) is reported alongside for
 ## the moonwalk case.
 ##
+## The rig's own frame, shared by the generator and the audit so both measure
+## height and ground in the same terms: {up, forward, lateral}.
+##
+## `up` is the SPINE BONE's axis, not a position delta. A bone's local +Y runs
+## head->tail, so the spine's +Y is the direction the character stands in - the
+## probe on the fixture rig puts it at (0, 0.9997, -0.026), world up to within
+## 1.5 degrees. A hips->head POSITION delta is the wrong source: a pelvis is
+## offset sideways, so that vector is not even vertical on a real rig. The chain
+## order only supplies the SIGN, which is the one thing the axis cannot know,
+## because some rigs author bones tail-first.
+##
+## `forward` comes from heel to toe and `lateral` across the hips, each made
+## perpendicular to the others, so a rig with a leaning rest pose still gets an
+## orthonormal frame.
+static func rig_frame(skeleton: Skeleton3D, roles: Dictionary) -> Dictionary:
+	var up := _frame_up(skeleton, roles)
+	var forward := _frame_forward(skeleton, roles, up)
+	return {"up": up, "forward": forward, "lateral": _frame_lateral(skeleton, roles, up, forward)}
+
+
+## How far the spine axis may lean before it stops counting as "standing along a
+## world axis". A bone axis carries the rig's POSE as well as its convention, and
+## a real fixture is authored with a small lean - the probe rig's spine rests at
+## (0, 0.9997, -0.026), 1.5 degrees off vertical. Inheriting that into every
+## procedural clip is a slouch the author never asked for, and the golden
+## measures it: 4.8 degrees of shin change on the walk.
+##
+## So the axis is read for the CONVENTION (which world axis this rig stands
+## along) and snapped when it is already within this tolerance. 10 degrees is
+## the gap between the two jobs, not a fudge factor: the conventions that matter
+## are 90 degrees apart, so anything closer than 10 is a lean, and anything past
+## it keeps its true frame.
+const UPRIGHT_SNAP_DEG := 10.0
+
+
+## The direction "down" points, from the spine bone's axis, signed by the
+## hips->head chain. Falls back to world UP when there is no spine to read.
+static func _frame_up(skeleton: Skeleton3D, roles: Dictionary) -> Vector3:
+	var axis := Vector3.ZERO
+	for role in ["spine", "chest", "head"]:
+		var index := skeleton.find_bone(str(roles.get(role, "")))
+		if index >= 0:
+			axis = (skeleton.get_bone_global_rest(index).basis * Vector3.UP).normalized()
+			break
+	if axis.length_squared() < 0.5:
+		return Vector3.UP
+	var hips := skeleton.find_bone(str(roles.get("hips", "")))
+	var head := skeleton.find_bone(str(roles.get("head", "")))
+	if hips >= 0 and head >= 0:
+		var chain := skeleton.get_bone_global_rest(head).origin \
+			- skeleton.get_bone_global_rest(hips).origin
+		if chain.length_squared() > 0.000001 and axis.dot(chain) < 0.0:
+			axis = -axis
+	return _snap_to_axis(axis)
+
+
+## Heel to toe, made perpendicular to `up`. A foot's own axis is not used: feet
+## point forward on a human rig but sideways on a lot of others.
+static func _frame_forward(skeleton: Skeleton3D, roles: Dictionary, up: Vector3) -> Vector3:
+	for side in ["l", "r"]:
+		var foot := skeleton.find_bone(str(roles.get("foot_" + side, "")))
+		var toe := skeleton.find_bone(str(roles.get("toe_" + side, "")))
+		if foot < 0 or toe < 0:
+			continue
+		var direction := skeleton.get_bone_global_rest(toe).origin \
+			- skeleton.get_bone_global_rest(foot).origin
+		direction -= up * direction.dot(up)
+		if direction.length_squared() > 0.000001:
+			return direction.normalized()
+	return _perpendicular(up)
+
+
+## Across the hips, made perpendicular to both `up` and `forward`.
+static func _frame_lateral(skeleton: Skeleton3D, roles: Dictionary, up: Vector3,
+		forward: Vector3) -> Vector3:
+	var left := skeleton.find_bone(str(roles.get("thigh_l", "")))
+	var right := skeleton.find_bone(str(roles.get("thigh_r", "")))
+	if left >= 0 and right >= 0:
+		var across := skeleton.get_bone_global_rest(left).origin \
+			- skeleton.get_bone_global_rest(right).origin
+		across -= up * across.dot(up)
+		across -= forward * across.dot(forward)
+		if across.length_squared() > 0.000001:
+			return across.normalized()
+	return _perpendicular(up, forward)
+
+
+## Snaps to the nearest world axis when already within UPRIGHT_SNAP_DEG of one,
+## so a rig that merely leans keeps world-UP numbers while a rig that genuinely
+## stands along another axis keeps its own.
+static func _snap_to_axis(direction: Vector3) -> Vector3:
+	var best := Vector3.UP
+	var best_dot := -2.0
+	for axis in [Vector3.UP, Vector3.DOWN, Vector3.RIGHT, Vector3.LEFT,
+			Vector3.BACK, Vector3.FORWARD]:
+		var dot := direction.dot(axis)
+		if dot > best_dot:
+			best_dot = dot
+			best = axis
+	if best_dot >= cos(deg_to_rad(UPRIGHT_SNAP_DEG)):
+		return best
+	return direction
+
+
+## Any unit vector perpendicular to `axis`, and to `other` too when given.
+static func _perpendicular(axis: Vector3, other: Vector3 = Vector3.ZERO) -> Vector3:
+	var direction := axis.cross(Vector3.FORWARD)
+	if direction.length_squared() < 0.000001:
+		direction = axis.cross(Vector3.RIGHT)
+	if direction.length_squared() < 0.000001:
+		return Vector3.RIGHT
+	direction = direction.normalized()
+	if not other.is_zero_approx():
+		direction = (direction - other * other.dot(direction)).normalized()
+	return direction
+
+
 ## Returns `{windows, worst, mean, path, contact_time, planted_samples}` where
 ## `worst` is the largest net displacement inside one contact window (metres),
 ## `mean` the displacement per second of contact, and `contact_time` the total
 ## planted duration.
+##
+## `up` is the rig's up, NOT assumed to be world UP. Height is measured along
+## it and sliding is measured across it, so a rig that stands along +Z is
+## audited on its own floor instead of being read as a character lying on its
+## side. The default keeps the world-Y numbers identical for everyone else.
 static func foot_slide(times: Array, positions: Array, threshold: float = 0.02,
-		ground_height: float = NAN) -> Dictionary:
+		ground_height: float = NAN, up: Vector3 = Vector3.UP) -> Dictionary:
 	var out := {"windows": [] as Array, "worst": 0.0, "mean": 0.0, "path": 0.0,
 		"contact_time": 0.0, "planted_samples": 0}
 	if times.is_empty() or positions.size() != times.size():
 		return out
+	var axis := up.normalized() if up.length_squared() > 0.000001 else Vector3.UP
 	var floor_height := ground_height
 	if not is_finite(floor_height):
 		floor_height = INF
 		for position in positions:
 			if position is Vector3:
-				floor_height = minf(floor_height, (position as Vector3).y)
+				floor_height = minf(floor_height, (position as Vector3).dot(axis))
 	if not is_finite(floor_height):
 		return out
 	var windows: Array = []
@@ -415,7 +538,7 @@ static func foot_slide(times: Array, positions: Array, threshold: float = 0.02,
 		var time := float(times[index])
 		# Symmetric: a foot well BELOW the floor is not in contact either - the
 		# one-sided test called any sunk foot planted.
-		var contact: bool = absf(position.y - floor_height) <= threshold
+		var contact: bool = absf(position.dot(axis) - floor_height) <= threshold
 		if contact:
 			planted += 1
 			if start < 0.0:
@@ -429,27 +552,27 @@ static func foot_slide(times: Array, positions: Array, threshold: float = 0.02,
 					# The step from the last planted sample, so a fast creep shows up
 					# even at a coarse sample rate.
 					var previous: Vector3 = positions[index - 1]
-					path += Vector2(position.x - previous.x, position.z - previous.z).length()
+					path += _flat_step(previous, position, axis)
 		elif start >= 0.0:
-			windows.append(_slide_window(times[index - 1], start, anchor, last_planted, path))
-			total_net += _flat_distance(anchor, last_planted)
+			windows.append(_slide_window(times[index - 1], start, anchor, last_planted, path, axis))
+			total_net += _flat_distance(anchor, last_planted, axis)
 			total_path += path
-			worst = maxf(worst, _flat_distance(anchor, last_planted))
+			worst = maxf(worst, _flat_distance(anchor, last_planted, axis))
 			start = -1.0
 			path = 0.0
 		previous_contact = contact
 	if start >= 0.0:
-		windows.append(_slide_window(times[times.size() - 1], start, anchor, last_planted, path))
-		total_net += _flat_distance(anchor, last_planted)
+		windows.append(_slide_window(times[times.size() - 1], start, anchor, last_planted, path, axis))
+		total_net += _flat_distance(anchor, last_planted, axis)
 		total_path += path
-		worst = maxf(worst, _flat_distance(anchor, last_planted))
+		worst = maxf(worst, _flat_distance(anchor, last_planted, axis))
 	# Contact time: the span actually spent planted, not `samples x gap`. The
 	# old count over-reported by up to a whole sample period (five samples across
 	# one second all planted claimed 1.25 s of contact) and skewed `mean` with it.
 	var contact_time := 0.0
 	if planted > 0 and times.size() > 1:
 		for index in times.size():
-			var height: float = (positions[index] as Vector3).y
+			var height: float = (positions[index] as Vector3).dot(axis)
 			if absf(height - floor_height) > threshold:
 				continue
 			# Each planted sample owns the gap to the next sample, bounded by the
@@ -468,15 +591,26 @@ static func foot_slide(times: Array, positions: Array, threshold: float = 0.02,
 	return out
 
 
-static func _slide_window(end: float, start: float, anchor: Vector3, last: Vector3, path: float) -> Dictionary:
+static func _slide_window(end: float, start: float, anchor: Vector3, last: Vector3,
+		path: float, axis: Vector3) -> Dictionary:
 	return {
 		"start": start, "end": end,
-		"slide": _flat_distance(anchor, last), "path": path,
+		"slide": _flat_distance(anchor, last, axis), "path": path,
 	}
 
 
-static func _flat_distance(a: Vector3, b: Vector3) -> float:
-	return Vector2(a.x - b.x, a.z - b.z).length()
+## Distance between two points measured ACROSS `axis` - the ground plane, not
+## world XZ. With world UP that is the old (x, z) length.
+static func _flat_distance(a: Vector3, b: Vector3, axis: Vector3 = Vector3.UP) -> float:
+	var step := a - b
+	if axis.is_equal_approx(Vector3.UP):
+		return Vector2(step.x, step.z).length()
+	step -= axis * step.dot(axis)
+	return step.length()
+
+
+static func _flat_step(a: Vector3, b: Vector3, axis: Vector3) -> float:
+	return _flat_distance(a, b, axis)
 
 
 ## Validate a loaded/saved profile and return its role map.
