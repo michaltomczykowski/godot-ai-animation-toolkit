@@ -678,7 +678,6 @@ static func jump_config(style: String, overrides: Dictionary = {}) -> Dictionary
 		"arm_swing": 65.0,
 		"elbow": 12.0,
 		"lean": 6.0,
-		"foot_lift": 0.05,
 	}, style, overrides)
 
 

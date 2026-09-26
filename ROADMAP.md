@@ -1,6 +1,6 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **phases 0-17 done, shipped in v1.11.0**; Phase 18 open
+Status: **phases 0-18 done**; v1.11.0 shipped, v1.12.0 pending
 remediation's first half: every doc-ambiguous claim was settled by a failing
 test and **all four were true**, so look-at angles are radians now, the audit
 survives a blend tree, a retarget target nested in a wrapper is refused instead
@@ -1076,10 +1076,26 @@ measured about it, which is the most useful part of having tried.
    looping recipes close at the seam in value *and* velocity, and the same call
    twice produces the same clip. It is ~4000 assertions and it found two real
    things while being written (below).
-2. **A synthetic proportion matrix in tier-1** — the first tier-1 to build
-   `Skeleton3D` chains: short legs, long legs, asymmetric legs, a child-sized
-   rig, a rotated/mirrored root. Normalized stride, lift, symmetry, a
-   leg-scaled slide budget, and loop value *and* velocity closure. **Open.**
+2. **A synthetic proportion matrix in tier-1** - **DONE.** The same walk over
+   rigs differing only in leg length (0.50 / 0.85 / 1.70 m), leg symmetry and
+   orientation, asserting what must survive the difference. Two assertions are
+   dimensionless on purpose: the **Froude number** `v/sqrt(gL)`, which is how gait
+   speed is compared across body sizes at all, and the stance fraction (~0.60 of
+   the cycle when walking, published). Absolute speeds would have asserted the
+   fixture dummy's luck. **It found three real defects**, all fixed: the knee-bend
+   crouch was in absolute metres (9 cm of leg bend on every rig - 18% of a
+   child's leg against 6% of an adult's, and enough extra reach demand to stop a
+   tall rig reaching its own targets); the stride came from the left leg while
+   the distances scaled from the longest; and an unmeasurable shin fell back to a
+   hard-coded 0.35 m, longer than a whole child's leg. The crouch is now 0.1059 of
+   the leg on every proportion, which the matrix asserts directly.
+   Two of the matrix's own fixtures were wrong before the code was - `set_bone_rest`
+   is a LOCAL rest, so global-looking joint positions compound down the chain, and
+   a first "asymmetric" rig varied lateral offset rather than leg length. An
+   assertion that Froude must be constant across rigs was also wrong physics: a
+   stride built from an angle scales speed with L, so Fr grows as sqrt(L). The
+   matrix asserts that law instead, which is stronger - change the speed law and
+   it fails.
 3. **Real playback tests — DONE.** Every other test in the motion suite applies
    the *nearest key* to the skeleton by hand, so nothing had ever checked what
    the engine plays: the interpolation between keys, the wrap at the end of a
@@ -1094,12 +1110,22 @@ measured about it, which is the most useful part of having tried.
    be what the data says**, to 2e-3 rad — the played value comes back through the
    skeleton's pose application, which normalises the local rotation, so bit
    equality is not the engine's contract and the measured gap is ~7e-4 rad.
-4. **Golden clips** — normalized walk/run/idle fixtures in the existing
-   `godot-ai-animation-clip` JSON, with quaternion-sign normalization and
-   tolerances, plus a "generate twice, identical" determinism test. The goldens
-   are recorded once Phase 17 has settled, then gate drift. **Open** (the
-   determinism half is done, in item 1, and the playback tolerance above is
-   measured rather than assumed).
+4. **Golden clips** - **DONE.** Four fixtures behind one implementation
+   (`tests/golden_digest.gd`): walk, run and idle through the real ops in the
+   editor suite, plus a spec-level walk over a synthetic rig in tier-1 - the one
+   that runs on **both** platforms, so a platform difference in the arithmetic
+   would be caught even if the editor fixtures were regenerated on one machine.
+   Each is a quantized digest at 1/2048 with quaternion sign normalized, and each
+   carries the engine that produced it, so a version bump that moves the numbers
+   is explicable from the log rather than mysterious. Comparison answers with a
+   drift *and* a shape difference, since a changed track count is a different
+   kind of change from a drift. **The cross-OS question was settled by
+   measurement, not assumption**: with the editor suites added to the Windows CI
+   leg, the golden drifts **0 units on ubuntu-latest and windows-latest alike**,
+   so the float maths is bit-stable across platforms at this quantization and the
+   2-unit tolerance (ten times the measured same-process floor of 1e-4 rad) is
+   justified. Every fixture was verified in both directions - it passes against
+   its own recording and fails when perturbed. Walk, run and idle all drift 0.
 
 ### What the contract test found
 
