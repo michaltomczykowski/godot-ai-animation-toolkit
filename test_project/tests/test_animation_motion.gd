@@ -1373,6 +1373,99 @@ func _bone(skeleton: Skeleton3D, bone: String, origin: Vector3, basis: Basis) ->
 	skeleton.set_bone_rest(skeleton.find_bone(bone), Transform3D(basis, origin))
 
 
+func test_the_root_motion_wiring_is_explicit_and_carries_travel() -> void:
+	# What is settled about root motion, and what is not.
+	#
+	# SETTLED, and checked here: the player is wired with a root-motion track, the
+	# extraction is explicitly LOCAL to the rig's frame rather than left at the
+	# engine's global default, and the hips track carries a real delta for the
+	# player to extract (without which the character would stand still and the
+	# stance would be authored against a floor nobody moves over).
+	#
+	# NOT settled, and deliberately not asserted: whether the legs should be
+	# authored in the cancelled frame. The algebra says yes - extraction moves the
+	# character by the hips' travel and cancels that track, so a stance that slides
+	# back in clip space by the travel would land still. Implemented that way it
+	# measured 0.13 m of residual slide where the two rates predict 0.005 m, so
+	# whatever the solve actually consumes is not the pair of rates the algebra
+	# assumes. The clip still plants its stance in clip space, which is what the
+	# audit agrees with. See ROADMAP item 7.
+	var rig := _rig("MotionRootMotion")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var player: AnimationPlayer = rig.player
+	var built := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "rooted_walk",
+		"duration": 1.0, "loop_mode": "linear", "samples": 16.0,
+		"root_motion": true, "stride_degrees": 30.0, "ground_speed": 1.4,
+	}, null)
+	assert_true(built.has("data"), "the rooted walk builds (%s)" % str(built.get("error", built)))
+	var anim: Animation = player.get_animation("rooted_walk")
+	assert_true(anim != null and anim.get_track_count() > 0, "the clip has tracks")
+	if anim == null:
+		_teardown(rig)
+		return
+	assert_true(not str(player.root_motion_track).is_empty(),
+		"the player is wired for root motion (track %s)" % str(player.root_motion_track))
+	assert_true(player.root_motion_local,
+		"extraction is local to the rig's frame, not left at the world default")
+	var travel := _hip_travel_net(anim, "B-hips")
+	assert_true(travel > 0.8,
+		"the hips carry the cycle's travel for the player to extract (%0.3f m)" % travel)
+	# The stance the clip does plant, measured where the audit measures it: in the
+	# clip's own space, which is the world's space for as long as nothing carries
+	# the character.
+	var samples: Array = []
+	for step in 16:
+		var t := float(step) / 15.0
+		samples.append(_pose_of(rig, anim, t, "B-foot.L").origin)
+	var lowest := INF
+	for origin in samples:
+		lowest = minf(lowest, (origin as Vector3).y)
+	# A stance holds its point for the WHOLE cycle apart, so the two stances of one
+	# foot sit at points a full travel (1.05 m here) apart. A height band alone
+	# therefore catches both; the stance is the longest CONTIGUOUS run in it.
+	var best_from := -1
+	var best_to := -1
+	var run_from := -1
+	for index in samples.size():
+		var flat: bool = absf((samples[index] as Vector3).y - lowest) <= 0.005
+		if flat and run_from < 0:
+			run_from = index
+		elif not flat and run_from >= 0:
+			if index - run_from > best_to - best_from:
+				best_from = run_from
+				best_to = index
+			run_from = -1
+	if run_from >= 0 and samples.size() - run_from > best_to - best_from:
+		best_from = run_from
+		best_to = samples.size()
+	assert_true(best_to - best_from >= 3,
+		"the clip has a stance to measure (%d samples)" % (best_to - best_from))
+	if best_to - best_from >= 3:
+		var from := best_from + int((best_to - best_from) / 4)
+		var to := best_to - int((best_to - best_from) / 4)
+		var first: Vector3 = samples[from]
+		var last: Vector3 = samples[to - 1]
+		var drift := Vector2(first.x - last.x, first.z - last.z).length()
+		assert_true(drift < 0.05,
+			"the stance holds its point in the clip (%0.4f m of drift over %d samples)"
+			% [drift, to - from])
+	_teardown(rig)
+
+
+## Net distance travelled by a bone's position track, in metres.
+func _hip_travel_net(anim: Animation, bone: String) -> float:
+	var track := _track_index(anim, ":" + bone, Animation.TYPE_POSITION_3D)
+	if track < 0:
+		return 0.0
+	var first: Vector3 = anim.track_get_key_value(track, 0)
+	var last: Vector3 = anim.track_get_key_value(track, anim.track_get_key_count(track) - 1)
+	return Vector2(first.x - last.x, first.z - last.z).length()
+
+
 func test_chain_bones_outside_the_roles_use_their_own_rest_pose() -> void:
 	# The rest map covered the ROLE bones only, so a bone the spine detector found
 	# but no role names - a neck, an upper chest - was keyed against an IDENTITY
@@ -1532,7 +1625,7 @@ func _clip_digest(anim: Animation) -> Dictionary:
 
 
 ## Peak travel of the hips track measured along one axis, in metres.
-func _hip_travel(anim: Animation, axis: Vector3) -> float:
+func _hip_travel_peak(anim: Animation, axis: Vector3) -> float:
 	var track := _track_index(anim, ":B-hips", Animation.TYPE_POSITION_3D)
 	if track < 0:
 		return 0.0

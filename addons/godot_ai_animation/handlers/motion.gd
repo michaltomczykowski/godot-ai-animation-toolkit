@@ -146,6 +146,18 @@ func _run_cycle(params: Dictionary, kind: String) -> Dictionary:
 					"value": NodePath(root_motion_track),
 					"old": player_resolved.player.root_motion_track,
 				})
+				# The travel is authored in the rig's own frame, so extraction has
+				# to be too. Left at the engine default (global) a rig facing +X
+				# would have its walk applied along world axes instead of its own,
+				# which is the same class of bug as measuring a Z-up rig against a
+				# Y floor: the numbers are right and the meaning is not.
+				if not player_resolved.player.root_motion_local:
+					extra_props.append({
+						"object": player_resolved.player,
+						"property": "root_motion_local",
+						"value": true,
+						"old": false,
+					})
 	var committed := _commit_procedural_clip(params, prepared.resolved, prepared.anim_name,
 		prepared.length, prepared.loop_mode, prepared.keys, prepared.markers, extra_props)
 	if committed.has("error"):

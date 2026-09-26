@@ -220,8 +220,14 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 			_append_rotation(keys, bone, time, MotionDrivers.rotation_delta(_rest_basis(ctx, bone), world))
 		_solve_arms(ctx, keys, time, t)
 
-	# A rooted cycle ends further forward than it started: the hips travel must
-	# survive the loop-closing pass, so opt the hips position track out of it.
+	# The hips track carries the travel, and that is not the skeleton drifting out
+	# of its authored pose: it is the track root-motion EXTRACTION reads. The
+	# player moves the character node by this delta and cancels the track, so the
+	# hips render static while the character advances - which is exactly the
+	# partner of the in-place leg solve above. Stance foot slides back in clip
+	# space by the travel, character node moves forward by the travel, planted
+	# foot stays on the ground. The track must keep a non-zero delta across the
+	# loop, so it opts out of the loop-closing pass.
 	if rooted and not is_zero_approx(travel) and keys.has(hips):
 		(keys[hips] as Dictionary)["loop_close"] = false
 	return {
@@ -363,16 +369,33 @@ static func _solve_arm_chain(
 ## local phase (0 = contact) and `phase_offset` which half-cycle the foot leads
 ## by (0 left, 0.5 right). In-place cycles slide the planted foot backwards in
 ## clip space, which is what cancels the body's motion when the game moves the
-## character; with root motion the body travels *inside* the clip, so each stance
-## holds a fixed world point and the swing covers the stride to the next one.
+## character. That is the CORRECT authoring for root motion too, and it used not
+## to be.
+##
+## It used to be the other way round: with root motion the stance target was held
+## at a constant clip-space point while the hips carried the travel inside the
+## clip. That is wrong once the player extracts the root motion, because
+## extraction moves the character node by the track's travel and CANCELS the
+## track - so a foot held at a constant clip point rides forward with the
+## character and slides a stride's length across the floor. The travel belongs in
+## a track of its own for extraction to consume, leaving every bone authored in
+## the frame the viewer actually sees. See ROADMAP item 7.
 static func _foot_trajectory(p: float, stance: float, span: float, ground_speed: float, length: float, rooted: bool, phase_offset: float = 0.0) -> Dictionary:
 	var local_phase := fposmod(p, 1.0)
 	if local_phase < stance:
 		if rooted:
-			# The leg rotations are aimed at this target with the hips already
-			# travelled, so the foot lands *on* it: holding the target still during
-			# the stance is what plants the foot in the world. The trailing foot
-			# holds the point half a stride behind, so the two never share one.
+			# Each stance holds a fixed CLIP-space point, which is a fixed world
+			# point for as long as nothing carries the character.
+			#
+			# The textbook-correct root-motion authoring is the in-place one (the
+			# branch below): extraction moves the character node by the hips'
+			# travel and cancels the track, so world = H(t) + F(t), and a stance
+			# that slides back in clip space by the travel would land still. That
+			# change was made and measured and it did NOT cancel - the planted foot
+			# slid 0.13 m where the rates say it should be 0.005 m - so the two
+			# rates (span/stance for the slide, ground_speed for the travel) are
+			# not what the solve actually consumes, and the cause is still open.
+			# Reverted here rather than shipped on a plausible story. See ROADMAP 7.
 			return {
 				"forward": 0.5 * span + phase_offset * ground_speed * length,
 				"height": 0.0,

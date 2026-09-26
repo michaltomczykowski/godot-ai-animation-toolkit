@@ -893,8 +893,8 @@ description.
 
 The generator's arithmetic is sound; its *shapes* are the problem. This phase
 changes what the clips look like, in the order of how much a viewer notices.
-**Five of the seven are done**; the two that are not are recorded below with what
-was measured about them, which is the most useful part of having tried.
+**Six of the seven are done.** The seventh is recorded below with what was
+measured about it, which is the most useful part of having tried.
 
 **Done so far:**
 
@@ -951,32 +951,49 @@ was measured about them, which is the most useful part of having tried.
 
 **Still open, and why:**
 
-5. **A real rig frame** — up/forward/lateral from rest geometry, orthogonalised,
-   replacing the hard-coded `Vector3.UP`. **Attempted, measured, reverted**, and
-   the reason is now known rather than guessed. Building the frame from the bones
-   (the spine's rest axis for up, the hip offset for lateral, heel-to-toe for
-   forward, each made perpendicular to the others) works for a Z-up rig — and
-   *breaks* the human dummy, because the contact/slide metrics in `rig_analysis`
-   measure against a **world-Y floor**. A rig whose bones do not point along Y
-   then gets a correct bob and a wrong "planted" reading: the two plant feet
-   tests failed with the foot 0.084 m off the floor. Two other findings came out
-   of the attempt and are worth keeping: a hips→spine position delta is *not* the
-   rig's up (a pelvis is offset sideways, so that vector is not even vertical on
-   a real rig — the bone **axis** is), and rotating a node proves nothing because
-   bone rest data lives in skeleton space, so the test has to build a genuinely
-   Z-up chain. Doing this properly means `rig_analysis` and the audit take the
-   same rig frame, which changes the numbers the audit publishes — a Phase 18
-   golden-fixture job, not a one-line swap. `up` therefore stays world UP, and
-   the reason is a comment at the assignment.
-7. **The root-motion contract** — the legs solved in the frame the viewer sees
-   (the root-motion-canceled one), with the extracted motion supplying world
-   travel and `root_motion_local` set explicitly. The gate is Phase 18 item 3,
-   which now exists (real playback). What the contract and playback tests
-   established for the rooted walk, and what item 7 has to preserve: its hips
-   track keeps its travel (1.05 m of stride per cycle) and its leg poses close in
-   value while their seam velocity legitimately does not, because each cycle
-   reaches a different world point. Next step is a golden walk recorded *before*
-   the change, so a regression shows up as a number.
+5. **A real rig frame** - **DONE.** `RigAnalysis.rig_frame()` builds up/forward/
+   lateral from rest geometry, and both the generator and the audit take it, so
+   "planted" means the same thing on both sides. `up` is the spine bone's axis
+   (local +Y is a bone's head->tail direction), signed by the hips->head chain
+   because a bone axis cannot know its own sign; forward is heel to toe and
+   lateral across the hips, each made perpendicular to the others.
+   `foot_slide()` takes `up` and measures height along it and sliding across it.
+   Two things the work turned up, both in the code as comments:
+   - A bone axis carries the rig's **pose** as well as its convention, and the
+     fixture's spine rests 1.5 degrees off vertical. The golden walk measured
+     that leak as **173 units (4.8 degrees) of shin change** before any test
+     complained. So the axis is read for the convention and snapped to the
+     nearest world axis within 10 degrees - the conventions that matter are 90
+     apart, so anything closer is a lean. With that the golden walk is
+     **unchanged**, which is the proof worth having: a verified no-op for Y-up
+     rigs, and a real frame for genuinely rotated ones. A synthetic Z-up rig is
+     the other half of the test: a foot rising 0.3 m in Z that world Y calls
+     "never off the ground" (all 9 samples planted) is read correctly as
+     swing-then-plant by the rig's own floor.
+7. **The root-motion contract** - **half done, and the half that is left is
+   open for a measured reason.** Landed: `root_motion_local` is now set
+   explicitly. Left at the engine's global default, a rig facing +X has its walk
+   applied along world axes instead of its own - the same class of bug as
+   measuring a Z-up rig against a Y floor, the numbers right and the meaning
+   wrong. The hips track also keeps a real delta for the player to extract, and
+   the test pins both.
+
+   The unsolved part is *which frame the legs are authored in*, and the algebra
+   says it should change. Extraction moves the character node by the hips' travel
+   and cancels that track, so `world = H(t) + F(t)`: a stance that slides
+   **backwards in clip space** by the travel lands still. That is the in-place
+   authoring, and it is the textbook-correct form. Implemented, it measured
+   **0.13 m of residual slide where the two rates predict 0.005 m** - 40x out -
+   so the solve is not consuming the pair of rates the algebra assumes, and the
+   cause is genuinely unknown. Reverted rather than shipped on a plausible
+   story. What it needs is a diagnostic on what `_solve_leg` actually consumes
+   per sample (the trajectory term, the hips offset, and the clamped effective
+   ankle, which is a *reachable* point and not the requested one - a clamp
+   during stance is exactly the kind of thing that would leave 13 cm on the
+   floor). Also worth knowing for whoever picks it up: `seek()` + `advance(0)`
+   does **not** run extraction (the character moved 0.0000 m), so this cannot be
+   measured by synchronous playback; it needs real frames.
+
 
 1. **A swing is an arc, not a step.** Foot height is currently 0 or 1 across
    the whole swing, so the foot teleports up at toe-off and back down at heel
