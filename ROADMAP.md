@@ -1105,9 +1105,15 @@ measured about it, which is the most useful part of having tried.
    which is arithmetic rather than literature, and a wide sanity band whose top is
    anchored on the standard ~0.5 walk-to-run transition. That top is doing real
    work: **the 1.7 m rig measures Fr 0.547 and crosses it**, because a stride
-   built from an angle scales speed with leg length. The suite prints that rather
-   than hiding it, and whether a long-legged rig should be handed a run config
-   instead is an open product question, not a maths one.
+   built from an angle scales speed with leg length - so on a long-legged rig
+   `walk_cycle` returns a gait that is not a walk. The recipe now **says so in
+   its warnings**, with the numbers that decided it, rather than handing back a
+   run in walk's clothing; the matrix asserts the warning fires on the rig that
+   crosses the line and stays quiet on the two that do not, so it cannot rot into
+   noise. The speed law is deliberately unchanged: it is the user's knob, and
+   Froude scaling (v ~ sqrt(gL)) would change every rig's output including the
+   fixture's, which is a phase of its own and a product decision rather than a
+   fix.
 3. **Real playback tests — DONE.** Every other test in the motion suite applies
    the *nearest key* to the skeleton by hand, so nothing had ever checked what
    the engine plays: the interpolation between keys, the wrap at the end of a

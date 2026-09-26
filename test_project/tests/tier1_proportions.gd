@@ -259,6 +259,23 @@ func _check_the_matrix_holds_every_proportion() -> void:
 		if froude >= 0.5:
 			print("  note: %s reaches Fr %.3f, at or past the ~0.5 walk-to-run transition, because a stride built from an angle scales speed with leg length"
 				% [label, froude])
+		# The recipe has to SAY so, in the reply's warnings, rather than handing back
+		# a run in walk's clothing. The proportion where it should fire is not a
+		# guess: it is the one the number above says, and the rig below the line has
+		# to stay quiet or the warning is noise.
+		var warnings: Array = (built.get("meta", {}) as Dictionary).get("warnings", [])
+		var mentions_transition := false
+		for warning in warnings:
+			if str(warning).contains("walk-to-run"):
+				mentions_transition = true
+		if froude >= 0.5:
+			_expect(mentions_transition,
+				"%s: the walk warns that it is past the walk-to-run transition (warnings: %s)"
+					% [label, ", ".join(warnings)])
+		else:
+			_expect(not mentions_transition,
+				"%s: a walk below the transition says nothing about it (warnings: %s)"
+					% [label, ", ".join(warnings)])
 
 		# 2. STANCE FRACTION. About 60% of the cycle when walking; the value is a
 		# ratio already, so this is a check that the recipe keeps it a ratio.

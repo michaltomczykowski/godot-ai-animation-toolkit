@@ -160,6 +160,26 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 		stride_degrees = rad_to_deg(asin(clampf(sin_needed, 0.0, 1.0)))
 	var span := 2.0 * leg_length * sin(deg_to_rad(stride_degrees))
 	var ground_speed := span / (stance * length)
+	# Does this "walk" still count as one? The walk-to-run transition sits near a
+	# Froude number of 0.5 - the dimensionless speed v/sqrt(gL) that gait is
+	# compared by across body sizes, because it is the only speed that means the
+	# same thing on a short rig and a tall one.
+	#
+	# A stride built from an ANGLE scales speed with leg length, so Fr grows as
+	# sqrt(L) and a long-legged rig crosses the transition on its own: measured, a
+	# 1.70 m rig's default walk is Fr 0.547, against 0.372 for the 0.85 m fixture.
+	# Nothing is wrong with the numbers - the gait is internally consistent, it is
+	# just not a walk any more. The stride-angle law is kept (it is the user's
+	# knob, and changing it to Froude scaling would change every rig's output), so
+	# this says so instead of quietly returning a run in walk's clothing. Whether
+	# a long-legged rig should be handed a run config instead is a product
+	# question; the number belongs in the reply either way.
+	var froude := ground_speed / sqrt(9.81 * maxf(_hip_to_ankle(ctx), 0.0001))
+	if froude >= 0.5:
+		warnings.append(
+			"stride %d deg on a %.2f m leg implies %.2f m/s, Froude %.2f - at or past the ~0.5 walk-to-run transition, so this is not a walk; shorten duration or the stride to stay under it"
+			% [int(round(stride_degrees)), _hip_to_ankle(ctx), snappedf(ground_speed, 0.01),
+				snappedf(froude, 0.01)])
 	var rooted := bool(ctx.get("root_motion", false))
 	var travel := ground_speed * length if rooted else 0.0
 	var travel_axis: Vector3 = ctx.get("step_axis", forward)
@@ -532,6 +552,22 @@ static func scale_distances_to_rig(config: Dictionary, ctx: Dictionary,
 			continue
 		config[key] = float(config[key]) * factor
 	return factor
+
+
+## Hip-to-ankle distance, averaged over the legs: the length biomechanics means by
+## "leg length", and the one a Froude number wants. Shorter than the bone sum
+## whenever the rest pose is bent, which is the usual case.
+static func _hip_to_ankle(ctx: Dictionary) -> float:
+	var legs: Dictionary = ctx.get("legs", {})
+	var total := 0.0
+	var count := 0
+	for side in legs:
+		var leg: Dictionary = legs[side]
+		if not leg.has("ankle") or not leg.has("hip"):
+			continue
+		total += (leg.ankle as Vector3).distance_to(leg.hip as Vector3)
+		count += 1
+	return total / float(maxi(count, 1))
 
 
 ## Parent index of every bone, for `RigAnalysis.spine_chain`.
