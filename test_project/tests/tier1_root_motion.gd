@@ -121,9 +121,31 @@ func _report(control: Dictionary, extracted: Dictionary) -> void:
 	#    will be canceled visually, and the animation will appear to stay in place."
 	# The generator's leg solve is written against that, and test_animation_motion
 	# checks the consequence on the authored data, which is where it is observable.
-	_expect_approx(control_travel, TRAVEL * control_reached, 0.12,
-		"CONTROL: with no root-motion track the bone travels the clip's distance (%.4f m by t=%.3f s)"
-		% [control_travel, control_reached])
+	# The control's value is checked as a RATIO, not as an absolute distance.
+	#
+	# It was checked as a distance against `TRAVEL * position` and read 0.876 m on
+	# the Windows CI runner against 1.000 m locally, which sent this harness down a
+	# wrong path: a one-frame lag, then a median-frame-step correction, both
+	# invented to explain a number that turned out to need no explanation. The pose
+	# is exactly right - instrumenting it showed pose.z equal to the playback
+	# position to four decimals at every sample, ratio 1.0000 - because the loop
+	# stops at the first frame past the clip's end, and that overshoot is a
+	# fraction of a frame, which differs by platform. A ratio removes the
+	# overshoot from the comparison entirely, so the check is frame-rate
+	# independent by construction rather than by tolerance.
+	var worst_ratio := 0.0
+	for row in control_body:
+		var at: float = (row as Dictionary).position
+		if at <= 0.0:
+			continue
+		var ratio: float = ((row as Dictionary).hips as Vector3).z / (TRAVEL * at)
+		worst_ratio = maxf(worst_ratio, absf(ratio - 1.0))
+	_expect(worst_ratio < 0.02,
+		"CONTROL: with no root-motion track the bone tracks the clip exactly (worst %.4f off, over %d samples)"
+			% [worst_ratio, control_body.size()])
+	_expect(control_body.size() >= 6,
+		"CONTROL: the pass covered the clip (%d samples, reaching t=%.4f)"
+			% [control_body.size(), control_reached])
 	_expect_approx(control_sum, 0.0, 0.001,
 		"CONTROL: no delta is exposed when no track is set")
 
