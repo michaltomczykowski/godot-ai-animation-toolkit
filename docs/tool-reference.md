@@ -617,10 +617,24 @@ How motion is generated:
   nothing is carrying the character, so that branch is the in-place one. A stance
   the leg cannot reach is shortened to what it can, and the reply says so in
   `clamped` / `clamp_shortfall_m`.
+- **Froude-scaled by default.** With no `speed` given, the gait is scaled by the
+  **Froude number** `v / sqrt(g * L)` — the dimensionless speed that is the only
+  one meaning the same thing on a short rig and a tall one, and the way real
+  preferred walking speed scales with leg length. The stride is then solved from
+  the target speed, so a 0.5 m leg and a 1.7 m leg walk at the *same* Froude
+  number (measured: 31.5° of stride on the short one, 16.4° on the long one)
+  instead of the long-legged rig quietly becoming a run. The target is the value
+  each config's own defaults imply at the reference leg, so a run keeps its run
+  value and a stroll its stroll value with no constant of its own. Leg length here
+  is hip-to-ankle, which is shorter than the bone sum whenever the rest pose is
+  bent.
 - **Speed-driven.** Pass `speed` (m/s) and the stride is solved from
-  `speed * stance * duration / (2 * leg_length)`; unreachable speeds are clamped
-  and reported in `warnings` with the duration that would work. `speed`,
-  `stride_used` and `cadence` come back in the result.
+  `speed * stance * duration / (2 * leg_length)`, overriding the Froude default —
+  an explicit speed means the same absolute speed on every rig. Unreachable
+  speeds are clamped and reported in `warnings` with the duration that would
+  work. `speed`, `stride_used` and `cadence` come back in the result, and a gait
+  that lands at or past the ~0.5 walk-to-run transition says so in `warnings`
+  rather than being handed back under a walk's name.
 - **Phase markers.** Gaits emit `contact.L/R`, `toe_off.L/R` and `passing.L/R`;
   jump and turn emit their phase cues. Hook footstep audio or gameplay events on
   them, or use them to phase-sync blends.

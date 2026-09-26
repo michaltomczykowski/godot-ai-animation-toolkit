@@ -1,6 +1,6 @@
 # Roadmap — from presets to a real animation toolkit
 
-Status: **phases 0-18 done**; v1.12.0 shipped
+Status: **phases 0-18 done**; v1.13.0 shipped
 remediation's first half: every doc-ambiguous claim was settled by a failing
 test and **all four were true**, so look-at angles are radians now, the audit
 survives a blend tree, a retarget target nested in a wrapper is refused instead
@@ -1103,17 +1103,23 @@ measured about it, which is the most useful part of having tried.
    0.4 - 0.4 would need a 2.06 m "leg". Its absolute values do not reproduce under
    its own formula, so nothing leans on them. What is asserted is the scaling law,
    which is arithmetic rather than literature, and a wide sanity band whose top is
-   anchored on the standard ~0.5 walk-to-run transition. That top is doing real
-   work: **the 1.7 m rig measures Fr 0.547 and crosses it**, because a stride
-   built from an angle scales speed with leg length - so on a long-legged rig
-   `walk_cycle` returns a gait that is not a walk. The recipe now **says so in
-   its warnings**, with the numbers that decided it, rather than handing back a
-   run in walk's clothing; the matrix asserts the warning fires on the rig that
-   crosses the line and stays quiet on the two that do not, so it cannot rot into
-   noise. The speed law is deliberately unchanged: it is the user's knob, and
-   Froude scaling (v ~ sqrt(gL)) would change every rig's output including the
-   fixture's, which is a phase of its own and a product decision rather than a
-   fix.
+   anchored on the standard ~0.5 walk-to-run transition. That top was doing real
+   work: a stride built from an angle scales speed with leg length, so **the 1.7 m
+   rig measured Fr 0.547 and crossed it** while being handed a walk config. The
+   recipe warned, and then the law was changed rather than documented around:
+   **`walk_cycle` now scales by the Froude number** when no `speed` is given, so
+   every rig walks at the same dimensionless speed - Fr 0.386 on a 0.50, 0.80 and
+   1.64 m leg, where it had been 0.301 / 0.373 / 0.556. The target is derived from
+   each config's own defaults at the reference leg, so a run stays a run and a
+   stroll a stroll with no constant of its own, and an explicit `speed` still
+   overrides it. The stride is solved from that speed, which is why a short leg
+   takes a proportionally longer stride (31.5 deg on 0.50 m, 16.4 deg on 1.70 m).
+   Two honest consequences. The goldens moved **112 units (walk) and 159 (run)**
+   and were re-recorded, because the fixture's stride changes with its own leg -
+   that is the law working, not drift. And a short leg now asks for slightly more
+   reach than it has (1.5 cm of reported shortfall on the 0.50 m rig, inside a 5%
+   budget), which is the Phase 17 honest-reach contract doing its job. The
+   transition warning stays, because an explicit fast `speed` can still reach it.
 3. **Real playback tests — DONE.** Every other test in the motion suite applies
    the *nearest key* to the skeleton by hand, so nothing had ever checked what
    the engine plays: the interpolation between keys, the wrap at the end of a

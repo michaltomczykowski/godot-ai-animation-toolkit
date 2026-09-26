@@ -146,10 +146,29 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 	var clamp_shortfall := 0.0
 	var stride_degrees := float(config.stride)
 	var speed_target := float(ctx.get("speed", 0.0))
+	var max_stride := float(ctx.get("max_stride", 55.0))
+	if speed_target <= 0.0:
+		# No speed was asked for, so the gait is scaled by the FROUDE NUMBER: the
+		# dimensionless speed v/sqrt(gL) that gait is compared by across body sizes,
+		# because it is the only speed that means the same thing on a short rig and
+		# a tall one. Real preferred walking speed scales this way.
+		#
+		# It used to be derived from the stride ANGLE, which scales speed with leg
+		# length and therefore Fr with sqrt(L) - so the same config walked at Fr
+		# 0.301, 0.373 and 0.556 on a 0.50 / 0.80 / 1.64 m leg, and the tall rig
+		# crossed the ~0.5 walk-to-run transition and was handed a gait that was
+		# not a walk. Holding Fr instead gives every rig the same dimensionless
+		# walk, which is what "scales with the rig" is supposed to mean.
+		#
+		# The target is the Froude number the CONFIG implies at the reference leg,
+		# so each gait keeps its own character - a run stays a run, a stroll stays a
+		# stroll - and only the body-size dependence is removed. Nothing is
+		# hard-coded per recipe.
+		var froude_target := _reference_froude(float(config.stride), stance, length)
+		speed_target = froude_target * sqrt(9.81 * maxf(_hip_to_ankle(ctx), 0.0001))
 	if speed_target > 0.0:
-		# Solve the stride from the requested ground speed:
+		# Solve the stride from the ground speed:
 		# span = 2 * leg_length * sin(stride), speed = span / (stance * duration).
-		var max_stride := float(ctx.get("max_stride", 55.0))
 		var sin_needed := (speed_target * stance * length) / maxf(2.0 * leg_length, 0.001)
 		if sin_needed > sin(deg_to_rad(max_stride)):
 			var min_duration := (2.0 * leg_length * sin(deg_to_rad(max_stride))) / maxf(speed_target * stance, 0.0001)
@@ -161,19 +180,12 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 	var span := 2.0 * leg_length * sin(deg_to_rad(stride_degrees))
 	var ground_speed := span / (stance * length)
 	# Does this "walk" still count as one? The walk-to-run transition sits near a
-	# Froude number of 0.5 - the dimensionless speed v/sqrt(gL) that gait is
-	# compared by across body sizes, because it is the only speed that means the
-	# same thing on a short rig and a tall one.
-	#
-	# A stride built from an ANGLE scales speed with leg length, so Fr grows as
-	# sqrt(L) and a long-legged rig crosses the transition on its own: measured, a
-	# 1.70 m rig's default walk is Fr 0.547, against 0.372 for the 0.85 m fixture.
-	# Nothing is wrong with the numbers - the gait is internally consistent, it is
-	# just not a walk any more. The stride-angle law is kept (it is the user's
-	# knob, and changing it to Froude scaling would change every rig's output), so
-	# this says so instead of quietly returning a run in walk's clothing. Whether
-	# a long-legged rig should be handed a run config instead is a product
-	# question; the number belongs in the reply either way.
+	# Froude number of 0.5. Scaling by Froude above means a default walk cannot
+	# cross it - every rig gets the config's own dimensionless value - so this only
+	# fires when the caller asked for something that gets there, either an explicit
+	# `speed` or a duration too short for the stride to be legal. It stays because
+	# those are reachable, and a gait that is not a walk should say so rather than
+	# be handed back under a walk's name.
 	var froude := ground_speed / sqrt(9.81 * maxf(_hip_to_ankle(ctx), 0.0001))
 	if froude >= 0.5:
 		warnings.append(
@@ -568,6 +580,15 @@ static func _hip_to_ankle(ctx: Dictionary) -> float:
 		total += (leg.ankle as Vector3).distance_to(leg.hip as Vector3)
 		count += 1
 	return total / float(maxi(count, 1))
+
+
+## The Froude number this config's own defaults imply at the reference leg, which
+## is the target every other rig is then scaled to. Derived rather than declared
+## per recipe, so a run keeps its run value and a stroll its stroll value and
+## neither needs a constant of its own.
+static func _reference_froude(stride_degrees: float, stance: float, length: float) -> float:
+	var speed := 2.0 * REFERENCE_LEG * sin(deg_to_rad(stride_degrees)) / maxf(stance * length, 0.0001)
+	return speed / sqrt(9.81 * maxf(REFERENCE_LEG, 0.0001))
 
 
 ## Parent index of every bone, for `RigAnalysis.spine_chain`.

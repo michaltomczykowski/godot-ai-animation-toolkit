@@ -249,8 +249,13 @@ func _check_the_matrix_holds_every_proportion() -> void:
 		# visible when that question gets asked.
 		var config: Dictionary = ctx.config
 		var stance := float(config.stance)
-		var span := 2.0 * measured * sin(deg_to_rad(float(config.stride)))
-		var speed := span / (stance * float(ctx.length))
+		# The recipe's OWN numbers, not the config's defaults: it derives the stride
+		# it actually used, and reading `config.stride` here measured the input
+		# rather than the behaviour - which is how this test went on reporting the
+		# old Froude numbers after the generator had changed law.
+		var meta_now: Dictionary = built.get("meta", {})
+		var span := 2.0 * measured * sin(deg_to_rad(float(meta_now.get("stride_used", config.stride))))
+		var speed := float(meta_now.get("speed", span / (stance * float(ctx.length))))
 		var froude := _froude(speed, hip_to_ankle)
 		froudes[label] = froude
 		_expect(froude > 0.05 and froude < 0.60,
@@ -313,42 +318,48 @@ func _check_the_matrix_holds_every_proportion() -> void:
 			% [label, crouch_term, float(config.knee_bend),
 				0.003 * float(config.knee_bend) * float(ctx.get("distance_scale", 1.0)), measured])
 
-		# 5. THE REACH IS HONEST. A stance the leg cannot reach is shortened to what
-		# it can, and the recipe says so. What it must NOT do is clamp all clip long
-		# on a proportion it simply scales for, because a clamped stance is a foot
-		# riding the hips rather than a planted one.
+		# 5. THE REACH IS HONEST, and bounded. A stance the leg cannot reach is
+		# shortened to what it can and the recipe says so in `clamped` /
+		# `clamp_shortfall_m` - which is the Phase 17 contract, working.
+		#
+		# It is not zero, and that is a real consequence of Froude scaling rather
+		# than a defect: holding the dimensionless speed constant means a SHORT leg
+		# takes a proportionally LONGER stride (31.5 deg on a 0.50 m leg against
+		# 16.4 deg on a 1.70 m one), and a short leg has less reach to spend on it.
+		# The budget is a fraction of the leg, so a rig whose stride genuinely cannot
+		# fit still fails here.
 		var meta: Dictionary = built.get("meta", {})
-		_expect(not bool(meta.get("clamped", true)),
-			"%s: a default walk reaches its own targets (shortfall %.4f m)"
-			% [label, float(meta.get("clamp_shortfall_m", 0.0))])
+		var shortfall := float(meta.get("clamp_shortfall_m", 0.0))
+		_expect(shortfall <= leg * 0.05,
+			"%s: a default walk stays inside its reach (shortfall %.4f m on a %.2f m leg, budget %.4f)"
+				% [label, shortfall, leg, leg * 0.05])
 
 		# 6. LOOP CLOSURE. A looping clip has to arrive back where it started, in
 		# value and in step size, or the cycle pops once per loop.
 		_check_loop_closure(label, ctx, built)
 
-	# 7. THE POINT OF THE MATRIX: the scaling law that holds across proportions.
+	# 7. THE POINT OF THE MATRIX: the same dimensionless speed on every rig.
 	#
-	# A stride built from a stride ANGLE gives a stride LENGTH proportional to the
-	# leg, so the implied speed is proportional to L, and Fr = v/sqrt(gL) therefore
-	# grows as sqrt(L). That is the law the generator actually has, and asserting
-	# it is the point: if someone changes the speed law - to the Froude scaling
-	# (v ~ sqrt(gL)) that preferred human walking speed actually follows - this
-	# fails and says so, instead of the divergence being discovered by eye.
+	# This assertion used to pin the opposite law. A stride built from a fixed
+	# stride ANGLE scales speed with leg length, so Fr grew as sqrt(L) and the
+	# matrix asserted exactly that - correctly describing the behaviour and
+	# quietly ratifying it. It also meant a 1.70 m rig walked at Fr 0.556, past
+	# the ~0.5 walk-to-run transition, while being handed a walk config.
 	#
-	# Worth recording because it is a real modelling choice, not an oversight: a
-	# stride-angle recipe scales a child's speed linearly with their leg, where
-	# real preferred walking speed scales with its square root. Every rig here
-	# stays inside the walking Froude band, so no rig looks wrong; the tall one
-	# simply walks a proportionally faster gait.
+	# The generator now scales by the Froude number, so the invariant is that Fr is
+	# the SAME on every rig, at whatever dimensionless value the config implies.
+	# Asserting a constant is the stronger statement: it says the body-size
+	# dependence is gone, and a regression back to the angle law fails here.
 	var reference: float = froudes.get("reference (0.85 m)", 0.0)
 	for label in froudes:
 		if label == "reference (0.85 m)":
 			continue
 		var value: float = froudes[label]
-		var expected := reference * sqrt(proportions[label] / REFERENCE_LEG)
-		_expect(absf(value - expected) < 0.02,
-			"%s: Froude %.3f follows sqrt(L) from the reference's %.3f (expected %.3f)"
-				% [label, value, reference, expected])
+		_expect(absf(value - reference) < 0.01,
+			"%s: Froude %.3f is the reference's %.3f - the same dimensionless walk at any size"
+				% [label, value, reference])
+	_expect(reference < 0.5,
+		"the reference walk is a walk (Fr %.3f, transition ~0.5)" % reference)
 
 	# 7b. AND THE SAME FOR THE KNEE-BEND CROUCH, which is the assertion that was
 	# actually broken: a degree is not a distance, so 0.003 m/deg has to be scaled

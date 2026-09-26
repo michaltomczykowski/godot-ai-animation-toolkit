@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.12.0 — prove it
+## 1.13.0 - gaits scale by the Froude number, and an audit of phase 18
 
 Phase 18. The phase where the question is not "does it work" but "how would we
 know". Four items, and the honest summary is that the fixtures found more than the
@@ -85,13 +85,35 @@ One of the gait citations did not survive checking, which is worth saying plainl
 The paper quoted for the Froude numbers also reports comfortable walking at
 "Fr ~0.4" for 1.8 m/s on an 0.827 m leg — and `v/sqrt(gL)` for those numbers is
 0.632, not 0.4; 0.4 would need a 2.06 m "leg". Its absolute values do not
-reproduce under its own stated formula, so nothing here leans on them. What the
-matrix asserts is the scaling law, which is arithmetic rather than literature,
-and a wide sanity band anchored on the standard ~0.5 walk-to-run transition.
-That anchor is doing real work: **the 1.7 m rig measures Fr 0.547 and crosses
-it**, because a stride built from an angle scales speed with leg length. The suite
-prints that rather than hiding it. Whether a long-legged rig should be handed a
-run config instead is an open product question, not a maths one.
+reproduce under its own stated formula, so nothing here leans on them. The
+~60% stance figure and the 0.45→0.28 duty factor range are multiply sourced and do.
+
+That check led to the one behaviour change in this release, and it is worth
+stating plainly because it moves output. The matrix's own header pointed out that
+a stride built from a fixed **angle** scales speed with leg length, so the
+Froude number grew as `sqrt(L)` — and the tall rig measured **Fr 0.547, past the
+~0.5 walk-to-run transition**, while being handed a walk config. Rather than
+document that, `walk_cycle` now scales by the Froude number when no `speed` is
+given:
+
+| leg | before | after |
+|---|---|---|
+| 0.50 m | Fr 0.301 | Fr 0.386 |
+| 0.80 m (fixture) | Fr 0.373 | Fr 0.386 |
+| 1.70 m | **Fr 0.556** | Fr 0.386 |
+
+Every rig now walks at the same dimensionless speed, which is the only sense in
+which "scales with the rig" is literally true, and it matches how real preferred
+walking speed scales. The target is derived from each config's own defaults at
+the reference leg, so a run keeps its run value and a stroll its stroll value
+with no per-recipe constant; an explicit `speed` still overrides it and still
+means the same absolute speed everywhere. Because the stride is now solved from
+that speed, a short leg takes a proportionally longer stride (31.5° on 0.50 m
+against 16.4° on 1.70 m) — which is the law working, and the reason the goldens
+moved **112 units (walk) and 159 (run)** and were re-recorded. A short leg also
+now asks for 1.5 cm more reach than it has, which is the honest-reach contract
+reporting rather than hiding. The transition warning stays, because an explicit
+fast `speed` can still reach it.
 
 One more from the survey: `turn_config.turn_angle` was reported as not accepted
 as an override. It is, and is read. Recorded so it is not "fixed" twice.
