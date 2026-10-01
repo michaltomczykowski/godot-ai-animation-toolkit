@@ -119,6 +119,49 @@ async def probe(args: argparse.Namespace) -> int:
             except ToolError as exc:
                 cross_family_errors[family] = str(exc)
         result["cross_family_errors"] = cross_family_errors
+        if args.valid_pulse_scene:
+            pulse = {
+                "op": "pulse", "player_path": "/RouteFixture/Anim",
+                "target_path": "Target", "property": "scale",
+                "from_scale": 1.0, "to_scale": 1.2, "duration": 0.8,
+                "loop_mode": "pingpong", "animation_name": "mcp_route_pulse",
+                "overwrite": True,
+            }
+            opened = payload(await client.call_tool("scene_open", {
+                "path": args.valid_pulse_scene, "force_reload": True,
+            }))
+            async def describe_pulse() -> dict:
+                try:
+                    return payload(await client.call_tool("custom_animation_inspect", {
+                        "op": "describe", "player_path": pulse["player_path"],
+                        "animation_name": pulse["animation_name"],
+                    }))
+                except ToolError as exc:
+                    return {"error": str(exc)}
+            before_dry = await describe_pulse()
+            dry = payload(await client.call_tool("custom_animation_presets", {
+                **pulse, "dry_run": True,
+            }))
+            after_dry = await describe_pulse()
+            created = payload(await client.call_tool("custom_animation_presets", pulse))
+            saved = payload(await client.call_tool("scene_save", {}))
+            reopened = payload(await client.call_tool("scene_open", {
+                "path": args.valid_pulse_scene, "force_reload": True,
+            }))
+            inspected = await describe_pulse()
+            clips = inspected.get("clips", [])
+            tracks = clips[0].get("tracks", []) if len(clips) == 1 else []
+            result["valid_pulse"] = {
+                "opened": not opened.get("error"),
+                "dry": not dry.get("error") and dry.get("dry_run") is True,
+                "dry_unchanged": before_dry == after_dry,
+                "created": not created.get("error"),
+                "saved": not saved.get("error"),
+                "reopened": not reopened.get("error"),
+                "clip_count": len(clips),
+                "track_count": len(tracks),
+                "paths_resolved": bool(tracks) and all(t.get("node_resolved") for t in tracks),
+            }
         if args.player_path and "custom_animation_inspect" in tools:
             try:
                 inspected = await client.call_tool(
@@ -147,6 +190,7 @@ async def probe(args: argparse.Namespace) -> int:
             or len(cross_family_errors) != 2 \
             or any(not error.startswith("VALUE_OUT_OF_RANGE")
                    for error in cross_family_errors.values()) \
+            or (args.valid_pulse_scene and not all(result["valid_pulse"].values())) \
             or (args.player_path and not result.get("inspect_has_data")) else 0
 
 
@@ -158,6 +202,7 @@ def main() -> int:
     parser.add_argument("--player-path", default="")
     parser.add_argument("--activate", default="")
     parser.add_argument("--activate-auto", action="store_true")
+    parser.add_argument("--valid-pulse-scene", default="")
     parser.add_argument("--show-schemas", action="store_true")
     parser.add_argument("--reload", action="store_true")
     args = parser.parse_args()

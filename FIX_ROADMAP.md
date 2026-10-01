@@ -1494,3 +1494,19 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   run logs. The regenerated 103-row audit now counts six real UI undo/redo
   passes including `animation_presets.pulse`. Editor-only or incomplete undo
   checks retain their qualified states, and no operation is marked verified.
+
+### 2026-10-01 — Phase 1, valid external MCP effect in the CI probe
+
+- The external route probe now opens an isolated generated scene, calls
+  `animation_presets.pulse` in dry-run and write modes, confirms dry run leaves
+  clip inspection unchanged, saves, force-reopens, and checks the one-track
+  result resolves to a real node. The same check runs before and after a
+  core-plugin reload on each CI platform. This closes the registration test's
+  previous blind spot: typed unknown-op errors alone proved handler reachability
+  but not a useful generated clip.
+- A local visible Godot 4.7.2 run of the three-stage probe passed; the saved
+  scene is under ignored `test_project/repair_mcp_ci/`. The first local try
+  misread Godot AI's flattened successful MCP payload (`dry_run` is top-level),
+  then the assertion was corrected. Log `mcp_valid_pulse_dry_20261001.log` in
+  the snapshot records the successful result. Fresh Windows/Linux CI remains
+  pending for this expanded probe.

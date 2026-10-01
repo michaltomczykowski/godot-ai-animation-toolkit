@@ -35,7 +35,7 @@ def probe(args: argparse.Namespace, reload: bool = False) -> subprocess.Complete
         sys.executable, str(Path(__file__).with_name("mcp_probe.py")),
         "--core-root", str(args.core_root),
         "--port", str(args.port), "--ws-port", str(args.ws_port),
-        "--activate-auto",
+        "--activate-auto", "--valid-pulse-scene", "res://repair_mcp_ci/route.tscn",
     ]
     if reload:
         cmd.append("--reload")
@@ -47,6 +47,15 @@ def run(args: argparse.Namespace) -> int:
     log_stream = None
     log_path = Path(args.log).resolve()
     try:
+        fixture = args.project / "repair_mcp_ci" / "route.tscn"
+        fixture.parent.mkdir(parents=True, exist_ok=True)
+        fixture.write_text(
+            '[gd_scene format=3]\n\n'
+            '[node name="RouteFixture" type="Node2D"]\n\n'
+            '[node name="Anim" type="AnimationPlayer" parent="."]\n\n'
+            '[node name="Target" type="Node2D" parent="."]\n',
+            encoding="utf-8",
+        )
         if not args.existing:
             env = os.environ.copy()
             env["GODOT_AI_ALLOW_HEADLESS"] = "1"
