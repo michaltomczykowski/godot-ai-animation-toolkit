@@ -1451,5 +1451,29 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
 - The corrected second GitHub Actions run (`36919998639`) completed green:
   all 28 tier-1 jobs and all four Windows/Linux editor jobs passed against the
   pinned and current core. This confirms the optional-fixture skip on a clean
-  checkout. The audit freshness step is in the next commit and awaits its own
-  CI run.
+  checkout. The subsequent audit-freshness run (`36920325900`) also completed
+  green on both operating systems and both core refs.
+
+### 2026-10-01 — Phase 1/2, external family routing and rig isolation
+
+- Expanded `mcp_probe.py` to activate the sole editor session, check the
+  eight promoted schemas and ten-family catalog, and invoke an invalid op in
+  **each** family through the external Godot AI MCP client. It also calls a
+  rig modifier through `animation_rig` and a rig pose through
+  `animation_rig_modifiers` to ensure cross-family requests are rejected.
+- This found a real defect: both rig families share `rig.gd`; the unpromoted
+  modifier family reported the rig family's choices, and because Godot AI
+  forwards custom-tool params without enforcing the schema, a stale caller
+  could dispatch an operation through the wrong family. The handler now gates
+  on `ctx.spec.name` before any mutation. A fresh visible 4.7.2 editor and
+  live MCP probe returned `VALUE_OUT_OF_RANGE` with the correct five modifier
+  choices for both cross-family calls. The editor suite passed with the new
+  regression test (219/219); logs are
+  `editor_rig_family_gate_20261001.log` and `mcp_rig_family_gate_20261001.log`
+  in the recovery snapshot.
+- Added `tools/ci_mcp_route.py` and Windows/Linux CI jobs that install the
+  pinned Godot AI backend, start a fresh headless 4.7.2 editor, then run the
+  external probe before and after `editor_reload_plugin`. The launcher passed
+  all three stages against the existing visible Windows editor. Fresh-runner
+  CI results are still pending. This route check establishes family access
+  and typed rejection; per-operation valid effects remain in the audit ledger.

@@ -32,6 +32,15 @@ func run(params: Dictionary, ctx) -> Dictionary:
 
 func _dispatch(params: Dictionary, ctx = null) -> Dictionary:
 	var op: String = params.get("op", "")
+	# Both public tool families share this script. Godot AI forwards params to
+	# handlers without checking the advertised schema, especially through
+	# custom_manage. Refuse a cross-family op before it can mutate the scene.
+	var family_name := OpRegistry.FAMILY_RIG
+	if ctx != null and ctx.get("spec") != null:
+		family_name = str(ctx.spec.name)
+	if ctx != null and not OpRegistry.op_names(family_name).has(op):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Unknown op '%s'. Valid: %s" % [op, ", ".join(OpRegistry.op_names(family_name))])
 	match op:
 		"pose_save":
 			return rig_pose_save(params)

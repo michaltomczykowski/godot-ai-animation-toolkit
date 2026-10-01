@@ -53,6 +53,15 @@ async def probe(args: argparse.Namespace) -> int:
         keep_alive=False,
     )
     async with Client(transport) as client:
+        if args.activate_auto:
+            available = payload(await client.call_tool("session_manage", {"op": "list"}))
+            candidates = available.get("sessions", [])
+            if len(candidates) != 1:
+                print("MCP_ACTIVATE_ERROR=" + json.dumps({
+                    "expected_sessions": 1, "found": len(candidates),
+                }, sort_keys=True))
+                return 1
+            args.activate = str(candidates[0].get("session_id", ""))
         if args.activate:
             activated = await client.call_tool("session_activate", {"session_id": args.activate})
             print("MCP_ACTIVATE=" + json.dumps(payload(activated), sort_keys=True))
@@ -82,24 +91,34 @@ async def probe(args: argparse.Namespace) -> int:
             "missing_catalog": missing_catalog,
             "sessions": sessions,
         }
-        if names:
+        family_errors = {}
+        for family in sorted(EXPECTED_CATALOG & names):
             try:
-                await client.call_tool(
-                    "custom_animation_inspect", {"op": "__mcp_probe_unknown__"},
-                )
-                result["invalid_error"] = ""
-            except ToolError as exc:
-                result["invalid_error"] = str(exc)
-            try:
-                await client.call_tool(
-                    "custom_manage", {"op": "invoke", "params": {
-                        "tool_name": "animation_sequence",
+                promoted_name = "custom_" + family
+                if promoted_name in tools:
+                    await client.call_tool(promoted_name, {"op": "__mcp_probe_unknown__"})
+                else:
+                    await client.call_tool("custom_manage", {"op": "invoke", "params": {
+                        "tool_name": family,
                         "params": {"op": "__mcp_probe_unknown__"},
-                    }},
-                )
-                result["sequence_invalid_error"] = ""
+                    }})
+                family_errors[family] = ""
             except ToolError as exc:
-                result["sequence_invalid_error"] = str(exc)
+                family_errors[family] = str(exc)
+        result["family_invalid_errors"] = family_errors
+        cross_family_errors = {}
+        for family, wrong_op in [
+            ("animation_rig", "ik_setup"),
+            ("animation_rig_modifiers", "pose_save"),
+        ]:
+            try:
+                await client.call_tool("custom_manage", {"op": "invoke", "params": {
+                    "tool_name": family, "params": {"op": wrong_op},
+                }})
+                cross_family_errors[family] = ""
+            except ToolError as exc:
+                cross_family_errors[family] = str(exc)
+        result["cross_family_errors"] = cross_family_errors
         if args.player_path and "custom_animation_inspect" in tools:
             try:
                 inspected = await client.call_tool(
@@ -121,8 +140,13 @@ async def probe(args: argparse.Namespace) -> int:
                 print("MCP_RELOAD_ERROR=" + str(exc))
                 return 1
         return 1 if missing_promoted or wrong_schemas or missing_catalog \
-            or not str(result.get("invalid_error", "")).startswith("VALUE_OUT_OF_RANGE") \
-            or not str(result.get("sequence_invalid_error", "")).startswith("VALUE_OUT_OF_RANGE") \
+            or len(family_errors) != len(EXPECTED_CATALOG) \
+            or any(not error.startswith("VALUE_OUT_OF_RANGE")
+                   for error in family_errors.values()) \
+            or "ik_setup" not in family_errors.get("animation_rig_modifiers", "") \
+            or len(cross_family_errors) != 2 \
+            or any(not error.startswith("VALUE_OUT_OF_RANGE")
+                   for error in cross_family_errors.values()) \
             or (args.player_path and not result.get("inspect_has_data")) else 0
 
 
@@ -133,6 +157,7 @@ def main() -> int:
     parser.add_argument("--ws-port", type=int, required=True)
     parser.add_argument("--player-path", default="")
     parser.add_argument("--activate", default="")
+    parser.add_argument("--activate-auto", action="store_true")
     parser.add_argument("--show-schemas", action="store_true")
     parser.add_argument("--reload", action="store_true")
     args = parser.parse_args()

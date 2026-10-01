@@ -189,6 +189,25 @@ func test_rollup_rejects_unknown_op() -> void:
 	assert_contains(unknown.error.message, "rig_get")
 
 
+func test_rig_families_refuse_cross_family_ops() -> void:
+	var rig_ctx := McpCallContext.new()
+	var rig_spec := McpCustomToolSpec.new()
+	rig_spec.name = OpRegistry.FAMILY_RIG
+	rig_ctx.spec = rig_spec
+	var rejected_modifier := _handler.run({"op": "ik_setup"}, rig_ctx)
+	assert_is_error(rejected_modifier, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_contains(rejected_modifier.error.message, "pose_save")
+	var modifier_ctx := McpCallContext.new()
+	var modifier_spec := McpCustomToolSpec.new()
+	modifier_spec.name = OpRegistry.FAMILY_RIG_MODIFIERS
+	modifier_ctx.spec = modifier_spec
+	var rejected_rig := _handler.run({"op": "pose_save"}, modifier_ctx)
+	assert_is_error(rejected_rig, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_contains(rejected_rig.error.message, "ik_setup")
+	assert_false(rejected_rig.error.message.contains("pose_save, pose_apply"),
+		"the modifier family must report its own choices")
+
+
 # --- pose_save -------------------------------------------------------------
 
 func test_pose_save_captures_rest_and_pose() -> void:
