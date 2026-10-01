@@ -62,6 +62,14 @@ func _init() -> void:
 							key, platform, str(row.platforms[platform])])
 						quit(1)
 						return
+	var missing: Array = []
+	for row in rows:
+		if not evidence.has(row.key):
+			missing.append(row.key)
+	if not missing.is_empty():
+		print("AUDIT_EXPORT_FAIL: operations without evidence rows: %s" % ", ".join(missing))
+		quit(1)
+		return
 	var invalid: Array = []
 	for key in evidence:
 		var found := false

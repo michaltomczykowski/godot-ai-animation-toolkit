@@ -1435,3 +1435,21 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   rerun after this correction. The missing CI asset does not count as visual
   approval of X Bot motion; local played/rendered evidence remains in the
   snapshot and the broader visual gate remains open.
+
+### 2026-10-01 — Phase 2 audit freshness gate
+
+- The registry-driven exporter now fails if any advertised operation lacks an
+  explicit row in `docs/operation-evidence.json`, as well as when evidence
+  names an operation removed from the registry. The pinned Linux editor CI
+  leg regenerates `docs/operation-audit.json` and fails on a diff. This keeps
+  registry changes and the review ledger tied together without pretending
+  that a pending check has passed.
+- On Windows Godot 4.7.2, export reported `103 operations, 0 verified` and
+  left the committed audit unchanged; `git diff --check` passed. The 103
+  evidence rows are all present. Visual, per-operation undo and cross-platform
+  live MCP checks remain required before any row can become verified.
+- The corrected second GitHub Actions run (`36919998639`) completed green:
+  all 28 tier-1 jobs and all four Windows/Linux editor jobs passed against the
+  pinned and current core. This confirms the optional-fixture skip on a clean
+  checkout. The audit freshness step is in the next commit and awaits its own
+  CI run.

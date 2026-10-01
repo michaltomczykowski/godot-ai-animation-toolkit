@@ -164,6 +164,12 @@ jobs:
             exit 1
           fi
 
+      - name: Audit every registry operation
+        if: matrix.os == 'ubuntu-latest' && matrix.core-ref == 'v4.2.1'
+        run: |
+          godot --headless --path test_project --script res://tools/export_operation_audit.gd
+          git diff --exit-code -- docs/operation-audit.json
+
   version-check:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
