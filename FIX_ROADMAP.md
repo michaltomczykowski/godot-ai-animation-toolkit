@@ -1478,7 +1478,10 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   CI run `36921193733` passed on Linux. Windows reached the launcher after
   installing the backend, then failed before editor startup because Python's
   Win32 process API could not execute the extensionless `godot` shim placed on
-  PATH by setup-godot. The runner now executes that shim through Git Bash on
-  Windows; the next CI run must confirm this correction. This route check
+  PATH by setup-godot. The first correction also failed before startup because
+  `bash` resolved to WSL on that runner, which has no distribution. The
+  pinned setup-godot action installs the actual Windows executable at
+  `%USERPROFILE%/godot/Godot_v4.7.2-stable_win64.exe`; the launcher now uses
+  that path with Win32 CreateProcess. The next CI run must confirm it. This route check
   establishes family access and typed rejection; per-operation valid effects
   remain in the audit ledger.

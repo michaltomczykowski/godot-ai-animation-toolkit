@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 import os
 from pathlib import Path
-import shlex
 import socket
 import subprocess
 import sys
@@ -57,12 +56,17 @@ def run(args: argparse.Namespace) -> int:
             env["PYTHONPATH"] = os.pathsep.join(filter(None, [source, env.get("PYTHONPATH", "")]))
             log_path.parent.mkdir(parents=True, exist_ok=True)
             log_stream = log_path.open("wb")
-            command = [args.godot, "--headless", "--editor", "--path", str(args.project)]
-            if os.name == "nt" and not Path(args.godot).is_file():
-                # setup-godot exposes an extensionless Bash launcher on Windows.
-                # Git Bash resolves it, while Win32 CreateProcess("godot") does not.
-                command = ["bash", "-c", "exec " + " ".join(map(shlex.quote,
-                    [args.godot, "--headless", "--editor", "--path", args.project.as_posix()]))]
+            godot = args.godot
+            if os.name == "nt" and not Path(godot).is_file():
+                # setup-godot adds an extensionless hard link named `godot`
+                # to PATH. Bash can launch it, but Win32 CreateProcess cannot;
+                # use the action's installed .exe for a child process.
+                version = os.environ.get("GODOT_VERSION", "4.7.2")
+                installed = Path.home() / "godot" / f"Godot_v{version}-stable_win64.exe"
+                if not installed.is_file():
+                    raise FileNotFoundError(f"setup-godot executable not found: {installed}")
+                godot = str(installed)
+            command = [godot, "--headless", "--editor", "--path", str(args.project)]
             editor = subprocess.Popen(
                 command,
                 stdout=log_stream, stderr=subprocess.STDOUT, env=env,
