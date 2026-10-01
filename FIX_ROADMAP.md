@@ -1,0 +1,1422 @@
+# Animation Toolkit repair roadmap
+
+Started 2026-09-28. This is the working repair plan and phase log for the
+unreleased `repair/toolkit-quality` branch. `ROADMAP.md` records the older
+feature/release history; it is not evidence that a feature works today.
+
+## Goal and rules
+
+Make this a dependable procedural animation tool suite **through Godot AI's
+public custom-tools API** on Godot 4.7.2. A successful handler response must
+produce its documented effect after save, reopen and playback. An operation
+that does not pass its contract is hidden from discovery and returns a typed
+unavailable error to stale callers. No tag, release or media upload is part of
+this repair.
+
+The primary acceptance route is an AI/MCP client -> Godot AI server -> active
+editor session -> toolkit handler -> saved Godot scene. Direct GDScript calls
+and editor-dispatch smoke tests are useful diagnostics, not substitutes.
+
+Each phase below must record its changes, exact tests, failures, remaining
+risks and decision before it is marked complete. Work sequentially. Keep the
+branch reviewable and do not merge or release while a required gate fails.
+
+## Baseline (2026-09-28)
+
+- Toolkit HEAD: `735706d`, branch `repair/toolkit-quality`, with substantial
+  uncommitted work from the interrupted attempt. Preserve it while auditing.
+- `test_project` links Godot AI checkout `godot-ai-v4-animation` at `eefd4fe`.
+  The real project `F:\GODOTAITESTING\godotaitesting` links `godot-ai-v4-theme`
+  at `102aad4` and currently enables only Godot AI, not this toolkit.
+- Working-tree registry: 10 families, 103 family-qualified operation entries
+  (102 distinct names; `walk_cycle` occurs in rig and motion). Eight families
+  are promoted; `animation_rig_modifiers` and `animation_sequence` require
+  `custom_manage`.
+- Fourteen tier-1 headless suites pass locally. The editor suite has 203 tests,
+  one failure in `test_motion_audit_grades_planted_feet_and_hips` after an
+  unfinished playback-audit change. The new 103-op route probe supplies only
+  `{op, dry_run: true}` and therefore does not establish functional success.
+- The flykick builder edits and rendered frames are diagnostic work, not the
+  repair target. Do not use them as a quality gate until the toolkit itself
+  meets the contracts below.
+
+## Phase 0 — preserve and measure the baseline
+
+**Plan:** Inventory HEAD versus uncommitted changes; preserve a recoverable
+snapshot; classify each change as integration, shared animation engine,
+tests/docs or demo. Reproduce both headless and editor results before further
+edits. Record what is installed in the real project and which core checkout
+each fixture uses.
+
+**Exit:** A baseline report with command output and a safe path for every
+existing change. No user work is silently discarded.
+
+**Status:** Complete 2026-09-28. Snapshot and test evidence below.
+
+## Phase 1 — Godot AI integration and tool contracts
+
+**Plan:** Fix typed batch registration; verify actual MCP `tools/list`, the
+eight promoted names/schemas, all registered names via active-session
+`custom_manage`, invalid-input typed errors, disable/re-enable, core reload,
+and `tools/list_changed`. Exercise both core checkouts and then install the
+toolkit in the real project. Implement quiescence for completed handlers and
+correct per-operation write/undo behavior: file writes cannot promise scene
+UndoRedo rollback, and inspection writes must respect editor readiness.
+
+**Exit:** A model-facing tool can discover and invoke a valid operation in the
+real project. A stale/disabled/missing operation fails with a typed reason.
+Core update preparation succeeds after finished toolkit calls, and fails only
+while a genuinely active deferred call needs to finish. Batch rollback cannot
+claim to undo file side effects it leaves behind.
+
+**Status:** In progress. The live MCP catalog, fixture invocation, real-project
+installation, core reload, direct-backend disable/re-enable notifications and
+rollback pass on Windows. Stdio attach notification forwarding and Linux
+remain to verify.
+
+**Execution order:**
+
+1. Add and test handler quiescence. Synchronous handlers can report idle after
+   a call; the deferred preview must track its own live render and report busy
+   until it sends the final response, including after a transport timeout.
+2. Make family metadata conservative. An `undo=true` batch must reject a
+   family containing direct file writes until its operations are split by
+   effect or those writes become genuinely reversible. Gate `rig_profile`
+   saves and PNG preview writes while the editor is playing/importing.
+3. Use the live Godot AI server and MCP client, not `_dispatcher._dispatch`,
+   to check tool list/schema, active-session list/invoke, disabled/stale calls
+   and tool-list updates. Run against both local core checkouts.
+4. Install/enable the toolkit in the real project only after the fixture MCP
+   checks pass; repeat a harmless read and a valid undoable clip operation
+   there, save/reopen, and check undo. Keep the real project's existing scene
+   intact by using a dedicated repair fixture scene.
+
+## Phase 2 — operation contract and honest discovery
+
+**Plan:** Generate an audit matrix from the registry, one row per
+family-qualified operation. Each row contains valid invocation fixture,
+claimed effect, result/error shape, target paths and types, dry run, undo/redo,
+save/reopen, playback or other effect assertion, and platform. Add operation
+status to the single registry: supported or unavailable with a reason. Both
+schema choices and handler dispatch must use that status. Enforce resource
+budgets before allocation or mutation; start with motion duration × samples.
+Fix shared commit/spec failures before individual families.
+
+**Exit:** Every advertised operation has a passing effect contract. Stale
+callers to unavailable operations get a typed error, never a false success.
+The matrix is produced by CI and identifies uncovered operations explicitly.
+
+**Status:** In progress. A 103-row operation evidence ledger and generated
+audit exist; all rows remain partial until visual, per-operation undo and
+Linux gates are satisfied. The motion allocation limit and jump-distance
+fix pass on Windows. Live Godot AI dry/write/save/reopen and typed-error
+evidence covers the families, while gaps remain visible in the ledger.
+
+## Phase 3 — character motion and a trustworthy evaluator
+
+**Plan:** Validate roles, rest pose, axes, proportions, reach and coordinate
+conversion before generating. Require explicit mapping when detection is
+ambiguous. Use one typed, rest-relative pose-at-time representation for
+generation, composition, preview and audit. Evaluate audit/preview on an
+isolated character, with engine interpolation and AnimationTree playback
+parity; preserve all editor state. Give root translation one owner and check
+AnimationMixer extraction. Rebuild stance/swing timing, reachable foot
+targets, knee poles, pelvis weight shifts, starts/stops, turns, strafes and
+jumps. Fix explicit jump height/crouch alias scaling on non-reference rigs.
+
+**Exit:** Bundled dummy, available X Bot and independent synthetic rigs pass
+at 30/60/120 FPS on a level surface: stance slide <= min(2% leg length,
+3 cm), penetration <= 1% leg length, no knee flips or loop discontinuities.
+Idle/walk/run/start/stop/turn/strafe/jump playback and root-motion extraction
+are measured. Fixed-camera contact sheets pass human visual review for
+anticipation, impact, weight transfer and recovery.
+
+**Status:** In progress. Root extraction and private played contact audits
+cover the bundled dummy, X Bot, half-size and Z-up tall rigs at 30/60/120
+FPS. The strafe now has a played foot-crossing check. Walk visual quality,
+reach clamps, loop/pose quality, full action review and Linux remain open.
+
+## Phase 4 — sequencing, graphs and remaining families
+
+**Plan:** Make character-owned action sequencing a supported operation only
+after boundary, overlap, gap, pose, root-motion, contact-marker and output-key
+budget tests pass. Prevent multiple mixers from driving the same bones.
+Check graph baselines and active playback ownership; clip edits against
+Godot's interpolation; modifier wiring and post-mixer timing; and UI/FX
+previews. Resolve each failed operation or mark it unavailable.
+
+**Exit:** The operation matrix is green for all supported families, including
+saved-scene replay and one-step undo where promised. Representative output
+from every family has a recorded visual/effect review.
+
+**Status:** In progress. Eight graph operations have live MCP save/reopen and
+dry-run checks; active blend-space and automatically started state-machine
+graphs have runtime playback evidence. Sequence compose has a live MCP save/reopen and
+played-bone check; its boundary, gap, pose and ownership review remains open.
+
+## Phase 5 — agent usability, CI and review
+
+**Plan:** Run task prompts with the connected coding model through the live
+Godot AI MCP surface. Capture discovered tools, selected operation, parameters,
+typed failures, resulting scene and revision attempts. Simplify the promoted
+surface if the model cannot use broad family schemas reliably. Run headless,
+editor, registration, full MCP and playback gates on Windows and Linux against
+the pinned core and current compatible core. Update docs to match the audit,
+remove unsupported claims, and deliver a reviewed, unreleased branch with
+before/after media and the operation matrix.
+
+**Exit:** Representative user intents complete through Godot AI without manual
+GDScript authoring. All required CI gates pass and review evidence is attached
+to the branch. No release action is taken.
+
+**Status:** Pending. "Space Bunny Alpha" identifies the coding agent that
+produced much of the earlier work; it is not a toolkit runtime dependency.
+
+## Phase log
+
+### 2026-09-28 — roadmap created
+
+- **Changes:** Added this repair roadmap. No phase has been declared complete.
+- **Evidence:** Local branch, addon junctions, registry, test outputs and
+  GitHub/Godot AI core audit from the planning pass.
+- **Known failing gate:** Editor motion-audit test (1 of 203 failures).
+- **Next:** Preserve baseline and produce the operation/change inventory.
+
+### 2026-09-28 — Phase 0 complete
+
+- **Preservation:** The pre-phase tracked diff was saved with `git diff
+  --binary` to `F:\GODOTAITESTING\toolkit_repair_snapshot_2026-09-28\tracked.patch`
+  (617,540 bytes). All eight then-untracked files were copied under that
+  snapshot's `untracked/` directory, including `HANDOFF-flykick.md`. The
+  working tree was not reset or stashed.
+- **Change inventory:** Integration candidates are `plugin.gd` (typed batch
+  registration) and the CI plugin (editor dispatcher probes). Engine changes
+  are `handlers/inspect.gd`, `handlers/motion.gd` and their tests. New but
+  unverified sequencing is the registry change plus
+  `handlers/sequence.gd`, `spec/sequence_specs.gd`, the generated op index and
+  one editor test. The six demo scene UID edits, flykick scene/builder, and
+  README/ROADMAP wording are separate demo/documentation work. None was
+  silently discarded.
+- **Tests:** `tier1.log` in the snapshot records 14/14 suite passes, exit 0.
+  `editor.log` records 203 editor tests, one failure, exit 1:
+  `animation_inspect/test_motion_audit_grades_planted_feet_and_hips` says the
+  left foot never contacts the ground. The route probe reports 10 families
+  and 103 operation-name dry-run routes, both before and after simulated core
+  registry loss. It does not use the Python MCP server.
+- **Project installation:** The toolkit test project has both addon junctions.
+  `F:\GODOTAITESTING\godotaitesting` has only a Godot AI junction and enables
+  only `res://addons/godot_ai/plugin.cfg`. The real project's core is the
+  `godot-ai-v4-theme` checkout; the toolkit fixture uses
+  `godot-ai-v4-animation`. Their custom-tool registry API was verified as
+  identical in the read-only audit, but no end-to-end MCP invocation has been
+  proved against either project.
+- **Decision:** Proceed to Phase 1 with the editor failure visible. Do not
+  treat the 103-op route probe or the demo render as acceptance evidence.
+
+### 2026-09-28 — Phase 1, tool lifecycle and conservative metadata
+
+- **Changes:** Added `quiesce_for_script_swap()` to the shared synchronous
+  handler base. `animation_inspect` counts pending deferred preview renders
+  and refuses quiescence until the final response is sent. Editor CI now asks
+  the actual Godot AI dispatcher to quiesce after materializing all toolkit
+  handlers; a suite test checks the pending-preview guard.
+- **Changes:** Marked `animation_library` and `animation_rig` as not batch
+  undoable while they mix scene actions with direct file writes. Their direct
+  scene operations retain their own undo behavior; `batch_execute(undo=true)`
+  now rejects these families before running anything. Added a preflight check
+  for both families to editor CI. `animation_inspect` checks editor readiness
+  before profile/preview file writes and rejects preview dry runs without
+  creating PNGs.
+- **Tests:** Editor route and quiescence checks pass twice (initial and after
+  simulated registry removal). 204 editor tests run, with only the previously
+  recorded motion-audit failure. The Phase 1 MCP/server and real-project gates
+  remain open.
+- **Risk/next decision:** Family-wide `undoable=false` is intentionally
+  conservative. Phase 2 should split file operations into a non-undoable
+  family or provide a genuinely reversible file transaction before restoring
+  batch undo for the remaining rig/library operations.
+
+### 2026-09-28 — Phase 1, live Godot AI route and real project
+
+- **Changes:** Added `tools/mcp_probe.py` to inspect the MCP catalog and call
+  both promoted and `custom_manage` routes. Its port parameters are required:
+  the running editor used HTTP 18131 / WebSocket 18132. An initial run against
+  the probe's former 8000/9500 defaults found zero sessions; this was a probe
+  configuration error, not a toolkit registration failure.
+- **Tests:** Against the fixture's connected Godot AI server, `tools/list`
+  exposed all eight promoted family tools with an `op` schema property;
+  `custom_manage(list)` exposed all ten families. A promoted
+  `animation_inspect.describe` call returned two real clips. Unknown ops on
+  promoted inspect and unpromoted sequence returned `VALUE_OUT_OF_RANGE`.
+  `editor_reload_plugin` returned `reloaded` with a new session id, after
+  which the same list and inspect checks passed.
+- **Real project:** Backed up `project.godot` in the Phase 0 snapshot, linked
+  the toolkit addon into `F:\GODOTAITESTING\godotaitesting` and enabled it.
+  Added only `repair_toolkit_fixture.tscn`; the existing main scene was not
+  changed. `tools/mcp_real_fixture.py` activated this project's Godot AI
+  session, opened the fixture, ran a valid `animation_presets.pulse` dry run
+  and write, saved, forced a disk reopen and re-inspected the clip. The saved
+  result has a resolved `Target:scale` value track and three keys. The real
+  project uses the separate `godot-ai-v4-theme` core checkout, so this also
+  checks the toolkit against both local core versions.
+- **Remaining Phase 1:** Verify disabled/stale tool behavior and MCP
+  `tools/list_changed` notification, plus an actual rollback test. Run this
+  integration on Linux in CI after the contract tests are added.
+
+### 2026-10-01 — Phase 1, live enable/disable and motion undo
+
+- Godot AI 4.1.0's visible Tools settings displayed all 10 registered
+  toolkit families. Disabling `animation_edit` immediately changed the
+  enabled count to 9/10. A live MCP client then found the promoted tool
+  absent from `tools/list`, the family absent from `custom_manage(list)`,
+  and a stale `custom_manage(invoke)` call returned typed
+  `CUSTOM_TOOL_DISABLED`. Reenabling it restored 10/10 and both routes.
+- A persistent MCP client connected directly to the Godot AI HTTP backend
+  received two `tools/list_changed` events, with the correct absent/present
+  tool lists after the toggle. The ordinary stdio `attach` client saw the
+  lists change on new requests but received no event on its existing
+  connection. Core `attach` creates a new downstream backend session for
+  each proxied request; forwarding backend list-change notifications remains
+  a Godot AI core integration gap, separate from toolkit registration.
+  `tools/mcp_tool_list_watch.py` can reproduce both transports. The UI
+  finished with 10/10 toolkit families enabled.
+- Created a fresh scene through the actual Godot AI route and generated a
+  `walk_start` clip with 21 tracks. Godot editor Ctrl+Z removed it; MCP
+  `animation_inspect.describe` returned `INVALID_PARAMS` because no clips
+  remained. Ctrl+Y restored the same 21-track clip. Logs
+  `mcp_motion_ui_undo_setup.log`, `mcp_motion_ui_undo_after.log`, and
+  `mcp_motion_ui_redo_after.log` are in the recovery snapshot. This checks
+  the shared motion commit's one-step undo/redo. Per-operation undo coverage,
+  Linux CI and the stdio notification gap remain open.
+- `tools/mcp_batch_rollback.py` exercised the actual Godot AI
+  `batch_execute(undo=true)` route in a fresh scene. A valid toolkit
+  `walk_start` committed first; a second invalid motion op stopped the batch.
+  Core reported one success, failure at command 1 and `rolled_back=true`.
+  Toolkit inspection found no clip immediately afterward or after save and
+  forced disk reopen. The same route rejected file-writing
+  `animation_library` and mixed-effect `animation_rig` families up front
+  with typed `CUSTOM_TOOL_NOT_UNDOABLE`. Windows log:
+  `mcp_batch_rollback.log` in the recovery snapshot. This verifies the
+  conservative family metadata without claiming individual file writes are
+  undoable.
+
+### 2026-09-28 — Phase 2, first shared failure controls
+
+- **Changes:** `animation_motion` now rejects a request above 1200 sampled
+  intervals before building clip keys. Top-level jump `height` and `crouch`
+  aliases now count as explicit metre values when scaling defaults for a rig.
+- **Tests:** Two new editor tests for the allocation rejection and jump
+  scaling pass. Editor suite is now 206 tests, still with exactly the baseline
+  `motion_audit` failure. The route probe again passes ten families and 103
+  operation-name dry-run routes before and after simulated registry loss.
+- **Diagnosis:** The failing generated root-motion walk had zero detected
+  contact time on both feet. Its audited left-foot world height was around
+  0.20 m through the expected stance against a rest-ground estimate of
+  0.116 m, with further discontinuities later in the cycle. This points to
+  the generated/evaluated pose and contact baseline, not a test assertion
+  typo. Keep this gate red until isolated playback and foot placement agree.
+- **Root-motion isolation experiment:** Temporarily clearing the player's
+  `root_motion_track` during the same test made the left stance foot return to
+  its 0.116 m rest-ground height with 0.9 mm reported slide; with extraction
+  enabled it stayed around 0.20 m and contact vanished. The current generator
+  uses the **hips position track** for both pelvis pose and extraction.
+  Godot removes that track from the rendered pose when it is designated as
+  root motion, invalidating the leg solve. The Phase 3 repair must author a
+  separate character-root translation track, keep hips bob/sway local, and
+  solve feet in the extracted frame. This is a concrete cause of the red gate.
+- **Inventory:** `tools/gen_operation_audit.ps1` now exports
+  `docs/operation-audit.json` from the registry and reviewed evidence in
+  `docs/operation-evidence.json`. It contains 103 rows and currently zero
+  fully verified operations. `animation_presets.pulse` and
+  `animation_inspect.describe` carry their limited MCP evidence as `partial`;
+  every missing check remains `pending`. This inventory is intentionally not
+  an acceptance claim. Fourteen tier-1 suites still pass.
+
+### 2026-09-28 — Phase 3, separate root translation and planted swing
+
+- **Cause and change:** Godot removes the configured root-motion track from the
+  rendered pose. The old generator used `B-hips` for both pelvis bob/sway and
+  travel, so extraction removed the pose the leg IK had solved against. Rooted
+  gaits now keep hips local and key a separate `Node3D:position` track owned by
+  the character. `animation_motion.character_setup` wires the same path to
+  its AnimationPlayer and AnimationTree. The rooted foot target subtracts
+  extracted travel during stance and delays world-space swing translation
+  until after lift, finishing it before lowering.
+- **Evidence:** The editor suite now passes 208/208 tests, including
+  AnimationPlayer root-motion playback and stance/penetration checks at
+  30/60/120 FPS plus AnimationTree extraction. Fourteen tier-1 suites pass.
+  A live Godot AI MCP client built a 120-sample rooted walk and run, saved and
+  force-reopened each. The played `motion_audit` measured walk slide of 1.1 mm
+  left / 1.0 mm right and revised run slide of 0.9 mm left / 3.1 mm right;
+  body travel persisted. Earlier live values before swing correction were
+  51.1 mm / 59.6 mm for the walk. These are measurements on the bundled dummy,
+  not claims for X Bot or arbitrary rigs.
+- **Visual review:** Rendered fixed-camera 60 FPS frames under
+  `F:\GODOTAITESTING\toolkit_repair_snapshot_2026-09-28\media\walk_review`
+  and `...\media\run_revised` using a local floor/reference scene and a
+  script applying the extracted delta. The walk has readable alternating
+  contacts and continuous travel. The run remains a broad, stylized stride;
+  its default knee bend, lift, lean, arm swing and stride were reduced after
+  seeing the first render. The revised run is still a limited review on one
+  rig, not full visual acceptance.
+- **Regression fixtures:** Backed up the old walk, run and spec-walk golden
+  JSON in the Phase 0 snapshot, then regenerated only those three after the
+  intentional motion change. The editor suite and tier-1 suite pass with the
+  revised fixtures. The operation matrix records walk/run as `partial` and
+  remains at zero fully verified operations.
+- **Next:** Make `motion_audit` inspect an isolated character so read calls
+  cannot trigger scene tracks or leave pose state. Validate the new root owner
+  and stance thresholds on X Bot and synthetic rigs, then expand visual review
+  to idle, start/stop, turn, strafe and jump. Keep the run's broad stride in
+  the review log until it is accepted on those rigs.
+
+### 2026-09-28 — Phase 3, isolated motion audit
+
+- **Change:** `animation_inspect.motion_audit` now evaluates a private
+  `SubViewport` scene copy. It strips game scripts, disables competing
+  AnimationTrees, and accepts only 3D transform tracks. Godot reconstructs
+  instanced scene children during duplication, dropping unsaved libraries and
+  mixer settings and collapsing an imported skeleton axis in this fixture.
+  The evaluator therefore copies the live animation libraries, root-motion
+  setting and node transforms into the private scene before playing the clip.
+- **Tests:** Added assertions that the edited skeleton pose and AnimationPlayer
+  clip/playhead survive the audit, plus a method-track rejection check. The
+  editor suite passes 208/208, including 103 operation-name dispatcher routes
+  before and after simulated registry loss. A fresh Godot AI editor session
+  built a rooted walk through MCP, audited it before saving and after force
+  reopening, and passed both; the persisted walk travels 1.0801 m with
+  1.1 mm left / 1.0 mm right worst stance slide. Output is in
+  `F:\GODOTAITESTING\toolkit_repair_snapshot_2026-09-28\mcp_motion_private_audit.log`.
+- **Remaining:** The audit still needs penetration, reach and continuity
+  checks, independent rig coverage and visual approval. The private-copy
+  technique must be checked against larger real scenes; it is presently
+  validated on the bundled dummy.
+
+### 2026-09-29 — Phase 3, X Bot and stable knee pole
+
+- **Rig coverage:** Added the supplied 1.75 MB `X Bot.fbx` to the test
+  project. Godot 4.7.2 imported its 65-bone Mixamo skeleton. Name detection
+  now maps `LeftLeg`/`RightLeg` to shin roles after `UpLeg` maps to thighs.
+  An editor test builds and audits a rooted X Bot walk at 30, 60 and 120
+  sample rates. A live Godot AI MCP client built the walk on a dedicated X
+  Bot scene, saved and force-reopened it, and measured root travel 1.1401 m.
+- **New evaluator check:** `motion_audit` reports each foot's maximum
+  penetration below its rest ground, the time of that sample, and a default
+  budget of 1% of leg length. The Godot AI tool schema and generated operation
+  index expose `max_penetration` and describe the private playback copy.
+- **Failure and cause:** The stricter live audit found the dummy walk's right
+  foot 3.42 cm below ground at 0.3193 s even with 120 authored samples. The
+  old leg pole used the mostly vertical hip-to-knee vector; its projection
+  against a changing ankle target could reverse during swing. The solver now
+  uses the knee's bend component perpendicular to the rest hip-to-ankle line,
+  with a forward fallback for nearly straight rest poses. Leg aiming also
+  uses the actual child rest offset instead of assuming every imported bone
+  points along local +Y. Under-sampled walk/run requests are raised to at
+  least 24 intervals per loop; durations too short to do that at 120 keys/s
+  return `VALUE_OUT_OF_RANGE` before mutation.
+- **Verification:** Through the real MCP route, 120-key dummy and X Bot walks
+  pass before save and after force reopen. Worst measured penetration is
+  under 0.5 mm on both; 24-key dummy and X Bot walks also pass dense 120-sample
+  audit (worst 3.9 mm and 2.9 mm respectively). A 24-key dummy run passes the
+  same route (worst penetration 3.5 mm, slide 4.3 mm). The logs are preserved
+  as `mcp_*pole_fix.log` and `mcp_*24keys_pole_fix.log` in the repair snapshot.
+  The four previous golden files were backed up there as `*_pre_pole.json`
+  and rerecorded for the intentional solver change. A second, non-recording
+  verification passes 209/209 editor tests and all 14 tier-1 suites on
+  Godot 4.7.2. Fixed-camera walk contact sheets for the dummy and X Bot live
+  under `media/walk_pole_fixed` and `media/xbot_walk_pole_fixed` in the repair
+  snapshot; both show continuous travel and alternating steps at six review
+  frames. These are local review evidence, not full visual acceptance.
+- **Remaining:** Synthetic orientation/proportion playback, X Bot actions
+  beyond walk/run, agent prompts, the
+  operation matrix and Linux remain open. The 120-key live penetration
+  failure also demonstrates that a coarse audit can pass a defective clip;
+  acceptance must sample densely enough to see the swing turn.
+
+### 2026-09-29 — Phase 3, played knee-pole continuity and X Bot run
+
+- **Change:** `motion_audit` now samples the played hip, knee and ankle on
+  each leg, projects the knee bend across the current hip-to-ankle axis and
+  reports pole direction jumps over 90 degrees. Nearly straight samples are
+  ignored until the bend becomes measurable. A synthetic test plants a real
+  side switch and checks that it is reported.
+- **Tests:** The editor suite passes 210/210, including X Bot walk **and run**
+  contact, penetration and pole checks at 30/60/120 samples. Through Godot AI
+  MCP, an X Bot run with 24 authored intervals passed before save and after
+  force reopen: slide 2.2/2.4 mm, penetration 7.0/3.1 mm, zero pole flips.
+  The log is `mcp_xbot_run_knee_metric.log` in the repair snapshot. A 60 FPS
+  contact sheet lives under `media/xbot_run_pole_fixed`.
+- **Visual decision:** The X Bot run is continuous and grounded, but its
+  crouch and forward kick remain stylized. It is **not** approved as a
+  physically credible general-purpose run. Motion Phase 3 remains open.
+
+### 2026-09-29 — Phase 2, live preset operation contracts
+
+- **Version:** The repair target is Godot **4.7.2 stable**. The visible editor
+  was launched and remained responsive during this pass; its live Godot AI
+  session reported `4.7.2-stable (official)` and exposed all ten toolkit
+  families, including eight promoted tools.
+- **Schema defect:** `animation_presets.showcase` requires neither an existing
+  player nor a target, but the family MCP schema required both. Godot AI could
+  reject the call before it reached the toolkit. The schema now requires only
+  `op`; handlers validate their own operation-specific inputs. A registry
+  test checks that any family-level required field applies to every op.
+- **Dry-run defect:** Through MCP, `showcase` with `dry_run=true` inserted its
+  subtree, causing the next real call to fail on a duplicate name. The handler
+  now returns the planned path, seven players and clip count before allocating
+  or adding nodes. An editor regression test asserts zero scene mutation.
+- **Live contract run:** `tools/mcp_presets_audit.py` called all nine preset
+  ops through Godot AI, one fresh scene per op. Its final 4.7.2 run
+  (`mcp_presets_verified.log` in the repair snapshot, run id
+  `20260929_061918`) reports **9 operations, 0 contract failures** for MCP
+  invocation, dry-run no mutation, created effect, resolved track paths,
+  save and force reopen. `showcase` saved seven individually inspected clips.
+  `tools/mcp_presets_playback.py` then reopened the eight ordinary preset
+  clips, called Godot AI's `animation_manage(play)`, and observed each
+  targeted node property change through `node_get_properties`; **8/8** passed
+  (`mcp_presets_playback_verified.log`). The registry-driven matrix records
+  these as **partial**, not verified: `showcase` runtime playback, UI undo/redo
+  and visual review are still pending. Godot AI currently has no MCP
+  `editor_undo` or `editor_redo` tool. A Windows touch-keyboard overlay first
+  covered Godot's external-file-change dialog; after dismissing the dialog,
+  the editor keyboard shortcuts worked. A fresh MCP-created `pulse` clip in
+  `res://repair_ui_undo/20260929_063332.tscn` disappeared after Ctrl+Z and
+  reappeared with the same resolved track after Ctrl+Shift+Z, as checked
+  through MCP `describe`. Only the `pulse` UI undo/redo cell is marked pass;
+  the other preset operations remain pending.
+- **Visual check:** Godot 4.7.2 Movie Maker played the saved `showcase` scene
+  for 60 frames at 30 FPS. Early and full contact sheets under
+  `media/presets_showcase_472` in the repair snapshot show the button scale
+  response, orbit dot, sweep bar, drifting line, pulsing label and two 3D
+  cubes moving. `showcase` playback and visual-review cells are marked pass;
+  the eight isolated preset ops still need individual visual review.
+- **Audit gate:** The generated 103-operation matrix now includes reported
+  error behavior and separate Windows/Linux cells. Its exporter refuses a
+  `verified` claim unless every required check and both platforms are marked
+  pass; the nine preset rows remain partial. A fresh export succeeded on
+  Godot 4.7.2 with zero fully verified rows.
+- **Tests/docs:** The full editor suite passes **211/211** and all **14/14**
+  tier-1 suites pass on 4.7.2 after the handler fix; the focused registry
+  suite passed 1989 checks. The generated op index no longer claims all read
+  and file-writing calls create scene undo actions. Phase 2 remains open.
+
+### 2026-09-29 — Phase 4, graph baseline and runtime probe
+
+- **Live route:** Eight `animation_graph` operations were invoked through
+  Godot AI MCP on fresh scenes with idle/walk/run/jump/lean clips. All returned
+  without reported errors, saved, force-reopened, and were readable through
+  `graph_get` (`mcp_graph_dry_resources.log`, run id `20260929_064753`,
+  automated 8/8 no-error gate). Dry runs left both the node hierarchy and
+  serialized graph root/parameter state unchanged. Their audit
+  rows are partial; this is a topology smoke test, not eight playback passes.
+- **Playback ownership:** The graph schema deliberately defaults `active` to
+  false and the saved state machine reports `inactive_tree`, so calling a
+  builder without `active=true` creates topology only. A separate live MCP
+  call built an active BlendSpace1D and used `wire` to set
+  `parameters/blend_position=1.5`. After save/reopen, Godot 4.7.2's actual
+  60-FPS game loop moved the Character from x=0 to x=75 over 30 frames with
+  `anim_player` resolved; see `mcp_graph_active.log` and
+  `test_project/tools/check_graph_runtime.gd`. This confirms the combined
+  blend-space/wire path, not all graph ops. A second active state machine was
+  built through MCP and saved/reopened; at runtime,
+  `parameters/playback.start("walk")` selected walk and moved the character
+  from x=0 to x=50 over 30 fixed 60-FPS frames. The auto-start/transition
+  contract remains untested (`mcp_graph_state_active.log`).
+- **Next:** Test graph resource identity across undo, state-machine travel and
+  transitions, layering ownership, additive blend semantics,
+  and runtime replay for every graph operation before approving Phase 4.
+
+### 2026-09-29 — Phase 4, sequence through the actual Godot AI route
+
+- **Fixture:** `test_project/tools/create_sequence_fixture.gd` saved a minimal
+  Skeleton3D with two source rotation clips using Godot 4.7.2. It is a contract
+  fixture for character-owned sequencing, not a rebuilt flykick demo.
+- **Live route:** `tools/mcp_sequence_audit.py` invoked the unpromoted
+  `animation_sequence.compose` through `custom_manage(invoke)` on the connected
+  Godot AI editor. Its dry run left no output clip; the write returned a single
+  output track, 55 keys and one contact marker. `animation_inspect.describe`
+  found its resolved track before and after save/force reopen. See
+  `mcp_sequence_audit.log` in the repair snapshot, run id `20260929_170242`.
+- **Playback:** `test_project/tools/check_sequence_runtime.gd` played the
+  reopened scene in Godot 4.7.2. The root bone's X rotation increased from
+  0.08 to 0.56 radians and `contact_impact` was placed at 1.1 seconds.
+  This proves the output is animated, not that the action looks credible.
+- **Still open:** boundary and gap behavior, overlap continuity, saved-pose
+  sources, root-motion ownership, error reporting, UI undo/redo, visual review
+  and Linux. The operation remains `partial` in the registry audit.
+- **Source range repair:** The handler had accepted `source_end` beyond an input
+  clip and silently sampled its held final key. It now rejects non-finite,
+  negative, reversed or out-of-clip source ranges with `VALUE_OUT_OF_RANGE`.
+  The direct editor test passed. A core plugin reload alone left the toolkit
+  GDScript handler cached in the visible editor, so the first MCP retry still
+  returned success. After restarting visible Godot 4.7.2 (PID 25548), the
+  same MCP invalid call returned the typed error and the full sequence audit
+  passed (`mcp_sequence_range_verified.log`, run id `20260929_170810`).
+- **Adjacent rig inspector fix:** While running the editor suite from the
+  saved sequence scene, `rig_get` falsely reported this scene's Root bone as
+  an unknown bone on an instanced dummy. Its scan matched the suffix of a
+  track's node path, allowing unrelated Skeleton3D nodes with the same name
+  to cross-contaminate the report. It now resolves track paths from each
+  AnimationPlayer root and compares actual node identity. The negative test
+  now inserts a resolvable bogus bone track. Full editor suite: **211/211**
+  pass on Godot 4.7.2, including this regression.
+- **Timeline boundaries:** The editor test now samples the resulting Godot
+  Animation on each side of overlap start/end, checks the contact marker at
+  1.1 seconds, and confirms that a gap holds the preceding pose. Previously,
+  a first segment starting after zero silently animated from its first pose
+  before the requested start. That timing is now rejected as invalid. The
+  registry description states the first segment and gap rules; generated
+  docs were refreshed. Full editor suite remains **211/211** on 4.7.2.
+- **Saved-pose source:** `sequence_root.json` uses the toolkit's exported pose
+  format. A second live `custom_manage(invoke)` call composed it into a
+  3-track, 48-key clip on the same Skeleton3D; dry run left no clip and
+  save/force reopen kept all tracks resolved (`mcp_sequence_pose.log`, run id
+  `20260929_171133`). Played in Godot 4.7.2, it set the Root bone to the
+  authored 0.6-radian pose. Sequence remains partial until ownership, undo,
+  visual review and Linux are checked.
+- **Fresh live timing check:** With the latest sequence script loaded by a
+  visible Godot 4.7.2 editor restart, the Godot AI route rejected a first
+  segment at 0.2 seconds as `INVALID_PARAMS` and an out-of-clip source range
+  as `VALUE_OUT_OF_RANGE`. The valid clip and saved-pose clip still saved,
+  reopened and played at the expected bone angles. See
+  `mcp_sequence_timing_verified.log`, run id `20260929_192033`.
+- **Gate:** All 14 pure tier-1 suites and the 211-test editor suite pass on
+  Windows with Godot 4.7.2. This is still a partial phase result: the
+  103-operation matrix has no fully verified rows because visual and Linux
+  checks remain open.
+
+### 2026-09-29 — Phase 4, active graph startup
+
+- **Finding:** The original live MCP `state_machine(active=true,start="walk")`
+  saved successfully but stayed on Godot's `Start` node at runtime, moving the
+  Character zero units in 30 frames. Only an explicit
+  `parameters/playback.start("walk")` made it move. This was a real inert
+  success for an active graph. Godot's AnimationTree documentation says a
+  state machine must either receive `start()` or have a transition from
+  `Start` before it can play.
+- **Repair:** `GraphBuilders.state_machine` now validates the selected start
+  state and connects Godot's `Start` to it with an automatic zero-time
+  transition. Without an explicit `start`, the first state is chosen;
+  `locomotion(mode="state_machine")` chooses idle. Result metadata counts the
+  actual transition and separately reports user-authored transitions. The
+  response hint now says the active tree enters its start state automatically
+  and shows how to override it at runtime. The no-transition warning excludes
+  this implicit entry edge.
+- **Tests:** Focused tier-1 graph builder suite **126 checks pass**, all
+  **14 tier-1 suites pass**, and the full editor suite **211/211 passes** on
+  Godot 4.7.2. A live MCP-built, saved and
+  reopened active state machine entered walk without `start()` and moved the
+  Character 50 units in 30 fixed 60-FPS frames
+  (`mcp_graph_auto_start.log`, scene
+  `res://repair_graph_active/state_machine_20260929_192633.tscn`). A second
+  live build connected Start→idle and conditional idle→walk; `wire` set
+  `parameters/conditions/walking=true`. The reopened scene transitioned to
+  walk and moved 50 units in 30 frames (`mcp_graph_condition.log`, scene
+  `res://repair_graph_active/condition_20260929_192747.tscn`). Graph undo,
+  other layer operations, visual review and Linux remain open.
+- **Blend tree playback:** A separate live MCP call built an active Blend2
+  tree, verified `output_wired=true`, and used `wire` to set
+  `parameters/Mix/blend_amount=1.0`. The saved/reopened scene moved
+  Character.x from 0 to 50 over 30 fixed 60-FPS frames in Godot 4.7.2.
+  See `mcp_graph_blend_tree.log` and
+  `res://repair_graph_active/blend_tree_20260929_193007.tscn`. The
+  `animation_graph.blend_tree` audit row now has playback evidence, but still
+  needs undo, visual and Linux checks.
+- **One-shot inert success:** Before repair, `one_shot_layer(active=true)`
+  returned a saved, resolved graph and `parameters/OneShot/request=FIRE` was
+  present, but runtime Character.y stayed at 0 for 30 frames
+  (`mcp_graph_one_shot_before.log`). Godot 4.7.2 exposes OneShot ports
+  `in` and `shot`: the handler had put the Jump clip on `in`, left `shot`
+  empty, and routed the node through a default-zero Blend2. The handler and
+  pure graph builder now connect Base→in, Jump→shot and OneShot→output.
+  The live MCP rebuilt scene saved/reopened, and firing its request moved
+  Character.y from 0 to -80 in 30 fixed 60-FPS frames
+  (`mcp_graph_one_shot_after.log`, scene
+  `res://repair_graph_active/one_shot_20260929_193428.tscn`). Focused
+  graph builder checks **126/126** and full editor suite **211/211** pass.
+- **CI fixture isolation:** The editor harness originally opened `main.tscn`
+  before Godot finished restoring the previously open scene. With the
+  one-shot audit scene still open, seven unrelated graph tests found its
+  AnimationTree and failed. The harness now reopens and verifies `main.tscn`
+  immediately before suite execution. The full suite passes from this
+  restored-scene state.
+- **Nested OneShot contract:** `blend_tree` accepted a one-child OneShot
+  node, connecting only its `in` input and leaving `shot` empty. It now
+  requires both ordered inputs (base, shot). Focused graph tests **127/127**
+  and full editor suite **211/211** pass. A live MCP-created active nested
+  OneShot saved/reopened and moved Character.y from 0 to -80 after FIRE in
+  the Godot 4.7.2 game loop (`mcp_graph_nested_one_shot.log`, scene
+  `res://repair_graph_active/nested_one_shot_20260929_193652.tscn`).
+- **Additive layer playback:** Through live MCP, `additive_lean` built an
+  active Base+Add2 graph and returned its amount parameter. A `wire` call set
+  `parameters/Add2/add_amount=1.0`; the saved/reopened scene rotated the
+  Character from 0 to 0.12 radians in 30 fixed 60-FPS frames under Godot
+  4.7.2 (`mcp_graph_additive.log`, scene
+  `res://repair_graph_active/additive_20260929_193750.tscn`). This proves
+  an explicitly enabled additive layer plays; the default zero weight and
+  discoverability of that requirement still need review.
+- **Ready-made locomotion playback:** Live MCP
+  `locomotion(active=true,mode="blend_space")` created idle/walk/run points;
+  `wire` set `blend_position=1.5`. The saved/reopened scene moved
+  Character.x from 0 to 75 in 30 fixed 60-FPS frames under Godot 4.7.2
+  (`mcp_graph_locomotion.log`, scene
+  `res://repair_graph_active/locomotion_20260929_193857.tscn`). A second
+  live call built the state-machine mode with Start→idle and wired walking
+  true; the reopened scene transitioned to walk and moved Character.x from
+  0 to 50 in 30 frames (`mcp_graph_locomotion_state.log`, scene
+  `res://repair_graph_active/locomotion_state_20260929_193946.tscn`).
+  Visual, undo and Linux gates remain open.
+
+### 2026-09-29 — Phase 2/4, first clip-edit contract pass
+
+- **Method:** `tools/mcp_edit_audit.py` copies a saved clip fixture into one
+  fresh scene per operation and invokes `custom_animation_edit` through the
+  connected Godot AI MCP server. It compares `animation_inspect.describe`
+  before/after dry run and write, then saves, force-reopens and checks that
+  described tracks still resolve. Serialized float timestamps are compared
+  with a 1e-5 tolerance; exact `0.6` becoming `0.6000000238` is not a lost
+  edit.
+- **First run:** Seven operations were attempted: retime, reverse, mirror,
+  trim, amplitude, resample and layer. Six succeeded; `layer` returned
+  `VALUE_OUT_OF_RANGE` for a valid Vector2 position overlay. Its additive
+  value routine handled Vector3 and floats but omitted Vector2. This was a
+  toolkit bug, not an unsupported Godot track (`mcp_edit_first.log`).
+- **Repair and rerun:** Added weighted Vector2 deltas and a direct 2D layer
+  regression. Focused quality suite **82 checks pass** and full editor suite
+  **211/211 passes** on Godot 4.7.2. After a visible editor restart,
+  the fresh live MCP rerun reports **7 operations, 0 contract failures**
+  (`mcp_edit_seven_verified.log`, run id `20260929_194514`). Their matrix
+  rows are partial: UI undo/redo, typed error cases,
+  visual review and Linux remain. The other 13 edit operations have not yet
+  received this route-level effect audit.
+- **Played values:** `test_project/tools/check_edit_runtime.gd` loaded each
+  saved scene and used Godot 4.7.2 AnimationPlayer interpolation to sample
+  Character.x at the start, midpoint and just before the end. All seven
+  matched their operation-specific expected values within 0.02 units:
+  retime 0→100 over 0.5 s, reverse 100→0, mirror 0→-100, trim 20→80,
+  amplitude 0→50, resample 0→100 with 31 keys, and Vector2 additive layer
+  0→180. Their playback cells now pass. UI undo, typed errors, visual review
+  and Linux remain; the other 13 edit ops are unaudited through live MCP.
+- **Recovery snapshot:** Current tracked diff, Git status, this roadmap,
+  operation evidence/matrix and new sequence/graph test scripts were copied
+  to `F:\GODOTAITESTING\toolkit_repair_snapshot_2026-09-29`. This preserves
+  the in-progress branch state across an app interruption. The original
+  pre-phase snapshot from 2026-09-28 remains separate.
+- **Actual key budget:** The old `length * samples <= 1200` precheck still
+  allowed 1,201 keys at 10 seconds × 120 samples/s because both endpoints
+  are included. Sequence composition now counts unique output times before
+  allocating the clip and rejects any result over 1,200 keys per track with
+  `VALUE_OUT_OF_RANGE`. A regression checks no clip is committed; the full
+  editor suite remains **211/211** on 4.7.2. After restarting visible Godot,
+  live MCP returned `VALUE_OUT_OF_RANGE` for the same 1,201-key request while
+  the valid normal and saved-pose clips still saved and played. See
+  `mcp_sequence_budget_verified.log`, run id `20260929_192244`.
+
+### 2026-09-29 — Phase 2/4, wrapped edit seam correction
+
+- Expanded the live Godot AI edit audit from seven operations to eleven.
+  Initial wrapped `offset` and `overlap` calls falsely reported success on
+  the fixture's 0→100 position track: the keys at 0 and 1 second both
+  wrapped to the same time, deduplication left one constant key, and the
+  saved clip had no motion (`mcp_edit_eleven.log`, run id
+  `20260929_194935`). The harness's changed/persisted checks were too weak
+  to catch this; these two results are **invalid**, despite its 0-failure
+  count. `loop` and `key_edit` also need engine playback checks.
+- `edit_offset` and `edit_overlap` now detect conflicting key values that
+  would merge after modulo time shift and return `VALUE_OUT_OF_RANGE`
+  before committing, with a message naming the track and suggesting
+  `wrap=false`. The same calls with `wrap=false` remain available. Direct
+  editor regressions check that rejected clips retain their keys, and the
+  full editor suite passes **211/211** on Godot 4.7.2; all 14 tier-1 suites
+  pass.
+- A second playback check found that even `wrap=false` delayed clips could
+  begin at the prior loop's final value: there was no key at time zero, and
+  Godot interpolated across the loop seam. Positive nonwrapped shifts now
+  insert an initial hold key on value tracks. Focused tier-1 spec/quality
+  suites pass **1,989/83 checks**, and the full editor suite passes
+  **211/211**. The visible Godot 4.7.2 editor was restarted and Godot AI
+  MCP reran 11 edit operations plus two typed wrap rejections on fresh
+  scenes with **0 contract failures** (`mcp_edit_hold_verified.log`, run id
+  `20260929_195930`). Saved-scene engine playback at start, midpoint and
+  end passed all 11 with worst error below 0.02 scene units, including
+  `offset`, `loop`, `key_edit` and `overlap`. These remain partial pending UI
+  undo, representative visual review and Linux checks.
+- The expanded first pass attempted all 20 edit operations through the live
+  Godot AI route (`mcp_edit_twenty_first.log`, run id `20260929_200337`).
+  Eighteen passed the initial inspect comparison. `ease_range` and
+  `set_interp` returned successful writes but `inspect.describe` omits
+  transition and interpolation settings, so that summary could not prove
+  either change. The harness now also records `inspect.timeline`, which
+  exposes both properties. A full rerun and played-value checks are next.
+- `inspect.timeline` confirmed those settings after save/reopen. Saved
+  playback then exposed a real `merge` defect: when two source clips shared a
+  track and conflicting values at the same cut time, the first clip's end
+  key disappeared, leaving its motion inert. `SpecModifiers.merge` now keeps
+  the outgoing value just before the cut and the incoming value at the cut;
+  a pure regression checks both. The deliberately hard 0.1 ms cut between
+  incompatible source positions is still a quality limitation to review.
+  The first nearest-interpolation playback expectation was also corrected:
+  Godot holds the preceding value until the next key.
+- After restarting the visible Godot 4.7.2 editor, a fresh live Godot AI MCP
+  audit of **all 20 advertised edit operations**, plus two expected wrapped
+  seam rejections, had **0 route contract failures**
+  (`mcp_edit_twenty_merge_fixed.log`, run id `20260929_200905`). Every saved
+  edit passed operation-specific engine playback checks. `retarget` moved
+  the track to the existing alternate node; `ease_range` evaluated its
+  transition curve; `set_interp` held a nearest value; both split clips
+  played; `merge` played both halves; `cleanup` retained its static pose;
+  `smooth` changed the jump shape; `reduce` kept the linear travel while
+  removing 29/31 keys; and seeded `add_noise` played its saved perturbation.
+  Focused spec tests pass **1,993 checks**, focused quality tests **83**,
+  and the editor suite **211/211**. Rows remain partial pending UI undo,
+  visual review, more typed errors, and Linux.
+
+### 2026-09-29 — Phase 2, basic read-only inspection contracts
+
+- `tools/mcp_inspect_audit.py` invoked eight inspection operations through
+  the live Godot AI MCP route on a saved fixture: `describe`, `timeline`,
+  `audit`, `compare`, `stats`, `motion_report`, `dry_run`, and `help`. All
+  returned specific expected facts: one two-key walk clip (0→100), five
+  clips/12 keys in stats, walk/run difference, a 100-unit loop seam warning,
+  a predicted 1.0→0.5-second dry-run retime, and the 20 edit ops in help.
+  The source walk timeline stayed identical after every call. The verified
+  run has **8/8 contract checks and 0 failures** in
+  `mcp_inspect_basic_verified.log`. These rows remain partial pending typed
+  error and Linux checks; `motion_audit`, `rig_profile`, `sample`, and
+  `preview` need separate 3D fixture/effect review.
+- `tools/mcp_inspect_3d.py` exercised those four remaining inspection
+  operations through the visible Godot 4.7.2 editor and live Godot AI MCP.
+  On the saved 56-bone dummy walk, profile detection found the expected
+  hips/thigh/foot roles without writing a file; `sample` returned both feet
+  at eight times; the private played `motion_audit` passed with 1.0801 m
+  body travel and zero failed checks. `preview` wrote four valid 480×270
+  PNGs, and the source clip summary stayed identical. See
+  `mcp_inspect_3d_verified.log` and
+  `res://animation_toolkit/previews/repair_inspect/walk_*.png`. I inspected
+  all four frames: the changing leg pose is visible, but the character is
+  small in frame, so this is output validity evidence, not visual approval
+  of motion quality. Typed errors, save=true profile behavior, pose-state
+  restoration and Linux remain open.
+- A second live MCP pass supplied invalid targets to all 12 inspection
+  operations. Each returned a typed `NODE_NOT_FOUND`, `INVALID_PARAMS`, or
+  `VALUE_OUT_OF_RANGE` instead of a success or crash. The eight basic
+  results are in `mcp_inspect_errors.log`; the four 3D results are in
+  `mcp_inspect_3d_errors.log`. Every inspect row now has a basic valid
+  response and a typed error case on Windows. The save=true profile path,
+  pose restoration, larger preview variants and Linux are still unverified.
+
+### 2026-09-30 — Phase 2/4, library contracts through Godot AI
+
+- `tools/mcp_library_audit.py` invoked all seven `animation_library`
+  operations through the live Godot AI MCP route on a dedicated saved scene
+  and timestamped files beneath `res://animation_toolkit/repair_audit/`.
+  `template_save` created a reusable drift call; list showed it; a dry-run
+  delete retained it; delete removed it from the JSON file. `spec_export`
+  wrote the two-key walk as a versioned clip spec and `spec_import` reported
+  its shape. `template_apply` and `spec_apply` made separate resolved tracks
+  on `OtherCharacter`; both survived scene save and forced reopen. Dry-run
+  save/export made no file and dry-run apply made no clip. All seven invalid
+  calls returned typed errors. See `mcp_library_verified.log`, run id
+  `20260929_202724`, **0 contract failures**.
+- `test_project/tools/check_library_runtime.gd` played both reopened clips
+  under Godot 4.7.2: at 0.5 s, the template drift set
+  `OtherCharacter.x=30`, the imported walk set `OtherCharacter.x=50`, and
+  the original `Character.x` stayed zero. File writes correctly reported
+  `undoable=false` and scene applies reported `undoable=true`. Actual editor
+  undo/redo for the applies, Linux and visual review remain open.
+
+### 2026-09-30 — Phase 2/4, FX route and persistence (in progress)
+
+- Added `test_project/tools/create_fx_fixture.gd` and
+  `tools/mcp_fx_audit.py` for a dedicated 2D/audio fixture and live Godot AI
+  MCP calls. All 16 advertised `animation_fx` operations reached the toolkit
+  in the visible Godot 4.7.2 editor. Dry runs did not add clips; writes
+  produced resolved tracks (or a `SpriteFrames` resource), and all results
+  survived scene save and forced reopen. The last run also covered a second
+  `sprite_frames` call with `play=false`: `mcp_fx_sprite_fixed.log`, run id
+  `20260930_153136`, 17 cases and zero route-contract failures. This proves
+  route, structure and persistence only; engine playback, typed errors, undo,
+  and visual quality still need checks.
+- The first live route pass caught a real `sprite_frames` dry-run violation:
+  it assigned a resource and started playback before returning. The handler
+  now guards resource assignment behind the write branch and respects
+  `play=false`; its UndoRedo transaction assigns or restores the resource and
+  starts or stops playback as requested. A focused editor test covers dry
+  state, stopped write, undo and redo. The Godot 4.7.2 editor suite passes
+  **212/212** after this change.
+- `test_project/tools/check_fx_runtime.gd` then played all 15 clip results
+  from their saved scenes. It exposed a second real defect: `wave` wrote
+  value tracks to `Card1`, `Card2`, and `Card3` without the `:position`
+  property, so those clips were inert despite resolved nodes. The handler
+  now writes `CardN:position`; the editor regression asserts the paths.
+  A fresh live Godot AI rerun (`mcp_fx_wave_fixed.log`, run id
+  `20260930_154357`) saved/reopened the corrected clip, and engine playback
+  matched each of its three position tracks. The editor suite remains
+  **212/212**. The other 14 clips played with expected node values; `counter`
+  set the label text to 50 at 0.5 s with immediate method evaluation, and
+  `audio_cue` started its player past the 0.2 s cue. The resource-only
+  `sprite_frames` result retained four cells after reopen; visual frame
+  advancement is not yet checked.
+- `tools/mcp_fx_errors.py` invoked each of the 16 FX operations with an
+  invalid target through the live Godot AI route. All 16 returned typed
+  `NODE_NOT_FOUND` errors (`mcp_fx_errors.log`). Partial FX rows and their
+  remaining undo, visual, animation-play and Linux work are recorded in
+  `docs/operation-evidence.json`.
+- To prevent another node-only value track from reporting success,
+  `SpecBuilder.validate` now rejects `Animation.TYPE_VALUE` paths without a
+  property subname. A pure regression checks this case. All 14 tier-1 suites
+  pass (including **1,994** spec/modifier checks), and the 4.7.2 editor suite
+  remains **212/212**. This is a structural guard; it does not replace
+  scene-specific playback checks.
+- One actual editor UndoRedo check now covers `wave`: live Godot AI MCP
+  created `ui_undo_wave` in a fresh unsaved scene, Ctrl+Z in the visible
+  Godot 4.7.2 editor removed it (`inspect.describe` returned not found), and
+  Ctrl+Shift+Z restored its three resolved position tracks and 51 keys.
+  This is one representative undo path; the other FX clip operations still
+  need their own undo checks.
+
+### 2026-09-30 — Phase 2/4, rig pose apply (in progress)
+
+- `pose_apply` had another false-success path. Its dry run opened and
+  committed an UndoRedo action, mutating the skeleton while claiming
+  `dry_run=true`. `_apply_pose` now counts matching bones and returns before
+  opening an action. A direct dummy regression verifies the bone stays at
+  rest; the Godot 4.7.2 editor suite now passes **213/213**.
+- `tools/mcp_rig_pose_apply_audit.py` exercises the promoted rig tool on a
+  static imported dummy scene, with a 0.6 rad arm pose. The live route proved
+  that the dry run left the arm at rest and the write rotated it. The first
+  saved-scene test then lost the pose. An earlier test fixture also had an
+  autoplay clip, so I repeated on `repair_rig_fixture.tscn` with no autoplay
+  to rule that out (`mcp_rig_pose_apply_static.log`). The loss was real:
+  imported scene children were not editable, so Godot did not serialize the
+  bone override. `pose_apply` now enables editable instance levels in the
+  same UndoRedo action, as clip commits already do. Fresh live Godot AI MCP
+  run `mcp_rig_pose_apply_editable.log` (id `20260930_160635`) retained the
+  arm's exact quaternion after save/forced reopen, and the invalid skeleton
+  returned typed `NODE_NOT_FOUND`. Live editor undo, animation playback
+  interaction, and Linux remain.
+- A separate live Godot AI route audit (`tools/mcp_rig_pose_crud.py`, log
+  `mcp_rig_pose_crud_first.log`, id `20260930_161028`) covered `pose_save`,
+  `pose_list`, `pose_blend`, `pose_to_clip`, and `rig_get` on the same static
+  imported dummy. Dry-run pose save/blend wrote no files; writes saved JSON
+  poses and list found them. The blended pose contained 56 bones, and a
+  missing source returned typed `INVALID_PARAMS`. `pose_to_clip` dry run left
+  no clip; its one-track arm clip survived save/forced reopen. Headless
+  Godot 4.7.2 playback of that saved scene measured arm rotation 0, 0.6, 0
+  radians at 0, 0.5 and 1.0 s, with worst error below 0.000001 rad.
+  Operation-specific typed errors, editor undo and visual review remain for
+  several rows; the matrix records these as partial.
+- Actual editor UndoRedo on the imported dummy now passes for `pose_apply`:
+  live Godot AI MCP applied the 0.6 rad pose in an unsaved scene, Ctrl+Z in
+  the visible Godot 4.7.2 editor restored the bone's identity rotation, and
+  Ctrl+Shift+Z restored quaternion `(0, 0.29552, 0, 0.955336)`. The fixture
+  and readback are in `tools/mcp_rig_pose_ui_undo.py` and
+  `res://repair_ui_undo/rig_pose_20260930_161530.tscn`.
+- `rig_chain` append had the same false-success persistence defect:
+  `mcp_rig_chain_first.log` reported 57 bones after write but 56 after save
+  and force reopen on the imported dummy. The shared node commit helper now
+  enables editable instance levels for existing setup targets too. Live
+  Godot AI rerun `mcp_rig_chain_editable.log` (id `20260930_162157`) retained
+  the 57th bone, its original hand parent and 5 cm rest offset. Dry run kept
+  56 bones, and an unknown parent returned typed `INVALID_PARAMS`.
+- [Godot 4.7 Skeleton3D](https://docs.godotengine.org/en/4.7/classes/class_skeleton3d.html)
+  exposes `clear_bones()` but no individual bone-removal method. Before this
+  repair, `rig_chain` append claimed `undoable=true` without an undo for the
+  appended bone. The shared node commit helper now accepts ordered undo
+  setup calls, and `rig_chain` snapshots and rebuilds the original bone
+  names, rests, poses, enabled flags, metadata and parent indices on undo.
+  [Godot's UndoRedo ordering](https://docs.godotengine.org/en/4.7/classes/class_undoredo.html)
+  confirms undo operations run in insertion order by default. A direct
+  imported-dummy editor regression checks that one undo restores 56 bones
+  with the original hand. The 4.7.2 editor suite stays **213/213**; live UI
+  undo/redo and rig_chain's new-skeleton/subtree modes remain to verify.
+- Live editor UndoRedo now passes for that append too. Godot AI created
+  `ui_undo_tool_tip` in an unsaved imported-dummy scene; Ctrl+Z restored 56
+  bones with no tip, and Ctrl+Shift+Z restored 57 bones with the tip under
+  parent index 7. `tools/mcp_rig_chain_ui_undo.py` read back both states.
+  The strengthened direct regression compares all 56 original names,
+  parent indices, rests and pose rotations after undo. The editor suite
+  remains **213/213**.
+- `rig_chain`'s three other creation modes now have live Godot AI route
+  evidence (`tools/mcp_rig_chain_modes.py`, `mcp_rig_chain_modes_first.log`,
+  id `20260930_163804`): a new two-bone Skeleton3D, a new two-bone
+  Skeleton2D, and a three-bone Skeleton3D generated from a Node3D subtree.
+  Dry runs created no skeleton, and the exact names, parent relationships
+  and rest positions survived scene save and forced reopen in each case.
+  Visual inspection and Linux remain.
+- `tools/mcp_rig_recipes.py` audited six more advertised `animation_rig`
+  clip operations on separate static imported-dummy scenes through the live
+  Godot AI tool route: `walk_cycle`, `idle_breathing`, `blink`,
+  `jumping_jack`, `squat` and `punch`. Dry runs added no clip; writes produced
+  respectively 7/5/1/5/7/9 resolved typed bone tracks and 25/19/7/15/28/45
+  keys. All survived scene save/forced reopen; bad skeleton paths returned
+  typed `NODE_NOT_FOUND` (`mcp_rig_recipes_first.log`, run
+  `20260930_164109`). `test_project/tools/check_rig_recipe_runtime.gd`
+  played every saved clip in Godot 4.7.2 and confirmed all 34 sampled bone
+  tracks set actual bone poses to their authored keys, with a moving bone in
+  every clip. These are playback-validity checks. Contact, visual quality,
+  live editor undo, independent rigs and Linux remain open for these rows.
+- The last `animation_rig` operation, `bake_pose_sequence`, now has a live
+  Godot AI route check (`tools/mcp_rig_bake.py`). It sampled a generated
+  dummy walk at 10 FPS for 0.5 s, made 112 resolved rotation/position tracks
+  and 672 keys, restored the source skeleton pose, and survived save/forced
+  reopen. Dry run left no baked clip or pose change; missing source returned
+  typed `INVALID_PARAMS`. Headless 4.7.2 playback compared source and baked
+  rotations across 24 bone/time samples with zero measured difference.
+- The first bake pass showed two new editor errors even though the tool
+  returned success. `logs_read(source="editor")` identified a read of
+  `current_animation_position` when the player had no current animation.
+  The handler now reads that property only when there is a current clip.
+  After restarting the visible editor, `mcp_rig_bake_fixed.log` (run
+  `20260930_164952`) had **112/112** tracks inspected and no new editor
+  errors; the editor suite stays **213/213**. Live modifier-stack behavior,
+  editor undo, visual quality and Linux remain.
+- A separate editor warning came from the audit harness copying a scene
+  file with its UID intact. `tools/fixture_copy.py` now strips the copied
+  scene's header UID, and the MCP fixture harnesses use it. I removed the
+  one duplicated UID in an already generated audit scene; a scan of all
+  `test_project/**/*.tscn` scene headers now reports **0 duplicate UIDs**.
+  This changes fixture bookkeeping only, not authored clips.
+- Refreshed a recoverable copy at
+  `F:\GODOTAITESTING\toolkit_repair_snapshot_2026-09-30`: the tracked
+  patch passes `git apply --stat`, and the snapshot includes this roadmap,
+  current evidence/audit JSON and the FX/rig code and harnesses. The
+  original 2026-09-28 snapshot still preserves the pre-repair state.
+- `tools/mcp_motion_remaining_cycles.py` exercised seven more advertised
+  `animation_motion` clip operations through the live Godot AI custom tool
+  on the imported dummy: `idle_cycle`, generic `cycle` (walk), `jump`,
+  `turn_cycle`, `strafe_cycle`, `walk_start`, and `walk_stop`. The run
+  `20260930_170226` in `mcp_motion_remaining_first.log` had no route failures:
+  dry runs left no clip, writes made 18-21 resolved typed tracks, save and
+  forced reopen preserved them, and invalid skeleton paths returned typed
+  `NODE_NOT_FOUND`. `check_motion_remaining_runtime.gd` loaded each saved
+  scene in Godot 4.7.2 and played every bone track at an authored key; all
+  134 sampled bone tracks matched with zero measured error, and each clip
+  moved a bone. These checks establish route and playback validity, not
+  credible contact or visual quality. The seven operations remain partial:
+  editor undo, independent rig orientations, 30/60/120 FPS contact and loop
+  measurements, visual review and Linux are still open.
+- `character_setup` and `secondary_motion` were next exercised together
+  through live Godot AI (`tools/mcp_motion_setup_secondary.py`). The first
+  route pass created idle/walk/run/jump/turn clips, a locomotion AnimationTree
+  and a spring track on the previously unkeyed `B-jaw`; dry runs left the
+  respective clip unchanged and all data survived forced reopen. Saved-scene
+  playback exposed a real spring-bake error that direct tests missed: the
+  authored jaw's first pose was 1.5708 rad from identity, exactly its local
+  rest-basis rotation. Skeleton3D rotation tracks take rest-relative pose
+  deltas, so `motion_secondary` now removes the local rest basis when turning
+  the simulated global orientation into a bone track. A regression asserts
+  the first spring key is identity. The Godot 4.7.2 editor suite is again
+  **213/213** after this fix.
+- After restarting the visible editor, the live Godot AI rerun
+  `mcp_motion_setup_secondary_fixed.log` (run `20260930_171447`) passed
+  route, dry-run, typed-error and save/reopen checks. Headless 4.7.2 replay
+  of the saved scene activated the tree, changed the walking thigh by 0.417
+  rad and extracted 0.28 m root translation over five 0.1 s advances.
+  The corrected spring track begins at identity and its sampled key plays
+  exactly; it spans 0.693 rad on this deliberately jaw-based test. A hair or
+  tail fixture, modifier ordering, editor undo, visual review and Linux are
+  still needed before approving spring behavior or character setup.
+- Four `animation_rig_modifiers` operations were exercised through the
+  advertised Godot AI `custom_manage(invoke)` route on separate imported
+  dummy scenes (`tools/mcp_rig_modifiers_audit.py`). The latest run
+  `mcp_rig_modifiers_leaf_rejected.log` (id `20260930_173516`) has clean dry
+  runs, typed invalid-target errors, one persistent modifier per scene and
+  unchanged `rig_get` descriptions after save/forced reopen for `ik_setup`,
+  `spring_setup`, `look_at_setup` and `twist_setup`. Headless 4.7.2 replay
+  activates each saved modifier and samples at its
+  `modification_processed` signal, as required by
+  [SkeletonModifier3D's timing contract](https://docs.godotengine.org/en/4.7/classes/class_skeletonmodifier3d.html).
+  The IK arm moved 0.394 rad after target movement, the look-at head moved
+  0.310 rad, a two-bone forearm/hand spring moved 0.043 rad under external
+  force, and twist from the spine was distributed to the hips by 0.393 rad.
+  Runtime values are from `check_rig_modifiers_runtime.gd`; editor undo,
+  visual quality, additional IK kinds, and Linux remain open.
+- The first spring fixture used the leaf `B-jaw` for both root and end. It
+  saved a `SpringBoneSimulator3D` but did not move at the modifier callback.
+  [Godot 4.7's spring documentation](https://docs.godotengine.org/en/4.7/classes/class_springbonesimulator3d.html)
+  allows a single bone when its tail is extended. I tried that with a
+  positive virtual-tail length; the saved jaw still produced zero observed
+  rotation under a nonparallel external force. `spring_setup` now rejects
+  same-bone and non-descendant end bones before mutation with a typed
+  `INVALID_PARAMS` reason. The live route confirmed the leaf error. A
+  two-bone chain remains supported and showed actual playback response.
+- The active twist probe initially rotated the requested end bone and saw
+  no effect. Godot's [BoneTwistDisperser3D contract](https://docs.godotengine.org/en/4.7/classes/class_bonetwistdisperser3d.html)
+  explains that without an extended end, the reference is the end's parent.
+  Rotating that reference produced the measured response. `twist_setup`
+  now returns `reference_bone` and explains it in its result and advertised
+  summary, so agents know which input pose it processes. The editor suite
+  remains **213/213** after these changes.
+- The fifth modifier operation, `retarget_setup`, now has live Godot AI route
+  evidence on a scene-owned source/target pair of matching three-bone names
+  and different rests (`create_retarget_fixture.gd`,
+  `mcp_retarget_first.log`, id `20261001_083650`). Dry run left both
+  skeletons untouched. Write moved the target to be a direct child of the
+  RetargetModifier3D, reported three mapped bones, and both modifier and
+  target survived save/forced reopen. A missing target returned typed
+  `NODE_NOT_FOUND`. Headless 4.7.2 activated the saved modifier, posed the
+  source head 0.6 rad, sampled the `modification_processed` callback and
+  measured 0.6 rad on the target head. Editor undo, alternate profiles,
+  visual deformation and Linux remain pending. All **103 advertised
+  operations** now have at least a per-operation evidence row; none is fully
+  approved under the roadmap's visual/Linux acceptance gates.
+- Played world-space contact audits on the seven saved motion clips at
+  30/60/120 FPS (`mcp_motion_saved_audit_details.log`) found that `idle_cycle`,
+  generic walk `cycle` and `strafe_cycle` pass the current audit on the dummy.
+  **Four clip operations fail despite passing route, track and authored-key
+  replay checks:** `jump` penetrates 80.8 mm after landing; `turn_cycle`
+  slides the planted feet 79.4/51.6 mm and penetrates 8.9 mm on the left;
+  `walk_start` slides 88.4/142.3 mm and penetrates 34.2/29.8 mm;
+  `walk_stop` penetrates 25.3/19.5 mm (120 FPS figures). The allowed
+  penetration on this rig is 8 mm. `check_motion_trace.gd` confirms jump
+  and turn feet are grounded at authored phase keys but dip below ground
+  between sparse keys; the transitions blend bone deltas instead of
+  resolving the feet through the blended pelvis pose. This is a quality
+  blocker, not a passing audit. The `motion_audit` hip-bob failure on jump
+  additionally reflects a gait-specific budget applied to a jump and must
+  be classified by action type rather than counted as physical failure.
+- **2026-10-01, contact repair (Godot 4.7.2 visible editor + Godot AI route).**
+  The first dense jump pass still had 16.1 mm landing penetration and ~150 mm
+  slide because horizontal travel ran through contact. `jump_keys` now solves
+  legs at 120 Hz, moves the root only between takeoff and landing, and writes
+  an actual character-root position track when `root_motion=true`. The handler
+  only reports root extraction if such a track exists. `motion_audit` now takes
+  `motion_kind` so a jump's intended rise is reported as height without being
+  failed against the gait hip-bob limit; an explicit `max_hip_bob` still caps it.
+  The saved Godot AI jump (`mcp_jump_rooted_second.log`, run
+  `20261001_084915`) passes its played contact audit at 30/60/120 FPS with
+  0.50 m travel, <=8.7 mm slide, no penetration and no knee flips under a
+  16 mm slide cap (`mcp_jump_rooted_audit_fixed_kind.log`).
+- `turn_keys` now anchors the support ankle, advances the swing ankle only
+  while lifted, and resolves IK at 120 Hz through the pivot. The previously
+  inert-looking 79/52 mm stance slide and 8.9 mm penetration are 0 mm in the
+  saved-scene Godot AI audit at 30/60/120 FPS (`mcp_turn_anchored_first.log`,
+  run `20261001_085408`; `mcp_turn_anchored_audit.log`). The two-step direct
+  regression now checks the dense keyed midpoint and 180-degree endpoint;
+  editor suite **213/213**.
+- `walk_start`/`walk_stop` no longer merely slerp gait joint deltas. They
+  generate a 120 Hz grounded step with one support foot anchored, swing-foot
+  lift before horizontal travel, a continuous root track for requested root
+  motion, and an exact gait pose at the seam; stopping reverses that trajectory.
+  The first pass missed the 16 mm slide cap by 2 mm while the swing foot was
+  within the 5 mm contact band. Shifting its translation to the lifted interval
+  fixed this without changing the contact threshold. Both saved clips now
+  pass 30/60/120 FPS with 0.21 m body travel and zero measured slide or
+  penetration (`mcp_transition_grounded_second.log`, run `20261001_085929`;
+  `mcp_transition_grounded_audit_second.log`). Headless saved-scene playback
+  matched all 76 sampled bone tracks across these four repaired clips with
+  zero authored-key error. The legacy idle/walk/strafe saved clips also pass
+  the stricter 16 mm slide cap (`mcp_motion_legacy_strict_audit.log`).
+- These are numerical contact passes on the imported dummy. The motion family
+  remains **partial**, pending X Bot and varied synthetic-rig contact tests,
+  seam/discontinuity checks, visual review of all actions, undo and Linux.
+  The branch remains unreleased and no clip is visually approved yet.
+- **2026-10-01, imported X Bot validation and static visual review.**
+  `mcp_motion_remaining_cycles.py --rig xbot` invoked all seven remaining
+  character clip operations through the live Godot AI API on copies of the
+  imported X Bot scene, including dry run, write, typed invalid skeleton,
+  save and forced reopen. Runs `20261001_090238`, `20261001_090436` and
+  `20261001_090832` have zero route failures. Saved world-space contact audits
+  at 30/60/120 FPS and a 16 mm slide cap pass all seven operations. The
+  initially reported 0.1203 m transition hip range exceeded the gait-cycle
+  fixed 0.12 m cap by 0.3 mm; `motion_audit` now applies a rig-relative 18%
+  leg-length default only to start/stop transitions, preserving caller caps.
+  That classification reflects their move from rest height into gait crouch.
+- The first X Bot walk-start preview exposed a T-pose at its neutral endpoint.
+  The generator used identity for all non-leg bones; imported X Bot rests with
+  arms horizontal. Transitions now calculate relaxed arm/forearm deltas using
+  the same arm solver as gait before blending to the exact gait endpoint.
+  Both X Bot transitions still pass the 30/60/120 FPS played contact audit.
+  Preview images in `test_project/animation_toolkit/previews/repair_xbot_*`
+  show arms down at start/stop rest poses. The preview operation previously
+  omitted extracted root travel; it now shifts the copied character and
+  camera bounds by the AnimationPlayer's configured root position track.
+  The live preview route rendered seven jump images and six images per turn,
+  start and stop without missing PNGs. These are static pose checks. Full
+  continuous fixed-camera playback, weight/timing review and alternate
+  synthetic proportions/orientations remain required for visual approval.
+- **2026-10-01, synthetic proportions and orientation.** The first script
+  changed rest bones on an imported FBX instance; PackedScene dropped those
+  overrides when saved. The replacement `create_synthetic_motion_fixture.gd`
+  copies the source hierarchy into scene-owned Skeleton3D bones and sets
+  live pose transforms to their rests. Reopen checks measure 0.439 m
+  hip-to-foot on the half-size rig and 1.276 m on the 1.6x rig whose local up
+  points +Z; pose/rest error is below 0.2 micrometres. The first Z-up played
+  audit then exposed the actual toolkit defect: all seven clips had pelvis
+  offsets in skeleton space written directly to parent-local bone position
+  tracks. Jump moved along forward instead of up and measured ~0.49 m stance
+  slide. `MotionSpecs` now records the hips parent's global rest basis and
+  converts pelvis offsets before keying; the transition endpoint converts
+  its sampled local offset back to skeleton space for IK. The new editor
+  regression plays a Z-up jump and checks height and contact. The editor
+  suite is **214/214**.
+- Live Godot AI dry/write/typed-error/save/forced-reopen passes all seven
+  motion clips on both synthetic fixtures (runs `20261001_092232` and
+  `20261001_092052`). At 30/60/120 FPS all seven Z-up tall clips pass the
+  played audit under a 25 mm slide cap; its jump slides 15.2 mm, with zero
+  penetration. The short strafe initially failed at a fixed 5 mm contact
+  height: its low swing was counted as planted and showed 30 mm slide.
+  `motion_audit` now caps contact height at 5 mm and scales that default down
+  for legs shorter than the 0.85 m reference. With the new default, all seven
+  short clips pass at 30/60/120 FPS under an 8 mm slide cap. An explicit
+  `contact_threshold` still overrides the default. Logs:
+  `mcp_synthetic_zup_tall_converted_audit.log` and
+  `mcp_synthetic_short_adaptive_audit.log`. After regenerating the registry
+  docs, 14/14 tier-1 suites and 214/214 editor tests pass on Windows.
+
+### 2026-10-01 — Phase 3, fixed-camera X Bot playback review
+
+- Added a saved-scene review fixture with one AnimationPlayer controlling
+  the imported X Bot and one character owner consuming extracted root motion.
+  Godot 4.7.2 Movie Maker rendered jump, turn, walk start/stop, idle, strafe
+  and generic walk cycle at 60 FPS; each scene produced 70 frames (idle 130)
+  with no runtime errors. PNG sequences and labeled contact sheets are in
+  `F:\GODOTAITESTING\toolkit_repair_snapshot_2026-09-30\media\xbot_*_review`.
+  The first headless Movie Maker attempt crashed; a visible renderer worked.
+- The sheets are useful visual evidence, but **do not pass visual approval**.
+  The turn reads as a pivot and the jump has a visible crouch/lift/landing.
+  Idle is subtle. Walk start, walk stop and generic walk are numerically
+  grounded yet look like a long, deeply flexed lunge at the gait endpoint.
+  Strafe also needs a second camera angle and groundedness review. The
+  transition endpoint needs a better neutral gait phase/pose and shared
+  weight transfer, then another save/reopen, played contact audit and movie
+  pass. The operation ledger stays partial until this is fixed.
+- Tested candidate gait phases through live Godot AI, not a hand-edited
+  animation. Phase 0.30 gave a calmer X Bot endpoint and passed 30/60/120
+  contact checks on X Bot, dummy, half-size and Z-up tall rigs, yet travelled
+  only 2.26 cm on X Bot. That is insufficient for a walk start, so this
+  candidate is **rejected** despite its green audit. Phase 0.15 travelled
+  18.32 cm and passed X Bot contact checks, but its saved Movie Maker
+  transition still ends in a pronounced stride. Reducing default knee bend
+  from 30 to 16 degrees as an explicit request also passed numerical checks
+  but barely improved the silhouette. No default values were changed by
+  these experiments. Logs and contact sheets named `*phase030*`,
+  `*phase015*` and `*knee16_phase030*` preserve the comparisons. The next
+  repair must model support transfer and a continuous start→cycle→stop
+  sequence, with body travel included in the visual acceptance gate.
+
+### 2026-10-01 — Phase 3/4, forward stop and composable root travel
+
+- Built `walk_start`, `cycle` and `walk_stop` on one X Bot through Godot AI,
+  then invoked unpromoted `animation_sequence.compose` through
+  `custom_manage`, saved/reopened, and played the resulting single-player
+  clip. The first composition returned success with 22 resolved tracks but
+  failed contact badly: 0.834 m left and 1.140 m right planted-foot slide.
+  Its source root tracks each began at zero, so the compositor reset travel
+  at both segment boundaries. `SequenceSpecs.compose` now carries the
+  configured AnimationPlayer root track's displacement into each segment,
+  including an overlap's actual start. An editor regression checks both a
+  contiguous seam and overlapping blend. The same live route rebuilt and
+  saved the sequence; `motion_audit` passed at 241 samples with 1.140 m net
+  travel and no failed contact checks (`mcp_locomotion_sequence_first.log`,
+  `mcp_locomotion_sequence_root_carry.log`).
+- That pass still hid a directional defect: the old `walk_stop` was a
+  time-reversed start, so its extracted root moved **backward** while the
+  planted foot stayed fixed. Replaced this with an explicit forward stop:
+  the leading foot lands, root travels forward, and the former support foot
+  lifts into the neutral endpoint. A leftover pelvis endpoint override
+  initially kept a 4.5-degree gait rotation at the final frame; the editor
+  regression caught its 6.7 cm foot offset, and the stop now ends at the
+  rig rest pose. A new test requires every rooted start and stop key to move
+  forward. Editor suite: **216/216** on Godot 4.7.2.
+- Fresh Godot AI route, dry run, typed invalid target, save and forced reopen
+  for `walk_stop` pass on dummy, X Bot, half-size and Z-up tall fixtures.
+  Played contact audits pass at 30/60/120 FPS under the same 16/16/8/25 mm
+  slide caps, with forward travel of 0.205/0.217/0.152/0.260 m, respectively
+  (`mcp_*_walk_stop_forward*.log`). The rebuilt X Bot
+  start→walk→stop sequence now passes its 241-sample played audit with
+  **1.573 m** net travel (`mcp_locomotion_sequence_forward_stop.log`).
+  Fixed-camera Godot Movie Maker recorded 132 frames at 60 FPS with no
+  runtime errors; sheet and PNGs are in
+  `media/xbot_start_walk_stop_forward`. It has continuous forward staging
+  and a neutral stop but a stylized, deep stride; full visual approval is
+  still pending. All 14 tier-1 suites and the 216 editor tests pass on
+  Windows. `animation_sequence.compose` and `walk_stop` remain partial in
+  the ledger pending broader visual, undo and Linux checks.
+
+### 2026-10-01 — Phase 3, strafe foot spacing and played crossing gate
+
+- A front fixed-camera view of the imported X Bot revealed crossed feet in
+  the original strafe even though its contact, penetration and knee checks
+  passed. The 14-degree default lateral stride spanned about 0.43 m across
+  ankles only about 0.16 m apart. The old saved clip remains at run
+  `20261001_090436`; `motion_audit` with `motion_kind=strafe` now reports a
+  **−0.1862 m** minimum signed lateral ankle gap and fails `foot_crossing`
+  at 30/60/120 FPS. The prior green contact result did not approve its
+  visual behavior. Before sheet: `media/xbot_strafe_front/sheet.png`.
+- `MotionSpecs.gait_keys` now caps a lateral step to 80% of rest ankle
+  spacing, reports the effective speed and cap, and the motion handler
+  returns typed `VALUE_OUT_OF_RANGE` when an explicitly requested speed
+  requires crossing. A rig with coincident rest ankles is rejected with
+  `INVALID_PARAMS` before it can produce an inert clip. The default X Bot
+  clip was regenerated **through the
+  live Godot AI MCP route**, dry run left no clip, write/save/force-reopen
+  preserved 21 resolved tracks, and an invalid skeleton gave typed
+  `NODE_NOT_FOUND` (run `20261001_161512`). Its effective speed is
+  0.2189 m/s and it travels 0.2189 m over the cycle. After front sheet:
+  `media/xbot_strafe_foot_spacing_front/sheet.png`.
+- `motion_audit` now has `motion_kind=strafe` and checks signed lateral foot
+  order from **played world-space ankle poses**. The new X Bot clip keeps a
+  0.0547 m minimum gap. Fresh Godot AI clips on the dummy, half-size and
+  Z-up tall rigs (runs `20261001_161945`, `20261001_161955`,
+  `20261001_162004`) keep 0.0588/0.0323/0.0941 m minimum gaps and travel
+  0.2353/0.1294/0.3766 m. All four pass the 30/60/120 FPS contact and
+  crossing audit under 16/16/8/25 mm slide caps; worst measured stance
+  slide is 1.9 mm. Evidence:
+  `logs/mcp_*_strafe_gap_audit.log` in the recovery snapshot. The new
+  editor regressions cover the crossing check and coincident rest ankles;
+  editor suite **218/218**, tier-1 **14/14** on Godot 4.7.2. Full visual approval,
+  undo for this operation, and Linux CI remain open.
+
+### 2026-10-01 — Phase 3, walk silhouette experiments rejected
+
+- The default X Bot start→cycle→stop sheet still shows an overly crouched,
+  long-stride walk. I added optional stride and knee-bend arguments to the
+  live Godot AI review scripts and generated saved `cycle` clips with
+  `stride=18,knee_bend=30`, `stride=24,knee_bend=0` and
+  `stride=18,knee_bend=0`. Each passed the 30/60/120 FPS played contact
+  audit; the shorter stride travelled 0.866 m per cycle versus the 1.140 m
+  default. Their fixed-camera sheets are in `media/xbot_cycle_stride18`,
+  `media/xbot_cycle_knee0_stride24` and
+  `media/xbot_cycle_knee0_stride18`.
+- Composed start→cycle→stop candidates with `stride=18,knee_bend=0`,
+  `stride=18,knee_bend=8`, and `stride=24,knee_bend=8` through the real
+  `custom_animation_motion` and `custom_manage(animation_sequence)` routes.
+  All saved/reopened and passed the played sequence contact audit (worst
+  stance slide 1.5/1.7/2.2 mm); Movie Maker rendered 132 frames each.
+  The sheets are in `media/xbot_start_walk_stop_knee*_stride*` with matching
+  `mcp_locomotion_sequence_knee*_stride*.log` route evidence.
+- Lower crouch improves the silhouette but increases the solver's reported
+  unreachable ankle-target shortfall: the default X Bot cycle reports
+  0.017 m; the knee 0/stride 18, knee 8/stride 18 and knee 8/stride 24
+  candidates report **0.064/0.041/0.078 m**. The independent half-size
+  rig also exceeds its 5%-of-leg reach budget when knee bend 8 is made the
+  default. These candidates are **rejected as defaults** despite green
+  contact checks. The default remains knee bend 30 and stride 24; 14/14
+  tier-1 suites pass after restoring it. Next, the pelvis trajectory and
+  reachable step targets need a coordinated solve, followed by new
+  cross-rig contact and visual review. The experiment exposes why the
+  audit must report reach shortfall as a quality gate.
+- The gait result now emits an actionable warning when an ankle target was
+  shortened by more than 1% of leg length; previously only the boolean and
+  raw metre shortfall were returned. A fresh live Godot AI X Bot cycle
+  (run `20261001_164224`) reports its actual 0.017 m / 1.9% shortening and
+  suggests reducing stride/speed or lowering the pelvis. The editor test
+  checks the warning for an impossible requested speed. This **reports**
+  degraded reach; it does not approve or repair that gait. Windows suites:
+  14/14 tier-1 and 218/218 editor tests.
+- `motion_audit` now reports each leg's smallest **played** knee angle and
+  greatest hip-to-ankle extension, with times, under `feet.*.pose_range`.
+  This is a diagnostic, not a new pass criterion. On saved X Bot cycles at
+  120 FPS, the default reaches 116.4/116.9° minimum knee angles and
+  0.999 leg-length extension; the knee-0/stride-24 candidate reaches
+  145.5/146.5° with the same near-full extension, and knee-0/stride-18
+  reaches 150.5/151.7°. The latter's solver shortfall remains 0.064 m,
+  so a straighter pose alone does not prove reach. Logs:
+  `mcp_xbot_*_pose_range.log`. Editor test checks the metric shape; suite
+  **218/218** on Godot 4.7.2. A future quality limit needs cross-rig
+  calibration before it can judge these angles.
+
+### 2026-10-01 — Phase 3, reachable default walk and cross-rig playback
+
+- **Changes:** `MotionSpecs.gait_keys` plans one periodic pelvis path against
+  both legs' two-bone reach before solving the feet. It spreads the required
+  vertical drop over neighbouring keys, then shares those offsets between the
+  hips track and both IK solves. When the first plan is infeasible, it searches
+  for a reachable shorter span. An implicit speed reports the reduced speed;
+  an explicit speed returns typed `VALUE_OUT_OF_RANGE` before any write.
+  A residual walk target shortfall over 1% of leg length is also rejected.
+  Default walk knee bend is now 8 degrees, with the old 30-degree default
+  preserved in the pre-change snapshot. `character_setup` now omits its
+  1.4 m/s walk assumption and lets the rig choose a reachable default speed;
+  explicit requests remain exact or fail. The schema, README and tool
+  reference describe that contract. Old and new golden walk fixtures are
+  retained at `goldens_before_reach_pelvis/` and in the working tree.
+- **Numerical evidence:** After restarting the visible Godot 4.7.2 editor,
+  live Godot AI created default `cycle`, `walk_start` and `walk_stop` clips on
+  the dummy, X Bot, half-size and Z-up tall rigs, with dry run, write,
+  save/forced reopen and typed missing-target checks. Runs
+  `20261001_173338`, `20261001_173347`, `20261001_173355` and
+  `20261001_173403` passed with zero cycle reach shortfall. All 36 saved
+  played-world audits at 30/60/120 FPS passed contact, penetration and
+  knee-pole checks; worst stance slide was 2.5 mm on the half-size rig.
+  Logs are `logs/mcp_*_walk_default_reach.log` and
+  `logs/mcp_*_walk_default_played_audit.log` in the recovery snapshot.
+- **Godot AI composition and setup:** `animation_sequence.compose` rebuilt
+  the default X Bot start→walk→stop clip through `custom_manage`, saved and
+  reopened it (run `20261001_173502`). The 241-sample played audit passed
+  with 1.5734 m forward travel. A separate live `character_setup` call with
+  omitted speed chose 1.08015 m/s on the dummy; a request for 8 m/s returned
+  `VALUE_OUT_OF_RANGE` with a 1.229 m/s reachable limit and left no clip
+  (run `20261001_173756`). Logs: `mcp_xbot_sequence_default_reach.log`,
+  `mcp_setup_auto_walk_reach_verified.log`.
+- **Visual decision:** Movie Maker rendered 132 frames at 60 FPS without
+  runtime errors. `media/xbot_start_walk_stop_default_reach/sheet.png`
+  shows a less persistently crouched walk than the old default, but its
+  weight transfer and step silhouette remain stylized. A heavy-style trial
+  with bob multiplier 3.0 passed numerical checks yet looked too compressed
+  in `media/xbot_cycle_heavy_reach/sheet.png`; that multiplier was reverted
+  to 1.5. Visual quality is **not approved**. The test now distinguishes
+  authored bob from the final reach-adjusted pelvis excursion.
+- **Tests and status:** Godot 4.7.2 Windows tier-1 **14/14** and editor
+  **218/218** after the final source change. The 103-row operation audit
+  still reports **0 verified**, as its strict per-operation visual, undo and
+  Linux gates are not complete. The branch remains unreleased. Next: improve
+  the walk's visible weight transfer without losing zero reach shortfall;
+  then close operation-specific undo and Linux evidence before promoting
+  any row to verified.
+
+### 2026-10-01 — Phase 3, shorter walk default selected
+
+- **Candidate comparison:** The reach-aware 24-degree X Bot cycle required
+  up to 0.092 m extra pelvis drop and moved at 1.140 m/s. An 18-degree
+  config needed 0.047 m drop, moved at 0.866 m/s, and produced a more upright
+  fixed-camera start→walk→stop sheet with zero reach shortfall. The composed
+  candidate moved forward 1.1954 m and passed its 241-sample contact audit.
+  Before/after sheets are `media/xbot_start_walk_stop_default_reach/sheet.png`
+  and `media/xbot_start_walk_stop_reach_stride18/sheet.png`. This is a casual
+  walk default; callers can request faster reachable speeds or shorter cycle
+  durations. Full human visual approval of the character set is still open.
+- **Decision and regression:** Walk config stride changed from 24 to 18
+  degrees while knee bend stays 8. Previous goldens are in
+  `goldens_reach_pelvis_stride24/`; the current walk goldens were regenerated
+  on Godot 4.7.2. The 14 tier-1 suites and 218/218 editor tests pass. The
+  tool reference now states the shared reach solve and separate character
+  root track accurately.
+- **Exact default route:** After restarting the visible Godot 4.7.2 editor,
+  Godot AI created the default `cycle`, `walk_start` and `walk_stop` on all
+  four rigs without overrides (runs `20261001_195315`, `20261001_195323`,
+  `20261001_195332`, `20261001_195340`). Dry run, write, save, forced
+  reopen and typed invalid-target checks passed. All 36 played 30/60/120
+  FPS contact, penetration and knee-pole audits passed; worst stance slide
+  was 4.6 mm on the half-size rig under its 8 mm cap. All four cycles report
+  zero foot-target shortfall. The default X Bot sequence saved and reopened
+  through `custom_manage`, passed its 241-sample played audit and rendered
+  132 frames without errors (run `20261001_195436`). Its final contact sheet
+  is byte identical to the reviewed 18-degree candidate. `character_setup`
+  chose a 0.82064 m/s walk on the dummy; an 8 m/s request returned typed
+  `VALUE_OUT_OF_RANGE` with a 1.229 m/s limit and no scene mutation (run
+  `20261001_195442`). `editor_reload_plugin` restored eight promoted tool
+  names and all ten families on the same live Godot AI server.
+- **Open gates:** The visual review still flags stylized weight transfer and
+  the 103-operation ledger stays at zero verified because per-operation
+  visual, undo and Linux checks are incomplete. No release or merge.
+
+### 2026-10-01 — Phase 3/4, live editor Undo/Redo for locomotion ownership
+
+- Created fresh clips and a character setup through the connected Godot AI
+  MCP route in the visible 4.7.2 editor, then used the editor's Ctrl+Z/Ctrl+Y
+  actions. `cycle` and `walk_stop` each disappeared on undo and returned with
+  21 resolved tracks on redo. One `character_setup` undo removed its four
+  clips and AnimationTree together; redo restored the clips, tree and
+  `Dummy:position` root-motion path on both player and tree.
+- A fresh `animation_sequence.compose` used the three Godot AI-created source
+  clips. One undo removed only `start_walk_stop`; the source `cycle` retained
+  22 tracks. Redo restored the 22-track composed clip. The source scene was
+  intentionally left unsaved during this test so the editor undo stack could
+  be examined. Logs `mcp_*_ui_undo*.log` and `mcp_*_ui_redo*.log` in the
+  snapshot record MCP inspections before/after the UI action.
+- The operation ledger now marks UI undo/redo passing for these four rows
+  (and the previously checked `walk_start`). Other operations still need
+  their own undo evidence; the 103-row audit remains at zero fully verified.

@@ -367,6 +367,22 @@ func _build_procedural_animation(
 			wrote = true
 		if wrote:
 			used.append(str(bone_name))
+	var root_motion_track := ""
+	if keys.has("__root_motion__"):
+		var motion_node := _root_motion_node(root_node, skeleton)
+		if motion_node == null:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"Root motion needs a Node3D character owner under the AnimationPlayer root_node")
+		root_motion_track = "%s:position" % str(root_node.get_path_to(motion_node))
+		var motion_keys: Array = []
+		for key in (keys["__root_motion__"] as Dictionary).get("position", []):
+			motion_keys.append({
+				"time": float(key.time),
+				"value": motion_node.position + (key.delta as Vector3),
+				"transition": "linear",
+			})
+		ClipSpec.add_value_track(spec, root_motion_track, motion_keys,
+			Animation.INTERPOLATION_LINEAR, Animation.TYPE_POSITION_3D)
 	var valid := SpecBuilder.validate(spec)
 	if valid.has("error"):
 		return valid
@@ -378,7 +394,21 @@ func _build_procedural_animation(
 		"player": player,
 		"library": library,
 		"created_library": created_library,
+		"root_motion_track": root_motion_track,
 	}
+
+
+## Choose the character-owned node, never the hips bone. When the player's
+## root_node is the edited scene root, use the first child on the skeleton
+## path so root extraction cannot move the whole scene.
+func _root_motion_node(player_root: Node, skeleton: Skeleton3D) -> Node3D:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if player_root is Node3D and player_root != scene_root:
+		return player_root as Node3D
+	var candidate: Node = skeleton
+	while candidate != null and candidate.get_parent() != player_root:
+		candidate = candidate.get_parent()
+	return candidate as Node3D if candidate is Node3D else null
 
 
 ## Commit a procedurally built bone clip as one undo action (the cycle/recipe

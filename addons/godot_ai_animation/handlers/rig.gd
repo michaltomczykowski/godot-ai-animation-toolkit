@@ -697,7 +697,8 @@ func _build_chain(
 		if created:
 			entries.append({"parent": holder, "node": skeleton_3d_new, "setup": []})
 		entries.append({"parent": skeleton_3d_new, "node": skeleton_3d_new,
-			"existing": true, "setup": calls})
+			"existing": true, "setup": calls,
+			"undo_setup": _skeleton_restore_calls(skeleton_3d_new) if not created else []})
 		_commit_node_add_many(label, entries)
 	else:
 		var entries_2d: Array = []
@@ -731,6 +732,32 @@ func _build_chain(
 	else:
 		data["note"] = "pose these bones with pose_apply and key them with pose_to_clip, or drive them with ik_setup"
 	return {"data": data}
+
+
+## Skeleton3D exposes clear_bones but no remove_bone in Godot 4.7.2. Undo an
+## append by reconstructing the original hierarchy in the same index order.
+static func _skeleton_restore_calls(skeleton: Skeleton3D) -> Array:
+	var calls: Array = [{"method": "clear_bones", "args": []}]
+	for index in skeleton.get_bone_count():
+		calls.append({"method": "add_bone", "args": [skeleton.get_bone_name(index)]})
+	for index in skeleton.get_bone_count():
+		calls.append({"method": "set_bone_rest", "args": [index, skeleton.get_bone_rest(index)]})
+		calls.append({"method": "set_bone_pose_position", "args": [index,
+			skeleton.get_bone_pose_position(index)]})
+		calls.append({"method": "set_bone_pose_rotation", "args": [index,
+			skeleton.get_bone_pose_rotation(index)]})
+		calls.append({"method": "set_bone_pose_scale", "args": [index,
+			skeleton.get_bone_pose_scale(index)]})
+		calls.append({"method": "set_bone_enabled", "args": [index,
+			skeleton.is_bone_enabled(index)]})
+		for key in skeleton.get_bone_meta_list(index):
+			calls.append({"method": "set_bone_meta", "args": [index, key,
+				skeleton.get_bone_meta(index, key)]})
+	for index in skeleton.get_bone_count():
+		var parent := skeleton.get_bone_parent(index)
+		if parent >= 0:
+			calls.append({"method": "set_bone_parent", "args": [index, parent]})
+	return calls
 
 
 # ============================================================================
@@ -1079,6 +1106,21 @@ func spring_setup(params: Dictionary) -> Dictionary:
 		elif skeleton.find_bone(end_name) < 0:
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"springs[%d]: end bone '%s' not found" % [index, end_name])
+		var end_index := skeleton.find_bone(end_name)
+		var on_chain := end_index == root_index
+		var ancestor := skeleton.get_bone_parent(end_index)
+		while ancestor >= 0 and not on_chain:
+			if ancestor == root_index:
+				on_chain = true
+				break
+			ancestor = skeleton.get_bone_parent(ancestor)
+		if not on_chain:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"springs[%d]: end bone '%s' must be the root bone or its descendant" % [index, end_name])
+		if end_index == root_index:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"springs[%d]: root and end resolve to the same leaf bone '%s'; this toolkit requires a two-bone chain because a single-bone spring did not move in Godot 4.7.2 playback. Add a child bone and pass it as end_bone."
+					% [index, root_name])
 		if spring.has("rotation_axis"):
 			var axis := _rotation_axis(str(spring.rotation_axis))
 			if axis < 0:
@@ -1452,6 +1494,8 @@ func twist_setup(params: Dictionary, ctx = null) -> Dictionary:
 	# extend_end_bone is for. Three or more joints distribute as asked.
 	var extend_end := bool(spec_dict.get("extend_end_bone", joint_bones.size() < 3))
 	setup.append({"method": "set_extend_end_bone", "args": [0, extend_end]})
+	var reference_name := end_name if extend_end else skeleton.get_bone_name(
+		skeleton.get_bone_parent(skeleton.find_bone(end_name)))
 	var warnings: Array = []
 	if joint_bones.size() < 3:
 		warnings.append("the range %s -> %s has %d joint(s), so the twist is applied whole rather than shared; pass a longer disperse.root_bone/end_bone pair to share it"
@@ -1471,6 +1515,7 @@ func twist_setup(params: Dictionary, ctx = null) -> Dictionary:
 		"modifier_path": ValueCodec.from_node(disperser, scene_root),
 		"root_bone": root_name,
 		"end_bone": end_name,
+		"reference_bone": reference_name,
 		"mode": mode_name,
 		"joint_bones": joint_bones,
 		"joint_bones_predicted": true,
@@ -1479,7 +1524,7 @@ func twist_setup(params: Dictionary, ctx = null) -> Dictionary:
 		"active": active,
 		"warnings": warnings,
 		"undoable": true,
-		"note": "the modifier disperses root -> end inclusive (%s); Godot builds the per-joint list on the frame after it enters the tree, so read the real one back with rig_get's twist_settings" % ", ".join(joint_bones),
+		"note": "the modifier disperses root -> end inclusive (%s); twist is read from reference bone '%s' (the end's parent unless extend_end_bone=true). Godot builds the joint list on the next frame; read it with rig_get's twist_settings" % [", ".join(joint_bones), reference_name],
 	}
 	if not active:
 		data["active_note"] = "inactive: an active disperser also rewrites the twist while you edit the scene - pass active=true (or enable the modifier) when it is ready"
@@ -2384,7 +2429,9 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 		keys[skeleton.get_bone_name(index)] = {"rotation": [], "position": [], "scale": []}
 	var was_playing := player.is_playing()
 	var was_animation := player.current_animation
-	var was_position := player.current_animation_position
+	# Godot logs an engine error if current_animation_position is read before
+	# the player has ever been assigned a current animation.
+	var was_position := player.current_animation_position if not was_animation.is_empty() else 0.0
 	if not source.is_empty():
 		player.play(source)
 	# Active modifiers (IK, springs, retarget) only run in the skeleton's
@@ -2705,6 +2752,24 @@ func _aim_entry(aim) -> Dictionary:
 
 ## Apply a pose as one undo action. `blend` lerps from the current pose.
 func _apply_pose(resolved: Dictionary, pose: Dictionary, blend: float, reset_first: bool) -> Dictionary:
+	if _dry_run:
+		var present: Dictionary = {}
+		if resolved.kind == "3d":
+			var dry_skeleton := resolved.node as Skeleton3D
+			for index in dry_skeleton.get_bone_count():
+				present[dry_skeleton.get_bone_name(index)] = true
+		else:
+			var dry_skeleton_2d := resolved.node as Skeleton2D
+			for index in dry_skeleton_2d.get_bone_count():
+				present[str(dry_skeleton_2d.get_bone(index).name)] = true
+		var dry_missing: Array = []
+		var dry_applied := 0
+		for bone in PoseMath.bone_names(pose):
+			if present.has(str(bone)):
+				dry_applied += 1
+			else:
+				dry_missing.append(str(bone))
+		return {"applied": dry_applied, "missing": dry_missing}
 	var undo_ready := _require_undo("pose_apply")
 	if not undo_ready.is_empty():
 		return undo_ready
@@ -2713,6 +2778,11 @@ func _apply_pose(resolved: Dictionary, pose: Dictionary, blend: float, reset_fir
 	_create_scene_pinned_action("MCP: Apply pose")
 	var undo := ToolContext.undo_redo
 	var skeleton: Node = resolved.node
+	# Bone pose overrides inside an imported/instanced scene are only saved
+	# when its children are editable in the parent scene.
+	for level in _instance_levels(skeleton):
+		undo.add_do_method(level.parent, "set_editable_instance", level.instance, true)
+		undo.add_undo_method(level.parent, "set_editable_instance", level.instance, false)
 	if resolved.kind == "3d":
 		var skeleton_3d := skeleton as Skeleton3D
 		if reset_first:
@@ -2887,6 +2957,9 @@ func _bone_track_issues(resolved: Dictionary) -> Array:
 			bone_names[str(skeleton_2d.get_bone(index).name)] = true
 	for player in scene_root.find_children("*", "AnimationPlayer", true, false):
 		var animation_player := player as AnimationPlayer
+		var player_root := ValueCodec.player_root_node(animation_player)
+		if player_root == null:
+			continue
 		for library_name in animation_player.get_animation_library_list():
 			var library := animation_player.get_animation_library(library_name)
 			if library == null:
@@ -2896,7 +2969,7 @@ func _bone_track_issues(resolved: Dictionary) -> Array:
 				for index in anim.get_track_count():
 					var path := str(anim.track_get_path(index))
 					var node_part := ClipSpec.node_path_of(path)
-					if not node_part.ends_with(str(resolved.node.name)):
+					if player_root.get_node_or_null(NodePath(node_part)) != resolved.node:
 						continue
 					var bone := ClipSpec.property_of(path)
 					if bone.is_empty() or bone_names.has(bone):

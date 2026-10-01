@@ -341,6 +341,9 @@ func test_wave_builds_one_track_per_target() -> void:
 	var anim := _fetch_anim(player_path, "wave")
 	assert_eq(anim.get_track_count(), 3, "one track per target")
 	assert_eq(anim.loop_mode, Animation.LOOP_LINEAR)
+	for index in 3:
+		assert_eq(str(anim.track_get_path(index)), "WaveItem%d:position" % index,
+			"wave tracks must animate each target's position")
 	var first = anim.track_get_key_value(0, 0)
 	var second = anim.track_get_key_value(1, 0)
 	assert_false((first as Vector2).is_equal_approx(second as Vector2), "targets are phase-shifted")
@@ -473,6 +476,35 @@ func test_sprite_frames_assigns_resource() -> void:
 	assert_is_error(rejected, ErrorCodes.WRONG_TYPE)
 	_teardown(rig)
 	_teardown(sprite_rig)
+
+
+func test_sprite_frames_dry_run_and_play_false_are_noninvasive() -> void:
+	if not ResourceLoader.exists(SHEET):
+		skip("fixture sheet.png is not imported")
+		return
+	var animated := AnimatedSprite2D.new()
+	var rig := _rig("SheetDry", animated)
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var params := {
+		"op": "sprite_frames", "sprite_path": rig.target_path,
+		"texture": SHEET, "hframes": 4, "vframes": 1,
+		"animation_name": "idle", "play": false,
+	}
+	var dry := _handler.run(params.merged({"dry_run": true}), null)
+	assert_has_key(dry, "data")
+	assert_true(animated.sprite_frames == null, "dry run must not assign SpriteFrames")
+	assert_false(animated.is_playing(), "dry run must not start playback")
+	var made := _handler.run(params, null)
+	assert_has_key(made, "data")
+	assert_true(animated.sprite_frames != null, "write assigns SpriteFrames")
+	assert_false(animated.is_playing(), "play=false must leave the sprite stopped")
+	assert_true(editor_undo(_undo_redo), "one undo restores the old resource")
+	assert_true(animated.sprite_frames == null, "undo removes the generated SpriteFrames")
+	assert_true(editor_redo(_undo_redo), "redo reapplies the resource")
+	assert_false(animated.is_playing(), "redo respects play=false")
+	_teardown(rig)
 
 
 func test_audio_cue_builds_audio_track() -> void:

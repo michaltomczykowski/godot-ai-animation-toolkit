@@ -19,6 +19,9 @@ const SpecBuilder = preload("res://addons/godot_ai_animation/spec/spec_builder.g
 const MotionSpecs = preload("res://addons/godot_ai_animation/spec/motion_specs.gd")
 const RigAnalysis = preload("res://addons/godot_ai_animation/spec/rig_analysis.gd")
 const BoneAnimation = preload("res://addons/godot_ai_animation/handlers/bone_animation.gd")
+const SpecIO = preload("res://addons/godot_ai_animation/spec/spec_io.gd")
+const SpecModifiers = preload("res://addons/godot_ai_animation/spec/spec_modifiers.gd")
+const SequenceSpecs = preload("res://addons/godot_ai_animation/spec/sequence_specs.gd")
 
 var _report: Array[String] = []
 var _failed := false
@@ -32,6 +35,14 @@ func _initialize() -> void:
 	var root: Node = packed.instantiate()
 	root.name = "Flykick"
 	get_root().add_child(root)
+	# Rebuilds also work after the prior pass has removed the competing players.
+	for parent_path in ["Victim", "Kicker"]:
+		var action_name := "VictimAnim" if parent_path == "Victim" else "KickAnim"
+		var parent_node: Node = root.get_node(parent_path)
+		if not parent_node.has_node(action_name):
+			var action_player := AnimationPlayer.new()
+			action_player.name = action_name
+			parent_node.add_child(action_player)
 
 	_gait(root, "Victim/WalkAnim", "Victim/Walker/Body/Skeleton3D", "walk_in", false, 2.0)
 	_gait(root, "Kicker/RunAnim", "Kicker/Runner/Body/Skeleton3D", "run_in", true, 2.6)
@@ -39,6 +50,7 @@ func _initialize() -> void:
 	_door(root)
 	_victim_fly(root)
 	_kicker_kick(root)
+	_compose_characters(root)
 
 	if _failed:
 		quit(1)
@@ -214,25 +226,50 @@ func _victim_fly(root: Node) -> void:
 	var spec := ClipSpec.make(LENGTH, Animation.LOOP_NONE)
 	_add_position(spec, ".", [
 		[0.0, Vector3(0.0, 0.0, 0.1)],
-		[4.15, Vector3(0.0, 0.0, 0.1)],
-		[4.75, Vector3(0.0, 0.55, -0.25)],
-		[5.35, Vector3(0.0, 0.05, -0.6)],
-		[5.85, Vector3(0.0, 0.0, -0.5)],
-		[LENGTH, Vector3(0.0, 0.0, -0.5)],
+		[2.95, Vector3(0.0, 0.0, 0.1)],
+		[3.08, Vector3(-0.12, 0.12, 0.02)],
+		[3.25, Vector3(-0.35, 0.32, -0.08)],
+		[3.8, Vector3(-0.75, 0.7, -0.45)],
+		[4.35, Vector3(-1.9, 0.35, 0.55)],
+		[4.7, Vector3(-2.1, 0.28, 0.7)],
+		[LENGTH, Vector3(-2.1, 0.28, 0.7)],
 	])
 	_add_rotation(spec, ".", [
 		[0.0, Vector3.ZERO],
-		[2.85, Vector3.ZERO],
-		[2.95, Vector3(0.0, 0.0, 0.1)],
-		[3.08, Vector3.ZERO],
-		[4.15, Vector3.ZERO],
-		[4.75, Vector3(1.2, 0.0, -2.4)],
-		[5.35, Vector3(1.6, 0.0, -4.2)],
-		[5.85, Vector3(1.6, 0.0, -4.7)],
-		[LENGTH, Vector3(1.6, 0.0, -4.7)],
+		[2.95, Vector3.ZERO],
+		[3.08, Vector3(0.1, 0.0, -0.2)],
+		[3.25, Vector3(0.2, 0.0, -0.55)],
+		[3.8, Vector3(0.7, 0.0, -1.2)],
+		[4.35, Vector3(1.2, 0.0, -1.65)],
+		[4.7, Vector3(1.25, 0.0, -1.65)],
+		[LENGTH, Vector3(1.25, 0.0, -1.65)],
 	])
+	var skeleton: Skeleton3D = root.get_node("Victim/Walker/Body/Skeleton3D")
+	var bone_root := "Walker/Body/Skeleton3D"
+	_add_bone_rotation(spec, skeleton, bone_root, "B-chest", [
+		[0.0, Vector3.ZERO], [2.95, Vector3.ZERO], [3.08, Vector3(0.35, 0, -0.2)],
+		[3.25, Vector3(0.5, 0, -0.25)],
+		[3.8, Vector3(-0.35, 0, 0.3)], [4.7, Vector3(0.2, 0, 0.2)],
+		[LENGTH, Vector3(0.2, 0, 0.2)],
+	])
+	for side in ["L", "R"]:
+		var sign := 1.0 if side == "L" else -1.0
+		_add_bone_rotation(spec, skeleton, bone_root, "B-upperArm." + side, [
+			[0.0, Vector3.ZERO], [2.95, Vector3.ZERO], [3.08, Vector3(0.2, 0, sign * 0.5)],
+			[3.25, Vector3(0.0, 0.0, sign * 0.9)],
+			[3.8, Vector3(0.5, 0.0, sign * 1.2)],
+			[4.7, Vector3(0.1, 0.0, sign * 0.4)],
+			[LENGTH, Vector3(0.1, 0.0, sign * 0.4)],
+		])
+		_add_bone_rotation(spec, skeleton, bone_root, "B-thigh." + side, [
+			[0.0, Vector3.ZERO], [2.95, Vector3.ZERO], [3.08, Vector3(sign * 0.2, 0, 0)],
+			[3.25, Vector3(sign * 0.35, 0, 0)],
+			[3.8, Vector3(-sign * 0.65, 0, 0)],
+			[4.7, Vector3(sign * 0.3, 0, 0)],
+			[LENGTH, Vector3(sign * 0.3, 0, 0)],
+		])
 	_install(player, "fly", SpecBuilder.to_animation(spec))
-	_report.append("fly: twitch 2.85s, launch 4.15s-5.85s")
+	_report.append("fly: impact 3.0s, airborne reaction and fall")
 
 
 ## The run ends on its last stride, so the kick is a body lunge on the outer
@@ -243,19 +280,147 @@ func _kicker_kick(root: Node) -> void:
 	_add_position(spec, ".", [
 		[0.0, Vector3(1.35, 0.0, 0.62)],
 		[2.7, Vector3(1.35, 0.0, 0.62)],
-		[2.95, Vector3(0.78, 0.0, 0.34)],
-		[3.3, Vector3(0.72, 0.0, 0.28)],
-		[LENGTH, Vector3(0.72, 0.0, 0.28)],
+		[2.95, Vector3(0.85, 0.35, 0.34)],
+		[3.3, Vector3(0.50, 0.5, 0.16)],
+		[3.85, Vector3(0.45, 0.12, 0.05)],
+		[4.3, Vector3(0.45, 0.0, 0.05)],
+		[LENGTH, Vector3(0.45, 0.0, 0.05)],
 	])
 	_add_rotation(spec, ".", [
 		[0.0, Vector3.ZERO],
-		[2.7, Vector3.ZERO],
-		[2.95, Vector3(0.0, -0.28, 0.0)],
-		[3.3, Vector3(0.0, -0.16, 0.0)],
-		[LENGTH, Vector3(0.0, -0.16, 0.0)],
+		[2.7, Vector3(0.0, 0.25, 0.0)],
+		[2.95, Vector3(0.0, 1.0, -0.15)],
+		[3.3, Vector3(0.0, 1.1, -0.25)],
+		[3.85, Vector3(0.0, 0.45, 0.0)],
+		[4.3, Vector3.ZERO],
+		[LENGTH, Vector3.ZERO],
 	])
+	var skeleton: Skeleton3D = root.get_node("Kicker/Runner/Body/Skeleton3D")
+	var bone_root := "Runner/Body/Skeleton3D"
+	_add_bone_rotation(spec, skeleton, bone_root, "B-thigh.R", [
+		[0.0, Vector3.ZERO], [2.7, Vector3.ZERO],
+		[2.95, Vector3(0.6, 0, 0)], [3.3, Vector3(0.85, 0, 0)],
+		[3.85, Vector3(-0.25, 0, 0)], [4.3, Vector3.ZERO], [LENGTH, Vector3.ZERO],
+	])
+	_add_bone_rotation(spec, skeleton, bone_root, "B-shin.R", [
+		[0.0, Vector3.ZERO], [2.7, Vector3.ZERO],
+		[2.95, Vector3(0.2, 0, 0)], [3.3, Vector3(0.3, 0, 0)],
+		[3.85, Vector3(0.1, 0, 0)], [4.3, Vector3.ZERO], [LENGTH, Vector3.ZERO],
+	])
+	_add_bone_rotation(spec, skeleton, bone_root, "B-thigh.L", [
+		[0.0, Vector3.ZERO], [2.7, Vector3.ZERO],
+		[2.95, Vector3(-1.15, 0, -0.1)], [3.3, Vector3(-1.3, 0, -0.2)],
+		[3.85, Vector3(0.4, 0, 0)], [4.3, Vector3.ZERO], [LENGTH, Vector3.ZERO],
+	])
+	_add_bone_rotation(spec, skeleton, bone_root, "B-shin.L", [
+		[0.0, Vector3.ZERO], [2.7, Vector3.ZERO],
+		[2.95, Vector3(0.3, 0, 0)], [3.3, Vector3(-0.05, 0, 0)],
+		[3.85, Vector3(0.7, 0, 0)], [4.3, Vector3.ZERO], [LENGTH, Vector3.ZERO],
+	])
+	_add_bone_rotation(spec, skeleton, bone_root, "B-chest", [
+		[0.0, Vector3.ZERO], [2.7, Vector3.ZERO],
+		[2.95, Vector3(0.3, 0, 0)], [3.3, Vector3(0.45, 0, 0)],
+		[3.85, Vector3(-0.15, 0, 0)], [4.3, Vector3.ZERO], [LENGTH, Vector3.ZERO],
+	])
+	for side in ["L", "R"]:
+		var sign := 1.0 if side == "L" else -1.0
+		_add_bone_rotation(spec, skeleton, bone_root, "B-upperArm." + side, [
+			[0.0, Vector3.ZERO], [2.7, Vector3.ZERO],
+			[2.95, Vector3(0.4, 0, sign * 0.5)],
+			[3.3, Vector3(0.65, 0, sign * 0.7)],
+			[3.85, Vector3(0.1, 0, sign * 0.25)],
+			[4.3, Vector3.ZERO], [LENGTH, Vector3.ZERO],
+		])
 	_install(player, "kick", SpecBuilder.to_animation(spec))
-	_report.append("kick: lunge 2.7s-3.3s")
+	_report.append("kick: airborne leg extension 2.7s-3.3s")
+
+
+func _compose_characters(root: Node) -> void:
+	var pairs := [
+		{"player": "Victim/WalkAnim", "gait": "walk_in",
+			"action_player": "Victim/VictimAnim", "action": "fly",
+			"output": "victim_action", "start": 2.0, "fade": 0.2,
+			"contacts": [{"name": "impact", "time": 1.0},
+				{"name": "landing", "time": 2.7}]},
+		{"player": "Kicker/RunAnim", "gait": "run_in",
+			"action_player": "Kicker/KickAnim", "action": "kick",
+			"output": "kicker_action", "start": 2.5, "fade": 0.2,
+			"contacts": [{"name": "kick_impact", "time": 0.55},
+				{"name": "landing", "time": 1.8}]},
+	]
+	for entry in pairs:
+		var player: AnimationPlayer = root.get_node(entry.player)
+		var action_player: AnimationPlayer = root.get_node(entry.action_player)
+		var gait: Animation = player.get_animation(entry.gait)
+		var action: Animation = action_player.get_animation(entry.action)
+		var start := float(entry.start)
+		var gait_spec: Dictionary = SpecIO.from_animation(gait)
+		var action_spec: Dictionary = SpecIO.from_animation(action)
+		# A sparse action starts from the last played gait pose. Otherwise its
+		# rest keys pull the character into the imported rig's T pose before impact.
+		var action_ready := 2.95 if str(entry.output) == "victim_action" else 2.7
+		_seed_action_from_gait(gait_spec, action_spec, start, action_ready,
+			str(entry.output) == "kicker_action")
+		var composed := SequenceSpecs.compose([
+			{"start": 0.0, "duration": gait.length, "source_start": 0.0,
+				"source_end": gait.length, "fade_in": 0.0,
+				"spec": gait_spec},
+			{"start": start, "duration": LENGTH - start, "source_start": start,
+				"source_end": LENGTH, "fade_in": float(entry.fade),
+				"spec": action_spec, "contacts": entry.contacts},
+		], LENGTH, 30)
+		if composed.has("error"):
+			_fail("%s: %s" % [entry.output, str(composed.error)])
+			return
+		_install(player, str(entry.output), SpecBuilder.to_animation(composed.spec))
+		# Only one player now writes each character. The old action player was a
+		# workaround that let gait and action freeze or fight over the same bones.
+		action_player.get_parent().remove_child(action_player)
+		action_player.free()
+		_report.append("%s: %d tracks, %d samples, one AnimationPlayer" % [
+			entry.output, (composed.spec.tracks as Array).size(), int(composed.sample_count)])
+
+
+func _seed_action_from_gait(gait: Dictionary, action: Dictionary, start: float,
+		ready: float, settle_arms: bool) -> void:
+	var gait_tracks := {}
+	for track in gait.get("tracks", []):
+		gait_tracks["%d|%s" % [int(track.type), str(track.path)]] = track
+	for track in action.get("tracks", []):
+		if not str(track.path).contains("Skeleton3D:"):
+			continue
+		var label := "%d|%s" % [int(track.type), str(track.path)]
+		if not gait_tracks.has(label):
+			continue
+		var inherited = SpecModifiers.sample_track(gait_tracks[label], gait.length)
+		var keys: Array = [
+			{"time": start, "value": inherited, "transition": 1.0},
+			{"time": ready, "value": inherited, "transition": 1.0},
+		]
+		for key in track.keys:
+			if float(key.time) > ready + 0.0001:
+				var kept: Dictionary = key.duplicate(true)
+				if settle_arms and str(track.path).contains("B-upperArm"):
+					kept.value = inherited
+				keys.append(kept)
+		track.keys = keys
+
+
+func _add_bone_rotation(spec: Dictionary, skeleton: Skeleton3D, track_root: String,
+		bone: String, rows: Array) -> void:
+	var index := skeleton.find_bone(bone)
+	if index < 0:
+		_fail("missing pose bone %s" % bone)
+		return
+	var rest := skeleton.get_bone_rest(index).basis.get_rotation_quaternion()
+	var keys: Array = []
+	for row in rows:
+		var delta := Quaternion(Basis.from_euler(row[1]))
+		keys.append({"time": float(row[0]), "value": (rest * delta).normalized(),
+			"transition": 1.0})
+	ClipSpec.align_quaternions(keys)
+	ClipSpec.add_value_track(spec, "%s:%s" % [track_root, bone], keys,
+		Animation.INTERPOLATION_LINEAR, Animation.TYPE_ROTATION_3D)
 
 
 # --- track helpers -----------------------------------------------------------

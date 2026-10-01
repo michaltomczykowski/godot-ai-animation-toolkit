@@ -27,6 +27,9 @@ static func validate(spec: Dictionary) -> Dictionary:
 				"Track %d has unsupported type %d (supported: value, position_3d, rotation_3d, scale_3d, method, audio)" % [i, type])
 		if str(track.get("path", "")).is_empty():
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Track %d has an empty path" % i)
+		if type == Animation.TYPE_VALUE and NodePath(str(track.path)).get_subname_count() == 0:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"Value track %d needs a property subname (for example Node:position)" % i)
 		for key in track.get("keys", []):
 			if not key.has("time"):
 				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,

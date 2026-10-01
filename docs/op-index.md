@@ -2,7 +2,7 @@
 
 Generated from `registry/op_registry.gd` by `tools/gen_docs.ps1` — do not edit by hand.
 
-Every tool commits one scene-pinned undo action per call and returns the same
+Scene-writing operations use editor undo when supported; direct file writes and read-only calls have different effects. Every operation returns the same
 error codes as the core tools (`INVALID_PARAMS`, `VALUE_OUT_OF_RANGE`,
 `WRONG_TYPE`, `NODE_NOT_FOUND`, `PROPERTY_NOT_ON_CLASS`, `EDITOR_NOT_READY`).
 
@@ -57,7 +57,7 @@ Handler: `res://addons/godot_ai_animation/handlers/generate.gd`
 | `loop_mode` | string: none \| linear \| pingpong | Drift refuses "linear" (the clip ends at a net offset). |
 | `dry_run` | boolean (default `false`) | Report what the call would build without committing anything (no undo action). |
 
-Required: `op`, `player_path`, `target_path`.
+Required: `op`.
 
 ### Examples
 
@@ -218,7 +218,7 @@ Handler: `res://addons/godot_ai_animation/handlers/graph.gd`
 | `allow_transition_to_self` | boolean (default `false`) |  |
 | `reset_ends` | boolean (default `false`) |  |
 | `state_machine_type` | string: root \| nested \| grouped | state_machine: graph role (default root). |
-| `start` | string | state_machine/locomotion: start state to report a runtime hint for. |
+| `start` | string | state_machine/locomotion: initial state connected from Start (first state or idle by default). |
 | `dimensions` | integer | blend_space: 1 (float axis) or 2 (Vector2 axis). |
 | `points` | array | blend_space: [{animation, position, name?}] — position is a float (1D) or {x,y} (2D). |
 | `min` | any | blend_space: minimum space (number for 1D, {x,y} for 2D). |
@@ -265,7 +265,7 @@ Handler: `res://addons/godot_ai_animation/handlers/edit.gd`
 | `retarget` | Rewrite track paths — rename a node, or bulk-remap a subtree prefix after a refactor. | `player_path`, `animation_name`, `from_path`, `to_path`, `mode`, `paths`, `dry_run` |
 | `reverse` | Mirror every key time about the length so the clip plays backwards. | `player_path`, `animation_name`, `dry_run` |
 | `mirror` | Mirror position/rotation (and optionally scale) across a plane, about an optional pivot. | `player_path`, `animation_name`, `axis`, `pivot`, `include_scale`, `dry_run` |
-| `offset` | Shift every key in time (optionally wrapping inside the clip length). | `player_path`, `animation_name`, `delta`, `wrap`, `dry_run` |
+| `offset` | Shift every key in time; positive unwrapped shifts hold the first pose until motion starts. Wrapping rejects clips whose distinct seam keys would merge. | `player_path`, `animation_name`, `delta`, `wrap`, `dry_run` |
 | `ease_range` | Set the per-key transition on every value key inside a time range. | `player_path`, `animation_name`, `from`, `to`, `transition`, `dry_run` |
 | `set_interp` | Set track-level interpolation (linear/nearest/cubic) on value tracks, optionally one track. | `player_path`, `animation_name`, `interpolation`, `track_path`, `dry_run` |
 | `trim` | Keep only a time range, shifted to 0, with optional sampled boundary keys. | `player_path`, `animation_name`, `from`, `to`, `keep_bounds`, `dry_run` |
@@ -279,7 +279,7 @@ Handler: `res://addons/godot_ai_animation/handlers/edit.gd`
 | `resample` | Rebuild value tracks at a fixed sample rate, keeping the curve (engine-exact interpolation). | `player_path`, `animation_name`, `fps`, `interpolation`, `track_path`, `dry_run` |
 | `reduce` | Drop the keys a clip does not need, inside a measured error budget: `angle` degrees for rotation tracks, `value` units for the rest. The dense procedural cycles (70+ keys per bone) shrink to a fraction of their keys with the shape intact - unlike `resample`, no key moves onto a new grid. Reports keys removed and the worst measured error. | `player_path`, `animation_name`, `angle`, `value_tolerance`, `max_keys`, `track_path`, `dry_run` |
 | `add_noise` | Add seeded, smooth micro-motion to value keys (breathing, tremor, life). | `player_path`, `animation_name`, `amount`, `frequency`, `seed`, `track_path`, `dry_run` |
-| `overlap` | Delay one node/subtree's tracks by `delay` seconds - instant follow-through on any clip. | `player_path`, `animation_name`, `track_path`, `delay`, `wrap`, `dry_run` |
+| `overlap` | Delay one node/subtree's tracks; positive unwrapped delay holds the first pose. Wrapping rejects distinct seam keys that would merge. | `player_path`, `animation_name`, `track_path`, `delay`, `wrap`, `dry_run` |
 | `layer` | Combine another clip: add its delta from its first key (jiggle/breathing) or mix toward it. | `player_path`, `animation_name`, `source_animation`, `source_player_path`, `layer_mode`, `weight`, `remap_node`, `dry_run` |
 
 ### `animation_edit` parameters
@@ -349,7 +349,7 @@ Required: `op`, `player_path`, `animation_name`.
 {"animation_name":"open","from_path":"Panel","mode":"prefix","op":"retarget","player_path":"/Main/HUD","to_path":"Popup/Panel"}
 {"animation_name":"open","op":"reverse","player_path":"/Main/HUD"}
 {"animation_name":"walk","axis":"x","op":"mirror","pivot":{"x":0,"y":0},"player_path":"/Main"}
-{"animation_name":"pulse","delta":0.3,"op":"offset","player_path":"/Main/HUD","wrap":true}
+{"animation_name":"pulse","delta":0.3,"op":"offset","player_path":"/Main/HUD","wrap":false}
 {"animation_name":"open","from":0.0,"op":"ease_range","player_path":"/Main/HUD","to":0.4,"transition":"ease_out"}
 {"animation_name":"walk","interpolation":"nearest","op":"set_interp","player_path":"/Main","track_path":"Sprite:frame"}
 {"animation_name":"walk","from":0.2,"op":"trim","player_path":"/Main","to":0.8}
@@ -363,7 +363,7 @@ Required: `op`, `player_path`, `animation_name`.
 {"animation_name":"walk","fps":30,"interpolation":"linear","op":"resample","player_path":"/Main"}
 {"angle":0.5,"animation_name":"walk","op":"reduce","player_path":"/Main/Rig/AnimationPlayer","value_tolerance":0.001}
 {"amount":0.4,"animation_name":"idle","frequency":2.0,"op":"add_noise","player_path":"/Main","track_path":"Skeleton3D:B-head"}
-{"animation_name":"walk","delay":0.08,"op":"overlap","player_path":"/Main","track_path":"Skeleton3D:B-forearm.L","wrap":true}
+{"animation_name":"walk","delay":0.08,"op":"overlap","player_path":"/Main","track_path":"Skeleton3D:B-forearm.L","wrap":false}
 {"animation_name":"walk","layer_mode":"add","op":"layer","player_path":"/Main","source_animation":"idle","weight":0.4}
 ```
 
@@ -381,7 +381,7 @@ Handler: `res://addons/godot_ai_animation/handlers/inspect.gd`
 | `compare` | Diff two clips: length, loop mode, track paths, key counts and value deltas. | `player_path`, `animation_name`, `other_animation_name`, `other_player_path`, `tolerance`, `max_keys` |
 | `stats` | Clip/track/key totals, track-type histogram and loop-mode breakdown. | `player_path` |
 | `motion_report` | Per-track motion quality: key density, peak speed/acceleration, loop-seam pops, hemisphere flips, constant tracks - each with a fix hint. | `player_path`, `animation_name`, `max_tracks` |
-| `motion_audit` | Play the clip on a Skeleton3D (posed and restored, never saved) and grade it: per-foot ground-contact windows and the horizontal slide while planted, hip bob and travel, each pass/fail against a budget with a fix hint. The numeric answer to 'is this walk actually planted?' - a moonwalk reports a slide in metres, not a vibe. Needs foot/hips roles (auto-detected or via roles/profile). | `player_path`, `animation_name`, `skeleton_path`, `roles`, `profile`, `samples`, `contact_threshold`, `max_slide`, `max_hip_bob` |
+| `motion_audit` | Play a 3D transform clip on a private scene copy and grade foot contact, stance slide, ground penetration, knee-pole flips, hip bob and travel. Needs foot/hips roles (auto-detected or via roles/profile). | `player_path`, `animation_name`, `skeleton_path`, `roles`, `profile`, `samples`, `contact_threshold`, `max_slide`, `max_hip_bob`, `max_penetration`, `motion_kind` |
 | `rig_profile` | Understand a rig: detected roles with candidates, T/A pose, limb lengths/reach, facing/lateral axes, capabilities, missing roles and suggested ops; save=true writes a reusable profile. | `skeleton_path`, `roles`, `profile`, `save`, `name`, `overwrite`, `dry_run` |
 | `sample` | FK probe: world positions (and optional euler rotations) of requested bones at N times, plus derived foot heights and ground-contact windows. Pose is restored afterwards. | `player_path`, `animation_name`, `skeleton_path`, `roles`, `profile`, `bones`, `times`, `samples`, `include_rotation`, `contact_threshold` |
 | `preview` | Render the posed character offscreen to PNGs at clip times so an agent can see contact, foot planting and follow-through. A private copy of the character subtree is posed in an offscreen viewport; the edited scene is never touched. The reply is deferred (one editor frame per image) and needs a rendering device. | `player_path`, `animation_name`, `skeleton_path`, `character_path`, `times`, `samples`, `width`, `height`, `output_dir`, `basename`, `yaw`, `elevation`, `margin`, `background`, `overwrite` |
@@ -418,9 +418,11 @@ Handler: `res://addons/godot_ai_animation/handlers/inspect.gd`
 | `times` | array | sample/preview: explicit sample times in seconds (alternative to samples). |
 | `samples` | integer | sample/preview: evenly spaced samples over the clip (sample 24, preview 4; max 240). |
 | `include_rotation` | boolean (default `false`) | sample: also report each bone's euler rotation in degrees. |
-| `contact_threshold` | number | sample/motion_audit: height above the lowest foot sample counted as ground contact (default 0.02). |
+| `contact_threshold` | number | sample: foot contact height tolerance (0.02 m); motion_audit: distance from each foot's rest height (up to 0.005 m, scaled down for short rigs). |
 | `max_slide` | number | motion_audit: worst foot travel while planted to pass, metres (0.05). |
-| `max_hip_bob` | number | motion_audit: hips' vertical range to pass, metres (0.12). |
+| `max_hip_bob` | number | motion_audit: hips' vertical range to pass, metres (gait default 0.12; transition default 18% of leg length; jump only capped if supplied). |
+| `motion_kind` | string: gait \| jump \| turn \| transition \| strafe | motion_audit: action type for contact grading (gait default; strafe checks crossed feet; jump skips gait hip-bob cap). |
+| `max_penetration` | number | motion_audit: maximum foot penetration below rest ground, metres (default 1% of leg length). |
 | `width` | integer | preview: frame width in pixels (480). |
 | `height` | integer | preview: frame height in pixels (270). |
 | `output_dir` | string | preview: directory for the PNGs (res://animation_toolkit/previews). |
@@ -624,10 +626,10 @@ Handler: `res://addons/godot_ai_animation/handlers/motion.gd`
 | `duration` | number | Clip length in seconds; one gait cycle fits in it. |
 | `style` | string: default \| relaxed \| heavy \| sneaky | Motion style preset, applied before overrides. |
 | `overrides` | object | Deep tuning, e.g. {"stride": 18, "lag": 0.1}; walk/run keys: stride, knee_bend, arm_swing, arm_twist, bob, sway, hip_yaw, hip_roll, chest_yaw, twist_spread, lean, foot_lift, elbow, elbow_swing, lag, stance, crouch; idle keys: amplitude, head_amplitude, look, twist, bob, sway, shift, noise, lean, arm_sway, elbow, arm_twist, twist_spread. |
-| `samples` | number | Keys per second of clip (24; clamped to 4-120). |
-| `root_motion` | boolean | Also key the hips forward at the cycle's implied speed (off); wires player.root_motion_track unless set_root_motion=false. |
+| `samples` | number | Requested keys per second (default 24; 4-120). Walk/run automatically use at least 24 intervals per loop, or return a typed error if duration is too short. |
+| `root_motion` | boolean | Key character-root translation at the cycle's implied speed (off); wires player.root_motion_track unless set_root_motion=false. |
 | `set_root_motion` | boolean | root_motion: also set AnimationPlayer.root_motion_track in the same action (on). |
-| `speed` | number | Gait: target ground speed in m/s; solves the stride and warns when unreachable at this duration. |
+| `speed` | number | Gait: target ground speed in m/s. Walk rejects unreachable explicit speeds with VALUE_OUT_OF_RANGE; omit for a rig-relative default. Other gaits report any cap. |
 | `direction` | string: left \| right | turn_cycle / strafe_cycle: which way to turn or step (left). |
 | `angle` | number | turn_cycle: turn angle in degrees (90). |
 | `steps` | integer | turn_cycle: pivot steps the turn is split into (1). |
@@ -636,7 +638,7 @@ Handler: `res://addons/godot_ai_animation/handlers/motion.gd`
 | `distance` | number | jump: forward travel in metres over the clip (0 = in place). |
 | `phase` | number | walk_start/walk_stop: gait phase (0-1) the transition meets, e.g. 0 = left contact (0). |
 | `stride` | number | Gait: leg swing, degrees (walk 24, run 34). |
-| `knee_bend` | number | Gait: planted crouch, degrees (walk 30, run 55). |
+| `knee_bend` | number | Gait: planted crouch control, degrees (walk 8, run 36). |
 | `arm_swing` | number | Gait: arm counter-swing, degrees (walk 20, run 34). |
 | `arm_down` | number | Lower the arms this many degrees from the rest pose (T-pose rigs). |
 | `bob` | number | Pelvis bob, metres peak-to-peak (walk 0.05; idle 0.006). |
@@ -674,7 +676,7 @@ Required: `op`.
 {"animation_name":"run","duration":0.6,"loop_mode":"linear","op":"run_cycle","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"animation_name":"idle","duration":3.0,"loop_mode":"linear","op":"idle_cycle","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"animation_name":"run","duration":0.6,"loop_mode":"linear","op":"cycle","player_path":"/Main/Rig/AnimationPlayer","preset":"run","skeleton_path":"/Main/Rig/Skeleton3D"}
-{"include_jump":true,"op":"character_setup","player_path":"/Main/Rig/AnimationPlayer","run_speed":4.0,"skeleton_path":"/Main/Rig/Skeleton3D","speed":1.4}
+{"include_jump":true,"op":"character_setup","player_path":"/Main/Rig/AnimationPlayer","run_speed":4.0,"skeleton_path":"/Main/Rig/Skeleton3D","speed":1.1}
 {"animation_name":"walk","bones":["B-hair01","B-hair02"],"damping":12.0,"op":"secondary_motion","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D","stiffness":120.0}
 {"animation_name":"jump","crouch":0.25,"duration":1.2,"height":0.6,"op":"jump","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"angle":90,"animation_name":"turn_left","direction":"left","duration":0.7,"op":"turn_cycle","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
@@ -692,10 +694,10 @@ Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 | op | What it does | Params |
 | --- | --- | --- |
 | `ik_setup` | Attach a 3D IK modifier to a skeleton and wire it to a target node. kind=spline follows a Path3D (target_path) instead, because SplineIK3D solves against a path. | `skeleton_path`, `kind`, `chain`, `target_path`, `target_name`, `pole_path`, `use_virtual_end`, `end_bone_length`, `name`, `active`, `dry_run` |
-| `spring_setup` | Attach spring bones (SpringBoneSimulator3D) to a skeleton, one spring setting per entry. | `skeleton_path`, `springs`, `name`, `active`, `mutable_bone_axes`, `dry_run` |
+| `spring_setup` | Attach spring bones (SpringBoneSimulator3D) to a skeleton, one setting per entry. Each spring needs a root and descendant end bone; single leaf bones are rejected because they did not move in Godot 4.7.2 playback. | `skeleton_path`, `springs`, `name`, `active`, `mutable_bone_axes`, `dry_run` |
 | `look_at_setup` | Attach a look-at modifier so one bone tracks a target node (created in front of the bone when omitted). | `skeleton_path`, `bone`, `target_path`, `target_name`, `forward_axis`, `origin_from`, `origin_bone`, `origin_node`, `origin_offset`, `origin_safe_margin`, `use_angle_limitation`, `primary_limit_angle`, `secondary_limit_angle`, `use_secondary_rotation`, `primary_axis`, `relative`, `duration`, `name`, `active`, `dry_run` |
 | `retarget_setup` | Retarget a source skeleton's poses onto a child target skeleton through a RetargetModifier3D and a bone-name profile. | `skeleton_path`, `target_path`, `profile`, `position`, `rotation`, `scale`, `use_global_pose`, `move_target`, `name`, `active`, `dry_run` |
-| `twist_setup` | Attach a BoneTwistDisperser3D so a twist on one bone is spread over the bones above it: the root/end default to the detected spine chain and `mode` picks even or weighted distribution (`weight_position`/`damping` shape the falloff). Godot builds the per-joint list at runtime, so custom amounts live in the modifier's Inspector. Created inactive, like every modifier setup. | `skeleton_path`, `disperse`, `spine_chain`, `name`, `active`, `dry_run` |
+| `twist_setup` | Attach a BoneTwistDisperser3D to spread a reference bone's twist toward the chain root. The reference is the end bone's parent unless disperse.extend_end_bone=true. The root/end default to the detected spine chain; mode picks even or weighted distribution. Godot builds the joint list at runtime, so custom amounts live in the Inspector. Created inactive. | `skeleton_path`, `disperse`, `spine_chain`, `name`, `active`, `dry_run` |
 
 ### `animation_rig_modifiers` parameters
 
@@ -748,4 +750,36 @@ Required: `op`.
 {"bone":"B-head","forward_axis":"+z","op":"look_at_setup","skeleton_path":"/Main/Rig/Skeleton3D","target_name":"HeadTarget"}
 {"op":"retarget_setup","profile":"auto","skeleton_path":"/Main/Source/Skeleton3D","target_path":"/Main/Target/Skeleton3D"}
 {"disperse":{"end_bone":"B-chest","mode":"even","root_bone":"B-hips"},"op":"twist_setup","skeleton_path":"/Main/Rig/Skeleton3D"}
+```
+
+## `animation_sequence`
+
+Compose character clips and saved poses on one timeline.
+
+Handler: `res://addons/godot_ai_animation/handlers/sequence.gd`
+
+| op | What it does | Params |
+| --- | --- | --- |
+| `compose` | Bake timed 3D clips and saved poses into one clip, crossfading overlaps and carrying contact markers. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `segments`, `samples`, `overwrite`, `dry_run` |
+
+### `animation_sequence` parameters
+
+| Param | Type | Notes |
+| --- | --- | --- |
+| `op` | string: compose | Compose a timed character clip. |
+| `player_path` | string | AnimationPlayer receiving the clip. |
+| `skeleton_path` | string | Skeleton3D animated by the clips and poses. |
+| `animation_name` | string | Output clip name (sequence). |
+| `duration` | number | Output length in seconds. |
+| `segments` | array | Ordered timeline segments: {start, duration, source_animation or pose_name or inline pose, source_start?, source_end?, fade_in?, contacts?: [{name,time}]}. The first starts at 0; gaps hold the previous pose. A saved pose comes from animation_rig pose_save. |
+| `samples` | integer | Output samples per second (30, max 1200 keys per track). |
+| `overwrite` | boolean | Replace an existing output clip (false). |
+| `dry_run` | boolean | Validate and report without a scene change (false). |
+
+Required: `op`, `player_path`, `skeleton_path`, `duration`, `segments`.
+
+### Examples
+
+```json
+{"animation_name":"action","duration":2.0,"op":"compose","player_path":"/Main/Rig/AnimationPlayer","segments":[{"duration":1.0,"source_animation":"walk","start":0.0},{"contacts":[{"name":"impact","time":0.4}],"duration":1.2,"fade_in":0.2,"source_animation":"kick","start":0.8}],"skeleton_path":"/Main/Rig/Skeleton3D"}
 ```

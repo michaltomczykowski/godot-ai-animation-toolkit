@@ -796,6 +796,14 @@ func preset_showcase(params: Dictionary) -> Dictionary:
 	if parent.has_node(NodePath(root_name)):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"%s already has a child named '%s'" % [parent.name, root_name])
+	if _dry_run:
+		return {"data": {
+			"path": str(ValueCodec.from_node(parent, scene_root)).path_join(root_name),
+			"players": ["AnimBounce", "AnimOrbit", "AnimSweep", "AnimDrift",
+				"AnimPulse", "AnimFloat", "AnimSpin"],
+			"animations": 7,
+			"undoable": false,
+		}}
 
 	var showcase := Node2D.new()
 	showcase.name = root_name

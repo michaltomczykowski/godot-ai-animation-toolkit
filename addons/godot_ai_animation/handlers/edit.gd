@@ -193,6 +193,11 @@ func edit_offset(params: Dictionary) -> Dictionary:
 	var wrap := bool(params.get("wrap", false))
 	if wrap and float(loaded.spec.length) <= 0.0:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "Cannot wrap an empty clip (length 0)")
+	if wrap and not is_zero_approx(delta):
+		for track in loaded.spec.tracks:
+			var conflict := _wrapped_key_collision(track, delta, float(loaded.spec.length))
+			if not conflict.is_empty():
+				return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, conflict)
 	var out := SpecModifiers.offset(loaded.spec, delta, wrap)
 	return _commit_edited(loaded, out, "MCP: Offset animation %s" % loaded.anim_name, {
 		"delta": delta,
@@ -632,6 +637,15 @@ func edit_overlap(params: Dictionary) -> Dictionary:
 	if is_zero_approx(delay):
 		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM, "overlap needs 'delay' (seconds, non-zero)")
 	var wrap := bool(params.get("wrap", false))
+	if wrap and float(loaded.spec.length) <= 0.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "Cannot wrap an empty clip (length 0)")
+	if wrap:
+		for track in loaded.spec.tracks:
+			if not QualityModifiers._matches(track, track_path):
+				continue
+			var conflict := _wrapped_key_collision(track, delay, float(loaded.spec.length))
+			if not conflict.is_empty():
+				return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, conflict)
 	var result := QualityModifiers.overlap(loaded.spec, track_path, delay, wrap)
 	if int(result.changed) == 0:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
@@ -789,6 +803,22 @@ func _track_list(spec: Dictionary) -> String:
 	for track in spec.get("tracks", []):
 		parts.append(ClipSpec.track_label(track))
 	return "; ".join(parts) if not parts.is_empty() else "(no tracks)"
+
+
+## Modulo timing can put the first and final key at one time. The spec passes
+## dedupe that time, so distinct endpoint values would silently erase motion.
+## Refuse that edit until phase rotation can preserve a discontinuous seam.
+func _wrapped_key_collision(track: Dictionary, shift: float, length: float) -> String:
+	var seen: Array = []
+	for key in track.get("keys", []):
+		var wrapped_time := fposmod(float(key.get("time", 0.0)) + shift, length)
+		for prior in seen:
+			if is_equal_approx(float(prior.time), wrapped_time) \
+					and not ClipSpec.values_equal(prior.value, key.get("value"), 0.00001):
+				return "Wrapping track '%s' merges different key values at %.6f s; use wrap=false or repair the clip seam" \
+					% [str(track.get("path", "")), wrapped_time]
+		seen.append({"time": wrapped_time, "value": key.get("value")})
+	return ""
 
 
 func _resolve_track_index(loaded: Dictionary, params: Dictionary) -> int:

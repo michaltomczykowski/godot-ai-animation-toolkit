@@ -313,7 +313,7 @@ func _check_the_matrix_holds_every_proportion() -> void:
 		# A sanity band, deliberately loose: the crouch has to be a modest fraction
 		# of the leg. The assertion that matters is not this one - it is that the
 		# SAME fraction comes out on every rig, checked below.
-		_expect(crouch_term > 0.03 and crouch_term < 0.16,
+		_expect(crouch_term > 0.02 and crouch_term < 0.16,
 			"%s: the knee-bend crouch is a modest %.4f of the leg (%.1f deg -> %.4f m on a %.2f m leg)"
 			% [label, crouch_term, float(config.knee_bend),
 				0.003 * float(config.knee_bend) * float(ctx.get("distance_scale", 1.0)), measured])

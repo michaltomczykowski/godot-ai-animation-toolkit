@@ -18,6 +18,12 @@ const ValueCodec := preload("res://addons/godot_ai_animation/utils/value_codec.g
 var _dry_run := false
 
 
+## The core asks cached handlers to quiesce before a script update. Calls in
+## base families are synchronous and own no work after run() returns.
+func quiesce_for_script_swap() -> Dictionary:
+	return {"ok": true}
+
+
 ## Every tool needs the editor undo manager (injected by the addon's
 ## EditorPlugin, or by the test suite).
 func _context_error() -> Dictionary:
@@ -263,12 +269,11 @@ func _add_undo_call(undo: Object, target: Object, method: String, args: Array = 
 ## Add nodes in one scene-pinned undo action, each owned by the edited scene
 ## root so the scene save keeps them, then run their setup calls
 ## ([{method, args?} | {property, value}]). Entries are
-## {parent, node, setup?, existing?} and are added in order (parents before
-## children); `existing: true` skips the add and only runs the setup calls, so
-## a call list can target a node that is already in the scene. Instance levels
-## between a parent and the scene root get Editable Children turned on, because
-## the editor only serializes overrides inside an editable instance. Undo
-## removes the added nodes, so the setup calls need no undo counterparts.
+## {parent, node, setup?, undo_setup?, existing?} and are added in order.
+## `existing: true` skips the add but runs the setup calls on a node already in
+## the scene; callers must provide undo_setup for mutations to that node.
+## Instance levels between a parent and the scene root get Editable Children
+## turned on so overrides inside imported scenes are saved.
 func _commit_node_add_many(action_label: String, entries: Array) -> void:
 	if _dry_run:
 		return
@@ -277,8 +282,8 @@ func _commit_node_add_many(action_label: String, entries: Array) -> void:
 	var scene_root := EditorInterface.get_edited_scene_root()
 	var seen_levels := {}
 	for entry in entries:
-		if entry.get("existing", false):
-			continue
+		# An existing skeleton inside an imported scene also needs editable
+		# children before appended bones can be serialized as overrides.
 		for level in _instance_levels(entry.parent):
 			var key := str(level.instance.get_path())
 			if seen_levels.has(key):
@@ -299,6 +304,11 @@ func _commit_node_add_many(action_label: String, entries: Array) -> void:
 				undo.add_do_property(node, call.property, call.value)
 			else:
 				_add_do_call(undo, node, call.method, call.get("args", []))
+		for call in entry.get("undo_setup", []):
+			if call.has("property"):
+				undo.add_undo_property(node, call.property, call.value)
+			else:
+				_add_undo_call(undo, node, call.method, call.get("args", []))
 	undo.commit_action()
 
 

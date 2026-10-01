@@ -40,6 +40,11 @@ func _scale_distances_to_rig(config: Dictionary, params: Dictionary, overrides: 
 	var explicit: Array = []
 	for key in params:
 		explicit.append(str(key))
+	# Friendly jump aliases write their canonical config keys below. Treat them
+	# as explicit too, or a caller's 0.5 m jump silently changes with rig size.
+	for alias in {"height": "jump_height", "distance": "jump_distance", "crouch": "jump_crouch"}:
+		if params.has(alias):
+			explicit.append({"height": "jump_height", "distance": "jump_distance", "crouch": "jump_crouch"}[alias])
 	for key in overrides:
 		explicit.append(str(key))
 	MotionSpecs.scale_distances_to_rig(config, ctx, explicit, MotionSpecs.REFERENCE_LEG)
@@ -58,6 +63,10 @@ const _OVERRIDE_KEYS := {
 	"jump": ["jump_height", "jump_crouch", "jump_distance", "arm_swing", "elbow", "lean"],
 	"turn": ["turn_angle", "arm_swing", "elbow", "foot_lift", "steps"],
 }
+
+## A single request can otherwise allocate tens of millions of keys by asking
+## for a very long clip at 120 samples/s. Check before MotionSpecs builds keys.
+const MAX_CYCLE_INTERVALS := 1200
 
 
 ## Rollup entry registered with the Godot AI tool registry.
@@ -113,8 +122,9 @@ func _run_cycle(params: Dictionary, kind: String) -> Dictionary:
 		var player_resolved := _resolve_player(str(params.get("player_path", "")))
 		if not player_resolved.has("error"):
 			var root_node := ValueCodec.player_root_node(player_resolved.player)
-			if root_node != null:
-				root_motion_track = "%s:%s" % [str(root_node.get_path_to(prepared.resolved.node)), str(prepared.ctx.hips)]
+			var motion_node := _root_motion_node(root_node, prepared.resolved.node) if root_node != null else null
+			if motion_node != null:
+				root_motion_track = "%s:position" % str(root_node.get_path_to(motion_node))
 				extra_props.append({
 					"object": player_resolved.player,
 					"property": "root_motion_track",
@@ -221,6 +231,13 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 	ctx["direction"] = direction
 	ctx["phase"] = clampf(float(params.get("phase", 0.0)), 0.0, 0.999)
 	if kind == "strafe":
+		var ankle_gap := absf(((ctx.legs.l.ankle as Vector3) -
+			(ctx.legs.r.ankle as Vector3)).dot(ctx.lateral as Vector3))
+		var smaller_leg := minf(float(ctx.legs.l.upper) + float(ctx.legs.l.lower),
+			float(ctx.legs.r.upper) + float(ctx.legs.r.lower))
+		if ankle_gap <= maxf(0.001, smaller_leg * 0.02):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"Strafe needs distinct left/right rest ankle spacing along the rig's lateral axis; check foot roles and rest pose")
 		ctx["step_axis"] = (built.ctx.lateral as Vector3) * (1.0 if direction == "left" else -1.0)
 		ctx["knee_hint"] = built.ctx.forward
 	var result: Dictionary
@@ -237,6 +254,19 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 			result = MotionSpecs.transition_keys(ctx, kind == "walk_stop")
 		_:
 			result = MotionSpecs.gait_keys(ctx, kind == "run")
+	var result_meta: Dictionary = result.get("meta", {})
+	if result_meta.has("reach_error"):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, str(result_meta.reach_error))
+	if kind == "walk" and float(params.get("speed", 0.0)) > 0.0 \
+			and float(result_meta.get("speed", 0.0)) < float(params.speed) - 0.001:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Requested walk speed %.3f m/s exceeds the reachable %.3f m/s at duration %.3f s; lower speed or shorten duration" % [
+				float(params.speed), float(result_meta.get("speed", 0.0)), length])
+	if kind == "strafe" and float(params.get("speed", 0.0)) > 0.0 \
+			and bool((result.get("meta", {}) as Dictionary).get("lateral_capped", false)):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Requested strafe speed %.3f m/s would cross this rig's feet at duration %.3fs; use speed <= %.3f m/s or shorten duration" % [
+				float(params.speed), length, float((result.meta as Dictionary).lateral_speed_cap)])
 	var keys: Dictionary = result.get("keys", {})
 	if keys.is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
@@ -254,7 +284,7 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		"style": style,
 		"kind": kind,
 		"anim_name": str(params.get("animation_name", kind)),
-		"rooted": bool(built.ctx.get("root_motion", false)) and not str(built.ctx.get("hips", "")).is_empty(),
+		"rooted": bool(built.ctx.get("root_motion", false)) and keys.has("__root_motion__"),
 	}
 
 
@@ -288,11 +318,13 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 	var player_root := ValueCodec.player_root_node(player)
 	if player_root == null:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "The AnimationPlayer has no resolvable root_node")
-	var walk_speed := maxf(float(params.get("speed", 1.4)), 0.0)
+	# An omitted speed lets the gait choose a rig-relative, reachable walk.
+	# Explicit speeds remain exact requests and fail before any scene mutation.
+	var walk_speed := float(params.get("speed", 0.0))
 	var run_speed := maxf(float(params.get("run_speed", 4.0)), 0.0)
-	if walk_speed <= 0.0 or run_speed <= walk_speed:
+	if (params.has("speed") and walk_speed <= 0.0) or run_speed <= maxf(walk_speed, 0.0):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
-			"character_setup needs 0 < speed < run_speed (got speed=%.3f, run_speed=%.3f)" % [walk_speed, run_speed])
+			"character_setup needs 0 < speed < run_speed when speed is provided (got speed=%.3f, run_speed=%.3f)" % [walk_speed, run_speed])
 	var overwrite := bool(params.get("overwrite", true))
 	var root_motion := bool(params.get("root_motion", true))
 	var include_jump := bool(params.get("include_jump", false))
@@ -394,7 +426,7 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 	var run_solved := float((clips.get(str(clips_by_kind.run), {}) as Dictionary).get("speed", run_speed))
 	var speed_warnings: Array = []
 	for pair in [[str(clips_by_kind.walk), walk_speed, walk_solved], [str(clips_by_kind.run), run_speed, run_solved]]:
-		if absf(float(pair[1]) - float(pair[2])) > 0.01:
+		if float(pair[1]) > 0.0 and absf(float(pair[1]) - float(pair[2])) > 0.01:
 			speed_warnings.append("%s: requested %.2f m/s, the stride cap allows %.2f m/s - the blend point uses the solved speed"
 				% [str(pair[0]), float(pair[1]), float(pair[2])])
 	var built_space := GraphBuilders.blend_space({
@@ -452,14 +484,20 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 			tree_parent = player.get_parent() if player.get_parent() != null else scene_root
 			created_tree = true
 	var root_motion_track := ""
-	if root_motion and not str(prepared_list[0].ctx.get("hips", "")).is_empty():
-		root_motion_track = "%s:%s" % [str(player_root.get_path_to(prepared_list[0].resolved.node)), str(prepared_list[0].ctx.hips)]
+	if root_motion:
+		var motion_node := _root_motion_node(player_root, prepared_list[0].resolved.node)
+		if motion_node == null:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"Root motion needs a Node3D character owner under the AnimationPlayer root_node")
+		root_motion_track = "%s:position" % str(player_root.get_path_to(motion_node))
 	var want_active := bool(params.get("active", false))
 	var old_root: AnimationRootNode = tree.tree_root if not created_tree else null
 	var old_anim_player := tree.anim_player
 	var old_active := tree.active
 	var old_tree_root_motion := tree.root_motion_track
 	var old_player_root_motion := player.root_motion_track
+	var old_tree_root_motion_local := tree.root_motion_local
+	var old_player_root_motion_local := player.root_motion_local
 	var wanted_player := _tree_anim_player_path(tree, player, tree_parent, created_tree)
 	if not _dry_run:
 		_create_scene_pinned_action("MCP: Character setup")
@@ -483,6 +521,10 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 			undo.add_undo_property(player, "root_motion_track", old_player_root_motion)
 			undo.add_do_property(tree, "root_motion_track", NodePath(root_motion_track))
 			undo.add_undo_property(tree, "root_motion_track", old_tree_root_motion)
+			undo.add_do_property(player, "root_motion_local", true)
+			undo.add_undo_property(player, "root_motion_local", old_player_root_motion_local)
+			undo.add_do_property(tree, "root_motion_local", true)
+			undo.add_undo_property(tree, "root_motion_local", old_tree_root_motion_local)
 		undo.commit_action()
 	var tree_label := ""
 	if created_tree:
@@ -620,6 +662,7 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 			"parent_index": parent_index,
 			"parent_rest": skeleton.get_bone_global_rest(parent_index).basis,
 			"bone_rest": skeleton.get_bone_global_rest(index).basis,
+			"local_rest": skeleton.get_bone_rest(index).basis,
 		}
 	var fps := clampf(float(params.get("samples", 30.0)), 4.0, 120.0)
 	var steps := maxi(2, int(round(length * fps)))
@@ -659,9 +702,13 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 			var time := length * float(step) / float(steps)
 			var state: Quaternion = states[mini(step * substeps, states.size() - 1)]
 			var parent_global: Basis = parent_globals[bone_name][step]
+			var info: Dictionary = infos[bone_name]
+			# Skeleton3D rotation tracks are pose deltas after the local rest
+			# basis. Omitting that inverse keys the rest orientation itself; a
+			# sideways jaw or tail then jumps as soon as the clip begins.
 			keys.append({
 				"time": time,
-				"value": (parent_global.inverse() * Basis(state)).get_rotation_quaternion().normalized(),
+				"value": ((info.local_rest as Basis).inverse() * parent_global.inverse() * Basis(state)).get_rotation_quaternion().normalized(),
 				"transition": "linear",
 			})
 		ClipSpec.align_quaternions(keys)
@@ -729,6 +776,25 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 	if loop_result.has("error"):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, loop_result.error)
 	var rate := clampf(float(params.get("samples", 24.0)), 4.0, 120.0)
+	var intervals := MotionDrivers.sample_count(length, rate)
+	if (kind == "walk" or kind == "run") and intervals < 24:
+		# `samples` is a requested density, not permission to commit a gait that
+		# misses the knee turn and cuts its own floor. Short clips need a higher
+		# keys-per-second rate for the same number of phase samples.
+		rate = minf(120.0, maxf(24.0, 24.0 / length))
+		intervals = MotionDrivers.sample_count(length, rate)
+		if intervals < 24:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+				"A walk/run loop needs 24 sampled intervals for stable leg playback; duration %.3f s is too short at the 120 keys/s limit" % length)
+	if kind == "jump" and rate < 120.0:
+		# Landing foot IK must be authored densely enough that engine
+		# interpolation stays above the floor between solved samples.
+		rate = 120.0
+		intervals = MotionDrivers.sample_count(length, rate)
+	if intervals > MAX_CYCLE_INTERVALS:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"duration × samples exceeds the %d-interval motion budget (requested %d); shorten duration or lower samples"
+				% [MAX_CYCLE_INTERVALS, intervals])
 	# The rest map, the leg map and the rig frame are the three measurements a
 	# recipe needs, and they are the same three for everyone - so they live in the
 	# spec layer, where a headless test can reach them, and the handler reads them
@@ -778,6 +844,7 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 			"up": up,
 			"lateral": lateral,
 			"hips": hips,
+			"hips_parent_basis": measured.hips_parent_basis,
 			"hips_origin": rest[hips].origin if not hips.is_empty() else Vector3.ZERO,
 			"legs": legs,
 			"rest": rest,

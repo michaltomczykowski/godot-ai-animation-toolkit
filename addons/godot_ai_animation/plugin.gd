@@ -123,7 +123,11 @@ func _register() -> void:
 	# and commits everything second, which matches how the server treats a
 	# snapshot. `registry` is the fallback for an older core addon.
 	if live.has_method("batch_register"):
-		_registered = bool(live.call("batch_register", specs))
+		# call() does not coerce Array to Array[McpCustomToolSpec]. Construct the
+		# typed array from the dynamically loaded script, so this addon still
+		# parses when Godot AI is not installed.
+		var typed_specs := Array(specs, TYPE_OBJECT, &"RefCounted", spec_script)
+		_registered = bool(live.call("batch_register", typed_specs))
 	else:
 		_registered = true
 		for spec in specs:
