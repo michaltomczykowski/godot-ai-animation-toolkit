@@ -1475,5 +1475,10 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   pinned Godot AI backend, start a fresh headless 4.7.2 editor, then run the
   external probe before and after `editor_reload_plugin`. The launcher passed
   all three stages against the existing visible Windows editor. Fresh-runner
-  CI results are still pending. This route check establishes family access
-  and typed rejection; per-operation valid effects remain in the audit ledger.
+  CI run `36921193733` passed on Linux. Windows reached the launcher after
+  installing the backend, then failed before editor startup because Python's
+  Win32 process API could not execute the extensionless `godot` shim placed on
+  PATH by setup-godot. The runner now executes that shim through Git Bash on
+  Windows; the next CI run must confirm this correction. This route check
+  establishes family access and typed rejection; per-operation valid effects
+  remain in the audit ledger.

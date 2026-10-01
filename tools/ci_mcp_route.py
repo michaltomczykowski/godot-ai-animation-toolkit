@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import os
 from pathlib import Path
+import shlex
 import socket
 import subprocess
 import sys
@@ -56,8 +57,14 @@ def run(args: argparse.Namespace) -> int:
             env["PYTHONPATH"] = os.pathsep.join(filter(None, [source, env.get("PYTHONPATH", "")]))
             log_path.parent.mkdir(parents=True, exist_ok=True)
             log_stream = log_path.open("wb")
+            command = [args.godot, "--headless", "--editor", "--path", str(args.project)]
+            if os.name == "nt" and not Path(args.godot).is_file():
+                # setup-godot exposes an extensionless Bash launcher on Windows.
+                # Git Bash resolves it, while Win32 CreateProcess("godot") does not.
+                command = ["bash", "-c", "exec " + " ".join(map(shlex.quote,
+                    [args.godot, "--headless", "--editor", "--path", args.project.as_posix()]))]
             editor = subprocess.Popen(
-                [args.godot, "--headless", "--editor", "--path", str(args.project)],
+                command,
                 stdout=log_stream, stderr=subprocess.STDOUT, env=env,
             )
             print(f"MCP_CI_EDITOR_PID={editor.pid}", flush=True)
