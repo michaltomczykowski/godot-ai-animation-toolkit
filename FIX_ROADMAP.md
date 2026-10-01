@@ -1482,6 +1482,15 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   `bash` resolved to WSL on that runner, which has no distribution. The
   pinned setup-godot action installs the actual Windows executable at
   `%USERPROFILE%/godot/Godot_v4.7.2-stable_win64.exe`; the launcher now uses
-  that path with Win32 CreateProcess. The next CI run must confirm it. This route check
+  that path with Win32 CreateProcess. CI run `36921964461` confirmed it: all
+  28 tier-1 jobs, all four editor jobs, and both live MCP route jobs passed.
+  Each platform's MCP job found ten families, returned typed errors for their
+  unknown-operation probes, rejected cross-family rig calls, and passed again
+  after a core-plugin reload. This route check
   establishes family access and typed rejection; per-operation valid effects
   remain in the audit ledger.
+- Normalized the five motion/sequence `pass_editor_ui` undo labels to the
+  ledger's actual `pass` value; the evidence strings retain the UI method and
+  run logs. The regenerated 103-row audit now counts six real UI undo/redo
+  passes including `animation_presets.pulse`. Editor-only or incomplete undo
+  checks retain their qualified states, and no operation is marked verified.

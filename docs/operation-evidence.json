@@ -568,7 +568,7 @@
       "dry_run": "pass",
       "save_reopen": "pass",
       "playback": "pass_rooted_start_walk_stop_contact",
-      "undo_redo": "pass_editor_ui",
+      "undo_redo": "pass",
       "reported_errors": "partial",
       "visual_review": "partial_xbot"
     },
@@ -1958,7 +1958,7 @@
       "track_paths_types": "pass",
       "dry_run": "pass",
       "save_reopen": "pass",
-      "undo_redo": "pass_editor_ui",
+      "undo_redo": "pass",
       "playback": "pass_authored_keys",
       "contact": "pass_final_default_dummy_xbot_short_zup_30_60_120",
       "visual_review": "partial_xbot"
@@ -2068,7 +2068,7 @@
       "track_paths_types": "pass",
       "dry_run": "pass",
       "save_reopen": "pass",
-      "undo_redo": "pass_editor_ui",
+      "undo_redo": "pass",
       "playback": "pass_saved_authored_keys",
       "contact": "pass_final_default_dummy_xbot_short_zup_30_60_120",
       "visual_review": "partial_xbot"
@@ -2097,7 +2097,7 @@
       "track_paths_types": "pass",
       "dry_run": "pass",
       "save_reopen": "pass",
-      "undo_redo": "pass_editor_ui",
+      "undo_redo": "pass",
       "playback": "pass_saved_forward_root_and_contact",
       "contact": "pass_final_default_dummy_xbot_short_zup_30_60_120",
       "visual_review": "partial_xbot"
@@ -2127,7 +2127,7 @@
       "track_paths_types": "pass",
       "dry_run": "pass",
       "save_reopen": "pass",
-      "undo_redo": "pass_editor_ui",
+      "undo_redo": "pass",
       "playback": "pass_tree_root_extraction",
       "contact": "partial_walk_gait",
       "visual_review": "pending"
