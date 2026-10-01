@@ -803,6 +803,12 @@ func test_root_motion_engine_playback_keeps_world_stance_at_frame_rates() -> voi
 
 
 func test_xbot_rooted_walk_and_run_play_with_contact() -> void:
+	# X Bot is a local third-party review asset and is intentionally not shipped
+	# in this repository. Keep the test active wherever it is installed, and
+	# report the absent fixture explicitly on clean CI checkouts.
+	if not ResourceLoader.exists(XBOT):
+		skip("X Bot review asset is not installed at %s" % XBOT)
+		return
 	var rig := _rig("MotionXBot", XBOT)
 	assert_false(rig.has("error"), "X Bot imports as a playable rig: %s" % str(rig.get("error", "")))
 	if rig.has("error"):

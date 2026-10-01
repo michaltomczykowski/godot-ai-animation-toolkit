@@ -1420,3 +1420,18 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
 - The operation ledger now marks UI undo/redo passing for these four rows
   (and the previously checked `walk_start`). Other operations still need
   their own undo evidence; the 103-row audit remains at zero fully verified.
+
+### 2026-10-01 — Review branch CI fixture correction
+
+- Pushed the unreleased `repair/toolkit-quality` branch and opened draft PR #1.
+  The first GitHub Actions run passed all 28 tier-1 matrix jobs. All four
+  Windows/Linux editor jobs reached 217/218: their sole failure was the X Bot
+  playback test expecting `res://models/x_bot/X Bot.fbx`, a third-party local
+  review asset intentionally absent from the repository. Both platform logs
+  report no tool-route errors.
+- The X Bot test now explicitly skips only when that review asset is absent.
+  It still runs normally when X Bot is installed; the local Godot 4.7.2
+  editor run with the asset present passed 218/218 with zero skips. CI must
+  rerun after this correction. The missing CI asset does not count as visual
+  approval of X Bot motion; local played/rendered evidence remains in the
+  snapshot and the broader visual gate remains open.
