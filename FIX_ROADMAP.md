@@ -1562,3 +1562,10 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
 - This establishes a useful cross-orientation regression for the yaw-axis
   correction. Broader visual approval and the per-operation audit remain
   open; the candidate is not a declaration that character motion is finished.
+- Commit `0bde3cc` passed GitHub Actions run `37029256017`: all 28 tier-1
+  jobs, four editor suites and both live MCP route jobs passed on Windows and
+  Linux. The local duplicate-UID warnings after crash recovery came from two
+  ignored, hand-copied review scenes. Their header UIDs were stripped in the
+  local workspace; no tracked scene changed. Reviewing the fixed-camera side
+  and front sheets again confirms the yaw correction is small visually and
+  the walk's weight transfer remains unapproved.
