@@ -61,7 +61,13 @@ async def run(args: argparse.Namespace) -> int:
                          "windows")}
                         for side, foot in feet.items()}})
     print("MCP_MOTION_SAVED_AUDIT=" + json.dumps(rows, sort_keys=True))
-    return 0 if all(not row["open_error"] and not row["error"] for row in rows) else 1
+    failed = [row for row in rows if row["open_error"] or row["error"]
+              or row["passed"] is not True or row["failed_checks"]]
+    print("MCP_MOTION_SAVED_AUDIT_SUMMARY=" + json.dumps({
+        "rows": len(rows), "failed": len(failed),
+        "failed_ops": [f"{row['op']}@{row['fps']}" for row in failed],
+    }, sort_keys=True))
+    return 1 if failed else 0
 
 
 def main() -> int:

@@ -8,6 +8,7 @@ session, custom-tool registry and toolkit handlers before/after core reload.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 from pathlib import Path
 import socket
@@ -40,6 +41,44 @@ def probe(args: argparse.Namespace, reload: bool = False) -> subprocess.Complete
     if reload:
         cmd.append("--reload")
     return subprocess.run(cmd, capture_output=True, text=True, timeout=35, check=False)
+
+
+def motion_gate(args: argparse.Namespace) -> bool:
+    """Check a saved, played gait through the same external MCP route."""
+    common = [
+        "--core-root", str(args.core_root),
+        "--session-hint", args.project.name,
+        "--port", str(args.port), "--ws-port", str(args.ws_port),
+    ]
+    create = subprocess.run([
+        sys.executable, str(Path(__file__).with_name("mcp_motion_remaining_cycles.py")),
+        *common, "--project-root", str(args.project),
+        "--ops", "cycle", "walk_start", "walk_stop",
+    ], capture_output=True, text=True, timeout=90, check=False)
+    prefix = "MCP_MOTION_REMAINING="
+    payload = next((line[len(prefix):] for line in create.stdout.splitlines()
+                    if line.startswith(prefix)), "")
+    if create.returncode or not payload:
+        print("MCP_CI_FAIL=motion_create")
+        print((create.stdout + create.stderr)[-2500:])
+        return False
+    result = json.loads(payload)
+    if result.get("failures"):
+        print("MCP_CI_FAIL=motion_create: " + json.dumps(result["failures"]))
+        return False
+    audit = subprocess.run([
+        sys.executable, str(Path(__file__).with_name("mcp_motion_audit_saved.py")),
+        *common, "--run-id", result["run_id"],
+        "--ops", "cycle", "walk_start", "walk_stop", "--max-slide", "0.016",
+    ], capture_output=True, text=True, timeout=90, check=False)
+    summary = next((line for line in audit.stdout.splitlines()
+                    if line.startswith("MCP_MOTION_SAVED_AUDIT_SUMMARY=")), "")
+    if audit.returncode or not summary:
+        print("MCP_CI_FAIL=motion_playback")
+        print((audit.stdout + audit.stderr)[-3500:])
+        return False
+    print("MCP_CI_PASS=motion_playback " + summary, flush=True)
+    return True
 
 
 def run(args: argparse.Namespace) -> int:
@@ -116,6 +155,9 @@ def run(args: argparse.Namespace) -> int:
                 print(f"MCP_CI_FAIL={stage}")
                 print(tail(log_path))
                 return 1
+        if not motion_gate(args):
+            print(tail(log_path))
+            return 1
         return 0
     finally:
         if editor is not None and editor.poll() is None:

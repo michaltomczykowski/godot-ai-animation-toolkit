@@ -1569,3 +1569,22 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   local workspace; no tracked scene changed. Reviewing the fixed-camera side
   and front sheets again confirms the yaw correction is small visually and
   the walk's weight transfer remains unapproved.
+
+### 2026-10-02 — Make played motion failures fail the live route
+
+- Found that `mcp_motion_audit_saved.py` printed `passed=false` and
+  `failed_checks` but exited zero whenever the MCP calls themselves returned
+  without an error. The harness now returns nonzero for either failed checks
+  or missing/false `passed`, and prints a compact failed-operation summary.
+  A deliberately strict 0.1 mm slide cap failed two of three short-rig cycle
+  samples with exit 1; the normal 8 mm cap passed all nine short-rig
+  cycle/start/stop samples with exit 0. Evidence is in
+  `mcp_audit_{expected_failure,positive_gate}_20261002.log`.
+- The Windows/Linux live MCP CI route now creates dummy `cycle`, `walk_start`
+  and `walk_stop` clips through Godot AI, verifies dry-run immutability,
+  save/force-reopen and typed invalid-skeleton errors, then audits saved
+  playback at 30/60/120 FPS with a 16 mm stance-slide cap. It runs after
+  the existing before/reload/after tool-registration checks. Against the
+  visible Godot 4.7.2 editor, the full route passed all three registration
+  stages plus nine played audits (`ci_mcp_motion_gate_20261002.log`).
+  Cross-platform CI for this expanded gate is pending.
