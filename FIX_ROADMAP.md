@@ -1588,4 +1588,7 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   visible Godot 4.7.2 editor, the full route passed all three registration
   stages plus nine played audits (`ci_mcp_motion_gate_20261002.log`).
   GitHub Actions run `37030148239` then passed all 28 tier-1 jobs, four
-  editor suites and both expanded live MCP jobs on Windows and Linux.
+  editor suites and both expanded live MCP jobs on Windows and Linux. The
+  `cycle`, `walk_start` and `walk_stop` evidence rows now record Linux as
+  partial with that specific dummy-rig route/contact evidence; regenerating
+  the registry audit still reports 103 partial and 0 verified operations.
