@@ -1587,4 +1587,5 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   the existing before/reload/after tool-registration checks. Against the
   visible Godot 4.7.2 editor, the full route passed all three registration
   stages plus nine played audits (`ci_mcp_motion_gate_20261002.log`).
-  Cross-platform CI for this expanded gate is pending.
+  GitHub Actions run `37030148239` then passed all 28 tier-1 jobs, four
+  editor suites and both expanded live MCP jobs on Windows and Linux.
