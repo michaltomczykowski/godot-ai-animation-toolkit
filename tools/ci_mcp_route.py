@@ -267,6 +267,62 @@ def fx_playback_gate(args: argparse.Namespace) -> bool:
     return True
 
 
+def edit_playback_gate(args: argparse.Namespace) -> bool:
+    """Check edited clips through Godot AI and engine interpolation."""
+    simple = {"retime", "reverse", "mirror", "trim", "amplitude",
+              "resample", "layer", "offset", "loop", "key_edit", "overlap"}
+    remaining = {"retarget", "ease_range", "set_interp", "split_at",
+                 "merge", "cleanup", "smooth", "reduce", "add_noise"}
+    rejected = {"offset_wrap_reject", "overlap_wrap_reject"}
+    expected = simple | remaining | rejected
+    audit = subprocess.run([
+        sys.executable, str(Path(__file__).with_name("mcp_edit_audit.py")),
+        "--core-root", str(args.core_root),
+        "--project-root", str(args.project),
+        "--session-hint", args.project.name,
+        "--port", str(args.port), "--ws-port", str(args.ws_port),
+    ], capture_output=True, text=True, timeout=120, check=False)
+    marker = "MCP_EDIT_AUDIT="
+    payload = next((line[len(marker):] for line in audit.stdout.splitlines()
+                    if line.startswith(marker)), "")
+    if audit.returncode or not payload:
+        print("MCP_CI_FAIL=edit_route")
+        print((audit.stdout + audit.stderr)[-3000:])
+        return False
+    result = json.loads(payload)
+    rows = result.get("operations", [])
+    actual = {row.get("op") for row in rows}
+    if result.get("failures") or len(rows) != len(expected) or actual != expected:
+        print("MCP_CI_FAIL=edit_route: " + json.dumps({
+            "failures": result.get("failures"), "actual": sorted(actual)}))
+        return False
+    print("MCP_CI_PASS=edit_route", flush=True)
+    for row in rows:
+        op = row["op"]
+        if op in rejected:
+            continue
+        checker = ("res://tools/check_edit_runtime.gd" if op in simple
+                   else "res://tools/check_edit_remaining_runtime.gd")
+        marker = "EDIT_RUNTIME=" if op in simple else "EDIT_REMAINING="
+        playback = subprocess.run([
+            godot_executable(args.godot), "--headless", "--path",
+            str(args.project), "--script", checker,
+            "--", row["scene"], op,
+        ], capture_output=True, text=True, timeout=30, check=False)
+        reported = next((line[len(marker):] for line in playback.stdout.splitlines()
+                         if line.startswith(marker)), "")
+        if playback.returncode or not reported:
+            print("MCP_CI_FAIL=edit_saved_playback:" + op)
+            print((playback.stdout + playback.stderr)[-2500:])
+            return False
+        runtime = json.loads(reported)
+        if not runtime.get("samples") or float(runtime.get("worst_error", 100.0)) >= 1.0:
+            print("MCP_CI_FAIL=edit_saved_playback:" + op + " " + reported)
+            return False
+        print("MCP_CI_PASS=edit_saved_playback:" + op, flush=True)
+    return True
+
+
 def run(args: argparse.Namespace) -> int:
     editor: subprocess.Popen[bytes] | None = None
     log_stream = None
@@ -341,6 +397,9 @@ def run(args: argparse.Namespace) -> int:
             print(tail(log_path))
             return 1
         if not fx_playback_gate(args):
+            print(tail(log_path))
+            return 1
+        if not edit_playback_gate(args):
             print(tail(log_path))
             return 1
         return 0

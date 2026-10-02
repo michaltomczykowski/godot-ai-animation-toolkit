@@ -71,8 +71,9 @@ claim to undo file side effects it leaves behind.
 
 **Status:** In progress. The live MCP catalog, fixture invocation, real-project
 installation, core reload, direct-backend disable/re-enable notifications and
-rollback pass on Windows. Stdio attach notification forwarding and Linux
-remain to verify.
+rollback pass on Windows. The pinned-core registration/reload route also
+passes in Windows/Linux CI. Stdio attach notification forwarding and the
+remaining real-project/core combinations remain to verify.
 
 **Execution order:**
 
@@ -149,10 +150,12 @@ previews. Resolve each failed operation or mark it unavailable.
 saved-scene replay and one-step undo where promised. Representative output
 from every family has a recorded visual/effect review.
 
-**Status:** In progress. Eight graph operations have live MCP save/reopen and
-dry-run checks; active blend-space and automatically started state-machine
-graphs have runtime playback evidence. Sequence compose has a live MCP save/reopen and
-played-bone check; its boundary, gap, pose and ownership review remains open.
+**Status:** In progress. Eleven graph scenarios have live MCP save/reopen and
+dry-run checks; ten saved graphs have fresh-process AnimationTree playback
+evidence. All five rig-modifier operations have measured saved playback, and
+all 16 advertised FX operations have saved runtime checks in Windows/Linux
+CI. Sequence compose has a live MCP save/reopen and played-bone check; its
+boundary, gap, pose and ownership review remains open.
 
 ## Phase 5 — agent usability, CI and review
 
@@ -1858,3 +1861,17 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   per-operation Linux runtime evidence; `sprite_frames_stopped` is an extra
   `sprite_frames` parameter case. Visual previews, audio audibility and full
   editor Undo/Redo for every FX operation remain open.
+
+### 2026-10-03 — Gate saved clip edits on engine playback
+
+- Repeated the 22-case `animation_edit` audit through the visible Godot AI
+  editor (`mcp_edit_full_repeat_20261003.log`, run `20261002_224359`). Twenty
+  supported edit cases passed dry/write/save/forced-reopen and resolved-track
+  checks. `offset_wrap_reject` and `overlap_wrap_reject` returned typed
+  `VALUE_OUT_OF_RANGE` in both dry/write calls and left the clip unchanged.
+  Fresh Godot 4.7.2 processes then played all 20 saved valid edits and met
+  their operation-specific engine interpolation samples.
+- Added those 22 cases to the live MCP CI route. The focused local gate
+  passed all 20 saved playback checks (`mcp_ci_edit_gate_local.log`);
+  Windows/Linux CI is pending. Visual review, full editor Undo/Redo and
+  non-default interpolation/track combinations remain open.
