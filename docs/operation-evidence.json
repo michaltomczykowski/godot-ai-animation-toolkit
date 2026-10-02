@@ -258,7 +258,7 @@
     "fixture": "res://repair_edit_audit/20260929_200905/retime.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -272,7 +272,8 @@
       "2026-09-29: live Godot AI MCP fresh-scene edit audit; dry run left clip unchanged, write changed the described clip, and save/force reopen preserved resolved tracks. See mcp_edit_seven_verified.log, run id 20260929_194514. Playback, UI undo, errors, visual and Linux pending.",
       "2026-09-29: test_project/tools/check_edit_runtime.gd played the saved clip in Godot 4.7.2 and measured Character.x at start, midpoint and end. All seven operations matched expected engine-evaluated values within 0.02 units; see the 20260929_194514 edit fixtures. UI undo, error cases, visual review and Linux remain pending.",
       "2026-09-29: fresh live Godot AI MCP rerun and saved Godot 4.7.2 playback passed for this operation; see mcp_edit_hold_verified.log, run id 20260929_195930.",
-      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905."
+      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
     ]
   },
   "animation_edit.reverse": {
@@ -280,7 +281,7 @@
     "fixture": "res://repair_edit_audit/20260929_200905/reverse.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -294,7 +295,8 @@
       "2026-09-29: live Godot AI MCP fresh-scene edit audit; dry run left clip unchanged, write changed the described clip, and save/force reopen preserved resolved tracks. See mcp_edit_seven_verified.log, run id 20260929_194514. Playback, UI undo, errors, visual and Linux pending.",
       "2026-09-29: test_project/tools/check_edit_runtime.gd played the saved clip in Godot 4.7.2 and measured Character.x at start, midpoint and end. All seven operations matched expected engine-evaluated values within 0.02 units; see the 20260929_194514 edit fixtures. UI undo, error cases, visual review and Linux remain pending.",
       "2026-09-29: fresh live Godot AI MCP rerun and saved Godot 4.7.2 playback passed for this operation; see mcp_edit_hold_verified.log, run id 20260929_195930.",
-      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905."
+      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
     ]
   },
   "animation_edit.mirror": {
@@ -302,7 +304,7 @@
     "fixture": "res://repair_edit_audit/20260929_200905/mirror.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -316,7 +318,8 @@
       "2026-09-29: live Godot AI MCP fresh-scene edit audit; dry run left clip unchanged, write changed the described clip, and save/force reopen preserved resolved tracks. See mcp_edit_seven_verified.log, run id 20260929_194514. Playback, UI undo, errors, visual and Linux pending.",
       "2026-09-29: test_project/tools/check_edit_runtime.gd played the saved clip in Godot 4.7.2 and measured Character.x at start, midpoint and end. All seven operations matched expected engine-evaluated values within 0.02 units; see the 20260929_194514 edit fixtures. UI undo, error cases, visual review and Linux remain pending.",
       "2026-09-29: fresh live Godot AI MCP rerun and saved Godot 4.7.2 playback passed for this operation; see mcp_edit_hold_verified.log, run id 20260929_195930.",
-      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905."
+      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
     ]
   },
   "animation_edit.trim": {
@@ -324,7 +327,7 @@
     "fixture": "res://repair_edit_audit/20260929_200905/trim.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -338,7 +341,8 @@
       "2026-09-29: live Godot AI MCP fresh-scene edit audit; dry run left clip unchanged, write changed the described clip, and save/force reopen preserved resolved tracks. Inspector float time 0.6 became 0.6000000238 after serialization, within 1e-5. See mcp_edit_seven_verified.log, run id 20260929_194514. Playback, UI undo, errors, visual and Linux pending.",
       "2026-09-29: test_project/tools/check_edit_runtime.gd played the saved clip in Godot 4.7.2 and measured Character.x at start, midpoint and end. All seven operations matched expected engine-evaluated values within 0.02 units; see the 20260929_194514 edit fixtures. UI undo, error cases, visual review and Linux remain pending.",
       "2026-09-29: fresh live Godot AI MCP rerun and saved Godot 4.7.2 playback passed for this operation; see mcp_edit_hold_verified.log, run id 20260929_195930.",
-      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905."
+      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
     ]
   },
   "animation_edit.amplitude": {
@@ -346,7 +350,7 @@
     "fixture": "res://repair_edit_audit/20260929_200905/amplitude.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -360,7 +364,8 @@
       "2026-09-29: live Godot AI MCP fresh-scene edit audit; dry run left clip unchanged, write changed the described clip, and save/force reopen preserved resolved tracks. See mcp_edit_seven_verified.log, run id 20260929_194514. Playback, UI undo, errors, visual and Linux pending.",
       "2026-09-29: test_project/tools/check_edit_runtime.gd played the saved clip in Godot 4.7.2 and measured Character.x at start, midpoint and end. All seven operations matched expected engine-evaluated values within 0.02 units; see the 20260929_194514 edit fixtures. UI undo, error cases, visual review and Linux remain pending.",
       "2026-09-29: fresh live Godot AI MCP rerun and saved Godot 4.7.2 playback passed for this operation; see mcp_edit_hold_verified.log, run id 20260929_195930.",
-      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905."
+      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
     ]
   },
   "animation_edit.resample": {
@@ -368,7 +373,7 @@
     "fixture": "res://repair_edit_audit/20260929_200905/resample.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -382,7 +387,8 @@
       "2026-09-29: live Godot AI MCP fresh-scene edit audit; dry run left clip unchanged, write changed the described clip, and save/force reopen preserved resolved tracks. See mcp_edit_seven_verified.log, run id 20260929_194514. Playback, UI undo, errors, visual and Linux pending.",
       "2026-09-29: test_project/tools/check_edit_runtime.gd played the saved clip in Godot 4.7.2 and measured Character.x at start, midpoint and end. All seven operations matched expected engine-evaluated values within 0.02 units; see the 20260929_194514 edit fixtures. UI undo, error cases, visual review and Linux remain pending.",
       "2026-09-29: fresh live Godot AI MCP rerun and saved Godot 4.7.2 playback passed for this operation; see mcp_edit_hold_verified.log, run id 20260929_195930.",
-      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905."
+      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
     ]
   },
   "animation_edit.layer": {
@@ -390,7 +396,7 @@
     "fixture": "res://repair_edit_audit/20260929_200905/layer.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -404,7 +410,8 @@
       "2026-09-29: initial live audit returned VALUE_OUT_OF_RANGE for a valid Vector2 position overlay because additive layer math omitted Vector2. The repair adds weighted Vector2 deltas; focused tier-1 quality suite passed 82 checks and full editor suite 211/211. Fresh live Godot AI MCP run passed dry-run, changed clip, resolved tracks and save/reopen. See mcp_edit_first.log and mcp_edit_seven_verified.log, run id 20260929_194514. Playback, UI undo, errors, visual and Linux pending.",
       "2026-09-29: test_project/tools/check_edit_runtime.gd played the saved clip in Godot 4.7.2 and measured Character.x at start, midpoint and end. All seven operations matched expected engine-evaluated values within 0.02 units; see the 20260929_194514 edit fixtures. UI undo, error cases, visual review and Linux remain pending.",
       "2026-09-29: fresh live Godot AI MCP rerun and saved Godot 4.7.2 playback passed for this operation; see mcp_edit_hold_verified.log, run id 20260929_195930.",
-      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905."
+      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
     ]
   },
   "animation_graph.state_machine": {
@@ -634,7 +641,7 @@
     "fixture": "res://repair_edit_audit/20260929_200905/offset.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -649,7 +656,8 @@
     "evidence": [
       "2026-09-29: live Godot AI MCP fresh-scene audit on Godot 4.7.2; dry run preserved the source, write changed the clip, tracks resolved after save/reopen, and engine playback matched expected start/mid/end values within 0.02 units. See mcp_edit_hold_verified.log, run id 20260929_195930. UI undo, visual and Linux remain pending.",
       "2026-09-29: wrap=true on a discontinuous 0→100 endpoint seam returned VALUE_OUT_OF_RANGE for dry and write without changing the saved clip; nonwrapped delay held the initial pose until motion began. The first audit had falsely accepted a constant one-key clip; see mcp_edit_eleven.log and mcp_edit_hold_verified.log.",
-      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905."
+      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
     ]
   },
   "animation_edit.loop": {
@@ -657,7 +665,7 @@
     "fixture": "res://repair_edit_audit/20260929_200905/loop.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -671,7 +679,8 @@
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP fresh-scene audit on Godot 4.7.2; dry run preserved the source, write changed the clip, tracks resolved after save/reopen, and engine playback matched expected start/mid/end values within 0.02 units. See mcp_edit_hold_verified.log, run id 20260929_195930. UI undo, visual and Linux remain pending.",
-      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905."
+      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
     ]
   },
   "animation_edit.key_edit": {
@@ -679,7 +688,7 @@
     "fixture": "res://repair_edit_audit/20260929_200905/key_edit.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -693,7 +702,8 @@
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP fresh-scene audit on Godot 4.7.2; dry run preserved the source, write changed the clip, tracks resolved after save/reopen, and engine playback matched expected start/mid/end values within 0.02 units. See mcp_edit_hold_verified.log, run id 20260929_195930. UI undo, visual and Linux remain pending.",
-      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905."
+      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
     ]
   },
   "animation_edit.overlap": {
@@ -701,7 +711,7 @@
     "fixture": "res://repair_edit_audit/20260929_200905/overlap.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -716,7 +726,8 @@
     "evidence": [
       "2026-09-29: live Godot AI MCP fresh-scene audit on Godot 4.7.2; dry run preserved the source, write changed the clip, tracks resolved after save/reopen, and engine playback matched expected start/mid/end values within 0.02 units. See mcp_edit_hold_verified.log, run id 20260929_195930. UI undo, visual and Linux remain pending.",
       "2026-09-29: wrap=true on a discontinuous 0→100 endpoint seam returned VALUE_OUT_OF_RANGE for dry and write without changing the saved clip; nonwrapped delay held the initial pose until motion began. The first audit had falsely accepted a constant one-key clip; see mcp_edit_eleven.log and mcp_edit_hold_verified.log.",
-      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905."
+      "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
     ]
   },
   "animation_edit.retarget": {
@@ -724,91 +735,7 @@
     "fixture": "res://repair_edit_audit/20260929_200905/retarget.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
-    },
-    "checks": {
-      "mcp_invocation": "pass",
-      "valid_effect": "pass",
-      "track_paths_types": "pass",
-      "dry_run": "pass",
-      "save_reopen": "pass",
-      "playback": "pass",
-      "undo_redo": "pending",
-      "visual_review": "pending"
-    },
-    "evidence": [
-      "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending."
-    ]
-  },
-  "animation_edit.ease_range": {
-    "status": "partial",
-    "fixture": "res://repair_edit_audit/20260929_200905/ease_range.tscn",
-    "platforms": {
-      "windows": "partial",
-      "linux": "pending"
-    },
-    "checks": {
-      "mcp_invocation": "pass",
-      "valid_effect": "pass",
-      "track_paths_types": "pass",
-      "dry_run": "pass",
-      "save_reopen": "pass",
-      "playback": "pass",
-      "undo_redo": "pending",
-      "visual_review": "pending"
-    },
-    "evidence": [
-      "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending."
-    ]
-  },
-  "animation_edit.set_interp": {
-    "status": "partial",
-    "fixture": "res://repair_edit_audit/20260929_200905/set_interp.tscn",
-    "platforms": {
-      "windows": "partial",
-      "linux": "pending"
-    },
-    "checks": {
-      "mcp_invocation": "pass",
-      "valid_effect": "pass",
-      "track_paths_types": "pass",
-      "dry_run": "pass",
-      "save_reopen": "pass",
-      "playback": "pass",
-      "undo_redo": "pending",
-      "visual_review": "pending"
-    },
-    "evidence": [
-      "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending."
-    ]
-  },
-  "animation_edit.split_at": {
-    "status": "partial",
-    "fixture": "res://repair_edit_audit/20260929_200905/split_at.tscn",
-    "platforms": {
-      "windows": "partial",
-      "linux": "pending"
-    },
-    "checks": {
-      "mcp_invocation": "pass",
-      "valid_effect": "pass",
-      "track_paths_types": "pass",
-      "dry_run": "pass",
-      "save_reopen": "pass",
-      "playback": "pass",
-      "undo_redo": "pending",
-      "visual_review": "pending"
-    },
-    "evidence": [
-      "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending."
-    ]
-  },
-  "animation_edit.merge": {
-    "status": "partial",
-    "fixture": "res://repair_edit_audit/20260929_200905/merge.tscn",
-    "platforms": {
-      "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -822,7 +749,96 @@
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending.",
-      "2026-09-29: first saved merge erased the end of its first source at a conflicting seam. The repair preserves the outgoing value at 0.9999 s and incoming value at 1.0 s; playback showed x≈50 at 0.5 s and x=100 at 1.5 s. The 0.1 ms hard cut between incompatible source positions remains a deliberate cut; quality audit and transition/blend review remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+    ]
+  },
+  "animation_edit.ease_range": {
+    "status": "partial",
+    "fixture": "res://repair_edit_audit/20260929_200905/ease_range.tscn",
+    "platforms": {
+      "windows": "partial",
+      "linux": "partial"
+    },
+    "checks": {
+      "mcp_invocation": "pass",
+      "valid_effect": "pass",
+      "track_paths_types": "pass",
+      "dry_run": "pass",
+      "save_reopen": "pass",
+      "playback": "pass",
+      "undo_redo": "pending",
+      "visual_review": "pending"
+    },
+    "evidence": [
+      "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending.",
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+    ]
+  },
+  "animation_edit.set_interp": {
+    "status": "partial",
+    "fixture": "res://repair_edit_audit/20260929_200905/set_interp.tscn",
+    "platforms": {
+      "windows": "partial",
+      "linux": "partial"
+    },
+    "checks": {
+      "mcp_invocation": "pass",
+      "valid_effect": "pass",
+      "track_paths_types": "pass",
+      "dry_run": "pass",
+      "save_reopen": "pass",
+      "playback": "pass",
+      "undo_redo": "pending",
+      "visual_review": "pending"
+    },
+    "evidence": [
+      "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending.",
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+    ]
+  },
+  "animation_edit.split_at": {
+    "status": "partial",
+    "fixture": "res://repair_edit_audit/20260929_200905/split_at.tscn",
+    "platforms": {
+      "windows": "partial",
+      "linux": "partial"
+    },
+    "checks": {
+      "mcp_invocation": "pass",
+      "valid_effect": "pass",
+      "track_paths_types": "pass",
+      "dry_run": "pass",
+      "save_reopen": "pass",
+      "playback": "pass",
+      "undo_redo": "pending",
+      "visual_review": "pending"
+    },
+    "evidence": [
+      "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending.",
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+    ]
+  },
+  "animation_edit.merge": {
+    "status": "partial",
+    "fixture": "res://repair_edit_audit/20260929_200905/merge.tscn",
+    "platforms": {
+      "windows": "partial",
+      "linux": "partial"
+    },
+    "checks": {
+      "mcp_invocation": "pass",
+      "valid_effect": "pass",
+      "track_paths_types": "pass",
+      "dry_run": "pass",
+      "save_reopen": "pass",
+      "playback": "pass",
+      "undo_redo": "pending",
+      "visual_review": "pending"
+    },
+    "evidence": [
+      "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending.",
+      "2026-09-29: first saved merge erased the end of its first source at a conflicting seam. The repair preserves the outgoing value at 0.9999 s and incoming value at 1.0 s; playback showed x≈50 at 0.5 s and x=100 at 1.5 s. The 0.1 ms hard cut between incompatible source positions remains a deliberate cut; quality audit and transition/blend review remain open.",
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
     ]
   },
   "animation_edit.cleanup": {
@@ -830,7 +846,7 @@
     "fixture": "res://repair_edit_audit/20260929_200905/cleanup.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -843,7 +859,8 @@
       "visual_review": "pending"
     },
     "evidence": [
-      "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending."
+      "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending.",
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
     ]
   },
   "animation_edit.smooth": {
@@ -851,7 +868,7 @@
     "fixture": "res://repair_edit_audit/20260929_200905/smooth.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -864,7 +881,8 @@
       "visual_review": "pending"
     },
     "evidence": [
-      "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending."
+      "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending.",
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
     ]
   },
   "animation_edit.reduce": {
@@ -872,7 +890,7 @@
     "fixture": "res://repair_edit_audit/20260929_200905/reduce.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -885,7 +903,8 @@
       "visual_review": "pending"
     },
     "evidence": [
-      "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending."
+      "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending.",
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
     ]
   },
   "animation_edit.add_noise": {
@@ -893,7 +912,7 @@
     "fixture": "res://repair_edit_audit/20260929_200905/add_noise.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -906,7 +925,8 @@
       "visual_review": "pending"
     },
     "evidence": [
-      "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending."
+      "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending.",
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
     ]
   },
   "animation_inspect.timeline": {

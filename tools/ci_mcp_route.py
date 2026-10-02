@@ -323,6 +323,57 @@ def edit_playback_gate(args: argparse.Namespace) -> bool:
     return True
 
 
+def preset_playback_gate(args: argparse.Namespace) -> bool:
+    """Play all saved preset clips, including the seven-clip showcase."""
+    expected = {"pulse", "bounce", "orbit", "sweep", "drift", "spin",
+                "float", "stagger", "showcase"}
+    audit = subprocess.run([
+        sys.executable, str(Path(__file__).with_name("mcp_presets_audit.py")),
+        "--core-root", str(args.core_root),
+        "--project-root", str(args.project),
+        "--session-hint", args.project.name,
+        "--port", str(args.port), "--ws-port", str(args.ws_port),
+    ], capture_output=True, text=True, timeout=120, check=False)
+    marker = "MCP_PRESETS_AUDIT="
+    payload = next((line[len(marker):] for line in audit.stdout.splitlines()
+                    if line.startswith(marker)), "")
+    if audit.returncode or not payload:
+        print("MCP_CI_FAIL=preset_route")
+        print((audit.stdout + audit.stderr)[-3000:])
+        return False
+    result = json.loads(payload)
+    rows = result.get("operations", [])
+    actual = {row.get("op") for row in rows}
+    if result.get("failures") or len(rows) != len(expected) or actual != expected:
+        print("MCP_CI_FAIL=preset_route: " + json.dumps({
+            "failures": result.get("failures"), "actual": sorted(actual)}))
+        return False
+    print("MCP_CI_PASS=preset_route", flush=True)
+    for row in rows:
+        op = row["op"]
+        playback = subprocess.run([
+            godot_executable(args.godot), "--headless", "--path",
+            str(args.project), "--script",
+            "res://tools/check_presets_saved_playback.gd",
+            "--", row["scene"], op,
+        ], capture_output=True, text=True, timeout=30, check=False)
+        marker = ("PRESET_SHOWCASE_PLAYBACK=" if op == "showcase"
+                  else "PRESET_SAVED_PLAYBACK=")
+        reported = next((line[len(marker):] for line in playback.stdout.splitlines()
+                         if line.startswith(marker)), "")
+        if playback.returncode or not reported:
+            print("MCP_CI_FAIL=preset_saved_playback:" + op)
+            print((playback.stdout + playback.stderr)[-2500:])
+            return False
+        runtime = json.loads(reported)
+        if runtime.get("failures") or (op == "showcase" and len(runtime.get("rows", [])) != 7) \
+                or (op != "showcase" and float(runtime.get("maximum_change", 0.0)) <= 0.001):
+            print("MCP_CI_FAIL=preset_saved_playback:" + op + " " + reported)
+            return False
+        print("MCP_CI_PASS=preset_saved_playback:" + op, flush=True)
+    return True
+
+
 def run(args: argparse.Namespace) -> int:
     editor: subprocess.Popen[bytes] | None = None
     log_stream = None
@@ -400,6 +451,9 @@ def run(args: argparse.Namespace) -> int:
             print(tail(log_path))
             return 1
         if not edit_playback_gate(args):
+            print(tail(log_path))
+            return 1
+        if not preset_playback_gate(args):
             print(tail(log_path))
             return 1
         return 0

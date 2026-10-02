@@ -154,7 +154,8 @@ from every family has a recorded visual/effect review.
 dry-run checks; ten saved graphs have fresh-process AnimationTree playback
 evidence. All five rig-modifier operations have measured saved playback, and
 all 16 advertised FX operations have saved runtime checks in Windows/Linux
-CI. Sequence compose has a live MCP save/reopen and played-bone check; its
+CI. All 20 clip edits have played interpolation checks in Windows/Linux CI.
+Sequence compose has a live MCP save/reopen and played-bone check; its
 boundary, gap, pose and ownership review remains open.
 
 ## Phase 5 — agent usability, CI and review
@@ -1874,4 +1875,21 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
 - Added those 22 cases to the live MCP CI route. The focused local gate
   passed all 20 saved playback checks (`mcp_ci_edit_gate_local.log`);
   Windows/Linux CI is pending. Visual review, full editor Undo/Redo and
-  non-default interpolation/track combinations remain open.
+  non-default interpolation/track combinations remain open. GitHub Actions
+  run `37074375344` passed all 22 cases and 20 saved playback paths on
+  Windows and Linux, together with the earlier motion, graph, modifier and
+  FX gates.
+
+### 2026-10-03 — Check saved preset and showcase playback
+
+- Repeated all nine `animation_presets` scenarios through the visible Godot
+  AI editor (`mcp_presets_full_repeat_20261003.log`, run `20261002_225011`).
+  Dry/write/save/forced-reopen checks passed. The separate Godot AI play/read
+  probe measured property changes for each of the eight individual presets.
+- Added a fresh-process Godot 4.7.2 verifier that plays each saved preset and
+  measures target property changes. It also plays the seven AnimationPlayers
+  in the saved showcase and checks their resolved tracks, including 3D
+  transform and quaternion tracks. All nine scenes and the focused CI helper
+  passed locally (`mcp_ci_presets_gate_local.log`); Windows/Linux CI is
+  pending. Fixed-camera
+  visual approval and complete editor Undo/Redo remain open.
