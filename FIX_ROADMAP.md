@@ -155,6 +155,9 @@ dry-run checks; ten saved graphs have fresh-process AnimationTree playback
 evidence. All five rig-modifier operations have measured saved playback, and
 all 16 advertised FX operations have saved runtime checks in Windows/Linux
 CI. All 20 clip edits have played interpolation checks in Windows/Linux CI.
+All nine presets and seven library operations have live route checks in both
+platforms; saved playback covers the eight standalone presets, showcase's
+seven players, and both library-applied clips.
 Sequence compose has a live MCP save/reopen and played-bone check; its
 boundary, gap, pose and ownership review remains open.
 
@@ -1890,9 +1893,9 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   measures target property changes. It also plays the seven AnimationPlayers
   in the saved showcase and checks their resolved tracks, including 3D
   transform and quaternion tracks. All nine scenes and the focused CI helper
-  passed locally (`mcp_ci_presets_gate_local.log`); Windows/Linux CI is
-  pending. Fixed-camera
-  visual approval and complete editor Undo/Redo remain open.
+  passed locally (`mcp_ci_presets_gate_local.log`); Windows/Linux CI run
+  `37075054528` passed the nine saved playback cases. Fixed-camera visual
+  approval and complete editor Undo/Redo remain open.
 
 ### 2026-10-03 — Gate library file effects and imported playback
 
@@ -1904,15 +1907,21 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   drift and spec-applied walk on `OtherCharacter`, with source unchanged and
   zero measured position error.
 - Added the live library audit and two saved clip playback assertions to the
-  CI route. The focused local gate passed (`mcp_ci_library_gate_local.log`);
-  Windows/Linux CI is pending. File rollback semantics, UndoRedo promises and
-  visual review remain open.
+  CI route. The focused local gate passed (`mcp_ci_library_gate_local.log`),
+  followed by Windows/Linux CI run `37075228572`. File rollback semantics,
+  UndoRedo promises and visual review remain open.
 
-### 2026-10-03 — Check all read-only inspector operations
+### 2026-10-03 — Check all inspector operations
 
 - The visible Godot AI route returned expected facts and typed invalid-input
-  errors for all eight `animation_inspect` operations on a saved clip fixture
+  errors for eight `animation_inspect` operations on a saved clip fixture
   (`mcp_inspect_repeat_20261003.log`). The audit asserts key counts, timeline
   values, clip comparison, a loop seam warning, dry-run prediction and
-  registry help coverage. Added this read-only family to live MCP CI;
-  Windows/Linux confirmation is pending.
+  registry help coverage. The other four operations (`rig_profile`, `sample`,
+  `motion_audit`, `preview`) passed the live 3D audit on the saved dummy walk:
+  56 profiled bones, eight paired-foot samples, a passing played contact
+  grade and four nonempty preview PNGs (`mcp_inspect_3d_repeat_20261003.log`).
+  Each returned a typed error for a missing skeleton. Added both audits to
+  live MCP CI; the focused local gate passed
+  (`mcp_ci_inspect_twelve_local.log`). Windows/Linux confirmation of the
+  full twelve is pending.

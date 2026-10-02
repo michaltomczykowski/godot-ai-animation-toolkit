@@ -16,11 +16,12 @@
       "2026-09-28: tools/mcp_real_fixture.py on Godot AI 4.1.0, Godot 4.7.2; saved Target:scale value track with three resolved keys. Playback, undo/redo and visual review pending.",
       "2026-09-29: live Godot AI MCP through Godot 4.7.2; dry run left no clip/node, operation created the expected effect, saved and force-reopened with resolved tracks. See F:/GODOTAITESTING/toolkit_repair_snapshot_2026-09-28/mcp_presets_verified.log. UI undo, played-value checks and visual review remain pending.",
       "2026-09-29: Godot AI animation_manage(play) on the reopened scene changed the targeted node property as observed with node_get_properties, then stop succeeded. All 8 checked ops passed; see mcp_presets_playback_verified.log in the repair snapshot.",
-      "2026-09-29: on the visible Godot 4.7.2 editor, live MCP created ui_undo_pulse in res://repair_ui_undo/20260929_063332.tscn; Ctrl+Z removed the clip (MCP describe returned not found), and Ctrl+Shift+Z restored the same resolved one-track/three-key clip. This checks editor UI history for pulse only."
+      "2026-09-29: on the visible Godot 4.7.2 editor, live MCP created ui_undo_pulse in res://repair_ui_undo/20260929_063332.tscn; Ctrl+Z removed the clip (MCP describe returned not found), and Ctrl+Shift+Z restored the same resolved one-track/three-key clip. This checks editor UI history for pulse only.",
+      "2026-10-03: GitHub Actions run 37075054528 passed live Godot AI dry/write/save/reopen and fresh-process saved playback on Windows and Linux. The showcase gate played all seven child AnimationPlayers; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_inspect.describe": {
@@ -92,11 +93,12 @@
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP through Godot 4.7.2; dry run left no clip/node, operation created the expected effect, saved and force-reopened with resolved tracks. See F:/GODOTAITESTING/toolkit_repair_snapshot_2026-09-28/mcp_presets_verified.log. UI undo, played-value checks and visual review remain pending.",
-      "2026-09-29: Godot AI animation_manage(play) on the reopened scene changed the targeted node property as observed with node_get_properties, then stop succeeded. All 8 checked ops passed; see mcp_presets_playback_verified.log in the repair snapshot."
+      "2026-09-29: Godot AI animation_manage(play) on the reopened scene changed the targeted node property as observed with node_get_properties, then stop succeeded. All 8 checked ops passed; see mcp_presets_playback_verified.log in the repair snapshot.",
+      "2026-10-03: GitHub Actions run 37075054528 passed live Godot AI dry/write/save/reopen and fresh-process saved playback on Windows and Linux. The showcase gate played all seven child AnimationPlayers; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_presets.orbit": {
@@ -114,11 +116,12 @@
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP through Godot 4.7.2; dry run left no clip/node, operation created the expected effect, saved and force-reopened with resolved tracks. See F:/GODOTAITESTING/toolkit_repair_snapshot_2026-09-28/mcp_presets_verified.log. UI undo, played-value checks and visual review remain pending.",
-      "2026-09-29: Godot AI animation_manage(play) on the reopened scene changed the targeted node property as observed with node_get_properties, then stop succeeded. All 8 checked ops passed; see mcp_presets_playback_verified.log in the repair snapshot."
+      "2026-09-29: Godot AI animation_manage(play) on the reopened scene changed the targeted node property as observed with node_get_properties, then stop succeeded. All 8 checked ops passed; see mcp_presets_playback_verified.log in the repair snapshot.",
+      "2026-10-03: GitHub Actions run 37075054528 passed live Godot AI dry/write/save/reopen and fresh-process saved playback on Windows and Linux. The showcase gate played all seven child AnimationPlayers; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_presets.sweep": {
@@ -136,11 +139,12 @@
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP through Godot 4.7.2; dry run left no clip/node, operation created the expected effect, saved and force-reopened with resolved tracks. See F:/GODOTAITESTING/toolkit_repair_snapshot_2026-09-28/mcp_presets_verified.log. UI undo, played-value checks and visual review remain pending.",
-      "2026-09-29: Godot AI animation_manage(play) on the reopened scene changed the targeted node property as observed with node_get_properties, then stop succeeded. All 8 checked ops passed; see mcp_presets_playback_verified.log in the repair snapshot."
+      "2026-09-29: Godot AI animation_manage(play) on the reopened scene changed the targeted node property as observed with node_get_properties, then stop succeeded. All 8 checked ops passed; see mcp_presets_playback_verified.log in the repair snapshot.",
+      "2026-10-03: GitHub Actions run 37075054528 passed live Godot AI dry/write/save/reopen and fresh-process saved playback on Windows and Linux. The showcase gate played all seven child AnimationPlayers; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_presets.drift": {
@@ -158,11 +162,12 @@
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP through Godot 4.7.2; dry run left no clip/node, operation created the expected effect, saved and force-reopened with resolved tracks. See F:/GODOTAITESTING/toolkit_repair_snapshot_2026-09-28/mcp_presets_verified.log. UI undo, played-value checks and visual review remain pending.",
-      "2026-09-29: Godot AI animation_manage(play) on the reopened scene changed the targeted node property as observed with node_get_properties, then stop succeeded. All 8 checked ops passed; see mcp_presets_playback_verified.log in the repair snapshot."
+      "2026-09-29: Godot AI animation_manage(play) on the reopened scene changed the targeted node property as observed with node_get_properties, then stop succeeded. All 8 checked ops passed; see mcp_presets_playback_verified.log in the repair snapshot.",
+      "2026-10-03: GitHub Actions run 37075054528 passed live Godot AI dry/write/save/reopen and fresh-process saved playback on Windows and Linux. The showcase gate played all seven child AnimationPlayers; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_presets.spin": {
@@ -180,11 +185,12 @@
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP through Godot 4.7.2; dry run left no clip/node, operation created the expected effect, saved and force-reopened with resolved tracks. See F:/GODOTAITESTING/toolkit_repair_snapshot_2026-09-28/mcp_presets_verified.log. UI undo, played-value checks and visual review remain pending.",
-      "2026-09-29: Godot AI animation_manage(play) on the reopened scene changed the targeted node property as observed with node_get_properties, then stop succeeded. All 8 checked ops passed; see mcp_presets_playback_verified.log in the repair snapshot."
+      "2026-09-29: Godot AI animation_manage(play) on the reopened scene changed the targeted node property as observed with node_get_properties, then stop succeeded. All 8 checked ops passed; see mcp_presets_playback_verified.log in the repair snapshot.",
+      "2026-10-03: GitHub Actions run 37075054528 passed live Godot AI dry/write/save/reopen and fresh-process saved playback on Windows and Linux. The showcase gate played all seven child AnimationPlayers; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_presets.float": {
@@ -202,11 +208,12 @@
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP through Godot 4.7.2; dry run left no clip/node, operation created the expected effect, saved and force-reopened with resolved tracks. See F:/GODOTAITESTING/toolkit_repair_snapshot_2026-09-28/mcp_presets_verified.log. UI undo, played-value checks and visual review remain pending.",
-      "2026-09-29: Godot AI animation_manage(play) on the reopened scene changed the targeted node property as observed with node_get_properties, then stop succeeded. All 8 checked ops passed; see mcp_presets_playback_verified.log in the repair snapshot."
+      "2026-09-29: Godot AI animation_manage(play) on the reopened scene changed the targeted node property as observed with node_get_properties, then stop succeeded. All 8 checked ops passed; see mcp_presets_playback_verified.log in the repair snapshot.",
+      "2026-10-03: GitHub Actions run 37075054528 passed live Godot AI dry/write/save/reopen and fresh-process saved playback on Windows and Linux. The showcase gate played all seven child AnimationPlayers; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_presets.stagger": {
@@ -224,11 +231,12 @@
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP through Godot 4.7.2; dry run left no clip/node, operation created the expected effect, saved and force-reopened with resolved tracks. See F:/GODOTAITESTING/toolkit_repair_snapshot_2026-09-28/mcp_presets_verified.log. UI undo, played-value checks and visual review remain pending.",
-      "2026-09-29: Godot AI animation_manage(play) on the reopened scene changed the targeted node property as observed with node_get_properties, then stop succeeded. All 8 checked ops passed; see mcp_presets_playback_verified.log in the repair snapshot."
+      "2026-09-29: Godot AI animation_manage(play) on the reopened scene changed the targeted node property as observed with node_get_properties, then stop succeeded. All 8 checked ops passed; see mcp_presets_playback_verified.log in the repair snapshot.",
+      "2026-10-03: GitHub Actions run 37075054528 passed live Godot AI dry/write/save/reopen and fresh-process saved playback on Windows and Linux. The showcase gate played all seven child AnimationPlayers; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_presets.showcase": {
@@ -246,11 +254,12 @@
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP through Godot 4.7.2; dry run left no clip/node, operation created the expected effect, saved and force-reopened with resolved tracks. See F:/GODOTAITESTING/toolkit_repair_snapshot_2026-09-28/mcp_presets_verified.log. UI undo, played-value checks and visual review remain pending.",
-      "2026-09-29: Godot 4.7.2 Movie Maker played the saved showcase scene for 60 frames at 30 FPS. The inspected early and full contact sheets show the button scale response, orbit dot, sweep bar, drifting line, pulse text and two 3D cubes changing coherently; media/presets_showcase_472 in the local repair snapshot. This is visual approval of showcase only."
+      "2026-09-29: Godot 4.7.2 Movie Maker played the saved showcase scene for 60 frames at 30 FPS. The inspected early and full contact sheets show the button scale response, orbit dot, sweep bar, drifting line, pulse text and two 3D cubes changing coherently; media/presets_showcase_472 in the local repair snapshot. This is visual approval of showcase only.",
+      "2026-10-03: GitHub Actions run 37075054528 passed live Godot AI dry/write/save/reopen and fresh-process saved playback on Windows and Linux. The showcase gate played all seven child AnimationPlayers; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_edit.retime": {
@@ -1151,7 +1160,7 @@
     "fixture": "res://repair_library_audit/20260929_202724/library.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -1163,7 +1172,8 @@
       "playback": "not_applicable"
     },
     "evidence": [
-      "2026-09-29: live Godot AI MCP on Godot 4.7.2; isolated library/spec files and saved scene. File dry runs made no file; scene dry runs made no clip. Valid calls produced expected template counts, JSON formats, remapped resolved tracks and persisted results; invalid calls returned typed errors. File operations reported undoable=false; clip applies reported true. See mcp_library_verified.log, run id 20260929_202724."
+      "2026-09-29: live Godot AI MCP on Godot 4.7.2; isolated library/spec files and saved scene. File dry runs made no file; scene dry runs made no clip. Valid calls produced expected template counts, JSON formats, remapped resolved tracks and persisted results; invalid calls returned typed errors. File operations reported undoable=false; clip applies reported true. See mcp_library_verified.log, run id 20260929_202724.",
+      "2026-10-03: GitHub Actions run 37075228572 passed live Godot AI file-effect, dry-run, typed-error and save/reopen checks on Windows and Linux. Template/spec applied clips played on their intended target in a fresh Godot process; file rollback and visual review remain open."
     ]
   },
   "animation_library.template_apply": {
@@ -1171,7 +1181,7 @@
     "fixture": "res://repair_library_audit/20260929_202724/library.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -1184,7 +1194,8 @@
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP on Godot 4.7.2; isolated library/spec files and saved scene. File dry runs made no file; scene dry runs made no clip. Valid calls produced expected template counts, JSON formats, remapped resolved tracks and persisted results; invalid calls returned typed errors. File operations reported undoable=false; clip applies reported true. See mcp_library_verified.log, run id 20260929_202724.",
-      "2026-09-29: saved scene Godot AnimationPlayer playback at t=0.5 moved OtherCharacter.x to 30 for the template drift and 50 for the imported walk; Character.x remained 0. See test_project/tools/check_library_runtime.gd. Actual editor UndoRedo remains pending."
+      "2026-09-29: saved scene Godot AnimationPlayer playback at t=0.5 moved OtherCharacter.x to 30 for the template drift and 50 for the imported walk; Character.x remained 0. See test_project/tools/check_library_runtime.gd. Actual editor UndoRedo remains pending.",
+      "2026-10-03: GitHub Actions run 37075228572 passed live Godot AI file-effect, dry-run, typed-error and save/reopen checks on Windows and Linux. Template/spec applied clips played on their intended target in a fresh Godot process; file rollback and visual review remain open."
     ]
   },
   "animation_library.template_list": {
@@ -1192,7 +1203,7 @@
     "fixture": "res://repair_library_audit/20260929_202724/library.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -1204,7 +1215,8 @@
       "playback": "not_applicable"
     },
     "evidence": [
-      "2026-09-29: live Godot AI MCP on Godot 4.7.2; isolated library/spec files and saved scene. File dry runs made no file; scene dry runs made no clip. Valid calls produced expected template counts, JSON formats, remapped resolved tracks and persisted results; invalid calls returned typed errors. File operations reported undoable=false; clip applies reported true. See mcp_library_verified.log, run id 20260929_202724."
+      "2026-09-29: live Godot AI MCP on Godot 4.7.2; isolated library/spec files and saved scene. File dry runs made no file; scene dry runs made no clip. Valid calls produced expected template counts, JSON formats, remapped resolved tracks and persisted results; invalid calls returned typed errors. File operations reported undoable=false; clip applies reported true. See mcp_library_verified.log, run id 20260929_202724.",
+      "2026-10-03: GitHub Actions run 37075228572 passed live Godot AI file-effect, dry-run, typed-error and save/reopen checks on Windows and Linux. Template/spec applied clips played on their intended target in a fresh Godot process; file rollback and visual review remain open."
     ]
   },
   "animation_library.template_delete": {
@@ -1212,7 +1224,7 @@
     "fixture": "res://repair_library_audit/20260929_202724/library.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -1224,7 +1236,8 @@
       "playback": "not_applicable"
     },
     "evidence": [
-      "2026-09-29: live Godot AI MCP on Godot 4.7.2; isolated library/spec files and saved scene. File dry runs made no file; scene dry runs made no clip. Valid calls produced expected template counts, JSON formats, remapped resolved tracks and persisted results; invalid calls returned typed errors. File operations reported undoable=false; clip applies reported true. See mcp_library_verified.log, run id 20260929_202724."
+      "2026-09-29: live Godot AI MCP on Godot 4.7.2; isolated library/spec files and saved scene. File dry runs made no file; scene dry runs made no clip. Valid calls produced expected template counts, JSON formats, remapped resolved tracks and persisted results; invalid calls returned typed errors. File operations reported undoable=false; clip applies reported true. See mcp_library_verified.log, run id 20260929_202724.",
+      "2026-10-03: GitHub Actions run 37075228572 passed live Godot AI file-effect, dry-run, typed-error and save/reopen checks on Windows and Linux. Template/spec applied clips played on their intended target in a fresh Godot process; file rollback and visual review remain open."
     ]
   },
   "animation_library.spec_export": {
@@ -1232,7 +1245,7 @@
     "fixture": "res://repair_library_audit/20260929_202724/library.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -1244,7 +1257,8 @@
       "playback": "not_applicable"
     },
     "evidence": [
-      "2026-09-29: live Godot AI MCP on Godot 4.7.2; isolated library/spec files and saved scene. File dry runs made no file; scene dry runs made no clip. Valid calls produced expected template counts, JSON formats, remapped resolved tracks and persisted results; invalid calls returned typed errors. File operations reported undoable=false; clip applies reported true. See mcp_library_verified.log, run id 20260929_202724."
+      "2026-09-29: live Godot AI MCP on Godot 4.7.2; isolated library/spec files and saved scene. File dry runs made no file; scene dry runs made no clip. Valid calls produced expected template counts, JSON formats, remapped resolved tracks and persisted results; invalid calls returned typed errors. File operations reported undoable=false; clip applies reported true. See mcp_library_verified.log, run id 20260929_202724.",
+      "2026-10-03: GitHub Actions run 37075228572 passed live Godot AI file-effect, dry-run, typed-error and save/reopen checks on Windows and Linux. Template/spec applied clips played on their intended target in a fresh Godot process; file rollback and visual review remain open."
     ]
   },
   "animation_library.spec_import": {
@@ -1252,7 +1266,7 @@
     "fixture": "res://repair_library_audit/20260929_202724/library.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -1264,7 +1278,8 @@
       "playback": "not_applicable"
     },
     "evidence": [
-      "2026-09-29: live Godot AI MCP on Godot 4.7.2; isolated library/spec files and saved scene. File dry runs made no file; scene dry runs made no clip. Valid calls produced expected template counts, JSON formats, remapped resolved tracks and persisted results; invalid calls returned typed errors. File operations reported undoable=false; clip applies reported true. See mcp_library_verified.log, run id 20260929_202724."
+      "2026-09-29: live Godot AI MCP on Godot 4.7.2; isolated library/spec files and saved scene. File dry runs made no file; scene dry runs made no clip. Valid calls produced expected template counts, JSON formats, remapped resolved tracks and persisted results; invalid calls returned typed errors. File operations reported undoable=false; clip applies reported true. See mcp_library_verified.log, run id 20260929_202724.",
+      "2026-10-03: GitHub Actions run 37075228572 passed live Godot AI file-effect, dry-run, typed-error and save/reopen checks on Windows and Linux. Template/spec applied clips played on their intended target in a fresh Godot process; file rollback and visual review remain open."
     ]
   },
   "animation_library.spec_apply": {
@@ -1272,7 +1287,7 @@
     "fixture": "res://repair_library_audit/20260929_202724/library.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -1285,7 +1300,8 @@
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP on Godot 4.7.2; isolated library/spec files and saved scene. File dry runs made no file; scene dry runs made no clip. Valid calls produced expected template counts, JSON formats, remapped resolved tracks and persisted results; invalid calls returned typed errors. File operations reported undoable=false; clip applies reported true. See mcp_library_verified.log, run id 20260929_202724.",
-      "2026-09-29: saved scene Godot AnimationPlayer playback at t=0.5 moved OtherCharacter.x to 30 for the template drift and 50 for the imported walk; Character.x remained 0. See test_project/tools/check_library_runtime.gd. Actual editor UndoRedo remains pending."
+      "2026-09-29: saved scene Godot AnimationPlayer playback at t=0.5 moved OtherCharacter.x to 30 for the template drift and 50 for the imported walk; Character.x remained 0. See test_project/tools/check_library_runtime.gd. Actual editor UndoRedo remains pending.",
+      "2026-10-03: GitHub Actions run 37075228572 passed live Godot AI file-effect, dry-run, typed-error and save/reopen checks on Windows and Linux. Template/spec applied clips played on their intended target in a fresh Godot process; file rollback and visual review remain open."
     ]
   },
   "animation_fx.shake": {

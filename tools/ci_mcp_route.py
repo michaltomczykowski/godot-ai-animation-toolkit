@@ -422,7 +422,7 @@ def library_playback_gate(args: argparse.Namespace) -> bool:
 
 
 def inspect_gate(args: argparse.Namespace) -> bool:
-    """Assert every read-only inspector operation and its typed error."""
+    """Assert all twelve inspector operations and their typed errors."""
     expected = {"describe", "timeline", "audit", "compare", "stats",
                 "motion_report", "dry_run", "help"}
     audit = subprocess.run([
@@ -446,6 +446,26 @@ def inspect_gate(args: argparse.Namespace) -> bool:
             "failures": result.get("failures"), "actual": sorted(actual)}))
         return False
     print("MCP_CI_PASS=inspect_route", flush=True)
+    extra = subprocess.run([
+        sys.executable, str(Path(__file__).with_name("mcp_inspect_3d.py")),
+        "--core-root", str(args.core_root),
+        "--project-root", str(args.project),
+        "--session-hint", args.project.name,
+        "--port", str(args.port), "--ws-port", str(args.ws_port),
+    ], capture_output=True, text=True, timeout=60, check=False)
+    marker = "MCP_INSPECT_3D="
+    payload = next((line[len(marker):] for line in extra.stdout.splitlines()
+                    if line.startswith(marker)), "")
+    if extra.returncode or not payload:
+        print("MCP_CI_FAIL=inspect_3d_route")
+        print((extra.stdout + extra.stderr)[-3000:])
+        return False
+    result = json.loads(payload)
+    if result.get("failures") or len(result.get("preview", {}).get("paths", [])) != 4 \
+            or result.get("audit", {}).get("passed") is not True:
+        print("MCP_CI_FAIL=inspect_3d_route: " + json.dumps(result.get("failures")))
+        return False
+    print("MCP_CI_PASS=inspect_3d_route", flush=True)
     return True
 
 
