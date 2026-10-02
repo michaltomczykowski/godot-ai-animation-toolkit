@@ -44,7 +44,8 @@ def probe(args: argparse.Namespace, reload: bool = False) -> subprocess.Complete
 
 
 def motion_gate(args: argparse.Namespace) -> bool:
-    """Check a saved, played gait through the same external MCP route."""
+    """Check saved walk, run and transitions through the external MCP route."""
+    ops = ("cycle", "run_cycle", "walk_start", "walk_stop")
     common = [
         "--core-root", str(args.core_root),
         "--session-hint", args.project.name,
@@ -53,7 +54,7 @@ def motion_gate(args: argparse.Namespace) -> bool:
     create = subprocess.run([
         sys.executable, str(Path(__file__).with_name("mcp_motion_remaining_cycles.py")),
         *common, "--project-root", str(args.project),
-        "--ops", "cycle", "walk_start", "walk_stop",
+        "--ops", *ops,
     ], capture_output=True, text=True, timeout=90, check=False)
     prefix = "MCP_MOTION_REMAINING="
     payload = next((line[len(prefix):] for line in create.stdout.splitlines()
@@ -66,15 +67,15 @@ def motion_gate(args: argparse.Namespace) -> bool:
     if result.get("failures"):
         print("MCP_CI_FAIL=motion_create: " + json.dumps(result["failures"]))
         return False
-    expected_ops = {"cycle", "walk_start", "walk_stop"}
+    expected_ops = set(ops)
     created_ops = {row.get("op") for row in result.get("operations", [])}
-    if created_ops != expected_ops or len(result.get("operations", [])) != 3:
+    if created_ops != expected_ops or len(result.get("operations", [])) != len(ops):
         print("MCP_CI_FAIL=motion_create: wrong operation set " + repr(created_ops))
         return False
     audit = subprocess.run([
         sys.executable, str(Path(__file__).with_name("mcp_motion_audit_saved.py")),
         *common, "--run-id", result["run_id"],
-        "--ops", "cycle", "walk_start", "walk_stop", "--max-slide", "0.016",
+        "--ops", *ops, "--max-slide", "0.016",
     ], capture_output=True, text=True, timeout=90, check=False)
     summary = next((line for line in audit.stdout.splitlines()
                     if line.startswith("MCP_MOTION_SAVED_AUDIT_SUMMARY=")), "")
@@ -93,7 +94,7 @@ def motion_gate(args: argparse.Namespace) -> bool:
     actual_rows = {(row.get("op"), row.get("fps")) for row in rows}
     inert = [f"{row.get('op')}@{row.get('fps')}" for row in rows
              if float(row.get("body_travel") or 0.0) <= 0.1]
-    if len(rows) != 9 or actual_rows != expected_rows or inert:
+    if len(rows) != len(expected_rows) or actual_rows != expected_rows or inert:
         print("MCP_CI_FAIL=motion_playback: missing or inert samples "
               + json.dumps({"actual": sorted(actual_rows), "inert": inert}))
         return False

@@ -1710,3 +1710,8 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   those fixtures. This is a support-direction fix with numerical regression
   coverage, not final approval of the walk, run or strafe visual quality. CI
   and Linux's full four-rig matrix remain to check.
+- Added the run preset to the pinned Windows/Linux live MCP gate. A local
+  `--existing` pass through the visible Godot 4.7.2 editor passed registration
+  before/after core reload, four saved motion cases and all 12 played FPS
+  rows, plus graph lookup (`ci_mcp_run_preset_existing_20261002.log`). Its
+  cross-platform CI result remains pending.
