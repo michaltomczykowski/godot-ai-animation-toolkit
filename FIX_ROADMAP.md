@@ -1649,5 +1649,12 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   now records this read-only effect and its inapplicable clip/undo checks.
   The focused check was added to the pinned Windows/Linux live MCP CI route;
   the visible editor passed all registration, motion and graph stages in
-  `ci_mcp_graph_get_20261002.log`. Cross-platform CI is pending. Full
-  graph-family playback remains open.
+  `ci_mcp_graph_get_20261002.log`. Full graph-family playback remains open.
+- The first Windows CI attempt in run `37032883288` failed before any toolkit
+  call: Godot AI core reported that it could not capture its managed server
+  process identity (`identity_unavailable`), and MCP saw zero editor sessions.
+  Linux passed. Rerunning only the failed Windows job with identical source
+  passed registration, saved motion and `graph_get`; run attempt 2 is green.
+  The ledger now marks Linux `graph_get` coverage partial. This startup
+  failure is still an observed core/runner reliability risk, not a toolkit
+  graph failure.

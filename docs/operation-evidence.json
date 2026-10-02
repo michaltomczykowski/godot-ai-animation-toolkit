@@ -498,7 +498,7 @@
     "fixture": "res://repair_graph_audit/20260929_064753/graph_get.tscn",
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     },
     "checks": {
       "mcp_invocation": "pass",
@@ -515,7 +515,8 @@
       "2026-09-29: Godot 4.7.2 live MCP graph smoke built this op in a fresh clip fixture, saved and force-reopened; graph_get returned a resolved AnimationTree. See mcp_graph_full.log. Tree playback, graph ownership, dry-run topology, undo, errors and visual review remain to verify per op.",
       "2026-09-29: automated live MCP rerun mcp_graph_verified.log: 8 ops, 0 errors; dry run left the node hierarchy unchanged, saved graph_get resolved its AnimationPlayer. Existing graph resource identity and parameters still need dry-run comparison.",
       "2026-09-29: mcp_graph_dry_resources.log live MCP rerun: before/after dry-run scene hierarchy and graph_get serialized root/parameters matched exactly for all eight graph operations; save/reopen still resolved the player. 8/8 automated contract checks passed.",
-      "2026-10-02: focused live Godot AI graph_get contract on a saved 4.7.2 fixture, run 20261002_161310. The response reported both idle/walk animations and the two named states with an idle-to-walk transition; its complete response survived save/forced reopen unchanged. Dry run did not change the graph root or parameters. A missing tree returned typed NODE_NOT_FOUND. This establishes the read-only topology effect on Windows; broader graph playback and Linux remain family-level gates."
+      "2026-10-02: focused live Godot AI graph_get contract on a saved 4.7.2 fixture, run 20261002_161310. The response reported both idle/walk animations and the two named states with an idle-to-walk transition; its complete response survived save/forced reopen unchanged. Dry run did not change the graph root or parameters. A missing tree returned typed NODE_NOT_FOUND. This establishes the read-only topology effect on Windows; broader graph playback and Linux remain family-level gates.",
+      "2026-10-02: pinned Godot AI v4.2.1 live MCP CI graph_get topology/error gate passed on Linux and Windows in run 37032883288 attempt 2. The first Windows attempt stopped before any toolkit probe because Godot AI core could not capture its managed server process identity; the failed job alone was rerun unchanged and passed. This establishes cross-platform saved topology reporting, not full graph-family playback or every editor readiness state."
     ]
   },
   "animation_graph.locomotion": {
