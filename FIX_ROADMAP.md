@@ -1893,3 +1893,17 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   passed locally (`mcp_ci_presets_gate_local.log`); Windows/Linux CI is
   pending. Fixed-camera
   visual approval and complete editor Undo/Redo remain open.
+
+### 2026-10-03 — Gate library file effects and imported playback
+
+- Repeated the seven `animation_library` operations through the visible
+  Godot AI editor (`mcp_library_repeat_20261003.log`, run
+  `20261002_225602`). Template save/list/apply/delete and spec
+  export/import/apply passed the audit's dry-run, file, typed-error and
+  save/reopen checks. A fresh Godot 4.7.2 process played the template-applied
+  drift and spec-applied walk on `OtherCharacter`, with source unchanged and
+  zero measured position error.
+- Added the live library audit and two saved clip playback assertions to the
+  CI route. The focused local gate passed (`mcp_ci_library_gate_local.log`);
+  Windows/Linux CI is pending. File rollback semantics, UndoRedo promises and
+  visual review remain open.

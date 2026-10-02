@@ -374,6 +374,53 @@ def preset_playback_gate(args: argparse.Namespace) -> bool:
     return True
 
 
+def library_playback_gate(args: argparse.Namespace) -> bool:
+    """Check library file operations and play both imported saved clips."""
+    audit = subprocess.run([
+        sys.executable, str(Path(__file__).with_name("mcp_library_audit.py")),
+        "--core-root", str(args.core_root),
+        "--project-root", str(args.project),
+        "--session-hint", args.project.name,
+        "--port", str(args.port), "--ws-port", str(args.ws_port),
+    ], capture_output=True, text=True, timeout=90, check=False)
+    marker = "MCP_LIBRARY_AUDIT="
+    payload = next((line[len(marker):] for line in audit.stdout.splitlines()
+                    if line.startswith(marker)), "")
+    if audit.returncode or not payload:
+        print("MCP_CI_FAIL=library_route")
+        print((audit.stdout + audit.stderr)[-3000:])
+        return False
+    result = json.loads(payload)
+    rows = result.get("rows", {})
+    required = {"template_save", "template_list", "template_apply",
+                "template_delete", "spec_export", "spec_import", "spec_apply",
+                "typed_errors", "save", "reopen"}
+    if result.get("failures") or not required.issubset(rows):
+        print("MCP_CI_FAIL=library_route: " + json.dumps({
+            "failures": result.get("failures"),
+            "missing": sorted(required - rows.keys())}))
+        return False
+    print("MCP_CI_PASS=library_route", flush=True)
+    playback = subprocess.run([
+        godot_executable(args.godot), "--headless", "--path",
+        str(args.project), "--script", "res://tools/check_library_runtime.gd",
+        "--", result["scene"],
+    ], capture_output=True, text=True, timeout=30, check=False)
+    marker = "LIBRARY_RUNTIME="
+    reported = next((line[len(marker):] for line in playback.stdout.splitlines()
+                     if line.startswith(marker)), "")
+    if playback.returncode or not reported:
+        print("MCP_CI_FAIL=library_saved_playback")
+        print((playback.stdout + playback.stderr)[-2500:])
+        return False
+    runtime = json.loads(reported)
+    if len(runtime.get("samples", [])) != 2 or float(runtime.get("worst_error", 100.0)) >= 0.1:
+        print("MCP_CI_FAIL=library_saved_playback: " + reported)
+        return False
+    print("MCP_CI_PASS=library_saved_playback", flush=True)
+    return True
+
+
 def run(args: argparse.Namespace) -> int:
     editor: subprocess.Popen[bytes] | None = None
     log_stream = None
@@ -454,6 +501,9 @@ def run(args: argparse.Namespace) -> int:
             print(tail(log_path))
             return 1
         if not preset_playback_gate(args):
+            print(tail(log_path))
+            return 1
+        if not library_playback_gate(args):
             print(tail(log_path))
             return 1
         return 0
