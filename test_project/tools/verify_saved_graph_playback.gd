@@ -45,6 +45,47 @@ func _run() -> void:
 		playback.travel("walk")
 	elif tree.tree_root is AnimationNodeBlendSpace1D:
 		tree.set("parameters/blend_position", 1.0)
+	elif tree.tree_root is AnimationNodeBlendTree:
+		var blend_root := tree.tree_root as AnimationNodeBlendTree
+		if blend_root.has_node("OneShot"):
+			var base := tree.get("parameters/Base/playback") as AnimationNodeStateMachinePlayback
+			if base == null:
+				_fail("one-shot base has no state-machine playback")
+				return
+			base.start("idle")
+			tree.advance(0.1)
+			tree.set("parameters/OneShot/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+			for _frame in 30:
+				tree.advance(1.0 / 60.0)
+			if character.position.y > -20.0 or player.is_playing():
+				_fail("one-shot jump did not play solely through the tree (y=%.3f)" % character.position.y)
+				return
+			print("GRAPH_SAVED_PLAYBACK_PASS: %s jump_y=%.3f player_idle=true" % [args[0], character.position.y])
+			quit(0)
+			return
+		if blend_root.has_node("Add2"):
+			var base := tree.get("parameters/Base/playback") as AnimationNodeStateMachinePlayback
+			if base == null:
+				_fail("additive base has no state-machine playback")
+				return
+			base.start("idle")
+			tree.set("parameters/Add2/add_amount", 1.0)
+			for _frame in 30:
+				tree.advance(1.0 / 60.0)
+			if character.rotation < 0.05 or player.is_playing():
+				_fail("additive lean did not play solely through the tree (rotation=%.3f)" % character.rotation)
+				return
+			print("GRAPH_SAVED_PLAYBACK_PASS: %s lean=%.3f player_idle=true" % [args[0], character.rotation])
+			quit(0)
+			return
+		if not blend_root.has_node("Blend2"):
+			_fail("saved blend tree has no checked Blend2 node")
+			return
+		tree.advance(0.1)
+		if absf(character.position.x) > 0.01:
+			_fail("blend tree idle branch moved the character to %.3f" % character.position.x)
+			return
+		tree.set("parameters/Blend2/blend_amount", 1.0)
 	else:
 		_fail("saved graph root has no checked playback path")
 		return

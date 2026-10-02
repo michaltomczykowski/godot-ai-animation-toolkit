@@ -1745,7 +1745,24 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   `blend_space` and `locomotion`. Local `--existing` route passed registration
   before and after core reload, 12 motion FPS rows and all three graph
   playback paths (`ci_mcp_graph_three_existing_20261002.log`). GitHub Actions
-  run `37038543479` passed the first state-machine-only version across Windows
-  and Linux; CI for the three-graph expansion remains pending. Other graph
+  run `37038543479` passed the first state-machine-only version and run
+  `37038999141` passed the three-graph expansion across Windows and Linux. Other graph
   shapes and gameplay-driven state transitions still need saved playback
   checks before visual approval.
+
+### 2026-10-03 — Expand saved graph playback to seven operations
+
+- Extended the fresh-process verifier for `blend_tree`, `one_shot_layer` and
+  `additive_lean`. On editor-saved fixtures, Blend2 moves the Character to
+  x=50 after half a second, the one-shot jump reaches y=-77.3 and additive
+  lean reaches 0.116 radians. Their AnimationPlayers remain idle while their
+  AnimationTrees drive playback. The earlier state machine, blend space,
+  `graph_get` fixture and locomotion checks still pass on Godot 4.7.2.
+- Expanded the live Godot AI CI route to create, save, force-reopen and play
+  seven graph cases after a core-plugin reload. The local `--existing` run
+  passed registration, 12 saved motion FPS rows, graph topology and all seven
+  saved playback checks (`ci_mcp_graph_seven_existing_20261002.log`). Windows
+  and Linux CI for this expansion is pending. `wire` intentionally creates or
+  configures a tree without requiring a playback root; it needs its own
+  structural/parameter-effect contract. Graph visual and gameplay transition
+  review remain open.

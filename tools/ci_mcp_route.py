@@ -114,14 +114,16 @@ def motion_gate(args: argparse.Namespace) -> bool:
     return True
 
 
-def graph_get_gate(args: argparse.Namespace) -> bool:
+def graph_playback_gate(args: argparse.Namespace) -> bool:
+    playable_graphs = ("state_machine", "blend_space", "blend_tree",
+                       "graph_get", "locomotion", "one_shot_layer", "additive_lean")
     check = subprocess.run([
         sys.executable, str(Path(__file__).with_name("mcp_graph_audit.py")),
         "--core-root", str(args.core_root),
         "--project-root", str(args.project),
         "--session-hint", args.project.name,
         "--port", str(args.port), "--ws-port", str(args.ws_port),
-        "--only", "graph_get", "blend_space", "locomotion",
+        "--only", *playable_graphs,
     ], capture_output=True, text=True, timeout=60, check=False)
     prefix = "MCP_GRAPH_AUDIT="
     payload = next((line[len(prefix):] for line in check.stdout.splitlines()
@@ -132,7 +134,7 @@ def graph_get_gate(args: argparse.Namespace) -> bool:
         return False
     result = json.loads(payload)
     operations = result.get("operations", [])
-    expected_graphs = {"graph_get", "blend_space", "locomotion"}
+    expected_graphs = set(playable_graphs)
     if (result.get("failures") or len(operations) != len(expected_graphs)
             or {row.get("op") for row in operations} != expected_graphs):
         print("MCP_CI_FAIL=graph_get: " + json.dumps(result.get("failures", [])))
@@ -219,7 +221,7 @@ def run(args: argparse.Namespace) -> int:
         if not motion_gate(args):
             print(tail(log_path))
             return 1
-        if not graph_get_gate(args):
+        if not graph_playback_gate(args):
             print(tail(log_path))
             return 1
         return 0
