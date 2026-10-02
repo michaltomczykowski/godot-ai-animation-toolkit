@@ -1829,11 +1829,14 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   modifier fails CI. The local visible-editor run passed all five after core
   reload, along with 12 saved motion FPS rows and ten graph playback paths
   (`mcp_ci_modifiers_live.log` in the recovery snapshot). Windows/Linux CI
-  for this new gate is pending. Other IK forms, spring tails, modifier stack
-  order, editor undo and visual deformation remain open.
+  run `37072351007` passed the same five saved playback gates. Other IK
+  forms, spring tails, modifier stack order, editor undo and visual
+  deformation remain open.
 - Added Undo/Redo assertions for `twist_setup` to the editor suite. One undo
   removes the last disperser; redo restores a typed disperser at the same
   scene path. The local Godot 4.7.2 editor suite remains **221/221**
   (`editor_modifier_twist_undo_20261003.log`). Existing editor tests already
   cover undo for IK, spring, look-at and retarget, but their redo behavior and
   keyboard-driven undo through the live Godot AI editor route remain open.
+  GitHub Actions run `37072554301` passed the 221-test editor suite and the
+  modifier playback gate on Windows and Linux.

@@ -2220,11 +2220,12 @@
       "visual_review": "pending"
     },
     "evidence": [
-      "2026-09-30: live Godot AI custom_manage(invoke), mcp_rig_modifiers_leaf_rejected.log run 20260930_173516, on imported dummy. Dry run left skeleton unchanged; write made one modifier, saved and forced reopen retained it, invalid skeleton returned typed NODE_NOT_FOUND. Godot 4.7.2 saved-scene modifier callback measured 0.394 rad arm change after moving the IK target. Editor undo, additional rig combinations, visual review and Linux remain."
+      "2026-09-30: live Godot AI custom_manage(invoke), mcp_rig_modifiers_leaf_rejected.log run 20260930_173516, on imported dummy. Dry run left skeleton unchanged; write made one modifier, saved and forced reopen retained it, invalid skeleton returned typed NODE_NOT_FOUND. Godot 4.7.2 saved-scene modifier callback measured 0.394 rad arm change after moving the IK target. Editor undo, additional rig combinations, visual review and Linux remain.",
+      "2026-10-03: GitHub Actions run 37072351007 passed live Godot AI invocation and fresh-process saved modifier playback on Windows and Linux. Editor handler undo passes; redo, other IK kinds and visual review remain."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_rig_modifiers.spring_setup": {
@@ -2243,11 +2244,12 @@
     },
     "evidence": [
       "2026-09-30: live Godot AI custom_manage(invoke), mcp_rig_modifiers_leaf_rejected.log run 20260930_173516, on imported dummy. Dry run left skeleton unchanged; write made one modifier, saved and forced reopen retained it, invalid skeleton returned typed NODE_NOT_FOUND. Godot 4.7.2 saved-scene modifier callback measured 0.043 rad forearm change under external force. Editor undo, additional rig combinations, visual review and Linux remain.",
-      "2026-09-30: single leaf B-jaw setup saved but did not move in active playback, even with a virtual tail. Handler now rejects root=end and unrelated end bones before commit. Live Godot AI route returned typed INVALID_PARAMS for the leaf; two-bone forearm/hand chain moved."
+      "2026-09-30: single leaf B-jaw setup saved but did not move in active playback, even with a virtual tail. Handler now rejects root=end and unrelated end bones before commit. Live Godot AI route returned typed INVALID_PARAMS for the leaf; two-bone forearm/hand chain moved.",
+      "2026-10-03: GitHub Actions run 37072351007 passed live Godot AI invocation and fresh-process saved modifier playback on Windows and Linux. Editor handler undo passes; redo, other spring chains and visual review remain."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_rig_modifiers.look_at_setup": {
@@ -2265,11 +2267,12 @@
       "visual_review": "pending"
     },
     "evidence": [
-      "2026-09-30: live Godot AI custom_manage(invoke), mcp_rig_modifiers_leaf_rejected.log run 20260930_173516, on imported dummy. Dry run left skeleton unchanged; write made one modifier, saved and forced reopen retained it, invalid skeleton returned typed NODE_NOT_FOUND. Godot 4.7.2 saved-scene modifier callback measured 0.310 rad head change after moving the target. Editor undo, additional rig combinations, visual review and Linux remain."
+      "2026-09-30: live Godot AI custom_manage(invoke), mcp_rig_modifiers_leaf_rejected.log run 20260930_173516, on imported dummy. Dry run left skeleton unchanged; write made one modifier, saved and forced reopen retained it, invalid skeleton returned typed NODE_NOT_FOUND. Godot 4.7.2 saved-scene modifier callback measured 0.310 rad head change after moving the target. Editor undo, additional rig combinations, visual review and Linux remain.",
+      "2026-10-03: GitHub Actions run 37072351007 passed live Godot AI invocation and fresh-process saved modifier playback on Windows and Linux. Editor handler undo passes; redo and visual review remain."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_rig_modifiers.twist_setup": {
@@ -2288,11 +2291,12 @@
     },
     "evidence": [
       "2026-09-30: live Godot AI custom_manage(invoke), mcp_rig_modifiers_leaf_rejected.log run 20260930_173516, on imported dummy. Dry run left skeleton unchanged; write made one modifier, saved and forced reopen retained it, invalid skeleton returned typed NODE_NOT_FOUND. Godot 4.7.2 saved-scene modifier callback measured 0.393 rad hips change after twisting the spine reference. Editor undo, additional rig combinations, visual review and Linux remain.",
-      "2026-09-30: unextended end uses its parent as the twist reference per Godot 4.7; handler now reports reference_bone=B-spine for the B-hips→B-chest fixture and documents this in tool discovery."
+      "2026-09-30: unextended end uses its parent as the twist reference per Godot 4.7; handler now reports reference_bone=B-spine for the B-hips→B-chest fixture and documents this in tool discovery.",
+      "2026-10-03: GitHub Actions run 37072351007 passed live Godot AI invocation and fresh-process saved modifier playback on Windows and Linux. Local editor handler Undo/Redo passes; modifier stack order and visual review remain."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_rig_modifiers.retarget_setup": {
@@ -2310,11 +2314,12 @@
       "visual_review": "pending"
     },
     "evidence": [
-      "2026-10-01: live Godot AI custom_manage(invoke), mcp_retarget_first.log run 20261001_083650. A scene-owned target of different proportions moved under the source modifier; three auto-profile bones mapped; dry run left source/target unchanged; save/forced reopen retained both; missing target returned NODE_NOT_FOUND. Godot 4.7.2 saved-scene replay activated the modifier and transferred a 0.6 rad source head rotation to target head at modification_processed. Editor undo, alternate rigs/profiles, visual quality and Linux remain."
+      "2026-10-01: live Godot AI custom_manage(invoke), mcp_retarget_first.log run 20261001_083650. A scene-owned target of different proportions moved under the source modifier; three auto-profile bones mapped; dry run left source/target unchanged; save/forced reopen retained both; missing target returned NODE_NOT_FOUND. Godot 4.7.2 saved-scene replay activated the modifier and transferred a 0.6 rad source head rotation to target head at modification_processed. Editor undo, alternate rigs/profiles, visual quality and Linux remain.",
+      "2026-10-03: GitHub Actions run 37072351007 passed live Godot AI invocation and fresh-process saved modifier playback on Windows and Linux. Editor handler undo passes; redo, other profiles and visual review remain."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   }
 }
