@@ -121,7 +121,7 @@ def graph_get_gate(args: argparse.Namespace) -> bool:
         "--project-root", str(args.project),
         "--session-hint", args.project.name,
         "--port", str(args.port), "--ws-port", str(args.ws_port),
-        "--only", "graph_get",
+        "--only", "graph_get", "blend_space", "locomotion",
     ], capture_output=True, text=True, timeout=60, check=False)
     prefix = "MCP_GRAPH_AUDIT="
     payload = next((line[len(prefix):] for line in check.stdout.splitlines()
@@ -132,20 +132,23 @@ def graph_get_gate(args: argparse.Namespace) -> bool:
         return False
     result = json.loads(payload)
     operations = result.get("operations", [])
-    if result.get("failures") or len(operations) != 1 or operations[0].get("op") != "graph_get":
+    expected_graphs = {"graph_get", "blend_space", "locomotion"}
+    if (result.get("failures") or len(operations) != len(expected_graphs)
+            or {row.get("op") for row in operations} != expected_graphs):
         print("MCP_CI_FAIL=graph_get: " + json.dumps(result.get("failures", [])))
         return False
-    print("MCP_CI_PASS=graph_get", flush=True)
-    playback = subprocess.run([
-        godot_executable(args.godot), "--headless", "--path", str(args.project),
-        "--script", "res://tools/verify_saved_graph_playback.gd", "--",
-        operations[0]["scene"],
-    ], capture_output=True, text=True, timeout=30, check=False)
-    if playback.returncode or "GRAPH_SAVED_PLAYBACK_PASS:" not in playback.stdout:
-        print("MCP_CI_FAIL=graph_saved_playback")
-        print((playback.stdout + playback.stderr)[-2500:])
-        return False
-    print("MCP_CI_PASS=graph_saved_playback", flush=True)
+    print("MCP_CI_PASS=graph_topology", flush=True)
+    for row in operations:
+        playback = subprocess.run([
+            godot_executable(args.godot), "--headless", "--path", str(args.project),
+            "--script", "res://tools/verify_saved_graph_playback.gd", "--",
+            row["scene"],
+        ], capture_output=True, text=True, timeout=30, check=False)
+        if playback.returncode or "GRAPH_SAVED_PLAYBACK_PASS:" not in playback.stdout:
+            print("MCP_CI_FAIL=graph_saved_playback:" + row["op"])
+            print((playback.stdout + playback.stderr)[-2500:])
+            return False
+        print("MCP_CI_PASS=graph_saved_playback:" + row["op"], flush=True)
     return True
 
 

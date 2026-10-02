@@ -1731,17 +1731,21 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
 
 ### 2026-10-02 — Gate saved graph playback ownership
 
-- Added `verify_saved_graph_playback.gd`, which loads a Godot AI-created,
-  editor-saved state-machine scene in a fresh Godot 4.7.2 process. It enables
-  the AnimationTree, starts idle, travels to walk and advances half a second.
-  The saved fixture's Character reaches x=50 while the scene's AnimationPlayer
-  remains idle. The check passed both the earlier full graph-audit scene and
+- Added `verify_saved_graph_playback.gd`, which loads Godot AI-created,
+  editor-saved graph scenes in a fresh Godot 4.7.2 process. It enables the
+  AnimationTree and checks idle→walk state-machine travel or blend-space
+  walk→run switching. The state-machine fixture's Character reaches x=50
+  after half a second while its AnimationPlayer remains idle; saved
+  `blend_space` and `locomotion` fixtures reach about x=48.3 and switch to
+  faster run playback. Checks passed the earlier full graph-audit scenes and
   the focused `graph_get` fixture (`graph_saved_playback_first_20261002.log`,
   `graph_get_saved_playback_20261002.log`).
 - The pinned Windows/Linux live MCP CI route now runs this fresh-process
-  playback check after the graph's save/forced-reopen topology check. Local
-  `--existing` route passed registration before and after core reload, 12
-  motion FPS rows, graph topology and saved graph playback
-  (`ci_mcp_graph_playback_existing_20261002.log`). Cross-platform CI for this
-  new gate remains pending. Other graph shapes and gameplay-driven state
-  transitions still need saved playback checks before visual approval.
+  playback check after save/forced-reopen topology checks for `graph_get`,
+  `blend_space` and `locomotion`. Local `--existing` route passed registration
+  before and after core reload, 12 motion FPS rows and all three graph
+  playback paths (`ci_mcp_graph_three_existing_20261002.log`). GitHub Actions
+  run `37038543479` passed the first state-machine-only version across Windows
+  and Linux; CI for the three-graph expansion remains pending. Other graph
+  shapes and gameplay-driven state transitions still need saved playback
+  checks before visual approval.

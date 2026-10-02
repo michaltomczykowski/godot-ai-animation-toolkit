@@ -1,7 +1,7 @@
 extends SceneTree
 
 ## Load an editor-saved graph scene in a fresh Godot process, then verify that
-## the AnimationTree alone drives the saved walk clip.
+## the AnimationTree alone drives its saved walk clip.
 ##
 ## godot --headless --path test_project --script res://tools/verify_saved_graph_playback.gd -- res://repair_graph_audit/<run>/state_machine.tscn
 
@@ -30,30 +30,42 @@ func _run() -> void:
 	if tree.anim_player != NodePath("../AnimationPlayer"):
 		_fail("saved tree does not target its scene-owned AnimationPlayer")
 		return
-	if not (tree.tree_root is AnimationNodeStateMachine):
-		_fail("saved graph root is not a state machine")
-		return
 	tree.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	tree.active = true
-	var playback := tree.get("parameters/playback") as AnimationNodeStateMachinePlayback
-	if playback == null:
-		_fail("state machine has no playback controller")
+	if tree.tree_root is AnimationNodeStateMachine:
+		var playback := tree.get("parameters/playback") as AnimationNodeStateMachinePlayback
+		if playback == null:
+			_fail("state machine has no playback controller")
+			return
+		playback.start("idle")
+		tree.advance(0.1)
+		if absf(character.position.x) > 0.01:
+			_fail("idle unexpectedly moved the character to %.3f" % character.position.x)
+			return
+		playback.travel("walk")
+	elif tree.tree_root is AnimationNodeBlendSpace1D:
+		tree.set("parameters/blend_position", 1.0)
+	else:
+		_fail("saved graph root has no checked playback path")
 		return
-	playback.start("idle")
-	tree.advance(0.1)
-	if absf(character.position.x) > 0.01:
-		_fail("idle unexpectedly moved the character to %.3f" % character.position.x)
-		return
-	playback.travel("walk")
 	for _frame in 30:
 		tree.advance(1.0 / 60.0)
-	if character.position.x < 20.0:
-		_fail("saved walk did not play through the tree (x=%.3f)" % character.position.x)
+	var walk_x := character.position.x
+	if walk_x < 20.0:
+		_fail("saved walk did not play through the tree (x=%.3f)" % walk_x)
 		return
+	if tree.tree_root is AnimationNodeBlendSpace1D:
+		tree.set("parameters/blend_position", 2.0)
+		for _frame in 6:
+			tree.advance(1.0 / 60.0)
+		if character.position.x <= walk_x + 10.0:
+			_fail("blend space did not switch to faster run (walk=%.3f, run=%.3f)"
+				% [walk_x, character.position.x])
+			return
 	if player.is_playing():
 		_fail("AnimationPlayer is competing with the tree")
 		return
-	print("GRAPH_SAVED_PLAYBACK_PASS: %s walk_x=%.3f player_idle=true" % [args[0], character.position.x])
+	print("GRAPH_SAVED_PLAYBACK_PASS: %s walk_x=%.3f player_idle=true" % [args[0], walk_x])
 	quit(0)
 
 
