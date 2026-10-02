@@ -1815,3 +1815,19 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   4.7.2 (`editor_graph_wire_undo_20261003.log`). This checks the editor
   UndoRedo manager through the handler; keyboard-driven undo through the
   external Godot AI route remains to verify.
+
+### 2026-10-03 — Gate all saved rig modifiers on real playback
+
+- GitHub Actions runs `37071590840` (2D blend/conditional locomotion) and
+  `37071800484` (`wire` Undo/Redo) passed on Windows and Linux. The latter
+  includes 221 editor checks; both live routes passed the eleven graph cases.
+- The live Godot AI CI route now invokes all five `animation_rig_modifiers`
+  operations through `custom_manage`, checks dry run, typed errors and forced
+  save/reopen, then opens each saved scene in a fresh Godot 4.7.2 process.
+  Activating the saved IK, spring, look-at, twist and retarget modifiers must
+  cause measured bone motion at `modification_processed`. A saved but inert
+  modifier fails CI. The local visible-editor run passed all five after core
+  reload, along with 12 saved motion FPS rows and ten graph playback paths
+  (`mcp_ci_modifiers_live.log` in the recovery snapshot). Windows/Linux CI
+  for this new gate is pending. Other IK forms, spring tails, modifier stack
+  order, editor undo and visual deformation remain open.

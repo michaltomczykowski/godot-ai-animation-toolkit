@@ -159,6 +159,65 @@ def graph_playback_gate(args: argparse.Namespace) -> bool:
     return True
 
 
+def modifier_playback_gate(args: argparse.Namespace) -> bool:
+    """Exercise every modifier through Godot AI and activate its saved scene."""
+    common = [
+        "--core-root", str(args.core_root),
+        "--project-root", str(args.project),
+        "--session-hint", args.project.name,
+        "--port", str(args.port), "--ws-port", str(args.ws_port),
+    ]
+    script_dir = Path(__file__).parent
+    cases = (
+        ("mcp_rig_modifiers_audit.py", "MCP_RIG_MODIFIERS=",
+         "res://tools/check_rig_modifiers_runtime.gd", "RIG_MODIFIER_RUNTIME=",
+         {"ik_setup", "spring_setup", "look_at_setup", "twist_setup"}),
+        ("mcp_retarget_audit.py", "MCP_RETARGET=",
+         "res://tools/check_retarget_runtime.gd", "RETARGET_RUNTIME=",
+         {"retarget_setup"}),
+    )
+    for audit_script, marker, runtime_script, runtime_marker, expected in cases:
+        audit = subprocess.run(
+            [sys.executable, str(script_dir / audit_script), *common],
+            capture_output=True, text=True, timeout=90, check=False,
+        )
+        payload = next((line[len(marker):] for line in audit.stdout.splitlines()
+                        if line.startswith(marker)), "")
+        if audit.returncode or not payload:
+            print("MCP_CI_FAIL=modifier_route:" + audit_script)
+            print((audit.stdout + audit.stderr)[-3000:])
+            return False
+        result = json.loads(payload)
+        rows = result.get("rows", [result["row"]] if "row" in result else [])
+        ops = {row.get("op", "retarget_setup") for row in rows}
+        if result.get("failures") or len(rows) != len(expected) or ops != expected:
+            print("MCP_CI_FAIL=modifier_route:" + audit_script + " "
+                  + json.dumps({"failures": result.get("failures"), "ops": sorted(ops)}))
+            return False
+        for row in rows:
+            op = row.get("op", "retarget_setup")
+            command = [godot_executable(args.godot), "--headless", "--path",
+                       str(args.project), "--script", runtime_script, "--", row["scene"]]
+            if op != "retarget_setup":
+                command.append(op)
+            playback = subprocess.run(command, capture_output=True, text=True,
+                                      timeout=30, check=False)
+            reported = next((line[len(runtime_marker):]
+                             for line in playback.stdout.splitlines()
+                             if line.startswith(runtime_marker)), "")
+            if playback.returncode or not reported:
+                print("MCP_CI_FAIL=modifier_saved_playback:" + op)
+                print((playback.stdout + playback.stderr)[-2500:])
+                return False
+            runtime = json.loads(reported)
+            if runtime.get("failures") or float(runtime.get("response",
+                    runtime.get("target_head_change", 0.0))) < 0.001:
+                print("MCP_CI_FAIL=modifier_saved_playback:" + op + " " + reported)
+                return False
+            print("MCP_CI_PASS=modifier_saved_playback:" + op, flush=True)
+    return True
+
+
 def run(args: argparse.Namespace) -> int:
     editor: subprocess.Popen[bytes] | None = None
     log_stream = None
@@ -227,6 +286,9 @@ def run(args: argparse.Namespace) -> int:
             print(tail(log_path))
             return 1
         if not graph_playback_gate(args):
+            print(tail(log_path))
+            return 1
+        if not modifier_playback_gate(args):
             print(tail(log_path))
             return 1
         return 0
