@@ -1853,5 +1853,8 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   count as playback. The local full-route run passed registration before and
   after core reload, 12 motion rows, ten graph playback paths, five modifier
   callbacks, and all 17 saved FX runtime checks (`mcp_ci_fx_full_live.log`).
-  Windows/Linux CI is pending. Visual previews, audio audibility and full
+  Windows/Linux CI run `37073430671` passed the same FX gate and the other
+  live-route and editor jobs. The 16 advertised FX operations now have
+  per-operation Linux runtime evidence; `sprite_frames_stopped` is an extra
+  `sprite_frames` parameter case. Visual previews, audio audibility and full
   editor Undo/Redo for every FX operation remain open.

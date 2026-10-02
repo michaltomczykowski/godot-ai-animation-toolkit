@@ -1284,11 +1284,12 @@
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP created the result in Godot 4.7.2; dry run left the target unchanged, scene save/forced reopen preserved it. See mcp_fx_sprite_fixed.log, run 20260930_153136. An invalid target returned typed NODE_NOT_FOUND in mcp_fx_errors.log.",
-      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending."
+      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending.",
+      "2026-10-03: GitHub Actions run 37073430671 passed live Godot AI dry/write/save/reopen and fresh-process saved runtime checks on Windows and Linux; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_fx.zoom_punch": {
@@ -1307,11 +1308,12 @@
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP created the result in Godot 4.7.2; dry run left the target unchanged, scene save/forced reopen preserved it. See mcp_fx_sprite_fixed.log, run 20260930_153136. An invalid target returned typed NODE_NOT_FOUND in mcp_fx_errors.log.",
-      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending."
+      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending.",
+      "2026-10-03: GitHub Actions run 37073430671 passed live Godot AI dry/write/save/reopen and fresh-process saved runtime checks on Windows and Linux; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_fx.hit_flash": {
@@ -1330,11 +1332,12 @@
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP created the result in Godot 4.7.2; dry run left the target unchanged, scene save/forced reopen preserved it. See mcp_fx_sprite_fixed.log, run 20260930_153136. An invalid target returned typed NODE_NOT_FOUND in mcp_fx_errors.log.",
-      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending."
+      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending.",
+      "2026-10-03: GitHub Actions run 37073430671 passed live Godot AI dry/write/save/reopen and fresh-process saved runtime checks on Windows and Linux; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_fx.damage_bar": {
@@ -1353,11 +1356,12 @@
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP created the result in Godot 4.7.2; dry run left the target unchanged, scene save/forced reopen preserved it. See mcp_fx_sprite_fixed.log, run 20260930_153136. An invalid target returned typed NODE_NOT_FOUND in mcp_fx_errors.log.",
-      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending."
+      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending.",
+      "2026-10-03: GitHub Actions run 37073430671 passed live Godot AI dry/write/save/reopen and fresh-process saved runtime checks on Windows and Linux; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_fx.typewriter": {
@@ -1376,11 +1380,12 @@
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP created the result in Godot 4.7.2; dry run left the target unchanged, scene save/forced reopen preserved it. See mcp_fx_sprite_fixed.log, run 20260930_153136. An invalid target returned typed NODE_NOT_FOUND in mcp_fx_errors.log.",
-      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending."
+      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending.",
+      "2026-10-03: GitHub Actions run 37073430671 passed live Godot AI dry/write/save/reopen and fresh-process saved runtime checks on Windows and Linux; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_fx.progress_fill": {
@@ -1399,11 +1404,12 @@
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP created the result in Godot 4.7.2; dry run left the target unchanged, scene save/forced reopen preserved it. See mcp_fx_sprite_fixed.log, run 20260930_153136. An invalid target returned typed NODE_NOT_FOUND in mcp_fx_errors.log.",
-      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending."
+      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending.",
+      "2026-10-03: GitHub Actions run 37073430671 passed live Godot AI dry/write/save/reopen and fresh-process saved runtime checks on Windows and Linux; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_fx.counter": {
@@ -1422,11 +1428,12 @@
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP created the result in Godot 4.7.2; dry run left the target unchanged, scene save/forced reopen preserved it. See mcp_fx_sprite_fixed.log, run 20260930_153136. An invalid target returned typed NODE_NOT_FOUND in mcp_fx_errors.log.",
-      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending."
+      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending.",
+      "2026-10-03: GitHub Actions run 37073430671 passed live Godot AI dry/write/save/reopen and fresh-process saved runtime checks on Windows and Linux; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_fx.dialog_pop": {
@@ -1445,11 +1452,12 @@
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP created the result in Godot 4.7.2; dry run left the target unchanged, scene save/forced reopen preserved it. See mcp_fx_sprite_fixed.log, run 20260930_153136. An invalid target returned typed NODE_NOT_FOUND in mcp_fx_errors.log.",
-      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending."
+      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending.",
+      "2026-10-03: GitHub Actions run 37073430671 passed live Godot AI dry/write/save/reopen and fresh-process saved runtime checks on Windows and Linux; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_fx.transition": {
@@ -1468,11 +1476,12 @@
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP created the result in Godot 4.7.2; dry run left the target unchanged, scene save/forced reopen preserved it. See mcp_fx_sprite_fixed.log, run 20260930_153136. An invalid target returned typed NODE_NOT_FOUND in mcp_fx_errors.log.",
-      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending."
+      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending.",
+      "2026-10-03: GitHub Actions run 37073430671 passed live Godot AI dry/write/save/reopen and fresh-process saved runtime checks on Windows and Linux; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_fx.wave": {
@@ -1492,11 +1501,12 @@
     "evidence": [
       "2026-09-30: live Godot AI MCP created the result in Godot 4.7.2; dry run left the target unchanged, scene save/forced reopen preserved it. See mcp_fx_sprite_fixed.log, run 20260930_153136. An invalid target returned typed NODE_NOT_FOUND in mcp_fx_errors.log.",
       "2026-09-30: saved-scene engine playback exposed node-only value paths in the first run. The handler now targets :position. Live MCP rerun mcp_fx_wave_fixed.log, run 20260930_154357, and check_fx_runtime.gd verified all three played position tracks.",
-      "2026-09-30: the visible Godot 4.7.2 editor received Ctrl+Z after live Godot AI created ui_undo_wave; MCP inspect returned animation not found. Ctrl+Shift+Z restored the same three resolved position tracks and 51 keys on unsaved res://repair_ui_undo/fx_wave_20260930_155359.tscn."
+      "2026-09-30: the visible Godot 4.7.2 editor received Ctrl+Z after live Godot AI created ui_undo_wave; MCP inspect returned animation not found. Ctrl+Shift+Z restored the same three resolved position tracks and 51 keys on unsaved res://repair_ui_undo/fx_wave_20260930_155359.tscn.",
+      "2026-10-03: GitHub Actions run 37073430671 passed live Godot AI dry/write/save/reopen and fresh-process saved runtime checks on Windows and Linux; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_fx.spring": {
@@ -1515,11 +1525,12 @@
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP created the result in Godot 4.7.2; dry run left the target unchanged, scene save/forced reopen preserved it. See mcp_fx_sprite_fixed.log, run 20260930_153136. An invalid target returned typed NODE_NOT_FOUND in mcp_fx_errors.log.",
-      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending."
+      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending.",
+      "2026-10-03: GitHub Actions run 37073430671 passed live Godot AI dry/write/save/reopen and fresh-process saved runtime checks on Windows and Linux; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_fx.pendulum": {
@@ -1538,11 +1549,12 @@
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP created the result in Godot 4.7.2; dry run left the target unchanged, scene save/forced reopen preserved it. See mcp_fx_sprite_fixed.log, run 20260930_153136. An invalid target returned typed NODE_NOT_FOUND in mcp_fx_errors.log.",
-      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending."
+      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending.",
+      "2026-10-03: GitHub Actions run 37073430671 passed live Godot AI dry/write/save/reopen and fresh-process saved runtime checks on Windows and Linux; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_fx.path_follow": {
@@ -1561,11 +1573,12 @@
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP created the result in Godot 4.7.2; dry run left the target unchanged, scene save/forced reopen preserved it. See mcp_fx_sprite_fixed.log, run 20260930_153136. An invalid target returned typed NODE_NOT_FOUND in mcp_fx_errors.log.",
-      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending."
+      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending.",
+      "2026-10-03: GitHub Actions run 37073430671 passed live Godot AI dry/write/save/reopen and fresh-process saved runtime checks on Windows and Linux; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_fx.flipbook": {
@@ -1584,11 +1597,12 @@
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP created the result in Godot 4.7.2; dry run left the target unchanged, scene save/forced reopen preserved it. See mcp_fx_sprite_fixed.log, run 20260930_153136. An invalid target returned typed NODE_NOT_FOUND in mcp_fx_errors.log.",
-      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending."
+      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending.",
+      "2026-10-03: GitHub Actions run 37073430671 passed live Godot AI dry/write/save/reopen and fresh-process saved runtime checks on Windows and Linux; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_fx.sprite_frames": {
@@ -1602,16 +1616,18 @@
       "save_reopen": "pass",
       "typed_errors": "pass",
       "undo_redo": "pass_editor",
-      "playback": "resource_only",
+      "playback": "pass_animated_frames",
       "visual_review": "pending"
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP created the result in Godot 4.7.2; dry run left the target unchanged, scene save/forced reopen preserved it. See mcp_fx_sprite_fixed.log, run 20260930_153136. An invalid target returned typed NODE_NOT_FOUND in mcp_fx_errors.log.",
-      "2026-09-30: first route pass exposed a mutating dry run; fixed. Editor test checks play=false, undo and redo; saved scene has four SpriteFrames cells. Animated visual playback and Linux remain pending."
+      "2026-09-30: first route pass exposed a mutating dry run; fixed. Editor test checks play=false, undo and redo; saved scene has four SpriteFrames cells. Animated visual playback and Linux remain pending.",
+      "2026-10-03: fresh Godot 4.7.2 playback started the saved SpriteFrames animation and observed a frame advance after 0.35 s, for both play=true and play=false authoring cases. This verifies the saved resource can animate; visual review remains pending.",
+      "2026-10-03: GitHub Actions run 37073430671 passed live Godot AI dry/write/save/reopen and fresh-process saved runtime checks on Windows and Linux; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_fx.audio_cue": {
@@ -1630,11 +1646,12 @@
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP created the result in Godot 4.7.2; dry run left the target unchanged, scene save/forced reopen preserved it. See mcp_fx_sprite_fixed.log, run 20260930_153136. An invalid target returned typed NODE_NOT_FOUND in mcp_fx_errors.log.",
-      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending."
+      "2026-09-30: check_fx_runtime.gd played the saved scene and matched the authored value on the actual node; for counter the engine method callback set text=50 at 0.5s, and for audio_cue AudioStreamPlayer2D was playing after the cue. Visual review, editor undo and Linux remain pending.",
+      "2026-10-03: GitHub Actions run 37073430671 passed live Godot AI dry/write/save/reopen and fresh-process saved runtime checks on Windows and Linux; visual quality and complete Undo/Redo remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_rig.pose_apply": {
