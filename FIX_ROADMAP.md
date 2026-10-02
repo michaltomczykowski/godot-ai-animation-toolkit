@@ -1592,3 +1592,18 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   `cycle`, `walk_start` and `walk_stop` evidence rows now record Linux as
   partial with that specific dummy-rig route/contact evidence; regenerating
   the registry audit still reports 103 partial and 0 verified operations.
+
+### 2026-10-02 — Character sheet review beyond the walk
+
+- Revisited the fixed-camera X Bot idle, jump, turn and front strafe sheets
+  under `media/` in the recovery snapshot and recorded each as a partial
+  visual check in the operation ledger. The jump's crouch, airborne interval
+  and landing are readable in sampled frames. Idle motion is subtle in stills.
+  The turn changes heading, but the planted-foot pivot or stepping pattern is
+  unclear. The corrected strafe keeps its ankles in order, yet its base closes
+  narrowly and the weight transfer is weak. Continuous playback and
+  operation-specific pose/contact review are still required; none of these
+  four operations is visually approved.
+- The next motion decision is to refine side-step and turn support poses and
+  review full-rate playback, while keeping contact and reach measurements
+  as regression gates. No generator default changed from this sheet review.

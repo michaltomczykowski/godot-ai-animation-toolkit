@@ -3457,7 +3457,7 @@
         "track_paths_types": "pass",
         "undo_redo": "pending",
         "valid_effect": "pass_played_bones",
-        "visual_review": "pending"
+        "visual_review": "partial_xbot_sheet"
       },
       "claimed_effect": "Build a looping idle: a pronounced look-around and torso twist over subtle breathing, weight shift and seeded micro-motion.",
       "evidence": [
@@ -3465,7 +3465,8 @@
         "2026-10-01: live Godot AI motion_audit on saved scene at 30/60/120 FPS passed played-world contact, penetration and knee-pole checks on the bundled dummy; see mcp_motion_saved_audit_details.log. Independent rig and visual review pending.",
         "2026-10-01: saved clip passed live Godot AI motion_audit on dummy at 30/60/120 FPS with tighter 0.016 m stance-slide cap; mcp_motion_legacy_strict_audit.log. Other rigs, visual review, undo and Linux remain open.",
         "2026-10-01: X Bot live Godot AI dry/write/save/forced reopen, run 20261001_090436; saved world-space contact audit passed at 30/60/120 FPS under 0.016 m slide cap. Logs: mcp_xbot_other_motions_first.log, mcp_xbot_other_motions_audit.log. Continuous playback and alternate rigs remain.",
-        "2026-10-01: live Godot AI saved-scene motion_audit passed on scene-owned half-size rig (0.439 m hip-to-foot, 8 mm slide cap) and 1.6x Z-up rig (1.276 m hip-to-foot, 25 mm slide cap) at 30/60/120 FPS. The evaluator uses a rig-scaled contact band on small rigs. Logs: mcp_synthetic_short_valid_pose.log, mcp_synthetic_short_adaptive_audit.log, mcp_synthetic_zup_tall_converted.log, mcp_synthetic_zup_tall_converted_audit.log. These are numerical results; continuous visual playback, undo and Linux remain."
+        "2026-10-01: live Godot AI saved-scene motion_audit passed on scene-owned half-size rig (0.439 m hip-to-foot, 8 mm slide cap) and 1.6x Z-up rig (1.276 m hip-to-foot, 25 mm slide cap) at 30/60/120 FPS. The evaluator uses a rig-scaled contact band on small rigs. Logs: mcp_synthetic_short_valid_pose.log, mcp_synthetic_short_adaptive_audit.log, mcp_synthetic_zup_tall_converted.log, mcp_synthetic_zup_tall_converted_audit.log. These are numerical results; continuous visual playback, undo and Linux remain.",
+        "2026-10-02: reviewed fixed-camera X Bot contact sheet media/xbot_idle_cycle_review/sheet.png. Small standing sway is visible, but still images do not establish natural breathing timing or seamless continuous playback. Visual approval remains open."
       ],
       "example": {
         "animation_name": "idle",
@@ -3631,7 +3632,7 @@
         "track_paths_types": "pass",
         "undo_redo": "pending",
         "valid_effect": "pass_played_bones",
-        "visual_review": "pending"
+        "visual_review": "partial_xbot_sheet"
       },
       "claimed_effect": "Build a one-shot jump: anticipation crouch, launch, air arc, landing absorb and recovery; feet planted before takeoff and after landing, and the lean is spread up `spine_chain`.",
       "evidence": [
@@ -3639,7 +3640,8 @@
         "2026-10-01: live Godot AI motion_audit on saved scene failed contact at 30/60/120 FPS: 80.8 mm landing penetration at 120 FPS; current 8 mm budget. Hip-bob gait budget also misapplies to jumps. See mcp_motion_saved_audit_details.log. Authored-key playback success does not approve this clip; quality repair is required.",
         "2026-10-01: repaired clip via live Godot AI custom_animation_motion, saved and force reopened in Godot 4.7.2 (run 20261001_084915). Played world-space motion_audit with 0.016 m slide cap: rooted travel 0.50 m; slide <= 8.7 mm; zero penetration and knee flips at 30/60/120 FPS. Details: mcp_jump_rooted_audit_fixed_kind.log. check_motion_remaining_runtime.gd played all bone tracks at authored keys with zero error. X Bot, alternate orientations/proportions, visual review, undo and Linux remain open.",
         "2026-10-01: X Bot live Godot AI write/dry-run/typed-error/save/forced-reopen on imported rig (run 20261001_090238); saved world-space motion_audit passes at 30/60/120 FPS under 0.016 m slide cap, with zero penetration and knee flips. Logs: mcp_xbot_repaired_motions_audit_fixed_budget.log and mcp_xbot_transitions_relaxed_audit.log. Static live preview images reviewed; continuous fixed-camera playback still pending.",
-        "2026-10-01: live Godot AI saved-scene motion_audit passed on scene-owned half-size rig (0.439 m hip-to-foot, 8 mm slide cap) and 1.6x Z-up rig (1.276 m hip-to-foot, 25 mm slide cap) at 30/60/120 FPS. The evaluator uses a rig-scaled contact band on small rigs. Logs: mcp_synthetic_short_valid_pose.log, mcp_synthetic_short_adaptive_audit.log, mcp_synthetic_zup_tall_converted.log, mcp_synthetic_zup_tall_converted_audit.log. These are numerical results; continuous visual playback, undo and Linux remain."
+        "2026-10-01: live Godot AI saved-scene motion_audit passed on scene-owned half-size rig (0.439 m hip-to-foot, 8 mm slide cap) and 1.6x Z-up rig (1.276 m hip-to-foot, 25 mm slide cap) at 30/60/120 FPS. The evaluator uses a rig-scaled contact band on small rigs. Logs: mcp_synthetic_short_valid_pose.log, mcp_synthetic_short_adaptive_audit.log, mcp_synthetic_zup_tall_converted.log, mcp_synthetic_zup_tall_converted_audit.log. These are numerical results; continuous visual playback, undo and Linux remain.",
+        "2026-10-02: reviewed fixed-camera X Bot contact sheet media/xbot_jump_review/sheet.png. The crouch, airborne interval and landing recovery are readable in sampled frames; continuous timing, foot clearance and landing weight still need review before visual approval."
       ],
       "example": {
         "animation_name": "jump",
@@ -3674,7 +3676,7 @@
         "track_paths_types": "pass",
         "undo_redo": "pending",
         "valid_effect": "pass_played_bones",
-        "visual_review": "pending"
+        "visual_review": "partial_xbot_sheet"
       },
       "claimed_effect": "Build an in-place pivot turn with anticipation, a stepping foot and a settle; one-shot, direction left/right. `steps` splits a big turn into that many pivot steps (opposite foot each) so a 180-degree turn reads as weight shifts, not a spin; the torso lead is bounded per step and spread over `spine_chain`, so a long spine cannot corkscrew; re-base the root yaw between steps in your driver.",
       "evidence": [
@@ -3682,7 +3684,8 @@
         "2026-10-01: live Godot AI motion_audit on saved scene failed contact at 30/60/120 FPS: 79.4/51.6 mm planted-foot slide and 8.9 mm left penetration at 120 FPS. See mcp_motion_saved_audit_details.log. Authored-key playback success does not approve this clip; quality repair is required.",
         "2026-10-01: repaired clip via live Godot AI custom_animation_motion, saved and force reopened in Godot 4.7.2 (run 20261001_085408). Played world-space motion_audit with 0.016 m slide cap: support-foot slide and penetration 0 mm; zero knee flips at 30/60/120 FPS. Details: mcp_turn_anchored_audit.log. check_motion_remaining_runtime.gd played all bone tracks at authored keys with zero error. X Bot, alternate orientations/proportions, visual review, undo and Linux remain open.",
         "2026-10-01: X Bot live Godot AI write/dry-run/typed-error/save/forced-reopen on imported rig (run 20261001_090238); saved world-space motion_audit passes at 30/60/120 FPS under 0.016 m slide cap, with zero penetration and knee flips. Logs: mcp_xbot_repaired_motions_audit_fixed_budget.log and mcp_xbot_transitions_relaxed_audit.log. Static live preview images reviewed; continuous fixed-camera playback still pending.",
-        "2026-10-01: live Godot AI saved-scene motion_audit passed on scene-owned half-size rig (0.439 m hip-to-foot, 8 mm slide cap) and 1.6x Z-up rig (1.276 m hip-to-foot, 25 mm slide cap) at 30/60/120 FPS. The evaluator uses a rig-scaled contact band on small rigs. Logs: mcp_synthetic_short_valid_pose.log, mcp_synthetic_short_adaptive_audit.log, mcp_synthetic_zup_tall_converted.log, mcp_synthetic_zup_tall_converted_audit.log. These are numerical results; continuous visual playback, undo and Linux remain."
+        "2026-10-01: live Godot AI saved-scene motion_audit passed on scene-owned half-size rig (0.439 m hip-to-foot, 8 mm slide cap) and 1.6x Z-up rig (1.276 m hip-to-foot, 25 mm slide cap) at 30/60/120 FPS. The evaluator uses a rig-scaled contact band on small rigs. Logs: mcp_synthetic_short_valid_pose.log, mcp_synthetic_short_adaptive_audit.log, mcp_synthetic_zup_tall_converted.log, mcp_synthetic_zup_tall_converted_audit.log. These are numerical results; continuous visual playback, undo and Linux remain.",
+        "2026-10-02: reviewed fixed-camera X Bot contact sheet media/xbot_turn_cycle_review/sheet.png. Body orientation changes, but the planted-foot pivot or stepping pattern is not clear from the sampled frames. Contact and continuous visual review remain open."
       ],
       "example": {
         "angle": 90,
@@ -3717,7 +3720,7 @@
         "track_paths_types": "pass",
         "undo_redo": "pending",
         "valid_effect": "pass_played_bones",
-        "visual_review": "pending"
+        "visual_review": "partial_xbot_sheet"
       },
       "claimed_effect": "Build a looping sideways gait (leading foot steps out, trailing closes) with the knees still facing forward; speed-driven like the walk.",
       "evidence": [
@@ -3726,7 +3729,8 @@
         "2026-10-01: saved clip passed live Godot AI motion_audit on dummy at 30/60/120 FPS with tighter 0.016 m stance-slide cap; mcp_motion_legacy_strict_audit.log. Other rigs, visual review, undo and Linux remain open.",
         "2026-10-01: X Bot live Godot AI dry/write/save/forced reopen, run 20261001_090436; saved world-space contact audit passed at 30/60/120 FPS under 0.016 m slide cap. Logs: mcp_xbot_other_motions_first.log, mcp_xbot_other_motions_audit.log. Continuous playback and alternate rigs remain.",
         "2026-10-01: live Godot AI saved-scene motion_audit passed on scene-owned half-size rig (0.439 m hip-to-foot, 8 mm slide cap) and 1.6x Z-up rig (1.276 m hip-to-foot, 25 mm slide cap) at 30/60/120 FPS. The evaluator uses a rig-scaled contact band on small rigs. Logs: mcp_synthetic_short_valid_pose.log, mcp_synthetic_short_adaptive_audit.log, mcp_synthetic_zup_tall_converted.log, mcp_synthetic_zup_tall_converted_audit.log. These are numerical results; continuous visual playback, undo and Linux remain.",
-        "2026-10-01: a front camera exposed crossed feet in the old X Bot strafe despite its green contact audit. The new played-world motion_kind=strafe crossing check fails that saved clip with a -0.1862 m minimum signed lateral gap. The rig-width stride cap and typed rejection of impossible explicit speed produced fresh Godot AI MCP dry/write/save/reopen clips on X Bot, dummy, half-size and Z-up tall rigs. At 30/60/120 FPS all four pass contact and foot crossing; minimum gaps are 0.0547/0.0588/0.0323/0.0941 m and worst stance slide is 1.9 mm. Runs 20261001_161512, 20261001_161945, 20261001_161955, 20261001_162004; logs/mcp_*_strafe_gap_audit.log and front before/after sheets in the recovery snapshot. The new X Bot motion is a narrow shuffle; full visual approval, operation undo and Linux remain."
+        "2026-10-01: a front camera exposed crossed feet in the old X Bot strafe despite its green contact audit. The new played-world motion_kind=strafe crossing check fails that saved clip with a -0.1862 m minimum signed lateral gap. The rig-width stride cap and typed rejection of impossible explicit speed produced fresh Godot AI MCP dry/write/save/reopen clips on X Bot, dummy, half-size and Z-up tall rigs. At 30/60/120 FPS all four pass contact and foot crossing; minimum gaps are 0.0547/0.0588/0.0323/0.0941 m and worst stance slide is 1.9 mm. Runs 20261001_161512, 20261001_161945, 20261001_161955, 20261001_162004; logs/mcp_*_strafe_gap_audit.log and front before/after sheets in the recovery snapshot. The new X Bot motion is a narrow shuffle; full visual approval, operation undo and Linux remain.",
+        "2026-10-02: reviewed fixed-camera X Bot contact sheet media/xbot_strafe_foot_spacing_front/sheet.png after the lateral-spacing correction. Ankle order is preserved, yet the base becomes visually narrow around midcycle and weight transfer reads weakly. Keep visual approval open pending a purposeful side-step pose and continuous playback."
       ],
       "example": {
         "animation_name": "strafe_left",
