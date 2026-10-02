@@ -218,6 +218,55 @@ def modifier_playback_gate(args: argparse.Namespace) -> bool:
     return True
 
 
+def fx_playback_gate(args: argparse.Namespace) -> bool:
+    """Play every saved FX result after a live Godot AI invocation."""
+    expected = {"shake", "zoom_punch", "hit_flash", "damage_bar",
+                "typewriter", "progress_fill", "counter", "dialog_pop",
+                "transition", "wave", "spring", "pendulum", "path_follow",
+                "flipbook", "sprite_frames", "sprite_frames_stopped", "audio_cue"}
+    audit = subprocess.run([
+        sys.executable, str(Path(__file__).with_name("mcp_fx_audit.py")),
+        "--core-root", str(args.core_root),
+        "--project-root", str(args.project),
+        "--session-hint", args.project.name,
+        "--port", str(args.port), "--ws-port", str(args.ws_port),
+    ], capture_output=True, text=True, timeout=120, check=False)
+    marker = "MCP_FX_AUDIT="
+    payload = next((line[len(marker):] for line in audit.stdout.splitlines()
+                    if line.startswith(marker)), "")
+    if audit.returncode or not payload:
+        print("MCP_CI_FAIL=fx_route")
+        print((audit.stdout + audit.stderr)[-3000:])
+        return False
+    result = json.loads(payload)
+    rows = result.get("operations", [])
+    actual = {row.get("op") for row in rows}
+    if result.get("failures") or len(rows) != len(expected) or actual != expected:
+        print("MCP_CI_FAIL=fx_route: " + json.dumps({
+            "failures": result.get("failures"), "actual": sorted(actual)}))
+        return False
+    print("MCP_CI_PASS=fx_route", flush=True)
+    for row in rows:
+        playback = subprocess.run([
+            godot_executable(args.godot), "--headless", "--path",
+            str(args.project), "--script", "res://tools/check_fx_runtime.gd",
+            "--", row["scene"], row["op"],
+        ], capture_output=True, text=True, timeout=30, check=False)
+        marker = "FX_RUNTIME="
+        reported = next((line[len(marker):] for line in playback.stdout.splitlines()
+                         if line.startswith(marker)), "")
+        if playback.returncode or not reported:
+            print("MCP_CI_FAIL=fx_saved_playback:" + row["op"])
+            print((playback.stdout + playback.stderr)[-2500:])
+            return False
+        runtime = json.loads(reported)
+        if runtime.get("failures") or not runtime.get("checks"):
+            print("MCP_CI_FAIL=fx_saved_playback:" + row["op"] + " " + reported)
+            return False
+        print("MCP_CI_PASS=fx_saved_playback:" + row["op"], flush=True)
+    return True
+
+
 def run(args: argparse.Namespace) -> int:
     editor: subprocess.Popen[bytes] | None = None
     log_stream = None
@@ -289,6 +338,9 @@ def run(args: argparse.Namespace) -> int:
             print(tail(log_path))
             return 1
         if not modifier_playback_gate(args):
+            print(tail(log_path))
+            return 1
+        if not fx_playback_gate(args):
             print(tail(log_path))
             return 1
         return 0

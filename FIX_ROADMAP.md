@@ -1840,3 +1840,18 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   keyboard-driven undo through the live Godot AI editor route remain open.
   GitHub Actions run `37072554301` passed the 221-test editor suite and the
   modifier playback gate on Windows and Linux.
+
+### 2026-10-03 — Expand live route to every FX operation
+
+- Repeated all 17 FX cases through the visible Godot AI editor session
+  (`mcp_fx_full_repeat_20261003.log`, run `20261002_223116`). Each case
+  passed dry run, write, save/forced-reopen, resolved track or SpriteFrames
+  checks, and the existing fresh-process Godot 4.7.2 runtime checker.
+- Added the full FX audit and all 17 saved runtime checks to the live MCP CI
+  gate. The SpriteFrames runtime check now starts the saved four-frame
+  animation and observes a frame advance, so frame resources alone do not
+  count as playback. The local full-route run passed registration before and
+  after core reload, 12 motion rows, ten graph playback paths, five modifier
+  callbacks, and all 17 saved FX runtime checks (`mcp_ci_fx_full_live.log`).
+  Windows/Linux CI is pending. Visual previews, audio audibility and full
+  editor Undo/Redo for every FX operation remain open.

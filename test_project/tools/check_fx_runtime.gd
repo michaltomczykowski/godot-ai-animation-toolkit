@@ -43,6 +43,14 @@ func _probe() -> void:
 			checks.append({"frames": count, "animation": op})
 			if count != 4:
 				failures.append("expected four SpriteFrames cells")
+			else:
+				sprite.frame = 0
+				sprite.play(op)
+				await create_timer(0.35).timeout
+				checks.append({"frame_after_play": sprite.frame,
+					"playing_after_play": sprite.is_playing()})
+				if sprite.frame == 0 or not sprite.is_playing():
+					failures.append("saved SpriteFrames do not animate when played")
 	else:
 		var player := fixture.get_node("AnimationPlayer") as AnimationPlayer
 		var animation := player.get_animation(op)
