@@ -1626,3 +1626,12 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   straighter 16-degree pose but still weak sideward weight transfer. The
   default stays at 35 until the support pose is redesigned and the full
   character/rig matrix is reviewed.
+
+### 2026-10-02 — Reject inert played gait in the CI probe
+
+- Strengthened the live MCP CI motion gate to require exactly the three
+  requested operations and all nine op/FPS rows. Each saved played clip must
+  move the dummy more than 0.1 m; a contact-clean but stationary result now
+  fails CI. The visible Godot 4.7.2 editor passed the full probe again after
+  plugin reload (`ci_mcp_motion_noninert_20261002.log`). Cross-platform CI
+  for this additional assertion is pending.

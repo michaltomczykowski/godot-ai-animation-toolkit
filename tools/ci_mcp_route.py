@@ -66,6 +66,11 @@ def motion_gate(args: argparse.Namespace) -> bool:
     if result.get("failures"):
         print("MCP_CI_FAIL=motion_create: " + json.dumps(result["failures"]))
         return False
+    expected_ops = {"cycle", "walk_start", "walk_stop"}
+    created_ops = {row.get("op") for row in result.get("operations", [])}
+    if created_ops != expected_ops or len(result.get("operations", [])) != 3:
+        print("MCP_CI_FAIL=motion_create: wrong operation set " + repr(created_ops))
+        return False
     audit = subprocess.run([
         sys.executable, str(Path(__file__).with_name("mcp_motion_audit_saved.py")),
         *common, "--run-id", result["run_id"],
@@ -76,6 +81,21 @@ def motion_gate(args: argparse.Namespace) -> bool:
     if audit.returncode or not summary:
         print("MCP_CI_FAIL=motion_playback")
         print((audit.stdout + audit.stderr)[-3500:])
+        return False
+    audit_prefix = "MCP_MOTION_SAVED_AUDIT="
+    audit_payload = next((line[len(audit_prefix):] for line in audit.stdout.splitlines()
+                          if line.startswith(audit_prefix)), "")
+    if not audit_payload:
+        print("MCP_CI_FAIL=motion_playback: missing audit rows")
+        return False
+    rows = json.loads(audit_payload)
+    expected_rows = {(op, fps) for op in expected_ops for fps in (30, 60, 120)}
+    actual_rows = {(row.get("op"), row.get("fps")) for row in rows}
+    inert = [f"{row.get('op')}@{row.get('fps')}" for row in rows
+             if float(row.get("body_travel") or 0.0) <= 0.1]
+    if len(rows) != 9 or actual_rows != expected_rows or inert:
+        print("MCP_CI_FAIL=motion_playback: missing or inert samples "
+              + json.dumps({"actual": sorted(actual_rows), "inert": inert}))
         return False
     print("MCP_CI_PASS=motion_playback " + summary, flush=True)
     return True
