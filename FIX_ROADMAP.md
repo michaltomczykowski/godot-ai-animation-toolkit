@@ -1761,8 +1761,28 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
 - Expanded the live Godot AI CI route to create, save, force-reopen and play
   seven graph cases after a core-plugin reload. The local `--existing` run
   passed registration, 12 saved motion FPS rows, graph topology and all seven
-  saved playback checks (`ci_mcp_graph_seven_existing_20261002.log`). Windows
-  and Linux CI for this expansion is pending. `wire` intentionally creates or
-  configures a tree without requiring a playback root; it needs its own
-  structural/parameter-effect contract. Graph visual and gameplay transition
-  review remain open.
+  saved playback checks (`ci_mcp_graph_seven_existing_20261002.log`). GitHub
+  Actions run `37070326691` passed the seven-graph expansion on Windows and
+  Linux. Graph visual and gameplay transition review remain open.
+
+### 2026-10-03 — Verify `wire`'s structural and parameter effects
+
+- A bare `wire` call intentionally creates an inactive AnimationTree linked to
+  the requested AnimationPlayer without a playback root. The live graph audit
+  now checks that this structure survives save/reopen instead of pretending a
+  clip should play. Added a second `wire_parameter` case: create a conditional
+  idle→walk state machine, then call `wire` with `active=true` and
+  `parameters/conditions/walking=true`. Godot AI dry/write/save/forced-reopen
+  checks passed (run `20261002_220400`); a fresh Godot 4.7.2 process verified
+  the saved condition and active flag, then the tree advanced the Character to
+  x=48.3 with the AnimationPlayer idle. Logs `mcp_graph_wire_parameter_20261003.log`
+  and `graph_wire_parameter_saved_playback_20261003.log` are in the snapshot.
+- The nine-case local live route passed all structural checks and eight saved
+  playback paths after core reload (`ci_mcp_graph_nine_existing_20261003.log`).
+  Corrected the `wire` registry summary and example: the old example tried to
+  set a parameter before any graph existed, which returned an error, and the
+  summary implied the default tree was active. The first tier-1 rerun correctly
+  caught the stale generated op index; after `tools/gen_docs.ps1`, all 14
+  tier-1 suites and 219 editor tests passed on Godot 4.7.2. Windows/Linux CI
+  for the nine-case gate remains pending; UI undo and visual graph review
+  remain open.

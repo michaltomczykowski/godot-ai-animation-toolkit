@@ -30,9 +30,22 @@ func _run() -> void:
 	if tree.anim_player != NodePath("../AnimationPlayer"):
 		_fail("saved tree does not target its scene-owned AnimationPlayer")
 		return
+	var saved_active := tree.active
 	tree.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	tree.active = true
 	if tree.tree_root is AnimationNodeStateMachine:
+		if args[0].get_file() == "wire_parameter.tscn":
+			if not saved_active or tree.get("parameters/conditions/walking") != true:
+				_fail("wire did not persist active=true and the walking condition")
+				return
+			for _frame in 30:
+				tree.advance(1.0 / 60.0)
+			if character.position.x < 20.0 or player.is_playing():
+				_fail("wired walking condition did not drive the tree (x=%.3f)" % character.position.x)
+				return
+			print("GRAPH_SAVED_PLAYBACK_PASS: %s condition_walk_x=%.3f player_idle=true" % [args[0], character.position.x])
+			quit(0)
+			return
 		var playback := tree.get("parameters/playback") as AnimationNodeStateMachinePlayback
 		if playback == null:
 			_fail("state machine has no playback controller")

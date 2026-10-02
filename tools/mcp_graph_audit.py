@@ -22,6 +22,11 @@ BASE = {"op": "state_machine", "player_path": PLAYER,
         "states": [{"name": "idle", "animation": "idle"},
                    {"name": "walk", "animation": "walk"}],
         "transitions": [{"from": "idle", "to": "walk", "xfade": 0.1}]}
+WIRE_BASE = {"op": "state_machine", "player_path": PLAYER,
+             "states": [{"name": "idle", "animation": "idle"},
+                        {"name": "walk", "animation": "walk"}],
+             "transitions": [{"from": "idle", "to": "walk", "xfade": 0.1,
+                              "condition": "walking"}]}
 CASES = {
     "state_machine": {"params": BASE},
     "blend_space": {"params": {"op": "blend_space", "player_path": PLAYER,
@@ -34,6 +39,9 @@ CASES = {
             {"type": "animation", "animation": "idle"},
             {"type": "animation", "animation": "walk"}]} }},
     "wire": {"params": {"op": "wire", "player_path": PLAYER}},
+    "wire_parameter": {"setup": WIRE_BASE, "params": {
+        "op": "wire", "player_path": PLAYER, "active": True,
+        "parameter_path": "parameters/conditions/walking", "parameter_value": True}},
     "graph_get": {"setup": BASE, "params": {"op": "graph_get", "tree_path": TREE}},
     "locomotion": {"params": {"op": "locomotion", "player_path": PLAYER,
                                "mode": "blend_space"}},
@@ -75,6 +83,19 @@ def verify_row(row: dict) -> list[str]:
             failures.append("graph_get: response changed after save/reopen")
         if not row.get("invalid", {}).get("error", "").startswith("NODE_NOT_FOUND:"):
             failures.append("graph_get: missing tree lacks typed NODE_NOT_FOUND")
+    if row["op"] == "wire_parameter":
+        if not persisted.get("active"):
+            failures.append("wire_parameter: saved tree was not activated")
+        if "parameters/conditions/walking" not in persisted.get("parameters", []):
+            failures.append("wire_parameter: saved walking condition is unavailable")
+        if row.get("create", {}).get("parameter_set") != {
+                "path": "parameters/conditions/walking", "value": True}:
+            failures.append("wire_parameter: reply did not report the requested value")
+    if row["op"] == "wire":
+        if not row.get("create", {}).get("created"):
+            failures.append("wire: tree was not created")
+        if persisted.get("root") != {} or persisted.get("active"):
+            failures.append("wire: bare tree unexpectedly owns playback")
     return failures
 
 

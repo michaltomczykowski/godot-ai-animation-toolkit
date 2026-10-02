@@ -116,14 +116,16 @@ def motion_gate(args: argparse.Namespace) -> bool:
 
 def graph_playback_gate(args: argparse.Namespace) -> bool:
     playable_graphs = ("state_machine", "blend_space", "blend_tree",
-                       "graph_get", "locomotion", "one_shot_layer", "additive_lean")
+                       "graph_get", "locomotion", "one_shot_layer", "additive_lean",
+                       "wire_parameter")
+    audited_graphs = (*playable_graphs, "wire")
     check = subprocess.run([
         sys.executable, str(Path(__file__).with_name("mcp_graph_audit.py")),
         "--core-root", str(args.core_root),
         "--project-root", str(args.project),
         "--session-hint", args.project.name,
         "--port", str(args.port), "--ws-port", str(args.ws_port),
-        "--only", *playable_graphs,
+        "--only", *audited_graphs,
     ], capture_output=True, text=True, timeout=60, check=False)
     prefix = "MCP_GRAPH_AUDIT="
     payload = next((line[len(prefix):] for line in check.stdout.splitlines()
@@ -134,13 +136,15 @@ def graph_playback_gate(args: argparse.Namespace) -> bool:
         return False
     result = json.loads(payload)
     operations = result.get("operations", [])
-    expected_graphs = set(playable_graphs)
+    expected_graphs = set(audited_graphs)
     if (result.get("failures") or len(operations) != len(expected_graphs)
             or {row.get("op") for row in operations} != expected_graphs):
         print("MCP_CI_FAIL=graph_get: " + json.dumps(result.get("failures", [])))
         return False
     print("MCP_CI_PASS=graph_topology", flush=True)
     for row in operations:
+        if row["op"] == "wire":
+            continue
         playback = subprocess.run([
             godot_executable(args.godot), "--headless", "--path", str(args.project),
             "--script", "res://tools/verify_saved_graph_playback.gd", "--",

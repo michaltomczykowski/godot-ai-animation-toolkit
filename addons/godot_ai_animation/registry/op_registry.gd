@@ -1224,7 +1224,7 @@ static func _graph_schema() -> Dictionary:
 				"description": "Activate the tree. Off by default because an active AnimationTree also drives the scene while you edit it - turn it on when the scene is ready to play.",
 			},
 			"create": {"type": "boolean", "default": true, "description": "wire: create the tree when missing."},
-			"parameter_path": {"type": "string", "description": "wire: tree parameter to set (e.g. \"parameters/conditions/walking\")."},
+			"parameter_path": {"type": "string", "description": "wire: existing tree parameter to set after building a graph (e.g. \"parameters/conditions/walking\")."},
 			"parameter_value": {"description": "wire: value for parameter_path."},
 			"states": {
 				"type": "array",
@@ -1319,9 +1319,9 @@ static func _graph_ops() -> Array:
 		},
 		{
 			"name": "wire",
-			"summary": "Ensure an AnimationTree exists for the player, is active, and optionally set a parameter.",
+			"summary": "Ensure an AnimationTree exists for the player; optionally activate it or set an existing parameter.",
 			"params": ["player_path", "tree_path", "name", "parent_path", "active", "create", "parameter_path", "parameter_value"],
-			"example": {"op": "wire", "player_path": "/Main", "parameter_path": "parameters/conditions/walking", "parameter_value": true},
+			"example": {"op": "wire", "player_path": "/Main/Rig/AnimationPlayer"},
 		},
 		{
 			"name": "graph_get",
