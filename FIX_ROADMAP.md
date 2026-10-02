@@ -1508,5 +1508,57 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   scene is under ignored `test_project/repair_mcp_ci/`. The first local try
   misread Godot AI's flattened successful MCP payload (`dry_run` is top-level),
   then the assertion was corrected. Log `mcp_valid_pulse_dry_20261001.log` in
-  the snapshot records the successful result. Fresh Windows/Linux CI remains
-  pending for this expanded probe.
+  the snapshot records the successful result. CI run `36922916346` then passed
+  all 34 active jobs, including the expanded live MCP probe on Windows and
+  Linux. Its two release-only jobs were skipped as expected for a draft PR.
+
+### 2026-10-01 — Phase 3, pelvis yaw axis correction candidate
+
+- Found `hip_yaw` applied around the rig's lateral axis in the shared gait
+  generator. That is a pitch, while the torso's counter-yaw already uses the
+  rig-relative up axis. Changed the pelvis channel to rotate about `ctx.up`.
+  This keeps the same semantics on Y-up and Z-up rigs and removes a misleading
+  pitch source from walk, run and strafe.
+- The first test pass found only the expected walk/run/synthetic golden drifts
+  and one one-shot assertion that used thigh rotation as a proxy for preserving
+  a gait endpoint. The assertion now checks the pelvis rotation, the channel
+  that actually carries the yaw endpoint. Previous goldens were backed up in
+  `goldens_before_pelvis_yaw_axis/` and regenerated on Godot 4.7.2.
+- Windows verification after regeneration: 14/14 tier-1 suites, 219/219 editor
+  tests, live Godot AI default X Bot start→walk→stop composition, saved/reopened
+  241-sample played audit, and individual dummy/X Bot walk save/reopen audits.
+  The composed clip traveled 1.1954 m and reported no failed contact checks;
+  both individual walks passed before and after reopen. Logs
+  `mcp_pelvis_yaw_candidate_20261001.log`,
+  `mcp_dummy_pelvis_yaw_walk_20261001.log`, and
+  `mcp_xbot_pelvis_yaw_walk_20261001.log` preserve the exact route results.
+- Godot Movie Maker rendered 132 frames at 60 FPS from fixed side and front
+  cameras. Compare `media/xbot_start_walk_stop_final_default[_front]/sheet.png`
+  with `media/xbot_start_walk_stop_pelvis_yaw_candidate[_front]/sheet.png` in
+  the recovery snapshot. The pelvis rotation is semantically correct and the
+  contact tests remain green, but the visible weight transfer improvement is
+  modest. Human visual approval remains open; this is a reviewed candidate,
+  not a claim that the walk is finished. Cross-platform CI for this source
+  change remains pending.
+
+### 2026-10-02 — Crash recovery and synthetic gait validation
+
+- Relaunched the visible Godot 4.7.2 editor after the PC crash. Godot AI's
+  managed server did not start on the first launch because the development
+  venv path was missing from that process environment. Relaunching with
+  `GODOT_AI_VENV_PYTHON` restored the editor's authenticated server on HTTP
+  18131 / WebSocket 18132. A fresh external MCP probe found all ten toolkit
+  families, all eight promoted family tools, typed invalid-op errors and
+  correct cross-family rig rejection. The recovery startup log is
+  `logs/godot_relaunch_20261002.log` in the snapshot.
+- On the pelvis-yaw candidate, live Godot AI generated `cycle`, `walk_start`
+  and `walk_stop` on both the short and Z-up tall synthetic rigs. All six
+  operations passed dry-run immutability, save/force-reopen track resolution
+  and typed invalid-skeleton checks. Played world-space audits passed at
+  30, 60 and 120 FPS: 18/18 rig-operation-FPS rows, including contact,
+  sliding, penetration and continuity checks. Logs
+  `mcp_synthetic_{short,zup}_candidate_20261002.log` and
+  `mcp_synthetic_{short,zup}_played_20261002.log` preserve the results.
+- This establishes a useful cross-orientation regression for the yaw-axis
+  correction. Broader visual approval and the per-operation audit remain
+  open; the candidate is not a declaration that character motion is finished.

@@ -309,10 +309,10 @@ func test_one_shot_recipes_keep_their_endpoint_when_looping() -> void:
 	}, null)
 	assert_true(start.has("data"), "walk_start builds: %s" % str(start))
 	var start_anim: Animation = rig.player.get_animation("start_looped")
-	var start_thigh := _track_index(start_anim, ":B-thigh.L", Animation.TYPE_ROTATION_3D)
-	var start_first: Quaternion = start_anim.track_get_key_value(start_thigh, 0)
-	var start_last: Quaternion = start_anim.track_get_key_value(start_thigh,
-		start_anim.track_get_key_count(start_thigh) - 1)
+	var start_hips := _track_index(start_anim, ":B-hips", Animation.TYPE_ROTATION_3D)
+	var start_first: Quaternion = start_anim.track_get_key_value(start_hips, 0)
+	var start_last: Quaternion = start_anim.track_get_key_value(start_hips,
+		start_anim.track_get_key_count(start_hips) - 1)
 	assert_true(rad_to_deg(start_first.angle_to(start_last)) > 3.0,
 		"the transition keeps its gait endpoint (%.1f deg)" % rad_to_deg(start_first.angle_to(start_last)))
 	var turn := _handler.run({

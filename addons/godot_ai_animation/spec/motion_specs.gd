@@ -209,7 +209,7 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 	var lean := float(config.lean) * float(signs.lean)
 
 	var pelvis_rotation := [
-		_channel(lateral, hip_yaw, 1.0, 0.0, 0.0, "cosine"),
+		_channel(up, hip_yaw, 1.0, 0.0, 0.0, "cosine"),
 		_channel(forward, hip_roll, 1.0, 0.0, 0.0, "sine"),
 		_channel(lateral, 0.0, 1.0, 0.0, 0.0, "sine", 0.5 * lean),
 	]
