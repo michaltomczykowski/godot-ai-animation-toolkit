@@ -1,4 +1,4 @@
-"""Exercise seven remaining motion clip ops through live Godot AI."""
+"""Exercise saved motion clips, including the run preset, through live Godot AI."""
 
 from __future__ import annotations
 
@@ -23,6 +23,8 @@ CASES = {
                    "root_motion": False},
     "cycle": {"preset": "walk", "duration": 1.0,
               "loop_mode": "linear", "root_motion": True},
+    "run_cycle": {"preset": "run", "duration": 1.0,
+                  "loop_mode": "linear", "root_motion": True},
     "jump": {"duration": 1.0, "loop_mode": "none",
              "root_motion": True, "height": 0.3, "distance": 0.5},
     "turn_cycle": {"duration": 1.0, "loop_mode": "none",
@@ -73,7 +75,7 @@ async def run(args: argparse.Namespace) -> int:
             scene = f"res://repair_motion_audit/{run_id}/{op}.tscn"
             row = {"op": op, "scene": scene}
             row["open"] = await call(client, "scene_open", {"path": scene})
-            params = {"op": op, "player_path": player,
+            params = {"op": "cycle" if op == "run_cycle" else op, "player_path": player,
                       "skeleton_path": skeleton, "animation_name": op,
                       "samples": 30, **extras}
             if args.phase is not None and op in ("walk_start", "walk_stop"):

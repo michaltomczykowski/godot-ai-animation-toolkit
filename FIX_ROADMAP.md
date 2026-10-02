@@ -1678,3 +1678,35 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   `mcp_*remaining_pelvis*`, `mcp_synthetic_*played_20261002.log` and
   `mcp_synthetic_zup_strict_played_20261002.log` are in the recovery
   snapshot. Visual quality and a four-rig Linux matrix remain open.
+
+### 2026-10-02 — Move gait sway toward the planted leg
+
+- Rig analysis defines `lateral` from the right hip toward the left hip. At
+  quarter-cycle the left foot is planted, but gait sway had a negative sine
+  amplitude and moved the pelvis toward the swinging right leg. Changed that
+  sign in the shared gait recipe and added a tier-1 stance-side assertion on
+  0.50, 0.85 and 1.70 m synthetic legs. The assertion passed before golden
+  regeneration; the old spec golden failed by 82 quantized units as expected.
+- Rendered 61 fixed-camera frames from live Godot AI-created X Bot walk clips
+  before and after the change. The first review wrappers accidentally pointed
+  at an old strafe clip and a missing clip; those sheets were discarded. The
+  corrected front sheets are `media/xbot_walk_sway_{before,candidate}_front_fixed/sheet.png`
+  in the 2026-09-30 recovery snapshot. The candidate shifts the pelvis toward
+  support, but the visible change is subtle. A side sheet of the fresh run
+  preset is `media/xbot_run_sway_candidate_side/sheet.png`; run remains only
+  partially visually reviewed.
+- Extended the live MCP fixture harness with `run_cycle` as a separate test
+  case that calls `animation_motion.cycle` with `preset=run`. Fresh Godot AI
+  dry/write/save/forced-reopen/typed-error checks passed for eight cases on
+  the dummy and X Bot, and for the same eight cases across two runs each on
+  the short and Z-up tall synthetic rigs. All **96/96** saved played audits
+  passed at 30/60/120 FPS. Maximum stance slide was 15.2 mm, maximum ground
+  penetration 5.5 mm and there were zero knee-pole flips. Strict slide caps
+  remained 16/16/8/25 mm for dummy/X Bot/short/Z-up. Logs are
+  `mcp_*sway_{candidate,remaining,full}*20261002*.log` in the snapshot.
+- Backed up the previous three affected goldens under
+  `goldens_before_sway_sign/`, then recorded replacements with Godot 4.7.2.
+  All 14 tier-1 suites and all 219 editor tests passed on a second run against
+  those fixtures. This is a support-direction fix with numerical regression
+  coverage, not final approval of the walk, run or strafe visual quality. CI
+  and Linux's full four-rig matrix remain to check.

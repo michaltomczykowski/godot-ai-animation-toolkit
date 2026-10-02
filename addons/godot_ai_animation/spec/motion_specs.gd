@@ -219,7 +219,10 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 	var torso_channels := _twist_channels(
 		ctx, config, hip_yaw, up, torso_weights, _spread(config), lag)
 	var bob_channel := _channel(up, -0.5 * float(config.bob), 2.0, 0.0, 0.0, "cosine")
-	var sway_channel := _channel(lateral, -float(config.sway), 1.0, 0.0, 0.0, "sine")
+	# `lateral` points from the right hip toward the left. At t=0.25 the
+	# left foot is in stance and the right foot is swinging, so positive sine
+	# shifts the pelvis onto the supporting leg instead of away from it.
+	var sway_channel := _channel(lateral, float(config.sway), 1.0, 0.0, 0.0, "sine")
 
 	var chain := _twist_chain(ctx, roles)
 	var chest := str(roles.get("chest", ""))
