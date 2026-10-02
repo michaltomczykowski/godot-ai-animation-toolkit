@@ -1658,3 +1658,23 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   The ledger now marks Linux `graph_get` coverage partial. This startup
   failure is still an observed core/runner reliability risk, not a toolkit
   graph failure.
+
+### 2026-10-02 — Full post-yaw motion matrix on four rigs
+
+- Rebuilt and force-reopened the seven `idle_cycle`, `cycle`, `jump`,
+  `turn_cycle`, `strafe_cycle`, `walk_start` and `walk_stop` clips through live
+  Godot AI on the bundled dummy and local X Bot. Built the remaining four
+  operations on the short and Z-up tall synthetic rigs, complementing their
+  earlier post-change walk/start/stop checks. All 28 rig-operation cases
+  passed dry-run immutability, resolved saved tracks and typed missing-rig
+  errors (runs `20261002_163002`, `163053`, `154328`, `154352`, `163150`,
+  `163233`).
+- Played world-space audits passed **84/84** cases at 30, 60 and 120 FPS.
+  Slide caps were 16 mm for dummy/X Bot, 8 mm for short and 25 mm for Z-up
+  tall. The largest reported stance slide was 15.2 mm, largest penetration
+  1.4 mm and smallest signed strafe ankle gap 32.3 mm. The saved-audit
+  harness now exits nonzero on failed checks, so these passes are not merely
+  successful MCP responses. Logs `mcp_*full_motion_pelvis*`,
+  `mcp_*remaining_pelvis*`, `mcp_synthetic_*played_20261002.log` and
+  `mcp_synthetic_zup_strict_played_20261002.log` are in the recovery
+  snapshot. Visual quality and a four-rig Linux matrix remain open.
