@@ -62,6 +62,19 @@ def verify_row(row: dict) -> list[str]:
     persisted = row.get("persisted", {})
     if not persisted.get("anim_player_resolved") or not persisted.get("tree_path"):
         failures.append(f"{row['op']}: saved AnimationTree cannot resolve its player")
+    if row["op"] == "graph_get":
+        root = persisted.get("root", {})
+        states = {state.get("name") for state in root.get("states", [])}
+        transitions = {(edge.get("from"), edge.get("to"))
+                       for edge in root.get("transitions", [])}
+        if (root.get("type") != "state_machine" or states != {"idle", "walk"}
+                or ("idle", "walk") not in transitions
+                or set(persisted.get("animations", [])) != {"idle", "walk"}):
+            failures.append("graph_get: saved state/transition topology differs from fixture")
+        if row.get("create") != persisted:
+            failures.append("graph_get: response changed after save/reopen")
+        if not row.get("invalid", {}).get("error", "").startswith("NODE_NOT_FOUND:"):
+            failures.append("graph_get: missing tree lacks typed NODE_NOT_FOUND")
     return failures
 
 
@@ -102,6 +115,9 @@ async def run(args: argparse.Namespace) -> int:
                 "path": scene, "force_reload": True})
             row["persisted"] = await call(client, "custom_animation_graph", {
                 "op": "graph_get", "tree_path": TREE})
+            if op == "graph_get":
+                row["invalid"] = await call(client, "custom_animation_graph", {
+                    "op": "graph_get", "tree_path": "/DefinitelyMissingAnimationTree"})
             rows.append(row)
     failures = [message for row in rows for message in verify_row(row)]
     print("MCP_GRAPH_AUDIT=" + json.dumps({

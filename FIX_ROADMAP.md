@@ -1633,5 +1633,18 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   requested operations and all nine op/FPS rows. Each saved played clip must
   move the dummy more than 0.1 m; a contact-clean but stationary result now
   fails CI. The visible Godot 4.7.2 editor passed the full probe again after
-  plugin reload (`ci_mcp_motion_noninert_20261002.log`). Cross-platform CI
-  for this additional assertion is pending.
+  plugin reload (`ci_mcp_motion_noninert_20261002.log`). GitHub Actions run
+  `37032204179` passed all 28 tier-1, four editor and two live MCP jobs on
+  Windows and Linux with this additional assertion.
+
+### 2026-10-02 — Verify `graph_get` topology as a read-only operation
+
+- Tightened `mcp_graph_audit.py` for `animation_graph.graph_get`. The live
+  Godot AI result must name both `idle` and `walk` animations and states,
+  include the `idle`→`walk` transition, remain identical after save/forced
+  reopen, and return typed `NODE_NOT_FOUND` for a missing tree. Dry-run
+  graph root and parameters must remain unchanged. The focused Windows
+  Godot 4.7.2 run `20261002_161310` passed with zero failures; log
+  `mcp_graph_get_contract_20261002.log` preserves the response. The ledger
+  now records this read-only effect and its inapplicable clip/undo checks.
+  Full graph-family playback and Linux operation contracts remain open.
