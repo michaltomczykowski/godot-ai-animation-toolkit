@@ -214,7 +214,7 @@ jobs:
       - name: Import project
         run: godot --headless --path test_project --import
 
-      - name: Probe families and saved motion, graph, modifier, FX, edit, preset and library playback through Godot AI
+      - name: Probe families and saved motion, graph, modifier, FX, edit, preset, library and inspect contracts through Godot AI
         run: python tools/ci_mcp_route.py --core-root .ci/godot-ai
 
       - name: Preserve editor startup log

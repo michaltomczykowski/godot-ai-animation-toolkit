@@ -421,6 +421,34 @@ def library_playback_gate(args: argparse.Namespace) -> bool:
     return True
 
 
+def inspect_gate(args: argparse.Namespace) -> bool:
+    """Assert every read-only inspector operation and its typed error."""
+    expected = {"describe", "timeline", "audit", "compare", "stats",
+                "motion_report", "dry_run", "help"}
+    audit = subprocess.run([
+        sys.executable, str(Path(__file__).with_name("mcp_inspect_audit.py")),
+        "--core-root", str(args.core_root),
+        "--session-hint", args.project.name,
+        "--port", str(args.port), "--ws-port", str(args.ws_port),
+    ], capture_output=True, text=True, timeout=45, check=False)
+    marker = "MCP_INSPECT_AUDIT="
+    payload = next((line[len(marker):] for line in audit.stdout.splitlines()
+                    if line.startswith(marker)), "")
+    if audit.returncode or not payload:
+        print("MCP_CI_FAIL=inspect_route")
+        print((audit.stdout + audit.stderr)[-3000:])
+        return False
+    result = json.loads(payload)
+    rows = result.get("operations", [])
+    actual = {row.get("op") for row in rows}
+    if result.get("failures") or len(rows) != len(expected) or actual != expected:
+        print("MCP_CI_FAIL=inspect_route: " + json.dumps({
+            "failures": result.get("failures"), "actual": sorted(actual)}))
+        return False
+    print("MCP_CI_PASS=inspect_route", flush=True)
+    return True
+
+
 def run(args: argparse.Namespace) -> int:
     editor: subprocess.Popen[bytes] | None = None
     log_stream = None
@@ -504,6 +532,9 @@ def run(args: argparse.Namespace) -> int:
             print(tail(log_path))
             return 1
         if not library_playback_gate(args):
+            print(tail(log_path))
+            return 1
+        if not inspect_gate(args):
             print(tail(log_path))
             return 1
         return 0

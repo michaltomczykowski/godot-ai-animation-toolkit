@@ -1907,3 +1907,12 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   CI route. The focused local gate passed (`mcp_ci_library_gate_local.log`);
   Windows/Linux CI is pending. File rollback semantics, UndoRedo promises and
   visual review remain open.
+
+### 2026-10-03 — Check all read-only inspector operations
+
+- The visible Godot AI route returned expected facts and typed invalid-input
+  errors for all eight `animation_inspect` operations on a saved clip fixture
+  (`mcp_inspect_repeat_20261003.log`). The audit asserts key counts, timeline
+  values, clip comparison, a loop seam warning, dry-run prediction and
+  registry help coverage. Added this read-only family to live MCP CI;
+  Windows/Linux confirmation is pending.
