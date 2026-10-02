@@ -1714,4 +1714,17 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   `--existing` pass through the visible Godot 4.7.2 editor passed registration
   before/after core reload, four saved motion cases and all 12 played FPS
   rows, plus graph lookup (`ci_mcp_run_preset_existing_20261002.log`). Its
-  cross-platform CI result remains pending.
+  cross-platform CI result is green: GitHub Actions run `37037107642` passed
+  the sway change, and run `37037421063` passed the expanded run-preset gate
+  across Windows and Linux (28 tier-1, four editor and two live MCP jobs).
+- Reviewed fresh X Bot front-camera strafe sheets before and after the shared
+  sway change (`media/xbot_strafe_sway_{before,candidate}_front/sheet.png`).
+  Both remain a narrow shuffle. A separate live Godot AI candidate with
+  0.06 m sway and 16-degree knee bend (run `20261002_165917`) passed
+  dry/write/save/forced-reopen/typed errors and three played FPS audits, with
+  54.7 mm minimum ankle gap, 1.8 mm worst slide and approximately 135-degree
+  minimum knee angle. Its front sheet is
+  `media/xbot_strafe_sway006_knee16_front/sheet.png`. The posture is more
+  upright but weight transfer still reads weakly, so the default stays as it
+  is. The next strafe phase needs a support-foot and pelvis pose redesign,
+  followed by another four-rig played audit and continuous visual review.

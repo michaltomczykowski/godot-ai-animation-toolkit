@@ -82,6 +82,8 @@ async def run(args: argparse.Namespace) -> int:
                 params["phase"] = args.phase
             if args.knee_bend is not None and op in ("cycle", "strafe_cycle", "walk_start", "walk_stop"):
                 params["knee_bend"] = args.knee_bend
+            if args.sway is not None and op in ("cycle", "run_cycle", "strafe_cycle", "walk_start", "walk_stop"):
+                params["sway"] = args.sway
             if args.stride is not None and op in ("cycle", "strafe_cycle", "walk_start", "walk_stop"):
                 params["stride"] = args.stride
             if args.style is not None and op in ("cycle", "strafe_cycle", "walk_start", "walk_stop"):
@@ -136,6 +138,8 @@ def main() -> int:
                         help="Override gait phase for walk_start/walk_stop review")
     parser.add_argument("--knee-bend", type=float,
                         help="Override walk knee bend for visual review")
+    parser.add_argument("--sway", type=float,
+                        help="Override gait pelvis sway in metres for visual review")
     parser.add_argument("--stride", type=float,
                         help="Override walk stride angle in degrees for visual review")
     parser.add_argument("--style", choices=("default", "relaxed", "heavy", "sneaky"),
