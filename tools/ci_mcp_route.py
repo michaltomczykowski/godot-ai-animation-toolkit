@@ -31,6 +31,18 @@ def tail(path: Path, count: int = 50) -> str:
     return "\n".join(path.read_text(encoding="utf-8", errors="replace").splitlines()[-count:])
 
 
+def godot_executable(requested: str) -> str:
+    if os.name == "nt" and not Path(requested).is_file():
+        # setup-godot adds an extensionless hard link named `godot` to PATH.
+        # Bash can launch it, but Win32 CreateProcess cannot.
+        version = os.environ.get("GODOT_VERSION", "4.7.2")
+        installed = Path.home() / "godot" / f"Godot_v{version}-stable_win64.exe"
+        if not installed.is_file():
+            raise FileNotFoundError(f"setup-godot executable not found: {installed}")
+        return str(installed)
+    return requested
+
+
 def probe(args: argparse.Namespace, reload: bool = False) -> subprocess.CompletedProcess[str]:
     cmd = [
         sys.executable, str(Path(__file__).with_name("mcp_probe.py")),
@@ -119,10 +131,21 @@ def graph_get_gate(args: argparse.Namespace) -> bool:
         print((check.stdout + check.stderr)[-2500:])
         return False
     result = json.loads(payload)
-    if result.get("failures") or len(result.get("operations", [])) != 1:
+    operations = result.get("operations", [])
+    if result.get("failures") or len(operations) != 1 or operations[0].get("op") != "graph_get":
         print("MCP_CI_FAIL=graph_get: " + json.dumps(result.get("failures", [])))
         return False
     print("MCP_CI_PASS=graph_get", flush=True)
+    playback = subprocess.run([
+        godot_executable(args.godot), "--headless", "--path", str(args.project),
+        "--script", "res://tools/verify_saved_graph_playback.gd", "--",
+        operations[0]["scene"],
+    ], capture_output=True, text=True, timeout=30, check=False)
+    if playback.returncode or "GRAPH_SAVED_PLAYBACK_PASS:" not in playback.stdout:
+        print("MCP_CI_FAIL=graph_saved_playback")
+        print((playback.stdout + playback.stderr)[-2500:])
+        return False
+    print("MCP_CI_PASS=graph_saved_playback", flush=True)
     return True
 
 
@@ -149,17 +172,7 @@ def run(args: argparse.Namespace) -> int:
             env["PYTHONPATH"] = os.pathsep.join(filter(None, [source, env.get("PYTHONPATH", "")]))
             log_path.parent.mkdir(parents=True, exist_ok=True)
             log_stream = log_path.open("wb")
-            godot = args.godot
-            if os.name == "nt" and not Path(godot).is_file():
-                # setup-godot adds an extensionless hard link named `godot`
-                # to PATH. Bash can launch it, but Win32 CreateProcess cannot;
-                # use the action's installed .exe for a child process.
-                version = os.environ.get("GODOT_VERSION", "4.7.2")
-                installed = Path.home() / "godot" / f"Godot_v{version}-stable_win64.exe"
-                if not installed.is_file():
-                    raise FileNotFoundError(f"setup-godot executable not found: {installed}")
-                godot = str(installed)
-            command = [godot, "--headless", "--editor", "--path", str(args.project)]
+            command = [godot_executable(args.godot), "--headless", "--editor", "--path", str(args.project)]
             editor = subprocess.Popen(
                 command,
                 stdout=log_stream, stderr=subprocess.STDOUT, env=env,
