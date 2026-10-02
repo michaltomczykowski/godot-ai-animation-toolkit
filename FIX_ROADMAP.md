@@ -1647,4 +1647,7 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   Godot 4.7.2 run `20261002_161310` passed with zero failures; log
   `mcp_graph_get_contract_20261002.log` preserves the response. The ledger
   now records this read-only effect and its inapplicable clip/undo checks.
-  Full graph-family playback and Linux operation contracts remain open.
+  The focused check was added to the pinned Windows/Linux live MCP CI route;
+  the visible editor passed all registration, motion and graph stages in
+  `ci_mcp_graph_get_20261002.log`. Cross-platform CI is pending. Full
+  graph-family playback remains open.

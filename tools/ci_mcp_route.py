@@ -101,6 +101,30 @@ def motion_gate(args: argparse.Namespace) -> bool:
     return True
 
 
+def graph_get_gate(args: argparse.Namespace) -> bool:
+    check = subprocess.run([
+        sys.executable, str(Path(__file__).with_name("mcp_graph_audit.py")),
+        "--core-root", str(args.core_root),
+        "--project-root", str(args.project),
+        "--session-hint", args.project.name,
+        "--port", str(args.port), "--ws-port", str(args.ws_port),
+        "--only", "graph_get",
+    ], capture_output=True, text=True, timeout=60, check=False)
+    prefix = "MCP_GRAPH_AUDIT="
+    payload = next((line[len(prefix):] for line in check.stdout.splitlines()
+                    if line.startswith(prefix)), "")
+    if check.returncode or not payload:
+        print("MCP_CI_FAIL=graph_get")
+        print((check.stdout + check.stderr)[-2500:])
+        return False
+    result = json.loads(payload)
+    if result.get("failures") or len(result.get("operations", [])) != 1:
+        print("MCP_CI_FAIL=graph_get: " + json.dumps(result.get("failures", [])))
+        return False
+    print("MCP_CI_PASS=graph_get", flush=True)
+    return True
+
+
 def run(args: argparse.Namespace) -> int:
     editor: subprocess.Popen[bytes] | None = None
     log_stream = None
@@ -176,6 +200,9 @@ def run(args: argparse.Namespace) -> int:
                 print(tail(log_path))
                 return 1
         if not motion_gate(args):
+            print(tail(log_path))
+            return 1
+        if not graph_get_gate(args):
             print(tail(log_path))
             return 1
         return 0
