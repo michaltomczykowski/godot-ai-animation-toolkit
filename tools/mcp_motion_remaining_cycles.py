@@ -78,11 +78,11 @@ async def run(args: argparse.Namespace) -> int:
                       "samples": 30, **extras}
             if args.phase is not None and op in ("walk_start", "walk_stop"):
                 params["phase"] = args.phase
-            if args.knee_bend is not None and op in ("cycle", "walk_start", "walk_stop"):
+            if args.knee_bend is not None and op in ("cycle", "strafe_cycle", "walk_start", "walk_stop"):
                 params["knee_bend"] = args.knee_bend
-            if args.stride is not None and op in ("cycle", "walk_start", "walk_stop"):
+            if args.stride is not None and op in ("cycle", "strafe_cycle", "walk_start", "walk_stop"):
                 params["stride"] = args.stride
-            if args.style is not None and op in ("cycle", "walk_start", "walk_stop"):
+            if args.style is not None and op in ("cycle", "strafe_cycle", "walk_start", "walk_stop"):
                 params["style"] = args.style
             row["before"] = await inspect(client, op, player)
             row["dry"] = await call(client, "custom_animation_motion",

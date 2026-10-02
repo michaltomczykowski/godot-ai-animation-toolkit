@@ -1607,3 +1607,22 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
 - The next motion decision is to refine side-step and turn support poses and
   review full-rate playback, while keeping contact and reach measurements
   as regression gates. No generator default changed from this sheet review.
+
+### 2026-10-02 — Strafe knee-bend experiment through Godot AI
+
+- Extended the live motion fixture harness so strafe accepts the same
+  knee-bend, stride and style overrides as walk. Godot AI created isolated
+  X Bot strafe clips with knee bend 8 and 16 (runs `20261002_160441` and
+  `20261002_160650`); dry runs were inert, saved tracks resolved after forced
+  reopen and invalid skeletons returned typed errors. Both passed saved
+  played contact/crossing audits at 30/60/120 FPS under 16 mm slide.
+- The default 35-degree, 8-degree and 16-degree clips all kept 0.0547 m
+  minimum ankle spacing and traveled 0.2189 m. At 120 FPS, their minimum
+  knee angles were about 117.6, 144.0 and 134.7 degrees. The 8-degree
+  candidate nearly locked a leg (0.999 extension ratio, 0.24 mm reach
+  clamp); 16 degrees kept 0.971 maximum extension and zero clamp. Godot
+  Movie Maker rendered 61 front-camera frames for each candidate without
+  errors. Sheets `media/xbot_strafe_knee{8,16}_front/sheet.png` show a
+  straighter 16-degree pose but still weak sideward weight transfer. The
+  default stays at 35 until the support pose is redesigned and the full
+  character/rig matrix is reviewed.
