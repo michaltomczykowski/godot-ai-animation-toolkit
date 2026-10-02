@@ -115,9 +115,10 @@ def motion_gate(args: argparse.Namespace) -> bool:
 
 
 def graph_playback_gate(args: argparse.Namespace) -> bool:
-    playable_graphs = ("state_machine", "blend_space", "blend_tree",
-                       "graph_get", "locomotion", "one_shot_layer", "additive_lean",
-                       "wire_parameter")
+    playable_graphs = ("state_machine", "blend_space", "blend_space_2d",
+                       "blend_tree", "graph_get", "locomotion",
+                       "locomotion_state_machine", "one_shot_layer",
+                       "additive_lean", "wire_parameter")
     audited_graphs = (*playable_graphs, "wire")
     check = subprocess.run([
         sys.executable, str(Path(__file__).with_name("mcp_graph_audit.py")),

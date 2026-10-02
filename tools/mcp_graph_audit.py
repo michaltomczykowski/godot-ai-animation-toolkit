@@ -34,6 +34,11 @@ CASES = {
         "points": [{"animation": "idle", "position": 0},
                    {"animation": "walk", "position": 1},
                    {"animation": "run", "position": 2}]}},
+    "blend_space_2d": {"params": {"op": "blend_space", "player_path": PLAYER,
+        "dimensions": 2, "min": {"x": 0, "y": 0}, "max": {"x": 1, "y": 1},
+        "points": [{"animation": "idle", "position": {"x": 0, "y": 0}},
+                   {"animation": "walk", "position": {"x": 1, "y": 0}},
+                   {"animation": "run", "position": {"x": 0, "y": 1}}]}},
     "blend_tree": {"params": {"op": "blend_tree", "player_path": PLAYER,
         "root": {"type": "blend2", "inputs": [
             {"type": "animation", "animation": "idle"},
@@ -45,6 +50,8 @@ CASES = {
     "graph_get": {"setup": BASE, "params": {"op": "graph_get", "tree_path": TREE}},
     "locomotion": {"params": {"op": "locomotion", "player_path": PLAYER,
                                "mode": "blend_space"}},
+    "locomotion_state_machine": {"params": {"op": "locomotion",
+        "player_path": PLAYER, "mode": "state_machine"}},
     "one_shot_layer": {"setup": BASE, "params": {
         "op": "one_shot_layer", "player_path": PLAYER, "animation": "jump"}},
     "additive_lean": {"setup": BASE, "params": {

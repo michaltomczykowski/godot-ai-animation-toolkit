@@ -50,6 +50,27 @@ func _run() -> void:
 		if playback == null:
 			_fail("state machine has no playback controller")
 			return
+		if args[0].get_file() == "locomotion_state_machine.tscn":
+			playback.start("idle")
+			tree.set("parameters/conditions/walking", true)
+			for _frame in 30:
+				tree.advance(1.0 / 60.0)
+			var walking_x := character.position.x
+			if str(playback.get_current_node()) != "walk" or walking_x < 20.0:
+				_fail("walking condition did not enter walk (state=%s, x=%.3f)"
+					% [str(playback.get_current_node()), walking_x])
+				return
+			tree.set("parameters/conditions/running", true)
+			for _frame in 30:
+				tree.advance(1.0 / 60.0)
+			if str(playback.get_current_node()) != "run" or character.position.x < 70.0 or player.is_playing():
+				_fail("running condition did not enter run (state=%s, x=%.3f)"
+					% [str(playback.get_current_node()), character.position.x])
+				return
+			print("GRAPH_SAVED_PLAYBACK_PASS: %s walk_x=%.3f run_x=%.3f player_idle=true"
+				% [args[0], walking_x, character.position.x])
+			quit(0)
+			return
 		playback.start("idle")
 		tree.advance(0.1)
 		if absf(character.position.x) > 0.01:
@@ -58,6 +79,8 @@ func _run() -> void:
 		playback.travel("walk")
 	elif tree.tree_root is AnimationNodeBlendSpace1D:
 		tree.set("parameters/blend_position", 1.0)
+	elif tree.tree_root is AnimationNodeBlendSpace2D:
+		tree.set("parameters/blend_position", Vector2(1.0, 0.0))
 	elif tree.tree_root is AnimationNodeBlendTree:
 		var blend_root := tree.tree_root as AnimationNodeBlendTree
 		if blend_root.has_node("OneShot"):
@@ -114,6 +137,14 @@ func _run() -> void:
 			tree.advance(1.0 / 60.0)
 		if character.position.x <= walk_x + 10.0:
 			_fail("blend space did not switch to faster run (walk=%.3f, run=%.3f)"
+				% [walk_x, character.position.x])
+			return
+	if tree.tree_root is AnimationNodeBlendSpace2D:
+		tree.set("parameters/blend_position", Vector2(0.0, 1.0))
+		for _frame in 6:
+			tree.advance(1.0 / 60.0)
+		if character.position.x <= walk_x + 10.0:
+			_fail("2D blend space did not switch to faster run (walk=%.3f, run=%.3f)"
 				% [walk_x, character.position.x])
 			return
 	if player.is_playing():

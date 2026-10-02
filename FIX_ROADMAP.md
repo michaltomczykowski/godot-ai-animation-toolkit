@@ -1784,5 +1784,28 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   summary implied the default tree was active. The first tier-1 rerun correctly
   caught the stale generated op index; after `tools/gen_docs.ps1`, all 14
   tier-1 suites and 219 editor tests passed on Godot 4.7.2. Windows/Linux CI
-  for the nine-case gate remains pending; UI undo and visual graph review
-  remain open.
+  run `37071048211` passed the nine-case gate on Windows and Linux. UI undo
+  and visual graph review remain open.
+
+### 2026-10-03 — Verify 2D blend and conditional locomotion modes
+
+- Added separate live Godot AI fixtures for `animation_graph.blend_space` in
+  two dimensions and `animation_graph.locomotion` in state-machine mode. Both
+  passed dry/write/save/forced-reopen checks and resolved-player topology.
+  Fresh Godot 4.7.2 processes played the 2D blend at the walk and run points,
+  and the state machine responded to its `walking` and `running` conditions:
+  Character x≈48.3 at walk and x≈93.3 at run with the AnimationPlayer idle.
+  The first six-frame manual `travel("run")` check failed because these fixture
+  clips key absolute position and crossfade to a run clip restarting at x=0;
+  testing the intended condition flow over the transition passed. This is a
+  fixture playback discontinuity, not evidence that the graph omitted run.
+  Logs `mcp_graph_blend2d_20261003.log`,
+  `graph_blend2d_saved_playback_20261003.log`,
+  `mcp_graph_locomotion_sm_20261003.log` and
+  `graph_locomotion_sm_conditions_20261003.log` preserve both results.
+- The local live route now passes eleven graph cases after core reload: the
+  bare `wire` structural effect and ten fresh-process playback paths, plus
+  the 12 saved motion FPS rows (`ci_mcp_graph_eleven_existing_20261003.log`).
+  Windows/Linux CI for this expansion remains pending. More natural fixture
+  clips and representative gameplay transitions are still needed for visual
+  approval.
