@@ -2215,7 +2215,7 @@
       "dry_run": "pass",
       "save_reopen": "pass",
       "reported_errors": "pass_invalid_target",
-      "undo_redo": "pending",
+      "undo_redo": "partial_editor_undo_only",
       "playback": "pass",
       "visual_review": "pending"
     },
@@ -2237,7 +2237,7 @@
       "dry_run": "pass",
       "save_reopen": "pass",
       "reported_errors": "pass_invalid_target",
-      "undo_redo": "pending",
+      "undo_redo": "partial_editor_undo_only",
       "playback": "pass",
       "visual_review": "pending"
     },
@@ -2260,7 +2260,7 @@
       "dry_run": "pass",
       "save_reopen": "pass",
       "reported_errors": "pass_invalid_target",
-      "undo_redo": "pending",
+      "undo_redo": "partial_editor_undo_only",
       "playback": "pass",
       "visual_review": "pending"
     },
@@ -2282,7 +2282,7 @@
       "dry_run": "pass",
       "save_reopen": "pass",
       "reported_errors": "pass_invalid_target",
-      "undo_redo": "pending",
+      "undo_redo": "pass_editor_undo_redo",
       "playback": "pass",
       "visual_review": "pending"
     },
@@ -2305,7 +2305,7 @@
       "dry_run": "pass",
       "save_reopen": "pass",
       "reported_errors": "pass_missing_target",
-      "undo_redo": "pending",
+      "undo_redo": "partial_editor_undo_only",
       "playback": "pass_modifier_callback",
       "visual_review": "pending"
     },

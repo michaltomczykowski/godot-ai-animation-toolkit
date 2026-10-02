@@ -1457,6 +1457,13 @@ func test_twist_setup_disperses_over_the_chain() -> void:
 		"spine_chain": ["B-hips", "B-nope"],
 	}, null)
 	assert_is_error(missing_bone, ErrorCodes.NODE_NOT_FOUND)
+	var long_path := str(long_range.data.modifier_path)
+	assert_true(editor_undo(_undo_redo), "one undo removes the last twist modifier")
+	assert_true(ValueCodec.resolve_scene_path(long_path, scene_root) == null,
+		"twist undo removes the modifier")
+	assert_true(editor_redo(_undo_redo), "redo restores the twist modifier")
+	assert_true(ValueCodec.resolve_scene_path(long_path, scene_root) is BoneTwistDisperser3D,
+		"twist redo restores a wired disperser")
 	_remove_node(rig_path)
 
 
