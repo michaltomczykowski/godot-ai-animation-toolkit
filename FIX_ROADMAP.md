@@ -1809,3 +1809,9 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   Windows/Linux CI for this expansion remains pending. More natural fixture
   clips and representative gameplay transitions are still needed for visual
   approval.
+- Added two editor Undo/Redo tests for `wire`: one restores/removes the bare
+  tree, and the other restores/reapplies `active` and the walking condition
+  on an existing state machine. All 221 local editor tests pass on Godot
+  4.7.2 (`editor_graph_wire_undo_20261003.log`). This checks the editor
+  UndoRedo manager through the handler; keyboard-driven undo through the
+  external Godot AI route remains to verify.

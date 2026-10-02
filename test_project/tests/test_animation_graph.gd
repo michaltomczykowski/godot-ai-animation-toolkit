@@ -271,6 +271,48 @@ func test_blend_tree_nested() -> void:
 
 # --- wire / graph_get ------------------------------------------------------
 
+func test_wire_tree_creation_undo_redo() -> void:
+	var rig := _rig("GraphWireUndo")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var created := _handler.run({"op": "wire", "player_path": rig.player_path}, null)
+	assert_has_key(created, "data")
+	assert_true(_find_tree() != null, "wire created the tree")
+	assert_true(editor_undo(_undo_redo), "undo removes the wire-created tree")
+	assert_true(_find_tree() == null, "the wire-created tree is gone after undo")
+	assert_true(editor_redo(_undo_redo), "redo restores the wire-created tree")
+	assert_true(_find_tree() != null, "the wire-created tree is back after redo")
+	_teardown(rig)
+
+
+func test_wire_parameter_undo_redo_restores_value_and_active_flag() -> void:
+	var rig := _rig("GraphWireParamUndo")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var built := _handler.run(_sm_params(rig), null)
+	assert_has_key(built, "data")
+	var tree := _find_tree()
+	var condition_path := "parameters/conditions/walking"
+	assert_false(tree.active, "the baseline tree is inactive")
+	assert_false(bool(tree.get(condition_path)), "the baseline walking condition is false")
+	var wired := _handler.run({
+		"op": "wire", "player_path": rig.player_path,
+		"active": true, "parameter_path": condition_path, "parameter_value": true,
+	}, null)
+	assert_has_key(wired, "data")
+	assert_true(tree.active and bool(tree.get(condition_path)),
+		"wire activates the tree and sets walking")
+	assert_true(editor_undo(_undo_redo), "undo restores the previous wire state")
+	assert_false(tree.active, "undo restores inactive")
+	assert_false(bool(tree.get(condition_path)), "undo restores walking=false")
+	assert_true(editor_redo(_undo_redo), "redo reapplies the wire state")
+	assert_true(tree.active and bool(tree.get(condition_path)),
+		"redo restores active and walking=true")
+	tree.active = false
+	_teardown(rig)
+
 func test_graph_ops_never_build_on_another_players_tree() -> void:
 	# With a player named and no tree of its own, the lookup used to return the
 	# FIRST AnimationTree in the scene, so state_machine/blend_space/wire silently

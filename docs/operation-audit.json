@@ -1155,7 +1155,7 @@
         "reported_errors": "pending",
         "save_reopen": "pass",
         "track_paths_types": "pending",
-        "undo_redo": "pending",
+        "undo_redo": "pass_editor_manager",
         "valid_effect": "pass",
         "visual_review": "pending"
       },
@@ -1165,7 +1165,8 @@
         "2026-09-29: through MCP, blend_space(active=true) plus wire(parameters/blend_position=1.5) saved as res://repair_graph_active/blend_20260929_064436.tscn; Godot 4.7.2 runtime played the reopened tree and moved Character.x from 0 to 75 over 30 fixed 60-FPS frames. See mcp_graph_active.log and check_graph_runtime.gd.",
         "2026-09-29: automated live MCP rerun mcp_graph_verified.log: 8 ops, 0 errors; dry run left the node hierarchy unchanged, saved graph_get resolved its AnimationPlayer. Existing graph resource identity and parameters still need dry-run comparison.",
         "2026-09-29: mcp_graph_dry_resources.log live MCP rerun: before/after dry-run scene hierarchy and graph_get serialized root/parameters matched exactly for all eight graph operations; save/reopen still resolved the player. 8/8 automated contract checks passed.",
-        "2026-10-03: live Godot AI bare wire created a saved inactive AnimationTree linked to the requested player with no root, which is its intentional structural effect. A separate wire_parameter fixture first built a conditional idle/walk state machine, then wire set active=true and parameters/conditions/walking=true (run 20261002_220400); dry run preserved topology, save/forced reopen retained the graph, and a fresh Godot 4.7.2 process observed the saved condition drive walk to x=48.3 while the AnimationPlayer stayed idle. The nine-case local MCP route passed after core reload. Logs mcp_graph_wire_parameter_20261003.log, graph_wire_parameter_saved_playback_20261003.log and ci_mcp_graph_nine_existing_20261003.log are in the 2026-09-30 snapshot. Cross-platform nine-case CI, UI undo and visual review remain open."
+        "2026-10-03: live Godot AI bare wire created a saved inactive AnimationTree linked to the requested player with no root, which is its intentional structural effect. A separate wire_parameter fixture first built a conditional idle/walk state machine, then wire set active=true and parameters/conditions/walking=true (run 20261002_220400); dry run preserved topology, save/forced reopen retained the graph, and a fresh Godot 4.7.2 process observed the saved condition drive walk to x=48.3 while the AnimationPlayer stayed idle. The nine-case local MCP route passed after core reload. Logs mcp_graph_wire_parameter_20261003.log, graph_wire_parameter_saved_playback_20261003.log and ci_mcp_graph_nine_existing_20261003.log are in the 2026-09-30 snapshot. Cross-platform nine-case CI, UI undo and visual review remain open.",
+        "2026-10-03: two editor tests exercise wire with the scene UndoRedo manager: undo removes a bare wire-created AnimationTree and redo restores it; for an existing state machine, undo restores inactive and walking=false, and redo reapplies active and walking=true. All 221 local Godot 4.7.2 editor tests passed (editor_graph_wire_undo_20261003.log). Keyboard-driven undo through the external Godot AI route remains open."
       ],
       "example": {
         "op": "wire",
