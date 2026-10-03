@@ -2213,4 +2213,35 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   stages with `root_motion` omitted, reported an extracted `XBot:position`
   track and 0.4445 m travel, then passed three saved played audits at
   30/60/120 FPS. The prior candidate commit `a778b8b` passed Windows/Linux
-  Actions run `37113285227`; this default change needs its own CI run.
+  Actions run `37113285227`. The default-root change then passed Windows/Linux
+  Actions run `37145342521`.
+
+### 2026-10-03 — Run reach failure and rejected stride shortcut
+
+- The fresh default X Bot run through Godot AI (run `20261003_090812`) reports
+  `clamp_shortfall_m=0.0825`, 9.3% of its 0.89 m leg, yet returns success.
+  The dummy default run (`20261003_184725`) similarly shortens by 0.0944 m,
+  11.8% of its 0.80 m leg. The X Bot played audit's maximum extension ratio
+  is 0.9989. Both replies also incorrectly warn that a Froude ~0.82 run is
+  "not a walk". This is a real generator defect despite green contact audits.
+- Trialled `stride=24` and `stride=22` through Godot AI on X Bot, plus
+  `stride=22` on the dummy. The 22-degree requests cleared reach clamping
+  while retaining Froude ~0.61 and passed six saved played 30/60/120 FPS
+  audits. A 61-frame X Bot side render is in
+  `media/xbot_run_stride22_side_20261003/sheet.png`. It still reads as a
+  long stepped walk with weak flight and the same backward torso posture,
+  so **rejected** as a default adjustment. Logs `mcp_*run_stride*20261003.log`
+  preserve the trials. The next candidate should plan a reachable pelvis
+  path at the existing run speed, reject any remaining material target clamp,
+  correct the walk-only warning, and check simultaneous airborne clearance
+  and continuous side playback before acceptance.
+- Tried sharing the walk's periodic pelvis reach planner with the run while
+  preserving the existing run stride. Focused tier-1 checks passed, but the
+  editor suite failed five tests: `character_setup` could not build its run
+  clip on the dummy, the run seam's shin velocity changed, and the 4.7.2
+  golden run drifted. The candidate was reverted; it is not on the branch.
+  The shared planner's 16%-of-leg drop limit and smooth envelope are not a
+  substitute for a run-specific contact/flight path. Kept only the verified
+  correction that limits the "not a walk" warning to walking operations,
+  with an editor regression assertion. Run reach and visual quality remain
+  unresolved.

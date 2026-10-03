@@ -266,7 +266,7 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 		reach_drop = float(reach_plan.max_drop)
 	# Re-evaluate speed-related metadata after any implicit reach adjustment.
 	var froude := ground_speed / sqrt(9.81 * maxf(_hip_to_ankle(ctx), 0.0001))
-	if froude >= 0.5:
+	if not run and not bool(ctx.get("lateral_step", false)) and froude >= 0.5:
 		warnings.append(
 			"stride %d deg on a %.2f m leg implies %.2f m/s, Froude %.2f - at or past the ~0.5 walk-to-run transition, so this is not a walk; shorten duration or the stride to stay under it"
 			% [int(round(stride_degrees)), _hip_to_ankle(ctx), snappedf(ground_speed, 0.01),

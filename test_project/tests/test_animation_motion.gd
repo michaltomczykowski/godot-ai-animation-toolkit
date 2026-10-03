@@ -1077,6 +1077,9 @@ func test_run_is_faster_and_bigger_than_walk() -> void:
 	assert_true(walk.has("data") and run.has("data"), "both cycles build")
 	assert_gt(float(run.data.speed), float(walk.data.speed) * 1.5,
 		"the run is much faster (%.2f vs %.2f)" % [float(run.data.speed), float(walk.data.speed)])
+	for warning in run.data.warnings:
+		assert_false(str(warning).contains("not a walk"),
+			"a run does not receive the walk-only Froude warning")
 	var anim: Animation = rig.player.get_animation("run")
 	var thigh := _track_index(anim, ":B-thigh.L", Animation.TYPE_ROTATION_3D)
 	var first_key: Quaternion = anim.track_get_key_value(thigh, 0)

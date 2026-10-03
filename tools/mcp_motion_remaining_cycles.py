@@ -90,7 +90,7 @@ async def run(args: argparse.Namespace) -> int:
                 params["knee_bend"] = args.knee_bend
             if args.sway is not None and op in ("cycle", "run_cycle", "strafe_cycle", "walk_start", "walk_stop"):
                 params["sway"] = args.sway
-            if args.stride is not None and op in ("cycle", "strafe_cycle", "walk_start", "walk_stop"):
+            if args.stride is not None and op in ("cycle", "run_cycle", "strafe_cycle", "walk_start", "walk_stop"):
                 params["stride"] = args.stride
             if args.style is not None and op in ("cycle", "strafe_cycle", "walk_start", "walk_stop"):
                 params["style"] = args.style
