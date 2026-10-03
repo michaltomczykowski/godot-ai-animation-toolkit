@@ -60,7 +60,7 @@ static func walk_config(style: String, overrides: Dictionary = {}) -> Dictionary
 
 static func run_config(style: String, overrides: Dictionary = {}) -> Dictionary:
 	return _resolve_config({
-		"stride": 30.0,
+		"stride": 25.0,
 		"knee_bend": 36.0,
 		"arm_swing": 28.0,
 		"bob": 0.08,
@@ -68,13 +68,13 @@ static func run_config(style: String, overrides: Dictionary = {}) -> Dictionary:
 		"hip_yaw": 8.0,
 		"hip_roll": 2.5,
 		"chest_yaw": 7.0,
-		"lean": 7.0,
-		"foot_lift": 0.075,
+		"lean": 15.0,
+		"foot_lift": 0.11,
 		"elbow": 55.0,
 		"elbow_swing": 12.0,
 		"lag": 0.08,
 		"stance": 0.36,
-		"crouch": 0.0,
+		"crouch": 0.04,
 	}, style, overrides)
 
 
@@ -313,6 +313,10 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 			and clamp_shortfall > 0.01 * leg_length:
 		return {"keys": {}, "meta": {"reach_error":
 			"Walk leg target shortened by %.3f m after reach planning; reduce stride/speed or inspect rig roles" % clamp_shortfall}}
+	if run and clamp_shortfall > 0.01 * leg_length:
+		return {"keys": {}, "meta": {"reach_error":
+			"Run leg target exceeds this rig's reach by %.3f m (%.1f%% of leg length) at %.3f m/s; lower speed, shorten duration with explicit speed, or adjust crouch/foot lift" % [
+				clamp_shortfall, 100.0 * clamp_shortfall / maxf(leg_length, 0.001), ground_speed]}}
 	if clamp_shortfall > 0.01 * leg_length:
 		warnings.append("leg target shortened by %.3f m (%.1f%% of leg length); reduce stride/speed or lower the pelvis" % [
 			clamp_shortfall, 100.0 * clamp_shortfall / maxf(leg_length, 0.001)])

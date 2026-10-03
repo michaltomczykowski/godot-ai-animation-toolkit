@@ -318,6 +318,11 @@ action, build all source clips on one AnimationPlayer and use
 `animation_sequence.compose`; the composed root track carries displacement
 through clip changes. Review the saved scene in playback because a successful
 write or isolated contact result alone does not establish visual quality.
+Run generation returns `VALUE_OUT_OF_RANGE` before writing when a foot target
+misses measured leg reach by more than 1% of leg length. On a short rig,
+choose a shorter `duration` together with an explicit reachable `speed`;
+changing duration alone also changes the inferred speed. An explicit `speed`
+that exceeds the stride cap is refused instead of being silently reduced.
 
 ```json
 {"tool": "custom_animation_motion", "params": {
@@ -325,7 +330,7 @@ write or isolated contact result alone does not establish visual quality.
   "player_path": "/Main/Rig/AnimationPlayer",
   "skeleton_path": "/Main/Rig/Skeleton3D",
   "speed": 1.1,
-  "run_speed": 4.0,
+  "run_speed": 2.0,
   "include_jump": true
 }}
 ```

@@ -668,7 +668,10 @@ How motion is generated:
 - **`character_setup`** returns a snippet that feeds `velocity.length()` into
   `speed_parameter` each physics frame; the tree is created **inactive** by
   default like the graph ops (`active=true` to enable it), and root motion is
-  wired on both the player and the tree.
+  wired on both the player and the tree. The default `run_speed` is 2.0 m/s.
+  A run target that exceeds measured leg reach by more than 1% returns
+  `VALUE_OUT_OF_RANGE` before committing a clip; on small rigs, pair a shorter
+  `run_duration` with an explicit reachable `run_speed`.
 
 ### Examples
 
@@ -679,7 +682,7 @@ How motion is generated:
 
 {"tool": "custom_animation_motion", "params": {"op": "character_setup",
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
-  "speed": 1.1, "run_speed": 4.0, "include_jump": true}}
+  "speed": 1.1, "run_speed": 2.0, "include_jump": true}}
 
 {"tool": "custom_animation_motion", "params": {"op": "run_cycle",
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",

@@ -2319,3 +2319,35 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   return a typed range error; an omitted speed can be auto-selected only
   when the resulting run still has credible speed and flight. No default or
   golden was changed in this phase.
+
+### 2026-10-03 — Run pose defaults and reachable-target refusal
+
+- Promoted the previously tested 25-degree reference stride, 15-degree lean,
+  4 cm added crouch and 11 cm swing lift to provisional run defaults. Through
+  the live Godot AI route, saved X Bot, dummy and Z-up tall clips had zero
+  reach clamp and passed the played run contact/flight/extension gate at
+  30/60/120 FPS. The X Bot 61-frame side sheet shows more torso pitch and
+  knee bend than the old default, but the running style still needs continuous
+  visual review and remains **partial**, not verified. The run golden was
+  deliberately re-recorded on Godot 4.7.2 after the changed pose passed the
+  numerical gate; a golden is a regression check, not visual approval.
+- The one-second short-rig default still overreaches by 71.3 mm (16.2% of leg
+  length). Run generation now refuses any target clamp over 1% of leg length
+  with typed `VALUE_OUT_OF_RANGE` before clip commit. The short fixture's
+  explicit 0.7 s, 1.43 m/s request passed in the prior phase; the omitted-
+  speed cadence contract still needs a proper rig-aware design. A 1 s,
+  1.0 m/s short-rig request removes clamp but fails the 2%-leg flight gate
+  with default lift (5.3–6.0 mm); 10 cm explicit lift passes at all three
+  frame rates but is too large to silently make the small-rig default.
+- `character_setup` had asked the dummy for 4 m/s at 0.6 s and silently
+  accepted a 79 mm (9.9%-leg) target clamp. Its default run speed is now a
+  tested 2.0 m/s; saved playback at 30/60/120 FPS passed with zero clamp,
+  18–22 mm simultaneous flight and maximum leg extension about 0.89. An
+  explicit 4 m/s request returns a typed range error in both dry and write
+  calls, leaving no clip. The editor regression checks that refusal. A live
+  Godot AI `character_setup` call created the four clips and AnimationTree.
+  Explicit run speeds that would hit the stride cap are also refused instead
+  of silently reporting a slower clip as the requested speed.
+  Logs `mcp_*run_*20261003.log` and `mcp_character_setup_run_gate_20261003.log`
+  in the recovery snapshot preserve the calls. Full cross-platform CI and
+  visual approval are the next gates.

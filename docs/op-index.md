@@ -660,7 +660,7 @@ Handler: `res://addons/godot_ai_animation/handlers/motion.gd`
 | `tree_path` | string | character_setup: scene path for the AnimationTree (default: an existing tree wired to the player, else a new sibling). |
 | `idle_duration` | number | character_setup: idle clip length in seconds (3.0). |
 | `run_duration` | number | character_setup: run clip length in seconds (0.6). |
-| `run_speed` | number | character_setup: run speed in m/s, the blend space's max (4.0; must exceed speed). |
+| `run_speed` | number | character_setup: requested run speed in m/s, the blend space's max (2.0; must exceed speed and fit the rig's reachable leg targets). |
 | `include_jump` | boolean | character_setup: also build a jump clip and a one-shot layer with a request parameter (off). |
 | `include_turn` | boolean | character_setup: also build a turn_<direction> clip (off). |
 | `jump_duration` | number | character_setup: jump clip length in seconds (1.2). |
@@ -676,7 +676,7 @@ Required: `op`.
 {"animation_name":"run","duration":0.6,"loop_mode":"linear","op":"run_cycle","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"animation_name":"idle","duration":3.0,"loop_mode":"linear","op":"idle_cycle","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"animation_name":"run","duration":0.6,"loop_mode":"linear","op":"cycle","player_path":"/Main/Rig/AnimationPlayer","preset":"run","skeleton_path":"/Main/Rig/Skeleton3D"}
-{"include_jump":true,"op":"character_setup","player_path":"/Main/Rig/AnimationPlayer","run_speed":4.0,"skeleton_path":"/Main/Rig/Skeleton3D","speed":1.1}
+{"include_jump":true,"op":"character_setup","player_path":"/Main/Rig/AnimationPlayer","run_speed":2.0,"skeleton_path":"/Main/Rig/Skeleton3D","speed":1.1}
 {"animation_name":"walk","bones":["B-hair01","B-hair02"],"damping":12.0,"op":"secondary_motion","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D","stiffness":120.0}
 {"animation_name":"jump","crouch":0.25,"duration":1.2,"height":0.6,"op":"jump","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}
 {"angle":90,"animation_name":"turn_left","direction":"left","duration":0.7,"op":"turn_cycle","player_path":"/Main/Rig/AnimationPlayer","skeleton_path":"/Main/Rig/Skeleton3D"}

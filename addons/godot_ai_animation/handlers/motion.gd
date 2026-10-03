@@ -262,6 +262,11 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 			"Requested walk speed %.3f m/s exceeds the reachable %.3f m/s at duration %.3f s; lower speed or shorten duration" % [
 				float(params.speed), float(result_meta.get("speed", 0.0)), length])
+	if kind == "run" and float(params.get("speed", 0.0)) > 0.0 \
+			and float(result_meta.get("speed", 0.0)) < float(params.speed) - 0.001:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Requested run speed %.3f m/s exceeds the reachable %.3f m/s at duration %.3f s; lower speed or shorten duration" % [
+				float(params.speed), float(result_meta.get("speed", 0.0)), length])
 	if kind == "strafe" and float(params.get("speed", 0.0)) > 0.0 \
 			and bool((result.get("meta", {}) as Dictionary).get("lateral_capped", false)):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
@@ -321,7 +326,7 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 	# An omitted speed lets the gait choose a rig-relative, reachable walk.
 	# Explicit speeds remain exact requests and fail before any scene mutation.
 	var walk_speed := float(params.get("speed", 0.0))
-	var run_speed := maxf(float(params.get("run_speed", 4.0)), 0.0)
+	var run_speed := maxf(float(params.get("run_speed", 2.0)), 0.0)
 	if (params.has("speed") and walk_speed <= 0.0) or run_speed <= maxf(walk_speed, 0.0):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 			"character_setup needs 0 < speed < run_speed when speed is provided (got speed=%.3f, run_speed=%.3f)" % [walk_speed, run_speed])

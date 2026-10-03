@@ -1077,7 +1077,7 @@ func test_run_is_faster_and_bigger_than_walk() -> void:
 	assert_true(walk.has("data") and run.has("data"), "both cycles build")
 	assert_gt(float(run.data.speed), float(walk.data.speed) * 1.5,
 		"the run is much faster (%.2f vs %.2f)" % [float(run.data.speed), float(walk.data.speed)])
-	for warning in run.data.warnings:
+	for warning in run.data.get("warnings", []):
 		assert_false(str(warning).contains("not a walk"),
 			"a run does not receive the walk-only Froude warning")
 	var anim: Animation = rig.player.get_animation("run")
@@ -1087,6 +1087,23 @@ func test_run_is_faster_and_bigger_than_walk() -> void:
 	for key in anim.track_get_key_count(thigh):
 		spread = maxf(spread, first_key.angle_to(anim.track_get_key_value(thigh, key)))
 	assert_gt(spread, 0.55, "the run keeps a substantial leg swing without overstriding")
+	_teardown(rig)
+
+
+func test_unreachable_run_refuses_to_commit() -> void:
+	var rig := _rig("MotionRunReach")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "run_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "too_fast",
+		"duration": 0.6, "speed": 4.0, "root_motion": true,
+	}, null)
+	assert_is_error(result, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_contains(str(result.error.message), "reach")
+	assert_false(rig.player.has_animation("too_fast"),
+		"an unreachable run does not commit a misleading clip")
 	_teardown(rig)
 
 
@@ -2238,7 +2255,7 @@ func test_character_setup_builds_clips_and_tree() -> void:
 		return
 	var result := _handler.run({
 		"op": "character_setup", "player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
-		"speed": 1.1, "run_speed": 4.0, "include_jump": true, "include_turn": true,
+		"speed": 1.1, "run_speed": 2.0, "include_jump": true, "include_turn": true,
 	}, null)
 	assert_true(result.has("data"), "character_setup: %s" % str(result))
 	for clip in ["idle", "walk", "run", "jump", "turn_left"]:
@@ -2254,7 +2271,7 @@ func test_character_setup_builds_clips_and_tree() -> void:
 	var walk_speed := float(result.data.speed_values.walk)
 	var run_speed := float(result.data.speed_values.run)
 	_expect_close(walk_speed, 1.1, 0.02, "the walk clip's speed")
-	_expect_close(run_speed, 4.0, 0.05, "the run clip's speed")
+	_expect_close(run_speed, 2.0, 0.05, "the run clip's speed")
 	assert_true(str(rig.player.root_motion_track).ends_with(":position"), "character root motion is wired")
 	assert_true(rig.player.root_motion_local, "the player extracts travel in the rig's local frame")
 	var scene_root := EditorInterface.get_edited_scene_root()

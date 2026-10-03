@@ -2014,7 +2014,7 @@ static func _motion_schema() -> Dictionary:
 			},
 			"run_speed": {
 				"type": "number",
-				"description": "character_setup: run speed in m/s, the blend space's max (4.0; must exceed speed).",
+				"description": "character_setup: requested run speed in m/s, the blend space's max (2.0; must exceed speed and fit the rig's reachable leg targets).",
 			},
 			"include_jump": {
 				"type": "boolean",
@@ -2083,7 +2083,7 @@ static func _motion_ops() -> Array:
 			"name": "character_setup",
 			"summary": "One call, one undo: build idle + walk + run (optionally jump/turn), wire the locomotion AnimationTree and set the root-motion track; returns the speed parameter and a game-side snippet.",
 			"params": ["player_path", "skeleton_path", "roles", "profile", "style", "samples", "speed", "run_speed", "duration", "run_duration", "idle_duration", "root_motion", "include_jump", "include_turn", "height", "crouch", "distance", "jump_duration", "angle", "direction", "turn_duration", "tree_path", "active", "overwrite"],
-			"example": {"op": "character_setup", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "speed": 1.1, "run_speed": 4.0, "include_jump": true},
+			"example": {"op": "character_setup", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "speed": 1.1, "run_speed": 2.0, "include_jump": true},
 		},
 		{
 			"name": "secondary_motion",
