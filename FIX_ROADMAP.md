@@ -2348,6 +2348,10 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   Godot AI `character_setup` call created the four clips and AnimationTree.
   Explicit run speeds that would hit the stride cap are also refused instead
   of silently reporting a slower clip as the requested speed.
+  The live Godot AI route then regenerated all nine motion cases; their 27
+  saved 30/60/120 FPS rows passed with the run-specific flight/extension
+  gate enabled. The cross-platform MCP CI gate now uses that stronger run
+  grade for direct `run_cycle` instead of only the generic gait checks.
   Logs `mcp_*run_*20261003.log` and `mcp_character_setup_run_gate_20261003.log`
   in the recovery snapshot preserve the calls. Full cross-platform CI and
   visual approval are the next gates.

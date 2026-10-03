@@ -88,7 +88,7 @@ def motion_gate(args: argparse.Namespace) -> bool:
     audit = subprocess.run([
         sys.executable, str(Path(__file__).with_name("mcp_motion_audit_saved.py")),
         *common, "--run-id", result["run_id"],
-        "--ops", *ops, "--max-slide", "0.016",
+        "--ops", *ops, "--max-slide", "0.016", "--run-flight-gate",
     ], capture_output=True, text=True, timeout=90, check=False)
     summary = next((line for line in audit.stdout.splitlines()
                     if line.startswith("MCP_MOTION_SAVED_AUDIT_SUMMARY=")), "")
