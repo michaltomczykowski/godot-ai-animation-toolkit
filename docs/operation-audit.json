@@ -2193,7 +2193,8 @@
       "evidence": [
         "2026-09-28: tools/mcp_probe.py described two clips through promoted MCP tool before and after editor_reload_plugin.",
         "2026-09-29: live Godot AI MCP on saved 4.7.2 fixture. The response matched operation-specific expected counts/values and the source walk timeline stayed identical after the call. See mcp_inspect_basic_verified.log. Typed error and Linux checks remain.",
-        "2026-09-29: invalid target or tool returned a typed NODE_NOT_FOUND, INVALID_PARAMS or VALUE_OUT_OF_RANGE through live Godot AI MCP; see mcp_inspect_errors.log."
+        "2026-09-29: invalid target or tool returned a typed NODE_NOT_FOUND, INVALID_PARAMS or VALUE_OUT_OF_RANGE through live Godot AI MCP; see mcp_inspect_errors.log.",
+        "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI inspector contract and typed-error checks on Windows and Linux. The 3D sample and motion audit used the saved dummy walk; remaining visual or file-effect variants stay open."
       ],
       "example": {
         "animation_name": "open",
@@ -2207,7 +2208,7 @@
       "key": "animation_inspect.describe",
       "op": "describe",
       "platforms": {
-        "linux": "pending",
+        "linux": "partial",
         "windows": "partial"
       },
       "promoted": true,
@@ -2229,7 +2230,8 @@
       "claimed_effect": "Per-track key table (times, values, transitions) for one clip.",
       "evidence": [
         "2026-09-29: live Godot AI MCP on saved 4.7.2 fixture. The response matched operation-specific expected counts/values and the source walk timeline stayed identical after the call. See mcp_inspect_basic_verified.log. Typed error and Linux checks remain.",
-        "2026-09-29: invalid target or tool returned a typed NODE_NOT_FOUND, INVALID_PARAMS or VALUE_OUT_OF_RANGE through live Godot AI MCP; see mcp_inspect_errors.log."
+        "2026-09-29: invalid target or tool returned a typed NODE_NOT_FOUND, INVALID_PARAMS or VALUE_OUT_OF_RANGE through live Godot AI MCP; see mcp_inspect_errors.log.",
+        "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI inspector contract and typed-error checks on Windows and Linux. The 3D sample and motion audit used the saved dummy walk; remaining visual or file-effect variants stay open."
       ],
       "example": {
         "animation_name": "walk",
@@ -2244,7 +2246,7 @@
       "key": "animation_inspect.timeline",
       "op": "timeline",
       "platforms": {
-        "linux": "pending",
+        "linux": "partial",
         "windows": "partial"
       },
       "promoted": true,
@@ -2266,7 +2268,8 @@
       "claimed_effect": "Scene or player health check: broken paths, dead clips, loop seams, autoplay conflicts.",
       "evidence": [
         "2026-09-29: live Godot AI MCP on saved 4.7.2 fixture. The response matched operation-specific expected counts/values and the source walk timeline stayed identical after the call. See mcp_inspect_basic_verified.log. Typed error and Linux checks remain.",
-        "2026-09-29: invalid target or tool returned a typed NODE_NOT_FOUND, INVALID_PARAMS or VALUE_OUT_OF_RANGE through live Godot AI MCP; see mcp_inspect_errors.log."
+        "2026-09-29: invalid target or tool returned a typed NODE_NOT_FOUND, INVALID_PARAMS or VALUE_OUT_OF_RANGE through live Godot AI MCP; see mcp_inspect_errors.log.",
+        "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI inspector contract and typed-error checks on Windows and Linux. The 3D sample and motion audit used the saved dummy walk; remaining visual or file-effect variants stay open."
       ],
       "example": {
         "op": "audit",
@@ -2279,7 +2282,7 @@
       "key": "animation_inspect.audit",
       "op": "audit",
       "platforms": {
-        "linux": "pending",
+        "linux": "partial",
         "windows": "partial"
       },
       "promoted": true,
@@ -2301,7 +2304,8 @@
       "claimed_effect": "Diff two clips: length, loop mode, track paths, key counts and value deltas.",
       "evidence": [
         "2026-09-29: live Godot AI MCP on saved 4.7.2 fixture. The response matched operation-specific expected counts/values and the source walk timeline stayed identical after the call. See mcp_inspect_basic_verified.log. Typed error and Linux checks remain.",
-        "2026-09-29: invalid target or tool returned a typed NODE_NOT_FOUND, INVALID_PARAMS or VALUE_OUT_OF_RANGE through live Godot AI MCP; see mcp_inspect_errors.log."
+        "2026-09-29: invalid target or tool returned a typed NODE_NOT_FOUND, INVALID_PARAMS or VALUE_OUT_OF_RANGE through live Godot AI MCP; see mcp_inspect_errors.log.",
+        "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI inspector contract and typed-error checks on Windows and Linux. The 3D sample and motion audit used the saved dummy walk; remaining visual or file-effect variants stay open."
       ],
       "example": {
         "animation_name": "walk",
@@ -2316,7 +2320,7 @@
       "key": "animation_inspect.compare",
       "op": "compare",
       "platforms": {
-        "linux": "pending",
+        "linux": "partial",
         "windows": "partial"
       },
       "promoted": true,
@@ -2338,7 +2342,8 @@
       "claimed_effect": "Clip/track/key totals, track-type histogram and loop-mode breakdown.",
       "evidence": [
         "2026-09-29: live Godot AI MCP on saved 4.7.2 fixture. The response matched operation-specific expected counts/values and the source walk timeline stayed identical after the call. See mcp_inspect_basic_verified.log. Typed error and Linux checks remain.",
-        "2026-09-29: invalid target or tool returned a typed NODE_NOT_FOUND, INVALID_PARAMS or VALUE_OUT_OF_RANGE through live Godot AI MCP; see mcp_inspect_errors.log."
+        "2026-09-29: invalid target or tool returned a typed NODE_NOT_FOUND, INVALID_PARAMS or VALUE_OUT_OF_RANGE through live Godot AI MCP; see mcp_inspect_errors.log.",
+        "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI inspector contract and typed-error checks on Windows and Linux. The 3D sample and motion audit used the saved dummy walk; remaining visual or file-effect variants stay open."
       ],
       "example": {
         "op": "stats"
@@ -2350,7 +2355,7 @@
       "key": "animation_inspect.stats",
       "op": "stats",
       "platforms": {
-        "linux": "pending",
+        "linux": "partial",
         "windows": "partial"
       },
       "promoted": true,
@@ -2372,7 +2377,8 @@
       "claimed_effect": "Per-track motion quality: key density, peak speed/acceleration, loop-seam pops, hemisphere flips, constant tracks - each with a fix hint.",
       "evidence": [
         "2026-09-29: live Godot AI MCP on saved 4.7.2 fixture. The response matched operation-specific expected counts/values and the source walk timeline stayed identical after the call. See mcp_inspect_basic_verified.log. Typed error and Linux checks remain.",
-        "2026-09-29: invalid target or tool returned a typed NODE_NOT_FOUND, INVALID_PARAMS or VALUE_OUT_OF_RANGE through live Godot AI MCP; see mcp_inspect_errors.log."
+        "2026-09-29: invalid target or tool returned a typed NODE_NOT_FOUND, INVALID_PARAMS or VALUE_OUT_OF_RANGE through live Godot AI MCP; see mcp_inspect_errors.log.",
+        "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI inspector contract and typed-error checks on Windows and Linux. The 3D sample and motion audit used the saved dummy walk; remaining visual or file-effect variants stay open."
       ],
       "example": {
         "animation_name": "walk",
@@ -2386,7 +2392,7 @@
       "key": "animation_inspect.motion_report",
       "op": "motion_report",
       "platforms": {
-        "linux": "pending",
+        "linux": "partial",
         "windows": "partial"
       },
       "promoted": true,
@@ -2408,7 +2414,8 @@
       "claimed_effect": "Play a 3D transform clip on a private scene copy and grade foot contact, stance slide, ground penetration, knee-pole flips, hip bob and travel. Needs foot/hips roles (auto-detected or via roles/profile).",
       "evidence": [
         "2026-09-29: live Godot AI MCP in the visible Godot 4.7.2 editor on the saved 56-bone dummy walk scene. Rig profile found hips/leg/foot roles without a file write; sampling returned both feet at eight times; played motion audit passed with 1.0801 m travel and zero failed checks; preview wrote four 480×270 PNGs, each >4,000 nonbackground pixels. The source clip summary was unchanged. See mcp_inspect_3d_verified.log and test_project/animation_toolkit/previews/repair_inspect/. Preview frame inspection found the subject small, so motion quality is not approved.",
-        "2026-09-29: invalid skeleton path returned typed NODE_NOT_FOUND through live Godot AI MCP; see mcp_inspect_3d_errors.log."
+        "2026-09-29: invalid skeleton path returned typed NODE_NOT_FOUND through live Godot AI MCP; see mcp_inspect_3d_errors.log.",
+        "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI inspector contract and typed-error checks on Windows and Linux. The 3D sample and motion audit used the saved dummy walk; remaining visual or file-effect variants stay open."
       ],
       "example": {
         "animation_name": "walk",
@@ -2424,7 +2431,7 @@
       "key": "animation_inspect.motion_audit",
       "op": "motion_audit",
       "platforms": {
-        "linux": "pending",
+        "linux": "partial",
         "windows": "partial"
       },
       "promoted": true,
@@ -2446,7 +2453,8 @@
       "claimed_effect": "Understand a rig: detected roles with candidates, T/A pose, limb lengths/reach, facing/lateral axes, capabilities, missing roles and suggested ops; save=true writes a reusable profile.",
       "evidence": [
         "2026-09-29: live Godot AI MCP in the visible Godot 4.7.2 editor on the saved 56-bone dummy walk scene. Rig profile found hips/leg/foot roles without a file write; sampling returned both feet at eight times; played motion audit passed with 1.0801 m travel and zero failed checks; preview wrote four 480×270 PNGs, each >4,000 nonbackground pixels. The source clip summary was unchanged. See mcp_inspect_3d_verified.log and test_project/animation_toolkit/previews/repair_inspect/. Preview frame inspection found the subject small, so motion quality is not approved.",
-        "2026-09-29: invalid skeleton path returned typed NODE_NOT_FOUND through live Godot AI MCP; see mcp_inspect_3d_errors.log."
+        "2026-09-29: invalid skeleton path returned typed NODE_NOT_FOUND through live Godot AI MCP; see mcp_inspect_3d_errors.log.",
+        "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI inspector contract and typed-error checks on Windows and Linux. The 3D sample and motion audit used the saved dummy walk; remaining visual or file-effect variants stay open."
       ],
       "example": {
         "name": "hero",
@@ -2461,7 +2469,7 @@
       "key": "animation_inspect.rig_profile",
       "op": "rig_profile",
       "platforms": {
-        "linux": "pending",
+        "linux": "partial",
         "windows": "partial"
       },
       "promoted": true,
@@ -2483,7 +2491,8 @@
       "claimed_effect": "FK probe: world positions (and optional euler rotations) of requested bones at N times, plus derived foot heights and ground-contact windows. Pose is restored afterwards.",
       "evidence": [
         "2026-09-29: live Godot AI MCP in the visible Godot 4.7.2 editor on the saved 56-bone dummy walk scene. Rig profile found hips/leg/foot roles without a file write; sampling returned both feet at eight times; played motion audit passed with 1.0801 m travel and zero failed checks; preview wrote four 480×270 PNGs, each >4,000 nonbackground pixels. The source clip summary was unchanged. See mcp_inspect_3d_verified.log and test_project/animation_toolkit/previews/repair_inspect/. Preview frame inspection found the subject small, so motion quality is not approved.",
-        "2026-09-29: invalid skeleton path returned typed NODE_NOT_FOUND through live Godot AI MCP; see mcp_inspect_3d_errors.log."
+        "2026-09-29: invalid skeleton path returned typed NODE_NOT_FOUND through live Godot AI MCP; see mcp_inspect_3d_errors.log.",
+        "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI inspector contract and typed-error checks on Windows and Linux. The 3D sample and motion audit used the saved dummy walk; remaining visual or file-effect variants stay open."
       ],
       "example": {
         "animation_name": "walk",
@@ -2502,7 +2511,7 @@
       "key": "animation_inspect.sample",
       "op": "sample",
       "platforms": {
-        "linux": "pending",
+        "linux": "partial",
         "windows": "partial"
       },
       "promoted": true,
@@ -2524,7 +2533,8 @@
       "claimed_effect": "Render the posed character offscreen to PNGs at clip times so an agent can see contact, foot planting and follow-through. A private copy of the character subtree is posed in an offscreen viewport; the edited scene is never touched. The reply is deferred (one editor frame per image) and needs a rendering device.",
       "evidence": [
         "2026-09-29: live Godot AI MCP in the visible Godot 4.7.2 editor on the saved 56-bone dummy walk scene. Rig profile found hips/leg/foot roles without a file write; sampling returned both feet at eight times; played motion audit passed with 1.0801 m travel and zero failed checks; preview wrote four 480×270 PNGs, each >4,000 nonbackground pixels. The source clip summary was unchanged. See mcp_inspect_3d_verified.log and test_project/animation_toolkit/previews/repair_inspect/. Preview frame inspection found the subject small, so motion quality is not approved.",
-        "2026-09-29: invalid skeleton path returned typed NODE_NOT_FOUND through live Godot AI MCP; see mcp_inspect_3d_errors.log."
+        "2026-09-29: invalid skeleton path returned typed NODE_NOT_FOUND through live Godot AI MCP; see mcp_inspect_3d_errors.log.",
+        "2026-10-03: GitHub Actions run 37108181377 required typed INVALID_PARAMS from preview in headless Godot on Windows and Linux; a visible Windows Godot 4.7.2 editor separately rendered four nonempty PNGs. Linux visible rendering and visual quality remain open."
       ],
       "example": {
         "animation_name": "reach",
@@ -2567,7 +2577,8 @@
       "claimed_effect": "Run any presets/edit op and report the result without committing.",
       "evidence": [
         "2026-09-29: live Godot AI MCP on saved 4.7.2 fixture. The response matched operation-specific expected counts/values and the source walk timeline stayed identical after the call. See mcp_inspect_basic_verified.log. Typed error and Linux checks remain.",
-        "2026-09-29: invalid target or tool returned a typed NODE_NOT_FOUND, INVALID_PARAMS or VALUE_OUT_OF_RANGE through live Godot AI MCP; see mcp_inspect_errors.log."
+        "2026-09-29: invalid target or tool returned a typed NODE_NOT_FOUND, INVALID_PARAMS or VALUE_OUT_OF_RANGE through live Godot AI MCP; see mcp_inspect_errors.log.",
+        "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI inspector contract and typed-error checks on Windows and Linux. The 3D sample and motion audit used the saved dummy walk; remaining visual or file-effect variants stay open."
       ],
       "example": {
         "animation_name": "walk",
@@ -2584,7 +2595,7 @@
       "key": "animation_inspect.dry_run",
       "op": "dry_run",
       "platforms": {
-        "linux": "pending",
+        "linux": "partial",
         "windows": "partial"
       },
       "promoted": true,
@@ -2606,7 +2617,8 @@
       "claimed_effect": "Op index from the registry: names, summaries, params and examples.",
       "evidence": [
         "2026-09-29: live Godot AI MCP on saved 4.7.2 fixture. The response matched operation-specific expected counts/values and the source walk timeline stayed identical after the call. See mcp_inspect_basic_verified.log. Typed error and Linux checks remain.",
-        "2026-09-29: invalid target or tool returned a typed NODE_NOT_FOUND, INVALID_PARAMS or VALUE_OUT_OF_RANGE through live Godot AI MCP; see mcp_inspect_errors.log."
+        "2026-09-29: invalid target or tool returned a typed NODE_NOT_FOUND, INVALID_PARAMS or VALUE_OUT_OF_RANGE through live Godot AI MCP; see mcp_inspect_errors.log.",
+        "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI inspector contract and typed-error checks on Windows and Linux. The 3D sample and motion audit used the saved dummy walk; remaining visual or file-effect variants stay open."
       ],
       "example": {
         "op": "help",
@@ -2619,7 +2631,7 @@
       "key": "animation_inspect.help",
       "op": "help",
       "platforms": {
-        "linux": "pending",
+        "linux": "partial",
         "windows": "partial"
       },
       "promoted": true,
@@ -4155,7 +4167,8 @@
         "2026-10-01: fixed-camera X Bot review rejected simple walk-default tuning. Live Godot AI cycle clips with stride 18 or knee bend 0 and composed start/walk/stop clips with stride 18/knee 0, stride 18/knee 8 and stride 24/knee 8 saved, reopened and passed contact audits, but their IK reported unreachable-target shortfalls of 0.064/0.041/0.078 m versus 0.017 m for the current default X Bot cycle. The shorter-stride cycle travelled 0.866 m versus 1.140 m. Candidate sheets and MCP logs are in the recovery snapshot. No default was changed; the pelvis and reachable foot target solve remains open.",
         "2026-10-01: default knee-8 walk_start/cycle/walk_stop composed through live Godot AI custom_manage, saved and force-reopened on X Bot (run 20261001_173502). Played sequence audit passed 241 samples with 1.5734 m forward travel. Godot Movie Maker rendered 132 frames at 60 FPS, no runtime errors; media/xbot_start_walk_stop_default_reach/sheet.png shows improved upright stance but still stylized weight transfer, so visual approval remains open. Log mcp_xbot_sequence_default_reach.log.",
         "2026-10-01: final default X Bot walk_start/cycle/walk_stop composed through live Godot AI custom_manage, saved and force-reopened (run 20261001_195436). The played 241-sample audit passed with 1.1954 m root travel and zero cycle reach shortfall. Godot Movie Maker rendered 132 frames at 60 FPS with no runtime errors; media/xbot_start_walk_stop_final_default/sheet.png is byte identical to the reviewed explicit-stride-18 candidate. Registration after editor_reload_plugin still exposed eight promoted names and all ten families. Visual approval, operation undo and Linux remain open; log mcp_xbot_sequence_final_default_stride18.log.",
-        "2026-10-01: visible Godot 4.7.2 editor UI Undo/Redo after live Godot AI custom_manage compose on X Bot. One Ctrl+Z removed only start_walk_stop while the source cycle still had 22 tracks; Ctrl+Y restored the composed clip with 22 tracks. Logs mcp_sequence_ui_undo_setup.log, mcp_sequence_ui_undo_after.log, mcp_sequence_ui_redo_after.log."
+        "2026-10-01: visible Godot 4.7.2 editor UI Undo/Redo after live Godot AI custom_manage compose on X Bot. One Ctrl+Z removed only start_walk_stop while the source cycle still had 22 tracks; Ctrl+Y restored the composed clip with 22 tracks. Logs mcp_sequence_ui_undo_setup.log, mcp_sequence_ui_undo_after.log, mcp_sequence_ui_redo_after.log.",
+        "2026-10-03: GitHub Actions run 37108181377 passed live Godot AI compose dry/write/save/reopen, typed invalid cases and fresh-process saved clip/pose/contact-marker playback on Windows and Linux. Broader boundaries, ownership and visual review remain open."
       ],
       "example": {
         "animation_name": "action",
@@ -4190,7 +4203,7 @@
       "key": "animation_sequence.compose",
       "op": "compose",
       "platforms": {
-        "linux": "pending",
+        "linux": "partial",
         "windows": "partial"
       },
       "promoted": false,

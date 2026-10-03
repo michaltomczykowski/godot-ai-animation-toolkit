@@ -1923,16 +1923,18 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   grade and four nonempty preview PNGs (`mcp_inspect_3d_repeat_20261003.log`).
   Each returned a typed error for a missing skeleton. Added both audits to
   live MCP CI; the focused local gate passed
-  (`mcp_ci_inspect_twelve_local.log`). Windows/Linux confirmation of the
-  full twelve is pending.
+  (`mcp_ci_inspect_twelve_local.log`). Windows/Linux CI run `37108181377`
+  passed the eight general inspectors and all four 3D inspector calls under
+  their headless contracts.
 - The first cross-platform run (`37076000513`) failed its inspector stage on
   both platforms because CI starts Godot with `--headless`: `preview`
   correctly returned typed `INVALID_PARAMS` explaining that a headless editor
   cannot rasterise frames. The CI audit now requires that typed response and
   no claimed PNG output, while the visible-editor audit still requires four
   real PNG files. The visible Godot 4.7.2 rerun passed after this split
-  (`mcp_inspect_3d_visible_after_fix.log`). The next Windows/Linux run must
-  confirm the headless contract.
+  (`mcp_inspect_3d_visible_after_fix.log`). Windows/Linux run `37108181377`
+  confirmed the typed headless preview response. Linux visible PNG rendering
+  remains untested.
 
 ### 2026-10-03 — Gate sequence composition on saved playback
 
@@ -1944,6 +1946,24 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   A fresh Godot 4.7.2 process played the clips: root pose angle rose from
   0.080 to 0.560 radians, the saved pose reached 0.600 radians, and the
   `contact_impact` marker remained at 1.1 s.
-- Added this route and saved playback check to CI. Local evidence passes;
-  the focused helper passed (`mcp_ci_sequence_gate_local.log`). Windows/Linux
-  CI and the broader boundary/gap/ownership and visual review remain open.
+- Added this route and saved playback check to CI. Local evidence and the
+  focused helper passed (`mcp_ci_sequence_gate_local.log`). Windows/Linux CI
+  run `37108181377` passed the sequence route and fresh-process playback.
+  Broader boundary/gap/ownership and visual review remain open.
+
+### 2026-10-03 — Remaining-work checkpoint
+
+- The registry still advertises **103 operations**, and the generated ledger
+  still marks **103 partial / 0 fully verified**. The counts overlap: 54 rows
+  have pending or partial UndoRedo evidence, 28 still have Linux marked
+  pending, and 70 have visual review marked pending or partial. The cross-
+  platform live route now covers saved motion samples, graph ownership,
+  modifiers, FX, edits, presets, library effects, all inspector calls and
+  sequence composition. Preview is intentionally a typed unavailable result
+  in headless CI, with separate visible-editor PNG evidence.
+- Next work order: finish that CI gate; expand actual Godot AI invocation and
+  played checks for the fourteen `animation_rig` and remaining motion
+  variants; then close the undo gaps and perform fixed-camera visual review
+  across families. Character walk/run/strafe and action timing need visual
+  improvement before approval. Finally run model-driven prompts in the real
+  project, regenerate the audit, and review the draft PR. No release or merge.
