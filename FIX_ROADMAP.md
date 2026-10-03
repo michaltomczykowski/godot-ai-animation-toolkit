@@ -2289,4 +2289,33 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   legs and torso pose make it read poorly from the side. Logs
   `mcp_{xbot,dummy}_run_flight_gate_20261003.log` preserve the result. The
   Godot 4.7.2 editor suite passed 224/224 tests after the audit addition.
-  The run generator is still unresolved and remains unapproved.
+  Windows/Linux Actions run `37147218888` passed the audit addition. The
+  run generator is still unresolved and remains unapproved.
+
+### 2026-10-03 — Run pose parameter trial across four rigs
+
+- Kept the generator defaults unchanged and tried parameters through the
+  real Godot AI `custom_animation_motion` route. On X Bot and dummy, a
+  25-degree stride, 4 cm added crouch, 15-degree forward lean and 11 cm
+  swing-foot lift produced zero reach clamp at 1 s. The saved clips passed
+  the new run flight/extension grade at 30/60/120 FPS: peak extension
+  0.9734/0.9801, and simultaneous flight clearance at least 18.6 mm on
+  both. Fixed-camera X Bot sheet
+  `media/xbot_run_crouch004_lean15_side_20261003/sheet.png` shows a more
+  forward torso and bent swing leg than the baseline, though the run still
+  needs a continuous visual approval pass.
+- On the 1.276 m Z-up tall rig, proportionate 6 cm crouch and 16.5 cm lift
+  also gave zero clamp and passed all three run-grade FPS rows (peak
+  extension 0.9108). The same recipe scaled to the 0.439 m short rig at a
+  1 s duration overreached by 71.3 mm. A 0.7 s clip with explicit 1.43 m/s
+  speed, 2.07 cm crouch and 7 cm lift gave zero clamp and passed all three
+  run-grade rows (peak extension 0.956–0.963; minimum sampled flight
+  clearance 8.8 mm). Logs are `mcp_*run_{crouch*,scaled*,speed143*}*
+  20261003.log` in the recovery snapshot.
+- A shorter duration by itself increased the implicit speed because the
+  current default speed derives from reference stride divided by duration;
+  the short rig then overreached by 67.5 mm. The solver needs a rig-aware
+  feasible speed/cadence contract. An explicit unreachable request must
+  return a typed range error; an omitted speed can be auto-selected only
+  when the resulting run still has credible speed and flight. No default or
+  golden was changed in this phase.

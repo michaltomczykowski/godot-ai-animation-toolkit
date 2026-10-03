@@ -80,6 +80,10 @@ async def run(args: argparse.Namespace) -> int:
             params = {"op": op, "player_path": player,
                       "skeleton_path": skeleton, "animation_name": op,
                       "samples": 30, **extras}
+            if args.duration is not None:
+                params["duration"] = args.duration
+            if args.speed is not None and op == "run_cycle":
+                params["speed"] = args.speed
             if args.use_default_root_motion and op == "strafe_cycle":
                 params.pop("root_motion")
             if args.direction is not None and op == "strafe_cycle":
@@ -94,6 +98,15 @@ async def run(args: argparse.Namespace) -> int:
                 params["stride"] = args.stride
             if args.style is not None and op in ("cycle", "strafe_cycle", "walk_start", "walk_stop"):
                 params["style"] = args.style
+            if op == "run_cycle" and (args.run_crouch is not None or args.run_lean is not None
+                                      or args.run_foot_lift is not None):
+                params["overrides"] = {}
+                if args.run_crouch is not None:
+                    params["overrides"]["crouch"] = args.run_crouch
+                if args.run_lean is not None:
+                    params["overrides"]["lean"] = args.run_lean
+                if args.run_foot_lift is not None:
+                    params["overrides"]["foot_lift"] = args.run_foot_lift
             row["before"] = await inspect(client, op, player)
             row["dry"] = await call(client, "custom_animation_motion",
                                     {**params, "dry_run": True})
@@ -138,6 +151,10 @@ def main() -> int:
     parser.add_argument("--ws-port", type=int, required=True)
     parser.add_argument("--rig", choices=("dummy", "xbot"), default="dummy")
     parser.add_argument("--fixture", help="Scene filename under project root for a dummy-layout synthetic rig")
+    parser.add_argument("--duration", type=float,
+                        help="Override clip length for a rig-relative cadence trial")
+    parser.add_argument("--speed", type=float,
+                        help="Explicit run speed for a duration and reach trial")
     parser.add_argument("--direction", choices=("left", "right"),
                         help="Strafe direction to exercise through Godot AI")
     parser.add_argument("--use-default-root-motion", action="store_true",
@@ -154,6 +171,12 @@ def main() -> int:
                         help="Override walk stride angle in degrees for visual review")
     parser.add_argument("--style", choices=("default", "relaxed", "heavy", "sneaky"),
                         help="Walk style to exercise through Godot AI")
+    parser.add_argument("--run-crouch", type=float,
+                        help="Explicit run pelvis crouch distance for a visual trial")
+    parser.add_argument("--run-lean", type=float,
+                        help="Explicit run torso lean angle for a visual trial")
+    parser.add_argument("--run-foot-lift", type=float,
+                        help="Explicit run swing-foot lift distance for a visual trial")
     return asyncio.run(run(parser.parse_args()))
 
 
