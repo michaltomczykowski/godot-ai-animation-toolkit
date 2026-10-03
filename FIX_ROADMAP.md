@@ -2022,6 +2022,10 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   that run and the generated audit has 23 Linux-pending rows. Rig and motion
   CI can reduce that count further after both platforms pass. No row is yet
   marked fully verified.
+- The inspector preview has partial Linux evidence from run `37108181377`:
+  headless Godot returned a typed unavailable result, as designed. Its
+  visible Linux PNG path is still untested and remains an explicit visual
+  review gap; `partial` must not be read as rendered-frame approval.
 - Reviewed the existing X Bot walk, run and strafe candidate sheets in the
   recovery snapshot. The strafe reads as a narrow shuffle with little lateral
   weight transfer; the walk sheet has a backward-leaning silhouette, and the
@@ -2065,3 +2069,51 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   (`mcp_ci_fx_after_windows_failure_local.log`). Keep the
   direct run's cross-platform ledger row pending until the full Windows gate
   is green or the route failure is characterized and repaired.
+- GitHub Actions run `37110256017` then passed the entire live route,
+  including direct `run_cycle` and all 17 FX cases, on Windows and Linux.
+  The prior Windows FX failure did not reproduce; its exact case was hidden
+  by the old log truncation, so it remains a CI reliability observation.
+  The direct run ledger row now has partial cross-platform evidence.
+
+### 2026-10-03 — Correct broad documentation claims
+
+- The top-level and addon READMEs had described every promoted operation as
+  a pure clip-spec transformation with one scene undo action. That does not
+  fit graph structure, rig modifiers, file-backed library/pose operations or
+  inspection. Reworded the introduction to describe their actual effects and
+  point readers to the per-operation audit. The top-level README now states
+  explicitly that character motion lacks final visual approval.
+
+### 2026-10-03 — Post-CI remaining-work checkpoint
+
+- The regenerated registry ledger has **103 partial / 0 verified** operation
+  rows. None has Linux marked pending, but platform `partial` means limited
+  contract evidence, not full approval. Preview returned a typed unavailable
+  response in headless Linux; visible Linux PNG output remains untested.
+  **82** Undo/Redo checks and **99** visual checks are still marked pending
+  or partial. These groups overlap and should not be summed.
+- Windows/Linux run `37110256017` passed the full live Godot AI route after
+  a core reload, including all advertised families and saved playback gates.
+  The prior Windows-only FX route failure in `37109739873` did not recur;
+  its specific audit failure was not captured, so retain it as an unresolved
+  reliability observation rather than claiming it was fixed.
+- Next execution order: capture current-default continuous motion on the
+  dummy, X Bot and both synthetic rigs; redesign strafe support and transfer,
+  then walk torso pitch and run flight timing; re-run contact and visual
+  review. Complete editor Undo/Redo for mutating operations and file-effect
+  semantics, visible Linux preview and representative Godot AI model prompts
+  in the real project. Regenerate the ledger, review the draft PR, and keep
+  the branch unreleased until those gates pass.
+
+### 2026-10-03 — Recover after workstation crash
+
+- The crash stopped the visible Godot editor and replaced the uncommitted
+  `FIX_ROADMAP.md` with 138,510 zero bytes. Preserved that damaged image as
+  `FIX_ROADMAP_crash_20261003_zeros.bin` in the recovery snapshot, restored
+  the committed roadmap, and reapplied the phase notes and checkpoint above.
+  Verified the restored file has no NUL bytes and both audit JSON files parse.
+- Relaunched the visible Godot 4.7.2 editor on `test_project` (PID 19500).
+  `mcp_after_crash_relaunch_20261003.log` confirms the actual Godot AI MCP
+  route sees all ten toolkit families, all eight promoted tools and one ready
+  active editor session, with no missing schemas. The previous cross-platform
+  run `37110256017` remains green. No source implementation files were lost.

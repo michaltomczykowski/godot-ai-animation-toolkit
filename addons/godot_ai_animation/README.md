@@ -1,7 +1,10 @@
 # Godot AI Animation Toolkit (addon)
 
-Ten custom MCP tool families for Godot AI agents (eight promoted directly),
-built on one declarative clip-spec engine:
+Ten custom MCP tool families for Godot AI agents (eight promoted directly).
+Clip builders and editors share declarative specs where applicable; graph,
+rig, modifier, library and inspection calls have distinct scene or file
+effects. This is an unreleased repair branch. Per-operation runtime and
+visual-review status is tracked in the repository's `docs/operation-audit.json`.
 
 - **`animation_presets`** (promoted to `custom_animation_presets`) — build clips
   in one call.

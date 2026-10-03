@@ -1,6 +1,6 @@
 # Godot AI Animation Toolkit
 
-A standalone [Godot](https://godotengine.org) addon that gives
+A review-stage [Godot](https://godotengine.org) addon that gives
 [Godot AI](https://github.com/hi-godot/godot-ai) agents ten animation tool
 families (103 operations; eight promoted directly) — **no core patches**:
 
@@ -63,8 +63,13 @@ families (103 operations; eight promoted directly) — **no core patches**:
   the posed character, so a clip can be *seen*), `dry_run` (run any op without
   committing), `help`.
 
-All eight sit on one declarative clip-spec engine, so every op is a pure
-spec → spec transform and each mutating call is one scene-pinned undo action.
+Clip builders and editors use shared specs where applicable. Graph, rig,
+modifier, library and inspection operations also act on scene structure,
+files or live editor state. Scene mutations expose editor UndoRedo where
+supported; file writes and scene saves are not editor-undoable. The
+[operation audit](docs/operation-audit.json) records evidence and open checks
+for each operation. Generated character motion is still undergoing visual
+review and should not be treated as approved production animation.
 
 ```json
 {"tool": "custom_animation_presets", "params": {
