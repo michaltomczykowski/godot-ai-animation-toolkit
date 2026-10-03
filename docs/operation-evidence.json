@@ -59,8 +59,13 @@
       "visual_review": "partial_dummy_xbot"
     },
     "evidence": [
-      "2026-09-29: live MCP rooted walk on dummy and supplied X Bot, saved/reopened; at 24 authored keys and 120 audit samples, worst dummy penetration 3.9 mm and X Bot 2.9 mm after stable knee-pole repair. Dummy slide 1.3/1.0 mm, X Bot 0.7/0.2 mm. Engine AnimationPlayer playback checked at 30/60/120 FPS; AnimationTree extraction checked in editor suite. Local contact sheets under toolkit_repair_snapshot_2026-09-28/media/walk_pole_fixed and media/xbot_walk_pole_fixed. Synthetic orientation playback, undo through MCP and full visual review remain open."
-    ]
+      "2026-09-29: live MCP rooted walk on dummy and supplied X Bot, saved/reopened; at 24 authored keys and 120 audit samples, worst dummy penetration 3.9 mm and X Bot 2.9 mm after stable knee-pole repair. Dummy slide 1.3/1.0 mm, X Bot 0.7/0.2 mm. Engine AnimationPlayer playback checked at 30/60/120 FPS; AnimationTree extraction checked in editor suite. Local contact sheets under toolkit_repair_snapshot_2026-09-28/media/walk_pole_fixed and media/xbot_walk_pole_fixed. Synthetic orientation playback, undo through MCP and full visual review remain open.",
+      "2026-10-03: GitHub Actions run 37109538463 passed direct walk_cycle through the live Godot AI route on Windows and Linux. Dry/write/save/reopen and typed-error checks passed, the played world-space audit passed at 30/60/120 FPS, and a fresh Godot 4.7.2 process replayed the saved moving bone keys. Visual gait approval and remaining editor history cases remain open."
+    ],
+    "platforms": {
+      "windows": "partial",
+      "linux": "partial"
+    }
   },
   "animation_motion.run_cycle": {
     "status": "partial",
@@ -2268,11 +2273,12 @@
       "2026-09-30: live Godot AI MCP mcp_motion_setup_secondary_fixed.log run 20260930_171447 built five clips and a saved AnimationTree with root-motion path. Dry run left no clip. Headless Godot 4.7.2 enabled the saved tree, observed 0.417 rad thigh change and 0.28 m extracted root translation in five 0.1 s advances. Contact, visual, undo and Linux pending.",
       "2026-10-01: live Godot AI character_setup with omitted walk speed chose rig-relative 1.08015 m/s on dummy; dry run left no idle clip, write/save/forced-reopen retained five resolved clips and tree. A separate 8 m/s walk request returned typed VALUE_OUT_OF_RANGE with reachable limit 1.229 m/s before any clip write. Run 20261001_173756, log mcp_setup_auto_walk_reach_verified.log. Tree root extraction already has saved playback evidence; visual, operation undo and Linux remain open.",
       "2026-10-01: after changing the public walk default to an 18-degree stride config, live Godot AI character_setup with omitted speed chose 0.82064 m/s on the dummy, dry/write/save/forced-reopen passed for five resolved clips and the tree (run 20261001_195442). A separate 8 m/s request returned typed VALUE_OUT_OF_RANGE with the 1.229 m/s reachable limit before any clip write. Log mcp_setup_final_default_stride18.log. Visual, per-op undo and Linux remain open.",
-      "2026-10-01: visible Godot 4.7.2 editor UI Undo/Redo on a live Godot AI character_setup with auto walk speed 0.82064 m/s. One Ctrl+Z removed idle/walk/run/jump and the AnimationTree; Godot AI inspection returned clip not found and NODE_NOT_FOUND for the tree. Ctrl+Y restored the clips, tree and Dummy:position root-motion path on both player and tree. Logs mcp_character_setup_ui_undo_setup.log, mcp_character_setup_ui_undo_after.log, mcp_character_setup_ui_redo_after.log."
+      "2026-10-01: visible Godot 4.7.2 editor UI Undo/Redo on a live Godot AI character_setup with auto walk speed 0.82064 m/s. One Ctrl+Z removed idle/walk/run/jump and the AnimationTree; Godot AI inspection returned clip not found and NODE_NOT_FOUND for the tree. Ctrl+Y restored the clips, tree and Dummy:position root-motion path on both player and tree. Logs mcp_character_setup_ui_undo_setup.log, mcp_character_setup_ui_undo_after.log, mcp_character_setup_ui_redo_after.log.",
+      "2026-10-03: GitHub Actions run 37109446018 passed the live Godot AI route on Windows and Linux: dry/write/save/reopen, typed failures and persisted scene effects. The saved AnimationTree drove a walking thigh and extracted root translation when activated in a fresh Godot 4.7.2 process. Visual quality, broader rig variants and remaining editor history cases remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_motion.secondary_motion": {
@@ -2289,11 +2295,12 @@
       "visual_review": "pending"
     },
     "evidence": [
-      "2026-09-30: first saved playback found 1.5708 rad spurious first jaw pose, equal to its rest basis. Corrected conversion from global simulated rotation to Skeleton3D rest-relative local pose delta and added regression. Visible-editor restart plus live Godot AI rerun mcp_motion_setup_secondary_fixed.log produced an identity first key, persistent resolved jaw track and exact saved-key playback. The jaw fixture is not a visual acceptance rig; spring dynamics on hair/tail and modifier ordering remain pending."
+      "2026-09-30: first saved playback found 1.5708 rad spurious first jaw pose, equal to its rest basis. Corrected conversion from global simulated rotation to Skeleton3D rest-relative local pose delta and added regression. Visible-editor restart plus live Godot AI rerun mcp_motion_setup_secondary_fixed.log produced an identity first key, persistent resolved jaw track and exact saved-key playback. The jaw fixture is not a visual acceptance rig; spring dynamics on hair/tail and modifier ordering remain pending.",
+      "2026-10-03: GitHub Actions run 37109446018 passed the live Godot AI route on Windows and Linux: dry/write/save/reopen, typed failures and persisted scene effects. The saved jaw spring track had nonzero range and played its authored bone rotation in a fresh Godot 4.7.2 process. Visual quality, broader rig variants and remaining editor history cases remain open."
     ],
     "platforms": {
       "windows": "partial",
-      "linux": "pending"
+      "linux": "partial"
     }
   },
   "animation_rig_modifiers.ik_setup": {

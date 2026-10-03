@@ -137,6 +137,17 @@ cover the bundled dummy, X Bot, half-size and Z-up tall rigs at 30/60/120
 FPS. The strafe now has a played foot-crossing check. Walk visual quality,
 reach clamps, loop/pose quality, full action review and Linux remain open.
 
+**Next visual-quality subphase:** Preserve fixed-camera continuous clips of
+the current defaults on all four rigs, with front and side views and a
+contact/COM overlay, before changing keys. Redesign strafe as a leading-foot
+placement followed by trailing-foot recovery: move the pelvis over the
+support foot before toe-off, let the leading foot travel beyond the original
+ankle width without crossing, and give the trailing foot a separate swing
+window. Do not use the current symmetric forward-gait span cap as the sole
+side-step design. Re-run all 30/60/120 FPS contact, crossing, reach and loop
+checks, then compare continuous playback and sheets. Next tune walk torso
+pitch and run flight/support timing by the same visual and numeric cycle.
+
 ## Phase 4 — sequencing, graphs and remaining families
 
 **Plan:** Make character-owned action sequencing a supported operation only
@@ -2027,8 +2038,9 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   clips and tree (`mcp_ci_motion_setup_local.log`). In a fresh process, the
   saved AnimationTree moved the walking thigh and extracted root motion, and
   the jaw spring track varied and played its authored rotation. Windows/Linux
-  CI remains pending. The jaw is a controlled fixture, so believable hair or
-  tail motion and modifier evaluation order still need visual review.
+  CI run `37109446018` passed; both operation rows now record Linux evidence.
+  The jaw is a controlled fixture, so believable hair or tail motion and
+  modifier evaluation order still need visual review.
 
 ### 2026-10-03 — Include the separate walk-cycle operation
 
@@ -2037,10 +2049,19 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   fixture and played audit instead of inferring coverage from the generic
   case. The focused local pass covered all nine generated motion cases,
   **27/27** played 30/60/120 FPS rows and nine fresh-process saved clip
-  replays (`mcp_ci_motion_nine_local.log`). Windows/Linux CI remains pending.
+  replays (`mcp_ci_motion_nine_local.log`). Windows/Linux CI run
+  `37109538463` passed, and the separate walk-cycle ledger row now records
+  Linux evidence.
 - During ledger review, found the `run_cycle` fixture still invoked generic
   `cycle(preset=run)`, which did not prove the separate advertised operation.
   Changed the route call to `run_cycle` and reran all nine cases through the
   visible Godot AI editor: 27/27 played FPS rows and nine fresh saved replays
-  passed (`mcp_ci_motion_nine_direct_run_local.log`). Cross-platform evidence
-  for this direct call remains pending.
+  passed (`mcp_ci_motion_nine_direct_run_local.log`). In CI run `37109739873`,
+  Windows passed the direct run, setup, graph and modifier stages but later
+  failed in the FX route; Linux passed the whole route. The FX helper had
+  hidden the audit's failure list by printing only the tail of a large JSON
+  result. It now emits concise failure diagnostics for the rerun. The focused
+  visible Windows rerun passed all 17 FX route and saved playback cases
+  (`mcp_ci_fx_after_windows_failure_local.log`). Keep the
+  direct run's cross-platform ledger row pending until the full Windows gate
+  is green or the route failure is characterized and repaired.

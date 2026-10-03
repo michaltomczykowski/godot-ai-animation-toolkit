@@ -305,7 +305,14 @@ def fx_playback_gate(args: argparse.Namespace) -> bool:
                     if line.startswith(marker)), "")
     if audit.returncode or not payload:
         print("MCP_CI_FAIL=fx_route")
-        print((audit.stdout + audit.stderr)[-3000:])
+        if payload:
+            diagnostic = json.loads(payload)
+            print("MCP_CI_FX_DIAGNOSTIC=" + json.dumps({
+                "failures": diagnostic.get("failures"),
+                "ops": [row.get("op") for row in diagnostic.get("operations", [])],
+            }))
+        else:
+            print((audit.stdout + audit.stderr)[-3000:])
         return False
     result = json.loads(payload)
     rows = result.get("operations", [])
