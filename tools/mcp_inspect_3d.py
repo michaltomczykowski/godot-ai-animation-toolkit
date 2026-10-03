@@ -51,10 +51,15 @@ async def run(args: argparse.Namespace) -> int:
             "op": "describe", "player_path": PLAYER, "animation_name": CLIP})
     failures = []
     for name, result in (("open", opened), ("rig_profile", profile),
-                         ("sample", sample), ("motion_audit", audit),
-                         ("preview", preview)):
+                         ("sample", sample), ("motion_audit", audit)):
         if result.get("error"):
             failures.append(f"{name}: {result['error']}")
+    if args.expect_headless_preview:
+        error = str(preview.get("error", ""))
+        if not error.startswith("INVALID_PARAMS:") or "headless" not in error:
+            failures.append("preview: headless editor did not return typed rendering error")
+    elif preview.get("error"):
+        failures.append(f"preview: {preview['error']}")
     for op, result in typed_errors.items():
         if not str(result.get("error", "")).split(":", 1)[0].isupper():
             failures.append(f"{op}: invalid skeleton did not return a typed error")
@@ -71,12 +76,16 @@ async def run(args: argparse.Namespace) -> int:
     if audit.get("passed") is not True or audit.get("failed_checks") != 0:
         failures.append("motion_audit: saved walk did not pass contact grading")
     paths = preview.get("paths", [])
-    if len(paths) != 4:
-        failures.append("preview: expected four saved PNGs")
-    for path in paths:
-        image = args.project_root / path.removeprefix("res://")
-        if not image.is_file() or image.stat().st_size < 1000:
-            failures.append(f"preview: missing or empty PNG {path}")
+    if args.expect_headless_preview:
+        if paths:
+            failures.append("preview: headless error also claimed PNG output")
+    else:
+        if len(paths) != 4:
+            failures.append("preview: expected four saved PNGs")
+        for path in paths:
+            image = args.project_root / path.removeprefix("res://")
+            if not image.is_file() or image.stat().st_size < 1000:
+                failures.append(f"preview: missing or empty PNG {path}")
     summary = {"scene": SCENE, "profile": profile, "sample": sample,
                "audit": {key: audit.get(key) for key in
                          ("passed", "failed_checks", "body_travel", "feet")},
@@ -94,6 +103,8 @@ def main() -> int:
     parser.add_argument("--session-hint", required=True)
     parser.add_argument("--port", type=int, required=True)
     parser.add_argument("--ws-port", type=int, required=True)
+    parser.add_argument("--expect-headless-preview", action="store_true",
+                        help="require typed rendering error instead of PNGs")
     return asyncio.run(run(parser.parse_args()))
 
 

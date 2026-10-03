@@ -452,6 +452,7 @@ def inspect_gate(args: argparse.Namespace) -> bool:
         "--project-root", str(args.project),
         "--session-hint", args.project.name,
         "--port", str(args.port), "--ws-port", str(args.ws_port),
+        "--expect-headless-preview",
     ], capture_output=True, text=True, timeout=60, check=False)
     marker = "MCP_INSPECT_3D="
     payload = next((line[len(marker):] for line in extra.stdout.splitlines()
@@ -461,11 +462,55 @@ def inspect_gate(args: argparse.Namespace) -> bool:
         print((extra.stdout + extra.stderr)[-3000:])
         return False
     result = json.loads(payload)
-    if result.get("failures") or len(result.get("preview", {}).get("paths", [])) != 4 \
+    preview_error = str(result.get("preview", {}).get("error", ""))
+    if result.get("failures") or not preview_error.startswith("INVALID_PARAMS:") \
+            or "headless" not in preview_error \
             or result.get("audit", {}).get("passed") is not True:
         print("MCP_CI_FAIL=inspect_3d_route: " + json.dumps(result.get("failures")))
         return False
     print("MCP_CI_PASS=inspect_3d_route", flush=True)
+    return True
+
+
+def sequence_playback_gate(args: argparse.Namespace) -> bool:
+    """Compose through custom_manage, then play the saved character-owned clip."""
+    audit = subprocess.run([
+        sys.executable, str(Path(__file__).with_name("mcp_sequence_audit.py")),
+        "--core-root", str(args.core_root),
+        "--project-root", str(args.project),
+        "--session-hint", args.project.name,
+        "--port", str(args.port), "--ws-port", str(args.ws_port),
+    ], capture_output=True, text=True, timeout=60, check=False)
+    marker = "MCP_SEQUENCE_AUDIT="
+    payload = next((line[len(marker):] for line in audit.stdout.splitlines()
+                    if line.startswith(marker)), "")
+    if audit.returncode or not payload:
+        print("MCP_CI_FAIL=sequence_route")
+        print((audit.stdout + audit.stderr)[-3000:])
+        return False
+    result = json.loads(payload)
+    if result.get("failures") or not result.get("row", {}).get("scene"):
+        print("MCP_CI_FAIL=sequence_route: " + json.dumps(result.get("failures")))
+        return False
+    print("MCP_CI_PASS=sequence_route", flush=True)
+    playback = subprocess.run([
+        godot_executable(args.godot), "--headless", "--path",
+        str(args.project), "--script", "res://tools/check_sequence_runtime.gd",
+        "--", result["row"]["scene"],
+    ], capture_output=True, text=True, timeout=30, check=False)
+    marker = "SEQUENCE_RUNTIME="
+    reported = next((line[len(marker):] for line in playback.stdout.splitlines()
+                     if line.startswith(marker)), "")
+    if playback.returncode or not reported:
+        print("MCP_CI_FAIL=sequence_saved_playback")
+        print((playback.stdout + playback.stderr)[-2500:])
+        return False
+    runtime = json.loads(reported)
+    if not runtime.get("contact_impact") or float(runtime.get("late_angle", 0)) \
+            <= float(runtime.get("early_angle", 0)) + 0.25:
+        print("MCP_CI_FAIL=sequence_saved_playback: " + reported)
+        return False
+    print("MCP_CI_PASS=sequence_saved_playback", flush=True)
     return True
 
 
@@ -555,6 +600,9 @@ def run(args: argparse.Namespace) -> int:
             print(tail(log_path))
             return 1
         if not inspect_gate(args):
+            print(tail(log_path))
+            return 1
+        if not sequence_playback_gate(args):
             print(tail(log_path))
             return 1
         return 0

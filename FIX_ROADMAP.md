@@ -1925,3 +1925,25 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   live MCP CI; the focused local gate passed
   (`mcp_ci_inspect_twelve_local.log`). Windows/Linux confirmation of the
   full twelve is pending.
+- The first cross-platform run (`37076000513`) failed its inspector stage on
+  both platforms because CI starts Godot with `--headless`: `preview`
+  correctly returned typed `INVALID_PARAMS` explaining that a headless editor
+  cannot rasterise frames. The CI audit now requires that typed response and
+  no claimed PNG output, while the visible-editor audit still requires four
+  real PNG files. The visible Godot 4.7.2 rerun passed after this split
+  (`mcp_inspect_3d_visible_after_fix.log`). The next Windows/Linux run must
+  confirm the headless contract.
+
+### 2026-10-03 — Gate sequence composition on saved playback
+
+- Repeated `animation_sequence.compose` through Godot AI `custom_manage` on
+  a generic two-segment rig fixture (`mcp_sequence_repeat_20261003.log`, run
+  `20261002_230856`). Dry run left no clip. Out-of-range source time, late
+  first segment and an over-budget output returned typed errors. The composed
+  clip and a saved-pose clip survived forced reopen with resolved tracks.
+  A fresh Godot 4.7.2 process played the clips: root pose angle rose from
+  0.080 to 0.560 radians, the saved pose reached 0.600 radians, and the
+  `contact_impact` marker remained at 1.1 s.
+- Added this route and saved playback check to CI. Local evidence passes;
+  the focused helper passed (`mcp_ci_sequence_gate_local.log`). Windows/Linux
+  CI and the broader boundary/gap/ownership and visual review remain open.
