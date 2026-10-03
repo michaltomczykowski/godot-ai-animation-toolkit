@@ -1954,9 +1954,9 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
 ### 2026-10-03 — Remaining-work checkpoint
 
 - The registry still advertises **103 operations**, and the generated ledger
-  still marks **103 partial / 0 fully verified**. The counts overlap: 54 rows
-  have pending or partial UndoRedo evidence, 28 still have Linux marked
-  pending, and 70 have visual review marked pending or partial. The cross-
+  still marks **103 partial / 0 fully verified**. The counts overlap: 82 rows
+  have pending or partial UndoRedo evidence, 30 still have Linux marked
+  pending, and 99 have visual review marked pending or partial. The cross-
   platform live route now covers saved motion samples, graph ownership,
   modifiers, FX, edits, presets, library effects, all inspector calls and
   sequence composition. Preview is intentionally a typed unavailable result
@@ -1983,8 +1983,9 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   within the 0.02-radian runtime threshold. Added the same five route audits
   and eight saved-playback assertions to the Windows/Linux live MCP CI gate.
   The focused local gate passed (`mcp_ci_rig_gate_local.log`). Cross-platform
-  CI remains pending at this checkpoint. These tests establish runtime
-  effects, not visual credibility of the generated poses.
+  CI run `37108958001` passed on Windows and Linux. The operation ledger now
+  records Linux evidence for all fourteen rig operations. These tests
+  establish runtime effects, not visual credibility of the generated poses.
 
 ### 2026-10-03 — Extend motion gate to every variant
 
@@ -1997,3 +1998,32 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   authored-key agreement (`mcp_ci_motion_eight_local.log`). Windows/Linux CI
   is pending. These numeric checks do not approve pose design, timing or
   weight transfer; the contact sheets and fixed-camera review remain required.
+
+### 2026-10-03 — Reconcile the audit ledger and visual gap
+
+- The earlier remaining-work checkpoint understated the open checks. Direct
+  counts from the 103 generated operation rows show **82** Undo/Redo checks
+  marked `pending*` or `partial*` and **99** visual checks marked that way.
+  Seven graph rows had Linux marked pending despite the passed eleven-case
+  Windows/Linux live-route run `37108181377`; the evidence ledger now records
+  that run and the generated audit has 23 Linux-pending rows. Rig and motion
+  CI can reduce that count further after both platforms pass. No row is yet
+  marked fully verified.
+- Reviewed the existing X Bot walk, run and strafe candidate sheets in the
+  recovery snapshot. The strafe reads as a narrow shuffle with little lateral
+  weight transfer; the walk sheet has a backward-leaning silhouette, and the
+  run sheet reads as long alternating steps with weak flight timing. Some
+  sheets predate the latest parameter changes, so these are problem leads,
+  not current-output pass decisions. Fixing gait pose/timing and recapturing
+  continuous playback remains a major phase.
+
+### 2026-10-03 — Gate setup and baked secondary motion
+
+- Added `character_setup` and `secondary_motion` to the live Godot AI CI
+  route. The focused local Godot 4.7.2 pass exercised dry run, an unreachable
+  gait rejection, valid writes, typed missing-rig errors and saved/reopened
+  clips and tree (`mcp_ci_motion_setup_local.log`). In a fresh process, the
+  saved AnimationTree moved the walking thigh and extracted root motion, and
+  the jaw spring track varied and played its authored rotation. Windows/Linux
+  CI remains pending. The jaw is a controlled fixture, so believable hair or
+  tail motion and modifier evaluation order still need visual review.

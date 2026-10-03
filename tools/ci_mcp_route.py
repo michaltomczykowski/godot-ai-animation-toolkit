@@ -138,6 +138,51 @@ def motion_gate(args: argparse.Namespace) -> bool:
     return True
 
 
+def motion_setup_gate(args: argparse.Namespace) -> bool:
+    """Check saved locomotion tree and baked secondary track through Godot AI."""
+    route = subprocess.run([
+        sys.executable, str(Path(__file__).with_name("mcp_motion_setup_secondary.py")),
+        "--core-root", str(args.core_root),
+        "--project-root", str(args.project),
+        "--session-hint", args.project.name,
+        "--port", str(args.port), "--ws-port", str(args.ws_port),
+    ], capture_output=True, text=True, timeout=90, check=False)
+    marker = "MCP_MOTION_SETUP_SECONDARY="
+    reported = next((line[len(marker):] for line in route.stdout.splitlines()
+                     if line.startswith(marker)), "")
+    if route.returncode or not reported:
+        print("MCP_CI_FAIL=motion_setup_route")
+        print((route.stdout + route.stderr)[-2500:])
+        return False
+    result = json.loads(reported)
+    if result.get("failures"):
+        print("MCP_CI_FAIL=motion_setup_route "
+              + json.dumps(result["failures"]))
+        return False
+    print("MCP_CI_PASS=motion_setup_route", flush=True)
+    playback = subprocess.run([
+        godot_executable(args.godot), "--headless", "--path",
+        str(args.project), "--script",
+        "res://tools/check_motion_setup_runtime.gd", "--",
+        result["row"]["scene"],
+    ], capture_output=True, text=True, timeout=30, check=False)
+    marker = "MOTION_SETUP_RUNTIME="
+    reported = next((line[len(marker):] for line in playback.stdout.splitlines()
+                     if line.startswith(marker)), "")
+    if playback.returncode or not reported:
+        print("MCP_CI_FAIL=motion_setup_saved_runtime")
+        print((playback.stdout + playback.stderr)[-2500:])
+        return False
+    runtime = json.loads(reported)
+    if (runtime.get("failures") or runtime.get("thigh_change", 0.0) < 0.001
+            or runtime.get("root_extraction", 0.0) < 0.01
+            or runtime.get("jaw_range", 0.0) < 0.001):
+        print("MCP_CI_FAIL=motion_setup_saved_runtime " + reported)
+        return False
+    print("MCP_CI_PASS=motion_setup_saved_runtime", flush=True)
+    return True
+
+
 def graph_playback_gate(args: argparse.Namespace) -> bool:
     playable_graphs = ("state_machine", "blend_space", "blend_space_2d",
                        "blend_tree", "graph_get", "locomotion",
@@ -670,6 +715,9 @@ def run(args: argparse.Namespace) -> int:
                 print(tail(log_path))
                 return 1
         if not motion_gate(args):
+            print(tail(log_path))
+            return 1
+        if not motion_setup_gate(args):
             print(tail(log_path))
             return 1
         if not graph_playback_gate(args):
