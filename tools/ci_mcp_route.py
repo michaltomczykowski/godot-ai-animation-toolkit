@@ -514,6 +514,73 @@ def sequence_playback_gate(args: argparse.Namespace) -> bool:
     return True
 
 
+def rig_playback_gate(args: argparse.Namespace) -> bool:
+    """Exercise all rig operations through the live route and saved playback."""
+    common = ["--core-root", str(args.core_root),
+              "--project-root", str(args.project),
+              "--session-hint", args.project.name,
+              "--port", str(args.port), "--ws-port", str(args.ws_port)]
+    audits = (
+        ("mcp_rig_pose_crud.py", "MCP_RIG_POSE_CRUD=", "pose_crud"),
+        ("mcp_rig_pose_apply_audit.py", "MCP_RIG_POSE_APPLY=", "pose_apply"),
+        ("mcp_rig_chain_audit.py", "MCP_RIG_CHAIN=", "rig_chain"),
+        ("mcp_rig_bake.py", "MCP_RIG_BAKE=", "bake_pose_sequence"),
+        ("mcp_rig_recipes.py", "MCP_RIG_RECIPES=", "recipes"),
+    )
+    results = {}
+    for script, marker, label in audits:
+        audit = subprocess.run([
+            sys.executable, str(Path(__file__).with_name(script)), *common,
+        ], capture_output=True, text=True, timeout=90, check=False)
+        payload = next((line[len(marker):] for line in audit.stdout.splitlines()
+                        if line.startswith(marker)), "")
+        if audit.returncode or not payload:
+            print("MCP_CI_FAIL=rig_route:" + label)
+            print((audit.stdout + audit.stderr)[-3000:])
+            return False
+        result = json.loads(payload)
+        if result.get("failures"):
+            print("MCP_CI_FAIL=rig_route:" + label + " "
+                  + json.dumps(result["failures"]))
+            return False
+        results[label] = result
+        print("MCP_CI_PASS=rig_route:" + label, flush=True)
+    recipes = results["recipes"].get("operations", [])
+    expected_recipes = {"walk_cycle", "idle_breathing", "blink",
+                        "jumping_jack", "squat", "punch"}
+    if len(recipes) != 6 or {row.get("op") for row in recipes} != expected_recipes:
+        print("MCP_CI_FAIL=rig_route:recipes_missing")
+        return False
+    playback_cases = [
+        ("pose_to_clip", results["pose_crud"]["scene"],
+         "res://tools/check_rig_pose_clip_runtime.gd", "RIG_POSE_CLIP="),
+        ("bake_pose_sequence", results["bake_pose_sequence"]["scene"],
+         "res://tools/check_rig_bake_runtime.gd", "RIG_BAKE_RUNTIME="),
+    ]
+    playback_cases.extend((row["op"], row["scene"],
+        "res://tools/check_rig_recipe_runtime.gd", "RIG_RECIPE_RUNTIME=")
+        for row in recipes)
+    for op, scene, checker, marker in playback_cases:
+        command = [godot_executable(args.godot), "--headless", "--path",
+                   str(args.project), "--script", checker, "--", scene]
+        if checker.endswith("check_rig_recipe_runtime.gd"):
+            command.append(op)
+        playback = subprocess.run(command, capture_output=True, text=True,
+                                  timeout=30, check=False)
+        reported = next((line[len(marker):] for line in playback.stdout.splitlines()
+                         if line.startswith(marker)), "")
+        if playback.returncode or not reported:
+            print("MCP_CI_FAIL=rig_saved_playback:" + op)
+            print((playback.stdout + playback.stderr)[-2500:])
+            return False
+        runtime = json.loads(reported)
+        if runtime.get("failures") or float(runtime.get("worst_error", 100.0)) >= 0.02:
+            print("MCP_CI_FAIL=rig_saved_playback:" + op + " " + reported)
+            return False
+        print("MCP_CI_PASS=rig_saved_playback:" + op, flush=True)
+    return True
+
+
 def run(args: argparse.Namespace) -> int:
     editor: subprocess.Popen[bytes] | None = None
     log_stream = None
@@ -603,6 +670,9 @@ def run(args: argparse.Namespace) -> int:
             print(tail(log_path))
             return 1
         if not sequence_playback_gate(args):
+            print(tail(log_path))
+            return 1
+        if not rig_playback_gate(args):
             print(tail(log_path))
             return 1
         return 0

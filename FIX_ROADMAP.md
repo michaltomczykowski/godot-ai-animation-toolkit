@@ -1967,3 +1967,21 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   across families. Character walk/run/strafe and action timing need visual
   improvement before approval. Finally run model-driven prompts in the real
   project, regenerate the audit, and review the draft PR. No release or merge.
+
+### 2026-10-03 — Gate rig operations and saved recipe playback
+
+- Repeated the fourteen `animation_rig` operations through the visible Godot
+  AI route in five focused audits. Pose save/apply/list/blend/to-clip, rig-chain
+  inspection, pose-sequence baking and all six generated recipes passed their
+  dry-run, effect, typed-error and save/reopen assertions. The route logs are
+  `mcp_rig_pose_crud_repeat_20261003.log`,
+  `mcp_rig_pose_apply_repeat_20261003.log`,
+  `mcp_rig_chain_repeat_20261003.log`, `mcp_rig_bake_repeat_20261003.log`
+  and `mcp_rig_recipes_repeat_20261003.log` in the recovery snapshot.
+- Fresh Godot 4.7.2 processes played the saved pose clip, 24-sample baked
+  clip and all six recipe clips. Their expected sampled bone motion matched
+  within the 0.02-radian runtime threshold. Added the same five route audits
+  and eight saved-playback assertions to the Windows/Linux live MCP CI gate.
+  The focused local gate passed (`mcp_ci_rig_gate_local.log`). Cross-platform
+  CI remains pending at this checkpoint. These tests establish runtime
+  effects, not visual credibility of the generated poses.
