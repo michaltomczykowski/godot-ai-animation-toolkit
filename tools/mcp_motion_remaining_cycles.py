@@ -80,6 +80,8 @@ async def run(args: argparse.Namespace) -> int:
             params = {"op": op, "player_path": player,
                       "skeleton_path": skeleton, "animation_name": op,
                       "samples": 30, **extras}
+            if args.direction is not None and op == "strafe_cycle":
+                params["direction"] = args.direction
             if args.phase is not None and op in ("walk_start", "walk_stop"):
                 params["phase"] = args.phase
             if args.knee_bend is not None and op in ("cycle", "strafe_cycle", "walk_start", "walk_stop"):
@@ -134,6 +136,8 @@ def main() -> int:
     parser.add_argument("--ws-port", type=int, required=True)
     parser.add_argument("--rig", choices=("dummy", "xbot"), default="dummy")
     parser.add_argument("--fixture", help="Scene filename under project root for a dummy-layout synthetic rig")
+    parser.add_argument("--direction", choices=("left", "right"),
+                        help="Strafe direction to exercise through Godot AI")
     parser.add_argument("--ops", choices=list(CASES), nargs="*",
                         help="Subset of operations to test; defaults to all")
     parser.add_argument("--phase", type=float,

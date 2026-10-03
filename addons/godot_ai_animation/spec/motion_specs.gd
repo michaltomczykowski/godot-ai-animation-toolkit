@@ -180,23 +180,24 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 	var span := 2.0 * leg_length * sin(deg_to_rad(stride_degrees))
 	var lateral_capped := false
 	var lateral_speed_cap := INF
+	var rooted := bool(ctx.get("root_motion", false))
 	if bool(ctx.get("lateral_step", false)):
-		# A lateral shuffle cannot use the forward gait's leg-length stride:
-		# X Bot's default 14-degree step spanned ~0.43 m across ankles only
-		# ~0.16 m apart, making the feet cross through each other. Keep an
-		# observable gap even when the feet are at opposite stride extremes.
+		# An in-place shuffle still uses the symmetric gait and must fit within
+		# the rest ankle spacing. With extracted root travel, lead/trail swings
+		# occur in separate windows, so the limit is the rig's lateral reach.
 		var foot_width := absf(((ctx.legs.l.ankle as Vector3) -
 			(ctx.legs.r.ankle as Vector3)).dot(lateral))
-		var safe_span := 0.8 * foot_width
+		var safe_span := 0.5 * leg_length * stance if rooted else 0.8 * foot_width
 		lateral_speed_cap = safe_span / (stance * length)
 		if span > safe_span:
 			lateral_capped = true
-			warnings.append("lateral stride capped to %.3f m from the rig's %.3f m ankle spacing to prevent crossed feet" % [
-				snappedf(safe_span, 0.001), snappedf(foot_width, 0.001)])
+			warnings.append("lateral stride capped to %.3f m by %s" % [
+				snappedf(safe_span, 0.001),
+				"leg reach" if rooted else "rest ankle spacing"])
 			span = safe_span
 			stride_degrees = rad_to_deg(asin(clampf(span / maxf(2.0 * leg_length, 0.001), 0.0, 1.0)))
 	var ground_speed := span / (stance * length)
-	var rooted := bool(ctx.get("root_motion", false))
+	var rooted_strafe := bool(ctx.get("lateral_step", false)) and rooted
 	var travel_axis: Vector3 = ctx.get("step_axis", forward)
 	var lag := float(config.lag)
 	var hip_yaw := float(config.hip_yaw) * float(signs.yaw)
@@ -281,7 +282,8 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 		var hips_animated := Basis(pelvis_world) * _rest_basis(ctx, hips)
 		var offset: Vector3 = pelvis_offsets[index] if not pelvis_offsets.is_empty() else (
 			up * (MotionDrivers.channel_value(bob_channel, t) - crouch)
-			+ lateral * MotionDrivers.channel_value(sway_channel, t)
+			+ (travel_axis * _strafe_support_shift(t, float(config.sway))
+				if rooted_strafe else lateral * MotionDrivers.channel_value(sway_channel, t))
 		)
 		if not hips.is_empty():
 			_append_rotation(keys, hips, time, MotionDrivers.rotation_delta(_rest_basis(ctx, hips), pelvis_world))
@@ -321,12 +323,15 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 	if rooted and not is_zero_approx(travel):
 		var root_position: Array = []
 		for index in times.size():
+			var progress := _strafe_root_progress(float(index) / float(steps)) \
+				if rooted_strafe else float(index) / float(steps)
 			root_position.append({"time": float(times[index]),
-				"delta": travel_axis * (travel * float(index) / float(steps))})
+				"delta": travel_axis * (travel * progress)})
 		keys["__root_motion__"] = {"position": root_position, "loop_close": false}
 	return {
 		"keys": keys,
-		"markers": _gait_markers(length, stance),
+		"markers": _strafe_markers(length, str(ctx.get("lead_side", "l")))
+			if rooted_strafe else _gait_markers(length, stance),
 		"meta": {
 			"speed": ground_speed,
 			"stride_used": stride_degrees,
@@ -422,7 +427,10 @@ static func _solve_leg(
 	var knee_hint: Vector3 = ctx.get("knee_hint", ctx.forward)
 	var side_offset := 0.0 if side == "l" else 0.5
 	var p := fposmod(t + side_offset, 1.0)
-	var foot := _foot_trajectory(p, stance, span, ground_speed, length, rooted, side_offset)
+	var rooted_strafe := bool(ctx.get("lateral_step", false)) and rooted
+	var foot := _strafe_foot_trajectory(t, side == str(ctx.get("lead_side", "l")),
+		ground_speed * length) if rooted_strafe else _foot_trajectory(
+		p, stance, span, ground_speed, length, rooted, side_offset)
 	var lift := float(ctx.get("foot_lift_scaled", (ctx.config as Dictionary).get("foot_lift", 0.05)))
 	var ankle_target: Vector3 = (
 		leg.ankle + step_axis * float(foot.forward)
@@ -455,17 +463,18 @@ static func _solve_leg(
 	var foot_rest := _rest_basis(ctx, foot_bone)
 	var pitch_axis := _foot_pitch_axis(ctx, leg, knee_hint)
 	var roll := float((ctx.config as Dictionary).get("toe_roll", 1.0))
-	var pitch := _foot_pitch_curve(p, stance, 8.0 * roll, 18.0 * roll)
+	var pitch := 0.0 if rooted_strafe else _foot_pitch_curve(p, stance, 8.0 * roll, 18.0 * roll)
 	var foot_target := Basis(Quaternion(pitch_axis, deg_to_rad(pitch))) * foot_rest
 	var delta := MotionDrivers.hold_global_delta(shin_solve.global, shin_rest, foot_rest, foot_target)
-	var weight := _foot_plant_weight(p, stance)
+	var weight := clampf(1.0 - 2.0 * float(foot.height), 0.0, 1.0) \
+		if rooted_strafe else _foot_plant_weight(p, stance)
 	_append_rotation(keys, foot_bone, time, Quaternion.IDENTITY.slerp(delta, weight))
 	var toe_bone := str(leg.get("toe", ""))
 	if toe_bone.is_empty():
 		return solved
 	var toe_rest := _rest_basis(ctx, toe_bone)
 	var toe_hold := MotionDrivers.hold_global_delta(foot_target, foot_rest, toe_rest, toe_rest)
-	var toe_weight := weight if pitch < -1.0 else 0.0
+	var toe_weight := weight if pitch < -1.0 and not rooted_strafe else 0.0
 	_append_rotation(keys, toe_bone, time, Quaternion.IDENTITY.slerp(toe_hold, toe_weight))
 	return solved
 
@@ -549,6 +558,42 @@ static func _solve_arm_chain(
 ## foot target is its desired world target minus T(t); that keeps stance fixed
 ## even while the character travels. During swing, the world target remains
 ## fixed until the foot lifts, then reaches its next contact before lowering.
+## A rooted side step moves the leading foot outward before the trailing foot
+## recovers. World foot displacement and extracted root displacement are
+## authored separately; their difference is the bone solver's local target.
+static func _strafe_root_progress(t: float) -> float:
+	return MotionDrivers.smoothstep(clampf((t - 0.12) / 0.76, 0.0, 1.0))
+
+
+static func _strafe_foot_trajectory(t: float, leading: bool, travel: float) -> Dictionary:
+	var start := 0.06 if leading else 0.55
+	var end := 0.45 if leading else 0.94
+	var swing := clampf((t - start) / (end - start), 0.0, 1.0)
+	var travel_phase := clampf((swing - 0.12) / 0.76, 0.0, 1.0)
+	var world_progress := MotionDrivers.smoothstep(travel_phase)
+	var height := 0.0
+	if t > start and t < end:
+		const APEX := 0.45
+		height = MotionDrivers.smoothstep(swing / APEX) if swing < APEX else \
+			1.0 - MotionDrivers.smoothstep((swing - APEX) / (1.0 - APEX))
+	return {"forward": travel * (world_progress - _strafe_root_progress(t)),
+		"height": height}
+
+
+## Shift over the trailing support leg before lead toe-off, then over the
+## newly planted leading leg before the trailing recovery swing.
+static func _strafe_support_shift(t: float, sway: float) -> float:
+	if t < 0.16:
+		return -sway * MotionDrivers.smoothstep(t / 0.16)
+	if t < 0.46:
+		return -sway
+	if t < 0.68:
+		return lerpf(-sway, sway, MotionDrivers.smoothstep((t - 0.46) / 0.22))
+	if t < 0.84:
+		return sway
+	return sway * (1.0 - MotionDrivers.smoothstep(clampf((t - 0.84) / 0.16, 0.0, 1.0)))
+
+
 static func _foot_trajectory(p: float, stance: float, span: float, ground_speed: float, length: float, rooted: bool, phase_offset: float = 0.0) -> Dictionary:
 	var local_phase := fposmod(p, 1.0)
 	var travel := ground_speed * length
@@ -829,6 +874,16 @@ static func _gait_markers(length: float, stance: float) -> Array:
 	return out
 
 
+static func _strafe_markers(length: float, leading: String) -> Array:
+	var trailing := "r" if leading == "l" else "l"
+	return [
+		{"name": "toe_off.%s" % leading.to_upper(), "time": 0.06 * length},
+		{"name": "contact.%s" % leading.to_upper(), "time": 0.45 * length},
+		{"name": "toe_off.%s" % trailing.to_upper(), "time": 0.55 * length},
+		{"name": "contact.%s" % trailing.to_upper(), "time": 0.94 * length},
+	]
+
+
 # --- strafe -----------------------------------------------------------------
 
 ## Sideways gait: the walk solver with the foot trajectory along the character's
@@ -838,6 +893,7 @@ static func strafe_keys(ctx: Dictionary, direction: String) -> Dictionary:
 	var strafe_ctx := ctx.duplicate()
 	strafe_ctx["step_axis"] = (ctx.lateral as Vector3) * side_sign
 	strafe_ctx["lateral_step"] = true
+	strafe_ctx["lead_side"] = "l" if direction == "left" else "r"
 	strafe_ctx["knee_hint"] = ctx.forward
 	return gait_keys(strafe_ctx, false)
 

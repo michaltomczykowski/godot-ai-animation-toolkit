@@ -545,6 +545,51 @@ func test_strafe_moves_laterally_and_loops() -> void:
 	_teardown(rig)
 
 
+func test_rooted_right_strafe_leads_then_recovers() -> void:
+	var rig := _rig("MotionStrafeRight")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "strafe_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "strafe_right",
+		"duration": 1.0, "direction": "right", "root_motion": true,
+		"loop_mode": "linear",
+	}, null)
+	assert_true(result.has("data"), "right strafe builds: %s" % str(result))
+	if not result.has("data"):
+		_teardown(rig)
+		return
+	var anim: Animation = rig.player.get_animation("strafe_right")
+	var markers: PackedStringArray = anim.get_marker_names()
+	for marker in ["toe_off.R", "contact.R", "toe_off.L", "contact.L"]:
+		assert_true(markers.has(marker), "right strafe marks %s" % marker)
+	assert_true(anim.get_marker_time("contact.R") < anim.get_marker_time("toe_off.L"),
+		"leading foot lands before trailing foot lifts")
+	var root_track := anim.find_track(rig.player.root_motion_track, Animation.TYPE_POSITION_3D)
+	assert_true(root_track >= 0, "right strafe owns an extracted root track")
+	var left_rest: Vector3 = rig.skeleton.get_bone_global_rest(rig.skeleton.find_bone("B-foot.L")).origin
+	var right_rest: Vector3 = rig.skeleton.get_bone_global_rest(rig.skeleton.find_bone("B-foot.R")).origin
+	var axis := (right_rest - left_rest).normalized()
+	var start_root: Vector3 = anim.position_track_interpolate(root_track, 0.0)
+	var previous := -0.001
+	for sample in 11:
+		var at := float(sample) / 10.0
+		var root_delta: Vector3 = anim.position_track_interpolate(root_track, at) - start_root
+		var progress := root_delta.dot(axis)
+		assert_true(progress >= previous - 0.001, "root travel is monotonic at %.1f" % at)
+		previous = progress
+	var root_early: Vector3 = anim.position_track_interpolate(root_track, 0.4) - start_root
+	var right_early := _pose_of(rig, anim, 0.4, "B-foot.R").origin + root_early
+	var left_early := _pose_of(rig, anim, 0.4, "B-foot.L").origin + root_early
+	assert_gt((right_early - right_rest).dot(axis), 0.08,
+		"right lead foot has visibly stepped by its contact")
+	assert_true(absf((left_early - left_rest).dot(axis)) < 0.025,
+		"left support foot remains planted during the right step")
+	assert_true(previous > 0.1, "right root carries meaningful travel")
+	_teardown(rig)
+
+
 func test_walk_transitions_match_the_cycle() -> void:
 	var rig := _rig("MotionTransition")
 	if rig.has("error"):

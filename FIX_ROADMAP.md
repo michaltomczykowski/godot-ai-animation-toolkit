@@ -2135,3 +2135,58 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   receives visual approval. This is a fresh baseline from the current tool
   route, not an older candidate sheet; compare it with the next authored
   change before accepting new numeric results.
+
+### 2026-10-03 — Strafe solver candidate design
+
+- The current strafe calls the forward gait solver with a lateral axis and
+  symmetric half-cycle foot trajectories. To avoid crossed feet it caps the
+  span at 80% of rest ankle spacing; this explains the 0.219 m X Bot travel
+  and the narrow shuffle. A cap change alone would cross the feet, so the
+  candidate needs separate lead/trail timing.
+- Candidate timing for one left or right step: the leading foot swings early
+  and lands outward; the trailing foot remains planted, then swings later to
+  recover the original stance width. Author a single smooth root translation
+  curve. Each foot's character-local target must equal its planned world
+  contact position minus that root curve. Move the pelvis toward the current
+  support foot before toe-off, then over the leading foot before trail
+  recovery. Write contact/toe-off markers at these actual phase boundaries.
+- Keep the candidate isolated until it passes no-crossing, reach, contact,
+  penetration, knee-pole and loop checks at 30/60/120 FPS on the dummy, X
+  Bot, short and Z-up tall rigs. Render a continuous front and side movie of
+  the same saved clips, compare to the fresh baseline above, and reject a
+  numerically green result if it still reads as a shuffle or snaps at the
+  loop. Explicit requested speeds beyond reachable lateral travel must
+  return a typed range error instead of silently shortening the step.
+
+### 2026-10-03 — Recovered strafe implementation and validation
+
+- The workstation restart did not remove the uncommitted strafe solver. The
+  visible Godot 4.7.2 editor and Godot AI backend were still running. The
+  previous committed Windows/Linux Actions run `37112227953` completed green.
+- Implemented an ordered rooted side step. The leading foot swings out during
+  0.06–0.45, the trailing foot stays in contact and recovers during 0.55–0.94.
+  A single smooth root track carries lateral travel; local foot targets are
+  world contact targets minus that root travel. The pelvis shifts toward each
+  support leg, and toe-off/contact markers match those phase boundaries.
+  In-place unrooted strafe retains its earlier width-limited shuffle behavior.
+- Fresh clips generated through Godot AI passed dry-run immutability, write,
+  save, forced reopen, resolved track paths and typed missing-skeleton errors
+  on X Bot, dummy, short synthetic and Z-up tall synthetic rigs. All 12 saved
+  left-strafe played audits passed at 30/60/120 FPS. Travel was 0.4445,
+  0.3996, 0.2198 and 0.6394 m respectively. Worst slide was 5.0, 4.5, 2.5
+  and 0.1 mm; worst penetration was 0.4, 0.3, 0.2 and 0.5 mm; minimum signed
+  foot gaps were 164.2, 176.5, 97.1 and 282.4 mm. No knee flips were
+  reported. A rightward X Bot clip also passed the live route and three played
+  FPS audits with the same travel and bounds. Logs are `mcp_*strafe_candidate*
+  20261003.log` in the recovery snapshot; run IDs `20261003_091848`,
+  `092112`, `092117`, `092123` and rightward `092641`.
+- The 14 Godot 4.7.2 headless suites passed. The editor suite passed 222/222
+  tests, including a new rightward test for lead/trail marker order, planted
+  support and monotonic extracted root travel. Godot 4.7.2 Movie Maker saved
+  61-frame front and side X Bot playback sheets in `media/xbot_strafe_candidate_*
+  20261003/`. The front view now shows an outward lead step and trailing-foot
+  recovery instead of the narrow 0.219 m shuffle. Torso anticipation and
+  side-view weight transfer remain weak; this is an improvement checkpoint,
+  **not visual approval**. Continue motion design before marking the operation
+  complete. The ledger stays partial, and cross-platform CI must be rerun
+  after this implementation is committed.

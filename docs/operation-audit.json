@@ -3849,7 +3849,8 @@
         "2026-10-02: after the shared sway sign changed, fresh saved clips on four rigs passed live Godot AI dry/write/save/forced-reopen/typed-error and played 30/60/120 FPS audits in the 96-row motion matrix. The front X Bot strafe still needs a deliberate support-pose redesign and visual approval.",
         "2026-10-02: after the stance-side sway correction, fresh X Bot front sheets still show a narrow shuffle. A live Godot AI candidate with 0.06 m sway and 16-degree knee bend (run 20261002_165917) passed dry/write/save/forced-reopen/typed errors and 30/60/120 FPS played contact/crossing audits. At 120 FPS it kept a 54.7 mm signed ankle gap, 1.8 mm worst slide and about 135-degree minimum knee angles. Its posture was more upright but weight transfer remained weak, so the default was not changed. Sheet media/xbot_strafe_sway006_knee16_front/sheet.png and logs are in the 2026-09-30 snapshot; visual approval remains open.",
         "2026-10-03: GitHub Actions run 37109098115 passed the live Godot AI motion route on Windows and Linux. The operation passed dry/write/save/forced-reopen and typed-error checks; played world-space audit passed at 30/60/120 FPS, and a fresh Godot 4.7.2 process played moving bone keys in the saved clip. Visual gait quality and remaining editor Undo/Redo remain open.",
-        "2026-10-03: after the workstation restart, live Godot AI generated and saved a fresh X Bot strafe_cycle clip (run 20261003_090812). Played 30/60/120 FPS audit passed. Godot 4.7.2 Movie Maker rendered 61 frames at 60 FPS; fixed-camera sheets are under the recovery snapshot media/xbot_current_default_strafe_cycle_side_20261003 and media/xbot_current_default_strafe_front_20261003. The current default X Bot front and side sheets read as a narrow shuffle with little support-leg weight transfer despite passing contact checks; it is not visually approved."
+        "2026-10-03: after the workstation restart, live Godot AI generated and saved a fresh X Bot strafe_cycle clip (run 20261003_090812). Played 30/60/120 FPS audit passed. Godot 4.7.2 Movie Maker rendered 61 frames at 60 FPS; fixed-camera sheets are under the recovery snapshot media/xbot_current_default_strafe_cycle_side_20261003 and media/xbot_current_default_strafe_front_20261003. The then-current X Bot front and side sheets read as a narrow shuffle with little support-leg weight transfer despite passing contact checks; it was not visually approved.",
+        "2026-10-03: rooted lead/trail solver candidate generated and saved through live Godot AI on X Bot, dummy, short synthetic and Z-up tall synthetic rigs. All 12 leftward played 30/60/120 FPS audits passed: travel 0.4445/0.3996/0.2198/0.6394 m; worst slide 5.0/4.5/2.5/0.1 mm; worst penetration 0.4/0.3/0.2/0.5 mm; minimum foot gap 164.2/176.5/97.1/282.4 mm; no knee flips. Rightward X Bot route and three played FPS audits passed too (run 20261003_092641). Run IDs 20261003_091848/092112/092117/092123 and logs mcp_*strafe_candidate*20261003.log in the recovery snapshot. Godot Movie Maker front and side sheets show a wider side step but weak torso anticipation and side-view weight transfer; visual approval and full operation Undo/Redo remain open."
       ],
       "example": {
         "animation_name": "strafe_left",
@@ -3863,7 +3864,7 @@
       },
       "family": "animation_motion",
       "family_batch_undoable": true,
-      "fixture": "res://repair_motion_audit/20261001_161512/strafe_cycle.tscn",
+      "fixture": "res://repair_motion_audit/20261003_091848/strafe_cycle.tscn",
       "handler": "res://addons/godot_ai_animation/handlers/motion.gd",
       "key": "animation_motion.strafe_cycle",
       "op": "strafe_cycle",
