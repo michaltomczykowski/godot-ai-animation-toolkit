@@ -77,7 +77,7 @@ async def run(args: argparse.Namespace) -> int:
             scene = f"res://repair_motion_audit/{run_id}/{op}.tscn"
             row = {"op": op, "scene": scene}
             row["open"] = await call(client, "scene_open", {"path": scene})
-            params = {"op": "cycle" if op == "run_cycle" else op, "player_path": player,
+            params = {"op": op, "player_path": player,
                       "skeleton_path": skeleton, "animation_name": op,
                       "samples": 30, **extras}
             if args.phase is not None and op in ("walk_start", "walk_stop"):

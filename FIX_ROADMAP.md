@@ -1996,7 +1996,9 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   passed all 24 operation/FPS rows at 30, 60 and 120 FPS. Fresh Godot
   processes then played each saved clip and measured nonzero bone motion and
   authored-key agreement (`mcp_ci_motion_eight_local.log`). Windows/Linux CI
-  is pending. These numeric checks do not approve pose design, timing or
+  run `37109098115` passed this eight-case gate; its run case used generic
+  `cycle(preset=run)`, with the separate direct operation checked later.
+  These numeric checks do not approve pose design, timing or
   weight transfer; the contact sheets and fixed-camera review remain required.
 
 ### 2026-10-03 — Reconcile the audit ledger and visual gap
@@ -2036,3 +2038,9 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   case. The focused local pass covered all nine generated motion cases,
   **27/27** played 30/60/120 FPS rows and nine fresh-process saved clip
   replays (`mcp_ci_motion_nine_local.log`). Windows/Linux CI remains pending.
+- During ledger review, found the `run_cycle` fixture still invoked generic
+  `cycle(preset=run)`, which did not prove the separate advertised operation.
+  Changed the route call to `run_cycle` and reran all nine cases through the
+  visible Godot AI editor: 27/27 played FPS rows and nine fresh saved replays
+  passed (`mcp_ci_motion_nine_direct_run_local.log`). Cross-platform evidence
+  for this direct call remains pending.
