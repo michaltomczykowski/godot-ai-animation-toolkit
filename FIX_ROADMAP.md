@@ -2027,3 +2027,12 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   the jaw spring track varied and played its authored rotation. Windows/Linux
   CI remains pending. The jaw is a controlled fixture, so believable hair or
   tail motion and modifier evaluation order still need visual review.
+
+### 2026-10-03 — Include the separate walk-cycle operation
+
+- `animation_motion.walk_cycle` has its own advertised operation, separate
+  from generic `cycle(preset=walk)`. Added it to the live Godot AI motion
+  fixture and played audit instead of inferring coverage from the generic
+  case. The focused local pass covered all nine generated motion cases,
+  **27/27** played 30/60/120 FPS rows and nine fresh-process saved clip
+  replays (`mcp_ci_motion_nine_local.log`). Windows/Linux CI remains pending.

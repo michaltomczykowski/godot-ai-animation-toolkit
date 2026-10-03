@@ -14,7 +14,7 @@ from fastmcp.client.transports import StdioTransport
 from mcp_presets_audit import call
 
 
-OPS = ("idle_cycle", "cycle", "run_cycle", "jump", "turn_cycle",
+OPS = ("walk_cycle", "idle_cycle", "cycle", "run_cycle", "jump", "turn_cycle",
        "strafe_cycle", "walk_start", "walk_stop")
 ROOT = "/RepairRigFixture"
 

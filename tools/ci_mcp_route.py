@@ -57,7 +57,7 @@ def probe(args: argparse.Namespace, reload: bool = False) -> subprocess.Complete
 
 def motion_gate(args: argparse.Namespace) -> bool:
     """Check every saved motion variant through the external MCP route."""
-    ops = ("idle_cycle", "cycle", "run_cycle", "jump", "turn_cycle",
+    ops = ("walk_cycle", "idle_cycle", "cycle", "run_cycle", "jump", "turn_cycle",
            "strafe_cycle", "walk_start", "walk_stop")
     common = [
         "--core-root", str(args.core_root),
@@ -105,7 +105,7 @@ def motion_gate(args: argparse.Namespace) -> bool:
     rows = json.loads(audit_payload)
     expected_rows = {(op, fps) for op in expected_ops for fps in (30, 60, 120)}
     actual_rows = {(row.get("op"), row.get("fps")) for row in rows}
-    translating = {"cycle", "run_cycle", "jump", "strafe_cycle",
+    translating = {"walk_cycle", "cycle", "run_cycle", "jump", "strafe_cycle",
                    "walk_start", "walk_stop"}
     inert = [f"{row.get('op')}@{row.get('fps')}" for row in rows
              if row.get("op") in translating

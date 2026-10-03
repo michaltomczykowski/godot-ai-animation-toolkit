@@ -19,6 +19,8 @@ from mcp_presets_audit import call
 SKELETON = "/RepairRigFixture/Dummy/Skeleton3D"
 PLAYER = "/RepairRigFixture/AnimationPlayer"
 CASES = {
+    "walk_cycle": {"duration": 1.0, "loop_mode": "linear",
+                   "root_motion": True},
     "idle_cycle": {"duration": 2.0, "loop_mode": "linear",
                    "root_motion": False},
     "cycle": {"preset": "walk", "duration": 1.0,
