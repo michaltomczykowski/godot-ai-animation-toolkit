@@ -2243,5 +2243,29 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   The shared planner's 16%-of-leg drop limit and smooth envelope are not a
   substitute for a run-specific contact/flight path. Kept only the verified
   correction that limits the "not a walk" warning to walking operations,
-  with an editor regression assertion. Run reach and visual quality remain
-  unresolved.
+  with an editor regression assertion. Windows/Linux Actions run
+  `37146046324` passed that warning correction. Run reach and visual quality
+  remain unresolved.
+
+### 2026-10-03 — Run swing timing candidate rejected
+
+- The rooted run's old swing target moves too far ahead of the hip near
+  landing: using its root travel, the local foot target overshoots the
+  nominal half-stride. A direct relative-foot interpolation kept it within
+  reach but failed the X Bot editor contact gate with 87 mm stance slide,
+  because the foot moved horizontally while still inside the contact band.
+- A smoother world-space swing beginning at 3% and ending at 98% of the
+  swing window passed the 223-test editor suite and live Godot AI save/reopen
+  and 30/60/120 FPS played audits. At default stride it reduced X Bot clamp
+  from 82.5 to 40.5 mm and dummy clamp from 94.4 to 49.5 mm, still far above
+  the 1%-of-leg target. Combining it with a 25-degree stride reduced X Bot
+  clamp to zero and dummy clamp to 6.1 mm; speeds stayed 2.04/1.93 m/s.
+  Yet played maximum extension remained 0.9946/0.9987, stance slide rose to
+  11.8/8.7 mm, and the X Bot 61-frame side render still shows nearly straight
+  knees and weak flight. The `media/xbot_run_phase_stride25_side_20261003/
+  sheet.png` and `mcp_*run_phase*20261003.log` files preserve the comparison.
+  Both swing candidates were reverted; no run default or golden fixture was
+  changed. The next run solver needs explicit support and aerial phases with
+  knee tuck and a deliberately pitched torso, plus a gate on target clamp
+  and simultaneous foot clearance. The previous 10-frame sheet missed the
+  flight windows; new sheets include frames 21–27 and 51–57 at 60 FPS.
