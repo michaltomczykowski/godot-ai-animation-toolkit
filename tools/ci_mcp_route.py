@@ -56,8 +56,9 @@ def probe(args: argparse.Namespace, reload: bool = False) -> subprocess.Complete
 
 
 def motion_gate(args: argparse.Namespace) -> bool:
-    """Check saved walk, run and transitions through the external MCP route."""
-    ops = ("cycle", "run_cycle", "walk_start", "walk_stop")
+    """Check every saved motion variant through the external MCP route."""
+    ops = ("idle_cycle", "cycle", "run_cycle", "jump", "turn_cycle",
+           "strafe_cycle", "walk_start", "walk_stop")
     common = [
         "--core-root", str(args.core_root),
         "--session-hint", args.project.name,
@@ -104,13 +105,36 @@ def motion_gate(args: argparse.Namespace) -> bool:
     rows = json.loads(audit_payload)
     expected_rows = {(op, fps) for op in expected_ops for fps in (30, 60, 120)}
     actual_rows = {(row.get("op"), row.get("fps")) for row in rows}
+    translating = {"cycle", "run_cycle", "jump", "strafe_cycle",
+                   "walk_start", "walk_stop"}
     inert = [f"{row.get('op')}@{row.get('fps')}" for row in rows
-             if float(row.get("body_travel") or 0.0) <= 0.1]
+             if row.get("op") in translating
+             and float(row.get("body_travel") or 0.0) <= 0.1]
     if len(rows) != len(expected_rows) or actual_rows != expected_rows or inert:
         print("MCP_CI_FAIL=motion_playback: missing or inert samples "
               + json.dumps({"actual": sorted(actual_rows), "inert": inert}))
         return False
     print("MCP_CI_PASS=motion_playback " + summary, flush=True)
+    for row in result["operations"]:
+        op = row["op"]
+        playback = subprocess.run([
+            godot_executable(args.godot), "--headless", "--path",
+            str(args.project), "--script",
+            "res://tools/check_motion_remaining_runtime.gd", "--",
+            row["scene"], op,
+        ], capture_output=True, text=True, timeout=30, check=False)
+        marker = "MOTION_REMAINING_RUNTIME="
+        reported = next((line[len(marker):] for line in playback.stdout.splitlines()
+                         if line.startswith(marker)), "")
+        if playback.returncode or not reported:
+            print("MCP_CI_FAIL=motion_saved_runtime:" + op)
+            print((playback.stdout + playback.stderr)[-2500:])
+            return False
+        runtime = json.loads(reported)
+        if runtime.get("failures") or runtime.get("moving", 0) < 1:
+            print("MCP_CI_FAIL=motion_saved_runtime:" + op + " " + reported)
+            return False
+        print("MCP_CI_PASS=motion_saved_runtime:" + op, flush=True)
     return True
 
 

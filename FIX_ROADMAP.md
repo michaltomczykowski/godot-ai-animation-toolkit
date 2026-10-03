@@ -1985,3 +1985,15 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   The focused local gate passed (`mcp_ci_rig_gate_local.log`). Cross-platform
   CI remains pending at this checkpoint. These tests establish runtime
   effects, not visual credibility of the generated poses.
+
+### 2026-10-03 — Extend motion gate to every variant
+
+- Extended the live Godot AI CI motion route from four to all eight motion
+  variants: idle, walk, run, jump, turn, strafe, walk start and walk stop. The
+  visible Windows Godot 4.7.2 focused run passed dry/write/save/forced-reopen
+  and typed-error checks for every variant. The played world-space audit
+  passed all 24 operation/FPS rows at 30, 60 and 120 FPS. Fresh Godot
+  processes then played each saved clip and measured nonzero bone motion and
+  authored-key agreement (`mcp_ci_motion_eight_local.log`). Windows/Linux CI
+  is pending. These numeric checks do not approve pose design, timing or
+  weight transfer; the contact sheets and fixed-camera review remain required.
