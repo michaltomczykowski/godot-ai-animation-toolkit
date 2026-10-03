@@ -2190,3 +2190,27 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   **not visual approval**. Continue motion design before marking the operation
   complete. The ledger stays partial, and cross-platform CI must be rerun
   after this implementation is committed.
+
+### 2026-10-03 — Make the authored side step the public default
+
+- Found a tool-contract mismatch after the candidate passed: `strafe_cycle`
+  inherited the shared `root_motion=false` default, so a Godot AI caller
+  omitting that parameter still received the old in-place shuffle. The
+  handler now defaults rooted travel on for `strafe_cycle` only. An explicit
+  `root_motion=false` still requests the in-place variant. The registry,
+  generated operation index and addon README describe that choice; the
+  registry example no longer requests an unreachable 0.8 m/s on an arbitrary
+  rig. The explicit speed error now describes the reach limit accurately.
+- Added a default-root rightward regression test for phase-marker order,
+  support-foot hold and monotonic root travel, and a separate explicit
+  in-place test. Updated the generator contract to treat the default strafe
+  as a travelling loop, whose root track intentionally ends displaced. The
+  full local Godot 4.7.2 editor suite passed **223/223** tests.
+- Restarted the visible Godot 4.7.2 editor (PID 21664) to load the changed
+  handler. First `scene_open` timed out while the editor initialized, but the
+  subsequent request in that same run wrote, saved and reopened a valid clip.
+  A clean retry through live Godot AI (`20261003_184145`) passed all route
+  stages with `root_motion` omitted, reported an extracted `XBot:position`
+  track and 0.4445 m travel, then passed three saved played audits at
+  30/60/120 FPS. The prior candidate commit `a778b8b` passed Windows/Linux
+  Actions run `37113285227`; this default change needs its own CI run.

@@ -154,7 +154,7 @@ compressed tracks rather than rewriting them lossily.
 | --- | --- |
 | `walk_cycle` | Dense procedural walk: a shared reach-aware pelvis path and two-bone IK leg solve, heel-to-toe roll, torso counter-rotation and arm follow-through. Default stride config is 18 degrees with 8 degrees of knee bend; explicit unreachable `speed` returns `VALUE_OUT_OF_RANGE`. |
 | `run_cycle` | Same engine with a flight phase, forward lean, wider stride and bent elbows. |
-| `strafe_cycle` | Looping sideways gait (leading foot out, trailing closes) with the knees facing forward; `direction`, `speed`. |
+| `strafe_cycle` | Looping sideways step (leading foot out, trailing closes) with extracted root travel on by default; `direction`, `speed`. Set `root_motion=false` for an in-place shuffle. |
 | `idle_cycle` | Looping idle with a look-around and a torso twist shared up the spine chain, over breathing, weight shift and seeded micro-noise; arms hang and sway. |
 | `jump` | One-shot jump: anticipation, launch, air arc, landing absorb, recovery; `height`, `crouch`, `distance`; phase markers. |
 | `turn_cycle` | One-shot in-place pivot turn with anticipation and settle; `angle`, `direction`, `steps`. |

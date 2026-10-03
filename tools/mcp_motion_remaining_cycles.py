@@ -80,6 +80,8 @@ async def run(args: argparse.Namespace) -> int:
             params = {"op": op, "player_path": player,
                       "skeleton_path": skeleton, "animation_name": op,
                       "samples": 30, **extras}
+            if args.use_default_root_motion and op == "strafe_cycle":
+                params.pop("root_motion")
             if args.direction is not None and op == "strafe_cycle":
                 params["direction"] = args.direction
             if args.phase is not None and op in ("walk_start", "walk_stop"):
@@ -138,6 +140,8 @@ def main() -> int:
     parser.add_argument("--fixture", help="Scene filename under project root for a dummy-layout synthetic rig")
     parser.add_argument("--direction", choices=("left", "right"),
                         help="Strafe direction to exercise through Godot AI")
+    parser.add_argument("--use-default-root-motion", action="store_true",
+                        help="Omit strafe root_motion to exercise the public default")
     parser.add_argument("--ops", choices=list(CASES), nargs="*",
                         help="Subset of operations to test; defaults to all")
     parser.add_argument("--phase", type=float,

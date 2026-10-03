@@ -553,13 +553,14 @@ func test_rooted_right_strafe_leads_then_recovers() -> void:
 	var result := _handler.run({
 		"op": "strafe_cycle", "skeleton_path": rig.skeleton_path,
 		"player_path": rig.player_path, "animation_name": "strafe_right",
-		"duration": 1.0, "direction": "right", "root_motion": true,
+		"duration": 1.0, "direction": "right",
 		"loop_mode": "linear",
 	}, null)
 	assert_true(result.has("data"), "right strafe builds: %s" % str(result))
 	if not result.has("data"):
 		_teardown(rig)
 		return
+	assert_true(bool(result.data.root_motion), "strafe defaults to extracted root travel")
 	var anim: Animation = rig.player.get_animation("strafe_right")
 	var markers: PackedStringArray = anim.get_marker_names()
 	for marker in ["toe_off.R", "contact.R", "toe_off.L", "contact.L"]:
@@ -587,6 +588,28 @@ func test_rooted_right_strafe_leads_then_recovers() -> void:
 	assert_true(absf((left_early - left_rest).dot(axis)) < 0.025,
 		"left support foot remains planted during the right step")
 	assert_true(previous > 0.1, "right root carries meaningful travel")
+	_teardown(rig)
+
+
+func test_explicit_in_place_strafe_keeps_root_stationary() -> void:
+	var rig := _rig("MotionStrafeInPlace")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "strafe_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "strafe_in_place",
+		"duration": 1.0, "direction": "left", "root_motion": false,
+		"loop_mode": "linear",
+	}, null)
+	assert_true(result.has("data"), "in-place strafe builds: %s" % str(result))
+	if result.has("data"):
+		assert_false(bool(result.data.root_motion), "explicit false disables extracted travel")
+		assert_true(str(rig.player.root_motion_track).is_empty(),
+			"in-place strafe leaves the player's root motion unset")
+		var anim: Animation = rig.player.get_animation("strafe_in_place")
+		assert_true(anim != null and anim.get_track_count() > 0,
+			"in-place strafe still authors a bone clip")
 	_teardown(rig)
 
 
@@ -1333,7 +1356,7 @@ func test_generator_contract_key_times_speeds_and_determinism() -> void:
 		{"op": "walk_cycle", "animation_name": "c_walk", "root_motion": true, "rooted": true, "looped": true},
 		{"op": "run_cycle", "animation_name": "c_run", "looped": true},
 		{"op": "idle_cycle", "animation_name": "c_idle", "looped": true},
-		{"op": "strafe_cycle", "animation_name": "c_strafe", "direction": "left", "looped": true},
+		{"op": "strafe_cycle", "animation_name": "c_strafe", "direction": "left", "rooted": true, "looped": true},
 		{"op": "jump", "animation_name": "c_jump"},
 		{"op": "turn_cycle", "animation_name": "c_turn"},
 	]

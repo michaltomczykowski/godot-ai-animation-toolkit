@@ -1877,7 +1877,7 @@ static func _motion_schema() -> Dictionary:
 			},
 			"root_motion": {
 				"type": "boolean",
-				"description": "Key character-root translation at the cycle's implied speed (off); wires player.root_motion_track unless set_root_motion=false.",
+				"description": "Key character-root translation at the cycle's implied speed (on by default for strafe_cycle, off for other operations); wires player.root_motion_track unless set_root_motion=false. Set false for an in-place strafe shuffle.",
 			},
 			"set_root_motion": {
 				"type": "boolean",
@@ -2105,9 +2105,9 @@ static func _motion_ops() -> Array:
 		},
 		{
 			"name": "strafe_cycle",
-			"summary": "Build a looping sideways gait (leading foot steps out, trailing closes) with the knees still facing forward; speed-driven like the walk.",
+			"summary": "Build a looping sideways step with the leading foot out, trailing foot closing and one extracted character-root translation track; root_motion defaults on. Set root_motion=false for an in-place shuffle. Requested speed is bounded by leg reach.",
 			"params": ["player_path", "skeleton_path", "animation_name", "duration", "direction", "speed", "stride", "style", "overrides", "samples", "root_motion", "set_root_motion", "roles", "profile", "loop_mode", "overwrite"],
-			"example": {"op": "strafe_cycle", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "strafe_left", "duration": 0.9, "direction": "left", "speed": 0.8, "loop_mode": "linear"},
+			"example": {"op": "strafe_cycle", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "strafe_left", "duration": 0.9, "direction": "left", "loop_mode": "linear"},
 		},
 		{
 			"name": "walk_start",

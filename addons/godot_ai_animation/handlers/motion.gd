@@ -265,7 +265,7 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 	if kind == "strafe" and float(params.get("speed", 0.0)) > 0.0 \
 			and bool((result.get("meta", {}) as Dictionary).get("lateral_capped", false)):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
-			"Requested strafe speed %.3f m/s would cross this rig's feet at duration %.3fs; use speed <= %.3f m/s or shorten duration" % [
+			"Requested strafe speed %.3f m/s exceeds this rig's safe lateral reach at duration %.3fs; use speed <= %.3f m/s or shorten duration" % [
 				float(params.speed), length, float((result.meta as Dictionary).lateral_speed_cap)])
 	var keys: Dictionary = result.get("keys", {})
 	if keys.is_empty():
@@ -849,7 +849,9 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 			"legs": legs,
 			"rest": rest,
 			"arm_down": arm_down,
-			"root_motion": bool(params.get("root_motion", false)),
+			# A travelling strafe needs extracted character-root translation.
+			# Keep the in-place shuffle available when callers explicitly opt out.
+			"root_motion": bool(params.get("root_motion", kind == "strafe")),
 		},
 	}
 
