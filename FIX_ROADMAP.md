@@ -2117,3 +2117,21 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   route sees all ten toolkit families, all eight promoted tools and one ready
   active editor session, with no missing schemas. The previous cross-platform
   run `37110256017` remains green. No source implementation files were lost.
+
+### 2026-10-03 — Fresh X Bot default-motion baseline
+
+- Used the relaunched Godot AI MCP route to generate, save and force-reopen
+  current-default `cycle`, direct `run_cycle` and `strafe_cycle` clips on the
+  imported X Bot (run `20261003_090812`,
+  `mcp_xbot_default_after_crash_20261003.log`). All nine world-space played
+  audits at 30/60/120 FPS passed. Maximum stance slide was 3.3 mm for walk,
+  0.4 mm for run and 1.8 mm for strafe; largest penetration was 3.0 mm and
+  no knee-pole flips were reported. Strafe body travel was only 0.219 m.
+- Godot 4.7.2 Movie Maker captured 61 frames at 60 FPS per clip. Fixed side
+  sheets for all three and a front strafe sheet are in the recovery snapshot
+  under `media/xbot_current_default_*_20261003/`. The current walk still
+  leans backward, run reads as long alternating steps with weak flight timing,
+  and strafe reads as a narrow shuffle with little support transfer. None
+  receives visual approval. This is a fresh baseline from the current tool
+  route, not an older candidate sheet; compare it with the next authored
+  change before accepting new numeric results.
