@@ -362,7 +362,7 @@ func fx_wave(params: Dictionary) -> Dictionary:
 			return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
 				"wave needs a Vector2/Vector3 position on %s" % str(entry))
 		baselines.append(baseline)
-		track_paths.append(resolved.track_path_root)
+		track_paths.append(str(resolved.track_path_root) + ":position")
 	var built := FxSpecs.wave_spec(track_paths, baselines, str(params.get("axis", "y")),
 		float(params.get("amplitude", 12.0)), float(params.get("period", 1.2)),
 		float(params.get("phase_step", 0.12)), int(params.get("cycles", 1)))
@@ -550,18 +550,20 @@ func fx_sprite_frames(params: Dictionary) -> Dictionary:
 	var sprite := node as AnimatedSprite2D
 	var old_frames: Variant = sprite.sprite_frames
 	var old_playing := sprite.is_playing()
-	sprite.stop()
 	var play := bool(params.get("play", true))
-	_create_scene_pinned_action("MCP: Sprite frames %s" % sprite_path)
-	var undo := ToolContext.undo_redo
-	undo.add_do_property(node, "sprite_frames", built.frames)
-	undo.add_undo_property(node, "sprite_frames", old_frames)
-	undo.add_do_method(sprite, "play", animation_name)
-	if old_playing:
-		undo.add_undo_method(sprite, "play")
-	else:
-		undo.add_undo_method(sprite, "stop")
-	undo.commit_action()
+	if not _dry_run:
+		_create_scene_pinned_action("MCP: Sprite frames %s" % sprite_path)
+		var undo := ToolContext.undo_redo
+		undo.add_do_method(sprite, "stop")
+		undo.add_do_property(node, "sprite_frames", built.frames)
+		undo.add_undo_property(node, "sprite_frames", old_frames)
+		if play:
+			undo.add_do_method(sprite, "play", animation_name)
+		if old_playing:
+			undo.add_undo_method(sprite, "play")
+		else:
+			undo.add_undo_method(sprite, "stop")
+		undo.commit_action()
 	return {"data": {
 		"sprite_path": sprite_path,
 		"texture": texture_path,

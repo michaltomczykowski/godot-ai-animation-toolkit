@@ -29,6 +29,9 @@ const OPTIONAL_ROLES := [
 const _SIDED_BRANCHES := [
 	{"role": "thigh", "keywords": ["thigh", "upperleg", "upleg"]},
 	{"role": "shin", "keywords": ["shin", "calf", "lowerleg"]},
+	# Mixamo calls the lower leg simply LeftLeg/RightLeg; the thigh branch above
+	# captures UpLeg first, so this fallback can classify the remaining bone.
+	{"role": "shin", "keywords": ["leg"]},
 	{"role": "forearm", "keywords": ["forearm"], "pairs": [["arm", "fore"]]},
 	{"role": "arm", "keywords": ["upperarm"]},
 	{"role": "shoulder", "keywords": ["shoulder", "clavicle"]},
@@ -589,6 +592,43 @@ static func foot_slide(times: Array, positions: Array, threshold: float = 0.02,
 	out["contact_time"] = contact_time
 	out["mean"] = total_net / contact_time if contact_time > 0.0 else 0.0
 	return out
+
+
+## Detect abrupt changes in the knee's bend direction during played motion.
+## Ignore nearly straight samples: their bend direction is numerically
+## undefined, but compare the next clearly bent pose with the previous one.
+static func knee_pole_report(times: Array, hips: Array, knees: Array,
+		ankles: Array, leg_length: float) -> Dictionary:
+	var report := {"flips": 0, "max_angle_degrees": 0.0,
+		"worst_time": 0.0, "valid_samples": 0}
+	if times.size() != hips.size() or times.size() != knees.size() \
+			or times.size() != ankles.size():
+		return report
+	var previous := Vector3.ZERO
+	var min_bend := maxf(0.02 * leg_length, 0.001)
+	for index in times.size():
+		var hip: Vector3 = hips[index]
+		var knee: Vector3 = knees[index]
+		var ankle: Vector3 = ankles[index]
+		var axis := ankle - hip
+		if axis.length_squared() < 0.000001:
+			continue
+		axis = axis.normalized()
+		var bend := knee - hip
+		bend -= axis * bend.dot(axis)
+		if bend.length() < min_bend:
+			continue
+		var pole := bend.normalized()
+		report["valid_samples"] = int(report.valid_samples) + 1
+		if not previous.is_zero_approx():
+			var angle := rad_to_deg(previous.angle_to(pole))
+			if angle > float(report.max_angle_degrees):
+				report["max_angle_degrees"] = angle
+				report["worst_time"] = float(times[index])
+			if angle > 90.0:
+				report["flips"] = int(report.flips) + 1
+		previous = pole
+	return report
 
 
 static func _slide_window(end: float, start: float, anchor: Vector3, last: Vector3,

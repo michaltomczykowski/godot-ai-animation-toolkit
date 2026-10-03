@@ -7,6 +7,7 @@ const ValueCodec := preload("res://addons/godot_ai_animation/utils/value_codec.g
 const ClipSpec := preload("res://addons/godot_ai_animation/spec/clip_spec.gd")
 const SpecBuilder := preload("res://addons/godot_ai_animation/spec/spec_builder.gd")
 const SpecIO := preload("res://addons/godot_ai_animation/spec/spec_io.gd")
+const RigAnalysis := preload("res://addons/godot_ai_animation/spec/rig_analysis.gd")
 const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
 
 const InspectHandler := preload("res://addons/godot_ai_animation/handlers/inspect.gd")
@@ -36,9 +37,36 @@ func suite_setup(ctx: Dictionary) -> void:
 	_handler = InspectHandler.new()
 
 
+func test_knee_pole_report_flags_a_real_side_switch() -> void:
+	var times := [0.0, 0.1, 0.2]
+	var hips := [Vector3(0, 1, 0), Vector3(0, 1, 0), Vector3(0, 1, 0)]
+	var ankles := [Vector3.ZERO, Vector3.ZERO, Vector3.ZERO]
+	var stable := RigAnalysis.knee_pole_report(times, hips,
+		[Vector3(0, 0.5, 0.1), Vector3(0, 0.5, 0.12), Vector3(0, 0.5, 0.1)],
+		ankles, 1.0)
+	assert_eq(int(stable.flips), 0, "a stable forward bend has no pole flip")
+	var flipped := RigAnalysis.knee_pole_report(times, hips,
+		[Vector3(0, 0.5, 0.1), Vector3(0, 0.5, -0.1), Vector3(0, 0.5, -0.12)],
+		ankles, 1.0)
+	assert_eq(int(flipped.flips), 1, "a knee crossing behind the leg is a pole flip")
+	assert_true(float(flipped.max_angle_degrees) > 170.0,
+		"the report includes the size of the discontinuity")
+
+
 func suite_teardown() -> void:
 	if FileAccess.file_exists(PROFILE_PATH):
 		DirAccess.remove_absolute(PROFILE_PATH)
+
+
+func test_quiescence_waits_for_a_deferred_preview() -> void:
+	assert_true(bool(_handler.quiesce_for_script_swap().get("ok", false)),
+		"an idle inspect handler can quiesce")
+	_handler._preview_jobs = 1
+	assert_false(bool(_handler.quiesce_for_script_swap().get("ok", true)),
+		"an in-flight preview blocks script replacement")
+	_handler._preview_jobs = 0
+	assert_true(bool(_handler.quiesce_for_script_swap().get("ok", false)),
+		"the handler quiesces after preview completion")
 
 
 # --- helpers ---------------------------------------------------------------
@@ -686,7 +714,11 @@ func test_motion_audit_grades_planted_feet_and_hips() -> void:
 		return
 	var skeleton: Skeleton3D = rig.skeleton
 	var thigh := skeleton.find_bone("B-thigh.L")
+	rig.player.play("walk")
+	rig.player.seek(0.25, true)
 	var before := skeleton.get_bone_pose_rotation(thigh)
+	var live_animation: String = rig.player.current_animation
+	var live_time: float = rig.player.current_animation_position
 	var result := _handler.run({
 		"op": "motion_audit", "player_path": rig.player_path, "animation_name": "walk",
 		"skeleton_path": rig.skeleton_path, "samples": 24,
@@ -701,6 +733,11 @@ func test_motion_audit_grades_planted_feet_and_hips() -> void:
 	assert_true(float(feet.l.contact_time) > 0.0, "the left foot spends time on the ground")
 	assert_true((feet.l.windows as Array).size() >= 1, "a contact window is reported")
 	assert_true((feet.r.windows as Array).size() >= 1, "the right foot has a window too")
+	assert_true(float(feet.l.pose_range.min_knee_angle_degrees) > 0.0
+		and float(feet.l.pose_range.min_knee_angle_degrees) <= 180.0,
+		"played audit reports a measured knee angle")
+	assert_true(float(feet.l.pose_range.max_extension_ratio) > 0.0,
+		"played audit reports hip-to-ankle reach relative to rest leg length")
 	assert_true(float(feet.l.worst_slide) <= 0.05,
 		"a root-motion walk keeps the planted foot inside the 5 cm budget (%s m)" % str(feet.l.worst_slide))
 	var checks: Array = result.data.checks
@@ -709,6 +746,22 @@ func test_motion_audit_grades_planted_feet_and_hips() -> void:
 		assert_true(not str(check.get("message", "")).is_empty(), "every check explains itself")
 		assert_true(not str(check.get("fix", "")).is_empty(), "every check names a fix")
 	assert_true(bool(result.data.passed), "a root-motion walk passes its own budgets (%s)" % str(result.data.checks))
+	# Auditing is in world space. Rotating the whole rig must not turn vertical
+	# bob into horizontal travel or make a planted foot look airborne.
+	var rig_root := ValueCodec.resolve_scene_path(rig.root_path, EditorInterface.get_edited_scene_root()) as Node3D
+	if rig_root != null:
+		rig_root.rotation.z = PI * 0.5
+		var rotated := _handler.run({
+			"op": "motion_audit", "player_path": rig.player_path, "animation_name": "walk",
+			"skeleton_path": rig.skeleton_path, "samples": 24,
+		}, null)
+		assert_true(rotated.has("data"), "rotated rig remains auditable: %s" % str(rotated))
+		if rotated.has("data"):
+			assert_true(absf(float(rotated.data.hips.height_range) - float(result.data.hips.height_range)) < 0.005,
+				"hip bob is invariant under parent rotation")
+			assert_true(absf(float(rotated.data.feet.l.worst_slide) - float(feet.l.worst_slide)) < 0.005,
+				"foot slide is invariant under parent rotation")
+		rig_root.rotation.z = 0.0
 	# The same walk authored in place: the stance foot travels backwards with the
 	# body by design, and the audit has to say that instead of calling it a defect.
 	var in_place := motion.run({
@@ -731,18 +784,18 @@ func test_motion_audit_grades_planted_feet_and_hips() -> void:
 		"the message explains the in-place travel: %s" % str(slide_check.message))
 	assert_true(str(slide_check.fix).contains("root_motion"),
 		"the fix points at root motion: %s" % str(slide_check.fix))
-	# A moonwalk: the same walk clip with the hips pushed forward three times
-	# faster than the legs were solved for, so the stance feet have to slide.
+	# A moonwalk: the same walk clip with character travel tripled while the
+	# local leg pose stays fixed, so the world-space stance feet have to slide.
 	var fast := SpecIO.from_animation(_clip_anim(rig.player_path, "walk"))
 	var touched := 0
 	for track in fast.tracks:
-		if str(track.get("path", "")).ends_with("B-hips") \
+		if str(track.get("path", "")) == str(rig.player.root_motion_track) \
 				and int(track.get("type", -1)) == Animation.TYPE_POSITION_3D:
 			touched += 1
 			for key in track.get("keys", []):
 				var value: Vector3 = key.get("value", Vector3.ZERO)
 				key["value"] = Vector3(value.x, value.y, value.z * 3.0)
-	assert_true(touched == 1, "the walk has one hips position track to speed up (%s)" % str(touched))
+	assert_true(touched == 1, "the walk has one root translation track to speed up (%s)" % str(touched))
 	_add_clip(rig.player_path, "moonwalk", fast)
 	var failed := _handler.run({
 		"op": "motion_audit", "player_path": rig.player_path, "animation_name": "moonwalk",
@@ -757,7 +810,78 @@ func test_motion_audit_grades_planted_feet_and_hips() -> void:
 	assert_true(not str((failed.data.checks[0] as Dictionary).get("fix", "")).is_empty(),
 		"the failing check still names a fix")
 	assert_true(skeleton.get_bone_pose_rotation(thigh).is_equal_approx(before),
-		"the live pose is restored after the audit")
+		"the live pose is untouched by the private audit")
+	assert_eq(rig.player.current_animation, live_animation,
+		"the private audit leaves the source AnimationPlayer clip selected")
+	assert_true(is_equal_approx(rig.player.current_animation_position, live_time),
+		"the private audit leaves the source AnimationPlayer playhead untouched")
+	var unsafe_clip := _clip_anim(rig.player_path, "moonwalk")
+	var method_track := unsafe_clip.add_track(Animation.TYPE_METHOD)
+	unsafe_clip.track_set_path(method_track, NodePath(".."))
+	var rejected := _handler.run({
+		"op": "motion_audit", "player_path": rig.player_path, "animation_name": "moonwalk",
+		"skeleton_path": rig.skeleton_path,
+	}, null)
+	assert_is_error(rejected, ErrorCodes.WRONG_TYPE)
+	_teardown_rig(rig)
+
+
+func test_motion_audit_checks_strafe_foot_order() -> void:
+	var rig := _rig("StrafeAudit")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var motion := MotionHandler.new()
+	var built := motion.run({
+		"op": "strafe_cycle", "player_path": rig.player_path,
+		"skeleton_path": rig.skeleton_path, "animation_name": "strafe",
+		"duration": 1.0, "loop_mode": "linear", "root_motion": true,
+	}, null)
+	assert_true(built.has("data"), "strafe builds for played crossing audit: %s" % str(built))
+	if built.has("data"):
+		var audit := _handler.run({
+			"op": "motion_audit", "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "animation_name": "strafe",
+			"motion_kind": "strafe", "samples": 121, "max_slide": 0.016,
+		}, null)
+		assert_true(audit.has("data"), "played strafe audit returns data: %s" % str(audit))
+		if audit.has("data"):
+			var order_check := _check_named(audit.data.checks, "foot_crossing")
+			assert_true(not order_check.is_empty(), "strafe audit reports foot crossing")
+			assert_true(bool(order_check.get("passed", false)), "strafe feet retain order: %s" % str(order_check))
+			assert_true(float(audit.data.min_lateral_foot_gap) > 0.0,
+				"played feet have a positive lateral gap")
+	_teardown_rig(rig)
+
+
+func test_run_motion_audit_reports_flight_and_extension() -> void:
+	var rig := _rig("RunAudit")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var motion := MotionHandler.new()
+	var built := motion.run({
+		"op": "run_cycle", "player_path": rig.player_path,
+		"skeleton_path": rig.skeleton_path, "animation_name": "run_audit",
+		"duration": 1.0, "loop_mode": "linear", "root_motion": true,
+	}, null)
+	assert_true(built.has("data"), "run builds for played flight audit: %s" % str(built))
+	if built.has("data"):
+		var audit := _handler.run({
+			"op": "motion_audit", "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "animation_name": "run_audit",
+			"motion_kind": "run", "samples": 121, "max_slide": 0.016,
+		}, null)
+		assert_true(audit.has("data"), "played run audit returns data: %s" % str(audit))
+		if audit.has("data"):
+			var flight := _check_named(audit.data.checks, "run_flight")
+			var reach := _check_named(audit.data.checks, "run_leg_extension")
+			assert_true(not flight.is_empty() and not reach.is_empty(),
+				"run audit grades both airborne clearance and leg extension")
+			assert_true(float(audit.data.flight.clearance_budget) > 0.0,
+				"run flight threshold scales with leg length")
+			assert_true(float(audit.data.flight.airborne_fraction) >= 0.0,
+				"run audit reports the sampled airborne share")
 	_teardown_rig(rig)
 
 

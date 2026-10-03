@@ -1,8 +1,8 @@
 # Godot AI Animation Toolkit
 
-A standalone [Godot](https://godotengine.org) addon that gives
-[Godot AI](https://github.com/hi-godot/godot-ai) agents eight animation tools
-(102 ops) — **no core patches**:
+A review-stage [Godot](https://godotengine.org) addon that gives
+[Godot AI](https://github.com/hi-godot/godot-ai) agents ten animation tool
+families (103 operations; eight promoted directly) — **no core patches**:
 
 - **`animation_presets`** — build clips in one call (the presets scoped out of
   core during the animation PR review: a generalized `pulse` plus `bounce`,
@@ -47,6 +47,11 @@ A standalone [Godot](https://godotengine.org) addon that gives
   `root_motion` keys forward travel, `character_setup` builds idle + walk + run
   and the locomotion tree in one call, and `secondary_motion` bakes offline
   spring bones (hair/tail/cloth) into a clip.
+- **`animation_sequence`** — compose existing 3D clips and saved skeleton poses
+  into one character-owned clip with scheduled blends and contact markers.
+  It carries the AnimationPlayer's configured root-motion track across source
+  clips. Call this non-promoted family through `custom_manage(op="invoke",
+  tool_name="animation_sequence", params={...})`.
 - **`animation_inspect`** — read-only reasoning and QA: `describe`, `timeline`,
   `audit` (broken paths, dead clips, loop seams, autoplay conflicts),
   `compare`, `stats`, `motion_report` (key density, peaks, seam pops,
@@ -58,8 +63,13 @@ A standalone [Godot](https://godotengine.org) addon that gives
   the posed character, so a clip can be *seen*), `dry_run` (run any op without
   committing), `help`.
 
-All eight sit on one declarative clip-spec engine, so every op is a pure
-spec → spec transform and each mutating call is one scene-pinned undo action.
+Clip builders and editors use shared specs where applicable. Graph, rig,
+modifier, library and inspection operations also act on scene structure,
+files or live editor state. Scene mutations expose editor UndoRedo where
+supported; file writes and scene saves are not editor-undoable. The
+[operation audit](docs/operation-audit.json) records evidence and open checks
+for each operation. Generated character motion is still undergoing visual
+review and should not be treated as approved production animation.
 
 ```json
 {"tool": "custom_animation_presets", "params": {
@@ -129,7 +139,7 @@ hand-authored ones — and commits one scene-pinned undo action per call.
 | `retarget` | Rename a node's tracks, or bulk-remap a subtree prefix after a refactor. |
 | `reverse` | Play the clip backwards. |
 | `mirror` | Mirror position/rotation (optionally scale) across a plane, about a pivot. |
-| `offset` | Shift every key in time, optionally wrapping inside the loop. |
+| `offset` | Shift every key in time; a positive unwrapped shift holds the first pose. Wrapping rejects distinct seam keys that would merge. |
 | `ease_range` | Set per-key transitions inside a time range. |
 | `set_interp` | Track-level interpolation (linear / nearest / cubic for 3D transform tracks). |
 | `trim` | Keep a time range, with sampled boundary keys. |
@@ -143,7 +153,7 @@ hand-authored ones — and commits one scene-pinned undo action per call.
 | `resample` | Rebuild value tracks at a fixed fps through the engine's interpolator (transitions and cubic preserved). |
 | `reduce` | Drop redundant keys inside a measured error budget (degrees for rotations, units for the rest) — the dense cycles slim down with the curve intact. |
 | `add_noise` | Seeded smooth micro-motion on value keys (breathing, tremor). |
-| `overlap` | Delay one node/subtree's tracks by `delay` seconds — per-limb follow-through. |
+| `overlap` | Delay one node/subtree's tracks by `delay` seconds, holding the first pose before a positive unwrapped delay. Wrapping rejects distinct seam keys that would merge. |
 | `layer` | Combine another clip: `add` its delta from its first key, or `mix` toward it by `weight`. |
 
 Clips containing bezier / blend-shape / animation tracks (or compressed tracks)
@@ -282,9 +292,8 @@ The modifier setups live in their own (non-promoted) family, so they go through
 ## Procedural motion (3D character cycles)
 
 [**Video: dummy motion pack (0:40)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v1.3.0/animation_toolkit_motion_pack.mp4)
-— jump, turn, strafe and a speed-driven walk recorded on the bundled human
-dummy: one-shot moves with phase markers, planted feet, toe roll and shoulder
-follow-through, all from one call each.
+is historical v1.3.0 media. Current repair evidence and open quality gates
+are recorded in [FIX_ROADMAP.md](FIX_ROADMAP.md).
 
 `animation_motion` is the character-motion family: gaits (`walk_cycle`,
 `run_cycle`, `strafe_cycle`), an `idle_cycle`, one-shots (`jump`,
@@ -303,13 +312,25 @@ playable locomotion set — idle + walk + run (optionally jump/turn), a speed
 blend space, the `AnimationTree` and the root-motion track — in one call and one
 undo. T-pose rigs get their arms lowered automatically.
 
+`walk_stop` now transfers support to the leading foot and continues root travel
+forward while settling into the rig's neutral leg pose. For a start→cycle→stop
+action, build all source clips on one AnimationPlayer and use
+`animation_sequence.compose`; the composed root track carries displacement
+through clip changes. Review the saved scene in playback because a successful
+write or isolated contact result alone does not establish visual quality.
+Run generation returns `VALUE_OUT_OF_RANGE` before writing when a foot target
+misses measured leg reach by more than 1% of leg length. On a short rig,
+choose a shorter `duration` together with an explicit reachable `speed`;
+changing duration alone also changes the inferred speed. An explicit `speed`
+that exceeds the stride cap is refused instead of being silently reduced.
+
 ```json
 {"tool": "custom_animation_motion", "params": {
   "op": "character_setup",
   "player_path": "/Main/Rig/AnimationPlayer",
   "skeleton_path": "/Main/Rig/Skeleton3D",
-  "speed": 1.4,
-  "run_speed": 4.0,
+  "speed": 1.1,
+  "run_speed": 2.0,
   "include_jump": true
 }}
 ```
@@ -361,7 +382,7 @@ Godot AI dock's Tools tab lists them with enable/disable toggles.
 
 | | |
 | --- | --- |
-| Godot | 4.5 – 4.7 |
+| Godot | 4.7.2 stable |
 | Godot AI | `>= 4.1.0` (custom-tools registry) |
 | Platform | any (no OS-specific code) |
 

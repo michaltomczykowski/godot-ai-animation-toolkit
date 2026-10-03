@@ -1,7 +1,10 @@
 # Godot AI Animation Toolkit (addon)
 
-Eight custom MCP tools for Godot AI agents, built on one declarative clip-spec
-engine:
+Ten custom MCP tool families for Godot AI agents (eight promoted directly).
+Clip builders and editors share declarative specs where applicable; graph,
+rig, modifier, library and inspection calls have distinct scene or file
+effects. This is an unreleased repair branch. Per-operation runtime and
+visual-review status is tracked in the repository's `docs/operation-audit.json`.
 
 - **`animation_presets`** (promoted to `custom_animation_presets`) — build clips
   in one call.
@@ -25,6 +28,11 @@ engine:
   (offline spring bones).
 - **`animation_inspect`** (promoted to `custom_animation_inspect`) — read-only
   inspection, auditing and dry runs.
+- **`animation_rig_modifiers`** (through `custom_manage`) — IK, spring, look-at,
+  retarget and twist modifier setup.
+- **`animation_sequence`** (through `custom_manage`) — schedule existing clips
+  and saved poses into one 3D character clip, with blends, contact markers and
+  continuous configured root-motion travel.
 
 ## `animation_presets`
 
@@ -51,7 +59,7 @@ Every preset commits **one scene-pinned undo action**; Controls get
 | `retarget` | Rename a node's tracks, or bulk-remap a subtree prefix after a refactor. |
 | `reverse` | Play the clip backwards. |
 | `mirror` | Mirror position/rotation (optionally scale) across a plane, about a pivot. |
-| `offset` | Shift every key in time, optionally wrapping inside the loop. |
+| `offset` | Shift every key in time; a positive unwrapped shift holds the first pose. Wrapping rejects distinct seam keys that would merge. |
 | `ease_range` | Set per-key transitions inside a time range. |
 | `set_interp` | Track-level interpolation (linear / nearest / cubic for 3D transform tracks). |
 | `trim` | Keep a time range, with sampled boundary keys. |
@@ -65,7 +73,7 @@ Every preset commits **one scene-pinned undo action**; Controls get
 | `resample` | Rebuild value tracks at fixed fps, engine-exact (transitions + cubic preserved). |
 | `reduce` | Drop the keys a clip does not need, inside a measured error budget (degrees for rotations, units otherwise). |
 | `add_noise` | Seeded smooth micro-motion on value keys. |
-| `overlap` | Delay one node/subtree's tracks (per-limb follow-through). |
+| `overlap` | Delay one node/subtree's tracks while holding the initial pose before a positive unwrapped delay. Wrapping rejects distinct seam keys that would merge. |
 | `layer` | Combine another clip additively (`add`) or by weight (`mix`). |
 
 Edit ops refuse clips with bezier / blend-shape / animation tracks or
@@ -144,13 +152,13 @@ compressed tracks rather than rewriting them lossily.
 
 | op | What it builds |
 | --- | --- |
-| `walk_cycle` | Dense procedural walk: planted feet (two-bone IK leg solve, heel-to-toe roll), pelvis bob/sway/yaw/roll, counter-rotating torso shared up the spine chain, arm swing with elbow/clavicle follow-through; `speed` solves the stride. |
+| `walk_cycle` | Dense procedural walk: a shared reach-aware pelvis path and two-bone IK leg solve, heel-to-toe roll, torso counter-rotation and arm follow-through. Default stride config is 18 degrees with 8 degrees of knee bend; explicit unreachable `speed` returns `VALUE_OUT_OF_RANGE`. |
 | `run_cycle` | Same engine with a flight phase, forward lean, wider stride and bent elbows. |
-| `strafe_cycle` | Looping sideways gait (leading foot out, trailing closes) with the knees facing forward; `direction`, `speed`. |
+| `strafe_cycle` | Looping sideways step (leading foot out, trailing closes) with extracted root travel on by default; `direction`, `speed`. Set `root_motion=false` for an in-place shuffle. |
 | `idle_cycle` | Looping idle with a look-around and a torso twist shared up the spine chain, over breathing, weight shift and seeded micro-noise; arms hang and sway. |
 | `jump` | One-shot jump: anticipation, launch, air arc, landing absorb, recovery; `height`, `crouch`, `distance`; phase markers. |
 | `turn_cycle` | One-shot in-place pivot turn with anticipation and settle; `angle`, `direction`, `steps`. |
-| `walk_start` / `walk_stop` | Short blends in/out of a gait, sampled at `phase` so they match the cycle frame-for-frame. |
+| `walk_start` / `walk_stop` | Short blends in/out of a gait, sampled at `phase` so they match the cycle frame-for-frame. A rooted stop transfers support and continues forward to neutral. |
 | `cycle` | Generic entry: `preset` = walk / run / idle. |
 | `character_setup` | The whole locomotion set in one undo: idle + walk + run (+ optional jump/turn), the AnimationTree wired, the root-motion track set; returns the speed parameter and a game-side snippet. |
 | `secondary_motion` | Bake offline spring bones (hair/tail/cloth) into an existing clip, deterministically. |
@@ -163,6 +171,12 @@ the whole chain, so twist/lean parameters mean the same total on any rig. Pure
 curve/IK/spring math lives in `spec/motion_drivers.gd`, cycle definitions in
 `spec/motion_specs.gd` and the twist distributor in `spec/spine_twist.gd`.
 
+`animation_sequence.compose` carries the AnimationPlayer's configured
+root-motion position track across clips and blends. Its output uses one
+AnimationPlayer for the character; play and inspect the saved output before
+approving visual quality. The repair's checks and remaining gates are in
+`FIX_ROADMAP.md` at the repository root.
+
 ## `animation_inspect`
 
 | op | What it reports |
@@ -173,7 +187,7 @@ curve/IK/spring math lives in `spec/motion_drivers.gd`, cycle definitions in
 | `compare` | Diff two clips (length, loop mode, track paths, key deltas). |
 | `stats` | Clip/track/key totals, track-type histogram, loop-mode breakdown. |
 | `motion_report` | Per-track motion quality: key density, peak speed/acceleration, loop-seam pops, hemisphere flips, constant tracks — with fix hints. |
-| `motion_audit` | Play the clip on a Skeleton3D and grade it: per-foot contact windows and the slide while planted, hip bob, pass/fail per budget (and it says when a cycle is authored in place). |
+| `motion_audit` | Play the clip on a Skeleton3D and grade per-foot contact windows, stance slide, penetration, knee poles and hip bob. It also reports the smallest played knee angle and greatest leg extension for pose review. Set `motion_kind="strafe"` to check the signed lateral foot gap and reject crossed feet. The result identifies clips authored in place. |
 | `dry_run` | Run any presets/edit op and report the result without committing. |
 | `help` | Op index from the registry. |
 
@@ -216,7 +230,7 @@ undoable commands) rejects it — call it directly.
 
 - [Godot AI](https://github.com/hi-godot/godot-ai) `>= 4.1.0` installed in the
   same project (this addon registers through its custom-tools API).
-- Godot 4.5–4.7.
+- Godot 4.7.2 stable.
 
 ## Install
 
@@ -229,7 +243,7 @@ undoable commands) rejects it — call it directly.
 ## Usage
 
 ```json
-{"op": "pulse", "params": {
+{"tool": "custom_animation_presets", "params": {
   "op": "bounce",
   "player_path": "/Main/HUD",
   "target_path": "Button",
@@ -238,7 +252,7 @@ undoable commands) rejects it — call it directly.
 ```
 
 ```json
-{"op": "animation_edit", "params": {
+{"tool": "custom_animation_edit", "params": {
   "op": "retime",
   "player_path": "/Main/HUD",
   "animation_name": "open",

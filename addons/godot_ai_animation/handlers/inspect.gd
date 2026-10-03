@@ -30,12 +30,27 @@ const _MIN_LENGTH := 0.0011
 const _SAMPLE_DEFAULT := 24
 const _SAMPLE_CAP := 240
 const _SAMPLE_MAX_BONES := 64
+const _CONNECTION_SCRIPT := "res://addons/godot_ai/connection.gd"
+
+var _preview_jobs := 0
+
+
+func quiesce_for_script_swap() -> Dictionary:
+	if _preview_jobs > 0:
+		return {"ok": false,
+			"error": "Wait for %d active animation preview render(s)." % _preview_jobs}
+	return {"ok": true}
 
 
 ## Rollup entry registered with the Godot AI tool registry.
 func run(params: Dictionary, ctx) -> Dictionary:
 	_dry_run = bool(params.get("dry_run", false))
 	var op: String = params.get("op", "")
+	if (op == "rig_profile" and bool(params.get("save", false)) and not _dry_run) \
+			or (op == "preview" and not _dry_run):
+		var readiness := _file_write_readiness(op)
+		if readiness.has("error"):
+			return readiness
 	match op:
 		"describe":
 			return inspect_describe(params)
@@ -63,6 +78,20 @@ func run(params: Dictionary, ctx) -> Dictionary:
 			return inspect_help(params)
 	return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 		"Unknown op '%s'. Valid: %s" % [op, ", ".join(OpRegistry.op_names(OpRegistry.FAMILY_INSPECT))])
+
+
+func _file_write_readiness(op: String) -> Dictionary:
+	if not ResourceLoader.exists(_CONNECTION_SCRIPT):
+		return {}
+	var connection_script = load(_CONNECTION_SCRIPT)
+	if connection_script == null:
+		return ErrorCodes.make(ErrorCodes.EDITOR_NOT_READY,
+			"Godot AI readiness is unavailable; %s did not write files" % op)
+	var state := str(connection_script.call("get_readiness"))
+	if state in ["importing", "playing"]:
+		return ErrorCodes.make(ErrorCodes.EDITOR_NOT_READY,
+			"Editor is '%s'; %s cannot write files now" % [state, op])
+	return {}
 
 
 # ============================================================================
@@ -601,10 +630,10 @@ func inspect_motion_report(params: Dictionary) -> Dictionary:
 # motion_audit
 # ============================================================================
 
-## Does this clip actually move the way it claims? Plays it on a Skeleton3D (the
-## scene is posed and restored, never saved) and reports the numbers a procedural
-## walk has to pass: per-foot ground contact and the horizontal slide while
-## planted, plus hip bob and speed. Every check returns pass/fail against a
+## Does this clip actually move the way it claims? Plays it on a private scene
+## copy (the edited scene is never posed or saved) and reports the numbers a procedural
+## walk has to pass: per-foot ground contact, slide, penetration and knee-pole
+## continuity, plus hip bob and speed. Every check returns pass/fail against a
 ## budget with a `fix` hint, so a bad cycle is a number, not a vibe.
 ##
 ## Contact is "within `contact_threshold` of the foot's rest height" (5 mm by
@@ -622,54 +651,152 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
 			"Animation '%s' has tracks this audit cannot pose: %s"
 				% [loaded.anim_name, SpecIO.describe_unsupported(loaded.anim)])
+	for track_index in loaded.anim.get_track_count():
+		var track_type: int = loaded.anim.track_get_type(track_index)
+		if track_type not in [Animation.TYPE_POSITION_3D,
+				Animation.TYPE_ROTATION_3D, Animation.TYPE_SCALE_3D]:
+			return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
+				"motion_audit only plays 3D transform tracks; %s is %s"
+					% [str(loaded.anim.track_get_path(track_index)), ClipSpec.type_name(track_type)])
 	var resolved := _resolve_skeleton(params)
 	if resolved.has("error"):
 		return resolved
 	if resolved.kind != "3d":
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"motion_audit plays the clip on a Skeleton3D to measure world-space contact (3D only)")
-	var skeleton: Skeleton3D = resolved.node
+	var edited_root := EditorInterface.get_edited_scene_root()
+	var sandbox := SubViewport.new()
+	sandbox.own_world_3d = true
+	sandbox.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	# Copy the live editor tree: instantiating the PackedScene again drops clips
+	# added since the last save, including the clip being audited.
+	var scene_copy := edited_root.duplicate()
+	if scene_copy == null:
+		sandbox.free()
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"motion_audit could not make an isolated scene copy")
+	_strip_audit_scripts(scene_copy)
+	EditorInterface.get_base_control().get_tree().root.add_child(sandbox)
+	sandbox.add_child(scene_copy)
+	_restore_audit_transforms(edited_root, scene_copy)
+	var player := scene_copy.get_node_or_null(edited_root.get_path_to(loaded.player)) as AnimationPlayer
+	var skeleton := scene_copy.get_node_or_null(edited_root.get_path_to(resolved.node)) as Skeleton3D
+	if player == null or skeleton == null:
+		sandbox.free()
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"motion_audit could not resolve the copied AnimationPlayer and Skeleton3D")
+	# Godot reconstructs instanced children when duplicating a scene, so their
+	# unsaved AnimationLibraries and mixer settings must be transferred explicitly.
+	for library_name in loaded.player.get_animation_library_list():
+		if player.has_animation_library(library_name):
+			player.remove_animation_library(library_name)
+		var source_library: AnimationLibrary = loaded.player.get_animation_library(library_name)
+		player.add_animation_library(library_name, source_library.duplicate(true))
+	player.root_node = loaded.player.root_node
+	player.root_motion_track = loaded.player.root_motion_track
+	for tree in scene_copy.find_children("*", "AnimationTree", true, false):
+		(tree as AnimationTree).active = false
 	var roles: Dictionary = _resolve_roles(params, skeleton)
 	if roles.has("_error"):
+		sandbox.free()
 		return roles["_error"]
 	var length: float = loaded.anim.length
 	var times: Array = RigAnalysis.sample_times(length, clampi(int(params.get("samples", 48)), 4, 240))
 	var threshold := maxf(float(params.get("contact_threshold", 0.005)), 0.0)
 	var slide_budget := maxf(float(params.get("max_slide", 0.05)), 0.0)
 	var bob_budget := maxf(float(params.get("max_hip_bob", 0.12)), 0.0)
-	var spec := SpecIO.from_animation(loaded.anim)
-	var snapshot := _pose_snapshot(skeleton)
+	var motion_kind := str(params.get("motion_kind", "gait"))
+	if motion_kind not in ["gait", "run", "jump", "turn", "transition", "strafe"]:
+		sandbox.free()
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"motion_kind must be gait, run, jump, turn, transition, or strafe")
 	var skeleton_xform := skeleton.global_transform
 	# The rig's own frame, so "height" means the same thing here as it does in
 	# the generator: a rig that stands along +Z is measured against its own floor.
 	var frame := RigAnalysis.rig_frame(skeleton, roles)
-	var up: Vector3 = frame.up
+	# rig_frame() is in skeleton space, while the sampled positions below are
+	# world-space. A rotated rig otherwise gets measured against the wrong floor.
+	var up: Vector3 = (skeleton_xform.basis * (frame.up as Vector3)).normalized()
+	var lateral_world: Vector3 = (skeleton_xform.basis * (frame.lateral as Vector3)).normalized()
 	var feet := {}
 	for side in ["l", "r"]:
 		var foot := str(roles.get("foot_" + side, ""))
 		var foot_index := skeleton.find_bone(foot)
 		if not foot.is_empty() and foot_index >= 0:
+			var thigh_index := skeleton.find_bone(str(roles.get("thigh_" + side, "")))
+			var shin_index := skeleton.find_bone(str(roles.get("shin_" + side, "")))
+			var leg_length := 1.0
+			if thigh_index >= 0 and shin_index >= 0:
+				leg_length = skeleton.get_bone_global_rest(thigh_index).origin.distance_to(
+					skeleton.get_bone_global_rest(shin_index).origin) + \
+					skeleton.get_bone_global_rest(shin_index).origin.distance_to(
+						skeleton.get_bone_global_rest(foot_index).origin)
 			# The foot's rest height is the ground for this rig: contact is "within
 			# `contact_threshold` of where the foot rests", not "near the lowest
 			# sample" (a swing arc dips to that twice per cycle).
 			feet[side] = {
 				"bone": foot,
+				"rest_world": (skeleton_xform * skeleton.get_bone_global_rest(foot_index)).origin,
+				"thigh_index": thigh_index,
+				"shin_index": shin_index,
 				"ground": (skeleton_xform * skeleton.get_bone_global_rest(foot_index)).origin.dot(up),
+				"leg_length": leg_length,
 				"positions": [],
+				"hip_positions": [],
+				"knee_positions": [],
 			}
+	var reference_leg := 0.0
+	if not feet.is_empty():
+		for side in feet:
+			reference_leg = maxf(reference_leg, float((feet[side] as Dictionary).leg_length))
+		if not params.has("contact_threshold"):
+			# Five millimetres is a ceiling, not a constant fraction of a tiny
+			# rig's leg. A fixed band counted its low swing as stance and reported
+			# 30 mm of false slide on a half-size character.
+			threshold = minf(threshold, 0.005 * reference_leg / 0.85)
+		if motion_kind == "transition" and not params.has("max_hip_bob"):
+			# A start/stop changes from rest height to the gait's crouched pelvis.
+			# Scale that permitted range with the rig, while preserving an explicit
+			# caller cap and the tighter gait-cycle default.
+			bob_budget = 0.18 * reference_leg
 	var hips := str(roles.get("hips", ""))
 	var hips_index := skeleton.find_bone(hips) if not hips.is_empty() else -1
 	var hip_positions: Array = []
+	var root_motion_index := -1
+	var root_motion_start := Vector3.ZERO
+	var root_motion_basis := skeleton_xform.basis
+	if not player.root_motion_track.is_empty():
+		root_motion_index = loaded.anim.find_track(player.root_motion_track,
+			Animation.TYPE_POSITION_3D)
+		if root_motion_index >= 0:
+			root_motion_start = loaded.anim.position_track_interpolate(root_motion_index, 0.0)
+	player.play(str(loaded.anim_name))
 	for time in times:
-		_apply_spec_at(skeleton, spec, float(time))
+		player.seek(float(time), true)
+		skeleton_xform = skeleton.global_transform
+		# AnimationMixer extracts the configured root track instead of applying it
+		# to the bones. Restore that engine-interpolated travel to the measured
+		# world pose, as the character controller would during playback.
+		var root_offset := Vector3.ZERO
+		if root_motion_index >= 0:
+			root_offset = root_motion_basis * (
+				loaded.anim.position_track_interpolate(root_motion_index, float(time))
+				- root_motion_start)
 		for side in feet:
 			var foot_index := skeleton.find_bone(str(feet[side].bone))
 			if foot_index >= 0:
 				feet[side].positions.append(
-					(skeleton_xform * skeleton.get_bone_global_pose(foot_index)).origin)
+					(skeleton_xform * skeleton.get_bone_global_pose(foot_index)).origin + root_offset)
+			var thigh_index: int = feet[side].thigh_index
+			var shin_index: int = feet[side].shin_index
+			if thigh_index >= 0 and shin_index >= 0:
+				feet[side].hip_positions.append(
+					(skeleton_xform * skeleton.get_bone_global_pose(thigh_index)).origin + root_offset)
+				feet[side].knee_positions.append(
+					(skeleton_xform * skeleton.get_bone_global_pose(shin_index)).origin + root_offset)
 		if hips_index >= 0:
-			hip_positions.append((skeleton_xform * skeleton.get_bone_global_pose(hips_index)).origin)
-	_pose_restore(skeleton, snapshot)
+			hip_positions.append((skeleton_xform * skeleton.get_bone_global_pose(hips_index)).origin + root_offset)
+	sandbox.free()
 	var checks: Array = []
 	var foot_data := {}
 	var hip_data := {"samples": hip_positions.size()}
@@ -679,17 +806,19 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 		var travel := 0.0
 		for index in hip_positions.size():
 			var position: Vector3 = hip_positions[index]
-			lowest = minf(lowest, position.y)
-			highest = maxf(highest, position.y)
+			lowest = minf(lowest, position.dot(up))
+			highest = maxf(highest, position.dot(up))
 			if index > 0:
 				var previous: Vector3 = hip_positions[index - 1]
-				travel += Vector2(position.x - previous.x, position.z - previous.z).length()
+				var step := position - previous
+				travel += (step - up * step.dot(up)).length()
 		var bob := highest - lowest
 		var net := 0.0
 		if hip_positions.size() > 1:
 			var first_position: Vector3 = hip_positions[0]
 			var last_position: Vector3 = hip_positions[hip_positions.size() - 1]
-			net = Vector2(last_position.x - first_position.x, last_position.z - first_position.z).length()
+			var displacement := last_position - first_position
+			net = (displacement - up * displacement.dot(up)).length()
 		hip_data["height_range"] = _round(bob)
 		# Net displacement, not the accumulated path: an in-place cycle still
 		# swings the pelvis (sway plus the yaw/roll orbit), so the path overstates
@@ -699,16 +828,19 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 		hip_data["mean_speed"] = _round(travel / length) if length > 0.0 else 0.0
 		hip_data["trace"] = hip_positions.map(func(position): return [
 			_round(position.x), _round(position.y), _round(position.z)])
-		checks.append({
-			"check": "hip_bob",
-			"passed": bob <= bob_budget,
-			"value": _round(bob),
-			"budget": _round(bob_budget),
-			"unit": "m",
-			"message": "the hips move %s m vertically over the clip (budget %s m)" % [
-				str(_round(bob)), str(_round(bob_budget))],
-			"fix": "lower the bob override (animation_motion walk_cycle overrides.bob) or lengthen the clip.",
-		})
+		# A jump intentionally raises the pelvis. Report its height without grading
+		# it against the gait bob limit; callers may still request an explicit cap.
+		if motion_kind != "jump" or params.has("max_hip_bob"):
+			checks.append({
+				"check": "hip_bob",
+				"passed": bob <= bob_budget,
+				"value": _round(bob),
+				"budget": _round(bob_budget),
+				"unit": "m",
+				"message": "the hips move %s m vertically over the clip (budget %s m)" % [
+					str(_round(bob)), str(_round(bob_budget))],
+				"fix": "lower the pelvis height curve or set max_hip_bob for this action.",
+			})
 	# An in-place cycle is *meant* to slide its stance foot backwards: the clip
 	# carries no body travel, so the game (or root motion) supplies it. Only a
 	# clip that moves the body has to keep the planted foot still, so the audit
@@ -720,10 +852,23 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 			threshold, float((feet[side] as Dictionary).ground), up)
 		var worst := float(slide.worst)
 		var passed := worst <= slide_budget
+		var penetration := 0.0
+		var penetration_time := 0.0
+		for sample_index in times.size():
+			var position: Vector3 = (feet[side] as Dictionary).positions[sample_index]
+			var depth := float((feet[side] as Dictionary).ground) - position.dot(up)
+			if depth > penetration:
+				penetration = depth
+				penetration_time = float(times[sample_index])
+		var penetration_budget := maxf(float(params.get("max_penetration",
+			0.01 * float((feet[side] as Dictionary).leg_length))), 0.0)
 		foot_data[side] = {
 			"bone": str(feet[side].bone),
 			"ground": _round(float(feet[side].ground)),
 			"worst_slide": _round(worst),
+			"max_penetration": _round(penetration),
+			"penetration_time": _round(penetration_time),
+			"penetration_budget": _round(penetration_budget),
 			"mean_slide": _round(float(slide.mean)),
 			"path": _round(float(slide.path)),
 			"contact_time": _round(float(slide.contact_time)),
@@ -747,6 +892,63 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 			"fix": ("rebuild with root_motion=true to keep the stance foot planted, or play the clip on a character the game already moves" if in_place
 				else "raise the stance share, shorten the cycle, or bake with a higher speed: the walk cycle keeps the ankle on the solved trajectory (animation_motion walk_cycle speed/stance)."),
 		})
+		checks.append({
+			"check": "ground_penetration.%s" % side,
+			"passed": penetration <= penetration_budget,
+			"value": _round(penetration),
+			"budget": _round(penetration_budget),
+			"unit": "m",
+			"message": "%s foot penetrates %.4f m below its rest ground at %.3f s (budget %.4f m)" % [
+				side.to_upper(), penetration, penetration_time, penetration_budget],
+			"fix": "raise the foot target or reduce pelvis drop during stance; verify the rig's rest-ground and up axis.",
+		})
+		if not (feet[side] as Dictionary).hip_positions.is_empty():
+			var shortest_knee_angle := 180.0
+			var shortest_knee_angle_time := 0.0
+			var peak_extension := 0.0
+			var peak_extension_time := 0.0
+			for sample_index in times.size():
+				var hip: Vector3 = (feet[side] as Dictionary).hip_positions[sample_index]
+				var knee: Vector3 = (feet[side] as Dictionary).knee_positions[sample_index]
+				var ankle: Vector3 = (feet[side] as Dictionary).positions[sample_index]
+				var upper := hip - knee
+				var lower := ankle - knee
+				if upper.length_squared() > 0.000001 and lower.length_squared() > 0.000001:
+					var knee_angle := rad_to_deg(acos(clampf(upper.normalized().dot(lower.normalized()), -1.0, 1.0)))
+					if knee_angle < shortest_knee_angle:
+						shortest_knee_angle = knee_angle
+						shortest_knee_angle_time = float(times[sample_index])
+				var extension := hip.distance_to(ankle) / maxf(float((feet[side] as Dictionary).leg_length), 0.001)
+				if extension > peak_extension:
+					peak_extension = extension
+					peak_extension_time = float(times[sample_index])
+			foot_data[side]["pose_range"] = {
+				"min_knee_angle_degrees": _round(shortest_knee_angle),
+				"min_knee_angle_time": _round(shortest_knee_angle_time),
+				"max_extension_ratio": _round(peak_extension),
+				"max_extension_time": _round(peak_extension_time),
+			}
+			var pole := RigAnalysis.knee_pole_report(times,
+				(feet[side] as Dictionary).hip_positions,
+				(feet[side] as Dictionary).knee_positions,
+				(feet[side] as Dictionary).positions,
+				float((feet[side] as Dictionary).leg_length))
+			foot_data[side]["knee_pole"] = {
+				"flips": int(pole.flips),
+				"max_angle_degrees": _round(float(pole.max_angle_degrees)),
+				"worst_time": _round(float(pole.worst_time)),
+				"valid_samples": int(pole.valid_samples),
+			}
+			checks.append({
+				"check": "knee_pole_flip.%s" % side,
+				"passed": int(pole.flips) == 0,
+				"value": int(pole.flips),
+				"budget": 0,
+				"unit": "flips",
+				"message": "%s knee changes bend direction %d time(s); worst angle %.1f deg at %.3f s" % [
+					side.to_upper(), int(pole.flips), float(pole.max_angle_degrees), float(pole.worst_time)],
+				"fix": "correct the knee pole using the rig's rest bend perpendicular to the hip-to-ankle axis; inspect the reported time.",
+			})
 	if feet.is_empty():
 		checks.append({
 			"check": "roles",
@@ -756,6 +958,73 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 			"unit": "",
 			"message": "no foot bones were detected, so ground contact cannot be measured",
 			"fix": "pass roles/profile with foot_l and foot_r (animation_inspect rig_profile lists candidates).",
+		})
+	var min_lateral_foot_gap := INF
+	var flight_data := {}
+	if motion_kind == "run" and feet.has("l") and feet.has("r"):
+		var peak_both_clearance := -INF
+		var peak_time := 0.0
+		var airborne_samples := 0
+		for sample_index in times.size():
+			var left_height := ((feet.l.positions as Array)[sample_index] as Vector3).dot(up) \
+				- float(feet.l.ground)
+			var right_height := ((feet.r.positions as Array)[sample_index] as Vector3).dot(up) \
+				- float(feet.r.ground)
+			var both_clearance := minf(left_height, right_height)
+			if both_clearance > peak_both_clearance:
+				peak_both_clearance = both_clearance
+				peak_time = float(times[sample_index])
+			if both_clearance > threshold:
+				airborne_samples += 1
+		var flight_fraction := float(airborne_samples) / float(maxi(times.size(), 1))
+		var clearance_budget := 0.02 * reference_leg
+		var peak_extension := INF
+		if (foot_data.l as Dictionary).has("pose_range") \
+				and (foot_data.r as Dictionary).has("pose_range"):
+			peak_extension = maxf(float(foot_data.l.pose_range.max_extension_ratio),
+				float(foot_data.r.pose_range.max_extension_ratio))
+		flight_data = {"peak_both_feet_clearance": _round(peak_both_clearance),
+			"peak_time": _round(peak_time),
+			"airborne_fraction": _round(flight_fraction),
+			"clearance_budget": _round(clearance_budget),
+			"peak_leg_extension_ratio": _round(peak_extension) if is_finite(peak_extension) else null}
+		checks.append({
+			"check": "run_flight",
+			"passed": peak_both_clearance >= clearance_budget and flight_fraction >= 0.05,
+			"value": _round(peak_both_clearance),
+			"budget": _round(clearance_budget),
+			"unit": "m",
+			"message": "both feet reach %.4f m clearance together for %.1f%% of samples (need %.4f m and 5%%)" % [
+				peak_both_clearance, 100.0 * flight_fraction, clearance_budget],
+			"fix": "author an explicit aerial phase with both feet lifted and a reachable tucked-leg pose.",
+		})
+		checks.append({
+			"check": "run_leg_extension",
+			"passed": peak_extension <= 0.985,
+			"value": _round(peak_extension) if is_finite(peak_extension) else null,
+			"budget": 0.985,
+			"unit": "leg length",
+			"message": "peak hip-to-ankle extension is %.4f of the measured leg (limit 0.985)" % peak_extension,
+			"fix": "keep the swing knee bent and the target inside the measured two-bone reach.",
+		})
+	if motion_kind == "strafe" and feet.has("l") and feet.has("r"):
+		var rest_gap := ((feet.l.rest_world as Vector3) -
+			(feet.r.rest_world as Vector3)).dot(lateral_world)
+		var orientation := 1.0 if rest_gap >= 0.0 else -1.0
+		for sample_index in mini((feet.l.positions as Array).size(),
+			(feet.r.positions as Array).size()):
+			var gap := orientation * (
+				((feet.l.positions as Array)[sample_index] as Vector3) -
+				((feet.r.positions as Array)[sample_index] as Vector3)).dot(lateral_world)
+			min_lateral_foot_gap = minf(min_lateral_foot_gap, gap)
+		checks.append({
+			"check": "foot_crossing",
+			"passed": min_lateral_foot_gap >= -0.001,
+			"value": _round(min_lateral_foot_gap),
+			"budget": -0.001,
+			"unit": "m",
+			"message": "minimum left/right lateral ankle gap is %.4f m (negative means crossed feet)" % min_lateral_foot_gap,
+			"fix": "shorten the lateral step relative to the rig's rest ankle spacing.",
 		})
 	var failed := 0
 	for check in checks:
@@ -769,8 +1038,11 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 		"loop_mode": ValueCodec.loop_mode_to_string(loaded.anim.loop_mode),
 		"sample_count": times.size(),
 		"contact_threshold": threshold,
+		"motion_kind": motion_kind,
 		"in_place": in_place,
 		"body_travel": _round(body_travel),
+		"min_lateral_foot_gap": _round(min_lateral_foot_gap) if min_lateral_foot_gap != INF else null,
+		"flight": flight_data,
 		"feet": foot_data,
 		"hips": hip_data,
 		"checks": checks,
@@ -778,6 +1050,25 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 		"failed_checks": failed,
 		"undoable": false,
 	}}
+
+
+## An @tool script on a character could otherwise run _enter_tree/_ready when
+## the private evaluation copy joins its SubViewport. Playback of the authored
+## transform tracks does not need game scripts or a scene controller.
+func _strip_audit_scripts(node: Node) -> void:
+	if node.get_script() != null:
+		node.set_script(null)
+	for child in node.get_children():
+		_strip_audit_scripts(child)
+
+
+func _restore_audit_transforms(source: Node, copy: Node) -> void:
+	if source is Node3D and copy is Node3D:
+		(copy as Node3D).transform = (source as Node3D).transform
+	for child in source.get_children():
+		var counterpart := copy.get_node_or_null(NodePath(str(child.name)))
+		if counterpart != null:
+			_restore_audit_transforms(child, counterpart)
 
 
 # ============================================================================
@@ -1078,6 +1369,8 @@ func inspect_sample(params: Dictionary) -> Dictionary:
 		if not foot.is_empty() and skeleton.find_bone(foot) >= 0:
 			feet[side] = {"bone": foot, "heights": []}
 	var skeleton_xform := skeleton.global_transform
+	var frame := RigAnalysis.rig_frame(skeleton, roles)
+	var world_up: Vector3 = (skeleton_xform.basis * (frame.up as Vector3)).normalized()
 	for time in times:
 		_apply_spec_at(skeleton, spec, float(time))
 		for bone_name in bone_names:
@@ -1091,7 +1384,8 @@ func inspect_sample(params: Dictionary) -> Dictionary:
 		for side in feet:
 			var foot_index := skeleton.find_bone(str(feet[side].bone))
 			if foot_index >= 0:
-				feet[side].heights.append(_round((skeleton_xform * skeleton.get_bone_global_pose(foot_index)).origin.y))
+				feet[side].heights.append(_round(
+					(skeleton_xform * skeleton.get_bone_global_pose(foot_index)).origin.dot(world_up)))
 	_pose_restore(skeleton, snapshot)
 	for side in feet:
 		var heights: Array = feet[side].heights
@@ -1190,6 +1484,9 @@ static func _round(value: float, digits := 4) -> float:
 ## `{"_deferred": true}` and pushes the real payload after one frame per image.
 ## Headless servers cannot rasterise at all and say so immediately.
 func inspect_preview(params: Dictionary, ctx) -> Dictionary:
+	if _dry_run:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"preview writes PNG files and does not support dry_run; no files were written")
 	var loaded := _load_readable_clip(params)
 	if loaded.has("error"):
 		return loaded
@@ -1229,6 +1526,21 @@ func inspect_preview(params: Dictionary, ctx) -> Dictionary:
 	if source == null:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"preview could not find the character node to copy")
+	var root_motion_index := -1
+	var root_motion_start := Vector3.ZERO
+	var root_motion_world_basis := Basis.IDENTITY
+	var root_motion_local_basis := Basis.IDENTITY
+	if not loaded.player.root_motion_track.is_empty():
+		root_motion_index = loaded.anim.find_track(loaded.player.root_motion_track,
+			Animation.TYPE_POSITION_3D)
+		if root_motion_index >= 0:
+			root_motion_start = loaded.anim.position_track_interpolate(root_motion_index, 0.0)
+			var player_root := ValueCodec.player_root_node(loaded.player) as Node3D
+			if player_root != null:
+				root_motion_world_basis = player_root.global_transform.basis
+			var source_parent := source.get_parent() as Node3D
+			root_motion_local_basis = (source_parent.global_transform.basis.inverse()
+				if source_parent != null else Basis.IDENTITY) * root_motion_world_basis
 	var margin := float(params.get("margin", 1.35))
 	# Frame every frame identically: union the posed bone bounds over all times
 	# (the live skeleton is posed and restored, never left modified).
@@ -1238,6 +1550,10 @@ func inspect_preview(params: Dictionary, ctx) -> Dictionary:
 	for time in times:
 		_apply_spec_at(skeleton, spec, float(time))
 		var posed := _preview_bounds(skeleton)
+		if root_motion_index >= 0:
+			posed.position += root_motion_world_basis * (
+				loaded.anim.position_track_interpolate(root_motion_index, float(time))
+				- root_motion_start)
 		bounds = posed if first_bounds else bounds.merge(posed)
 		first_bounds = false
 	_pose_restore(skeleton, snapshot)
@@ -1247,8 +1563,13 @@ func inspect_preview(params: Dictionary, ctx) -> Dictionary:
 	if dir_error != OK and dir_error != ERR_ALREADY_EXISTS:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"preview could not create %s (error %d)" % [output_dir, dir_error])
+	_preview_jobs += 1
 	_render_preview_frames({
 		"source": source,
+		"animation": loaded.anim,
+		"root_motion_index": root_motion_index,
+		"root_motion_start": root_motion_start,
+		"root_motion_local_basis": root_motion_local_basis,
 		"spec": spec,
 		"times": times,
 		"bounds": bounds,
@@ -1277,15 +1598,19 @@ func _render_preview_frames(state: Dictionary, ctx) -> void:
 		var time := float(times[index])
 		var viewport := _build_preview_viewport(int(state.width), int(state.height), str(state.background))
 		if viewport == null:
-			ctx.send_deferred(ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			_finish_preview(ctx, ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"preview could not create a render viewport"))
 			return
 		var character := (state.source as Node3D).duplicate() as Node3D
 		viewport.add_child(character)
+		if int(state.root_motion_index) >= 0:
+			character.position += (state.root_motion_local_basis as Basis) * (
+				(state.animation as Animation).position_track_interpolate(
+					int(state.root_motion_index), time) - (state.root_motion_start as Vector3))
 		var posed_skeleton := _find_skeleton(character) as Skeleton3D
 		if posed_skeleton == null:
 			viewport.queue_free()
-			ctx.send_deferred(ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			_finish_preview(ctx, ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"preview could not duplicate the skeleton"))
 			return
 		_apply_spec_at(posed_skeleton, state.spec, time)
@@ -1295,23 +1620,23 @@ func _render_preview_frames(state: Dictionary, ctx) -> void:
 		var image := viewport.get_texture().get_image()
 		if image == null or image.is_empty():
 			viewport.queue_free()
-			ctx.send_deferred(ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			_finish_preview(ctx, ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"preview could not read back a frame at t=%s" % str(time)))
 			return
 		var path := "%s/%s_%02d.png" % [str(state.output_dir).trim_suffix("/"), str(state.basename), index]
 		if FileAccess.file_exists(path) and not bool(state.overwrite):
 			viewport.queue_free()
-			ctx.send_deferred(ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			_finish_preview(ctx, ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"preview file already exists: %s (pass overwrite=true)" % path))
 			return
 		var error := image.save_png(path)
 		viewport.queue_free()
 		if error != OK:
-			ctx.send_deferred(ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			_finish_preview(ctx, ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"preview could not write %s (error %d)" % [path, error]))
 			return
 		paths.append(path)
-	ctx.send_deferred({"data": {
+	_finish_preview(ctx, {"data": {
 		"player_path": str(state.player_path),
 		"animation_name": str(state.animation_name),
 		"skeleton_path": str(state.skeleton_path),
@@ -1322,9 +1647,15 @@ func _render_preview_frames(state: Dictionary, ctx) -> void:
 		"height": int(state.height),
 		"bounds_center": _vec_array((state.bounds as AABB).get_center()),
 		"bounds_extent": _vec_array((state.bounds as AABB).end - (state.bounds as AABB).position),
+		"root_motion_previewed": int(state.root_motion_index) >= 0,
 		"undoable": false,
 		"note": "each frame rendered a private copy of the character; the edited scene is unchanged",
 	}})
+
+
+func _finish_preview(ctx, result: Dictionary) -> void:
+	ctx.send_deferred(result)
+	_preview_jobs = maxi(_preview_jobs - 1, 0)
 
 
 ## Private SubViewport with its own world, a neutral background and two lights.

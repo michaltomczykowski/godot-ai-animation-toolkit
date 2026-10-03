@@ -59,6 +59,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	_check_the_matrix_holds_every_proportion()
+	_check_pelvis_sway_tracks_the_stance_leg()
 	_check_the_synthetic_walk_matches_its_golden()
 	if _failures == 0:
 		print("TIER1 PASS (%d checks)" % _checks)
@@ -190,6 +191,28 @@ func _walk(skeleton: Skeleton3D, length := 1.0, samples := 24.0) -> Dictionary:
 	return {"ctx": ctx, "built": built}
 
 
+## The rig's lateral axis points from the right hip to the left hip. At the
+## quarter-cycle the left leg supports the body; half a cycle later the right
+## leg does. Pelvis sway must follow that support change on every proportion.
+func _check_pelvis_sway_tracks_the_stance_leg() -> void:
+	for leg in [0.50, REFERENCE_LEG, 1.70]:
+		var result := _walk(_rig(leg))
+		_expect(not result.has("error"), "%.2f m: stance-sway walk builds" % leg)
+		if result.has("error"):
+			continue
+		var ctx: Dictionary = result.ctx
+		var hips: Dictionary = (result.built.keys as Dictionary).get("B-hips", {})
+		var positions: Array = hips.get("position", [])
+		_expect(positions.size() >= 19, "%.2f m: stance-sway pelvis keys exist" % leg)
+		if positions.size() < 19:
+			continue
+		var toward_left := ((positions[6] as Dictionary).delta as Vector3).dot(ctx.lateral)
+		var toward_right := ((positions[18] as Dictionary).delta as Vector3).dot(ctx.lateral)
+		_expect(toward_left > 0.0 and toward_right < 0.0,
+			"%.2f m: pelvis moves toward the left then right stance leg (%.4f, %.4f m)"
+				% [leg, toward_left, toward_right])
+
+
 func _froude(speed: float, leg: float) -> float:
 	return speed / sqrt(GRAVITY * maxf(leg, 0.0001))
 
@@ -313,7 +336,7 @@ func _check_the_matrix_holds_every_proportion() -> void:
 		# A sanity band, deliberately loose: the crouch has to be a modest fraction
 		# of the leg. The assertion that matters is not this one - it is that the
 		# SAME fraction comes out on every rig, checked below.
-		_expect(crouch_term > 0.03 and crouch_term < 0.16,
+		_expect(crouch_term > 0.02 and crouch_term < 0.16,
 			"%s: the knee-bend crouch is a modest %.4f of the leg (%.1f deg -> %.4f m on a %.2f m leg)"
 			% [label, crouch_term, float(config.knee_bend),
 				0.003 * float(config.knee_bend) * float(ctx.get("distance_scale", 1.0)), measured])

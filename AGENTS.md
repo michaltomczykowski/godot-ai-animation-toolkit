@@ -1,7 +1,8 @@
 # Agent notes
 
-What to build lives in `ROADMAP.md` (per-phase status) and `docs/` (tool
-reference + generated op index). This file is the *how*: workflow details that
+What to repair lives in `FIX_ROADMAP.md` (phase plan and evidence). `ROADMAP.md`
+records older feature/release history and `docs/` has the tool reference and
+generated op index. This file is the *how*: workflow details that
 are not obvious from the code, so a fresh session can continue without
 re-discovering them.
 
@@ -11,7 +12,8 @@ re-discovering them.
   - `registry/op_registry.gd` - single source of truth for op names, params and
     descriptions; `docs/op-index.md` is generated from it.
   - `handlers/` - one script per tool family (`generate.gd` presets, `fx.gd`,
-    `graph.gd`, `edit.gd`, `inspect.gd`, `library.gd`, `rig.gd`), all extending
+    `graph.gd`, `edit.gd`, `inspect.gd`, `library.gd`, `rig.gd`, `motion.gd`,
+    `sequence.gd`), all extending
     `animation_tool_base.gd`.
   - `spec/` - clip-spec engine (`clip_spec`, `spec_builder`, `spec_io`,
     `spec_modifiers`, `fx_specs`, `graph_builders`, `spec_json`, `pose_math`).
@@ -36,21 +38,36 @@ Godot binary (local):
   The runner prints `CI_SUITE_RESULTS={...}` and `CI_SUITE_PASS`/`FAIL`.
 - Docs: `powershell -ExecutionPolicy Bypass -File tools\gen_docs.ps1 -Godot "<godot>"`
   (tier-1 fails while `docs/op-index.md` is stale).
+- Operation audit: `powershell -ExecutionPolicy Bypass -File tools\gen_operation_audit.ps1 -Godot "<godot>"`
+  (`docs/operation-evidence.json` contains manually reviewed evidence;
+  `docs/operation-audit.json` is the generated 103-operation inventory).
+- Live Godot AI route on a running editor: `tools/mcp_probe.py` lists the
+  current session and checks all ten families. `tools/mcp_motion_remaining_cycles.py`
+  writes selected motions through MCP; `tools/mcp_motion_audit_saved.py` plays
+  their saved scenes at 30/60/120 FPS. `tools/mcp_locomotion_sequence_review.py`
+  creates a single-player start→walk→stop action through `custom_manage`.
 - Release zip: `powershell -ExecutionPolicy Bypass -File tools\release_zip.ps1`
 - Parse check without the editor:
   `& "<godot>" --headless --path test_project --check-only --script res://path.gd`
 
 ## Editing addon code
 
-- The **running editor keeps old code**. After changing anything under
-  `addons/`, quit and relaunch the editor before using the MCP tools again.
-  `editor_reload_plugin` reloads only the godot-ai plugin and drops this addon's
-  custom tools until the editor restarts.
+- The running editor may keep old code after changing `addons/`; launch a fresh
+  editor before treating a live MCP result as evidence for new code.
+  `editor_reload_plugin` was verified on 2026-09-28 to restore all ten toolkit
+  families through the addon registry callback in the connected test project.
+- The persistent recovery snapshot is
+  `F:\GODOTAITESTING\toolkit_repair_snapshot_2026-09-30` (tracked patch,
+  untracked source copies, roadmap, operation ledger, logs and Movie Maker
+  frames). Refresh it after substantive edits. The current review branch is
+  `repair/toolkit-quality`; it is unreleased and the operation ledger remains
+  partial until visual, undo and Linux gates are satisfied.
 - Launch: `& "<godot>" --editor --path test_project`.
 - Run `git checkout -- test_project/project.godot` before committing: the editor
   rewrites the plugin enable order.
-- Custom tools are callable from `batch_execute` as `custom_tool:<name>`; when
-  that starts failing, the registry is stale - restart the editor.
+- Custom tools are callable from `batch_execute` as `custom_tool:<name>`.
+  Inspect `session_manage(list)` and `custom_manage(list)` before diagnosing a
+  missing tool: the MCP port or active editor session may be wrong.
 
 ## Demo scenes and videos
 

@@ -20,6 +20,7 @@ const FAMILY_LIBRARY := "animation_library"
 const FAMILY_RIG := "animation_rig"
 const FAMILY_RIG_MODIFIERS := "animation_rig_modifiers"
 const FAMILY_MOTION := "animation_motion"
+const FAMILY_SEQUENCE := "animation_sequence"
 
 const MAX_DESCRIPTION_CHARS := 600
 ## The core registry rejects a custom tool whose params schema serializes past
@@ -87,7 +88,9 @@ static func families() -> Dictionary:
 			"schema": _library_schema(),
 			"ops": _library_ops(),
 			"requires_writable": true,
-			"undoable": true,
+			# Some ops write project files outside the scene UndoRedo history.
+			# Core batch undo preflight is family-wide, so fail closed here.
+			"undoable": false,
 		},
 		FAMILY_RIG: {
 			"handler": "res://addons/godot_ai_animation/handlers/rig.gd",
@@ -96,7 +99,9 @@ static func families() -> Dictionary:
 			"schema": _schema_for(_rig_schema(), _rig_ops()),
 			"ops": _rig_ops(),
 			"requires_writable": true,
-			"undoable": true,
+			# pose_save may write a file; a family-wide true flag would let
+			# batch_execute(undo=true) claim it can roll that write back.
+			"undoable": false,
 			## bake_pose_sequence drives a full skeleton update per sample.
 			"timeout_ms": 30000,
 		},
@@ -125,6 +130,17 @@ static func families() -> Dictionary:
 			## Dense sampling plus a two-bone solve per sample.
 			"timeout_ms": 30000,
 		},
+		FAMILY_SEQUENCE: {
+			"handler": "res://addons/godot_ai_animation/handlers/sequence.gd",
+			"summary": "Compose character clips and saved poses on one timeline.",
+			"description": "Compose existing 3D clips and saved rig poses into one character-owned clip with timed crossfades and contact markers. The output is one ordinary Animation with one undo action. Use custom_manage(op=\"invoke\", tool_name=\"animation_sequence\", params={...}).",
+			"schema": _sequence_schema(),
+			"ops": _sequence_ops(),
+			"requires_writable": true,
+			"undoable": true,
+			"promoted": false,
+			"timeout_ms": 30000,
+		},
 	}
 
 
@@ -132,6 +148,7 @@ static func family_names() -> Array:
 	return [
 		FAMILY_PRESETS, FAMILY_FX, FAMILY_GRAPH, FAMILY_EDIT, FAMILY_INSPECT,
 		FAMILY_LIBRARY, FAMILY_RIG, FAMILY_MOTION, FAMILY_RIG_MODIFIERS,
+		FAMILY_SEQUENCE,
 	]
 
 
@@ -293,7 +310,10 @@ static func _presets_schema() -> Dictionary:
 				"description": "Report what the call would build without committing anything (no undo action).",
 			},
 		},
-		"required": ["op", "player_path", "target_path"],
+		# showcase creates its own players and targets. A family-level required
+		# field must apply to every op, or the MCP schema rejects a valid call
+		# before the handler can validate its operation-specific parameters.
+		"required": ["op"],
 	}
 
 
@@ -559,9 +579,9 @@ static func _edit_ops() -> Array:
 		},
 		{
 			"name": "offset",
-			"summary": "Shift every key in time (optionally wrapping inside the clip length).",
+			"summary": "Shift every key in time; positive unwrapped shifts hold the first pose until motion starts. Wrapping rejects clips whose distinct seam keys would merge.",
 			"params": ["player_path", "animation_name", "delta", "wrap"],
-			"example": {"op": "offset", "player_path": "/Main/HUD", "animation_name": "pulse", "delta": 0.3, "wrap": true},
+			"example": {"op": "offset", "player_path": "/Main/HUD", "animation_name": "pulse", "delta": 0.3, "wrap": false},
 		},
 		{
 			"name": "ease_range",
@@ -643,9 +663,9 @@ static func _edit_ops() -> Array:
 		},
 		{
 			"name": "overlap",
-			"summary": "Delay one node/subtree's tracks by `delay` seconds - instant follow-through on any clip.",
+			"summary": "Delay one node/subtree's tracks; positive unwrapped delay holds the first pose. Wrapping rejects distinct seam keys that would merge.",
 			"params": ["player_path", "animation_name", "track_path", "delay", "wrap"],
-			"example": {"op": "overlap", "player_path": "/Main", "animation_name": "walk", "track_path": "Skeleton3D:B-forearm.L", "delay": 0.08, "wrap": true},
+			"example": {"op": "overlap", "player_path": "/Main", "animation_name": "walk", "track_path": "Skeleton3D:B-forearm.L", "delay": 0.08, "wrap": false},
 		},
 		{
 			"name": "layer",
@@ -791,7 +811,7 @@ static func _inspect_schema() -> Dictionary:
 			},
 			"contact_threshold": {
 				"type": "number",
-				"description": "sample/motion_audit: height above the lowest foot sample counted as ground contact (default 0.02).",
+				"description": "sample: foot contact height tolerance (0.02 m); motion_audit: distance from each foot's rest height (up to 0.005 m, scaled down for short rigs).",
 			},
 			"max_slide": {
 				"type": "number",
@@ -799,7 +819,15 @@ static func _inspect_schema() -> Dictionary:
 			},
 			"max_hip_bob": {
 				"type": "number",
-				"description": "motion_audit: hips' vertical range to pass, metres (0.12).",
+				"description": "motion_audit: hips' vertical range to pass, metres (gait default 0.12; transition default 18% of leg length; jump only capped if supplied).",
+			},
+			"motion_kind": {
+				"type": "string", "enum": ["gait", "run", "jump", "turn", "transition", "strafe"],
+				"description": "motion_audit: action type for contact grading (gait default; run checks simultaneous airborne clearance; strafe checks crossed feet; jump skips gait hip-bob cap).",
+			},
+			"max_penetration": {
+				"type": "number",
+				"description": "motion_audit: maximum foot penetration below rest ground, metres (default 1% of leg length).",
 			},
 			"width": {"type": "integer", "description": "preview: frame width in pixels (480)."},
 			"height": {"type": "integer", "description": "preview: frame height in pixels (270)."},
@@ -861,8 +889,8 @@ static func _inspect_ops() -> Array:
 		},
 		{
 			"name": "motion_audit",
-			"summary": "Play the clip on a Skeleton3D (posed and restored, never saved) and grade it: per-foot ground-contact windows and the horizontal slide while planted, hip bob and travel, each pass/fail against a budget with a fix hint. The numeric answer to 'is this walk actually planted?' - a moonwalk reports a slide in metres, not a vibe. Needs foot/hips roles (auto-detected or via roles/profile).",
-			"params": ["player_path", "animation_name", "skeleton_path", "roles", "profile", "samples", "contact_threshold", "max_slide", "max_hip_bob"],
+			"summary": "Play a 3D transform clip on a private scene copy and grade foot contact, stance slide, ground penetration, knee-pole flips, hip bob and travel. Needs foot/hips roles (auto-detected or via roles/profile).",
+			"params": ["player_path", "animation_name", "skeleton_path", "roles", "profile", "samples", "contact_threshold", "max_slide", "max_hip_bob", "max_penetration", "motion_kind"],
 			"example": {"op": "motion_audit", "player_path": "/Main/Rig/AnimationPlayer", "animation_name": "walk", "skeleton_path": "/Main/Rig/Skeleton3D", "max_slide": 0.03},
 		},
 		{
@@ -1155,8 +1183,9 @@ static func _graph_description() -> String:
 		+ "blend_space (1D/2D), blend_tree (recursive blend2/blend3/add2/add3/"
 		+ "one_shot/time_scale), wire (create or configure the tree, set "
 		+ "parameters), graph_get (dump a graph, flag missing clips), plus "
-		+ "locomotion, one_shot_layer and additive_lean setups. One scene-pinned "
-		+ "undo action per call; every op accepts dry_run. Requires the Godot AI "
+		+ "locomotion, one_shot_layer and additive_lean setups. Writing ops use "
+		+ "one scene-pinned undo action and accept dry_run; graph_get is read-only. "
+		+ "Builders leave trees inactive unless active=true. Requires the Godot AI "
 		+ "addon."
 	)
 
@@ -1195,7 +1224,7 @@ static func _graph_schema() -> Dictionary:
 				"description": "Activate the tree. Off by default because an active AnimationTree also drives the scene while you edit it - turn it on when the scene is ready to play.",
 			},
 			"create": {"type": "boolean", "default": true, "description": "wire: create the tree when missing."},
-			"parameter_path": {"type": "string", "description": "wire: tree parameter to set (e.g. \"parameters/conditions/walking\")."},
+			"parameter_path": {"type": "string", "description": "wire: existing tree parameter to set after building a graph (e.g. \"parameters/conditions/walking\")."},
 			"parameter_value": {"description": "wire: value for parameter_path."},
 			"states": {
 				"type": "array",
@@ -1219,7 +1248,7 @@ static func _graph_schema() -> Dictionary:
 				"enum": ["root", "nested", "grouped"],
 				"description": "state_machine: graph role (default root).",
 			},
-			"start": {"type": "string", "description": "state_machine/locomotion: start state to report a runtime hint for."},
+			"start": {"type": "string", "description": "state_machine/locomotion: initial state connected from Start (first state or idle by default)."},
 			"dimensions": {"type": "integer", "description": "blend_space: 1 (float axis) or 2 (Vector2 axis)."},
 			"points": {
 				"type": "array",
@@ -1290,9 +1319,9 @@ static func _graph_ops() -> Array:
 		},
 		{
 			"name": "wire",
-			"summary": "Ensure an AnimationTree exists for the player, is active, and optionally set a parameter.",
+			"summary": "Ensure an AnimationTree exists for the player; optionally activate it or set an existing parameter.",
 			"params": ["player_path", "tree_path", "name", "parent_path", "active", "create", "parameter_path", "parameter_value"],
-			"example": {"op": "wire", "player_path": "/Main", "parameter_path": "parameters/conditions/walking", "parameter_value": true},
+			"example": {"op": "wire", "player_path": "/Main/Rig/AnimationPlayer"},
 		},
 		{
 			"name": "graph_get",
@@ -1760,7 +1789,7 @@ static func _rig_modifiers_ops() -> Array:
 		},
 		{
 			"name": "spring_setup",
-			"summary": "Attach spring bones (SpringBoneSimulator3D) to a skeleton, one spring setting per entry.",
+			"summary": "Attach spring bones (SpringBoneSimulator3D) to a skeleton, one setting per entry. Each spring needs a root and descendant end bone; single leaf bones are rejected because they did not move in Godot 4.7.2 playback.",
 			"params": ["skeleton_path", "springs", "name", "active", "mutable_bone_axes"],
 			"example": {"op": "spring_setup", "skeleton_path": "/Main/Rig/Skeleton3D", "springs": [{"root_bone": "B-hair01", "stiffness": 0.3, "drag": 0.2, "gravity": 0.1, "radius": 0.05}]},
 		},
@@ -1778,7 +1807,7 @@ static func _rig_modifiers_ops() -> Array:
 		},
 		{
 			"name": "twist_setup",
-			"summary": "Attach a BoneTwistDisperser3D so a twist on one bone is spread over the bones above it: the root/end default to the detected spine chain and `mode` picks even or weighted distribution (`weight_position`/`damping` shape the falloff). Godot builds the per-joint list at runtime, so custom amounts live in the modifier's Inspector. Created inactive, like every modifier setup.",
+			"summary": "Attach a BoneTwistDisperser3D to spread a reference bone's twist toward the chain root. The reference is the end bone's parent unless disperse.extend_end_bone=true. The root/end default to the detected spine chain; mode picks even or weighted distribution. Godot builds the joint list at runtime, so custom amounts live in the Inspector. Created inactive.",
 			"params": ["skeleton_path", "disperse", "spine_chain", "name", "active"],
 			"example": {"op": "twist_setup", "skeleton_path": "/Main/Rig/Skeleton3D", "disperse": {"root_bone": "B-hips", "end_bone": "B-chest", "mode": "even"}},
 		},
@@ -1844,11 +1873,11 @@ static func _motion_schema() -> Dictionary:
 			},
 			"samples": {
 				"type": "number",
-				"description": "Keys per second of clip (24; clamped to 4-120).",
+				"description": "Requested keys per second (default 24; 4-120). Walk/run automatically use at least 24 intervals per loop, or return a typed error if duration is too short.",
 			},
 			"root_motion": {
 				"type": "boolean",
-				"description": "Also key the hips forward at the cycle's implied speed (off); wires player.root_motion_track unless set_root_motion=false.",
+				"description": "Key character-root translation at the cycle's implied speed (on by default for strafe_cycle, off for other operations); wires player.root_motion_track unless set_root_motion=false. Set false for an in-place strafe shuffle.",
 			},
 			"set_root_motion": {
 				"type": "boolean",
@@ -1856,7 +1885,7 @@ static func _motion_schema() -> Dictionary:
 			},
 			"speed": {
 				"type": "number",
-				"description": "Gait: target ground speed in m/s; solves the stride and warns when unreachable at this duration.",
+				"description": "Gait: target ground speed in m/s. Walk rejects unreachable explicit speeds with VALUE_OUT_OF_RANGE; omit for a rig-relative default. Other gaits report any cap.",
 			},
 			"direction": {
 				"type": "string",
@@ -1893,7 +1922,7 @@ static func _motion_schema() -> Dictionary:
 			},
 			"knee_bend": {
 				"type": "number",
-				"description": "Gait: planted crouch, degrees (walk 30, run 55).",
+				"description": "Gait: planted crouch control, degrees (walk 8, run 36).",
 			},
 			"arm_swing": {
 				"type": "number",
@@ -1985,7 +2014,7 @@ static func _motion_schema() -> Dictionary:
 			},
 			"run_speed": {
 				"type": "number",
-				"description": "character_setup: run speed in m/s, the blend space's max (4.0; must exceed speed).",
+				"description": "character_setup: requested run speed in m/s, the blend space's max (2.0; must exceed speed and fit the rig's reachable leg targets).",
 			},
 			"include_jump": {
 				"type": "boolean",
@@ -2054,7 +2083,7 @@ static func _motion_ops() -> Array:
 			"name": "character_setup",
 			"summary": "One call, one undo: build idle + walk + run (optionally jump/turn), wire the locomotion AnimationTree and set the root-motion track; returns the speed parameter and a game-side snippet.",
 			"params": ["player_path", "skeleton_path", "roles", "profile", "style", "samples", "speed", "run_speed", "duration", "run_duration", "idle_duration", "root_motion", "include_jump", "include_turn", "height", "crouch", "distance", "jump_duration", "angle", "direction", "turn_duration", "tree_path", "active", "overwrite"],
-			"example": {"op": "character_setup", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "speed": 1.4, "run_speed": 4.0, "include_jump": true},
+			"example": {"op": "character_setup", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "speed": 1.1, "run_speed": 2.0, "include_jump": true},
 		},
 		{
 			"name": "secondary_motion",
@@ -2076,9 +2105,9 @@ static func _motion_ops() -> Array:
 		},
 		{
 			"name": "strafe_cycle",
-			"summary": "Build a looping sideways gait (leading foot steps out, trailing closes) with the knees still facing forward; speed-driven like the walk.",
+			"summary": "Build a looping sideways step with the leading foot out, trailing foot closing and one extracted character-root translation track; root_motion defaults on. Set root_motion=false for an in-place shuffle. Requested speed is bounded by leg reach.",
 			"params": ["player_path", "skeleton_path", "animation_name", "duration", "direction", "speed", "stride", "style", "overrides", "samples", "root_motion", "set_root_motion", "roles", "profile", "loop_mode", "overwrite"],
-			"example": {"op": "strafe_cycle", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "strafe_left", "duration": 0.9, "direction": "left", "speed": 0.8, "loop_mode": "linear"},
+			"example": {"op": "strafe_cycle", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "strafe_left", "duration": 0.9, "direction": "left", "loop_mode": "linear"},
 		},
 		{
 			"name": "walk_start",
@@ -2099,13 +2128,45 @@ static func _motion_ops() -> Array:
 # Markdown rendering (docs/op-index.md)
 # ============================================================================
 
+static func _sequence_schema() -> Dictionary:
+	return {
+		"type": "object",
+		"properties": {
+			"op": {"type": "string", "enum": ["compose"], "description": "Compose a timed character clip."},
+			"player_path": {"type": "string", "description": "AnimationPlayer receiving the clip."},
+			"skeleton_path": {"type": "string", "description": "Skeleton3D animated by the clips and poses."},
+			"animation_name": {"type": "string", "description": "Output clip name (sequence)."},
+			"duration": {"type": "number", "description": "Output length in seconds."},
+			"segments": {"type": "array", "items": {"type": "object"},
+				"description": "Ordered timeline segments: {start, duration, source_animation or pose_name or inline pose, source_start?, source_end?, fade_in?, contacts?: [{name,time}]}. The first starts at 0; gaps hold the previous pose. A saved pose comes from animation_rig pose_save."},
+			"samples": {"type": "integer", "description": "Output samples per second (30, max 1200 keys per track)."},
+			"overwrite": {"type": "boolean", "description": "Replace an existing output clip (false)."},
+			"dry_run": {"type": "boolean", "description": "Validate and report without a scene change (false)."},
+		},
+		"required": ["op", "player_path", "skeleton_path", "duration", "segments"],
+	}
+
+
+static func _sequence_ops() -> Array:
+	return [{
+		"name": "compose",
+		"summary": "Bake timed 3D clips and saved poses into one clip, crossfading overlaps and carrying contact markers.",
+		"params": ["player_path", "skeleton_path", "animation_name", "duration", "segments", "samples", "overwrite", "dry_run"],
+		"example": {"op": "compose", "player_path": "/Main/Rig/AnimationPlayer",
+			"skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "action", "duration": 2.0,
+			"segments": [{"start": 0.0, "duration": 1.0, "source_animation": "walk"},
+				{"start": 0.8, "duration": 1.2, "source_animation": "kick", "fade_in": 0.2,
+					"contacts": [{"name": "impact", "time": 0.4}]}]},
+	}]
+
+
 static func render_markdown() -> String:
 	var lines: Array = []
 	lines.append("# Op index (generated)")
 	lines.append("")
 	lines.append("Generated from `registry/op_registry.gd` by `tools/gen_docs.ps1` — do not edit by hand.")
 	lines.append("")
-	lines.append("Every tool commits one scene-pinned undo action per call and returns the same")
+	lines.append("Scene-writing operations use editor undo when supported; direct file writes and read-only calls have different effects. Every operation returns the same")
 	lines.append("error codes as the core tools (`INVALID_PARAMS`, `VALUE_OUT_OF_RANGE`,")
 	lines.append("`WRONG_TYPE`, `NODE_NOT_FOUND`, `PROPERTY_NOT_ON_CLASS`, `EDITOR_NOT_READY`).")
 	lines.append("")

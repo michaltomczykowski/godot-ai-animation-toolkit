@@ -64,13 +64,13 @@ func graph_state_machine(params: Dictionary) -> Dictionary:
 	var extra := {
 		"state_count": int(built.state_count),
 		"transition_count": int(built.transition_count),
+		"authored_transition_count": int(built.authored_transition_count),
 		"conditions": built.conditions,
 		"states": _state_names(built.root),
+		"start_state": str(built.start_state),
 	}
-	if params.has("start"):
-		extra["start_state"] = str(params.get("start"))
-		extra["start_hint"] = "at runtime call get_node(tree).get(\"%s\").start(\"%s\")" % [
-			_playback_path(context, built.root), str(params.get("start"))]
+	extra["start_hint"] = "active tree enters '%s' from Start; to override at runtime call get_node(tree).get(\"%s\").start(\"%s\")" % [
+		str(built.start_state), _playback_path(context, built.root), str(built.start_state)]
 	return _commit_graph(context, built.root, "MCP: Animation state machine", extra)
 
 
@@ -207,6 +207,7 @@ func graph_locomotion(params: Dictionary) -> Dictionary:
 	var mode := str(params.get("mode", "blend_space"))
 	if mode == "state_machine":
 		var built := GraphBuilders.state_machine({
+			"start": str(params.get("start", "idle")),
 			"states": [
 				{"name": "idle", "animation": idle},
 				{"name": "walk", "animation": walk, "position": {"x": 240, "y": 0}},
@@ -226,12 +227,13 @@ func graph_locomotion(params: Dictionary) -> Dictionary:
 			"mode": mode,
 			"state_count": int(built.state_count),
 			"transition_count": int(built.transition_count),
+			"authored_transition_count": int(built.authored_transition_count),
 			"conditions": built.conditions,
 			"states": _state_names(built.root),
-			"start_state": str(params.get("start", "idle")),
+			"start_state": str(built.start_state),
 		}
-		extra["start_hint"] = "at runtime call get_node(tree).get(\"%s\").start(\"%s\")" % [
-			_playback_path(context, built.root), str(params.get("start", "idle"))]
+		extra["start_hint"] = "active tree enters '%s' from Start; to override at runtime call get_node(tree).get(\"%s\").start(\"%s\")" % [
+			str(built.start_state), _playback_path(context, built.root), str(built.start_state)]
 		return _commit_graph(context, built.root, "MCP: Locomotion state machine", extra)
 	if mode != "blend_space":
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
@@ -346,7 +348,14 @@ func _wrap_root(context: Dictionary, layer_node: AnimationNode, combiner: Animat
 	var layer_child: AnimationNode = options.get("layer_child")
 	if layer_child != null:
 		tree.add_node(StringName("Shot"), layer_child, Vector2(220.0, 140.0))
-		tree.connect_node(StringName(layer_name), 0, StringName("Shot"))
+	if layer_node is AnimationNodeOneShot:
+		# OneShot already blends `in` and `shot`; an outer Blend2 at its
+		# default zero weight mutes the one-shot completely.
+		tree.connect_node(StringName(layer_name), 0, StringName(base_name))
+		tree.connect_node(StringName(layer_name), 1, StringName("Shot"))
+		if tree.has_node(StringName("output")):
+			tree.connect_node(StringName("output"), 0, StringName(layer_name))
+		return {"root": tree, "node_count": tree.get_node_list().size(), "issues": []}
 	tree.add_node(StringName(combiner_name), combiner, Vector2(440.0, 0.0))
 	tree.connect_node(StringName(combiner_name), 0, StringName(base_name))
 	tree.connect_node(StringName(combiner_name), 1, StringName(layer_name))
@@ -641,8 +650,8 @@ func _commit_graph(context: Dictionary, root: AnimationNode, action_label: Strin
 		var playbacks := _playback_paths(tree)
 		data["playback_paths"] = playbacks
 		if data.has("start_state") and not playbacks.is_empty():
-			data["start_hint"] = "at runtime call get_node(tree).get(\"%s\").start(\"%s\")" % [
-				playbacks[0], str(data.start_state)]
+			data["start_hint"] = "active tree enters '%s' from Start; to override at runtime call get_node(tree).get(\"%s\").start(\"%s\")" % [
+				str(data.start_state), playbacks[0], str(data.start_state)]
 		if not parameter_path.is_empty():
 			data["parameter_set"] = {"path": parameter_path, "value": parameter_value}
 		for key in ["request_parameter", "amount_parameter"]:

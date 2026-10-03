@@ -189,6 +189,25 @@ func test_rollup_rejects_unknown_op() -> void:
 	assert_contains(unknown.error.message, "rig_get")
 
 
+func test_rig_families_refuse_cross_family_ops() -> void:
+	var rig_ctx := McpCallContext.new()
+	var rig_spec := McpCustomToolSpec.new()
+	rig_spec.name = OpRegistry.FAMILY_RIG
+	rig_ctx.spec = rig_spec
+	var rejected_modifier := _handler.run({"op": "ik_setup"}, rig_ctx)
+	assert_is_error(rejected_modifier, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_contains(rejected_modifier.error.message, "pose_save")
+	var modifier_ctx := McpCallContext.new()
+	var modifier_spec := McpCustomToolSpec.new()
+	modifier_spec.name = OpRegistry.FAMILY_RIG_MODIFIERS
+	modifier_ctx.spec = modifier_spec
+	var rejected_rig := _handler.run({"op": "pose_save"}, modifier_ctx)
+	assert_is_error(rejected_rig, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_contains(rejected_rig.error.message, "ik_setup")
+	assert_false(rejected_rig.error.message.contains("pose_save, pose_apply"),
+		"the modifier family must report its own choices")
+
+
 # --- pose_save -------------------------------------------------------------
 
 func test_pose_save_captures_rest_and_pose() -> void:
@@ -264,6 +283,31 @@ func test_pose_apply_blend_and_mirror() -> void:
 		"mirroring moves the rotation to the right arm (%s)" % _bone_angle(rig.skeleton, "B-upperArm.R"))
 	assert_true(_bone_angle(rig.skeleton, "B-upperArm.L") < 0.02,
 		"the left arm returns to rest (%s)" % _bone_angle(rig.skeleton, "B-upperArm.L"))
+	_teardown(rig)
+
+
+func test_pose_apply_dry_run_preserves_bones() -> void:
+	var rig := _rig("RigDryPose")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	_rotate_bone(rig.skeleton, "B-upperArm.L", PI / 3.0)
+	var saved := _handler.run({
+		"op": "pose_save", "skeleton_path": rig.skeleton_path, "path": POSE_FILE,
+		"overwrite": true,
+	}, null)
+	assert_has_key(saved, "data")
+	_rotate_bone(rig.skeleton, "B-upperArm.L", 0.0)
+	var dry := _handler.run({
+		"op": "pose_apply", "skeleton_path": rig.skeleton_path, "path": POSE_FILE,
+		"reset_first": true, "dry_run": true,
+	}, null)
+	assert_has_key(dry, "data")
+	assert_eq(int(dry.data.bone_count), 56)
+	assert_true(bool(dry.data.dry_run))
+	assert_false(bool(dry.data.undoable))
+	assert_true(_bone_angle(rig.skeleton, "B-upperArm.L") < 0.001,
+		"dry pose apply must leave the bone at rest")
 	_teardown(rig)
 
 
@@ -598,7 +642,9 @@ func test_rig_get_dumps_and_flags_unknown_bones() -> void:
 	# Inject a track that names a bone the skeleton does not have.
 	var anim: Animation = rig.player.get_animation("bogus")
 	var index: int = anim.add_track(Animation.TYPE_ROTATION_3D)
-	anim.track_set_path(index, NodePath("Rig/Skeleton3D:B-notABone"))
+	var player_root: Node = rig.player.get_node(rig.player.root_node)
+	var skeleton_track_path := str(player_root.get_path_to(rig.skeleton))
+	anim.track_set_path(index, NodePath("%s:B-notABone" % skeleton_track_path))
 	anim.rotation_track_insert_key(index, 0.0, Quaternion.IDENTITY)
 	var flagged := _handler.run({"op": "rig_get", "skeleton_path": rig.skeleton_path}, null)
 	var codes: Array = []
@@ -666,6 +712,14 @@ func test_rig_chain_appends_and_validates() -> void:
 		skip(rig.error)
 		return
 	var before: int = rig.skeleton.get_bone_count()
+	var original_bones: Array = []
+	for bone_index in before:
+		original_bones.append({
+			"name": rig.skeleton.get_bone_name(bone_index),
+			"parent": rig.skeleton.get_bone_parent(bone_index),
+			"rest": rig.skeleton.get_bone_rest(bone_index),
+			"rotation": rig.skeleton.get_bone_pose_rotation(bone_index),
+	})
 	var appended := _handler.run({
 		"op": "rig_chain", "skeleton_path": rig.skeleton_path,
 		"bones": [{"name": "tool_tip", "parent": "B-hand.R", "position": [0, 0.05, 0]}],
@@ -691,6 +745,22 @@ func test_rig_chain_appends_and_validates() -> void:
 	}, null)
 	assert_is_error(cycle, ErrorCodes.INVALID_PARAMS)
 	assert_contains(cycle.error.message, "cycle")
+	var undone := editor_undo(_undo_redo)
+	assert_true(undone, "one undo should remove the appended bone")
+	assert_eq(rig.skeleton.get_bone_count(), before,
+		"undo restores the imported skeleton's original bone count")
+	assert_eq(rig.skeleton.find_bone("tool_tip"), -1,
+		"undo removes the appended tip")
+	assert_true(rig.skeleton.find_bone("B-hand.R") >= 0,
+		"undo preserves existing imported bones")
+	for bone_index in before:
+		var original: Dictionary = original_bones[bone_index]
+		assert_eq(rig.skeleton.get_bone_name(bone_index), original.name)
+		assert_eq(rig.skeleton.get_bone_parent(bone_index), original.parent)
+		assert_true(rig.skeleton.get_bone_rest(bone_index).is_equal_approx(original.rest),
+			"undo keeps bone %d rest" % bone_index)
+		assert_true(rig.skeleton.get_bone_pose_rotation(bone_index).is_equal_approx(original.rotation),
+			"undo keeps bone %d pose" % bone_index)
 	_teardown(rig)
 
 
@@ -1179,6 +1249,17 @@ func test_spring_setup_builds_springs() -> void:
 	assert_true(leaf.has("data"), "expected data, got: %s" % str(leaf))
 	assert_eq((simulator as SpringBoneSimulator3D).get_setting_count(), 1, "the second call replaces the settings")
 	assert_true((leaf.data.warnings as Array).size() > 0, "the leaf fallback warns")
+	var single := _handler.run({
+		"op": "spring_setup", "skeleton_path": rig.skeleton_path,
+		"springs": [{"root_bone": "B-jaw"}],
+	}, null)
+	assert_is_error(single, ErrorCodes.INVALID_PARAMS)
+	assert_contains(str(single.error.message), "two-bone chain")
+	var unrelated := _handler.run({
+		"op": "spring_setup", "skeleton_path": rig.skeleton_path,
+		"springs": [{"root_bone": "B-forearm.L", "end_bone": "B-hand.R"}],
+	}, null)
+	assert_is_error(unrelated, ErrorCodes.INVALID_PARAMS)
 	var missing := _handler.run({
 		"op": "spring_setup", "skeleton_path": rig.skeleton_path,
 		"springs": [{"root_bone": "ghost"}],
@@ -1192,7 +1273,7 @@ func test_spring_setup_builds_springs() -> void:
 	var undone := editor_undo(_undo_redo)
 	assert_true(undone, "undo should succeed")
 	assert_true(ValueCodec.resolve_scene_path(str(leaf.data.modifier_path), scene_root) == null,
-		"one undo removes the simulator")
+		"one undo removes the latest simulator")
 	_teardown(rig)
 
 
@@ -1283,6 +1364,8 @@ func test_twist_setup_disperses_over_the_chain() -> void:
 	assert_true(even.has("data"), "an even disperser over part of the chain is accepted, got: %s" % str(even))
 	assert_eq(str(even.data.mode), "even")
 	assert_eq((even.data.joint_bones as Array).size(), 3, "hips, spine, chest")
+	assert_eq(str(even.data.reference_bone), "B-spine",
+		"an unextended end uses its parent as the twist reference")
 	var even_modifier := ValueCodec.resolve_scene_path(str(even.data.modifier_path), scene_root) as BoneTwistDisperser3D
 	assert_eq(even_modifier.get_end_bone_name(0), "B-chest")
 	assert_eq(even_modifier.get_disperse_mode(0), BoneTwistDisperser3D.DISPERSE_MODE_EVEN)
@@ -1374,6 +1457,13 @@ func test_twist_setup_disperses_over_the_chain() -> void:
 		"spine_chain": ["B-hips", "B-nope"],
 	}, null)
 	assert_is_error(missing_bone, ErrorCodes.NODE_NOT_FOUND)
+	var long_path := str(long_range.data.modifier_path)
+	assert_true(editor_undo(_undo_redo), "one undo removes the last twist modifier")
+	assert_true(ValueCodec.resolve_scene_path(long_path, scene_root) == null,
+		"twist undo removes the modifier")
+	assert_true(editor_redo(_undo_redo), "redo restores the twist modifier")
+	assert_true(ValueCodec.resolve_scene_path(long_path, scene_root) is BoneTwistDisperser3D,
+		"twist redo restores a wired disperser")
 	_remove_node(rig_path)
 
 
