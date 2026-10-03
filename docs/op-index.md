@@ -421,7 +421,7 @@ Handler: `res://addons/godot_ai_animation/handlers/inspect.gd`
 | `contact_threshold` | number | sample: foot contact height tolerance (0.02 m); motion_audit: distance from each foot's rest height (up to 0.005 m, scaled down for short rigs). |
 | `max_slide` | number | motion_audit: worst foot travel while planted to pass, metres (0.05). |
 | `max_hip_bob` | number | motion_audit: hips' vertical range to pass, metres (gait default 0.12; transition default 18% of leg length; jump only capped if supplied). |
-| `motion_kind` | string: gait \| jump \| turn \| transition \| strafe | motion_audit: action type for contact grading (gait default; strafe checks crossed feet; jump skips gait hip-bob cap). |
+| `motion_kind` | string: gait \| run \| jump \| turn \| transition \| strafe | motion_audit: action type for contact grading (gait default; run checks simultaneous airborne clearance; strafe checks crossed feet; jump skips gait hip-bob cap). |
 | `max_penetration` | number | motion_audit: maximum foot penetration below rest ground, metres (default 1% of leg length). |
 | `width` | integer | preview: frame width in pixels (480). |
 | `height` | integer | preview: frame height in pixels (270). |

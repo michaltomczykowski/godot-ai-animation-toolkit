@@ -37,7 +37,8 @@ async def run(args: argparse.Namespace) -> int:
                     "op": "motion_audit", "player_path": player,
                     "skeleton_path": skeleton,
                     "animation_name": op, "samples": fps + 1,
-                    "motion_kind": ("jump" if op == "jump" else
+                    "motion_kind": ("run" if args.run_flight_gate and op == "run_cycle" else
+                                    "jump" if op == "jump" else
                                     "turn" if op == "turn_cycle" else
                                     "strafe" if op == "strafe_cycle" else
                                     "transition" if op in ("walk_start", "walk_stop") else "gait"),
@@ -52,6 +53,7 @@ async def run(args: argparse.Namespace) -> int:
                     "failed_checks": result.get("failed_checks", []),
                     "body_travel": result.get("body_travel"),
                     "min_lateral_foot_gap": result.get("min_lateral_foot_gap"),
+                    "flight": result.get("flight"),
                     "failed_details": [c for c in result.get("checks", [])
                                        if not c.get("passed", True)],
                     "feet": {side: {key: foot.get(key) for key in
@@ -78,6 +80,8 @@ def main() -> int:
     parser.add_argument("--ws-port", type=int, required=True)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--rig", choices=("dummy", "xbot"), default="dummy")
+    parser.add_argument("--run-flight-gate", action="store_true",
+                        help="Grade run_cycle with simultaneous flight and leg reach checks")
     parser.add_argument("--max-slide", type=float, default=0.016,
                         help="Played stance-slide cap in metres")
     parser.add_argument("--contact-threshold", type=float,

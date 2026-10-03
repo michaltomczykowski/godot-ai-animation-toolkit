@@ -2269,3 +2269,24 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   knee tuck and a deliberately pitched torso, plus a gate on target clamp
   and simultaneous foot clearance. The previous 10-frame sheet missed the
   flight windows; new sheets include frames 21–27 and 51–57 at 60 FPS.
+
+### 2026-10-03 — Played run flight and extension gate
+
+- Added `motion_kind=run` to `animation_inspect.motion_audit`. It uses the
+  isolated Godot AnimationPlayer playback and world-space rig-up axis already
+  used for contact. It reports the peak clearance shared by **both** feet,
+  the sampled airborne fraction, and the largest hip-to-ankle extension.
+  The run grade requires at least 2% of leg length simultaneous clearance,
+  at least 5% airborne samples, and extension no greater than 0.985 of leg
+  length. Existing `motion_kind=gait` behavior remains available for ordinary
+  walk checks. An editor regression checks the run-specific reports.
+- Through the live Godot AI tool route, the saved default X Bot and dummy
+  runs were graded at 30/60/120 FPS. Both had real numerical flight: X Bot
+  peak simultaneous clearance 44.2–59.3 mm and 19–25% airborne samples;
+  dummy 49.9–64.3 mm and 26% airborne samples. Their extension ratios were
+  0.9989 and 0.9987, so all six run-grade rows **failed the extension check**.
+  This narrows the problem: flight exists numerically, but its near-locked
+  legs and torso pose make it read poorly from the side. Logs
+  `mcp_{xbot,dummy}_run_flight_gate_20261003.log` preserve the result. The
+  Godot 4.7.2 editor suite passed 224/224 tests after the audit addition.
+  The run generator is still unresolved and remains unapproved.

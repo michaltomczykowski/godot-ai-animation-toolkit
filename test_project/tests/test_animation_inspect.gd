@@ -854,6 +854,37 @@ func test_motion_audit_checks_strafe_foot_order() -> void:
 	_teardown_rig(rig)
 
 
+func test_run_motion_audit_reports_flight_and_extension() -> void:
+	var rig := _rig("RunAudit")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var motion := MotionHandler.new()
+	var built := motion.run({
+		"op": "run_cycle", "player_path": rig.player_path,
+		"skeleton_path": rig.skeleton_path, "animation_name": "run_audit",
+		"duration": 1.0, "loop_mode": "linear", "root_motion": true,
+	}, null)
+	assert_true(built.has("data"), "run builds for played flight audit: %s" % str(built))
+	if built.has("data"):
+		var audit := _handler.run({
+			"op": "motion_audit", "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "animation_name": "run_audit",
+			"motion_kind": "run", "samples": 121, "max_slide": 0.016,
+		}, null)
+		assert_true(audit.has("data"), "played run audit returns data: %s" % str(audit))
+		if audit.has("data"):
+			var flight := _check_named(audit.data.checks, "run_flight")
+			var reach := _check_named(audit.data.checks, "run_leg_extension")
+			assert_true(not flight.is_empty() and not reach.is_empty(),
+				"run audit grades both airborne clearance and leg extension")
+			assert_true(float(audit.data.flight.clearance_budget) > 0.0,
+				"run flight threshold scales with leg length")
+			assert_true(float(audit.data.flight.airborne_fraction) >= 0.0,
+				"run audit reports the sampled airborne share")
+	_teardown_rig(rig)
+
+
 func test_motion_report_metrics_and_health() -> void:
 	var fixture := _fixture("MR")
 	if fixture.has("error"):

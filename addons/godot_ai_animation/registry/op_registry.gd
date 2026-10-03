@@ -822,8 +822,8 @@ static func _inspect_schema() -> Dictionary:
 				"description": "motion_audit: hips' vertical range to pass, metres (gait default 0.12; transition default 18% of leg length; jump only capped if supplied).",
 			},
 			"motion_kind": {
-				"type": "string", "enum": ["gait", "jump", "turn", "transition", "strafe"],
-				"description": "motion_audit: action type for contact grading (gait default; strafe checks crossed feet; jump skips gait hip-bob cap).",
+				"type": "string", "enum": ["gait", "run", "jump", "turn", "transition", "strafe"],
+				"description": "motion_audit: action type for contact grading (gait default; run checks simultaneous airborne clearance; strafe checks crossed feet; jump skips gait hip-bob cap).",
 			},
 			"max_penetration": {
 				"type": "number",

@@ -706,10 +706,10 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 	var slide_budget := maxf(float(params.get("max_slide", 0.05)), 0.0)
 	var bob_budget := maxf(float(params.get("max_hip_bob", 0.12)), 0.0)
 	var motion_kind := str(params.get("motion_kind", "gait"))
-	if motion_kind not in ["gait", "jump", "turn", "transition", "strafe"]:
+	if motion_kind not in ["gait", "run", "jump", "turn", "transition", "strafe"]:
 		sandbox.free()
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-			"motion_kind must be gait, jump, turn, transition, or strafe")
+			"motion_kind must be gait, run, jump, turn, transition, or strafe")
 	var skeleton_xform := skeleton.global_transform
 	# The rig's own frame, so "height" means the same thing here as it does in
 	# the generator: a rig that stands along +Z is measured against its own floor.
@@ -745,8 +745,8 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 				"hip_positions": [],
 				"knee_positions": [],
 			}
+	var reference_leg := 0.0
 	if not feet.is_empty():
-		var reference_leg := 0.0
 		for side in feet:
 			reference_leg = maxf(reference_leg, float((feet[side] as Dictionary).leg_length))
 		if not params.has("contact_threshold"):
@@ -960,6 +960,53 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 			"fix": "pass roles/profile with foot_l and foot_r (animation_inspect rig_profile lists candidates).",
 		})
 	var min_lateral_foot_gap := INF
+	var flight_data := {}
+	if motion_kind == "run" and feet.has("l") and feet.has("r"):
+		var peak_both_clearance := -INF
+		var peak_time := 0.0
+		var airborne_samples := 0
+		for sample_index in times.size():
+			var left_height := ((feet.l.positions as Array)[sample_index] as Vector3).dot(up) \
+				- float(feet.l.ground)
+			var right_height := ((feet.r.positions as Array)[sample_index] as Vector3).dot(up) \
+				- float(feet.r.ground)
+			var both_clearance := minf(left_height, right_height)
+			if both_clearance > peak_both_clearance:
+				peak_both_clearance = both_clearance
+				peak_time = float(times[sample_index])
+			if both_clearance > threshold:
+				airborne_samples += 1
+		var flight_fraction := float(airborne_samples) / float(maxi(times.size(), 1))
+		var clearance_budget := 0.02 * reference_leg
+		var peak_extension := INF
+		if (foot_data.l as Dictionary).has("pose_range") \
+				and (foot_data.r as Dictionary).has("pose_range"):
+			peak_extension = maxf(float(foot_data.l.pose_range.max_extension_ratio),
+				float(foot_data.r.pose_range.max_extension_ratio))
+		flight_data = {"peak_both_feet_clearance": _round(peak_both_clearance),
+			"peak_time": _round(peak_time),
+			"airborne_fraction": _round(flight_fraction),
+			"clearance_budget": _round(clearance_budget),
+			"peak_leg_extension_ratio": _round(peak_extension) if is_finite(peak_extension) else null}
+		checks.append({
+			"check": "run_flight",
+			"passed": peak_both_clearance >= clearance_budget and flight_fraction >= 0.05,
+			"value": _round(peak_both_clearance),
+			"budget": _round(clearance_budget),
+			"unit": "m",
+			"message": "both feet reach %.4f m clearance together for %.1f%% of samples (need %.4f m and 5%%)" % [
+				peak_both_clearance, 100.0 * flight_fraction, clearance_budget],
+			"fix": "author an explicit aerial phase with both feet lifted and a reachable tucked-leg pose.",
+		})
+		checks.append({
+			"check": "run_leg_extension",
+			"passed": peak_extension <= 0.985,
+			"value": _round(peak_extension) if is_finite(peak_extension) else null,
+			"budget": 0.985,
+			"unit": "leg length",
+			"message": "peak hip-to-ankle extension is %.4f of the measured leg (limit 0.985)" % peak_extension,
+			"fix": "keep the swing knee bent and the target inside the measured two-bone reach.",
+		})
 	if motion_kind == "strafe" and feet.has("l") and feet.has("r"):
 		var rest_gap := ((feet.l.rest_world as Vector3) -
 			(feet.r.rest_world as Vector3)).dot(lateral_world)
@@ -995,6 +1042,7 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 		"in_place": in_place,
 		"body_travel": _round(body_travel),
 		"min_lateral_foot_gap": _round(min_lateral_foot_gap) if min_lateral_foot_gap != INF else null,
+		"flight": flight_data,
 		"feet": foot_data,
 		"hips": hip_data,
 		"checks": checks,
