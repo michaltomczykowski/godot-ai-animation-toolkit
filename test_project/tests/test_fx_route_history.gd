@@ -94,9 +94,7 @@ func _snapshot(fixture: Node) -> Dictionary:
 				textures.append({"size": texture.get_size(), "duration": sprite.sprite_frames.get_frame_duration(name, index)})
 			frames[str(name)] = {"fps": sprite.sprite_frames.get_animation_speed(name), "loop": sprite.sprite_frames.get_animation_loop(name), "frames": textures}
 	return {"clips": clips, "props": props, "frames": frames,
-		# With no resource, Godot can retain an unusable selection string.
-		# Neither null case has a playable selected clip.
-		"animation": str(sprite.animation) if sprite.sprite_frames != null else "", "playing": sprite.is_playing()}
+		"animation": str(sprite.animation), "playing": sprite.is_playing()}
 
 func _own(node: Node, owner_node: Node) -> void:
 	node.owner = owner_node

@@ -2588,3 +2588,19 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
 
 - Fresh-process playback completed locally: all 64 redone matrix scenes
   passed, with no playback failures. Log: mcp_fx_history_playback_20261004.log.
+
+### 2026-10-04 — Finish FX isolation and exact null restoration
+
+- All five live MCP history tests passed after editor_reload_plugin; all ten
+  families were discoverable. On the visible editor, switching between a
+  wave scene and a transition scene preserved their separate Undo/Redo
+  histories. Undo/Redo in one scene did not alter the other's clip state.
+- Investigated the remaining null-resource selection error rather than
+  accepting a normalized snapshot. Godot rejects selecting a clip against
+  null frames but retains a selection when frames are removed. Undo now
+  selects the original name against a temporary valid resource, then removes
+  it. The matrix compares the raw animation name again. Local editor run
+  passed 233/233 without the prior SpriteFrames selection errors; log
+  fx_history_null_restore_20261004.log. Graph/inspection errors remain.
+- CI run 37228150013 passed Linux live MCP plus Windows/Linux editor and all
+  headless suites. Windows live MCP was still running at this checkpoint.

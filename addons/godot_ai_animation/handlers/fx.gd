@@ -567,11 +567,11 @@ func fx_sprite_frames(params: Dictionary) -> Dictionary:
 		undo.add_do_property(node, "sprite_frames", built.frames)
 		undo.add_do_property(sprite, "animation", StringName(animation_name))
 		undo.add_undo_method(sprite, "stop")
-		undo.add_undo_property(node, "sprite_frames", old_frames)
-		# A null resource has no selectable clip. Setting its old "default"
-		# name after removing frames raises an engine error.
 		if old_frames != null:
+			undo.add_undo_property(node, "sprite_frames", old_frames)
 			undo.add_undo_property(sprite, "animation", old_animation)
+		else:
+			undo.add_undo_method(self, "_restore_null_sprite_frames", sprite, old_animation)
 		if play:
 			undo.add_do_method(sprite, "play", animation_name)
 		if old_playing:
@@ -755,6 +755,18 @@ static func _loop_mode(params: Dictionary, default_mode: String) -> Dictionary:
 	if not _LOOP_MODES.has(mode):
 		return {"error": "Invalid loop_mode '%s'. Valid: %s" % [mode, ", ".join(_LOOP_MODES.keys())]}
 	return {"ok": _LOOP_MODES[mode]}
+
+
+func _restore_null_sprite_frames(sprite: AnimatedSprite2D, animation: StringName) -> void:
+	# Godot rejects selecting a name without frames, but retains that name
+	# when frames are removed. Select it against a temporary valid resource
+	# first, then remove the resource, preserving the original null state.
+	var temporary := SpriteFrames.new()
+	if not temporary.has_animation(animation):
+		temporary.add_animation(animation)
+	sprite.sprite_frames = temporary
+	sprite.animation = animation
+	sprite.sprite_frames = null
 
 
 func _coerce_vector(raw: Variant, like: Variant) -> Variant:

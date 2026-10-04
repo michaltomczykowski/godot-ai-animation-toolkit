@@ -35,8 +35,9 @@ processes. The Windows/Linux live-route CI invokes this gate after core reload.
   now enables Editable Children in the same undo action, restoring the prior
   permission on Undo.
 - Restoring a null SpriteFrames resource then assigning its old `default`
-  animation name raised an engine error. Undo now assigns a selection only
-  when the prior resource exists.
+  animation name raised an engine error. Undo selects the prior name against
+  a temporary valid resource, then removes that resource. The raw selection
+  string and null assignment are now restored exactly without that error.
 
 ## Evidence and remaining checks
 
@@ -51,16 +52,19 @@ SpriteFrames Undo removed the resource and Redo restored the same assignment
 and requested animation. Logs use the `fx_ui_` prefix. These check editor
 history, not visual quality.
 
-Godot can retain an unusable animation-name string when SpriteFrames becomes
-null. Loading that saved null-resource baseline emits an engine selection
-error even though the null assignment and scene properties are restored.
-The snapshot compares the absence of a playable selection in this case;
-named animations on non-null resources are compared exactly. This engine
-serialization limitation remains explicit. The full editor run also reports
-pre-existing graph/inspection engine errors despite passing assertions.
+The initial matrix exposed engine selection errors on Undo and reloading the
+saved null-resource baseline. The follow-up restoration fix removes these
+errors, and the matrix compares raw selection names even with null frames.
+The full editor run still reports pre-existing graph/inspection engine errors
+despite passing assertions; those belong to the remaining roadmap work.
 
 All 64 saved redone scenes passed fresh-process playback locally, with no
 reported playback failures (`mcp_fx_history_playback_20261004.log`).
 
-Cross-platform results, scene-switch isolation,
-and final visual approval must be recorded before this phase is closed.
+After a real core reload, the live MCP matrix again passed all five tests.
+Visible scene-switch isolation also passed: Undo in the transition scene left
+the wave clip intact, Undo in the wave scene left the transition's undone
+state intact, and Redo in the transition scene left the wave undone.
+
+Cross-platform results and final visual approval must be recorded before
+this phase is closed.
