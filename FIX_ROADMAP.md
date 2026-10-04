@@ -2498,3 +2498,22 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   double-support and zero flight samples, with 0.1883 m maximum absolute
   hip-forward offset. This is contract evidence for one saved walk, not visual
   approval. Windows/Linux CI for the stronger gate is pending.
+
+### 2026-10-04 — Strafe support-shift trial rejected
+
+- The played default X Bot left-strafe (saved run `20261003_091848`) passed
+  30/60/120 FPS contact audit. At 120 FPS its hip offset from the planted
+  foot averaged about -0.10 m during left support and +0.10 m during right
+  support. Both-foot support occupied 55 of 121 samples. This measures hip
+  geometry, not the body's centre of mass.
+- Generated a separate clip through live Godot AI with `sway=0.07 m` rather
+  than the public 0.03 m (saved run `20261004_121723`). It had no target
+  clamp, passed the three played FPS audits, and reduced those means to about
+  -0.07 m and +0.06 m. A 61-frame Godot 4.7.2 fixed front-camera render is
+  at `media/xbot_strafe_sway007_front_20261004/sheet.png` in the local
+  recovery snapshot. Comparing it to the saved default front sheet, the
+  increased hip shift is subtle; the torso remains upright and the transfer
+  still lacks readable anticipation. No default or visual-approval status
+  changed. The next candidate should coordinate the chest/shoulders and
+  pelvis timing with lead toe-off and trailing-foot recovery, then be judged
+  with continuous front and side playback on all four rigs.
