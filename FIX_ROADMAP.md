@@ -2557,5 +2557,6 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   sprite play variants through the actual Godot AI route. Dry/write/save and
   forced reopen passed; the stopped variant retained its requested animation
   name. Run `20261004_165846`, log `mcp_sprite_restore_20261004.log` in the
-  recovery snapshot. Cross-platform CI for this handler change is next;
-  final visual approval remains open.
+  recovery snapshot. CI run `37218821836` on commit `0d51589` passed the
+  complete Windows/Linux route and editor/headless suites. Final visual
+  approval remains open.
