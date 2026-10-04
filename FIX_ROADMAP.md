@@ -2604,3 +2604,29 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   fx_history_null_restore_20261004.log. Graph/inspection errors remain.
 - CI run 37228150013 passed Linux live MCP plus Windows/Linux editor and all
   headless suites. Windows live MCP was still running at this checkpoint.
+
+
+### 2026-10-04 — FX history/persistence gate completed
+
+- Final code commit bfddd46 passed the restarted visible Godot AI MCP matrix
+  with an empty editor error log. Actions run 37228583599 passed all Windows
+  and Linux headless, editor and live MCP jobs, including the five history
+  tests and 64 fresh-process saved redone cases per platform. Windows live
+  MCP passed on rerun after a core backend identity-capture failure before
+  any toolkit test. Earlier checkpoint 81b75d6 passed run 37228150013 without
+  a rerun. Both failures and successful evidence are preserved locally.
+- The operation ledger keeps all 103 entries partial. Undo/Redo is pending
+  or partial in 68 entries (missing evidence counts as pending), down from
+  82. Visual review remains pending/partial in 99 entries. Those counts
+  overlap and are not a percentage of total engineering work.
+- The implemented FX history/persistence gate is complete. Visual FX approval
+  and the wider toolkit roadmap remain open. No release or merge occurred.
+- Next bounded repair: graph Undo/Redo and playback ownership. In graph.gd
+  _commit_graph, a new tree's remove_child undo is registered before restoring
+  tree_root/anim_player/active. Restoring path-dependent properties after the
+  tree is detached reproduces the editor's no-common-ancestor errors. Plan
+  first to keep restoration attached (or avoid restoring properties on a
+  newly removed node), assert raw prior properties and exact scene history,
+  and require no new editor errors. Then cover replacement, instancing,
+  save/reopen, dry/rejected calls and active AnimationTree playback through
+  the public Godot AI route. Retain FX gates while changing ownership code.

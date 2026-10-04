@@ -66,5 +66,11 @@ Visible scene-switch isolation also passed: Undo in the transition scene left
 the wave clip intact, Undo in the wave scene left the transition's undone
 state intact, and Redo in the transition scene left the wave undone.
 
-Cross-platform results and final visual approval must be recorded before
-this phase is closed.
+Actions run `37228583599` on commit `bfddd46` passed all Windows/Linux
+headless, editor and live MCP jobs, including 64 saved redone playback cases
+per platform. Windows live MCP passed on rerun: its initial attempt failed
+before any toolkit test because the core could not capture the backend
+process identity. The preceding checkpoint also passed in run `37228150013`.
+
+The functional history/persistence gate is complete. Final FX visual approval
+remains open; no operation is promoted to fully verified by this phase.
