@@ -2352,6 +2352,39 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   saved 30/60/120 FPS rows passed with the run-specific flight/extension
   gate enabled. The cross-platform MCP CI gate now uses that stronger run
   grade for direct `run_cycle` instead of only the generic gait checks.
-  Logs `mcp_*run_*20261003.log` and `mcp_character_setup_run_gate_20261003.log`
-  in the recovery snapshot preserve the calls. Full cross-platform CI and
-  visual approval are the next gates.
+  Windows/Linux Actions runs `37149165902` and `37149282754` passed the
+  changed defaults and stronger MCP grade. Logs `mcp_*run_*20261003.log` and
+  `mcp_character_setup_run_gate_20261003.log` are in the recovery snapshot.
+
+### 2026-10-03 — Walk torso lean and camera-direction probe (no default change)
+
+- The baseline X Bot side render reads as a backward torso pitch during walk.
+  I added a `--walk-lean` trial flag to the live Godot AI motion harness and
+  generated saved `cycle` clips at +10 and -15 degrees versus the 3-degree
+  public default. Each passed saved 30/60/120 FPS played contact audits with
+  zero failed checks and zero reach clamp. Godot 4.7.2 fixed-camera 61-frame
+  sheets were ambiguous about facing direction, so a Godot AI `rig_profile`
+  and `sample` probe measured the saved clips in world space. X Bot's forward
+  axis is +Z; at sampled times the head is about 4 mm behind the hips at the
+  default, 58 mm **ahead** at +10 degrees, and 162 mm behind at -15 degrees.
+  Positive lean does tip forward as documented. My initial reading of the
+  side sheets was reversed by the camera projection. The walk still needs a
+  support-foot/centre-of-mass review before choosing a stronger default. A
+  follow-up sample at mid-stance found the hips 9 mm behind the support foot
+  for both clips; the head is 13 mm behind it at the default and 49 mm ahead
+  at +10 degrees. That supports the geometric correction but does not by
+  itself measure centre of mass or prove visual quality.
+- No shared sign flip or public default change was made. A sign flip would
+  have damaged run, jump and transitions on this rig.
+  Before/after media are `media/xbot_current_default_cycle_side_20261003/`
+  and `media/xbot_walk_lean{10,minus15}_side_20261003/` in the recovery
+  snapshot; route and audit logs are `mcp_xbot_walk_lean*20261003.log` and
+  `mcp_xbot_torso_offsets_20261003.log` and
+  `mcp_xbot_support_offsets_20261003.log`.
+- The +10-degree walk trial was repeated through live Godot AI on the dummy,
+  short synthetic and Z-up tall rigs. All saved clips had zero reach clamp,
+  and all nine played 30/60/120 FPS contact rows passed. The largest sampled
+  stance slide was 4.6 mm on the short rig. This makes +10 degrees a feasible
+  parameter, but does not settle the whole-body visual result, so the default
+  stays at 3 degrees. Logs `mcp_{dummy,short,tall}_walk_lean10_*2026100*.log`
+  preserve invocation and playback checks.
