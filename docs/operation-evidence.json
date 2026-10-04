@@ -1168,7 +1168,8 @@
     "evidence": [
       "2026-09-29: live Godot AI MCP in the visible Godot 4.7.2 editor on the saved 56-bone dummy walk scene. Rig profile found hips/leg/foot roles without a file write; sampling returned both feet at eight times; played motion audit passed with 1.0801 m travel and zero failed checks; preview wrote four 480×270 PNGs, each >4,000 nonbackground pixels. The source clip summary was unchanged. See mcp_inspect_3d_verified.log and test_project/animation_toolkit/previews/repair_inspect/. Preview frame inspection found the subject small, so motion quality is not approved.",
       "2026-09-29: invalid skeleton path returned typed NODE_NOT_FOUND through live Godot AI MCP; see mcp_inspect_3d_errors.log.",
-      "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI inspector contract and typed-error checks on Windows and Linux. The 3D sample and motion audit used the saved dummy walk; remaining visual or file-effect variants stay open."
+      "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI inspector contract and typed-error checks on Windows and Linux. The 3D sample and motion audit used the saved dummy walk; remaining visual or file-effect variants stay open.",
+      "2026-10-04: Godot AI custom_animation_inspect.motion_audit now reports a played world-frame hip-to-support trace (left/right/both/flight), not a centre-of-mass estimate. In the restarted visible Godot 4.7.2 editor, saved X Bot default and shorter-cadence trial runs each passed 30/60/120 FPS after force-open. At 120 FPS the default had 51 left, 51 right and 19 flight samples with 0.4675 m maximum absolute hip-forward offset from support; the trial had 51 left, 50 right and 20 flight samples with 0.3752 m. Logs mcp_xbot_{default,trial}_support_reloaded_20261004.log are in the recovery snapshot. These descriptive values are not a visual-quality pass."
     ]
   },
   "animation_inspect.preview": {

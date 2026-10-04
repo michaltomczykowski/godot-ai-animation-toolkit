@@ -2455,3 +2455,33 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   process identity remained unavailable during startup, before the toolkit
   registration probe. The failed Windows job has been rerun; this is an
   integration startup failure, not evidence that the new motion gate passed.
+
+### 2026-10-04 — Played hip-to-support diagnostic for weight-transfer review
+
+- `animation_inspect.motion_audit` already sampled isolated Godot
+  `AnimationPlayer` playback in world space. It now labels every sample as
+  left support, right support, both feet or flight, and reports the hips'
+  forward/lateral offset from the support foot (or midpoint of both feet).
+  The projection uses the rig's transformed forward/lateral axes, so a rotated
+  or Z-up rig is not silently measured against world Y. These are **hip
+  geometry diagnostics**, not a centre-of-mass calculation or a pass/fail
+  weight-transfer grade. The live audit harness can optionally retain the
+  full played trace for visual review.
+- Godot 4.7.2 editor suite passed 227/227, including the existing walk audit
+  with new support-state assertions and a parent-rotation invariance check.
+  After a core-plugin reload, the visible editor still returned its cached
+  old toolkit script, so I restarted our Godot 4.7.2 test editor. The new
+  support field then appeared through `custom_animation_inspect` on saved X
+  Bot clips. This confirms the source was loaded by the actual Godot AI route.
+- At 120 FPS the public-default X Bot run had 51 left-support, 51
+  right-support and 19 flight samples, with 0.4675 m maximum absolute
+  hip-to-support forward offset. The shorter-cadence/stronger-arm trial had
+  51 left, 50 right and 20 flight samples, with 0.3752 m maximum forward
+  offset. Both saved scenes still passed the run flight/contact grade at
+  30/60/120 FPS. The smaller offset supports the shorter-stride visual
+  impression, but does not prove whole-body weight transfer. Logs
+  `mcp_xbot_{default,trial}_support_reloaded_20261004.log` preserve the live
+  responses. Cross-platform CI for this diagnostic remains to run.
+- Earlier run-repair CI completed on Windows/Linux: run `37191595941` passed
+  after a Windows backend-startup rerun; runs `37192327304` and `37192694387`
+  passed without a rerun. The current branch remains unreleased.

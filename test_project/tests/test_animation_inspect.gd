@@ -740,6 +740,16 @@ func test_motion_audit_grades_planted_feet_and_hips() -> void:
 		"played audit reports hip-to-ankle reach relative to rest leg length")
 	assert_true(float(feet.l.worst_slide) <= 0.05,
 		"a root-motion walk keeps the planted foot inside the 5 cm budget (%s m)" % str(feet.l.worst_slide))
+	var support: Dictionary = result.data.support
+	assert_eq(int(support.sample_count), 24,
+		"support diagnostic uses the played samples")
+	assert_true(int(support.counts.l) + int(support.counts.r) > 0,
+		"a walk has single-foot support samples")
+	assert_true(int(support.counts.l) + int(support.counts.r)
+		+ int(support.counts.both) + int(support.counts.flight) == 24,
+		"every played sample has one support state")
+	assert_true(float(support.max_abs_hip_forward) < 1.0,
+		"hip-to-support forward offset is reported in metres")
 	var checks: Array = result.data.checks
 	assert_true(checks.size() >= 3, "slide and hip checks are reported (%s)" % str(checks.size()))
 	for check in checks:
@@ -761,6 +771,12 @@ func test_motion_audit_grades_planted_feet_and_hips() -> void:
 				"hip bob is invariant under parent rotation")
 			assert_true(absf(float(rotated.data.feet.l.worst_slide) - float(feet.l.worst_slide)) < 0.005,
 				"foot slide is invariant under parent rotation")
+			assert_true(absf(float(rotated.data.support.max_abs_hip_forward)
+				- float(support.max_abs_hip_forward)) < 0.005,
+				"hip-to-support forward projection follows the rotated rig frame")
+			assert_true(absf(float(rotated.data.support.max_abs_hip_lateral)
+				- float(support.max_abs_hip_lateral)) < 0.005,
+				"hip-to-support lateral projection follows the rotated rig frame")
 		rig_root.rotation.z = 0.0
 	# The same walk authored in place: the stance foot travels backwards with the
 	# body by design, and the audit has to say that instead of calling it a defect.
@@ -882,6 +898,8 @@ func test_run_motion_audit_reports_flight_and_extension() -> void:
 				"run flight threshold scales with leg length")
 			assert_true(float(audit.data.flight.airborne_fraction) >= 0.0,
 				"run audit reports the sampled airborne share")
+			assert_true(int(audit.data.support.counts.flight) > 0,
+				"the support trace identifies the run's airborne samples")
 	_teardown_rig(rig)
 
 

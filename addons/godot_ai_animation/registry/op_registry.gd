@@ -889,7 +889,7 @@ static func _inspect_ops() -> Array:
 		},
 		{
 			"name": "motion_audit",
-			"summary": "Play a 3D transform clip on a private scene copy and grade foot contact, stance slide, ground penetration, knee-pole flips, hip bob and travel. Needs foot/hips roles (auto-detected or via roles/profile).",
+			"summary": "Play a 3D transform clip on a private scene copy and grade foot contact, stance slide, ground penetration, knee-pole flips, hip bob and travel. Reports descriptive world-frame hip-to-support offsets and flight states for weight-transfer review; this is not a centre-of-mass estimate. Needs foot/hips roles (auto-detected or via roles/profile).",
 			"params": ["player_path", "animation_name", "skeleton_path", "roles", "profile", "samples", "contact_threshold", "max_slide", "max_hip_bob", "max_penetration", "motion_kind"],
 			"example": {"op": "motion_audit", "player_path": "/Main/Rig/AnimationPlayer", "animation_name": "walk", "skeleton_path": "/Main/Rig/Skeleton3D", "max_slide": 0.03},
 		},

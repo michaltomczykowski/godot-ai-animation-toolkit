@@ -717,6 +717,7 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 	# rig_frame() is in skeleton space, while the sampled positions below are
 	# world-space. A rotated rig otherwise gets measured against the wrong floor.
 	var up: Vector3 = (skeleton_xform.basis * (frame.up as Vector3)).normalized()
+	var forward_world: Vector3 = (skeleton_xform.basis * (frame.forward as Vector3)).normalized()
 	var lateral_world: Vector3 = (skeleton_xform.basis * (frame.lateral as Vector3)).normalized()
 	var feet := {}
 	for side in ["l", "r"]:
@@ -959,6 +960,43 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 			"message": "no foot bones were detected, so ground contact cannot be measured",
 			"fix": "pass roles/profile with foot_l and foot_r (animation_inspect rig_profile lists candidates).",
 		})
+	# Contact windows say whether a foot moved while planted, but they cannot
+	# show weight transfer. This played hip-to-support trace is a geometric
+	# diagnostic: the hips are not a centre-of-mass estimate. Project in the
+	# rig's world-space frame so a rotated or Z-up character is comparable.
+	var support_trace: Array = []
+	var support_counts := {"l": 0, "r": 0, "both": 0, "flight": 0}
+	var max_support_forward := 0.0
+	var max_support_lateral := 0.0
+	if hip_positions.size() == times.size() and feet.has("l") and feet.has("r"):
+		for sample_index in times.size():
+			var grounded: Array = []
+			for side in ["l", "r"]:
+				var point: Vector3 = (feet[side].positions as Array)[sample_index]
+				if point.dot(up) - float(feet[side].ground) <= threshold:
+					grounded.append(side)
+			var state := "flight" if grounded.is_empty() else \
+				"both" if grounded.size() == 2 else str(grounded[0])
+			support_counts[state] += 1
+			var row := {"time": _round(float(times[sample_index])),
+				"state": state, "hip_forward": null, "hip_lateral": null}
+			if not grounded.is_empty():
+				var support_point := Vector3.ZERO
+				for side in grounded:
+					support_point += (feet[side].positions as Array)[sample_index] as Vector3
+				support_point /= float(grounded.size())
+				var offset: Vector3 = (hip_positions[sample_index] as Vector3) - support_point
+				var forward_offset := offset.dot(forward_world)
+				var lateral_offset := offset.dot(lateral_world)
+				row.hip_forward = _round(forward_offset)
+				row.hip_lateral = _round(lateral_offset)
+				max_support_forward = maxf(max_support_forward, absf(forward_offset))
+				max_support_lateral = maxf(max_support_lateral, absf(lateral_offset))
+			support_trace.append(row)
+	var support_data := {"trace": support_trace, "counts": support_counts,
+		"max_abs_hip_forward": _round(max_support_forward),
+		"max_abs_hip_lateral": _round(max_support_lateral),
+		"sample_count": support_trace.size()}
 	var min_lateral_foot_gap := INF
 	var flight_data := {}
 	if motion_kind == "run" and feet.has("l") and feet.has("r"):
@@ -1045,6 +1083,7 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 		"flight": flight_data,
 		"feet": foot_data,
 		"hips": hip_data,
+		"support": support_data,
 		"checks": checks,
 		"passed": failed == 0,
 		"failed_checks": failed,

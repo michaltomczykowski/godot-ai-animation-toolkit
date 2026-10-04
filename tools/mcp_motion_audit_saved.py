@@ -47,6 +47,7 @@ async def run(args: argparse.Namespace) -> int:
                     params["contact_threshold"] = args.contact_threshold
                 result = await call(client, "custom_animation_inspect", params)
                 feet = result.get("feet", {})
+                support = result.get("support", {})
                 rows.append({"op": op, "fps": fps, "scene": scene,
                     "open_error": opened.get("error"), "error": result.get("error"),
                     "passed": result.get("passed"),
@@ -54,6 +55,11 @@ async def run(args: argparse.Namespace) -> int:
                     "body_travel": result.get("body_travel"),
                     "min_lateral_foot_gap": result.get("min_lateral_foot_gap"),
                     "flight": result.get("flight"),
+                    "support": ({"counts": support.get("counts"),
+                                 "max_abs_hip_forward": support.get("max_abs_hip_forward"),
+                                 "max_abs_hip_lateral": support.get("max_abs_hip_lateral"),
+                                 **({"trace": support.get("trace", [])}
+                                    if args.support_trace else {})} if support else None),
                     "failed_details": [c for c in result.get("checks", [])
                                        if not c.get("passed", True)],
                     "feet": {side: {key: foot.get(key) for key in
@@ -82,6 +88,8 @@ def main() -> int:
     parser.add_argument("--rig", choices=("dummy", "xbot"), default="dummy")
     parser.add_argument("--run-flight-gate", action="store_true",
                         help="Grade run_cycle with simultaneous flight and leg reach checks")
+    parser.add_argument("--support-trace", action="store_true",
+                        help="Include played hip-to-support samples for visual review")
     parser.add_argument("--max-slide", type=float, default=0.016,
                         help="Played stance-slide cap in metres")
     parser.add_argument("--contact-threshold", type=float,
