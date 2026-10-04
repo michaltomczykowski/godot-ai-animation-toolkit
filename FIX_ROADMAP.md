@@ -2424,3 +2424,33 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   gate creates the short-rig public default, saves/reopens it and checks played
   flight at 30/60/120 FPS on both CI platforms; it passed locally through the
   already-running Godot AI editor. Cross-platform CI still needs a fresh run.
+
+### 2026-10-04 — X Bot run silhouette trial (no default change)
+
+- The saved public-default side render still shows a far forward foot and weak
+  arm drive. Through the actual Godot AI route, I generated an X Bot run at an
+  explicit 0.8 s duration with the same inferred 2.040 m/s speed. Its resolved
+  stride fell from 24.99 to 19.30 degrees, without target clamp, and the
+  played 30/60/120 FPS run grade passed 3/3. A second 0.8 s trial requested
+  45-degree arm swing and 80-degree elbow bend; it also passed 3/3 played rows.
+  Fixed-camera Godot 4.7.2 sheets at `media/xbot_run_duration08_20261004/`
+  and `media/xbot_run_duration08_arms45_elbow80_20261004/` show a shorter
+  forward reach and more legible forward arm swing than the default sheet.
+  The arm and foot timing still needs continuous playback and cross-rig visual
+  review. These are parameter trials; no production run default changed.
+- The same faster-cadence/stronger-arm recipe was invoked through Godot AI on
+  the short rig at 0.6 s, dummy at 0.78 s, and Z-up tall rig at 0.98 s. All
+  three saved clips had zero target clamp and passed their played run grade at
+  30/60/120 FPS (9/9 more rows). A fixed-camera X Bot front sheet at
+  `media/xbot_run_duration08_arms45_elbow80_front_20261004/sheet.png` shows
+  alternating arms and legs without a visible cross-step. This still does not
+  establish the complete running motion's visual quality, so it stays a trial.
+- In the shared gait diagnostics, the reported stride-cap duration inequality
+  was backwards. At fixed speed a longer cycle needs a longer step; the
+  computed bound is a **maximum** feasible duration. The warning now says
+  `duration <= bound` instead of instructing the caller to lengthen the clip.
+- CI run `37191595941` passed the Linux live route and the editor/tier-one
+  jobs, but the Windows live route could not start Godot AI's backend: its
+  process identity remained unavailable during startup, before the toolkit
+  registration probe. The failed Windows job has been rerun; this is an
+  integration startup failure, not evidence that the new motion gate passed.

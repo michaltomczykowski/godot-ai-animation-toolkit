@@ -177,10 +177,10 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 		# span = 2 * leg_length * sin(stride), speed = span / (stance * duration).
 		var sin_needed := (speed_target * stance * length) / maxf(2.0 * leg_length, 0.001)
 		if sin_needed > sin(deg_to_rad(max_stride)):
-			var min_duration := (2.0 * leg_length * sin(deg_to_rad(max_stride))) / maxf(speed_target * stance, 0.0001)
+			var max_duration := (2.0 * leg_length * sin(deg_to_rad(max_stride))) / maxf(speed_target * stance, 0.0001)
 			warnings.append(
-				"speed %s m/s needs a stride past the %d deg cap at duration %ss; use duration >= %ss or lower the speed"
-				% [snappedf(speed_target, 0.01), int(max_stride), snappedf(length, 0.01), snappedf(min_duration, 0.01)])
+				"speed %s m/s needs a stride past the %d deg cap at duration %ss; use duration <= %ss or lower the speed"
+				% [snappedf(speed_target, 0.01), int(max_stride), snappedf(length, 0.01), snappedf(max_duration, 0.01)])
 			sin_needed = sin(deg_to_rad(max_stride))
 		stride_degrees = rad_to_deg(asin(clampf(sin_needed, 0.0, 1.0)))
 	var span := 2.0 * leg_length * sin(deg_to_rad(stride_degrees))

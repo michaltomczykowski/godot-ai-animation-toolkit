@@ -101,7 +101,8 @@ async def run(args: argparse.Namespace) -> int:
             if args.style is not None and op in ("cycle", "strafe_cycle", "walk_start", "walk_stop"):
                 params["style"] = args.style
             if op == "run_cycle" and (args.run_crouch is not None or args.run_lean is not None
-                                      or args.run_foot_lift is not None):
+                                      or args.run_foot_lift is not None or args.run_arm_swing is not None
+                                      or args.run_elbow is not None):
                 params["overrides"] = {}
                 if args.run_crouch is not None:
                     params["overrides"]["crouch"] = args.run_crouch
@@ -109,6 +110,10 @@ async def run(args: argparse.Namespace) -> int:
                     params["overrides"]["lean"] = args.run_lean
                 if args.run_foot_lift is not None:
                     params["overrides"]["foot_lift"] = args.run_foot_lift
+                if args.run_arm_swing is not None:
+                    params["overrides"]["arm_swing"] = args.run_arm_swing
+                if args.run_elbow is not None:
+                    params["overrides"]["elbow"] = args.run_elbow
             if op in ("walk_cycle", "cycle") and args.walk_lean is not None:
                 params.setdefault("overrides", {})["lean"] = args.walk_lean
             row["before"] = await inspect(client, op, player)
@@ -183,6 +188,10 @@ def main() -> int:
                         help="Explicit run torso lean angle for a visual trial")
     parser.add_argument("--run-foot-lift", type=float,
                         help="Explicit run swing-foot lift distance for a visual trial")
+    parser.add_argument("--run-arm-swing", type=float,
+                        help="Explicit run upper-arm swing angle for a visual trial")
+    parser.add_argument("--run-elbow", type=float,
+                        help="Explicit run baseline elbow bend angle for a visual trial")
     parser.add_argument("--walk-lean", type=float,
                         help="Explicit walk torso lean angle for a visual trial")
     return asyncio.run(run(parser.parse_args()))
