@@ -71,9 +71,10 @@ claim to undo file side effects it leaves behind.
 
 **Status:** In progress. The live MCP catalog, fixture invocation, real-project
 installation, core reload, direct-backend disable/re-enable notifications and
-rollback pass on Windows. The pinned-core registration/reload route also
-passes in Windows/Linux CI. Stdio attach notification forwarding and the
-remaining real-project/core combinations remain to verify.
+rollback pass on Windows. The pinned-core registration/reload and the live
+family routes pass in Windows/Linux CI. Stdio attach does not forward the
+core's `tools/list_changed` events; this is a separate Godot AI transport gap.
+The remaining real-project/core combinations still need verification.
 
 **Execution order:**
 
@@ -108,10 +109,11 @@ callers to unavailable operations get a typed error, never a false success.
 The matrix is produced by CI and identifies uncovered operations explicitly.
 
 **Status:** In progress. A 103-row operation evidence ledger and generated
-audit exist; all rows remain partial until visual, per-operation undo and
-Linux gates are satisfied. The motion allocation limit and jump-distance
-fix pass on Windows. Live Godot AI dry/write/save/reopen and typed-error
-evidence covers the families, while gaps remain visible in the ledger.
+audit exist; all rows remain partial. The motion allocation limit and
+jump-distance fix pass. Live Godot AI dry/write/save/reopen and typed-error
+evidence covers the families on Windows and Linux, while per-operation
+Undo/Redo, visual review and precise error evidence remain incomplete in the
+ledger.
 
 ## Phase 3 — character motion and a trustworthy evaluator
 
@@ -132,21 +134,20 @@ Idle/walk/run/start/stop/turn/strafe/jump playback and root-motion extraction
 are measured. Fixed-camera contact sheets pass human visual review for
 anticipation, impact, weight transfer and recovery.
 
-**Status:** In progress. Root extraction and private played contact audits
-cover the bundled dummy, X Bot, half-size and Z-up tall rigs at 30/60/120
-FPS. The strafe now has a played foot-crossing check. Walk visual quality,
-reach clamps, loop/pose quality, full action review and Linux remain open.
+**Status:** In progress. Root extraction and played contact audits cover the
+bundled dummy, X Bot, short and Z-up tall rigs at 30/60/120 FPS. The strafe
+has a played foot-crossing check. All nine public motion cases pass 27/27
+saved playback rows in the Windows/Linux live route; the four-rig default run
+passes 12/12 local rows with zero target clamp. Walk/run whole-body visual
+quality, contact/centre-of-mass overlay and full action review remain open.
 
 **Next visual-quality subphase:** Preserve fixed-camera continuous clips of
 the current defaults on all four rigs, with front and side views and a
-contact/COM overlay, before changing keys. Redesign strafe as a leading-foot
-placement followed by trailing-foot recovery: move the pelvis over the
-support foot before toe-off, let the leading foot travel beyond the original
-ankle width without crossing, and give the trailing foot a separate swing
-window. Do not use the current symmetric forward-gait span cap as the sole
-side-step design. Re-run all 30/60/120 FPS contact, crossing, reach and loop
-checks, then compare continuous playback and sheets. Next tune walk torso
-pitch and run flight/support timing by the same visual and numeric cycle.
+contact/centre-of-mass overlay. Compare the documented shorter-cadence,
+stronger-arm run trial against the current default in continuous playback,
+then test any proposed default on all four rigs and the full Windows/Linux
+route. Resolve walk torso pitch and remaining start/stop, turn, jump and
+sequence quality with the same played numeric and visual cycle.
 
 ## Phase 4 — sequencing, graphs and remaining families
 
