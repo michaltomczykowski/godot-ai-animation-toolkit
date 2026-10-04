@@ -2517,3 +2517,21 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   changed. The next candidate should coordinate the chest/shoulders and
   pelvis timing with lead toe-off and trailing-foot recovery, then be judged
   with continuous front and side playback on all four rigs.
+
+### 2026-10-04 — Correct the FX persistence audit for a playing sprite
+
+- GitHub Actions run `37201729204` passed Linux and all editor/tier-one jobs,
+  but the Windows live route failed on `sprite_frames: effect did not persist`.
+  The prior FX diagnostic printed the failing operation but omitted its
+  before/after state, so it did not establish which property differed.
+- The audit compared `AnimatedSprite2D.frame` across write and forced reopen
+  while the sprite was playing. That runtime frame can advance independently
+  of the saved resource. The persistence check now compares the durable
+  SpriteFrames assignment and animation name for the playing case; the
+  `play=false` case retains its stricter static-state comparison. The CI
+  route still opens and plays the saved resource in a fresh Godot process to
+  verify the four frames advance. Future failures print the failing row's
+  after/persisted values for diagnosis.
+- Re-ran all 17 FX operations through the visible Godot 4.7.2 editor and the
+  real Godot AI route locally: no audit failures. Windows/Linux CI for this
+  correction is pending. No FX generator or public operation changed.

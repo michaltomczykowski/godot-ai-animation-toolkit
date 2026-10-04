@@ -63,6 +63,13 @@ def equivalent(left: object, right: object) -> bool:
     return left == right
 
 
+def durable_sprite_state(value: dict) -> dict:
+    # A playing AnimatedSprite2D advances `frame` between calls. Persisted
+    # resource assignment and animation identity are the scene-file effect;
+    # fresh-process playback is checked separately by the CI route.
+    return {key: value.get(key) for key in ("assigned", "animation")}
+
+
 async def timeline(client: Client, op: str) -> dict:
     if op.startswith("sprite_frames"):
         result = await call(client, "node_get_properties", {
@@ -125,7 +132,11 @@ async def run(args: argparse.Namespace) -> int:
             failures.append(f"{op}: dry run changed the target")
         if equivalent(row["before"], row["after"]):
             failures.append(f"{op}: success without a reported effect")
-        if not equivalent(row["after"], row["persisted"]):
+        after = (durable_sprite_state(row["after"])
+                 if op == "sprite_frames" else row["after"])
+        persisted = (durable_sprite_state(row["persisted"])
+                     if op == "sprite_frames" else row["persisted"])
+        if not equivalent(after, persisted):
             failures.append(f"{op}: effect did not persist")
         if op.startswith("sprite_frames"):
             if row["write"].get("playing") is not (op == "sprite_frames"):

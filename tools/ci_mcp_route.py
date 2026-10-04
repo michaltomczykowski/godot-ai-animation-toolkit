@@ -359,6 +359,12 @@ def fx_playback_gate(args: argparse.Namespace) -> bool:
             print("MCP_CI_FX_DIAGNOSTIC=" + json.dumps({
                 "failures": diagnostic.get("failures"),
                 "ops": [row.get("op") for row in diagnostic.get("operations", [])],
+                "failed_state": [{"op": row.get("op"),
+                                  "after": row.get("after"),
+                                  "persisted": row.get("persisted")}
+                                 for row in diagnostic.get("operations", [])
+                                 if any(str(failure).startswith(str(row.get("op")) + ":")
+                                        for failure in diagnostic.get("failures", []))],
             }))
         else:
             print((audit.stdout + audit.stderr)[-3000:])
