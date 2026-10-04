@@ -27,17 +27,28 @@ async def run(args: argparse.Namespace) -> int:
             run_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             folder = args.project_root / "repair_ui_undo"
             folder.mkdir(parents=True, exist_ok=True)
-            target = folder / f"fx_wave_{run_id}.tscn"
+            target = folder / f"fx_{args.op}_{run_id}.tscn"
             copy_scene(args.project_root / "repair_fx_fixture.tscn", target)
             row["scene"] = "res://repair_ui_undo/" + target.name
             row["open"] = await call(client, "scene_open", {"path": row["scene"]})
-            row["create"] = await call(client, "custom_animation_fx", {
-                "op": "wave", "player_path": "/RepairFxFixture/AnimationPlayer",
-                "target_paths": ["Card1", "Card2", "Card3"],
-                "animation_name": "ui_undo_wave"})
-        row["inspect"] = await call(client, "custom_animation_inspect", {
-            "op": "describe", "player_path": "/RepairFxFixture/AnimationPlayer",
-            "animation_name": "ui_undo_wave"})
+            params = {"op": args.op, "player_path": "/RepairFxFixture/AnimationPlayer",
+                      "animation_name": "ui_undo_" + args.op}
+            if args.op == "wave":
+                params["target_paths"] = ["Card1", "Card2", "Card3"]
+            elif args.op == "transition":
+                params.update(target_path="FadeOverlay", mode="wipe_left")
+            else:
+                params.update(sprite_path="/RepairFxFixture/SheetSprite",
+                              texture="res://tests/fixtures/sheet.png",
+                              hframes=4, vframes=1, play=False)
+            row["create"] = await call(client, "custom_animation_fx", params)
+        if args.op != "sprite_frames":
+            row["inspect"] = await call(client, "custom_animation_inspect", {
+                "op": "describe", "player_path": "/RepairFxFixture/AnimationPlayer",
+                "animation_name": "ui_undo_" + args.op})
+        if args.op != "wave":
+            row["properties"] = await call(client, "node_get_properties", {
+                "path": "/RepairFxFixture/" + ("SheetSprite" if args.op == "sprite_frames" else "FadeOverlay")})
     print("MCP_FX_UI_UNDO=" + json.dumps(row, sort_keys=True))
     return 0
 
@@ -51,6 +62,7 @@ def main() -> int:
     parser.add_argument("--port", type=int, required=True)
     parser.add_argument("--ws-port", type=int, required=True)
     parser.add_argument("--mode", choices=["setup", "inspect"], required=True)
+    parser.add_argument("--op", choices=["wave", "transition", "sprite_frames"], default="wave")
     return asyncio.run(run(parser.parse_args()))
 
 

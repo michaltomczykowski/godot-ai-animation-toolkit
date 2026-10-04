@@ -558,12 +558,20 @@ func fx_sprite_frames(params: Dictionary) -> Dictionary:
 	if not _dry_run:
 		_create_scene_pinned_action("MCP: Sprite frames %s" % sprite_path)
 		var undo := ToolContext.undo_redo
+		# Child resource overrides need editable instances to survive packing.
+		# Keep that permission change in the same scene history action.
+		for level in _instance_levels(sprite):
+			undo.add_do_method(level.parent, "set_editable_instance", level.instance, true)
+			undo.add_undo_method(level.parent, "set_editable_instance", level.instance, false)
 		undo.add_do_method(sprite, "stop")
 		undo.add_do_property(node, "sprite_frames", built.frames)
 		undo.add_do_property(sprite, "animation", StringName(animation_name))
 		undo.add_undo_method(sprite, "stop")
 		undo.add_undo_property(node, "sprite_frames", old_frames)
-		undo.add_undo_property(sprite, "animation", old_animation)
+		# A null resource has no selectable clip. Setting its old "default"
+		# name after removing frames raises an engine error.
+		if old_frames != null:
+			undo.add_undo_property(sprite, "animation", old_animation)
 		if play:
 			undo.add_do_method(sprite, "play", animation_name)
 		if old_playing:

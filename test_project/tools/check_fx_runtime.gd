@@ -31,7 +31,10 @@ func _probe() -> void:
 		return
 	var fixture := packed.instantiate()
 	root.add_child(fixture)
+	if args.size() > 3:
+		fixture = fixture.get_node(args[3])
 	var op := args[1]
+	var clip := args[2] if args.size() > 2 else op
 	var checks: Array = []
 	var failures: Array = []
 	if op.begins_with("sprite_frames"):
@@ -39,21 +42,21 @@ func _probe() -> void:
 		if sprite.sprite_frames == null:
 			failures.append("missing SpriteFrames after reopen")
 		else:
-			var count := sprite.sprite_frames.get_frame_count(op)
+			var count := sprite.sprite_frames.get_frame_count(clip)
 			checks.append({"frames": count, "animation": op})
 			if count != 4:
 				failures.append("expected four SpriteFrames cells")
 			else:
 				sprite.frame = 0
-				sprite.play(op)
-				await create_timer(0.35).timeout
+				sprite.play(clip)
+				await create_timer(1.5 / sprite.sprite_frames.get_animation_speed(clip)).timeout
 				checks.append({"frame_after_play": sprite.frame,
 					"playing_after_play": sprite.is_playing()})
 				if sprite.frame == 0 or not sprite.is_playing():
 					failures.append("saved SpriteFrames do not animate when played")
 	else:
 		var player := fixture.get_node("AnimationPlayer") as AnimationPlayer
-		var animation := player.get_animation(op)
+		var animation := player.get_animation(clip)
 		if animation == null:
 			failures.append("missing clip after reopen")
 		else:
@@ -73,7 +76,7 @@ func _probe() -> void:
 					var key_index := mini(1, animation.track_get_key_count(track_index) - 1)
 					var at := animation.track_get_key_time(track_index, key_index)
 					var expected: Variant = animation.track_get_key_value(track_index, key_index)
-					player.play(op)
+					player.play(clip)
 					player.seek(at, true)
 					player.advance(0.0)
 					var actual: Variant = target.get_indexed(property_path)
@@ -83,13 +86,13 @@ func _probe() -> void:
 						failures.append("played value mismatch: %s" % str(track_path))
 				elif track_type == Animation.TYPE_METHOD:
 					player.callback_mode_method = AnimationMixer.ANIMATION_CALLBACK_MODE_METHOD_IMMEDIATE
-					player.play(op)
+					player.play(clip)
 					player.advance(0.5)
 					checks.append({"method_target": str(track_path), "text": str(target.get("text"))})
 					if op == "counter" and str(target.get("text")) == "0":
 						failures.append("counter method track did not change text")
 				elif track_type == Animation.TYPE_AUDIO:
-					player.play(op)
+					player.play(clip)
 					player.advance(0.25)
 					checks.append({"audio_target": str(track_path), "playing": target.playing})
 					if not target.playing:

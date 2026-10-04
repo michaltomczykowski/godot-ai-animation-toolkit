@@ -2560,3 +2560,31 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   recovery snapshot. CI run `37218821836` on commit `0d51589` passed the
   complete Windows/Linux route and editor/headless suites. Final visual
   approval remains open.
+
+### 2026-10-04 — Implement the FX scene-history phase
+
+- Implemented the agreed bounded matrix for all 16 advertised FX operations:
+  new and replaced clips/resources, absent library, and instanced child with
+  an untouched peer. Calls use the Godot AI dispatcher; history checks use
+  the edited scene's exact history with no global fallback. Dry/rejected calls
+  must leave state/history unchanged; successful writes must add one action.
+  Both undone and redone states are packed, saved and reopened.
+- Fixed lost SpriteFrames overrides on instanced children by putting Editable
+  Children in the same undo action. Removed an invalid animation-selection
+  call when Undo restores null frames. The matrix found both issues.
+- Added an external MCP `test_run` gate requiring all five named tests and
+  nonzero assertions. CI now invokes it after core reload, then plays all
+  64 saved redone outputs in fresh Godot processes. Local editor suite passed
+  233/233; live MCP matrix passed 5/5 after restarting Godot 4.7.2.
+- Checked visible Windows Ctrl+Z/Ctrl+Shift+Z for wave, wipe/pivot and
+  SpriteFrames. MCP property/clip inspections confirmed the results; logs
+  `fx_ui_*` are in F:/GODOTAITESTING. No visual approval is inferred.
+- Detailed coverage and limitations: docs/fx-history-validation.md. Null-frame
+  saved baselines can still emit Godot's invalid-selection error on load;
+  other existing editor suites emit graph/inspection engine errors despite
+  passing assertions. Keep these distinct from the assertion result.
+- Phase remains open while fresh-process playback, Windows/Linux CI,
+  scene-switch isolation and final FX visual review are being completed.
+
+- Fresh-process playback completed locally: all 64 redone matrix scenes
+  passed, with no playback failures. Log: mcp_fx_history_playback_20261004.log.

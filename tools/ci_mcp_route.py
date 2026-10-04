@@ -338,6 +338,20 @@ def modifier_playback_gate(args: argparse.Namespace) -> bool:
 
 def fx_playback_gate(args: argparse.Namespace) -> bool:
     """Play every saved FX result after a live Godot AI invocation."""
+    history = subprocess.run([
+        sys.executable, str(Path(__file__).with_name("mcp_fx_history.py")),
+        "--core-root", str(args.core_root), "--session-hint", args.project.name,
+        "--port", str(args.port), "--ws-port", str(args.ws_port),
+        "--godot", godot_executable(args.godot), "--project-root", str(args.project),
+    ], capture_output=True, text=True, timeout=180, check=False)
+    history_marker = "MCP_FX_HISTORY="
+    history_payload = next((line[len(history_marker):] for line in history.stdout.splitlines()
+                            if line.startswith(history_marker)), "")
+    if history.returncode or not history_payload or not json.loads(history_payload).get("passed"):
+        print("MCP_CI_FAIL=fx_history")
+        print((history.stdout + history.stderr)[-3500:])
+        return False
+    print("MCP_CI_PASS=fx_history", flush=True)
     expected = {"shake", "zoom_punch", "hit_flash", "damage_bar",
                 "typewriter", "progress_fill", "counter", "dialog_pop",
                 "transition", "wave", "spring", "pendulum", "path_follow",
