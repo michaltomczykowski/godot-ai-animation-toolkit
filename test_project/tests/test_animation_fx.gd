@@ -507,6 +507,49 @@ func test_sprite_frames_dry_run_and_play_false_are_noninvasive() -> void:
 	_teardown(rig)
 
 
+func test_sprite_frames_undo_restores_selected_clip_and_playback_position() -> void:
+	if not ResourceLoader.exists(SHEET):
+		skip("fixture sheet.png is not imported")
+		return
+	for was_playing in [true, false]:
+		var animated := AnimatedSprite2D.new()
+		var rig := _rig("SheetRestore%s" % str(was_playing), animated)
+		if rig.has("error"):
+			skip(rig.error)
+			return
+		var original := SpriteFrames.new()
+		original.add_animation("prior_walk")
+		for index in 3:
+			original.add_frame("prior_walk", load(SHEET))
+		animated.sprite_frames = original
+		animated.speed_scale = 1.5
+		animated.play("prior_walk", 0.75)
+		if not was_playing:
+			animated.pause()
+		animated.set_frame_and_progress(2, 0.4)
+		var made := _handler.run({
+			"op": "sprite_frames", "sprite_path": rig.target_path,
+			"texture": SHEET, "hframes": 4, "vframes": 1,
+			"animation_name": "replacement", "play": false,
+		}, null)
+		assert_has_key(made, "data")
+		assert_eq(animated.animation, StringName("replacement"),
+			"play=false selects the generated animation")
+		assert_true(editor_undo(_undo_redo), "undo restores the prior sprite state")
+		assert_true(animated.sprite_frames == original, "undo restores the original resource")
+		assert_eq(animated.animation, StringName("prior_walk"), "undo restores the selected clip")
+		assert_eq(animated.frame, 2, "undo restores the frame")
+		assert_true(absf(animated.frame_progress - 0.4) < 0.0001, "undo restores frame progress")
+		assert_eq(animated.is_playing(), was_playing, "undo restores playing or paused state")
+		if was_playing:
+			assert_true(absf(animated.get_playing_speed() - 1.125) < 0.0001,
+				"undo restores custom playback speed")
+		assert_true(editor_redo(_undo_redo), "redo reapplies the generated animation")
+		assert_eq(animated.animation, StringName("replacement"), "redo selects the generated clip")
+		assert_false(animated.is_playing(), "redo respects play=false")
+		_teardown(rig)
+
+
 func test_audio_cue_builds_audio_track() -> void:
 	if not ResourceLoader.exists(CUE):
 		skip("fixture cue.wav is not imported")

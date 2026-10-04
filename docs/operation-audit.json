@@ -937,7 +937,8 @@
         "2026-09-30: live Godot AI MCP created the result in Godot 4.7.2; dry run left the target unchanged, scene save/forced reopen preserved it. See mcp_fx_sprite_fixed.log, run 20260930_153136. An invalid target returned typed NODE_NOT_FOUND in mcp_fx_errors.log.",
         "2026-09-30: first route pass exposed a mutating dry run; fixed. Editor test checks play=false, undo and redo; saved scene has four SpriteFrames cells. Animated visual playback and Linux remain pending.",
         "2026-10-03: fresh Godot 4.7.2 playback started the saved SpriteFrames animation and observed a frame advance after 0.35 s, for both play=true and play=false authoring cases. This verifies the saved resource can animate; visual review remains pending.",
-        "2026-10-03: GitHub Actions run 37073430671 passed live Godot AI dry/write/save/reopen and fresh-process saved runtime checks on Windows and Linux; visual quality and complete Undo/Redo remain open."
+        "2026-10-03: GitHub Actions run 37073430671 passed live Godot AI dry/write/save/reopen and fresh-process saved runtime checks on Windows and Linux; visual quality and complete Undo/Redo remain open.",
+        "2026-10-04: repaired Undo/Redo of a prior named animation, frame/progress and playing state; playing custom speed is restored when speed_scale is nonzero. Godot 4.7.2 editor suite passed 228/228, including playing and paused prior-state cases. play=false now selects the generated animation. Restarted visible editor live Godot AI dry/write/save/forced-reopen passed both play variants (run 20261004_165846, mcp_sprite_restore_20261004.log). Visual review and additional playback variants remain open."
       ],
       "example": {
         "fps": 12,

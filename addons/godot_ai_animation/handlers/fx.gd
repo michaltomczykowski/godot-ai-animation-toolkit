@@ -550,19 +550,25 @@ func fx_sprite_frames(params: Dictionary) -> Dictionary:
 	var sprite := node as AnimatedSprite2D
 	var old_frames: Variant = sprite.sprite_frames
 	var old_playing := sprite.is_playing()
+	var old_animation := sprite.animation
+	var old_frame := sprite.frame
+	var old_progress := sprite.frame_progress
+	var old_speed := sprite.get_playing_speed() / sprite.speed_scale if not is_zero_approx(sprite.speed_scale) else 1.0
 	var play := bool(params.get("play", true))
 	if not _dry_run:
 		_create_scene_pinned_action("MCP: Sprite frames %s" % sprite_path)
 		var undo := ToolContext.undo_redo
 		undo.add_do_method(sprite, "stop")
 		undo.add_do_property(node, "sprite_frames", built.frames)
+		undo.add_do_property(sprite, "animation", StringName(animation_name))
+		undo.add_undo_method(sprite, "stop")
 		undo.add_undo_property(node, "sprite_frames", old_frames)
+		undo.add_undo_property(sprite, "animation", old_animation)
 		if play:
 			undo.add_do_method(sprite, "play", animation_name)
 		if old_playing:
-			undo.add_undo_method(sprite, "play")
-		else:
-			undo.add_undo_method(sprite, "stop")
+			undo.add_undo_method(sprite, "play", old_animation, old_speed)
+		undo.add_undo_method(sprite, "set_frame_and_progress", old_frame, old_progress)
 		undo.commit_action()
 	return {"data": {
 		"sprite_path": sprite_path,

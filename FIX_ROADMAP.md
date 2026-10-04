@@ -2535,3 +2535,27 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
 - Re-ran all 17 FX operations through the visible Godot 4.7.2 editor and the
   real Godot AI route locally: no audit failures. Windows/Linux CI for this
   correction is pending. No FX generator or public operation changed.
+
+### 2026-10-04 — Restore complete selected SpriteFrames state on undo
+
+- CI run `37202244001` on commit `6f50af9` passed Windows and Linux,
+  including the corrected FX persistence comparison. The support diagnostic
+  gate also passed both platforms in run `37201465351`.
+- Found a separate handler defect while examining the remaining Undo/Redo
+  gate: replacement only retained the old SpriteFrames resource and playback
+  flag. It did not restore a prior named animation or its frame/progress.
+  Undo now stops the replacement, restores the old resource and selected
+  animation, resumes prior playback when appropriate, and restores its frame
+  and progress. Custom playing speed is restored when speed_scale is nonzero.
+  The zero-speed-scale custom-speed variant remains outside this evidence.
+- `play=false` now explicitly selects the generated animation after assigning
+  the resource. One editor regression covers replacement of both a playing
+  and paused prior clip and checks Undo/Redo state. Godot 4.7.2 editor suites
+  passed **228/228**, with no discovery or tool-route errors. Log:
+  `F:/GODOTAITESTING/editor_sprite_restore_20261004.log`.
+- Restarted the visible Godot 4.7.2 editor (PID 17392), then invoked both
+  sprite play variants through the actual Godot AI route. Dry/write/save and
+  forced reopen passed; the stopped variant retained its requested animation
+  name. Run `20261004_165846`, log `mcp_sprite_restore_20261004.log` in the
+  recovery snapshot. Cross-platform CI for this handler change is next;
+  final visual approval remains open.
