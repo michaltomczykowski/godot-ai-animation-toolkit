@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -75,6 +76,20 @@ async def run(args: argparse.Namespace) -> int:
         failures.append("sample: missing the requested eight paired-foot samples")
     if audit.get("passed") is not True or audit.get("failed_checks") != 0:
         failures.append("motion_audit: saved walk did not pass contact grading")
+    support = audit.get("support", {})
+    counts = support.get("counts", {}) if isinstance(support, dict) else {}
+    trace = support.get("trace", []) if isinstance(support, dict) else []
+    if (not isinstance(trace, list) or len(trace) != 120
+            or support.get("sample_count") != 120
+            or any(not isinstance(counts.get(state), int) for state in
+                   ("l", "r", "both", "flight"))
+            or sum(counts.get(state, 0) for state in
+                   ("l", "r", "both", "flight")) != 120
+            or counts.get("l", 0) + counts.get("r", 0) == 0
+            or any(not isinstance(support.get(key), (int, float))
+                   or not math.isfinite(support[key])
+                   for key in ("max_abs_hip_forward", "max_abs_hip_lateral"))):
+        failures.append("motion_audit: missing or invalid played support trace")
     paths = preview.get("paths", [])
     if args.expect_headless_preview:
         if paths:
@@ -89,6 +104,11 @@ async def run(args: argparse.Namespace) -> int:
     summary = {"scene": SCENE, "profile": profile, "sample": sample,
                "audit": {key: audit.get(key) for key in
                          ("passed", "failed_checks", "body_travel", "feet")},
+               "support": {"sample_count": support.get("sample_count"),
+                           "counts": counts,
+                           "max_abs_hip_forward": support.get("max_abs_hip_forward"),
+                           "max_abs_hip_lateral": support.get("max_abs_hip_lateral")}
+                          if isinstance(support, dict) else None,
                "preview": preview, "typed_errors": typed_errors,
                "failures": failures}
     print("MCP_INSPECT_3D=" + json.dumps(summary, sort_keys=True))

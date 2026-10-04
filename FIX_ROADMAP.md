@@ -2485,3 +2485,16 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
 - Earlier run-repair CI completed on Windows/Linux: run `37191595941` passed
   after a Windows backend-startup rerun; runs `37192327304` and `37192694387`
   passed without a rerun. The current branch remains unreleased.
+
+### 2026-10-04 — Gate the support diagnostic through Godot AI
+
+- Extended `tools/mcp_inspect_3d.py`, which the live Windows/Linux CI route
+  invokes after opening the saved dummy walk. It now requires 120 played
+  support samples, a complete left/right/both/flight partition, at least one
+  single-foot support sample, and finite hip offsets. A missing or malformed
+  support result fails the live route even if the older contact grade passes.
+- Ran that inspector probe against the visible Godot 4.7.2 editor and the
+  pinned local Godot AI backend. It passed, reporting 39 left, 39 right, 42
+  double-support and zero flight samples, with 0.1883 m maximum absolute
+  hip-forward offset. This is contract evidence for one saved walk, not visual
+  approval. Windows/Linux CI for the stronger gate is pending.
