@@ -80,6 +80,8 @@ async def run(args: argparse.Namespace) -> int:
             params = {"op": op, "player_path": player,
                       "skeleton_path": skeleton, "animation_name": op,
                       "samples": 30, **extras}
+            if args.use_default_duration and op == "run_cycle":
+                params.pop("duration")
             if args.duration is not None:
                 params["duration"] = args.duration
             if args.speed is not None and op == "run_cycle":
@@ -155,6 +157,8 @@ def main() -> int:
     parser.add_argument("--fixture", help="Scene filename under project root for a dummy-layout synthetic rig")
     parser.add_argument("--duration", type=float,
                         help="Override clip length for a rig-relative cadence trial")
+    parser.add_argument("--use-default-duration", action="store_true",
+                        help="Omit run duration to exercise the public rig-relative default")
     parser.add_argument("--speed", type=float,
                         help="Explicit run speed for a duration and reach trial")
     parser.add_argument("--direction", choices=("left", "right"),

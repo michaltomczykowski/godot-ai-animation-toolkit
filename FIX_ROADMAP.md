@@ -2388,3 +2388,39 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   parameter, but does not settle the whole-body visual result, so the default
   stays at 3 degrees. Logs `mcp_{dummy,short,tall}_walk_lean10_*2026100*.log`
   preserve invocation and playback checks.
+
+### 2026-10-04 — Rig-relative default run cadence and swing lift
+
+- The implicit run speed now uses a fixed one-second reference stride and the
+  measured leg length. Changing an explicit clip duration changes cadence and
+  per-step travel while preserving that rig's inferred ground speed. An
+  omitted run duration uses `sqrt(leg_length/reference_leg)` seconds, bounded
+  to 0.6–1.5 s, and retains at least 24 sample intervals. An explicit duration
+  remains exact and an unreachable step returns `VALUE_OUT_OF_RANGE` without
+  committing a clip. Walk cadence is unchanged.
+- On short legs, linear scaling of the 11 cm reference swing lift gave too
+  little flight clearance. An omitted run lift now has a minimum of 10.5 cm
+  times the square root of the leg-length ratio; an explicit lift is honoured.
+  This is a provisional geometric rule, not a claim of dynamically simulated
+  running. The short fixture uses a 0.719 s default, 1.433 m/s ground speed,
+  75.5 mm base swing lift and zero target clamp. Its explicit one-second
+  request still returns a typed reach error and creates no clip.
+- Through the live Godot AI `custom_animation_motion` route, the short, dummy,
+  Z-up tall and X Bot rigs all produced saved and reopened default `run_cycle`
+  clips with zero reach clamp. Godot 4.7.2 played world-space run audits passed
+  at 30/60/120 FPS on all four rigs (12/12 rows). The short rig's simultaneous
+  flight clearance was 9.5/10.9/12.2 mm against an 8.8 mm threshold, and its
+  peak extension was 0.963/0.968/0.970. The first short-rig `scene_open`
+  timed out during editor startup; the later dry/write/save/reopen and saved
+  playback completed. The other three fixture runs opened normally. Logs are
+  `mcp_{short,dummy,tall,xbot}_run_public_default*20261004.log` in the recovery
+  snapshot.
+- Godot 4.7.2 Movie Maker rendered a 63-frame X Bot default side sheet at
+  `media/xbot_run_public_default_20261004/sheet.png`. Flight reads more clearly,
+  but the forward kick and torso/arm coordination remain stylized. This is
+  **partial visual review**, so the run family is not approved. The editor
+  suite passed 227/227 after adding explicit/implicit cadence and short-rig
+  regression checks. The local tier-one suite passed 14/14. A new live MCP CI
+  gate creates the short-rig public default, saves/reopens it and checks played
+  flight at 30/60/120 FPS on both CI platforms; it passed locally through the
+  already-running Godot AI editor. Cross-platform CI still needs a fresh run.

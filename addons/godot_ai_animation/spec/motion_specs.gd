@@ -164,7 +164,13 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 		# so each gait keeps its own character - a run stays a run, a stroll stays a
 		# stroll - and only the body-size dependence is removed. Nothing is
 		# hard-coded per recipe.
-		var froude_target := _reference_froude(float(config.stride), stance, length)
+		# A run's implicit ground speed describes the rig and the requested
+		# stride style, not the keyframe duration. Shortening a loop should
+		# increase cadence and reduce per-step travel at the same speed; deriving
+		# speed from the shortened duration instead made the short rig run faster
+		# and kept its foot target outside leg reach.
+		var reference_duration := 1.0 if run else length
+		var froude_target := _reference_froude(float(config.stride), stance, reference_duration)
 		speed_target = froude_target * sqrt(9.81 * maxf(_hip_to_ankle(ctx), 0.0001))
 	if speed_target > 0.0:
 		# Solve the stride from the ground speed:
@@ -272,7 +278,15 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 			% [int(round(stride_degrees)), _hip_to_ankle(ctx), snappedf(ground_speed, 0.01),
 				snappedf(froude, 0.01)])
 	var travel := ground_speed * length if rooted else 0.0
-	var lift := float(config.get("foot_lift", 0.05)) * clampf(ground_speed, 0.6, 1.8)
+	var lift_base := float(config.get("foot_lift", 0.05))
+	if run and not bool(ctx.get("foot_lift_explicit", false)):
+		# Linear distance scaling leaves a short rig's implicit run barely
+		# airborne at high cadence. Keep a minimum swing arc that scales with
+		# sqrt(leg length), like the rig-relative Froude speed. At the reference
+		# leg the configured 11 cm remains above this 10.5 cm floor; the floor
+		# only raises smaller rigs. An explicit foot_lift remains exact.
+		lift_base = maxf(lift_base, 0.105 * sqrt(maxf(leg_length, 0.001) / REFERENCE_LEG))
+	var lift := lift_base * clampf(ground_speed, 0.6, 1.8)
 	ctx["foot_lift_scaled"] = lift
 
 	for index in times.size():
@@ -342,6 +356,7 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 			"cadence": 120.0 / length,
 			"clamped": clamped,
 			"clamp_shortfall_m": clamp_shortfall,
+			"foot_lift_base_used_m": lift_base,
 			"reach_pelvis_drop_m": reach_drop,
 			"lateral_capped": lateral_capped,
 			"lateral_speed_cap": lateral_speed_cap if bool(ctx.get("lateral_step", false)) else 0.0,

@@ -138,6 +138,55 @@ def motion_gate(args: argparse.Namespace) -> bool:
     return True
 
 
+def short_run_default_gate(args: argparse.Namespace) -> bool:
+    """Keep the public small-rig default reachable and airborne on both OSes."""
+    common = [
+        "--core-root", str(args.core_root),
+        "--session-hint", args.project.name,
+        "--port", str(args.port), "--ws-port", str(args.ws_port),
+    ]
+    create = subprocess.run([
+        sys.executable, str(Path(__file__).with_name("mcp_motion_remaining_cycles.py")),
+        *common, "--project-root", str(args.project),
+        "--fixture", "repair_synthetic_short.tscn",
+        "--ops", "run_cycle", "--use-default-duration",
+    ], capture_output=True, text=True, timeout=90, check=False)
+    marker = "MCP_MOTION_REMAINING="
+    payload = next((line[len(marker):] for line in create.stdout.splitlines()
+                    if line.startswith(marker)), "")
+    if create.returncode or not payload:
+        print("MCP_CI_FAIL=short_run_create")
+        print((create.stdout + create.stderr)[-2500:])
+        return False
+    result = json.loads(payload)
+    rows = result.get("operations", [])
+    write = rows[0].get("write", {}) if len(rows) == 1 else {}
+    if (result.get("failures") or len(rows) != 1
+            or not 0.68 < float(write.get("length", 0)) < 0.78
+            or float(write.get("clamp_shortfall_m", 1)) > 0.001):
+        print("MCP_CI_FAIL=short_run_create: " + json.dumps({
+            "failures": result.get("failures"), "write": write}))
+        return False
+    audit = subprocess.run([
+        sys.executable, str(Path(__file__).with_name("mcp_motion_audit_saved.py")),
+        *common, "--run-id", result["run_id"], "--ops", "run_cycle",
+        "--run-flight-gate", "--max-slide", "0.016",
+    ], capture_output=True, text=True, timeout=90, check=False)
+    audit_marker = "MCP_MOTION_SAVED_AUDIT="
+    audit_payload = next((line[len(audit_marker):] for line in audit.stdout.splitlines()
+                          if line.startswith(audit_marker)), "")
+    played = json.loads(audit_payload) if audit_payload else []
+    if (audit.returncode or len(played) != 3
+            or {row.get("fps") for row in played} != {30, 60, 120}
+            or any(row.get("passed") is not True or row.get("open_error")
+                   or row.get("error") or row.get("failed_checks") for row in played)):
+        print("MCP_CI_FAIL=short_run_playback")
+        print((audit.stdout + audit.stderr)[-3500:])
+        return False
+    print("MCP_CI_PASS=short_run_default 3/3 played rows", flush=True)
+    return True
+
+
 def motion_setup_gate(args: argparse.Namespace) -> bool:
     """Check saved locomotion tree and baked secondary track through Godot AI."""
     route = subprocess.run([
@@ -722,6 +771,9 @@ def run(args: argparse.Namespace) -> int:
                 print(tail(log_path))
                 return 1
         if not motion_gate(args):
+            print(tail(log_path))
+            return 1
+        if not short_run_default_gate(args):
             print(tail(log_path))
             return 1
         if not motion_setup_gate(args):

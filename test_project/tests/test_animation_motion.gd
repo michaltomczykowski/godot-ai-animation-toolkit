@@ -1107,6 +1107,68 @@ func test_unreachable_run_refuses_to_commit() -> void:
 	_teardown(rig)
 
 
+func test_implicit_run_speed_does_not_rise_when_the_cycle_shortens() -> void:
+	var rig := _rig("MotionRunCadence")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var long_cycle := _handler.run({
+		"op": "run_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "run_long",
+		"duration": 1.0, "loop_mode": "linear",
+	}, null)
+	var short_cycle := _handler.run({
+		"op": "run_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "run_short",
+		"duration": 0.7, "loop_mode": "linear",
+	}, null)
+	assert_true(long_cycle.has("data") and short_cycle.has("data"),
+		"both duration variants build: %s / %s" % [str(long_cycle), str(short_cycle)])
+	if long_cycle.has("data") and short_cycle.has("data"):
+		assert_true(absf(float(long_cycle.data.speed) - float(short_cycle.data.speed)) < 0.01,
+			"omitting speed preserves rig-relative ground speed across cycle durations")
+		assert_true(float(short_cycle.data.stride_used) < float(long_cycle.data.stride_used),
+			"a shorter cycle covers less distance per step at the same speed")
+	var overlong := _handler.run({
+		"op": "run_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "run_overlong",
+		"duration": 1.6, "loop_mode": "linear",
+	}, null)
+	assert_is_error(overlong, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_false(rig.player.has_animation("run_overlong"),
+		"the fixed implicit speed refuses an overlong unreachable stride")
+	_teardown(rig)
+
+
+func test_short_run_uses_a_rig_relative_flight_lift() -> void:
+	var rig := _rig("MotionShortRun", "res://repair_synthetic_short.tscn")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "run_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "short_run",
+		"loop_mode": "linear", "root_motion": true,
+	}, null)
+	assert_true(result.has("data"), "a short rig can run at a reachable cadence: %s" % str(result))
+	if result.has("data"):
+		assert_true(float(result.data.clamp_shortfall_m) <= 0.001,
+			"the short rig's run target is not shortened")
+		assert_true(float(result.data.foot_lift_base_used_m) >= 0.07,
+			"the default swing arc provides rig-relative flight clearance")
+		assert_true(float(result.data.length) > 0.68 and float(result.data.length) < 0.78,
+			"the omitted run duration uses this rig's leg length for cadence")
+	var fixed_one_second := _handler.run({
+		"op": "run_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "short_run_too_long",
+		"duration": 1.0, "loop_mode": "linear", "root_motion": true,
+	}, null)
+	assert_is_error(fixed_one_second, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_false(rig.player.has_animation("short_run_too_long"),
+		"an explicit unreachable duration is respected and refused")
+	_teardown(rig)
+
+
 func test_root_motion_keys_travel() -> void:
 	var rig := _rig("MotionRoot")
 	if rig.has("error"):
@@ -1389,6 +1451,12 @@ func test_generator_contract_key_times_speeds_and_determinism() -> void:
 			"skeleton_path": rig.skeleton_path, "player_path": rig.player_path,
 			"duration": duration, "samples": rate, "loop_mode": "linear",
 		}
+		# An implicit-speed run now keeps its ground speed when duration changes;
+		# the old 1.6 s shared test duration would ask this rig for an unreachable
+		# step and must return a range error rather than a clip to inspect here.
+		if str((recipe as Dictionary)["op"]) == "run_cycle":
+			params["duration"] = 1.0
+			params["samples"] = 40.0
 		for key in (recipe as Dictionary):
 			if str(key) != "animation_name":
 				params[str(key)] = (recipe as Dictionary)[key]

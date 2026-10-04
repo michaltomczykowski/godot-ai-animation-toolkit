@@ -224,6 +224,7 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 	var ctx: Dictionary = built.ctx
 	ctx["config"] = config
 	_scale_distances_to_rig(config, params, overrides, ctx)
+	ctx["foot_lift_explicit"] = params.has("foot_lift") or overrides.has("foot_lift")
 	ctx["speed"] = maxf(float(params.get("speed", 0.0)), 0.0)
 	var direction := str(params.get("direction", "left"))
 	if direction != "left" and direction != "right":
@@ -813,6 +814,19 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 		false, 0.85, chain_first.chain as Array)
 	if measured.has("error"):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, str(measured.error))
+	if kind == "run" and not params.has("duration"):
+		# A run's implicit speed is independent of clip length. Choose cadence
+		# from the measured leg so the reference stride stays reachable across
+		# proportions: shorter legs take quicker steps, longer legs slower ones.
+		# Explicit duration is always honoured and may return a reach error.
+		length = clampf(sqrt(MotionSpecs.measured_leg(measured) /
+			MotionSpecs.REFERENCE_LEG), 0.6, 1.5)
+		if MotionDrivers.sample_count(length, rate) < 24:
+			rate = minf(120.0, maxf(rate, 24.0 / length))
+		measured = MotionSpecs.context_from_skeleton(skeleton, roles, length, rate,
+			false, 0.85, chain_first.chain as Array)
+		if measured.has("error"):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, str(measured.error))
 	var rest: Dictionary = measured.rest
 	var legs: Dictionary = measured.legs
 	var chain: Array = measured.spine_chain

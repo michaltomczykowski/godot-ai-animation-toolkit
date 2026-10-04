@@ -320,9 +320,10 @@ through clip changes. Review the saved scene in playback because a successful
 write or isolated contact result alone does not establish visual quality.
 Run generation returns `VALUE_OUT_OF_RANGE` before writing when a foot target
 misses measured leg reach by more than 1% of leg length. On a short rig,
-choose a shorter `duration` together with an explicit reachable `speed`;
-changing duration alone also changes the inferred speed. An explicit `speed`
-that exceeds the stride cap is refused instead of being silently reduced.
+an omitted `duration` chooses a quicker cadence from measured leg length. An
+explicit `duration` is respected and an omitted `speed` now keeps the same
+rig-relative ground speed as duration changes. An explicit `speed` that exceeds
+the stride cap is refused instead of being silently reduced.
 
 ```json
 {"tool": "custom_animation_motion", "params": {

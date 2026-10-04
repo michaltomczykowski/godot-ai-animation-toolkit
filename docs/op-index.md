@@ -623,7 +623,7 @@ Handler: `res://addons/godot_ai_animation/handlers/motion.gd`
 | `player_path` | string | Scene path to the AnimationPlayer that receives the clip. |
 | `skeleton_path` | string | Scene path to the Skeleton3D (default: the first one). |
 | `animation_name` | string | Clip name (default: the cycle name). |
-| `duration` | number | Clip length in seconds; one gait cycle fits in it. |
+| `duration` | number | Clip length in seconds; one gait cycle fits in it. When omitted, run_cycle and cycle preset=run choose a rig-relative cadence (0.6-1.5 s); other motion defaults remain 1 s. |
 | `style` | string: default \| relaxed \| heavy \| sneaky | Motion style preset, applied before overrides. |
 | `overrides` | object | Deep tuning, e.g. {"stride": 18, "lag": 0.1}; walk/run keys: stride, knee_bend, arm_swing, arm_twist, bob, sway, hip_yaw, hip_roll, chest_yaw, twist_spread, lean, foot_lift, elbow, elbow_swing, lag, stance, crouch; idle keys: amplitude, head_amplitude, look, twist, bob, sway, shift, noise, lean, arm_sway, elbow, arm_twist, twist_spread. |
 | `samples` | number | Requested keys per second (default 24; 4-120). Walk/run automatically use at least 24 intervals per loop, or return a typed error if duration is too short. |

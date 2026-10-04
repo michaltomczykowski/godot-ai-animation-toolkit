@@ -589,7 +589,7 @@ at the frame rates and on the rigs your game uses.
 | op | Notes |
 | --- | --- |
 | `walk_cycle` | Full gait: contact/passing timing, pelvis bob (2x) + sway + yaw + roll, counter-rotating torso shared up the spine chain, arm swing with elbow and clavicle follow-through, head stabilisation, planted feet with heel-strike/toe-off roll. The default config uses an 18-degree stride and 8-degree knee bend; the rig-relative speed solve may adjust the actual stride. `speed` requests an exact ground speed or returns a typed reach error. `stride`, `knee_bend`, `arm_swing`, `bob`, `sway`, `lean`, `chest_yaw`, `twist_spread`. |
-| `run_cycle` | Same engine with a flight phase, a forward lean, a wider stride, bent elbows and a bigger bob. Use a shorter `duration` (0.5-0.7 s). |
+| `run_cycle` | Same engine with a flight phase, a forward lean, a wider stride, bent elbows and a bigger bob. An omitted `duration` selects a rig-relative cadence from measured leg length (0.6–1.5 s). Explicit duration and speed requests are honoured or refused with a typed reach error. |
 | `strafe_cycle` | Looping sideways gait: the leading foot steps out, the trailing foot closes, the knees still bend forward and the pelvis shifts along the travel axis. `direction` left/right, `speed`-driven like the walk. |
 | `idle_cycle` | A loopable idle with presence: a pronounced look-around (head yaw, with a second harmonic so it lingers left/right) and a torso twist shared up the spine chain over breathing, weight shift and seeded micro-noise. `look`, `twist` (the *total* twist in degrees, 22), `twist_spread`, `amplitude`, `head_amplitude`, `bob`, `sway`, `lean`. |
 | `jump` | One-shot jump: anticipation crouch, launch, air arc, descend, landing absorb and recovery. Feet are planted before takeoff and after landing; `height`, `crouch`, `distance` (forward travel). Emits `takeoff` / `apex` / `land` markers. |
@@ -624,7 +624,12 @@ How motion is generated:
   each config's own defaults imply at the reference leg, so a run keeps its run
   value and a stroll its stroll value with no constant of its own. Leg length here
   is hip-to-ankle, which is shorter than the bone sum whenever the rest pose is
-  bent.
+  bent. For run, the implicit speed uses a fixed one-second reference stride,
+  so changing clip duration changes cadence and step travel without raising
+  the inferred ground speed. Omitted run duration is proportional to the
+  square root of measured leg length and is bounded to 0.6–1.5 s. Omitted
+  run foot lift has a small-rig floor proportional to the same square root;
+  an explicit lift remains exact.
 - **Speed-driven.** Pass `speed` (m/s) and the stride is solved from
   `speed * stance * duration / (2 * leg_length)`, overriding the Froude default —
   an explicit speed means the same absolute speed on every rig. Unreachable
@@ -670,8 +675,10 @@ How motion is generated:
   default like the graph ops (`active=true` to enable it), and root motion is
   wired on both the player and the tree. The default `run_speed` is 2.0 m/s.
   A run target that exceeds measured leg reach by more than 1% returns
-  `VALUE_OUT_OF_RANGE` before committing a clip; on small rigs, pair a shorter
-  `run_duration` with an explicit reachable `run_speed`.
+  `VALUE_OUT_OF_RANGE` before committing a clip. Direct `run_cycle` with an
+  omitted `duration` chooses a rig-relative cadence; `character_setup`
+  honours its explicit `run_duration`, so on small rigs pair a shorter
+  `run_duration` with a reachable `run_speed`.
 
 ### Examples
 
