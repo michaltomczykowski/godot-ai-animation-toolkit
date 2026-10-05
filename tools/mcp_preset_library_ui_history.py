@@ -50,7 +50,7 @@ libraries = {&"": SubResource("Library")}
             opened = await call(client, "scene_open", {"path": scene})
             baseline = await snapshot(client, args.op)
             if args.op == "template":
-				path = "res://animation_toolkit/" + target.stem + "_recipe.json"
+                path = "res://animation_toolkit/" + target.stem + "_recipe.json"
                 saved = await call(client, "custom_animation_library", {"op": "template_save", "name": "ui_bounce",
                     "tool": "animation_presets", "forward_op": "bounce", "library_path": path, "overwrite": True, "intensity": 0.25})
                 if saved.get("error"): raise RuntimeError(saved)
