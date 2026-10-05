@@ -514,6 +514,25 @@ def edit_playback_gate(args: argparse.Namespace) -> bool:
     return True
 
 
+def preset_library_history_gate(args: argparse.Namespace) -> bool:
+    """Require history and fresh-engine playback as well as the older audits."""
+    history = subprocess.run([
+        sys.executable, str(Path(__file__).with_name("mcp_preset_library_history.py")),
+        "--core-root", str(args.core_root), "--project-root", str(args.project),
+        "--session-hint", args.project.name, "--port", str(args.port),
+        "--ws-port", str(args.ws_port), "--godot", godot_executable(args.godot),
+    ], capture_output=True, text=True, timeout=120, check=False)
+    marker = "MCP_PRESET_LIBRARY_HISTORY="
+    payload = next((line[len(marker):] for line in history.stdout.splitlines() if line.startswith(marker)), "")
+    report = json.loads(payload) if payload else {}
+    if history.returncode or report.get("passed") is not True or report.get("saved_states") != 126:
+        print("MCP_CI_FAIL=preset_library_history")
+        print((history.stdout + history.stderr)[-6000:])
+        return False
+    print("MCP_CI_PASS=preset_library_history", flush=True)
+    return True
+
+
 def preset_playback_gate(args: argparse.Namespace) -> bool:
     """Play all saved preset clips, including the seven-clip showcase."""
     expected = {"pulse", "bounce", "orbit", "sweep", "drift", "spin",
@@ -861,6 +880,9 @@ def run(args: argparse.Namespace) -> int:
             print(tail(log_path))
             return 1
         if not preset_playback_gate(args):
+            print(tail(log_path))
+            return 1
+        if not preset_library_history_gate(args):
             print(tail(log_path))
             return 1
         if not library_playback_gate(args):

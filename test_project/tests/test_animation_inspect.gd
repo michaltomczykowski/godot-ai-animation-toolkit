@@ -542,8 +542,8 @@ func test_dry_run_leaves_no_trace_in_any_family() -> void:
 		return
 	var scene_root := EditorInterface.get_edited_scene_root()
 	var player := ValueCodec.resolve_scene_path(fixture.player_path, scene_root) as AnimationPlayer
-	var library_dir := "res://templates"
-	var probe := "res://templates/dry_run_probe.json"
+	var library_dir := "res://animation_toolkit/dry_run_probe"
+	var probe := library_dir + "/recipe.json"
 	var cases: Array = [
 		["animation_presets", "pulse", {
 			"player_path": fixture.player_path, "target_path": str(fixture.target),

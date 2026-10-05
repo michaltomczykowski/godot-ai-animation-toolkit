@@ -124,6 +124,19 @@ compressed tracks rather than rewriting them lossily.
 | `spec_import` | Validate/report a spec file or inline spec. |
 | `spec_apply` | Build a clip from a spec, optionally remapping tracks onto another node. |
 
+Library file writes (`template_save`, `template_delete`, `spec_export`) are
+non-undoable. Dry runs perform the same path/overwrite validation and leave
+files unchanged. `template_apply` and `spec_apply` create one scene Undo action,
+including pivots, scene-local libraries and required instance permissions.
+Showcase ownership is restored on Redo so its whole subtree survives saving.
+
+Clip JSON supports numbers, exact tagged integers, booleans, text, Vector2,
+Vector3, Color, Quaternion and Transform3D values. Export refuses values it
+cannot represent, compressed clips, unsaved audio streams and non-native JSON
+method arguments before writing. Applying a spec requires valid engine
+destinations; missing nodes/properties and incompatible track types are typed
+errors. See [history validation](../../docs/preset-library-history-validation.md).
+
 ## `animation_rig`
 
 | op | What it does |

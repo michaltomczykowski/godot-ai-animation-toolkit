@@ -2840,3 +2840,43 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   six separately reported Bone2D leaf warnings. Log:
   edit_history_complete_editor_20261005.log. Platform CI is the remaining
   gate for this checkpoint; all operation statuses remain partial.
+
+### 2026-10-05 - Preset and library phase execution plan and baseline
+
+- Continue from pushed ff8cdbc. Primary route/history matrix: eight preset clip
+  writers, preset/FX template_apply and spec_apply across five layouts (55
+  writes), plus showcase across four parents (4 writes): 59 writes / 118 saved
+  Undo/Redo states. Measure pivots, 3D properties, complete subtrees, ownership,
+  exact resources, permissions, autoplay, source/peer/unrelated isolation.
+- Separate library file contracts: safe paths, dry/rejected bytes, accurate
+  non-undoable results, reopening and malformed data. Add typed-track metadata
+  regressions and independently authored fresh-engine playback expectations.
+- Retain previous route gates; require zero engine errors, external MCP before
+  and after core reload, full editor/headless checks and Windows/Linux CI.
+- Godot 4.7.2 visible editor restarted after crash. Baseline route suite: 6/7
+  tests pass; showcase Redo loses subtree ownership (first reported failure:
+  root showcase redo owners/properties). Failure log preset_library_baseline_20261005.log.
+- Earlier ff8cdbc CI has three runner-cancelled jobs; requested another rerun.
+  No release or visual approval. Record fixes and evidence before pushing.
+
+### 2026-10-06 - Preset/library implementation and local verification
+
+- Reproduced showcase ownership loss on Redo, dry-run validation disagreement,
+  malformed-document script errors and null-filled successful spec exports.
+  Fixed shared showcase commit/owner staging, file validation order, structured
+  JSON parsing, template/clip shape checks, representable values and metadata.
+- spec_apply now rejects invalid node/property, 3D/bone, method and audio
+  destinations before commit. spec_import remains scene-independent. File
+  writes remain explicitly non-undoable; templates forward in one scene action.
+- Public route matrix passes 59 writes / 118 saved history states. Four typed
+  export/apply variants add eight states. External MCP before/after core reload
+  passes all eleven named tests and 126 fresh-engine playback states; all ten
+  tool families survive. Native Godot shortcuts pass bounce/pivot, template
+  bounce and all seven showcase players.
+- Full editor: 269/269, zero captured engine errors. The first broad run caught
+  two legacy invalid fixtures (unsafe dry output path and nonexistent inline
+  target); corrected the fixture paths without weakening assertions. Added
+  malformed metadata refusals. All fourteen local headless suites passed.
+- Documented docs/preset-library-history-validation.md and updated operation
+  evidence; all 103 statuses remain partial. The complete live route and new
+  Windows/Linux checkpoint CI are next. Earlier ff8cdbc CI is fully green.

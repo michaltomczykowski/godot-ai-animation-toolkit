@@ -58,6 +58,8 @@ static func _build_track(anim: Animation, track: Dictionary) -> void:
 	var index := anim.add_track(type)
 	anim.track_set_path(index, NodePath(str(track.get("path", ""))))
 	anim.track_set_enabled(index, bool(track.get("enabled", true)))
+	anim.track_set_interpolation_type(index, int(track.get("interp", Animation.INTERPOLATION_LINEAR)))
+	anim.track_set_interpolation_loop_wrap(index, bool(track.get("loop_wrap", true)))
 	match type:
 		Animation.TYPE_VALUE:
 			anim.track_set_interpolation_type(index, int(track.get("interp", Animation.INTERPOLATION_LINEAR)))
@@ -79,7 +81,7 @@ static func _build_track(anim: Animation, track: Dictionary) -> void:
 				anim.track_insert_key(index, float(key.get("time", 0.0)), {
 					"method": str(key.get("method", "")),
 					"args": key.get("args", []),
-				})
+				}, ValueCodec.parse_transition(key.get("transition", 1.0)))
 		Animation.TYPE_AUDIO:
 			anim.audio_track_set_use_blend(index, bool(track.get("use_blend", false)))
 			for key in track.get("keys", []):
@@ -87,3 +89,5 @@ static func _build_track(anim: Animation, track: Dictionary) -> void:
 					index, float(key.get("time", 0.0)), key.get("stream"),
 					float(key.get("start_offset", 0.0)), float(key.get("end_offset", 0.0)),
 				)
+				anim.track_set_key_transition(index, anim.track_find_key(index, float(key.get("time", 0.0))),
+					ValueCodec.parse_transition(key.get("transition", 1.0)))

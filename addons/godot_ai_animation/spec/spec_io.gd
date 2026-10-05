@@ -59,6 +59,8 @@ static func _read_track(anim: Animation, index: int) -> Dictionary:
 		"path": str(anim.track_get_path(index)),
 		"enabled": anim.track_is_enabled(index),
 		"compressed": anim.track_is_compressed(index),
+		"interp": anim.track_get_interpolation_type(index),
+		"loop_wrap": anim.track_get_interpolation_loop_wrap(index),
 		"keys": [],
 	}
 	var count := anim.track_get_key_count(index)
@@ -88,6 +90,7 @@ static func _read_track(anim: Animation, index: int) -> Dictionary:
 					"time": anim.track_get_key_time(index, key),
 					"method": String(anim.method_track_get_name(index, key)),
 					"args": anim.method_track_get_params(index, key),
+					"transition": anim.track_get_key_transition(index, key),
 				})
 		Animation.TYPE_AUDIO:
 			track["use_blend"] = anim.audio_track_is_use_blend(index)
@@ -97,5 +100,6 @@ static func _read_track(anim: Animation, index: int) -> Dictionary:
 					"stream": anim.audio_track_get_key_stream(index, key),
 					"start_offset": anim.audio_track_get_key_start_offset(index, key),
 					"end_offset": anim.audio_track_get_key_end_offset(index, key),
+					"transition": anim.track_get_key_transition(index, key),
 				})
 	return track
