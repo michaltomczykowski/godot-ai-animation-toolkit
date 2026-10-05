@@ -65,6 +65,7 @@ static func _read_track(anim: Animation, index: int) -> Dictionary:
 	match type:
 		Animation.TYPE_VALUE:
 			track["interp"] = anim.track_get_interpolation_type(index)
+			track["loop_wrap"] = anim.track_get_interpolation_loop_wrap(index)
 			track["update_mode"] = anim.value_track_get_update_mode(index)
 			for key in count:
 				track.keys.append({

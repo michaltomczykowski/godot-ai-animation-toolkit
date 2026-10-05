@@ -14,6 +14,16 @@ const TOOL_REGISTRY := "res://addons/godot_ai/custom_tools/mcp_tool_registry.gd"
 const OP_REGISTRY := "res://addons/godot_ai_animation/registry/op_registry.gd"
 const TOOL_SOURCE := "res://addons/godot_ai_animation/plugin.cfg"
 
+class EngineErrorCapture extends Logger:
+	var errors: Array[Dictionary] = []
+	var warnings: Array[Dictionary] = []
+	func _log_error(function: String, file: String, line: int, code: String,
+			rationale: String, _notify: bool, type: int, _backtraces: Array) -> void:
+		var entry := {"function": function, "file": file, "line": line,
+			"message": rationale if not rationale.is_empty() else code, "type": type}
+		if type == 1: warnings.append(entry)
+		else: errors.append(entry)
+
 
 func _enter_tree() -> void:
 	if OS.get_environment(ENV_FLAG) != "1":
@@ -66,11 +76,16 @@ func _run() -> void:
 	var suites: Array = discovered.suites
 	var missing: Array = discovered.errors
 	var runner = runner_script.new()
+	var logger := EngineErrorCapture.new()
+	OS.add_logger(logger)
 	var results: Dictionary = runner.run_suites(
 		suites, SUITE_FILTER, "", {"undo_redo": get_undo_redo()}, true,
 	)
+	OS.remove_logger(logger)
 	results["discovery_errors"] = missing
 	results["tool_route_errors"] = route_errors
+	results["engine_errors"] = logger.errors
+	results["engine_warnings"] = logger.warnings
 	print("CI_SUITE_RESULTS=" + JSON.stringify(results))
 
 	var failed := int(results.get("failed", 1))
@@ -78,7 +93,7 @@ func _run() -> void:
 	if not missing.is_empty():
 		for problem in missing:
 			print("CI_SUITE_MISSING: %s" % str(problem))
-	if failed == 0 and total > 0 and missing.is_empty() and route_errors.is_empty():
+	if failed == 0 and total > 0 and missing.is_empty() and route_errors.is_empty() and logger.errors.is_empty():
 		print("CI_SUITE_PASS")
 		get_tree().quit(0)
 	else:

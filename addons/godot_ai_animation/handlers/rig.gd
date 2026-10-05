@@ -1154,17 +1154,53 @@ func spring_setup(params: Dictionary) -> Dictionary:
 				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
 					"springs[%d]: exclude collision %s" % [index, ValueCodec.format_node_error(str(path), scene_root)])
 			exclude.append({"node": excluded, "path": _spring_path_to(skeleton, excluded)})
+		var center_node: Node
+		if spring.has("center_node"):
+			center_node = ValueCodec.resolve_scene_path(str(spring.center_node), scene_root)
+			if center_node == null:
+				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
+					"springs[%d]: center node %s" % [index, ValueCodec.format_node_error(str(spring.center_node), scene_root)])
 		planned.append({
 			"spec": spring, "root": root_name, "end": end_name,
-			"collisions": collisions, "exclude": exclude,
+			"collisions": collisions, "exclude": exclude, "center_node": center_node,
 		})
+	var collider_moves: Array = []
+	var seen_colliders := {}
+	for entry: Dictionary in planned:
+		for kind_key in ["collisions", "exclude"]:
+			for collision: Dictionary in entry.get(kind_key, []):
+				var collider: Node = collision.node
+				if not collider is SpringBoneCollision3D:
+					return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "Collision '%s' must be a SpringBoneCollision3D" % collider.name)
+				var ancestor: Node = collider
+				while ancestor != null and ancestor != scene_root:
+					if not ancestor.scene_file_path.is_empty():
+						return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+							"Collision '%s' lives inside an instanced scene; move it into the edited scene first" % collider.name)
+					ancestor = ancestor.get_parent()
+				if not seen_colliders.has(collider.get_instance_id()):
+					seen_colliders[collider.get_instance_id()] = true
+					collider_moves.append({"node": collider, "parent": collider.get_parent(), "transform": collider.transform})
 	var active := bool(params.get("active", false))
 	var simulator := SpringBoneSimulator3D.new()
 	simulator.name = str(params.get("name", "SpringBones"))
+	var collision_names := {}
+	var taken_names := {}
+	for move in collider_moves:
+		move.old_name = str(move.node.name)
+		move.new_name = _unique_child_name(simulator, move.old_name, taken_names)
+		# Preserve unique engine-generated names without assigning them again:
+		# Godot sanitizes '@' on assignment, making exact Undo impossible.
+		if move.new_name != move.old_name and move.old_name.validate_node_name() != move.old_name:
+			simulator.free()
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"Collisions share the generated name '%s'. Give them distinct editor names before setup." % move.old_name)
+		collision_names[move.node.get_instance_id()] = move.new_name
 	var setup: Array = [{"property": "active", "value": active}]
 	setup.append({"method": "set_setting_count", "args": [planned.size()]})
 	if params.has("mutable_bone_axes"):
 		setup.append({"method": "set_mutable_bone_axes", "args": [bool(params.mutable_bone_axes)]})
+	var collision_setup: Array = []
 	for index in planned.size():
 		var entry: Dictionary = planned[index]
 		var spec: Dictionary = entry.spec
@@ -1189,53 +1225,55 @@ func spring_setup(params: Dictionary) -> Dictionary:
 		if spec.has("center_bone"):
 			setup.append({"method": "set_center_bone_name", "args": [index, str(spec.center_bone)]})
 		if spec.has("center_node"):
-			var center_node := ValueCodec.resolve_scene_path(str(spec.center_node), scene_root)
-			if center_node == null:
-				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
-					"springs[%d]: center node %s" % [index, ValueCodec.format_node_error(str(spec.center_node), scene_root)])
 			setup.append({"method": "set_center_node",
-				"args": [index, NodePath(_spring_path_to(skeleton, center_node))]})
+				"args": [index, NodePath(_spring_path_to(skeleton, entry.center_node))]})
 		if spec.has("enable_all_child_collisions"):
 			setup.append({"method": "set_enable_all_child_collisions", "args": [index, bool(spec.enable_all_child_collisions)]})
 		if not entry.collisions.is_empty():
-			setup.append({"method": "set_collision_count", "args": [index, (entry.collisions as Array).size()]})
+			collision_setup.append({"method": "set_collision_count", "args": [index, (entry.collisions as Array).size()]})
 			for collision_index in (entry.collisions as Array).size():
-				setup.append({"method": "set_collision_path",
-					"args": [index, collision_index, NodePath((entry.collisions as Array)[collision_index].path)]})
+				collision_setup.append({"method": "set_collision_path",
+					"args": [index, collision_index, NodePath(collision_names[entry.collisions[collision_index].node.get_instance_id()])]})
 		if not entry.exclude.is_empty():
-			setup.append({"method": "set_exclude_collision_count", "args": [index, (entry.exclude as Array).size()]})
+			collision_setup.append({"method": "set_exclude_collision_count", "args": [index, (entry.exclude as Array).size()]})
 			for collision_index in (entry.exclude as Array).size():
-				setup.append({"method": "set_exclude_collision_path",
-					"args": [index, collision_index, NodePath((entry.exclude as Array)[collision_index].path)]})
-	_commit_node_add("MCP: Spring bones (%d)" % planned.size(), skeleton, simulator, setup)
-	# Godot only uses a collision that is a child of the simulator, and this one
-	# was just created, so the supplied collisions are moved under it (undoably,
-	# keeping their world transform) instead of being wired as dead references.
+				collision_setup.append({"method": "set_exclude_collision_path",
+					"args": [index, collision_index, NodePath(collision_names[entry.exclude[collision_index].node.get_instance_id()])]})
+	var modifier_path := str(ValueCodec.from_node(skeleton, scene_root)).path_join(str(simulator.name))
 	var moved_collisions: Array = []
-	var undo := ToolContext.undo_redo
-	for entry: Dictionary in planned:
-		for kind_key in ["collisions", "exclude"]:
-			for collision in entry.get(kind_key, []):
-				var collider: Node = (collision as Dictionary).node
-				if collider.get_parent() == simulator:
-					continue
-				var collider_parent := collider.get_parent()
-				if collider_parent == null or not _instance_levels(collider_parent).is_empty():
-					return _undo_and_fail(ErrorCodes.INVALID_PARAMS,
-						"Collision '%s' lives inside an instanced scene, so moving it under the new SpringBoneSimulator3D would not survive the save - move it into the edited scene first"
-							% str(collider.name))
-				if _dry_run or undo == null:
-					continue
-				undo.add_do_method(collider, "reparent", simulator, true)
-				undo.add_undo_method(collider, "reparent", collider_parent, true)
-				moved_collisions.append(ValueCodec.from_node(collider, scene_root))
-	if not moved_collisions.is_empty() and undo != null and not _dry_run:
+	for move in collider_moves: moved_collisions.append(ValueCodec.from_node(move.node, scene_root))
+	if not _dry_run:
+		_create_scene_pinned_action("MCP: Spring bones (%d)" % planned.size())
+		var undo := ToolContext.undo_redo
+		for level in _instance_levels(skeleton):
+			undo.add_do_method(level.parent, "set_editable_instance", level.instance, true)
+			undo.add_undo_method(level.parent, "set_editable_instance", level.instance, false)
+		undo.add_do_method(skeleton, "add_child", simulator, true)
+		undo.add_do_property(simulator, "owner", scene_root)
+		undo.add_do_reference(simulator)
+		for call in setup:
+			if call.has("property"): undo.add_do_property(simulator, call.property, call.value)
+			else: _add_do_call(undo, simulator, call.method, call.get("args", []))
+		# Godot validates collision paths immediately. Move first, wire afterward.
+		for move in collider_moves:
+			undo.add_do_method(move.node, "reparent", simulator, true)
+			if move.new_name != move.old_name: undo.add_do_property(move.node, "name", move.new_name)
+			undo.add_undo_method(move.node, "reparent", move.parent, false)
+			undo.add_undo_property(move.node, "transform", move.transform)
+			if move.new_name != move.old_name: undo.add_undo_property(move.node, "name", move.old_name)
+		for call in collision_setup: _add_do_call(undo, simulator, call.method, call.args)
+		undo.add_undo_method(skeleton, "remove_child", simulator)
 		undo.commit_action()
+		moved_collisions.clear()
+		for move in collider_moves: moved_collisions.append(ValueCodec.from_node(move.node, scene_root))
+	else:
+		# A dry run must release its unparented temporary modifier.
+		simulator.free()
 	var data := {
 		"skeleton_path": resolved.path,
 		"kind": resolved.kind,
 		"modifier_class": "SpringBoneSimulator3D",
-		"modifier_path": ValueCodec.from_node(simulator, scene_root),
+		"modifier_path": modifier_path if _dry_run else ValueCodec.from_node(simulator, scene_root),
 		"spring_count": planned.size(),
 		"springs": planned.map(func(entry): return {"root_bone": str(entry.root), "end_bone": str(entry.end)}),
 		"collisions_moved": moved_collisions,

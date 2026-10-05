@@ -2782,3 +2782,61 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   remains 103 partial / 0 fully verified, with 62 pending/partial Undo/Redo
   rows and 99 pending/partial visual rows. Broader histories and visual review
   remain open, as do the separately recorded test-generated errors.
+
+### 2026-10-05 - Clean engine errors and clip-edit history phase plan
+
+- Add engine-error capture to the complete editor suite and retain the failing
+  baseline. Replace absent-clip lookups with has_animation assertions; inspect
+  spring collision lists according to automatic versus explicit-list mode.
+  Require no unexpected engine errors, separately report warnings.
+- Add registry-driven coverage for all 20 clip edits across local, instanced
+  locked and instanced editable layouts. Add split overwrite, merge overwrite,
+  cross-player merge and cross-player layer variants: 72 write cases. Each
+  verifies dry/rejected paths, exact scene Undo/Redo and resource identities,
+  source/peer isolation and saved undone/redone states (144 saved states).
+- Fix split head overwrite restoration, align merge/layer source validation,
+  validate split/merge output and preserve engine track metadata. Add supported
+  3D and unsupported/compressed input regressions. Use meaningful edit fixtures
+  and independent playback expectations; retain the existing interpolation gates.
+- Run external Godot AI MCP before/after core reload and saved runtime batches
+  in fresh Godot 4.7.2 processes. Check visible editor ordinary/split/merge Undo
+  and scene isolation; retain character/graph/FX gates and Windows/Linux CI.
+- Record each checkpoint and limitations, push commits and update recovery
+  snapshot. Remain on unreleased repair/toolkit-quality; visual approval is open.
+
+### 2026-10-05 - Clip edit history implementation checkpoint
+
+- Captured the eight-error baseline despite 249 passing tests; full editor CI
+  now fails on any engine error during suite execution and reports warnings
+  separately. Missing-clip assertions use has_animation; spring collision
+  getters respect automatic/explicit mode.
+- Reproduced lost split overwrite Undo and explicit spring path rejection.
+  Restored old heads, added split/merge output validation, consistent compressed
+  merge/layer refusals, and value-track wrap preservation. Spring moves and
+  wiring now commit together, move before path validation, and restore original
+  parents/names/transforms on Undo.
+- Added registry-driven 72-write edit matrix across scene-owned, locked and
+  editable instances, with split/merge overwrite and cross-player inputs.
+  Exact history/resources, dry/rejected behavior and source/peer isolation pass.
+  Added 3D/value metadata and compressed/unsupported contract tests.
+- Full local suite passed 257/257 with zero captured engine errors. External
+  Godot AI MCP passed seven named tests and all 146 saved playback states in
+  four fresh engine batches before/after core reload; all ten families survived.
+  Existing interpolation, character, graph and FX gates remain enabled.
+- See docs/edit-history-validation.md. Visible ordinary edit and split overwrite
+  Undo/Redo passed; merge/scene isolation, platform CI and final recovery/push
+  confirmation are next. No character visual approval or release.
+- Visible Godot Ctrl+Z/Ctrl+Shift+Z passed ordinary retime, split head
+  overwrite and merge output overwrite against recorded full key timelines.
+  Returning to the earlier scene preserved its action; Undo there left the
+  second scene's generated merge unchanged. UI logs mcp_edit_ui_*20261005.log.
+- Fourteen local headless suites passed. Final spring tests add same-named
+  sphere collisions with transformed parents and a conflicting old sibling;
+  paths, reported moved paths, one scene action, names and transforms restore.
+  Engine-generated names are retained without assigning them again; duplicate
+  generated names return a typed refusal before commit. Recovery snapshot now
+  includes source/patch, failure/proof logs and 194 saved state/source scenes.
+- Final current-source full suite: 258/258, zero captured engine errors and
+  six separately reported Bone2D leaf warnings. Log:
+  edit_history_complete_editor_20261005.log. Platform CI is the remaining
+  gate for this checkpoint; all operation statuses remain partial.

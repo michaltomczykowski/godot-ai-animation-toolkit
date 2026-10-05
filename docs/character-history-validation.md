@@ -50,6 +50,11 @@ Final MCP, reload and platform outcomes are recorded in `FIX_ROADMAP.md`.
 Other suites still emit engine errors; zero-error claims apply to the captured
 setup and audit calls only.
 
+The following [clip edit phase](edit-history-validation.md) repaired those
+test-generated errors and explicit spring collision wiring, and added a
+whole-suite engine-error gate. Its local full suite passes 257/257 with zero
+captured errors; the earlier scoped results above remain historical evidence.
+
 Final external MCP passed 7/7 history tests, 27/27 inspector tests and all
 21 saved runtime cases. Core reload preserved ten toolkit families and both
 suites passed again. Visible Ctrl+Z restored original clips and removed the

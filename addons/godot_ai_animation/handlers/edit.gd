@@ -302,9 +302,13 @@ func edit_split_at(params: Dictionary) -> Dictionary:
 	if existing.has("error"):
 		return existing.error
 	var parts := SpecModifiers.split(loaded.spec, time)
+	for part in [parts.head, parts.tail]:
+		var valid := SpecBuilder.validate(part)
+		if valid.has("error"): return valid
 	var head_anim := SpecBuilder.to_animation(parts.head)
 	var tail_anim := SpecBuilder.to_animation(parts.tail)
 	var removed := {loaded.anim_name: loaded.anim}
+	if existing.old_anim != null: removed[head_name] = existing.old_anim
 	var added := {loaded.anim_name: tail_anim, head_name: head_anim}
 	_commit_animation_changes("MCP: Split animation %s" % loaded.anim_name,
 		loaded.player, loaded.library, false, removed, added)
@@ -374,6 +378,11 @@ func edit_merge(params: Dictionary) -> Dictionary:
 			return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
 				"Animation '%s' has tracks this toolkit cannot edit: %s"
 				% [source_name, SpecIO.describe_unsupported(source_anim)])
+		var compressed := SpecIO.compressed_tracks(source_anim)
+		if not compressed.is_empty():
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"Animation '%s' has compressed tracks (%s). Compressed clips cannot be edited losslessly."
+				% [source_name, ", ".join(compressed)])
 		specs.append(SpecIO.from_animation(source_anim))
 		source_names.append(source_name)
 	var anim_name := str(params.get("animation_name", ""))
@@ -389,6 +398,8 @@ func edit_merge(params: Dictionary) -> Dictionary:
 		return existing.error
 	var gap := maxf(0.0, float(params.get("gap", 0.0)))
 	var merged := SpecModifiers.merge(specs, gap)
+	var valid := SpecBuilder.validate(merged)
+	if valid.has("error"): return valid
 	var merged_anim := SpecBuilder.to_animation(merged)
 	var removed := {}
 	if existing.old_anim != null:
@@ -695,6 +706,11 @@ func edit_layer(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
 			"Source animation '%s' has tracks this toolkit cannot layer: %s"
 			% [source_name, SpecIO.describe_unsupported(overlay_anim)])
+	var compressed := SpecIO.compressed_tracks(overlay_anim)
+	if not compressed.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"Source animation '%s' has compressed tracks (%s). Compressed clips cannot be edited losslessly."
+			% [source_name, ", ".join(compressed)])
 	var result := QualityModifiers.layer(
 		loaded.spec, SpecIO.from_animation(overlay_anim), weight, layer_mode, remap_node)
 	if int(result.changed) == 0:

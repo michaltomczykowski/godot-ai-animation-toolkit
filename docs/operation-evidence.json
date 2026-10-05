@@ -293,14 +293,21 @@
       "track_paths_types": "pass",
       "dry_run": "pass",
       "save_reopen": "pass",
-      "playback": "pass"
+      "playback": "pass",
+      "undo_redo": "pass_editor_local_instances",
+      "scene_history": "pass",
+      "source_isolation": "pass",
+      "typed_errors": "pass",
+      "engine_errors": "pass_zero",
+      "reported_errors": "pass_edit_engine_capture"
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP fresh-scene edit audit; dry run left clip unchanged, write changed the described clip, and save/force reopen preserved resolved tracks. See mcp_edit_seven_verified.log, run id 20260929_194514. Playback, UI undo, errors, visual and Linux pending.",
       "2026-09-29: test_project/tools/check_edit_runtime.gd played the saved clip in Godot 4.7.2 and measured Character.x at start, midpoint and end. All seven operations matched expected engine-evaluated values within 0.02 units; see the 20260929_194514 edit fixtures. UI undo, error cases, visual review and Linux remain pending.",
       "2026-09-29: fresh live Godot AI MCP rerun and saved Godot 4.7.2 playback passed for this operation; see mcp_edit_hold_verified.log, run id 20260929_195930.",
       "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
-      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open.",
+      "2026-10-05: all 20 edits through actual Godot AI dispatcher across local, instanced and already-editable players; 72 writes including split/merge overwrite and cross-player merge/layer. Dry/rejected state, one scene action/no global action, resource identity Undo, exact Redo, source/peer isolation and saved Undo/Redo pass. External MCP before/after core reload passes 144 independent saved value-playback states plus two 3D metadata states. See docs/edit-history-validation.md and mcp_edit_history_{before,after}_reload_20261005.log. Windows local proof; current platform CI and visual approval remain open."
     ]
   },
   "animation_edit.reverse": {
@@ -316,14 +323,21 @@
       "track_paths_types": "pass",
       "dry_run": "pass",
       "save_reopen": "pass",
-      "playback": "pass"
+      "playback": "pass",
+      "undo_redo": "pass_editor_local_instances",
+      "scene_history": "pass",
+      "source_isolation": "pass",
+      "typed_errors": "pass",
+      "engine_errors": "pass_zero",
+      "reported_errors": "pass_edit_engine_capture"
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP fresh-scene edit audit; dry run left clip unchanged, write changed the described clip, and save/force reopen preserved resolved tracks. See mcp_edit_seven_verified.log, run id 20260929_194514. Playback, UI undo, errors, visual and Linux pending.",
       "2026-09-29: test_project/tools/check_edit_runtime.gd played the saved clip in Godot 4.7.2 and measured Character.x at start, midpoint and end. All seven operations matched expected engine-evaluated values within 0.02 units; see the 20260929_194514 edit fixtures. UI undo, error cases, visual review and Linux remain pending.",
       "2026-09-29: fresh live Godot AI MCP rerun and saved Godot 4.7.2 playback passed for this operation; see mcp_edit_hold_verified.log, run id 20260929_195930.",
       "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
-      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open.",
+      "2026-10-05: all 20 edits through actual Godot AI dispatcher across local, instanced and already-editable players; 72 writes including split/merge overwrite and cross-player merge/layer. Dry/rejected state, one scene action/no global action, resource identity Undo, exact Redo, source/peer isolation and saved Undo/Redo pass. External MCP before/after core reload passes 144 independent saved value-playback states plus two 3D metadata states. See docs/edit-history-validation.md and mcp_edit_history_{before,after}_reload_20261005.log. Windows local proof; current platform CI and visual approval remain open."
     ]
   },
   "animation_edit.mirror": {
@@ -339,14 +353,21 @@
       "track_paths_types": "pass",
       "dry_run": "pass",
       "save_reopen": "pass",
-      "playback": "pass"
+      "playback": "pass",
+      "undo_redo": "pass_editor_local_instances",
+      "scene_history": "pass",
+      "source_isolation": "pass",
+      "typed_errors": "pass",
+      "engine_errors": "pass_zero",
+      "reported_errors": "pass_edit_engine_capture"
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP fresh-scene edit audit; dry run left clip unchanged, write changed the described clip, and save/force reopen preserved resolved tracks. See mcp_edit_seven_verified.log, run id 20260929_194514. Playback, UI undo, errors, visual and Linux pending.",
       "2026-09-29: test_project/tools/check_edit_runtime.gd played the saved clip in Godot 4.7.2 and measured Character.x at start, midpoint and end. All seven operations matched expected engine-evaluated values within 0.02 units; see the 20260929_194514 edit fixtures. UI undo, error cases, visual review and Linux remain pending.",
       "2026-09-29: fresh live Godot AI MCP rerun and saved Godot 4.7.2 playback passed for this operation; see mcp_edit_hold_verified.log, run id 20260929_195930.",
       "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
-      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open.",
+      "2026-10-05: all 20 edits through actual Godot AI dispatcher across local, instanced and already-editable players; 72 writes including split/merge overwrite and cross-player merge/layer. Dry/rejected state, one scene action/no global action, resource identity Undo, exact Redo, source/peer isolation and saved Undo/Redo pass. External MCP before/after core reload passes 144 independent saved value-playback states plus two 3D metadata states. See docs/edit-history-validation.md and mcp_edit_history_{before,after}_reload_20261005.log. Windows local proof; current platform CI and visual approval remain open."
     ]
   },
   "animation_edit.trim": {
@@ -362,14 +383,21 @@
       "track_paths_types": "pass",
       "dry_run": "pass",
       "save_reopen": "pass",
-      "playback": "pass"
+      "playback": "pass",
+      "undo_redo": "pass_editor_local_instances",
+      "scene_history": "pass",
+      "source_isolation": "pass",
+      "typed_errors": "pass",
+      "engine_errors": "pass_zero",
+      "reported_errors": "pass_edit_engine_capture"
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP fresh-scene edit audit; dry run left clip unchanged, write changed the described clip, and save/force reopen preserved resolved tracks. Inspector float time 0.6 became 0.6000000238 after serialization, within 1e-5. See mcp_edit_seven_verified.log, run id 20260929_194514. Playback, UI undo, errors, visual and Linux pending.",
       "2026-09-29: test_project/tools/check_edit_runtime.gd played the saved clip in Godot 4.7.2 and measured Character.x at start, midpoint and end. All seven operations matched expected engine-evaluated values within 0.02 units; see the 20260929_194514 edit fixtures. UI undo, error cases, visual review and Linux remain pending.",
       "2026-09-29: fresh live Godot AI MCP rerun and saved Godot 4.7.2 playback passed for this operation; see mcp_edit_hold_verified.log, run id 20260929_195930.",
       "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
-      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open.",
+      "2026-10-05: all 20 edits through actual Godot AI dispatcher across local, instanced and already-editable players; 72 writes including split/merge overwrite and cross-player merge/layer. Dry/rejected state, one scene action/no global action, resource identity Undo, exact Redo, source/peer isolation and saved Undo/Redo pass. External MCP before/after core reload passes 144 independent saved value-playback states plus two 3D metadata states. See docs/edit-history-validation.md and mcp_edit_history_{before,after}_reload_20261005.log. Windows local proof; current platform CI and visual approval remain open."
     ]
   },
   "animation_edit.amplitude": {
@@ -385,14 +413,21 @@
       "track_paths_types": "pass",
       "dry_run": "pass",
       "save_reopen": "pass",
-      "playback": "pass"
+      "playback": "pass",
+      "undo_redo": "pass_editor_local_instances",
+      "scene_history": "pass",
+      "source_isolation": "pass",
+      "typed_errors": "pass",
+      "engine_errors": "pass_zero",
+      "reported_errors": "pass_edit_engine_capture"
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP fresh-scene edit audit; dry run left clip unchanged, write changed the described clip, and save/force reopen preserved resolved tracks. See mcp_edit_seven_verified.log, run id 20260929_194514. Playback, UI undo, errors, visual and Linux pending.",
       "2026-09-29: test_project/tools/check_edit_runtime.gd played the saved clip in Godot 4.7.2 and measured Character.x at start, midpoint and end. All seven operations matched expected engine-evaluated values within 0.02 units; see the 20260929_194514 edit fixtures. UI undo, error cases, visual review and Linux remain pending.",
       "2026-09-29: fresh live Godot AI MCP rerun and saved Godot 4.7.2 playback passed for this operation; see mcp_edit_hold_verified.log, run id 20260929_195930.",
       "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
-      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open.",
+      "2026-10-05: all 20 edits through actual Godot AI dispatcher across local, instanced and already-editable players; 72 writes including split/merge overwrite and cross-player merge/layer. Dry/rejected state, one scene action/no global action, resource identity Undo, exact Redo, source/peer isolation and saved Undo/Redo pass. External MCP before/after core reload passes 144 independent saved value-playback states plus two 3D metadata states. See docs/edit-history-validation.md and mcp_edit_history_{before,after}_reload_20261005.log. Windows local proof; current platform CI and visual approval remain open."
     ]
   },
   "animation_edit.resample": {
@@ -408,14 +443,21 @@
       "track_paths_types": "pass",
       "dry_run": "pass",
       "save_reopen": "pass",
-      "playback": "pass"
+      "playback": "pass",
+      "undo_redo": "pass_editor_local_instances",
+      "scene_history": "pass",
+      "source_isolation": "pass",
+      "typed_errors": "pass",
+      "engine_errors": "pass_zero",
+      "reported_errors": "pass_edit_engine_capture"
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP fresh-scene edit audit; dry run left clip unchanged, write changed the described clip, and save/force reopen preserved resolved tracks. See mcp_edit_seven_verified.log, run id 20260929_194514. Playback, UI undo, errors, visual and Linux pending.",
       "2026-09-29: test_project/tools/check_edit_runtime.gd played the saved clip in Godot 4.7.2 and measured Character.x at start, midpoint and end. All seven operations matched expected engine-evaluated values within 0.02 units; see the 20260929_194514 edit fixtures. UI undo, error cases, visual review and Linux remain pending.",
       "2026-09-29: fresh live Godot AI MCP rerun and saved Godot 4.7.2 playback passed for this operation; see mcp_edit_hold_verified.log, run id 20260929_195930.",
       "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
-      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open.",
+      "2026-10-05: all 20 edits through actual Godot AI dispatcher across local, instanced and already-editable players; 72 writes including split/merge overwrite and cross-player merge/layer. Dry/rejected state, one scene action/no global action, resource identity Undo, exact Redo, source/peer isolation and saved Undo/Redo pass. External MCP before/after core reload passes 144 independent saved value-playback states plus two 3D metadata states. See docs/edit-history-validation.md and mcp_edit_history_{before,after}_reload_20261005.log. Windows local proof; current platform CI and visual approval remain open."
     ]
   },
   "animation_edit.layer": {
@@ -431,14 +473,21 @@
       "track_paths_types": "pass",
       "dry_run": "pass",
       "save_reopen": "pass",
-      "playback": "pass"
+      "playback": "pass",
+      "undo_redo": "pass_editor_local_instances",
+      "scene_history": "pass",
+      "source_isolation": "pass",
+      "typed_errors": "pass",
+      "engine_errors": "pass_zero",
+      "reported_errors": "pass_edit_engine_capture"
     },
     "evidence": [
       "2026-09-29: initial live audit returned VALUE_OUT_OF_RANGE for a valid Vector2 position overlay because additive layer math omitted Vector2. The repair adds weighted Vector2 deltas; focused tier-1 quality suite passed 82 checks and full editor suite 211/211. Fresh live Godot AI MCP run passed dry-run, changed clip, resolved tracks and save/reopen. See mcp_edit_first.log and mcp_edit_seven_verified.log, run id 20260929_194514. Playback, UI undo, errors, visual and Linux pending.",
       "2026-09-29: test_project/tools/check_edit_runtime.gd played the saved clip in Godot 4.7.2 and measured Character.x at start, midpoint and end. All seven operations matched expected engine-evaluated values within 0.02 units; see the 20260929_194514 edit fixtures. UI undo, error cases, visual review and Linux remain pending.",
       "2026-09-29: fresh live Godot AI MCP rerun and saved Godot 4.7.2 playback passed for this operation; see mcp_edit_hold_verified.log, run id 20260929_195930.",
       "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
-      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open.",
+      "2026-10-05: all 20 edits through actual Godot AI dispatcher across local, instanced and already-editable players; 72 writes including split/merge overwrite and cross-player merge/layer. Dry/rejected state, one scene action/no global action, resource identity Undo, exact Redo, source/peer isolation and saved Undo/Redo pass. External MCP before/after core reload passes 144 independent saved value-playback states plus two 3D metadata states. See docs/edit-history-validation.md and mcp_edit_history_{before,after}_reload_20261005.log. Windows local proof; current platform CI and visual approval remain open."
     ]
   },
   "animation_graph.state_machine": {
@@ -714,14 +763,20 @@
       "dry_run": "pass",
       "save_reopen": "pass",
       "playback": "pass",
-      "undo_redo": "pending",
-      "visual_review": "pending"
+      "undo_redo": "pass_editor_local_instances",
+      "visual_review": "pending",
+      "scene_history": "pass",
+      "source_isolation": "pass",
+      "typed_errors": "pass",
+      "engine_errors": "pass_zero",
+      "reported_errors": "pass_edit_engine_capture"
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP fresh-scene audit on Godot 4.7.2; dry run preserved the source, write changed the clip, tracks resolved after save/reopen, and engine playback matched expected start/mid/end values within 0.02 units. See mcp_edit_hold_verified.log, run id 20260929_195930. UI undo, visual and Linux remain pending.",
       "2026-09-29: wrap=true on a discontinuous 0\u2192100 endpoint seam returned VALUE_OUT_OF_RANGE for dry and write without changing the saved clip; nonwrapped delay held the initial pose until motion began. The first audit had falsely accepted a constant one-key clip; see mcp_edit_eleven.log and mcp_edit_hold_verified.log.",
       "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
-      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open.",
+      "2026-10-05: all 20 edits through actual Godot AI dispatcher across local, instanced and already-editable players; 72 writes including split/merge overwrite and cross-player merge/layer. Dry/rejected state, one scene action/no global action, resource identity Undo, exact Redo, source/peer isolation and saved Undo/Redo pass. External MCP before/after core reload passes 144 independent saved value-playback states plus two 3D metadata states. See docs/edit-history-validation.md and mcp_edit_history_{before,after}_reload_20261005.log. Windows local proof; current platform CI and visual approval remain open."
     ]
   },
   "animation_edit.loop": {
@@ -738,13 +793,19 @@
       "dry_run": "pass",
       "save_reopen": "pass",
       "playback": "pass",
-      "undo_redo": "pending",
-      "visual_review": "pending"
+      "undo_redo": "pass_editor_local_instances",
+      "visual_review": "pending",
+      "scene_history": "pass",
+      "source_isolation": "pass",
+      "typed_errors": "pass",
+      "engine_errors": "pass_zero",
+      "reported_errors": "pass_edit_engine_capture"
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP fresh-scene audit on Godot 4.7.2; dry run preserved the source, write changed the clip, tracks resolved after save/reopen, and engine playback matched expected start/mid/end values within 0.02 units. See mcp_edit_hold_verified.log, run id 20260929_195930. UI undo, visual and Linux remain pending.",
       "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
-      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open.",
+      "2026-10-05: all 20 edits through actual Godot AI dispatcher across local, instanced and already-editable players; 72 writes including split/merge overwrite and cross-player merge/layer. Dry/rejected state, one scene action/no global action, resource identity Undo, exact Redo, source/peer isolation and saved Undo/Redo pass. External MCP before/after core reload passes 144 independent saved value-playback states plus two 3D metadata states. See docs/edit-history-validation.md and mcp_edit_history_{before,after}_reload_20261005.log. Windows local proof; current platform CI and visual approval remain open."
     ]
   },
   "animation_edit.key_edit": {
@@ -761,13 +822,19 @@
       "dry_run": "pass",
       "save_reopen": "pass",
       "playback": "pass",
-      "undo_redo": "pending",
-      "visual_review": "pending"
+      "undo_redo": "pass_editor_local_instances",
+      "visual_review": "pending",
+      "scene_history": "pass",
+      "source_isolation": "pass",
+      "typed_errors": "pass",
+      "engine_errors": "pass_zero",
+      "reported_errors": "pass_edit_engine_capture"
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP fresh-scene audit on Godot 4.7.2; dry run preserved the source, write changed the clip, tracks resolved after save/reopen, and engine playback matched expected start/mid/end values within 0.02 units. See mcp_edit_hold_verified.log, run id 20260929_195930. UI undo, visual and Linux remain pending.",
       "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
-      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open.",
+      "2026-10-05: all 20 edits through actual Godot AI dispatcher across local, instanced and already-editable players; 72 writes including split/merge overwrite and cross-player merge/layer. Dry/rejected state, one scene action/no global action, resource identity Undo, exact Redo, source/peer isolation and saved Undo/Redo pass. External MCP before/after core reload passes 144 independent saved value-playback states plus two 3D metadata states. See docs/edit-history-validation.md and mcp_edit_history_{before,after}_reload_20261005.log. Windows local proof; current platform CI and visual approval remain open."
     ]
   },
   "animation_edit.overlap": {
@@ -784,14 +851,20 @@
       "dry_run": "pass",
       "save_reopen": "pass",
       "playback": "pass",
-      "undo_redo": "pending",
-      "visual_review": "pending"
+      "undo_redo": "pass_editor_local_instances",
+      "visual_review": "pending",
+      "scene_history": "pass",
+      "source_isolation": "pass",
+      "typed_errors": "pass",
+      "engine_errors": "pass_zero",
+      "reported_errors": "pass_edit_engine_capture"
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP fresh-scene audit on Godot 4.7.2; dry run preserved the source, write changed the clip, tracks resolved after save/reopen, and engine playback matched expected start/mid/end values within 0.02 units. See mcp_edit_hold_verified.log, run id 20260929_195930. UI undo, visual and Linux remain pending.",
       "2026-09-29: wrap=true on a discontinuous 0\u2192100 endpoint seam returned VALUE_OUT_OF_RANGE for dry and write without changing the saved clip; nonwrapped delay held the initial pose until motion began. The first audit had falsely accepted a constant one-key clip; see mcp_edit_eleven.log and mcp_edit_hold_verified.log.",
       "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
-      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open.",
+      "2026-10-05: all 20 edits through actual Godot AI dispatcher across local, instanced and already-editable players; 72 writes including split/merge overwrite and cross-player merge/layer. Dry/rejected state, one scene action/no global action, resource identity Undo, exact Redo, source/peer isolation and saved Undo/Redo pass. External MCP before/after core reload passes 144 independent saved value-playback states plus two 3D metadata states. See docs/edit-history-validation.md and mcp_edit_history_{before,after}_reload_20261005.log. Windows local proof; current platform CI and visual approval remain open."
     ]
   },
   "animation_edit.retarget": {
@@ -808,12 +881,18 @@
       "dry_run": "pass",
       "save_reopen": "pass",
       "playback": "pass",
-      "undo_redo": "pending",
-      "visual_review": "pending"
+      "undo_redo": "pass_editor_local_instances",
+      "visual_review": "pending",
+      "scene_history": "pass",
+      "source_isolation": "pass",
+      "typed_errors": "pass",
+      "engine_errors": "pass_zero",
+      "reported_errors": "pass_edit_engine_capture"
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending.",
-      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open.",
+      "2026-10-05: all 20 edits through actual Godot AI dispatcher across local, instanced and already-editable players; 72 writes including split/merge overwrite and cross-player merge/layer. Dry/rejected state, one scene action/no global action, resource identity Undo, exact Redo, source/peer isolation and saved Undo/Redo pass. External MCP before/after core reload passes 144 independent saved value-playback states plus two 3D metadata states. See docs/edit-history-validation.md and mcp_edit_history_{before,after}_reload_20261005.log. Windows local proof; current platform CI and visual approval remain open."
     ]
   },
   "animation_edit.ease_range": {
@@ -830,12 +909,18 @@
       "dry_run": "pass",
       "save_reopen": "pass",
       "playback": "pass",
-      "undo_redo": "pending",
-      "visual_review": "pending"
+      "undo_redo": "pass_editor_local_instances",
+      "visual_review": "pending",
+      "scene_history": "pass",
+      "source_isolation": "pass",
+      "typed_errors": "pass",
+      "engine_errors": "pass_zero",
+      "reported_errors": "pass_edit_engine_capture"
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending.",
-      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open.",
+      "2026-10-05: all 20 edits through actual Godot AI dispatcher across local, instanced and already-editable players; 72 writes including split/merge overwrite and cross-player merge/layer. Dry/rejected state, one scene action/no global action, resource identity Undo, exact Redo, source/peer isolation and saved Undo/Redo pass. External MCP before/after core reload passes 144 independent saved value-playback states plus two 3D metadata states. See docs/edit-history-validation.md and mcp_edit_history_{before,after}_reload_20261005.log. Windows local proof; current platform CI and visual approval remain open."
     ]
   },
   "animation_edit.set_interp": {
@@ -852,12 +937,18 @@
       "dry_run": "pass",
       "save_reopen": "pass",
       "playback": "pass",
-      "undo_redo": "pending",
-      "visual_review": "pending"
+      "undo_redo": "pass_editor_local_instances",
+      "visual_review": "pending",
+      "scene_history": "pass",
+      "source_isolation": "pass",
+      "typed_errors": "pass",
+      "engine_errors": "pass_zero",
+      "reported_errors": "pass_edit_engine_capture"
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending.",
-      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open.",
+      "2026-10-05: all 20 edits through actual Godot AI dispatcher across local, instanced and already-editable players; 72 writes including split/merge overwrite and cross-player merge/layer. Dry/rejected state, one scene action/no global action, resource identity Undo, exact Redo, source/peer isolation and saved Undo/Redo pass. External MCP before/after core reload passes 144 independent saved value-playback states plus two 3D metadata states. See docs/edit-history-validation.md and mcp_edit_history_{before,after}_reload_20261005.log. Windows local proof; current platform CI and visual approval remain open."
     ]
   },
   "animation_edit.split_at": {
@@ -874,12 +965,18 @@
       "dry_run": "pass",
       "save_reopen": "pass",
       "playback": "pass",
-      "undo_redo": "pending",
-      "visual_review": "pending"
+      "undo_redo": "pass_editor_local_instances",
+      "visual_review": "pending",
+      "scene_history": "pass",
+      "source_isolation": "pass",
+      "typed_errors": "pass",
+      "engine_errors": "pass_zero",
+      "reported_errors": "pass_edit_engine_capture"
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending.",
-      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open.",
+      "2026-10-05: all 20 edits through actual Godot AI dispatcher across local, instanced and already-editable players; 72 writes including split/merge overwrite and cross-player merge/layer. Dry/rejected state, one scene action/no global action, resource identity Undo, exact Redo, source/peer isolation and saved Undo/Redo pass. External MCP before/after core reload passes 144 independent saved value-playback states plus two 3D metadata states. See docs/edit-history-validation.md and mcp_edit_history_{before,after}_reload_20261005.log. Windows local proof; current platform CI and visual approval remain open."
     ]
   },
   "animation_edit.merge": {
@@ -896,13 +993,19 @@
       "dry_run": "pass",
       "save_reopen": "pass",
       "playback": "pass",
-      "undo_redo": "pending",
-      "visual_review": "pending"
+      "undo_redo": "pass_editor_local_instances",
+      "visual_review": "pending",
+      "scene_history": "pass",
+      "source_isolation": "pass",
+      "typed_errors": "pass",
+      "engine_errors": "pass_zero",
+      "reported_errors": "pass_edit_engine_capture"
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending.",
       "2026-09-29: first saved merge erased the end of its first source at a conflicting seam. The repair preserves the outgoing value at 0.9999 s and incoming value at 1.0 s; playback showed x\u224850 at 0.5 s and x=100 at 1.5 s. The 0.1 ms hard cut between incompatible source positions remains a deliberate cut; quality audit and transition/blend review remain open.",
-      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open.",
+      "2026-10-05: all 20 edits through actual Godot AI dispatcher across local, instanced and already-editable players; 72 writes including split/merge overwrite and cross-player merge/layer. Dry/rejected state, one scene action/no global action, resource identity Undo, exact Redo, source/peer isolation and saved Undo/Redo pass. External MCP before/after core reload passes 144 independent saved value-playback states plus two 3D metadata states. See docs/edit-history-validation.md and mcp_edit_history_{before,after}_reload_20261005.log. Windows local proof; current platform CI and visual approval remain open."
     ]
   },
   "animation_edit.cleanup": {
@@ -919,12 +1022,18 @@
       "dry_run": "pass",
       "save_reopen": "pass",
       "playback": "pass",
-      "undo_redo": "pending",
-      "visual_review": "pending"
+      "undo_redo": "pass_editor_local_instances",
+      "visual_review": "pending",
+      "scene_history": "pass",
+      "source_isolation": "pass",
+      "typed_errors": "pass",
+      "engine_errors": "pass_zero",
+      "reported_errors": "pass_edit_engine_capture"
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending.",
-      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open.",
+      "2026-10-05: all 20 edits through actual Godot AI dispatcher across local, instanced and already-editable players; 72 writes including split/merge overwrite and cross-player merge/layer. Dry/rejected state, one scene action/no global action, resource identity Undo, exact Redo, source/peer isolation and saved Undo/Redo pass. External MCP before/after core reload passes 144 independent saved value-playback states plus two 3D metadata states. See docs/edit-history-validation.md and mcp_edit_history_{before,after}_reload_20261005.log. Windows local proof; current platform CI and visual approval remain open."
     ]
   },
   "animation_edit.smooth": {
@@ -941,12 +1050,18 @@
       "dry_run": "pass",
       "save_reopen": "pass",
       "playback": "pass",
-      "undo_redo": "pending",
-      "visual_review": "pending"
+      "undo_redo": "pass_editor_local_instances",
+      "visual_review": "pending",
+      "scene_history": "pass",
+      "source_isolation": "pass",
+      "typed_errors": "pass",
+      "engine_errors": "pass_zero",
+      "reported_errors": "pass_edit_engine_capture"
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending.",
-      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open.",
+      "2026-10-05: all 20 edits through actual Godot AI dispatcher across local, instanced and already-editable players; 72 writes including split/merge overwrite and cross-player merge/layer. Dry/rejected state, one scene action/no global action, resource identity Undo, exact Redo, source/peer isolation and saved Undo/Redo pass. External MCP before/after core reload passes 144 independent saved value-playback states plus two 3D metadata states. See docs/edit-history-validation.md and mcp_edit_history_{before,after}_reload_20261005.log. Windows local proof; current platform CI and visual approval remain open."
     ]
   },
   "animation_edit.reduce": {
@@ -963,12 +1078,18 @@
       "dry_run": "pass",
       "save_reopen": "pass",
       "playback": "pass",
-      "undo_redo": "pending",
-      "visual_review": "pending"
+      "undo_redo": "pass_editor_local_instances",
+      "visual_review": "pending",
+      "scene_history": "pass",
+      "source_isolation": "pass",
+      "typed_errors": "pass",
+      "engine_errors": "pass_zero",
+      "reported_errors": "pass_edit_engine_capture"
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending.",
-      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open.",
+      "2026-10-05: all 20 edits through actual Godot AI dispatcher across local, instanced and already-editable players; 72 writes including split/merge overwrite and cross-player merge/layer. Dry/rejected state, one scene action/no global action, resource identity Undo, exact Redo, source/peer isolation and saved Undo/Redo pass. External MCP before/after core reload passes 144 independent saved value-playback states plus two 3D metadata states. See docs/edit-history-validation.md and mcp_edit_history_{before,after}_reload_20261005.log. Windows local proof; current platform CI and visual approval remain open."
     ]
   },
   "animation_edit.add_noise": {
@@ -985,12 +1106,18 @@
       "dry_run": "pass",
       "save_reopen": "pass",
       "playback": "pass",
-      "undo_redo": "pending",
-      "visual_review": "pending"
+      "undo_redo": "pass_editor_local_instances",
+      "visual_review": "pending",
+      "scene_history": "pass",
+      "source_isolation": "pass",
+      "typed_errors": "pass",
+      "engine_errors": "pass_zero",
+      "reported_errors": "pass_edit_engine_capture"
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending.",
-      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open.",
+      "2026-10-05: all 20 edits through actual Godot AI dispatcher across local, instanced and already-editable players; 72 writes including split/merge overwrite and cross-player merge/layer. Dry/rejected state, one scene action/no global action, resource identity Undo, exact Redo, source/peer isolation and saved Undo/Redo pass. External MCP before/after core reload passes 144 independent saved value-playback states plus two 3D metadata states. See docs/edit-history-validation.md and mcp_edit_history_{before,after}_reload_20261005.log. Windows local proof; current platform CI and visual approval remain open."
     ]
   },
   "animation_inspect.timeline": {
@@ -2448,7 +2575,8 @@
     "evidence": [
       "2026-09-30: live Godot AI custom_manage(invoke), mcp_rig_modifiers_leaf_rejected.log run 20260930_173516, on imported dummy. Dry run left skeleton unchanged; write made one modifier, saved and forced reopen retained it, invalid skeleton returned typed NODE_NOT_FOUND. Godot 4.7.2 saved-scene modifier callback measured 0.043 rad forearm change under external force. Editor undo, additional rig combinations, visual review and Linux remain.",
       "2026-09-30: single leaf B-jaw setup saved but did not move in active playback, even with a virtual tail. Handler now rejects root=end and unrelated end bones before commit. Live Godot AI route returned typed INVALID_PARAMS for the leaf; two-bone forearm/hand chain moved.",
-      "2026-10-03: GitHub Actions run 37072351007 passed live Godot AI invocation and fresh-process saved modifier playback on Windows and Linux. Editor handler undo passes; redo, other spring chains and visual review remain."
+      "2026-10-03: GitHub Actions run 37072351007 passed live Godot AI invocation and fresh-process saved modifier playback on Windows and Linux. Editor handler undo passes; redo, other spring chains and visual review remain.",
+      "2026-10-05: explicit collision mode exposed path wiring before reparenting. Setup now moves children before assigning paths in one scene action and restores parents/names/transforms on Undo. Automatic and explicit-list tests distinguish getter contracts; explicit Undo/Redo checks and whole-suite zero-engine-error gate pass locally. This does not complete all modifier history variants."
     ],
     "platforms": {
       "windows": "partial",

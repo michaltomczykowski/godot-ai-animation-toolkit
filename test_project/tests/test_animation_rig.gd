@@ -386,7 +386,7 @@ func test_pose_to_clip_builds_lean_clip() -> void:
 		"the keyed rotation matches the pose delta (%s)" % peak_delta)
 	var did_undo := editor_undo(_undo_redo)
 	assert_true(did_undo, "undo should succeed")
-	assert_true(rig.player.get_animation("wave") == null, "one undo removes the pose clip")
+	assert_true(not rig.player.has_animation("wave"), "one undo removes the pose clip")
 	_teardown(rig)
 
 
@@ -1737,7 +1737,7 @@ func test_walk_cycle_builds_roles_and_clip() -> void:
 	assert_true((rest.inverse() * first).get_angle() > 0.2, "the thigh actually swings")
 	var undone := editor_undo(_undo_redo)
 	assert_true(undone, "undo should succeed")
-	assert_true(rig.player.get_animation("walk") == null, "one undo removes the cycle")
+	assert_true(not rig.player.has_animation("walk"), "one undo removes the cycle")
 	_teardown(rig)
 
 
@@ -2376,14 +2376,9 @@ func test_spring_center_and_collision_paths_resolve_from_the_simulator() -> void
 	var simulator := ValueCodec.resolve_scene_path(str(result.data.modifier_path),
 		scene_root) as SpringBoneSimulator3D
 	var center_path := str(simulator.get_center_node(0))
-	var collision_path := str(simulator.get_collision_path(0, 0))
 	var center_resolves: bool = simulator.get_node_or_null(NodePath(center_path)) == center
-	# Godot resolves a spring setting's collision list on a deferred frame, so the
-	# stored path reads back empty in the same call - what is observable now is
-	# that the collision is where the engine can find it.
-	print("EVIDENCE spring center_path=%s resolves=%s collision_path=%s collisions=%d collider_parent=%s" % [
-		center_path, str(center_resolves), collision_path,
-		simulator.get_collision_count(0), str(collider.get_parent().name)])
+	assert_true(simulator.are_all_child_collisions_enabled(0), "default uses automatic child collisions")
+	assert_eq(simulator.get_collision_count(0), 0, "automatic mode has no explicit list")
 	assert_true(center_resolves,
 		"center_node resolves from the simulator (path %s points somewhere else)" % center_path)
 	# Godot only reads a collision that is a child of the simulator, so the op
@@ -2392,13 +2387,145 @@ func test_spring_center_and_collision_paths_resolve_from_the_simulator() -> void
 		"the collision was moved under the simulator, where Godot reads it")
 	assert_true((result.data.collisions_moved as Array).size() == 1,
 		"the move is reported: %s" % str(result.data.collisions_moved))
-	var collision_resolves: bool = simulator.get_node_or_null(NodePath(collision_path)) == collider
-	assert_true(collision_resolves or collision_path.is_empty(),
-		"the collision path is either resolved or still deferred (got '%s')" % collision_path)
 	var undone := editor_undo(_undo_redo)
 	assert_true(undone, "undo should succeed")
 	assert_true(collider.get_parent() == scene_root, "undo puts the collision back where it was")
 	scene_root.remove_child(center)
+	_teardown(rig)
+
+
+func test_spring_explicit_collision_paths_resolve_from_the_simulator() -> void:
+	var rig := _rig("RigSpringPaths")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var center := Marker3D.new()
+	center.name = "SpringCenter"
+	scene_root.add_child(center)
+	center.owner = scene_root
+	var collider := SpringBoneCollision3D.new()
+	collider.name = "SpringCollider"
+	collider.position = Vector3(0, 0.5, 0)
+	scene_root.add_child(collider)
+	collider.owner = scene_root
+	var history := _undo_redo.get_history_undo_redo(_undo_redo.get_object_history_id(scene_root))
+	var global_history := _undo_redo.get_history_undo_redo(EditorUndoRedoManager.GLOBAL_HISTORY)
+	var version := history.get_version()
+	var global_version := global_history.get_version()
+	var original_name := str(collider.name)
+	var original_transform := collider.transform
+	var original_global := collider.global_transform
+	var result := _handler.run({
+		"op": "spring_setup", "skeleton_path": rig.skeleton_path,
+		"springs": [{
+			"root_bone": "B-upperArm.L", "end_bone": "B-hand.L",
+			"center_node": str(ValueCodec.from_node(center, scene_root)),
+			"enable_all_child_collisions": false,
+			"collisions": [str(ValueCodec.from_node(collider, scene_root))],
+		}],
+	}, null)
+	assert_true(result.has("data"), "spring_setup: %s" % str(result))
+	if not result.has("data"):
+		scene_root.remove_child(center)
+		scene_root.remove_child(collider)
+		_teardown(rig)
+		return
+	var simulator := ValueCodec.resolve_scene_path(str(result.data.modifier_path),
+		scene_root) as SpringBoneSimulator3D
+	var center_path := str(simulator.get_center_node(0))
+	var center_resolves: bool = simulator.get_node_or_null(NodePath(center_path)) == center
+	assert_false(simulator.are_all_child_collisions_enabled(0), "explicit collision mode")
+	assert_eq(simulator.get_collision_count(0), 1, "explicit list has one collision")
+	if simulator.get_collision_count(0) == 1:
+		var collision_path := simulator.get_collision_path(0, 0)
+		assert_true(simulator.get_node_or_null(collision_path) == collider, "explicit collision path '%s' resolves to '%s'" % [collision_path, collider.name])
+	assert_true(center_resolves,
+		"center_node resolves from the simulator (path %s points somewhere else)" % center_path)
+	# Godot only reads a collision that is a child of the simulator, so the op
+	# moves it there (undoably) instead of wiring a reference that cannot fire.
+	assert_true(collider.get_parent() == simulator,
+		"the collision was moved under the simulator, where Godot reads it")
+	assert_true((result.data.collisions_moved as Array).size() == 1,
+		"the move is reported: %s" % str(result.data.collisions_moved))
+	assert_eq(history.get_version(), version + 1, "spring collision setup is one scene action")
+	assert_eq(global_history.get_version(), global_version, "spring collision setup has no global action")
+	assert_true(collider.global_transform.is_equal_approx(original_global), "spring move keeps world transform")
+	var undone := history.undo()
+	assert_true(undone, "undo should succeed")
+	assert_true(collider.get_parent() == scene_root, "undo puts the collision back where it was")
+	assert_eq(str(collider.name), original_name, "undo restores original or engine-generated name")
+	assert_true(collider.transform.is_equal_approx(original_transform), "undo restores collider transform")
+	assert_true(history.redo(), "spring collision redo")
+	assert_true(collider.get_parent() == simulator, "redo moves collider")
+	assert_true(collider.global_transform.is_equal_approx(original_global), "redo world transform")
+	if simulator.get_collision_count(0) == 1:
+		assert_true(simulator.get_node_or_null(simulator.get_collision_path(0, 0)) == collider, "redo explicit path resolves")
+	assert_true(history.undo(), "spring undo for cleanup")
+	scene_root.remove_child(center)
+	_teardown(rig)
+
+
+func test_spring_same_named_collisions_keep_paths_and_history() -> void:
+	var rig := _rig("RigSpringNames")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var parents: Array[Node3D] = []
+	var colliders: Array[SpringBoneCollisionSphere3D] = []
+	var transforms: Array[Transform3D] = []
+	for i in 2:
+		var parent := Node3D.new()
+		parent.name = "CollisionParent%d" % i
+		parent.position = Vector3(i * 2, 1, -1)
+		parent.rotation.y = 0.4
+		scene_root.add_child(parent)
+		parent.owner = scene_root
+		parents.append(parent)
+		var collider := SpringBoneCollisionSphere3D.new()
+		collider.name = "Shared"
+		collider.position = Vector3(0, 0.5, 0)
+		parent.add_child(collider)
+		collider.owner = scene_root
+		colliders.append(collider)
+		transforms.append(collider.global_transform)
+	# Renaming before reparenting would clash with this unmoved sibling.
+	var sentinel := Node3D.new()
+	sentinel.name = "Shared2"
+	parents[1].add_child(sentinel)
+	sentinel.owner = scene_root
+	var history := _undo_redo.get_history_undo_redo(_undo_redo.get_object_history_id(scene_root))
+	var version := history.get_version()
+	var registry = load("res://addons/godot_ai/custom_tools/mcp_tool_registry.gd").call("get_instance")
+	var result: Dictionary = registry.get("_dispatcher").call("_dispatch", {
+		"request_id": "spring-names", "command": "custom_tool:animation_rig_modifiers", "params": {
+			"op": "spring_setup", "skeleton_path": rig.skeleton_path,
+			"springs": [{"root_bone": "B-upperArm.L", "end_bone": "B-hand.L",
+				"enable_all_child_collisions": false,
+				"collisions": [str(colliders[0].get_path()), str(colliders[1].get_path())]}]}})
+	assert_has_key(result, "data", "spring names route " + str(result))
+	if result.has("data"):
+		var simulator := ValueCodec.resolve_scene_path(str(result.data.modifier_path), scene_root) as SpringBoneSimulator3D
+		assert_eq(history.get_version(), version + 1, "one spring action")
+		assert_eq(simulator.get_collision_count(0), 2, "both explicit collisions")
+		assert_eq(str(colliders[0].name), "Shared", "first name")
+		assert_eq(str(colliders[1].name), "Shared2", "second unique name")
+		for i in 2:
+			if simulator.get_collision_count(0) == 2:
+				assert_true(simulator.get_node_or_null(simulator.get_collision_path(0, i)) == colliders[i], "collision resolves")
+			assert_true(colliders[i].global_transform.is_equal_approx(transforms[i]), "world transform kept")
+			assert_true(ValueCodec.resolve_scene_path(str(result.data.collisions_moved[i]), scene_root) == colliders[i], "reported moved path resolves")
+		assert_true(history.undo(), "spring names undo")
+		for i in 2:
+			assert_true(colliders[i].get_parent() == parents[i], "original parent")
+			assert_eq(str(colliders[i].name), "Shared", "original name")
+			assert_true(colliders[i].global_transform.is_equal_approx(transforms[i]), "original transform")
+		assert_true(history.redo(), "spring names redo")
+		for i in 2:
+			assert_true(simulator.get_node_or_null(simulator.get_collision_path(0, i)) == colliders[i], "redo collision resolves")
+		assert_true(history.undo(), "cleanup undo")
+	for parent in parents: parent.free()
 	_teardown(rig)
 
 

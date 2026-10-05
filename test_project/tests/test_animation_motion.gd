@@ -254,7 +254,7 @@ func test_speed_driven_gait_and_warning() -> void:
 		"duration": 0.4, "loop_mode": "linear", "speed": 8.0,
 	}, null)
 	assert_is_error(too_fast, ErrorCodes.VALUE_OUT_OF_RANGE)
-	assert_true(rig.player.get_animation("walk_impossible") == null,
+	assert_true(not rig.player.has_animation("walk_impossible"),
 		"an unreachable explicit speed leaves no clip")
 	_teardown(rig)
 
@@ -1011,7 +1011,7 @@ func test_walk_dense_curves_planted_feet_and_loop() -> void:
 	assert_gt(max_f - min_f, 0.15, "the ankle travels a real stride (%s m)" % (max_f - min_f))
 	# One undo removes the clip.
 	assert_true(editor_undo(_undo_redo), "undo should succeed")
-	assert_true(rig.player.get_animation("walk") == null, "one undo removes the cycle")
+	assert_true(not rig.player.has_animation("walk"), "one undo removes the cycle")
 	_teardown(rig)
 
 
@@ -1416,7 +1416,7 @@ func test_default_distances_scale_with_the_rig() -> void:
 		"duration": 1.0, "loop_mode": "linear", "overrides": {"bob": 0.5},
 	}, null)
 	assert_is_error(explicit, ErrorCodes.VALUE_OUT_OF_RANGE)
-	assert_true(rig.player.get_animation("scale_explicit") == null,
+	assert_true(not rig.player.has_animation("scale_explicit"),
 		"unreachable explicit bob leaves no clip")
 	_remove_node("/" + str(scene_root.name) + "/MotionScaleDouble")
 	_teardown(rig)
@@ -2377,8 +2377,8 @@ func test_character_setup_defaults_and_validation() -> void:
 	var tree := _find_of_type(rig.player.get_parent(), "AnimationTree") as AnimationTree
 	assert_true(tree != null and tree.tree_root is AnimationNodeBlendSpace1D,
 		"the default tree root is the blend space")
-	assert_true(rig.player.get_animation("jump") == null, "jump is opt-in")
-	assert_true(rig.player.get_animation("turn_left") == null, "turn is opt-in")
+	assert_true(not rig.player.has_animation("jump"), "jump is opt-in")
+	assert_true(not rig.player.has_animation("turn_left"), "turn is opt-in")
 	var bad_speeds := _handler.run({
 		"op": "character_setup", "player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
 		"speed": 4.0, "run_speed": 2.0,

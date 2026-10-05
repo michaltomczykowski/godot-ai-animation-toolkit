@@ -61,6 +61,7 @@ static func _build_track(anim: Animation, track: Dictionary) -> void:
 	match type:
 		Animation.TYPE_VALUE:
 			anim.track_set_interpolation_type(index, int(track.get("interp", Animation.INTERPOLATION_LINEAR)))
+			anim.track_set_interpolation_loop_wrap(index, bool(track.get("loop_wrap", true)))
 			anim.value_track_set_update_mode(index, int(track.get("update_mode", Animation.UPDATE_CONTINUOUS)))
 			for key in track.get("keys", []):
 				anim.track_insert_key(

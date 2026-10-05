@@ -446,6 +446,20 @@ def fx_playback_gate(args: argparse.Namespace) -> bool:
 
 def edit_playback_gate(args: argparse.Namespace) -> bool:
     """Check edited clips through Godot AI and engine interpolation."""
+    history = subprocess.run([
+        sys.executable, str(Path(__file__).with_name("mcp_edit_history.py")),
+        "--core-root", str(args.core_root), "--project-root", str(args.project),
+        "--session-hint", args.project.name, "--port", str(args.port),
+        "--ws-port", str(args.ws_port), "--godot", godot_executable(args.godot),
+    ], capture_output=True, text=True, timeout=150, check=False)
+    prefix = "MCP_EDIT_HISTORY="
+    report = next((line[len(prefix):] for line in history.stdout.splitlines()
+                   if line.startswith(prefix)), "")
+    if history.returncode or not report or not json.loads(report).get("passed") or json.loads(report).get("saved_states") != 146:
+        print("MCP_CI_FAIL=edit_history")
+        print((history.stdout + history.stderr)[-6000:])
+        return False
+    print("MCP_CI_PASS=edit_history", flush=True)
     simple = {"retime", "reverse", "mirror", "trim", "amplitude",
               "resample", "layer", "offset", "loop", "key_edit", "overlap"}
     remaining = {"retarget", "ease_range", "set_interp", "split_at",
