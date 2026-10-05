@@ -2749,3 +2749,36 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   tests and the 27-test inspector suite, then 21/21 saved 30/60/120 FPS
   playback processes. Tree-only posing and rooted/in-place extraction pass.
   Evidence: F:/GODOTAITESTING/mcp_character_complete_20261005.log.
+- Core reload preserved all ten families; all seven setup history and
+  27 inspector tests passed again through MCP. Visible Godot Ctrl+Z removed
+  the new setup tree and restored original clip descriptions; Ctrl+Shift+Z
+  restored identical generated clips and graph. Logs: mcp_character_reload,
+  after_reload, ui_setup, ui_undo and ui_redo_20261005.log.
+
+### Next phase after character history and audit isolation
+
+- Clean and guard the remaining test-generated engine errors before interpreting
+  a green full suite as clean runtime evidence: missing-clip get_animation calls
+  in motion/rig assertions and the missing spring collision-slot getter. Add
+  scoped engine-error capture to operations that still lack it. Retained log:
+  character_history_complete_20261005.log.
+- Continue per-operation Undo/Redo coverage for clip edits, presets, library and
+  rig/modifier operations; their route/playback evidence does not cover every
+  history/instance variant yet. Then resume fixed-camera character and family
+  visual review. The ledger remains partial; no percentage-complete claim.
+
+### 2026-10-05 - Character history and audit isolation checkpoint complete
+
+- Code checkpoint 8154101 passed GitHub Actions run 37353723524. All Windows
+  and Linux headless suites, four editor/core combinations (v4.2.1/main),
+  and both complete live Godot AI routes passed. The new setup gate requires
+  seven named history tests, played audit regressions and 21 fresh saved
+  30/60/120 FPS runtime cases; graph and FX history gates remain enabled.
+- Core reload and visible Ctrl+Z/Ctrl+Shift+Z checks passed locally. The UI
+  probe is tools/mcp_character_ui_history.py. Source, local failures and
+  proofs, platform CI logs and docs are saved in the recovery snapshot:
+  F:/GODOTAITESTING/toolkit_repair_snapshot_2026-09-30/character_history_20261005.
+- This closes the scoped setup history and audit duplication repairs. Ledger
+  remains 103 partial / 0 fully verified, with 62 pending/partial Undo/Redo
+  rows and 99 pending/partial visual rows. Broader histories and visual review
+  remain open, as do the separately recorded test-generated errors.

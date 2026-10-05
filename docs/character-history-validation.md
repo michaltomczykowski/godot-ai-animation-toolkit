@@ -49,3 +49,12 @@ Local full-suite results reached 249/249 after the added instance case.
 Final MCP, reload and platform outcomes are recorded in `FIX_ROADMAP.md`.
 Other suites still emit engine errors; zero-error claims apply to the captured
 setup and audit calls only.
+
+Final external MCP passed 7/7 history tests, 27/27 inspector tests and all
+21 saved runtime cases. Core reload preserved ten toolkit families and both
+suites passed again. Visible Ctrl+Z restored original clips and removed the
+setup tree; Ctrl+Shift+Z restored identical generated clips and graph.
+
+Windows/Linux [Actions run 37353723524](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37353723524)
+passed code commit `8154101`: all headless suites, four editor/core combinations
+and both full live MCP routes. The phase log and recovery folder retain logs.
