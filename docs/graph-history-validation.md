@@ -55,6 +55,14 @@ was corrected by giving every instanced case a unique source filename; its
 failure log is retained. Core-reload and Windows/Linux results are recorded
 in `FIX_ROADMAP.md`.
 
-Graph visual quality remains open. Inspection-suite duplication errors are
-separate remaining roadmap work; passing assertions are not an error-free
-claim for the entire toolkit.
+Core-plugin reload retained all ten tool families and the graph matrix passed
+again. Visible editor Ctrl+Z removed the toolkit-created state machine;
+Ctrl+Shift+Z restored an identical graph and resolved player connection.
+
+Graph visual quality remains open. Motion character_setup Undo still logs
+detached-tree errors, and inspection-suite duplication errors remain separate
+roadmap work; passing assertions are not an error-free claim for the toolkit.
+
+Windows/Linux Actions [run 37296846889](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37296846889)
+passed code commit `692177f`: headless suites, four editor/core combinations,
+and both full live MCP routes, including the graph history and runtime gate.

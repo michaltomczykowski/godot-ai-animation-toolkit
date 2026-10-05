@@ -2606,7 +2606,7 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   headless suites. Windows live MCP was still running at this checkpoint.
 
 
-### 2026-10-04 — FX history/persistence gate completed
+### 2026-10-04 â€” FX history/persistence gate completed
 
 - Final code commit bfddd46 passed the restarted visible Godot AI MCP matrix
   with an empty editor error log. Actions run 37228583599 passed all Windows
@@ -2660,9 +2660,9 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   typed error. Dry/rejected builders free their temporary orphan trees.
 - Full local Godot 4.7.2 editor suites passed 241/241, including eight new
   graph tests. Every graph matrix row requires zero captured engine errors;
-  dry runs additionally require unchanged orphan-node count. The older graph
-  no-common-ancestor errors are absent. Unrelated inspection duplication
-  errors remain and are not hidden by the assertion result.
+  dry runs additionally require unchanged orphan-node count. The graph-family no-common-ancestor errors are absent. The separate motion
+  character_setup Undo still emits detached-tree errors; inspection duplication
+  errors also remain and are not hidden by the assertion result.
 - Restarted the visible editor for actual external MCP validation. The first
   seven-test version passed all 21 fresh saved runtime cases; final expanded
   eight-test/28-case validation is underway. New/replaced graphs and their
@@ -2679,3 +2679,31 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   allowing a later case to overwrite an earlier dependency; each case now has
   its own source file. Retained the failure log and added timeout diagnostics.
   Evidence: F:/GODOTAITESTING/mcp_graph_complete_20261005.log.
+- Core reload passed the family/schema probe, then all eight graph tests
+  passed again through external MCP. Visible Godot 4.7.2 Ctrl+Z removed
+  the toolkit-created state machine (graph_get returned NODE_NOT_FOUND);
+  Ctrl+Shift+Z restored its identical graph and resolved player connection.
+  Logs: mcp_graph_reload/after_reload/ui_setup/ui_undo/ui_redo_20261005.log.
+
+### Next phase after graph history
+
+- Repair animation_motion.character_setup scene history: the complete suite
+  still logs detached AnimationTree setters during its Undo. Add engine-error
+  capture, source/peer isolation and saved undone/redone playback checks for
+  this multi-clip + graph transaction through the Godot AI route.
+- Investigate inspect motion_audit duplication errors with retained full-suite
+  logs and explicit engine-error capture. Neither issue is covered by this
+  graph-family fix. Continue visual/contact review after these runtime defects.
+
+### 2026-10-05 - Graph history phase checkpoint complete
+
+- Pushed code checkpoint 692177f. GitHub Actions run 37296846889 completed
+  successfully: Windows/Linux headless suites, all four editor combinations
+  (core v4.2.1 and main), and both complete external Godot AI MCP routes. The
+  new graph matrix and all 28 fresh-process saved cases are required in CI.
+- Recovery: F:/GODOTAITESTING/toolkit_repair_snapshot_2026-09-30/graph_history_20261005
+  contains the source archive, ledger, phase notes, initial failures, local
+  full-suite logs, live reload/UI proofs and both platform live-route logs.
+- Ledger remains 103 partial / 0 fully verified. Pending or partial Undo/Redo
+  decreased from 68 to 62 rows; visual review remains pending/partial in 99.
+  This closes the graph scene-history phase, not whole-toolkit visual quality.
