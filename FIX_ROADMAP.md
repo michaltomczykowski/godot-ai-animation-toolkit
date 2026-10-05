@@ -2630,3 +2630,52 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   and require no new editor errors. Then cover replacement, instancing,
   save/reopen, dry/rejected calls and active AnimationTree playback through
   the public Godot AI route. Retain FX gates while changing ownership code.
+
+### 2026-10-05 - Graph history and ownership phase plan
+
+- Reproduce the detached AnimationTree Undo error with a registry-driven
+  Godot AI dispatcher suite and a temporary engine Logger. Require no engine
+  errors, exact edited-scene history, one write action, and inert dry/error
+  paths. Cover all seven mutating graph ops and read-only graph_get.
+- Check new and replaced graphs, then instanced children with source/peer
+  isolation. Save/reopen both undone and redone states. Repair the shared
+  graph commit path before operation-specific changes.
+- Run the suite through external MCP after a fresh visible Godot 4.7.2
+  editor launch and core reload. Keep the existing graph topology and fresh
+  saved playback ownership checks, and retain all FX matrix gates.
+- Document failures and limitations, push source checkpoints, and require
+  Windows/Linux CI. Graph visual approval remains a separate open gate.
+
+### 2026-10-05 - Repair graph commits and typed wire parameters
+
+- New route/history regressions reproduced two real defects: new graph Undo
+  emitted detached-node path errors, and instanced graph overrides were lost
+  after save/reopen. The shared graph commit now configures attached inactive
+  trees, restores existing graphs before their active flag, removes new trees
+  without detached property setters, and tracks instance permissions in the
+  same undo action. The matrix covers both new and replaced instanced trees.
+- Found wire accepted missing parameters and incompatible JSON values. It now
+  validates parameter existence, required values, booleans, numbers, vectors
+  and request enums before committing. Activating an empty graph returns a
+  typed error. Dry/rejected builders free their temporary orphan trees.
+- Full local Godot 4.7.2 editor suites passed 241/241, including eight new
+  graph tests. Every graph matrix row requires zero captured engine errors;
+  dry runs additionally require unchanged orphan-node count. The older graph
+  no-common-ancestor errors are absent. Unrelated inspection duplication
+  errors remain and are not hidden by the assertion result.
+- Restarted the visible editor for actual external MCP validation. The first
+  seven-test version passed all 21 fresh saved runtime cases; final expanded
+  eight-test/28-case validation is underway. New/replaced graphs and their
+  undone/redone states persist, peers stay unchanged, and AnimationTree alone
+  drives saved walk/jump/lean while AnimationPlayer stays stopped.
+- CI now requires the named graph suite through external MCP after core
+  reload and plays all 28 saved redone cases in fresh processes. Existing
+  topology/playback and FX gates remain. See docs/graph-history-validation.md.
+- Corrected the reference's default-active and missing persisted-start-state
+  claims. Updated wire behavior and instance persistence documentation.
+
+- Final expanded external MCP gate passed 8/8 named tests and all 28 fresh
+  saved runtime cases. The harness initially reused an instance source filename,
+  allowing a later case to overwrite an earlier dependency; each case now has
+  its own source file. Retained the failure log and added timeout diagnostics.
+  Evidence: F:/GODOTAITESTING/mcp_graph_complete_20261005.log.

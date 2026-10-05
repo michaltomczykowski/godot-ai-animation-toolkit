@@ -233,6 +233,20 @@ def motion_setup_gate(args: argparse.Namespace) -> bool:
 
 
 def graph_playback_gate(args: argparse.Namespace) -> bool:
+    history = subprocess.run([
+        sys.executable, str(Path(__file__).with_name("mcp_graph_history.py")),
+        "--core-root", str(args.core_root), "--session-hint", args.project.name,
+        "--port", str(args.port), "--ws-port", str(args.ws_port),
+        "--godot", godot_executable(args.godot), "--project-root", str(args.project),
+    ], capture_output=True, text=True, timeout=120, check=False)
+    prefix = "MCP_GRAPH_HISTORY="
+    payload = next((line[len(prefix):] for line in history.stdout.splitlines()
+                    if line.startswith(prefix)), "")
+    if history.returncode or not payload or not json.loads(payload).get("passed"):
+        print("MCP_CI_FAIL=graph_history")
+        print((history.stdout + history.stderr)[-4500:])
+        return False
+    print("MCP_CI_PASS=graph_history", flush=True)
     playable_graphs = ("state_machine", "blend_space", "blend_space_2d",
                        "blend_tree", "graph_get", "locomotion",
                        "locomotion_state_machine", "one_shot_layer",

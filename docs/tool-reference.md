@@ -314,7 +314,7 @@ Notes:
 ## `animation_graph`
 
 Authors `AnimationTree` graphs on top of an `AnimationPlayer`. The tree is
-created next to the player (or at `tree_path`), pointed at the player, activated,
+created next to the player (or at `tree_path`), pointed at the player,
 and committed as ONE scene-pinned undo action.
 
 | op | What it builds |
@@ -322,7 +322,7 @@ and committed as ONE scene-pinned undo action.
 | `state_machine` | An `AnimationNodeStateMachine` root from `states` + `transitions` (xfade, advance/switch modes, conditions, expressions, priority). |
 | `blend_space` | A 1D or 2D `AnimationNodeBlendSpace` from clips at positions. |
 | `blend_tree` | A recursive blend tree spec: `blend2`/`blend3`/`add2`/`add3`/`one_shot`/`time_scale`/`animation`, with nested state machines and blend spaces. The spec's root is wired to the tree's `output` node (an unconnected `output` builds cleanly and then plays nothing); the reply's `output_source` names the node it wired, which is the only way to read a connection back in 4.7. |
-| `wire` | Ensures the tree exists, is active and pointed at the player; optionally sets a parameter. `create=false` turns the call into a check: a missing tree is reported instead of created. A named player is never given another player's tree — the lookup follows `anim_player` exactly, and `graph_get` lists the existing trees when it finds none. |
+| `wire` | Ensures the tree exists and points at the player; optionally sets a typed graph parameter and the active flag. `create=false` rejects a missing tree. Activating an empty graph is rejected. A named player is never given another player's tree; lookup follows `anim_player` exactly. |
 | `graph_get` | Dumps a graph: states, transitions, blend points, tree nodes, parameters, playback paths, and issues (missing clips, inactive tree, unresolved player). |
 | `locomotion` | Ready-made idle/walk/run: a speed blend space (default) or a state machine driven by `walking`/`running`. |
 | `one_shot_layer` | Layers a one-shot (jump/attack/hit) over the existing tree root, exposing `parameters/.../request`. |
@@ -330,11 +330,19 @@ and committed as ONE scene-pinned undo action.
 
 Notes:
 
+- Graphs are inactive by default. Pass `active=true` once a graph root exists
+  to let the AnimationTree own playback. Its AnimationPlayer supplies clips.
+- `wire` accepts existing `parameters/...` paths. Conditions need JSON
+  booleans; blend positions accept numbers or `{x,y}` vectors. Missing paths,
+  wrong types and invalid request enums return typed errors without changing
+  the scene or its history.
+- Saving graph changes under an instanced scene requires Editable Children;
+  the toolkit enables it in the same undo action and restores it on Undo.
 - Godot adds `Start`/`End` markers to state machines and an `output` port to
   blend trees; the ops ignore them in counts and dumps.
-- State machines have no persisted start state: the ops report a `start_hint`
-  with the playback path to call at runtime
-  (`tree.get("parameters/<name>/playback").start("idle")`).
+- State machines persist a `Start` transition to their selected initial
+  state. The reported `start_hint` gives the playback path for overriding it
+  at runtime (`tree.get("parameters/<name>/playback").start("idle")`).
 - Conditions become bool parameters: `parameters/conditions/<name>`.
 - Blend amounts / one-shot requests are parameters on the tree
   (`parameters/<node>/blend_amount`, `/request`, `/add_amount`).

@@ -86,7 +86,7 @@
       "2026-10-03: after the workstation restart, live Godot AI generated and saved a fresh X Bot run_cycle clip (run 20261003_090812). Played 30/60/120 FPS audit passed. Godot 4.7.2 Movie Maker rendered 61 frames at 60 FPS; fixed-camera sheets are under the recovery snapshot media/xbot_current_default_run_cycle_side_20261003. The current default X Bot side sheet reads as long alternating steps with weak flight/support timing; it is not visually approved.",
       "2026-10-03: a reach audit found the default X Bot run silently clamps an ankle target by 0.0825 m (9.3% of leg length) and the dummy run by 0.0944 m (11.8%), despite returning success. Reducing requested stride to 22 degrees clears clamp on both and passes saved 30/60/120 FPS played audits, but a 61-frame X Bot side render still reads as a stepped walk with weak flight, so this shortcut is rejected. Sharing the walk pelvis reach planner failed character_setup and run loop/golden editor tests and was reverted. A run-specific reachable contact/flight solve remains required; green contact results do not approve this operation. Logs and sheet media/xbot_run_stride22_side_20261003 are in the recovery snapshot.",
       "2026-10-03: a direct relative-foot swing failed editor contact with 87 mm X Bot stance slide. A revised rooted swing phase passed 223 editor tests and saved Godot AI 30/60/120 FPS contact audits, but default X Bot/dummy target shortfall remained 40.5/49.5 mm. Paired with 25-degree stride, the X Bot/dummy shortfall fell to 0/6.1 mm, but played knee extension stayed 0.9946/0.9987 and a side render still lacked readable flight. Both swing candidates were reverted. Logs mcp_*run_phase*20261003.log and media/xbot_run_phase_stride25_side_20261003/sheet.png preserve the rejected experiment.",
-      "2026-10-03: new live Godot AI motion_audit motion_kind=run grades both-feet flight clearance and peak leg extension on the saved defaults. X Bot at 30/60/120 FPS has 44.2–59.3 mm simultaneous clearance and 19–25% airborne samples, but 0.9989 extension. Dummy has 49.9–64.3 mm clearance and about 26% airborne samples, but 0.9987 extension. All six run-grade rows fail extension (limit 0.985) while flight passes. Logs mcp_xbot_run_flight_gate_20261003.log and mcp_dummy_run_flight_gate_20261003.log. This is a more precise failure than the earlier generic contact audit; the run remains visually unapproved.",
+      "2026-10-03: new live Godot AI motion_audit motion_kind=run grades both-feet flight clearance and peak leg extension on the saved defaults. X Bot at 30/60/120 FPS has 44.2\u201359.3 mm simultaneous clearance and 19\u201325% airborne samples, but 0.9989 extension. Dummy has 49.9\u201364.3 mm clearance and about 26% airborne samples, but 0.9987 extension. All six run-grade rows fail extension (limit 0.985) while flight passes. Logs mcp_xbot_run_flight_gate_20261003.log and mcp_dummy_run_flight_gate_20261003.log. This is a more precise failure than the earlier generic contact audit; the run remains visually unapproved.",
       "2026-10-03: live Godot AI pose parameter trial with 25-degree stride, added crouch, 15-degree forward lean and increased lift produced zero clamp and passed run flight/extension at 30/60/120 FPS on X Bot, dummy and Z-up tall rigs. The short rig still clamped 71.3 mm with a one-second implicit-speed clip; with 0.7 s duration, explicit 1.43 m/s speed and proportional lift it passed all three FPS rows without clamp. A shortened duration alone raised implicit speed and still clamped. The X Bot fixed-camera sheet media/xbot_run_crouch004_lean15_side_20261003/sheet.png looks more forward and bent but is not final visual approval. Logs mcp_*run_{crouch*,scaled*,speed143*}*20261003.log preserve the trials; no run default changed.",
       "2026-10-03: candidate run defaults use 25-degree reference stride, 15-degree lean, 4 cm reference added crouch and 11 cm reference swing lift. Live Godot AI saved X Bot, dummy and Z-up tall clips had zero target clamp and passed played run contact/flight/extension checks at 30/60/120 FPS. The short synthetic rig at 1 s still needed a 71.3 mm clamp; the run generator now returns typed VALUE_OUT_OF_RANGE above 1% leg reach rather than committing that clip. A 0.7 s, explicit 1.43 m/s short-rig request passed in the earlier parameter trial. Direct dummy 4 m/s at 0.6 s also returns a typed error in dry and write calls with no clip. The X Bot candidate side sheet improves torso pitch and knee bend but remains only partial visual review. All nine live Godot AI motion cases passed 27 saved 30/60/120 FPS rows with the run-specific grade enabled; that grade is now in the Windows/Linux MCP CI route. Logs mcp_*run_*20261003.log and media/xbot_run_crouch004_lean15_side_20261003/sheet.png are in the recovery snapshot.",
       "2026-10-04: a rig-relative omitted run duration and swing-lift floor made the short, dummy, Z-up tall and X Bot public defaults reachable through live Godot AI custom_animation_motion. All four saved clips were reopened and passed Godot 4.7.2 played contact/flight/extension at 30/60/120 FPS (12/12 rows), with zero target clamp. The short default used 0.719 s and 1.433 m/s; its simultaneous flight clearance was 9.5/10.9/12.2 mm, peak extension 0.963/0.968/0.970. The initial short scene_open timed out during editor startup, then dry/write/save/reopen and audit completed; the other three opened normally. Logs mcp_{short,dummy,tall,xbot}_run_public_default*20261004.log and media/xbot_run_public_default_20261004/sheet.png are in the recovery snapshot. The X Bot forward kick and upper body remain stylized, so visual review stays partial."
@@ -450,10 +450,12 @@
     },
     "checks": {
       "mcp_invocation": "pass",
-      "save_reopen": "pass",
-      "dry_run": "pass",
+      "save_reopen": "pass_editor_route_matrix",
+      "dry_run": "pass_editor_route_matrix",
       "valid_effect": "pass",
-      "playback": "pass"
+      "playback": "pass_saved_runtime",
+      "reported_errors": "pass_graph_engine_capture",
+      "undo_redo": "pass_editor_route_matrix"
     },
     "evidence": [
       "2026-09-29: Godot 4.7.2 live MCP graph smoke built this op in a fresh clip fixture, saved and force-reopened; graph_get returned a resolved AnimationTree. See mcp_graph_full.log. Tree playback, graph ownership, dry-run topology, undo, errors and visual review remain to verify per op.",
@@ -464,7 +466,8 @@
       "2026-09-29: live MCP built active state machine with Start->idle and conditional idle->walk; wire set parameters/conditions/walking=true. After save/reopen, Godot 4.7.2 runtime advanced to walk and moved 50 units/30 frames. See mcp_graph_condition.log and condition_20260929_192747.tscn. Undo and visual review remain pending.",
       "2026-10-02: a fresh Godot 4.7.2 process loaded the editor-saved Godot AI state-machine fixture, activated its AnimationTree, traveled idle to walk and advanced 0.5 s. The Character reached x=50 while the AnimationPlayer stayed idle. The same check passed the focused graph_get saved fixture and was added after the live MCP save/reopen CI graph gate. Logs graph_saved_playback_first_20261002.log, graph_get_saved_playback_20261002.log and ci_mcp_graph_playback_existing_20261002.log are in the 2026-09-30 recovery snapshot. Other graph shapes and gameplay transitions remain.",
       "2026-10-03: the seven-case live Godot AI graph route again created, saved and force-reopened a state machine; a fresh Godot 4.7.2 process played idle then walk through its AnimationTree while the AnimationPlayer remained idle. Local route after core reload passed; see ci_mcp_graph_seven_existing_20261002.log. Cross-platform seven-case CI is pending.",
-      "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI graph route on Windows and Linux. The audit checked dry/write/save/reopen, resolved graph topology and typed errors; a fresh Godot 4.7.2 process played the saved graph with AnimationTree ownership. Visual quality and remaining editor history cases remain open."
+      "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI graph route on Windows and Linux. The audit checked dry/write/save/reopen, resolved graph topology and typed errors; a fresh Godot 4.7.2 process played the saved graph with AnimationTree ownership. Visual quality and remaining editor history cases remain open.",
+      "2026-10-05: Godot 4.7.2 external Godot AI MCP passed all 8 graph route/history tests (738 assertions) after a fresh visible editor restart. Seven writes cover new/replaced trees and new/replaced trees under instances: dry/rejected calls, exact scene history, Undo/Redo, source/peer isolation and save/reopen of undone/redone states. All 28 redone scenes passed fresh-process playback/ownership checks. See docs/graph-history-validation.md and mcp_graph_complete_20261005.log; visual approval remains pending."
     ]
   },
   "animation_graph.blend_space": {
@@ -476,10 +479,12 @@
     },
     "checks": {
       "mcp_invocation": "pass",
-      "save_reopen": "pass",
+      "save_reopen": "pass_editor_route_matrix",
       "valid_effect": "pass",
-      "playback": "partial_active_blend_with_wire",
-      "dry_run": "pass"
+      "playback": "pass_saved_runtime",
+      "dry_run": "pass_editor_route_matrix",
+      "reported_errors": "pass_graph_engine_capture",
+      "undo_redo": "pass_editor_route_matrix"
     },
     "evidence": [
       "2026-09-29: Godot 4.7.2 live MCP graph smoke built this op in a fresh clip fixture, saved and force-reopened; graph_get returned a resolved AnimationTree. See mcp_graph_full.log. Tree playback, graph ownership, dry-run topology, undo, errors and visual review remain to verify per op.",
@@ -488,7 +493,8 @@
       "2026-09-29: mcp_graph_dry_resources.log live MCP rerun: before/after dry-run scene hierarchy and graph_get serialized root/parameters matched exactly for all eight graph operations; save/reopen still resolved the player. 8/8 automated contract checks passed.",
       "2026-10-02: fresh Godot 4.7.2 processes loaded the editor-saved live Godot AI blend_space and locomotion fixtures, activated each AnimationTree and advanced its walk and run blend positions. The Character reached about x=48.3 on walk and then moved faster on run while the AnimationPlayer stayed idle. The three-graph live MCP route passed locally after core reload; see ci_mcp_graph_three_existing_20261002.log in the 2026-09-30 snapshot. Cross-platform three-graph CI and visual/gameplay transitions remain open.",
       "2026-10-03: live Godot AI created a separate 2D blend-space fixture with idle/walk/run points; dry/write/save/forced-reopen and resolved-player checks passed (run 20261002_221132). A fresh Godot 4.7.2 process evaluated walk at (1,0) to x=48.3 and then switched to the faster run point (0,1) while the AnimationPlayer stayed idle. The eleven-case route passed locally after core reload; see mcp_graph_blend2d_20261003.log, graph_blend2d_saved_playback_20261003.log and ci_mcp_graph_eleven_existing_20261003.log. Cross-platform eleven-case CI and visual review remain open.",
-      "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI graph route on Windows and Linux. The audit checked dry/write/save/reopen, resolved graph topology and typed errors; a fresh Godot 4.7.2 process played the saved graph with AnimationTree ownership. Visual quality and remaining editor history cases remain open."
+      "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI graph route on Windows and Linux. The audit checked dry/write/save/reopen, resolved graph topology and typed errors; a fresh Godot 4.7.2 process played the saved graph with AnimationTree ownership. Visual quality and remaining editor history cases remain open.",
+      "2026-10-05: Godot 4.7.2 external Godot AI MCP passed all 8 graph route/history tests (738 assertions) after a fresh visible editor restart. Seven writes cover new/replaced trees and new/replaced trees under instances: dry/rejected calls, exact scene history, Undo/Redo, source/peer isolation and save/reopen of undone/redone states. All 28 redone scenes passed fresh-process playback/ownership checks. See docs/graph-history-validation.md and mcp_graph_complete_20261005.log; visual approval remains pending."
     ]
   },
   "animation_graph.blend_tree": {
@@ -500,10 +506,12 @@
     },
     "checks": {
       "mcp_invocation": "pass",
-      "save_reopen": "pass",
-      "dry_run": "pass",
+      "save_reopen": "pass_editor_route_matrix",
+      "dry_run": "pass_editor_route_matrix",
       "valid_effect": "pass",
-      "playback": "pass"
+      "playback": "pass_saved_runtime",
+      "reported_errors": "pass_graph_engine_capture",
+      "undo_redo": "pass_editor_route_matrix"
     },
     "evidence": [
       "2026-09-29: Godot 4.7.2 live MCP graph smoke built this op in a fresh clip fixture, saved and force-reopened; graph_get returned a resolved AnimationTree. See mcp_graph_full.log. Tree playback, graph ownership, dry-run topology, undo, errors and visual review remain to verify per op.",
@@ -512,7 +520,8 @@
       "2026-09-29: live MCP built an active Blend2 tree with its output wired, then wire set parameters/Mix/blend_amount=1.0. Saved and reopened scene moved Character.x 0->50 over 30 fixed 60-FPS Godot 4.7.2 frames. See mcp_graph_blend_tree.log and check_graph_runtime.gd; undo and visual review remain pending.",
       "2026-09-29: a declarative blend_tree one_shot used to accept one child and leave Godot's shot port disconnected. The schema now requires base and shot children. A live MCP build saved/reopened an active nested OneShot and FIRE moved Character.y 0->-80 over 30 fixed 60-FPS frames; see mcp_graph_nested_one_shot.log and nested_one_shot_20260929_193652.tscn.",
       "2026-10-03: a fresh Godot 4.7.2 process loaded the editor-saved live Godot AI Blend2 tree, advanced its idle branch, set blend_amount=1 and played walk to x=50 while its AnimationPlayer remained idle. The seven-case live MCP route passed locally after core reload; see graph_blend_tree_saved_playback_20261002.log and ci_mcp_graph_seven_existing_20261002.log in the recovery snapshot. Cross-platform seven-case CI and visual review remain open.",
-      "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI graph route on Windows and Linux. The audit checked dry/write/save/reopen, resolved graph topology and typed errors; a fresh Godot 4.7.2 process played the saved graph with AnimationTree ownership. Visual quality and remaining editor history cases remain open."
+      "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI graph route on Windows and Linux. The audit checked dry/write/save/reopen, resolved graph topology and typed errors; a fresh Godot 4.7.2 process played the saved graph with AnimationTree ownership. Visual quality and remaining editor history cases remain open.",
+      "2026-10-05: Godot 4.7.2 external Godot AI MCP passed all 8 graph route/history tests (738 assertions) after a fresh visible editor restart. Seven writes cover new/replaced trees and new/replaced trees under instances: dry/rejected calls, exact scene history, Undo/Redo, source/peer isolation and save/reopen of undone/redone states. All 28 redone scenes passed fresh-process playback/ownership checks. See docs/graph-history-validation.md and mcp_graph_complete_20261005.log; visual approval remains pending."
     ]
   },
   "animation_graph.wire": {
@@ -524,11 +533,12 @@
     },
     "checks": {
       "mcp_invocation": "pass",
-      "save_reopen": "pass",
+      "save_reopen": "pass_editor_route_matrix",
       "valid_effect": "pass",
-      "playback": "partial_active_blend_with_wire",
-      "dry_run": "pass",
-      "undo_redo": "pass_editor_manager"
+      "playback": "pass_structural_connection",
+      "dry_run": "pass_editor_route_matrix",
+      "undo_redo": "pass_editor_route_matrix",
+      "reported_errors": "pass_graph_engine_capture"
     },
     "evidence": [
       "2026-09-29: Godot 4.7.2 live MCP graph smoke built this op in a fresh clip fixture, saved and force-reopened; graph_get returned a resolved AnimationTree. See mcp_graph_full.log. Tree playback, graph ownership, dry-run topology, undo, errors and visual review remain to verify per op.",
@@ -537,7 +547,8 @@
       "2026-09-29: mcp_graph_dry_resources.log live MCP rerun: before/after dry-run scene hierarchy and graph_get serialized root/parameters matched exactly for all eight graph operations; save/reopen still resolved the player. 8/8 automated contract checks passed.",
       "2026-10-03: live Godot AI bare wire created a saved inactive AnimationTree linked to the requested player with no root, which is its intentional structural effect. A separate wire_parameter fixture first built a conditional idle/walk state machine, then wire set active=true and parameters/conditions/walking=true (run 20261002_220400); dry run preserved topology, save/forced reopen retained the graph, and a fresh Godot 4.7.2 process observed the saved condition drive walk to x=48.3 while the AnimationPlayer stayed idle. The nine-case local MCP route passed after core reload. Logs mcp_graph_wire_parameter_20261003.log, graph_wire_parameter_saved_playback_20261003.log and ci_mcp_graph_nine_existing_20261003.log are in the 2026-09-30 snapshot. Cross-platform nine-case CI, UI undo and visual review remain open.",
       "2026-10-03: two editor tests exercise wire with the scene UndoRedo manager: undo removes a bare wire-created AnimationTree and redo restores it; for an existing state machine, undo restores inactive and walking=false, and redo reapplies active and walking=true. All 221 local Godot 4.7.2 editor tests passed (editor_graph_wire_undo_20261003.log). Keyboard-driven undo through the external Godot AI route remains open.",
-      "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI wire route on Windows and Linux: dry/write/save/reopen, persisted parameter or condition changes and typed errors. Wire is structural; editor Undo/Redo coverage passed separately. Visual state-transition review remains open."
+      "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI wire route on Windows and Linux: dry/write/save/reopen, persisted parameter or condition changes and typed errors. Wire is structural; editor Undo/Redo coverage passed separately. Visual state-transition review remains open.",
+      "2026-10-05: Godot 4.7.2 external Godot AI MCP passed all 8 graph route/history tests (738 assertions) after a fresh visible editor restart. Seven writes cover new/replaced trees and new/replaced trees under instances: dry/rejected calls, exact scene history, Undo/Redo, source/peer isolation and save/reopen of undone/redone states. All 28 redone scenes passed fresh-process playback/ownership checks. See docs/graph-history-validation.md and mcp_graph_complete_20261005.log; visual approval remains pending."
     ]
   },
   "animation_graph.graph_get": {
@@ -550,9 +561,9 @@
     "checks": {
       "mcp_invocation": "pass",
       "save_reopen": "pass",
-      "dry_run": "pass",
+      "dry_run": "not_applicable_read_only",
       "valid_effect": "pass_topology_report",
-      "reported_errors": "pass_missing_tree",
+      "reported_errors": "pass_graph_engine_capture",
       "track_paths_types": "not_applicable_read_only",
       "undo_redo": "not_applicable_read_only",
       "playback": "not_applicable_read_only",
@@ -563,7 +574,8 @@
       "2026-09-29: automated live MCP rerun mcp_graph_verified.log: 8 ops, 0 errors; dry run left the node hierarchy unchanged, saved graph_get resolved its AnimationPlayer. Existing graph resource identity and parameters still need dry-run comparison.",
       "2026-09-29: mcp_graph_dry_resources.log live MCP rerun: before/after dry-run scene hierarchy and graph_get serialized root/parameters matched exactly for all eight graph operations; save/reopen still resolved the player. 8/8 automated contract checks passed.",
       "2026-10-02: focused live Godot AI graph_get contract on a saved 4.7.2 fixture, run 20261002_161310. The response reported both idle/walk animations and the two named states with an idle-to-walk transition; its complete response survived save/forced reopen unchanged. Dry run did not change the graph root or parameters. A missing tree returned typed NODE_NOT_FOUND. This establishes the read-only topology effect on Windows; broader graph playback and Linux remain family-level gates.",
-      "2026-10-02: pinned Godot AI v4.2.1 live MCP CI graph_get topology/error gate passed on Linux and Windows in run 37032883288 attempt 2. The first Windows attempt stopped before any toolkit probe because Godot AI core could not capture its managed server process identity; the failed job alone was rerun unchanged and passed. This establishes cross-platform saved topology reporting, not full graph-family playback or every editor readiness state."
+      "2026-10-02: pinned Godot AI v4.2.1 live MCP CI graph_get topology/error gate passed on Linux and Windows in run 37032883288 attempt 2. The first Windows attempt stopped before any toolkit probe because Godot AI core could not capture its managed server process identity; the failed job alone was rerun unchanged and passed. This establishes cross-platform saved topology reporting, not full graph-family playback or every editor readiness state.",
+      "2026-10-05: Godot 4.7.2 external Godot AI MCP passed all 8 graph route/history tests (738 assertions) after a fresh visible editor restart. Seven writes cover new/replaced trees and new/replaced trees under instances: dry/rejected calls, exact scene history, Undo/Redo, source/peer isolation and save/reopen of undone/redone states. All 28 redone scenes passed fresh-process playback/ownership checks. See docs/graph-history-validation.md and mcp_graph_complete_20261005.log; visual approval remains pending."
     ]
   },
   "animation_graph.locomotion": {
@@ -575,10 +587,12 @@
     },
     "checks": {
       "mcp_invocation": "pass",
-      "save_reopen": "pass",
-      "dry_run": "pass",
+      "save_reopen": "pass_editor_route_matrix",
+      "dry_run": "pass_editor_route_matrix",
       "valid_effect": "pass",
-      "playback": "pass"
+      "playback": "pass_saved_runtime",
+      "reported_errors": "pass_graph_engine_capture",
+      "undo_redo": "pass_editor_route_matrix"
     },
     "evidence": [
       "2026-09-29: Godot 4.7.2 live MCP graph smoke built this op in a fresh clip fixture, saved and force-reopened; graph_get returned a resolved AnimationTree. See mcp_graph_full.log. Tree playback, graph ownership, dry-run topology, undo, errors and visual review remain to verify per op.",
@@ -588,7 +602,8 @@
       "2026-09-29: live MCP locomotion(active=true,mode=state_machine,start=idle) plus wire(walking=true) saved/reopened and transitioned to walk, moving Character.x 0->50 over 30 fixed 60-FPS frames. See mcp_graph_locomotion_state.log and locomotion_state_20260929_193946.tscn. Undo, visual and Linux pending.",
       "2026-10-02: fresh Godot 4.7.2 processes loaded the editor-saved live Godot AI blend_space and locomotion fixtures, activated each AnimationTree and advanced its walk and run blend positions. The Character reached about x=48.3 on walk and then moved faster on run while the AnimationPlayer stayed idle. The three-graph live MCP route passed locally after core reload; see ci_mcp_graph_three_existing_20261002.log in the 2026-09-30 snapshot. Cross-platform three-graph CI and visual/gameplay transitions remain open.",
       "2026-10-03: live Godot AI created a separate locomotion state-machine fixture with walking/running conditions; dry/write/save/forced-reopen and resolved-player checks passed (run 20261002_221217). A fresh Godot 4.7.2 process set walking then running and reached the named states, with Character x=48.3 then x=93.3 and the AnimationPlayer idle. A six-frame manual-travel check exposed a backward crossfade in this fixture because walk/run clips key absolute position and the run clip restarts at x=0; it does not prove a graph builder failure. The eleven-case route passed locally; see mcp_graph_locomotion_sm_20261003.log, graph_locomotion_sm_conditions_20261003.log and ci_mcp_graph_eleven_existing_20261003.log. Cross-platform eleven-case CI and visual review remain open.",
-      "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI graph route on Windows and Linux. The audit checked dry/write/save/reopen, resolved graph topology and typed errors; a fresh Godot 4.7.2 process played the saved graph with AnimationTree ownership. Visual quality and remaining editor history cases remain open."
+      "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI graph route on Windows and Linux. The audit checked dry/write/save/reopen, resolved graph topology and typed errors; a fresh Godot 4.7.2 process played the saved graph with AnimationTree ownership. Visual quality and remaining editor history cases remain open.",
+      "2026-10-05: Godot 4.7.2 external Godot AI MCP passed all 8 graph route/history tests (738 assertions) after a fresh visible editor restart. Seven writes cover new/replaced trees and new/replaced trees under instances: dry/rejected calls, exact scene history, Undo/Redo, source/peer isolation and save/reopen of undone/redone states. All 28 redone scenes passed fresh-process playback/ownership checks. See docs/graph-history-validation.md and mcp_graph_complete_20261005.log; visual approval remains pending."
     ]
   },
   "animation_graph.one_shot_layer": {
@@ -600,10 +615,12 @@
     },
     "checks": {
       "mcp_invocation": "pass",
-      "save_reopen": "pass",
-      "dry_run": "pass",
+      "save_reopen": "pass_editor_route_matrix",
+      "dry_run": "pass_editor_route_matrix",
       "valid_effect": "pass",
-      "playback": "pass"
+      "playback": "pass_saved_runtime",
+      "reported_errors": "pass_graph_engine_capture",
+      "undo_redo": "pass_editor_route_matrix"
     },
     "evidence": [
       "2026-09-29: Godot 4.7.2 live MCP graph smoke built this op in a fresh clip fixture, saved and force-reopened; graph_get returned a resolved AnimationTree. See mcp_graph_full.log. Tree playback, graph ownership, dry-run topology, undo, errors and visual review remain to verify per op.",
@@ -611,7 +628,8 @@
       "2026-09-29: mcp_graph_dry_resources.log live MCP rerun: before/after dry-run scene hierarchy and graph_get serialized root/parameters matched exactly for all eight graph operations; save/reopen still resolved the player. 8/8 automated contract checks passed.",
       "2026-09-29: before repair, a live MCP-created active one_shot_layer returned success, saved/reopened, but FIRE moved Character.y zero units. Godot 4.7.2 reports OneShot ports as in/shot; handler wired Shot to in and muted output with a default-zero Blend2. After wiring Base->in and Jump->shot and output directly from OneShot, the same live route and runtime probe moved Character.y 0->-80 in 30 fixed 60-FPS frames. See mcp_graph_one_shot_before.log, mcp_graph_one_shot_after.log and check_graph_runtime.gd. Undo, visual and Linux pending.",
       "2026-10-03: a fresh Godot 4.7.2 process loaded the editor-saved live Godot AI one-shot tree, fired its jump request and reached y=-77.3 while the AnimationPlayer stayed idle. The seven-case live MCP route passed locally after core reload; see ci_mcp_graph_seven_existing_20261002.log. Cross-platform seven-case CI and visual review remain open.",
-      "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI graph route on Windows and Linux. The audit checked dry/write/save/reopen, resolved graph topology and typed errors; a fresh Godot 4.7.2 process played the saved graph with AnimationTree ownership. Visual quality and remaining editor history cases remain open."
+      "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI graph route on Windows and Linux. The audit checked dry/write/save/reopen, resolved graph topology and typed errors; a fresh Godot 4.7.2 process played the saved graph with AnimationTree ownership. Visual quality and remaining editor history cases remain open.",
+      "2026-10-05: Godot 4.7.2 external Godot AI MCP passed all 8 graph route/history tests (738 assertions) after a fresh visible editor restart. Seven writes cover new/replaced trees and new/replaced trees under instances: dry/rejected calls, exact scene history, Undo/Redo, source/peer isolation and save/reopen of undone/redone states. All 28 redone scenes passed fresh-process playback/ownership checks. See docs/graph-history-validation.md and mcp_graph_complete_20261005.log; visual approval remains pending."
     ]
   },
   "animation_sequence.compose": {
@@ -657,10 +675,12 @@
     },
     "checks": {
       "mcp_invocation": "pass",
-      "save_reopen": "pass",
-      "dry_run": "pass",
+      "save_reopen": "pass_editor_route_matrix",
+      "dry_run": "pass_editor_route_matrix",
       "valid_effect": "pass",
-      "playback": "pass"
+      "playback": "pass_saved_runtime",
+      "reported_errors": "pass_graph_engine_capture",
+      "undo_redo": "pass_editor_route_matrix"
     },
     "evidence": [
       "2026-09-29: Godot 4.7.2 live MCP graph smoke built this op in a fresh clip fixture, saved and force-reopened; graph_get returned a resolved AnimationTree. See mcp_graph_full.log. Tree playback, graph ownership, dry-run topology, undo, errors and visual review remain to verify per op.",
@@ -668,7 +688,8 @@
       "2026-09-29: mcp_graph_dry_resources.log live MCP rerun: before/after dry-run scene hierarchy and graph_get serialized root/parameters matched exactly for all eight graph operations; save/reopen still resolved the player. 8/8 automated contract checks passed.",
       "2026-09-29: live MCP additive_lean(active=true,base=idle,animation=lean) returned parameters/Add2/add_amount; wire set it to 1.0. Saved/reopened scene rotated Character from 0 to 0.12 radians over 30 fixed 60-FPS Godot 4.7.2 frames. See mcp_graph_additive.log and check_graph_runtime.gd. Undo, visual and Linux pending.",
       "2026-10-03: a fresh Godot 4.7.2 process loaded the editor-saved live Godot AI additive tree, set Add2 weight to 1 and reached 0.116 rad of Character rotation while the AnimationPlayer stayed idle. The seven-case live MCP route passed locally after core reload; see ci_mcp_graph_seven_existing_20261002.log. Cross-platform seven-case CI and visual review remain open.",
-      "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI graph route on Windows and Linux. The audit checked dry/write/save/reopen, resolved graph topology and typed errors; a fresh Godot 4.7.2 process played the saved graph with AnimationTree ownership. Visual quality and remaining editor history cases remain open."
+      "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI graph route on Windows and Linux. The audit checked dry/write/save/reopen, resolved graph topology and typed errors; a fresh Godot 4.7.2 process played the saved graph with AnimationTree ownership. Visual quality and remaining editor history cases remain open.",
+      "2026-10-05: Godot 4.7.2 external Godot AI MCP passed all 8 graph route/history tests (738 assertions) after a fresh visible editor restart. Seven writes cover new/replaced trees and new/replaced trees under instances: dry/rejected calls, exact scene history, Undo/Redo, source/peer isolation and save/reopen of undone/redone states. All 28 redone scenes passed fresh-process playback/ownership checks. See docs/graph-history-validation.md and mcp_graph_complete_20261005.log; visual approval remains pending."
     ]
   },
   "animation_edit.offset": {
@@ -690,7 +711,7 @@
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP fresh-scene audit on Godot 4.7.2; dry run preserved the source, write changed the clip, tracks resolved after save/reopen, and engine playback matched expected start/mid/end values within 0.02 units. See mcp_edit_hold_verified.log, run id 20260929_195930. UI undo, visual and Linux remain pending.",
-      "2026-09-29: wrap=true on a discontinuous 0→100 endpoint seam returned VALUE_OUT_OF_RANGE for dry and write without changing the saved clip; nonwrapped delay held the initial pose until motion began. The first audit had falsely accepted a constant one-key clip; see mcp_edit_eleven.log and mcp_edit_hold_verified.log.",
+      "2026-09-29: wrap=true on a discontinuous 0\u2192100 endpoint seam returned VALUE_OUT_OF_RANGE for dry and write without changing the saved clip; nonwrapped delay held the initial pose until motion began. The first audit had falsely accepted a constant one-key clip; see mcp_edit_eleven.log and mcp_edit_hold_verified.log.",
       "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
       "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
     ]
@@ -760,7 +781,7 @@
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP fresh-scene audit on Godot 4.7.2; dry run preserved the source, write changed the clip, tracks resolved after save/reopen, and engine playback matched expected start/mid/end values within 0.02 units. See mcp_edit_hold_verified.log, run id 20260929_195930. UI undo, visual and Linux remain pending.",
-      "2026-09-29: wrap=true on a discontinuous 0→100 endpoint seam returned VALUE_OUT_OF_RANGE for dry and write without changing the saved clip; nonwrapped delay held the initial pose until motion began. The first audit had falsely accepted a constant one-key clip; see mcp_edit_eleven.log and mcp_edit_hold_verified.log.",
+      "2026-09-29: wrap=true on a discontinuous 0\u2192100 endpoint seam returned VALUE_OUT_OF_RANGE for dry and write without changing the saved clip; nonwrapped delay held the initial pose until motion began. The first audit had falsely accepted a constant one-key clip; see mcp_edit_eleven.log and mcp_edit_hold_verified.log.",
       "2026-09-29: the final 20-operation Godot AI MCP pass captured full key timelines, dry run, saved/reopened tracks and engine playback for this edit on Godot 4.7.2. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905.",
       "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
     ]
@@ -872,7 +893,7 @@
     },
     "evidence": [
       "2026-09-29: live Godot AI MCP on a fresh scene; full inspect.timeline changed as expected, dry run left it intact, save/force reopen persisted resolved tracks, and saved Godot 4.7.2 playback matched operation-specific values. See mcp_edit_twenty_merge_fixed.log, run id 20260929_200905. UI undo, visual and Linux pending.",
-      "2026-09-29: first saved merge erased the end of its first source at a conflicting seam. The repair preserves the outgoing value at 0.9999 s and incoming value at 1.0 s; playback showed x≈50 at 0.5 s and x=100 at 1.5 s. The 0.1 ms hard cut between incompatible source positions remains a deliberate cut; quality audit and transition/blend review remain open.",
+      "2026-09-29: first saved merge erased the end of its first source at a conflicting seam. The repair preserves the outgoing value at 0.9999 s and incoming value at 1.0 s; playback showed x\u224850 at 0.5 s and x=100 at 1.5 s. The 0.1 ms hard cut between incompatible source positions remains a deliberate cut; quality audit and transition/blend review remain open.",
       "2026-10-03: GitHub Actions run 37074375344 passed live Godot AI dry/write/save/reopen and operation-specific saved engine playback on Windows and Linux. Two wrap parameter cases returned typed rejection with no mutation; visual review and full Undo/Redo remain open."
     ]
   },
@@ -1122,7 +1143,7 @@
       "save_reopen": "pass_fixture"
     },
     "evidence": [
-      "2026-09-29: live Godot AI MCP in the visible Godot 4.7.2 editor on the saved 56-bone dummy walk scene. Rig profile found hips/leg/foot roles without a file write; sampling returned both feet at eight times; played motion audit passed with 1.0801 m travel and zero failed checks; preview wrote four 480×270 PNGs, each >4,000 nonbackground pixels. The source clip summary was unchanged. See mcp_inspect_3d_verified.log and test_project/animation_toolkit/previews/repair_inspect/. Preview frame inspection found the subject small, so motion quality is not approved.",
+      "2026-09-29: live Godot AI MCP in the visible Godot 4.7.2 editor on the saved 56-bone dummy walk scene. Rig profile found hips/leg/foot roles without a file write; sampling returned both feet at eight times; played motion audit passed with 1.0801 m travel and zero failed checks; preview wrote four 480\u00d7270 PNGs, each >4,000 nonbackground pixels. The source clip summary was unchanged. See mcp_inspect_3d_verified.log and test_project/animation_toolkit/previews/repair_inspect/. Preview frame inspection found the subject small, so motion quality is not approved.",
       "2026-09-29: invalid skeleton path returned typed NODE_NOT_FOUND through live Godot AI MCP; see mcp_inspect_3d_errors.log.",
       "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI inspector contract and typed-error checks on Windows and Linux. The 3D sample and motion audit used the saved dummy walk; remaining visual or file-effect variants stay open."
     ]
@@ -1144,7 +1165,7 @@
       "save_reopen": "pass_fixture"
     },
     "evidence": [
-      "2026-09-29: live Godot AI MCP in the visible Godot 4.7.2 editor on the saved 56-bone dummy walk scene. Rig profile found hips/leg/foot roles without a file write; sampling returned both feet at eight times; played motion audit passed with 1.0801 m travel and zero failed checks; preview wrote four 480×270 PNGs, each >4,000 nonbackground pixels. The source clip summary was unchanged. See mcp_inspect_3d_verified.log and test_project/animation_toolkit/previews/repair_inspect/. Preview frame inspection found the subject small, so motion quality is not approved.",
+      "2026-09-29: live Godot AI MCP in the visible Godot 4.7.2 editor on the saved 56-bone dummy walk scene. Rig profile found hips/leg/foot roles without a file write; sampling returned both feet at eight times; played motion audit passed with 1.0801 m travel and zero failed checks; preview wrote four 480\u00d7270 PNGs, each >4,000 nonbackground pixels. The source clip summary was unchanged. See mcp_inspect_3d_verified.log and test_project/animation_toolkit/previews/repair_inspect/. Preview frame inspection found the subject small, so motion quality is not approved.",
       "2026-09-29: invalid skeleton path returned typed NODE_NOT_FOUND through live Godot AI MCP; see mcp_inspect_3d_errors.log.",
       "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI inspector contract and typed-error checks on Windows and Linux. The 3D sample and motion audit used the saved dummy walk; remaining visual or file-effect variants stay open."
     ]
@@ -1166,7 +1187,7 @@
       "save_reopen": "pass_fixture"
     },
     "evidence": [
-      "2026-09-29: live Godot AI MCP in the visible Godot 4.7.2 editor on the saved 56-bone dummy walk scene. Rig profile found hips/leg/foot roles without a file write; sampling returned both feet at eight times; played motion audit passed with 1.0801 m travel and zero failed checks; preview wrote four 480×270 PNGs, each >4,000 nonbackground pixels. The source clip summary was unchanged. See mcp_inspect_3d_verified.log and test_project/animation_toolkit/previews/repair_inspect/. Preview frame inspection found the subject small, so motion quality is not approved.",
+      "2026-09-29: live Godot AI MCP in the visible Godot 4.7.2 editor on the saved 56-bone dummy walk scene. Rig profile found hips/leg/foot roles without a file write; sampling returned both feet at eight times; played motion audit passed with 1.0801 m travel and zero failed checks; preview wrote four 480\u00d7270 PNGs, each >4,000 nonbackground pixels. The source clip summary was unchanged. See mcp_inspect_3d_verified.log and test_project/animation_toolkit/previews/repair_inspect/. Preview frame inspection found the subject small, so motion quality is not approved.",
       "2026-09-29: invalid skeleton path returned typed NODE_NOT_FOUND through live Godot AI MCP; see mcp_inspect_3d_errors.log.",
       "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI inspector contract and typed-error checks on Windows and Linux. The 3D sample and motion audit used the saved dummy walk; remaining visual or file-effect variants stay open.",
       "2026-10-04: Godot AI custom_animation_inspect.motion_audit now reports a played world-frame hip-to-support trace (left/right/both/flight), not a centre-of-mass estimate. In the restarted visible Godot 4.7.2 editor, saved X Bot default and shorter-cadence trial runs each passed 30/60/120 FPS after force-open. At 120 FPS the default had 51 left, 51 right and 19 flight samples with 0.4675 m maximum absolute hip-forward offset from support; the trial had 51 left, 50 right and 20 flight samples with 0.3752 m. Logs mcp_xbot_{default,trial}_support_reloaded_20261004.log are in the recovery snapshot. These descriptive values are not a visual-quality pass."
@@ -1189,7 +1210,7 @@
       "save_reopen": "pass_fixture"
     },
     "evidence": [
-      "2026-09-29: live Godot AI MCP in the visible Godot 4.7.2 editor on the saved 56-bone dummy walk scene. Rig profile found hips/leg/foot roles without a file write; sampling returned both feet at eight times; played motion audit passed with 1.0801 m travel and zero failed checks; preview wrote four 480×270 PNGs, each >4,000 nonbackground pixels. The source clip summary was unchanged. See mcp_inspect_3d_verified.log and test_project/animation_toolkit/previews/repair_inspect/. Preview frame inspection found the subject small, so motion quality is not approved.",
+      "2026-09-29: live Godot AI MCP in the visible Godot 4.7.2 editor on the saved 56-bone dummy walk scene. Rig profile found hips/leg/foot roles without a file write; sampling returned both feet at eight times; played motion audit passed with 1.0801 m travel and zero failed checks; preview wrote four 480\u00d7270 PNGs, each >4,000 nonbackground pixels. The source clip summary was unchanged. See mcp_inspect_3d_verified.log and test_project/animation_toolkit/previews/repair_inspect/. Preview frame inspection found the subject small, so motion quality is not approved.",
       "2026-09-29: invalid skeleton path returned typed NODE_NOT_FOUND through live Godot AI MCP; see mcp_inspect_3d_errors.log.",
       "2026-10-03: GitHub Actions run 37108181377 required typed INVALID_PARAMS from preview in headless Godot on Windows and Linux; a visible Windows Godot 4.7.2 editor separately rendered four nonempty PNGs. Linux visible rendering and visual quality remain open.",
       "2026-10-03: Linux headless execution in GitHub Actions run 37108181377 returned the documented typed unavailable preview error rather than reporting a PNG effect. This is partial platform coverage only; visible Linux frame rasterization and visual inspection remain pending."
@@ -2459,7 +2480,7 @@
     },
     "evidence": [
       "2026-09-30: live Godot AI custom_manage(invoke), mcp_rig_modifiers_leaf_rejected.log run 20260930_173516, on imported dummy. Dry run left skeleton unchanged; write made one modifier, saved and forced reopen retained it, invalid skeleton returned typed NODE_NOT_FOUND. Godot 4.7.2 saved-scene modifier callback measured 0.393 rad hips change after twisting the spine reference. Editor undo, additional rig combinations, visual review and Linux remain.",
-      "2026-09-30: unextended end uses its parent as the twist reference per Godot 4.7; handler now reports reference_bone=B-spine for the B-hips→B-chest fixture and documents this in tool discovery.",
+      "2026-09-30: unextended end uses its parent as the twist reference per Godot 4.7; handler now reports reference_bone=B-spine for the B-hips\u2192B-chest fixture and documents this in tool discovery.",
       "2026-10-03: GitHub Actions run 37072351007 passed live Godot AI invocation and fresh-process saved modifier playback on Windows and Linux. Local editor handler Undo/Redo passes; modifier stack order and visual review remain."
     ],
     "platforms": {
