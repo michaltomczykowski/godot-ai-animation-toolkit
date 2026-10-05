@@ -2880,3 +2880,26 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
 - Documented docs/preset-library-history-validation.md and updated operation
   evidence; all 103 statuses remain partial. The complete live route and new
   Windows/Linux checkpoint CI are next. Earlier ff8cdbc CI is fully green.
+
+### 2026-10-06 - Preset/library platform and recovery checkpoint
+
+- Source commits 1c6d45a and 47eca1f are pushed to repair/toolkit-quality and
+  the existing draft PR #1. The complete local ci_mcp_route.py run passed all
+  prior family gates plus preset_library_history (126 saved playback states).
+- GitHub Actions run 37380645832 at 47eca1f completed successfully: fourteen
+  headless suites on Windows/Linux, four editor platform/core combinations
+  (main and v4.2.1), and both complete live MCP routes. Each hosted editor run
+  has 268 passing tests, one optional X Bot asset skip and zero engine errors;
+  local coverage is 269/269 with the available asset.
+- Repeated visible template Undo/Redo using the helper's unique recipe path:
+  baseline pivot 7,9 and absent clip restore; Redo restores pivot 60,30 and
+  all four keys. The helper indentation correction is included in 47eca1f.
+- Recovery snapshot preset_library_history_20261006 includes phase source,
+  patch, baseline/proof logs, hosted CI logs/status, UI records and 150 saved
+  state/source scenes. docs/preset-library-history-validation.md records the
+  completed checks. All operation statuses remain partial for outstanding gates.
+- Next phase is planned in the snapshot's next_phase_plan.md: rig/modifier
+  history matrices, scene/resource identity and instance isolation, measured
+  modifier evaluation and saved playback through the public Godot AI route.
+  Broader motion/sequence history and fixed-camera visual review also remain.
+  The branch remains unreleased; no visual approval is claimed.

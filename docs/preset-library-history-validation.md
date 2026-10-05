@@ -65,9 +65,26 @@ is mandatory in `tools/ci_mcp_route.py`; prior family gates remain enabled.
   are prepared and checked by `tools/mcp_preset_library_ui_history.py`.
 - All fourteen local headless suites pass.
 
-Full editor results and this checkpoint's Windows/Linux CI are recorded below
-after completion. Earlier checkpoint `ff8cdbc` passed all platform jobs in
-GitHub Actions run 37364196616, after rerunning hosted-runner cancellations.
+Full current-source editor suite: **269/269**, zero captured engine errors;
+six existing Bone2D leaf warnings are reported separately. The complete local
+`ci_mcp_route.py` run also passed every family gate, including the new history
+gate. The final visible template check used a unique recipe file and passed
+native Undo/Redo against the recorded pivot and complete key timeline.
+
+## Platform verification
+
+Source checkpoint `47eca1f` passed
+[GitHub Actions run 37380645832](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37380645832):
+
+- All fourteen headless suites on both Windows and Linux.
+- Editor suites on both platforms against Godot AI `v4.2.1` and `main`:
+  268 passed, one optional X Bot asset test skipped, zero engine errors.
+  The local 269/269 run includes the available X Bot asset.
+- Complete live MCP route on both platforms against the pinned core,
+  including registration/reload and all 126 preset/library saved states.
+
+Earlier checkpoint `ff8cdbc` also passed all platform jobs in run 37364196616
+after rerunning hosted-runner cancellations. No release was created.
 
 ## Recovery and remaining work
 
