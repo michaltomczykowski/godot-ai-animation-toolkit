@@ -232,6 +232,24 @@ def motion_setup_gate(args: argparse.Namespace) -> bool:
     return True
 
 
+def character_history_gate(args: argparse.Namespace) -> bool:
+    result = subprocess.run([
+        sys.executable, str(Path(__file__).with_name("mcp_character_history.py")),
+        "--core-root", str(args.core_root), "--project-root", str(args.project),
+        "--session-hint", args.project.name, "--port", str(args.port),
+        "--ws-port", str(args.ws_port), "--godot", godot_executable(args.godot),
+    ], capture_output=True, text=True, timeout=120, check=False)
+    marker = "MCP_CHARACTER_HISTORY="
+    report = next((line[len(marker):] for line in result.stdout.splitlines()
+                   if line.startswith(marker)), "")
+    if result.returncode or not report or not json.loads(report).get("passed"):
+        print("MCP_CI_FAIL=character_history")
+        print((result.stdout + result.stderr)[-5000:])
+        return False
+    print("MCP_CI_PASS=character_history", flush=True)
+    return True
+
+
 def graph_playback_gate(args: argparse.Namespace) -> bool:
     history = subprocess.run([
         sys.executable, str(Path(__file__).with_name("mcp_graph_history.py")),
@@ -811,6 +829,9 @@ def run(args: argparse.Namespace) -> int:
             print(tail(log_path))
             return 1
         if not motion_setup_gate(args):
+            print(tail(log_path))
+            return 1
+        if not character_history_gate(args):
             print(tail(log_path))
             return 1
         if not graph_playback_gate(args):

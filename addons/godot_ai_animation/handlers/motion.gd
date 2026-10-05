@@ -67,12 +67,17 @@ const _OVERRIDE_KEYS := {
 ## A single request can otherwise allocate tens of millions of keys by asking
 ## for a very long clip at 120 samples/s. Check before MotionSpecs builds keys.
 const MAX_CYCLE_INTERVALS := 1200
+var _pending_setup_tree: AnimationTree
 
 
 ## Rollup entry registered with the Godot AI tool registry.
 func run(params: Dictionary, _ctx) -> Dictionary:
 	_dry_run = bool(params.get("dry_run", false))
+	_pending_setup_tree = null
 	var result := _dispatch(params)
+	if is_instance_valid(_pending_setup_tree) and not _pending_setup_tree.is_inside_tree():
+		_pending_setup_tree.free()
+	_pending_setup_tree = null
 	if _dry_run and result.has("data"):
 		result.data["dry_run"] = true
 		result.data["undoable"] = false
@@ -475,6 +480,7 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
 					"Cannot create an AnimationTree at %s: parent '%s' not found" % [tree_path, tree_path.get_base_dir()])
 			tree = AnimationTree.new()
+			_pending_setup_tree = tree
 			tree.name = tree_path.get_file()
 			tree_parent = parent
 			created_tree = true
@@ -486,6 +492,7 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 				break
 		if tree == null:
 			tree = AnimationTree.new()
+			_pending_setup_tree = tree
 			tree.name = "AnimationTree"
 			tree_parent = player.get_parent() if player.get_parent() != null else scene_root
 			created_tree = true
@@ -508,29 +515,45 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 	if not _dry_run:
 		_create_scene_pinned_action("MCP: Character setup")
 		var undo := ToolContext.undo_redo
+		# Stop the attached mixer before either side changes its clip library.
+		undo.add_undo_property(tree, "active", false)
+		if not created_tree:
+			undo.add_do_property(tree, "active", false)
+		# Trees may be placed inside a different scene instance from the player.
+		# The clip staging below handles the player's instance permissions.
+		var tree_levels := _instance_levels(tree_parent if created_tree else tree)
+		for level in tree_levels:
+			undo.add_do_method(level.parent, "set_editable_instance", level.instance, true)
 		_stage_animation_changes(undo, player, library, created_library, removed, added)
 		if created_tree:
 			undo.add_do_method(tree_parent, "add_child", tree, true)
-			undo.add_undo_method(tree_parent, "remove_child", tree)
 			undo.add_do_method(tree, "set_owner", scene_root)
 			undo.add_do_reference(tree)
+			undo.add_do_property(tree, "active", false)
 		undo.add_do_property(tree, "tree_root", tree_root)
-		undo.add_undo_property(tree, "tree_root", old_root)
+		if not created_tree:
+			undo.add_undo_property(tree, "tree_root", old_root)
 		if tree.anim_player != wanted_player:
 			undo.add_do_property(tree, "anim_player", wanted_player)
-			undo.add_undo_property(tree, "anim_player", old_anim_player)
-		if tree.active != want_active:
-			undo.add_do_property(tree, "active", want_active)
-			undo.add_undo_property(tree, "active", old_active)
-		if not root_motion_track.is_empty():
-			undo.add_do_property(player, "root_motion_track", NodePath(root_motion_track))
-			undo.add_undo_property(player, "root_motion_track", old_player_root_motion)
-			undo.add_do_property(tree, "root_motion_track", NodePath(root_motion_track))
+			if not created_tree:
+				undo.add_undo_property(tree, "anim_player", old_anim_player)
+		# An explicit in-place setup must clear extraction left by an older graph.
+		undo.add_do_property(player, "root_motion_track", NodePath(root_motion_track))
+		undo.add_undo_property(player, "root_motion_track", old_player_root_motion)
+		undo.add_do_property(tree, "root_motion_track", NodePath(root_motion_track))
+		undo.add_do_property(player, "root_motion_local", root_motion or old_player_root_motion_local)
+		undo.add_undo_property(player, "root_motion_local", old_player_root_motion_local)
+		undo.add_do_property(tree, "root_motion_local", root_motion or old_tree_root_motion_local)
+		if not created_tree:
 			undo.add_undo_property(tree, "root_motion_track", old_tree_root_motion)
-			undo.add_do_property(player, "root_motion_local", true)
-			undo.add_undo_property(player, "root_motion_local", old_player_root_motion_local)
-			undo.add_do_property(tree, "root_motion_local", true)
 			undo.add_undo_property(tree, "root_motion_local", old_tree_root_motion_local)
+		undo.add_do_property(tree, "active", want_active)
+		if created_tree:
+			undo.add_undo_method(tree_parent, "remove_child", tree)
+		else:
+			undo.add_undo_property(tree, "active", old_active)
+		for level in tree_levels:
+			undo.add_undo_method(level.parent, "set_editable_instance", level.instance, false)
 		undo.commit_action()
 	var tree_label := ""
 	if created_tree:
@@ -567,7 +590,7 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 		"apply_snippet": _apply_snippet(tree_label, speed_parameter, jump_request),
 		"warnings": warnings + speed_warnings,
 		"undoable": true,
-		"note": "inactive tree by default; pass active=true (or enable the tree) when the scene is ready",
+		"note": "active tree owns playback" if want_active else "inactive tree; pass active=true (or enable the tree) when the scene is ready",
 	}}
 
 

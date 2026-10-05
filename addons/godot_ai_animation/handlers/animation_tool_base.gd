@@ -89,7 +89,17 @@ func _resolve_skeleton(params: Dictionary) -> Dictionary:
 ## so its nodes are saved as overrides of the source scene and the inherited
 ## library belongs to that source scene.
 static func _needs_local_library(player: AnimationPlayer) -> bool:
-	return not _instance_levels(player).is_empty()
+	# Editable Children controls serialization, not resource ownership. Even an
+	# already-editable instance can still share its library with a source/peer.
+	if not Engine.is_editor_hint() or not player.is_inside_tree():
+		return false
+	var edited_root := player.get_tree().edited_scene_root
+	var current: Node = player
+	while current != null and current != edited_root:
+		if not current.scene_file_path.is_empty():
+			return true
+		current = current.get_parent()
+	return false
 
 
 ## The scene-instance levels between `node` and the edited scene root that are

@@ -2477,7 +2477,7 @@
         "dry_run": "pending",
         "mcp_invocation": "pass",
         "playback": "pass",
-        "reported_errors": "pending",
+        "reported_errors": "pass_audit_engine_capture",
         "save_reopen": "pass_fixture",
         "track_paths_types": "pending",
         "undo_redo": "pending",
@@ -2489,7 +2489,8 @@
         "2026-09-29: live Godot AI MCP in the visible Godot 4.7.2 editor on the saved 56-bone dummy walk scene. Rig profile found hips/leg/foot roles without a file write; sampling returned both feet at eight times; played motion audit passed with 1.0801 m travel and zero failed checks; preview wrote four 480×270 PNGs, each >4,000 nonbackground pixels. The source clip summary was unchanged. See mcp_inspect_3d_verified.log and test_project/animation_toolkit/previews/repair_inspect/. Preview frame inspection found the subject small, so motion quality is not approved.",
         "2026-09-29: invalid skeleton path returned typed NODE_NOT_FOUND through live Godot AI MCP; see mcp_inspect_3d_errors.log.",
         "2026-10-03: GitHub Actions run 37108181377 passed the live Godot AI inspector contract and typed-error checks on Windows and Linux. The 3D sample and motion audit used the saved dummy walk; remaining visual or file-effect variants stay open.",
-        "2026-10-04: Godot AI custom_animation_inspect.motion_audit now reports a played world-frame hip-to-support trace (left/right/both/flight), not a centre-of-mass estimate. In the restarted visible Godot 4.7.2 editor, saved X Bot default and shorter-cadence trial runs each passed 30/60/120 FPS after force-open. At 120 FPS the default had 51 left, 51 right and 19 flight samples with 0.4675 m maximum absolute hip-forward offset from support; the trial had 51 left, 50 right and 20 flight samples with 0.3752 m. Logs mcp_xbot_{default,trial}_support_reloaded_20261004.log are in the recovery snapshot. These descriptive values are not a visual-quality pass."
+        "2026-10-04: Godot AI custom_animation_inspect.motion_audit now reports a played world-frame hip-to-support trace (left/right/both/flight), not a centre-of-mass estimate. In the restarted visible Godot 4.7.2 editor, saved X Bot default and shorter-cadence trial runs each passed 30/60/120 FPS after force-open. At 120 FPS the default had 51 left, 51 right and 19 flight samples with 0.4675 m maximum absolute hip-forward offset from support; the trial had 51 left, 50 right and 20 flight samples with 0.3752 m. Logs mcp_xbot_{default,trial}_support_reloaded_20261004.log are in the recovery snapshot. These descriptive values are not a visual-quality pass.",
+        "2026-10-05: Replaced scene reinstantiation with script-free live hierarchy copies. External MCP inspector suite passed all 27 tests; played motion-audit calls now use the real Godot AI dispatcher with zero captured engine errors and unchanged source pose/playback checks. Added unsaved-child isolation and constructor-side-effect regression. See docs/character-history-validation.md; this does not approve animation visual quality."
       ],
       "example": {
         "animation_name": "walk",
@@ -3724,11 +3725,11 @@
       "checks": {
         "dry_run": "pass",
         "mcp_invocation": "pass",
-        "playback": "pass_tree_root_extraction",
-        "reported_errors": "pending",
-        "save_reopen": "pass",
+        "playback": "pass_saved_30_60_120fps",
+        "reported_errors": "pass_setup_engine_capture",
+        "save_reopen": "pass_editor_route_matrix",
         "track_paths_types": "pass",
-        "undo_redo": "pass",
+        "undo_redo": "pass_editor_route_matrix",
         "valid_effect": "pass_tree_and_clips",
         "visual_review": "pending"
       },
@@ -3739,7 +3740,8 @@
         "2026-10-01: after changing the public walk default to an 18-degree stride config, live Godot AI character_setup with omitted speed chose 0.82064 m/s on the dummy, dry/write/save/forced-reopen passed for five resolved clips and the tree (run 20261001_195442). A separate 8 m/s request returned typed VALUE_OUT_OF_RANGE with the 1.229 m/s reachable limit before any clip write. Log mcp_setup_final_default_stride18.log. Visual, per-op undo and Linux remain open.",
         "2026-10-01: visible Godot 4.7.2 editor UI Undo/Redo on a live Godot AI character_setup with auto walk speed 0.82064 m/s. One Ctrl+Z removed idle/walk/run/jump and the AnimationTree; Godot AI inspection returned clip not found and NODE_NOT_FOUND for the tree. Ctrl+Y restored the clips, tree and Dummy:position root-motion path on both player and tree. Logs mcp_character_setup_ui_undo_setup.log, mcp_character_setup_ui_undo_after.log, mcp_character_setup_ui_redo_after.log.",
         "2026-10-03: GitHub Actions run 37109446018 passed the live Godot AI route on Windows and Linux: dry/write/save/reopen, typed failures and persisted scene effects. The saved AnimationTree drove a walking thigh and extracted root translation when activated in a fresh Godot 4.7.2 process. Visual quality, broader rig variants and remaining editor history cases remain open.",
-        "2026-10-03: 4.0 m/s at the 0.6 s default run duration overreaches the dummy rig by 79 mm and now fails with typed VALUE_OUT_OF_RANGE before commit. The default run_speed was reduced to a tested 2.0 m/s. Live Godot AI character_setup built idle/walk/run/jump and AnimationTree on Godot 4.7.2; the new run clip has zero clamp and passed saved 30/60/120 FPS run audit at 2.0 m/s, 0.6 s. The changed default still needs a fresh UI undo check and visual approval. Log mcp_character_setup_run_gate_20261003.log and mcp_dummy_run_setup_speed200_audit_20261003.log in recovery snapshot."
+        "2026-10-03: 4.0 m/s at the 0.6 s default run duration overreaches the dummy rig by 79 mm and now fails with typed VALUE_OUT_OF_RANGE before commit. The default run_speed was reduced to a tested 2.0 m/s. Live Godot AI character_setup built idle/walk/run/jump and AnimationTree on Godot 4.7.2; the new run clip has zero clamp and passed saved 30/60/120 FPS run audit at 2.0 m/s, 0.6 s. The changed default still needs a fresh UI undo check and visual approval. Log mcp_character_setup_run_gate_20261003.log and mcp_dummy_run_setup_speed200_audit_20261003.log in recovery snapshot.",
+        "2026-10-05: Godot 4.7.2 fresh visible editor external Godot AI MCP passed seven setup history tests and 21 fresh saved playback cases at 30/60/120 FPS. Covers new/replaced trees, absent library, instanced new/replaced trees, already-editable instance and clearing extraction for root_motion=false. Exact scene Undo/Redo, saved undone/redone state, resource identity and source/peer isolation pass. See docs/character-history-validation.md and mcp_character_complete_20261005.log. Visual quality remains open."
       ],
       "example": {
         "include_jump": true,

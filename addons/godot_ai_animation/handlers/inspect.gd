@@ -670,7 +670,11 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 	sandbox.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	# Copy the live editor tree: instantiating the PackedScene again drops clips
 	# added since the last save, including the clip being audited.
-	var scene_copy := edited_root.duplicate()
+	# Copy the live node hierarchy, without scripts or scene reinstantiation.
+	# Reinstantiating imported children can discard live changes and invalidate
+	# the child cache while duplicate() is traversing it. Script constructors
+	# must never run inside this read-only audit sandbox.
+	var scene_copy := _copy_audit_scene(edited_root)
 	if scene_copy == null:
 		sandbox.free()
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
@@ -685,8 +689,8 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 		sandbox.free()
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"motion_audit could not resolve the copied AnimationPlayer and Skeleton3D")
-	# Godot reconstructs instanced children when duplicating a scene, so their
-	# unsaved AnimationLibraries and mixer settings must be transferred explicitly.
+	# Isolate the library resources too: the target player must play its live
+	# unsaved clips without sharing mutable libraries with the edited scene.
 	for library_name in loaded.player.get_animation_library_list():
 		if player.has_animation_library(library_name):
 			player.remove_animation_library(library_name)
@@ -1094,6 +1098,10 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 ## An @tool script on a character could otherwise run _enter_tree/_ready when
 ## the private evaluation copy joins its SubViewport. Playback of the authored
 ## transform tracks does not need game scripts or a scene controller.
+static func _copy_audit_scene(source: Node) -> Node:
+	return source.duplicate(0)
+
+
 func _strip_audit_scripts(node: Node) -> void:
 	if node.get_script() != null:
 		node.set_script(null)

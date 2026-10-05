@@ -2707,3 +2707,45 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
 - Ledger remains 103 partial / 0 fully verified. Pending or partial Undo/Redo
   decreased from 68 to 62 rows; visual review remains pending/partial in 99.
   This closes the graph scene-history phase, not whole-toolkit visual quality.
+
+### 2026-10-05 - Character setup and audit isolation phase plan
+
+- Reproduce character_setup defects with actual Godot AI dispatcher calls,
+  engine-error capture and exact scene history. Cover new/replaced trees,
+  missing libraries and instanced source/peer isolation. Snapshot every clip,
+  library, mixer root-motion setting and graph; save undone/redone states.
+- Stop trees before changing clips or graph state; configure attached trees
+  and restore active state last. Preserve instance/library ownership and free
+  temporary trees on dry or rejected calls. Replay saved results in fresh
+  Godot 4.7.2 processes with one playback owner and extracted root translation.
+- Reproduce motion_audit scene duplication engine errors and use a copy path
+  that preserves live unsaved clips without running editor scripts. Verify
+  isolated played measurements, unchanged live pose/playback, and no engine
+  errors through the Godot AI route; preserve typed refusals.
+- Restart the visible editor, run external MCP checks and core reload, retain
+  all graph/FX gates, document outcomes and limitations, then push checkpoints
+  and require Windows/Linux CI. No release or visual-quality approval.
+
+### 2026-10-05 - Character setup and audit isolation implementation
+
+- Added seven route/history cases spanning new/replaced trees, absent library,
+  both instance tree states and an already-editable source. Reproduced orphan
+  trees on dry runs and stale extraction for root_motion=false; repaired both.
+- Setup now configures attached inactive trees and restores existing graph
+  state before reactivation. New-tree Undo removes the node without detached
+  setters. Library/root resource identities and permission flags restore.
+- Shared library ownership now handles already-editable instances; serialization
+  permission does not make an inherited library safe to mutate in place.
+- Audit copies the live hierarchy without scene reinstantiation or scripts,
+  preserving unsaved edits and avoiding constructor side effects. Motion audit
+  tests now use the real dispatcher with engine-error capture.
+- Full local editor suite passed 249/249. Other test families still emit engine
+  errors; setup/audit captures are the scoped zero-error gates. Corrected an
+  old test that intentionally looked up deleted clips using get_animation,
+  and corrected the new nested-root fixture expectation to .:position.
+- See docs/character-history-validation.md. External MCP and 21 fresh saved
+  30/60/120 FPS playback rows, core reload and platform CI are next.
+- Fresh visible Godot 4.7.2 external MCP passed all seven setup history
+  tests and the 27-test inspector suite, then 21/21 saved 30/60/120 FPS
+  playback processes. Tree-only posing and rooted/in-place extraction pass.
+  Evidence: F:/GODOTAITESTING/mcp_character_complete_20261005.log.

@@ -719,7 +719,7 @@ func test_motion_audit_grades_planted_feet_and_hips() -> void:
 	var before := skeleton.get_bone_pose_rotation(thigh)
 	var live_animation: String = rig.player.current_animation
 	var live_time: float = rig.player.current_animation_position
-	var result := _handler.run({
+	var result := _audit_route({
 		"op": "motion_audit", "player_path": rig.player_path, "animation_name": "walk",
 		"skeleton_path": rig.skeleton_path, "samples": 24,
 	}, null)
@@ -761,7 +761,7 @@ func test_motion_audit_grades_planted_feet_and_hips() -> void:
 	var rig_root := ValueCodec.resolve_scene_path(rig.root_path, EditorInterface.get_edited_scene_root()) as Node3D
 	if rig_root != null:
 		rig_root.rotation.z = PI * 0.5
-		var rotated := _handler.run({
+		var rotated := _audit_route({
 			"op": "motion_audit", "player_path": rig.player_path, "animation_name": "walk",
 			"skeleton_path": rig.skeleton_path, "samples": 24,
 		}, null)
@@ -785,7 +785,7 @@ func test_motion_audit_grades_planted_feet_and_hips() -> void:
 		"duration": 1.0, "loop_mode": "linear", "animation_name": "walk_in_place", "speed": 1.0,
 	}, null)
 	assert_true(in_place.has("data"), "the in-place variant builds: %s" % str(in_place))
-	var audit_in_place := _handler.run({
+	var audit_in_place := _audit_route({
 		"op": "motion_audit", "player_path": rig.player_path, "animation_name": "walk_in_place",
 		"skeleton_path": rig.skeleton_path, "samples": 24,
 	}, null)
@@ -813,7 +813,7 @@ func test_motion_audit_grades_planted_feet_and_hips() -> void:
 				key["value"] = Vector3(value.x, value.y, value.z * 3.0)
 	assert_true(touched == 1, "the walk has one root translation track to speed up (%s)" % str(touched))
 	_add_clip(rig.player_path, "moonwalk", fast)
-	var failed := _handler.run({
+	var failed := _audit_route({
 		"op": "motion_audit", "player_path": rig.player_path, "animation_name": "moonwalk",
 		"skeleton_path": rig.skeleton_path, "samples": 24, "max_slide": 0.05,
 	}, null)
@@ -834,7 +834,7 @@ func test_motion_audit_grades_planted_feet_and_hips() -> void:
 	var unsafe_clip := _clip_anim(rig.player_path, "moonwalk")
 	var method_track := unsafe_clip.add_track(Animation.TYPE_METHOD)
 	unsafe_clip.track_set_path(method_track, NodePath(".."))
-	var rejected := _handler.run({
+	var rejected := _audit_route({
 		"op": "motion_audit", "player_path": rig.player_path, "animation_name": "moonwalk",
 		"skeleton_path": rig.skeleton_path,
 	}, null)
@@ -855,7 +855,7 @@ func test_motion_audit_checks_strafe_foot_order() -> void:
 	}, null)
 	assert_true(built.has("data"), "strafe builds for played crossing audit: %s" % str(built))
 	if built.has("data"):
-		var audit := _handler.run({
+		var audit := _audit_route({
 			"op": "motion_audit", "player_path": rig.player_path,
 			"skeleton_path": rig.skeleton_path, "animation_name": "strafe",
 			"motion_kind": "strafe", "samples": 121, "max_slide": 0.016,
@@ -883,7 +883,7 @@ func test_run_motion_audit_reports_flight_and_extension() -> void:
 	}, null)
 	assert_true(built.has("data"), "run builds for played flight audit: %s" % str(built))
 	if built.has("data"):
-		var audit := _handler.run({
+		var audit := _audit_route({
 			"op": "motion_audit", "player_path": rig.player_path,
 			"skeleton_path": rig.skeleton_path, "animation_name": "run_audit",
 			"motion_kind": "run", "samples": 121, "max_slide": 0.016,
@@ -1088,3 +1088,32 @@ func test_registry_matches_inspect_schema() -> void:
 			assert_true(info.schema.properties.has(param), "%s declares param %s" % [descriptor.name, param])
 	assert_true(str(info.description).length() <= OpRegistry.MAX_DESCRIPTION_CHARS,
 		"the inspect description fits the custom-tool cap")
+
+
+func _audit_route(params: Dictionary, _ctx) -> Dictionary:
+	var logger := preload("res://tests/test_graph_route_history.gd").ErrorCapture.new()
+	OS.add_logger(logger)
+	var dispatcher = preload("res://addons/godot_ai/custom_tools/mcp_tool_registry.gd").get_instance().get("_dispatcher")
+	var result: Dictionary = dispatcher.call("_dispatch", {"request_id": "audit-isolation",
+		"command": "custom_tool:animation_inspect", "params": params})
+	OS.remove_logger(logger)
+	assert_eq(logger.errors, [], "motion_audit route must emit no engine errors")
+	return result
+
+
+func test_audit_copy_preserves_live_children_without_script_constructors() -> void:
+	var script := preload("res://tests/audit_constructor_fixture.gd")
+	var source := script.new()
+	var child := Node3D.new()
+	child.name = "UnsavedChild"
+	child.position = Vector3(1, 2, 3)
+	source.add_child(child)
+	var before: int = script.constructor_count
+	var copy := _handler._copy_audit_scene(source)
+	assert_eq(script.constructor_count, before, "audit copy does not execute script constructors")
+	assert_true(copy.get_script() == null, "copied root has no script")
+	assert_eq(copy.get_node("UnsavedChild").position, child.position, "live unsaved child retained")
+	copy.get_node("UnsavedChild").position = Vector3.ZERO
+	assert_eq(child.position, Vector3(1, 2, 3), "copied transforms are isolated")
+	copy.free()
+	source.free()

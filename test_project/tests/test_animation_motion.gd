@@ -2354,7 +2354,7 @@ func test_character_setup_builds_clips_and_tree() -> void:
 	# One undo removes the clips, the root motion track and the tree together.
 	assert_true(editor_undo(_undo_redo), "undo should succeed")
 	for clip in ["idle", "walk", "run", "jump", "turn_left"]:
-		assert_true(rig.player.get_animation(clip) == null, "undo removed the %s clip" % clip)
+		assert_false(rig.player.has_animation(clip), "undo removed the %s clip" % clip)
 	assert_true(str(rig.player.root_motion_track).is_empty(), "undo cleared the root motion track")
 	assert_false(rig.player.root_motion_local, "undo restores the player's root motion frame")
 	assert_true(_find_of_type(rig.player.get_parent(), "AnimationTree") == null,
