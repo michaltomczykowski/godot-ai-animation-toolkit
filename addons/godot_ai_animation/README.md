@@ -166,6 +166,12 @@ file writes are non-undoable; dry runs validate paths and overwrite rules.
 Chain conversion preserves complete local rests, including scale and 2D skew.
 See [rig history checks](../../docs/rig-history-validation.md).
 
+`bake_pose_sequence` preserves the source player's queue, custom speed,
+direction, paused time and section, including during dry runs and refusals.
+It samples poses without executing method/audio/playback events.
+See [bake state checks](../../docs/rig-bake-state-validation.md) for covered
+cases and the remaining graph/modifier restoration checks.
+
 ## `animation_rig_modifiers`
 
 These operations belong to the separate modifier tool family. Discover it

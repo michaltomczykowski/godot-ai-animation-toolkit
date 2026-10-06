@@ -57,8 +57,15 @@ Repairs:
   warning are reported separately. All fourteen local headless suites pass.
 - `rig_pose_history` is mandatory in the complete live MCP CI route and retains
   all earlier family gates. The complete fresh-editor external route passes
-  locally, including core reload and the 96-state gate. Platform results will
-  be recorded when complete.
+  locally, including core reload and the 96-state gate. Platform results are
+  recorded below.
+
+Source checkpoint `a9319eb` passed
+[GitHub Actions run 37441215437](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37441215437).
+All fourteen headless suites passed on Windows/Linux, as did both complete
+live MCP routes. All four editor/platform/core combinations (v4.2.1 and main)
+passed 277 tests with one optional X Bot asset skip and zero engine/tool-route
+errors. The local 278/278 run includes the available asset.
 
 The fixture initially used runtime instancing, which drops native-default
 overrides when repacked. It now uses the same

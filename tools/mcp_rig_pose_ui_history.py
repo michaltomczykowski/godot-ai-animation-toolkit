@@ -23,7 +23,12 @@ async def snapshot(client: Client, op: str) -> dict:
         code = error.get('code') if isinstance(error, dict) else str(error).split(':', 1)[0]
         if op == 'chain' and code == 'NODE_NOT_FOUND': return {'absent':True}
         raise RuntimeError(pose)
-    return {'pose':pose['pose'], 'bones':rig['bones']}
+    result = {'pose':pose['pose'], 'bones':rig['bones']}
+    if op == 'bake':
+        clips = await call(client, 'custom_animation_inspect', {'op':'describe', 'player_path':'/RigUI/AnimationPlayer'})
+        if clips.get('error'): raise RuntimeError(clips)
+        result['clips'] = clips['clips']
+    return result
 
 async def run(args: argparse.Namespace) -> int:
     transport = StdioTransport(sys.executable, ['-m', 'godot_ai', 'attach', '--port', str(args.port),
@@ -35,7 +40,7 @@ async def run(args: argparse.Namespace) -> int:
             folder.mkdir(parents=True, exist_ok=True)
             target = folder / f'rig_{args.op}_{datetime.now(timezone.utc):%Y%m%d_%H%M%S}.tscn'
             text = '[gd_scene format=3]\n[node name="RigUI" type="Node"]\n'
-            if args.op == 'pose3d':
+            if args.op in ('pose3d', 'bake'):
                 text += '''[node name="Skeleton" type="Skeleton3D" parent="."]
 bones/0/name = "arm_L"
 bones/0/parent = -1
@@ -55,12 +60,24 @@ rest = Transform2D(0.9800666, 0.1986693, -0.1986693, 0.9800666, 1, 2)
 auto_calculate_length_and_angle = false
 length = 10.0
 '''
+            if args.op == 'bake':
+                text += '[node name="AnimationPlayer" type="AnimationPlayer" parent="."]\ncallback_mode_process = 2\n'
             target.write_text(text, encoding='utf-8')
             scene = 'res://repair_ui_undo/' + target.name
             opened = await call(client, 'scene_open', {'path':scene})
+            if args.op == 'bake':
+                source = await invoke(client, {'op':'pose_to_clip', 'skeleton_path':'/RigUI/Skeleton',
+                    'player_path':'/RigUI/AnimationPlayer', 'animation_name':'input', 'keys':[
+                        {'time':0.0, 'pose':{'bones':{'arm_L':{}}}},
+                        {'time':1.0, 'pose':{'bones':{'arm_L':{'rotation':{'kind':'quaternion','z':0.2955202,'w':0.9553365}}}}},
+                    ]})
+                if source.get('error'): raise RuntimeError(source)
             baseline = await snapshot(client, args.op)
             if args.op == 'chain':
                 params = {'op':'rig_chain', 'skeleton_path':'/RigUI/Generated', 'bones':[{'name':'root'}, {'name':'tip', 'parent':'root', 'position':[0,1,0]}]}
+            elif args.op == 'bake':
+                params = {'op':'bake_pose_sequence', 'skeleton_path':'/RigUI/Skeleton', 'player_path':'/RigUI/AnimationPlayer',
+                    'source_animation':'input', 'animation_name':'generated', 'duration':0.5, 'fps':4}
             else:
                 params = {'op':'pose_apply', 'skeleton_path':'/RigUI/Skeleton', 'reset_first':True,
                     'blend':0.5, 'pose':{'bones':{'arm_L':{'rotation':{'kind':'quaternion','z':0.2955202,'w':0.9553365},
@@ -84,7 +101,7 @@ def main() -> int:
     parser.add_argument('--port', type=int, required=True)
     parser.add_argument('--ws-port', type=int, required=True)
     parser.add_argument('--mode', choices=('setup','inspect'), required=True)
-    parser.add_argument('--op', choices=('pose3d','pose2d','chain'), default='pose3d')
+    parser.add_argument('--op', choices=('pose3d','pose2d','chain','bake'), default='pose3d')
     parser.add_argument('--expect', choices=('baseline','generated'), default='generated')
     parser.add_argument('--record', type=Path, required=True)
     return asyncio.run(run(parser.parse_args()))

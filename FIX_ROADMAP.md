@@ -2963,3 +2963,44 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   rig_pose_history (all nine tests plus 96 fresh-engine persisted states).
   Fourteen headless suites passed before the chain-only follow-up; hosted
   platform gates will rerun the complete source checkpoint after pushing.
+
+### 2026-10-06 - Rig pose/chain platform verification
+
+- Pushed a9319eb; origin matches. CI 37441215437 passed fourteen headless
+  suites on Windows/Linux, all four editor/platform/core combinations and both
+  complete external routes, including rig_pose_history. Hosted editor: 277 pass,
+  one optional X Bot asset skip, zero engine/tool-route errors. Local: 278/278.
+- Saved individual hosted editor logs/status in rig_history_20261006. The
+  earlier documentation checkpoint 2cc4c10 also passed CI 37382166521.
+
+### 2026-10-06 - Bake playback-state repair checkpoint
+
+- Before expanding the eight-writer matrix, reproduced six of seven failing
+  playback-state cases through the public Godot AI route: dry/write lost queue,
+  custom speed/reverse direction, paused time and unassigned state. The stopped
+  fixture's invalid position getter was corrected; raw diagnostics are retained.
+- Baking now uses a temporary manual engine player with the same root/libraries
+  and mixer settings. The author's player remains intact; sampling properties
+  suppresses event tracks. Free the sampler before commit or capture refusal.
+  Validate overwrite before sampling. Source/retarget pose restoration remains.
+- Eight cases now cover sections and zero-scale hidden custom speed as well,
+  precise orphan IDs, typed refusal, scene history, library/clip identities and
+  Undo/Redo. Standalone expectations check sixteen saved states and intermediate
+  played samples; external/shortcut/platform gates are recorded when completed.
+- Final local editor: 286/286, zero captured engine/tool-route errors, five
+  existing warnings. See docs/rig-bake-state-validation.md. Broader five-layout
+  clip matrices, graph/stateful modifier restoration and visual review remain.
+- Complete fresh-editor external ci_mcp_route.py passes all 107 gates, after
+  core reload, including rig_pose_history (96 states) and rig_bake_state (eight
+  named cases, sixteen independently played Undo/Redo states). Native shortcuts
+  and hosted CI are next before closing this playback-state checkpoint.
+- Native Undo exposed a later editor cache reset of an unkeyed bone position
+  that synchronous history checks missed. Bone pose values are now part of the
+  same clip history action, restored after library mutation. Fresh visible
+  native Undo and Redo both pass the external checks of clip and pose data.
+- Final pose-history source: fresh editor 286/286, zero captured engine/tool-route
+  errors; external bake gate eight cases/16 fresh-engine states and native
+  shortcuts pass. Complete 107-gate route preceded this focused follow-up;
+  hosted CI repeats it on the pushed source. Existing exit-time ObjectDB cleanup
+  warning is separate from the suite's captured errors; exact bake-call orphan
+  checks pass. No visual approval or full rig-writer matrix is claimed.

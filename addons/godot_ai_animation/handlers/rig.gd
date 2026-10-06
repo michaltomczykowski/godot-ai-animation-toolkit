@@ -2509,16 +2509,32 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 			"duration x fps would sample %d poses (max %d). Lower fps or shorten the clip." % [samples, MAX_BAKE_SAMPLES])
 	var step := 1.0 / float(fps)
+	var anim_name := str(params.get("animation_name", "baked"))
+	var overwrite := bool(params.get("overwrite", false))
+	var existing := _existing_animation(library, anim_name, overwrite)
+	if existing.has("error"):
+		return existing.error
 	var keys := {}
 	for index in indices:
 		keys[skeleton.get_bone_name(index)] = {"rotation": [], "position": [], "scale": []}
-	var was_playing := player.is_playing()
-	var was_animation := player.current_animation
-	# Godot logs an engine error if current_animation_position is read before
-	# the player has ever been assigned a current animation.
-	var was_position := player.current_animation_position if not was_animation.is_empty() else 0.0
+	# Sampling the author's player destroys its queue, section and custom speed;
+	# pause/stop cannot reconstruct its private playback state. Use a temporary,
+	# manually processed player with the same root and libraries instead. It is
+	# never scene-owned and is freed before committing the resulting clip.
+	var sampler: AnimationPlayer = null
 	if not source.is_empty():
-		player.play(source)
+		sampler = AnimationPlayer.new()
+		sampler.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+		sampler.callback_mode_discrete = player.callback_mode_discrete
+		sampler.deterministic = player.deterministic
+		sampler.root_motion_track = player.root_motion_track
+		sampler.root_motion_local = player.root_motion_local
+		sampler.playback_auto_capture = player.playback_auto_capture
+		for library_name in player.get_animation_library_list():
+			sampler.add_animation_library(library_name, player.get_animation_library(library_name))
+		player.get_parent().add_child(sampler)
+		sampler.root_node = root_node.get_path()
+		sampler.play(source)
 	# Active modifiers (IK, springs, retarget) only run in the skeleton's
 	# deferred update, and their result is only readable inside
 	# modification_processed - get_bone_pose_* outside it returns the
@@ -2553,7 +2569,7 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 	for sample in samples:
 		var time := minf(sample * step, length)
 		if not source.is_empty():
-			player.seek(time, true)
+			sampler.seek(time, true, true)
 		sampled.clear()
 		if not modifiers.is_empty():
 			# advance() accumulates the delta and the deferred update consumes it,
@@ -2583,15 +2599,14 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 	for modifier in modifiers:
 		if (modifier as SkeletonModifier3D).modification_processed.is_connected(capture):
 			(modifier as SkeletonModifier3D).modification_processed.disconnect(capture)
+	if sampler != null:
+		sampler.free()
 	if missing_capture_at >= 0.0:
-		_restore_bake_state(skeleton, restore, retarget_restores, player,
-			was_playing, was_animation, was_position)
+		_restore_bake_state(skeleton, restore, retarget_restores)
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"The active modifier on %s never reported modification_processed at t=%.3f, so the sampled pose would be the pre-modifier one. Nothing was written - make the modifier active, or bake with the modifiers disabled."
 				% [resolved.path, missing_capture_at])
-	_restore_bake_state(skeleton, restore, retarget_restores, player,
-		was_playing, was_animation, was_position)
-	var anim_name := str(params.get("animation_name", "baked"))
+	_restore_bake_state(skeleton, restore, retarget_restores)
 	var spec := ClipSpec.make(length, loop_result.ok)
 	for bone_name in keys:
 		var entry: Dictionary = keys[bone_name]
@@ -2610,13 +2625,17 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 	var valid := SpecBuilder.validate(spec)
 	if valid.has("error"):
 		return valid
-	var overwrite := bool(params.get("overwrite", false))
-	var existing := _existing_animation(library, anim_name, overwrite)
-	if existing.has("error"):
-		return existing.error
 	var anim := SpecBuilder.to_animation(spec)
+	# Removing newly cached transform channels can restore bone rest values in
+	# the editor. Keep the source pose in the same clip history action so Undo
+	# and Redo restore it after the library mutation as well as after sampling.
+	var pose_props: Array = []
+	for index in restore.size():
+		for field in ["rotation", "position", "scale"]:
+			pose_props.append({"object": skeleton, "property": "bones/%d/%s" % [index, field],
+				"value": restore[index][field], "old": restore[index][field]})
 	_commit_animation_add("MCP: Baked clip %s" % anim_name, player, library,
-		created_library, anim_name, anim, existing.old_anim)
+		created_library, anim_name, anim, existing.old_anim, pose_props)
 	return {"data": {
 		"player_path": str(params.get("player_path", "")),
 		"skeleton_path": resolved.path,
@@ -2652,21 +2671,10 @@ static func _modifier_names(modifiers: Array) -> Array:
 	return names
 
 
-## Put every skeleton the bake touched and the player back the way they were:
-## the source pose, each retarget target's pose, and the player's animation,
-## time and play state.
-func _restore_bake_state(skeleton: Skeleton3D, restore: Array, retarget_restores: Array,
-		player: AnimationPlayer, was_playing: bool, was_animation: String,
-		was_position: float) -> void:
-	# Player first: seeking it back writes the animation's pose into the bones,
-	# so the bone restore has to come after it to be the last word.
-	if was_animation.is_empty():
-		player.stop()
-	else:
-		player.play(was_animation)
-		player.seek(was_position, true)
-		if not was_playing:
-			player.pause()
+## Put every skeleton the bake touched back the way it was:
+## the source pose and each retarget target's pose. Sampling never changes the
+## author's player, so its private playback state needs no reconstruction.
+func _restore_bake_state(skeleton: Skeleton3D, restore: Array, retarget_restores: Array) -> void:
 	for entry in retarget_restores:
 		_pose_restore(entry.skeleton, entry.pose)
 	for index in skeleton.get_bone_count():
