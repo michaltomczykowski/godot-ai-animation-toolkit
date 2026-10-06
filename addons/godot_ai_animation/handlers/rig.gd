@@ -32,6 +32,9 @@ func run(params: Dictionary, ctx) -> Dictionary:
 
 func _dispatch(params: Dictionary, ctx = null) -> Dictionary:
 	var op: String = params.get("op", "")
+	for field in ["bones", "chain", "keys"]:
+		if params.has(field) and not params[field] is Array:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s must be an array" % field)
 	# Both public tool families share this script. Godot AI forwards params to
 	# handlers without checking the advertised schema, especially through
 	# custom_manage. Refuse a cross-family op before it can mutate the scene.
@@ -145,7 +148,9 @@ func rig_pose_apply(params: Dictionary) -> Dictionary:
 		if not (subset.missing as Array).is_empty():
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"The pose has no bones: %s" % ", ".join(subset.missing))
-	var blend := clampf(float(params.get("blend", 1.0)), 0.0, 1.0)
+	var weight := _pose_weight(params, "blend", 1.0)
+	if weight.has("error"): return weight
+	var blend: float = weight.value
 	var reset_first := bool(params.get("reset_first", false))
 	var applied := _apply_pose(resolved, pose, blend, reset_first)
 	if applied.has("error"):
@@ -175,7 +180,9 @@ func rig_pose_blend(params: Dictionary) -> Dictionary:
 	var to_loaded := _resolve_pose(params, "to")
 	if to_loaded.has("error"):
 		return to_loaded
-	var factor := clampf(float(params.get("factor", 0.5)), 0.0, 1.0)
+	var weight := _pose_weight(params, "factor", 0.5)
+	if weight.has("error"): return weight
+	var factor: float = weight.value
 	var a: Dictionary = from_loaded.pose
 	var b: Dictionary = to_loaded.pose
 	if bool(params.get("mirror", false)):
@@ -596,7 +603,7 @@ func _rig_chain_from_spec(params: Dictionary) -> Dictionary:
 			return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
 				"Cannot create a skeleton at %s: its parent does not exist" % skeleton_path)
 	return _build_chain(params, spec, kind, existing, holder,
-		str(params.get("name", "Skeleton3D" if kind == "3d" else "Skeleton2D")), "spec", "")
+		str(params.get("name", skeleton_path.get_file())), "spec", "")
 
 
 ## `rig_chain` from a Node3D / Node2D subtree: the subtree's local transforms
@@ -621,7 +628,10 @@ func _rig_chain_from_subtree(params: Dictionary, from_node: String) -> Dictionar
 	while not queue.is_empty():
 		var item: Dictionary = queue.pop_front()
 		var node: Node = item.node
-		if node is Node3D or node is Node2D:
+		if (node is Node3D and kind != "3d") or (node is Node2D and kind != "2d"):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "A subtree rig must use one spatial dimension")
+		var spatial := node is Node3D or node is Node2D
+		if spatial:
 			var name := str(node.name)
 			if seen.has(name):
 				duplicates.append(name)
@@ -632,9 +642,10 @@ func _rig_chain_from_subtree(params: Dictionary, from_node: String) -> Dictionar
 					"parent": str(item.parent),
 					"position": _node_offset(node, kind),
 					"rotation": _node_rotation(node, kind),
+					"_source_rest": node.transform,
 				})
 		for child in node.get_children():
-			queue.append({"node": child, "parent": str(node.name)})
+			queue.append({"node": child, "parent": str(node.name) if spatial else str(item.parent)})
 	if not duplicates.is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"Duplicate node names cannot become bones: %s" % ", ".join(duplicates))
@@ -667,19 +678,48 @@ func _build_chain(
 		return validated
 	for bone in spec:
 		var bone_name := str((bone as Dictionary).name)
+		var transform_error := _chain_transform_error(bone, kind)
+		if not transform_error.is_empty():
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s: %s" % [bone_name, transform_error])
+		if kind == "2d" and bone_name.validate_node_name() != bone_name:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "2D bone name '%s' is not a valid Godot node name" % bone_name)
 		if occupied.has(bone_name):
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"Bone '%s' already exists on the skeleton" % bone_name)
-	var skeleton_node: Node = existing
-	var created := false
-	if skeleton_node == null:
-		skeleton_node = Skeleton3D.new() if kind == "3d" else Skeleton2D.new()
-		skeleton_node.name = default_name
-		created = true
+	var created := existing == null
+	if created:
+		if default_name.is_empty() or default_name.validate_node_name() != default_name:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Skeleton name '%s' is not a valid Godot node name" % default_name)
+		for child in holder.get_children():
+			if str(child.name) == default_name:
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "A child named '%s' already exists at the destination" % default_name)
 	var warnings: Array = []
 	var scale := _skeleton_scale(existing if existing != null else holder)
 	if not is_equal_approx(scale, 1.0):
 		warnings.append("the skeleton is scaled (%.2f): springs and IK assume unit scale" % scale)
+	var skeleton_path := ValueCodec.from_node(existing, scene_root) if not created else ValueCodec.from_node(holder, scene_root).path_join(default_name)
+	var data := {
+		"skeleton_path": skeleton_path,
+		"kind": kind,
+		"skeleton_created": created,
+		"mode": mode,
+		"bones_created": spec.size(),
+		"bones": spec.map(func(entry): return str((entry as Dictionary).name)),
+		"warnings": warnings,
+		"undoable": true,
+	}
+	if not source_path.is_empty():
+		data["source_path"] = source_path
+		data["note"] = "bone rests mirror the subtree's local transforms"
+	else:
+		data["note"] = "pose these bones with pose_apply and key them with pose_to_clip, or drive them with ik_setup"
+	# Plan without allocating off-tree Nodes: dry commits do not retain/free them.
+	if _dry_run:
+		return {"data": data}
+	var skeleton_node: Node = existing
+	if created:
+		skeleton_node = Skeleton3D.new() if kind == "3d" else Skeleton2D.new()
+		skeleton_node.name = default_name
 	var label := "MCP: Rig chain (%d bones)" % spec.size()
 	if kind == "3d":
 		var skeleton_3d_new: Skeleton3D = skeleton_node
@@ -687,6 +727,9 @@ func _build_chain(
 		for index in spec.size():
 			by_name[str((spec[index] as Dictionary).name)] = offset + index
 		var calls: Array = []
+		# New skeleton nodes retain their bones while detached by Undo. Rebuild
+		# them on Redo instead of attempting to add the same names again.
+		if created: calls.append({"method": "clear_bones", "args": []})
 		for index in spec.size():
 			var bone: Dictionary = spec[index]
 			var rest := _spec_rest_3d(bone)
@@ -716,30 +759,25 @@ func _build_chain(
 		var bone_nodes := {}
 		for index in spec.size():
 			var bone_node := Bone2D.new()
+			bone_node.set_autocalculate_length_and_angle(false)
 			bone_node.name = str((spec[index] as Dictionary).name)
 			bone_nodes[str((spec[index] as Dictionary).name)] = bone_node
 		for index in spec.size():
 			var bone_spec: Dictionary = spec[index]
 			var parent_name := str(bone_spec.get("parent", ""))
-			var bone_holder: Node = skeleton_node if parent_name.is_empty() else bone_nodes[parent_name]
+			var bone_holder: Node = skeleton_node
+			if not parent_name.is_empty():
+				bone_holder = bone_nodes.get(parent_name)
+				if bone_holder == null:
+					for bone_index in (skeleton_node as Skeleton2D).get_bone_count():
+						var candidate := (skeleton_node as Skeleton2D).get_bone(bone_index)
+						if str(candidate.name) == parent_name:
+							bone_holder = candidate
+							break
 			entries_2d.append({"parent": bone_holder, "node": bone_nodes[str(bone_spec.name)],
 				"setup": _bone_2d_setup(bone_spec)})
 		_commit_node_add_many(label, entries_2d)
-	var data := {
-		"skeleton_path": ValueCodec.from_node(skeleton_node, scene_root),
-		"kind": kind,
-		"skeleton_created": created,
-		"mode": mode,
-		"bones_created": spec.size(),
-		"bones": spec.map(func(entry): return str((entry as Dictionary).name)),
-		"warnings": warnings,
-		"undoable": true,
-	}
-	if not source_path.is_empty():
-		data["source_path"] = source_path
-		data["note"] = "bone rests mirror the subtree's local transforms"
-	else:
-		data["note"] = "pose these bones with pose_apply and key them with pose_to_clip, or drive them with ik_setup"
+	data["skeleton_path"] = ValueCodec.from_node(skeleton_node, scene_root)
 	return {"data": data}
 
 
@@ -2799,94 +2837,66 @@ func _aim_entry(aim) -> Dictionary:
 
 ## Apply a pose as one undo action. `blend` lerps from the current pose.
 func _apply_pose(resolved: Dictionary, pose: Dictionary, blend: float, reset_first: bool) -> Dictionary:
-	if _dry_run:
-		var present: Dictionary = {}
-		if resolved.kind == "3d":
-			var dry_skeleton := resolved.node as Skeleton3D
-			for index in dry_skeleton.get_bone_count():
-				present[dry_skeleton.get_bone_name(index)] = true
-		else:
-			var dry_skeleton_2d := resolved.node as Skeleton2D
-			for index in dry_skeleton_2d.get_bone_count():
-				present[str(dry_skeleton_2d.get_bone(index).name)] = true
-		var dry_missing: Array = []
-		var dry_applied := 0
-		for bone in PoseMath.bone_names(pose):
-			if present.has(str(bone)):
-				dry_applied += 1
-			else:
-				dry_missing.append(str(bone))
-		return {"applied": dry_applied, "missing": dry_missing}
-	var undo_ready := _require_undo("pose_apply")
-	if not undo_ready.is_empty():
-		return undo_ready
+	var skeleton: Node = resolved.node
+	var names := {}
+	for index in skeleton.get_bone_count():
+		var name: String = skeleton.get_bone_name(index) if skeleton is Skeleton3D else str(skeleton.get_bone(index).name)
+		names[name] = index
 	var missing: Array = []
-	var applied := 0
+	var matched := {}
+	for bone in PoseMath.bone_names(pose):
+		if names.has(bone): matched[names[bone]] = pose.bones[bone]
+		else: missing.append(bone)
+	if matched.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "The pose matches no bones on the target skeleton")
+	if _dry_run: return {"applied": matched.size(), "missing": missing}
+	var undo_ready := _require_undo("pose_apply")
+	if not undo_ready.is_empty(): return undo_ready
 	_create_scene_pinned_action("MCP: Apply pose")
 	var undo := ToolContext.undo_redo
-	var skeleton: Node = resolved.node
-	# Bone pose overrides inside an imported/instanced scene are only saved
-	# when its children are editable in the parent scene.
 	for level in _instance_levels(skeleton):
 		undo.add_do_method(level.parent, "set_editable_instance", level.instance, true)
 		undo.add_undo_method(level.parent, "set_editable_instance", level.instance, false)
-	if resolved.kind == "3d":
-		var skeleton_3d := skeleton as Skeleton3D
-		if reset_first:
-			for index in skeleton_3d.get_bone_count():
-				undo.add_do_method(skeleton_3d, "reset_bone_pose", index)
-				undo.add_undo_method(skeleton_3d, "set_bone_pose_rotation", index, skeleton_3d.get_bone_pose_rotation(index))
-				undo.add_undo_method(skeleton_3d, "set_bone_pose_position", index, skeleton_3d.get_bone_pose_position(index))
-				undo.add_undo_method(skeleton_3d, "set_bone_pose_scale", index, skeleton_3d.get_bone_pose_scale(index))
-		for bone in PoseMath.bone_names(pose):
-			var index := skeleton_3d.find_bone(str(bone))
-			if index < 0:
-				missing.append(str(bone))
-				continue
-			var rest := skeleton_3d.get_bone_rest(index)
-			var delta: Dictionary = pose.bones[bone]
-			var absolute := PoseMath.delta_to_pose(delta, rest.basis.get_rotation_quaternion(), rest.origin)
-			var rotation: Quaternion = absolute.rotation
-			var position: Vector3 = absolute.position
-			var scale: Vector3 = absolute.scale
-			if blend < 1.0:
-				rotation = skeleton_3d.get_bone_pose_rotation(index).slerp(rotation, blend)
-				position = skeleton_3d.get_bone_pose_position(index).lerp(position, blend)
-				scale = skeleton_3d.get_bone_pose_scale(index).lerp(scale, blend)
-			undo.add_do_method(skeleton_3d, "set_bone_pose_rotation", index, rotation)
-			undo.add_do_method(skeleton_3d, "set_bone_pose_position", index, position)
-			undo.add_do_method(skeleton_3d, "set_bone_pose_scale", index, scale)
-			undo.add_undo_method(skeleton_3d, "set_bone_pose_rotation", index, skeleton_3d.get_bone_pose_rotation(index))
-			undo.add_undo_method(skeleton_3d, "set_bone_pose_position", index, skeleton_3d.get_bone_pose_position(index))
-			undo.add_undo_method(skeleton_3d, "set_bone_pose_scale", index, skeleton_3d.get_bone_pose_scale(index))
-			applied += 1
-	else:
-		var skeleton_2d := skeleton as Skeleton2D
-		for bone in PoseMath.bone_names(pose):
-			var target: Bone2D = null
-			for index in skeleton_2d.get_bone_count():
-				if str(skeleton_2d.get_bone(index).name) == str(bone):
-					target = skeleton_2d.get_bone(index)
-					break
-			if target == null:
-				missing.append(str(bone))
-				continue
-			var delta_2d: Dictionary = pose.bones[bone]
-			var angle := target.rest.get_rotation() + _quaternion_to_angle(delta_2d.get("rotation", Quaternion.IDENTITY))
-			var offset: Vector3 = delta_2d.get("position", Vector3.ZERO)
-			if blend < 1.0:
-				angle = lerp_angle(target.rotation, angle, blend)
-				offset = Vector3(target.position.x, target.position.y, 0.0).lerp(
-					Vector3(target.rest.get_origin().x + offset.x, target.rest.get_origin().y + offset.y, 0.0), blend)
-			else:
-				offset = Vector3(target.rest.get_origin().x + offset.x, target.rest.get_origin().y + offset.y, 0.0)
-			undo.add_do_method(target, "set_rotation", angle)
-			undo.add_do_method(target, "set_position", Vector2(offset.x, offset.y))
-			undo.add_undo_method(target, "set_rotation", target.rotation)
-			undo.add_undo_method(target, "set_position", target.position)
-			applied += 1
+	# Resolve all final values before committing. Reset-first blends from rest;
+	# Undo restores each original pose once, including unlisted reset bones.
+	for index in skeleton.get_bone_count():
+		if not reset_first and not matched.has(index): continue
+		if skeleton is Skeleton3D:
+			var rig := skeleton as Skeleton3D
+			var rest := rig.get_bone_rest(index)
+			var old_rotation := rig.get_bone_pose_rotation(index)
+			var old_position := rig.get_bone_pose_position(index)
+			var old_scale := rig.get_bone_pose_scale(index)
+			var rotation := rest.basis.get_rotation_quaternion() if reset_first else old_rotation
+			var position := rest.origin if reset_first else old_position
+			var scale := rest.basis.get_scale() if reset_first else old_scale
+			if matched.has(index):
+				var absolute := PoseMath.delta_to_pose(matched[index], rest.basis.get_rotation_quaternion(), rest.origin)
+				rotation = rotation.slerp(absolute.rotation, blend)
+				position = position.lerp(absolute.position, blend)
+				scale = scale.lerp(absolute.scale, blend)
+			undo.add_do_method(rig, "set_bone_pose_rotation", index, rotation)
+			undo.add_do_method(rig, "set_bone_pose_position", index, position)
+			undo.add_do_method(rig, "set_bone_pose_scale", index, scale)
+			undo.add_undo_method(rig, "set_bone_pose_rotation", index, old_rotation)
+			undo.add_undo_method(rig, "set_bone_pose_position", index, old_position)
+			undo.add_undo_method(rig, "set_bone_pose_scale", index, old_scale)
+		else:
+			var bone := (skeleton as Skeleton2D).get_bone(index)
+			var before := bone.transform
+			var after := bone.rest if reset_first else before
+			if matched.has(index):
+				var delta: Dictionary = matched[index]
+				var offset: Vector3 = delta.position
+				var target_scale: Vector3 = delta.scale
+				var angle := bone.rest.get_rotation() + _quaternion_to_angle(delta.rotation)
+				after = Transform2D(lerp_angle(after.get_rotation(), angle, blend),
+					after.get_scale().lerp(Vector2(target_scale.x, target_scale.y), blend),
+					after.get_skew(), after.origin.lerp(bone.rest.origin + Vector2(offset.x, offset.y), blend))
+			undo.add_do_method(bone, "set_transform", after)
+			undo.add_undo_method(bone, "set_transform", before)
 	undo.commit_action()
-	return {"applied": applied, "missing": missing}
+	return {"applied": matched.size(), "missing": missing}
 
 
 ## Resolve a pose from `pose` (inline), `name` (pose dir) or `path`, with an
@@ -2938,11 +2948,11 @@ func _write_pose_file(path: String, pose: Dictionary, overwrite: bool) -> Dictio
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, problem)
 	# A dry run reports the path it WOULD write and leaves the disk alone. The
 	# pose still comes back in the reply, so the caller loses nothing.
-	if _dry_run:
-		return {"ok": true, "dry_run": true}
 	if not overwrite and FileAccess.file_exists(path):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"%s already exists. Pass overwrite=true to replace it." % path)
+	if _dry_run:
+		return {"ok": true, "dry_run": true}
 	var directory := path.get_base_dir()
 	if not directory.is_empty() and not DirAccess.dir_exists_absolute(directory):
 		var made := DirAccess.make_dir_recursive_absolute(directory)
@@ -2965,10 +2975,17 @@ func _read_json(path: String) -> Dictionary:
 			"Cannot read %s (%s)" % [path, error_string(FileAccess.get_open_error())])
 	var text := file.get_as_text()
 	file.close()
-	var parsed = JSON.parse_string(text)
-	if not parsed is Dictionary:
+	var json := JSON.new()
+	if json.parse(text) != OK or not json.data is Dictionary:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s is not valid JSON" % path)
-	return {"data": parsed}
+	return {"data": json.data}
+
+
+static func _pose_weight(params: Dictionary, name: String, fallback: float) -> Dictionary:
+	var value: Variant = params.get(name, fallback)
+	if not (value is int or value is float) or not is_finite(float(value)):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s must be a finite number" % name)
+	return {"value": clampf(float(value), 0.0, 1.0)}
 
 
 func _bone_rest(skeleton: Skeleton3D, bone: String) -> Dictionary:
@@ -3084,9 +3101,38 @@ static func _spec_entry(spec: Array, name: String) -> Dictionary:
 	return {}
 
 
+static func _chain_transform_error(bone: Dictionary, kind: String) -> String:
+	for field in ["position", "rotation", "scale"]:
+		if not bone.has(field): continue
+		var value: Variant = bone[field]
+		if field == "rotation" and kind == "2d" and (value is int or value is float):
+			if not is_finite(float(value)): return "rotation must be finite"
+			continue
+		var parts: Array = []
+		if value is Vector3: parts = [value.x, value.y, value.z]
+		elif value is Vector2 and kind == "2d": parts = [value.x, value.y]
+		elif value is Array and value.size() >= 2 and value.size() <= 3: parts = value
+		elif value is Dictionary:
+			for component in ["x", "y", "z"]:
+				if value.has(component): parts.append(value[component])
+		if parts.is_empty(): return "%s must contain numeric vector components" % field
+		for component in parts:
+			if not (component is int or component is float) or not is_finite(float(component)):
+				return "%s must contain finite numeric components" % field
+			if field == "scale" and is_zero_approx(float(component)): return "scale components must be nonzero"
+	for field in ["length", "skew"]:
+		if not bone.has(field): continue
+		var value: Variant = bone[field]
+		if not (value is int or value is float) or not is_finite(float(value)):
+			return "%s must be finite" % field
+		if field == "length" and float(value) <= 0.0: return "length must be positive"
+	return ""
+
+
 ## Bone rest from a spec entry: position/scale as arrays or dicts, rotation in
 ## degrees (3D: XYZ euler, 2D: about Z).
 static func _spec_rest_3d(bone: Dictionary) -> Transform3D:
+	if bone.get("_source_rest") is Transform3D: return bone._source_rest
 	var origin := _spec_vector3(bone.get("position", null))
 	var rotation := _spec_vector3(bone.get("rotation", null))
 	var scale := _spec_vector3(bone.get("scale", null), Vector3.ONE)
@@ -3094,7 +3140,8 @@ static func _spec_rest_3d(bone: Dictionary) -> Transform3D:
 
 
 static func _spec_rest_2d(bone: Dictionary) -> Transform2D:
-	return Transform2D(deg_to_rad(_spec_rotation_2d(bone)), _spec_vector2(bone.get("position", null)))
+	if bone.get("_source_rest") is Transform2D: return bone._source_rest
+	return Transform2D(deg_to_rad(_spec_rotation_2d(bone)), _spec_vector2(bone.get("scale"), Vector2.ONE), float(bone.get("skew", 0.0)), _spec_vector2(bone.get("position")))
 
 
 static func _spec_rotation_2d(bone: Dictionary) -> float:
@@ -3128,8 +3175,7 @@ static func _bone_2d_setup(bone: Dictionary) -> Array:
 	var rest := _spec_rest_2d(bone)
 	return [
 		{"property": "rest", "value": rest},
-		{"property": "position", "value": rest.get_origin()},
-		{"property": "rotation", "value": rest.get_rotation()},
+		{"property": "transform", "value": rest},
 		{"method": "set_autocalculate_length_and_angle", "args": [false]},
 		{"method": "set_length", "args": [float(bone.get("length", 32.0))]},
 	]

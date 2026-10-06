@@ -2903,3 +2903,63 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   modifier evaluation and saved playback through the public Godot AI route.
   Broader motion/sequence history and fixed-camera visual review also remain.
   The branch remains unreleased; no visual approval is claimed.
+
+### 2026-10-06 - Rig/modifier history phase plan
+
+- Begin from pushed 2cc4c10 with Godot 4.7.2 and one connected visible editor.
+  Correct the draft classification: pose_apply is the direct scene pose writer;
+  pose_blend produces data/a non-undoable file. The eight clip writers are
+  pose_to_clip, walk_cycle, idle_breathing, blink, jumping_jack, squat, punch
+  and bake_pose_sequence. rig_chain changes skeletons; five modifier setup
+  operations create/reconfigure nodes. pose_save/list and rig_get are file/read.
+- First checkpoint: reproduce 2D/3D direct-pose, malformed pose/file and chain
+  history defects through the public dispatcher. Use asymmetric rotated rests,
+  non-unit poses and untouched bones in local/locked/editable layouts. Require
+  dry/rejected no effects, one scene action, exact Undo/Redo and independently
+  checked persisted states; keep file bytes/history checks separate.
+- Then cover all eight clip writers across five library/instance layouts, bake
+  source/player/tree/modifier restoration, modifier creation/reconfiguration,
+  evaluation order and saved runtime effects. Require registry inventory,
+  actual external MCP before/after reload, native shortcuts, zero engine errors
+  and Windows/Linux CI. Counts are recorded only after completing each matrix.
+- Save failing/passing logs and source checkpoints in rig_history_20261006;
+  retain existing family gates. Motion/sequence history and visual review remain
+  open. No release or visual approval is part of this reliability phase.
+
+### 2026-10-06 - Rig pose/chain implementation checkpoint
+
+- Public-route baselines fail all four pose tests and all three chain tests:
+  no-matching-bone calls create an action/report success; malformed pose casts
+  emit script errors; dry overwrite disagrees; new 3D chain Redo adds duplicate
+  names. Fixed these, complete 2D scale/reset transforms, reset-first blending,
+  existing 2D parents, full subtree rests and typed transform validation.
+- Thirty pose writes and eighteen chain writes pass in local/locked/editable
+  layouts. External Godot AI before/after reload passes nine named tests and
+  all 96 independent fresh-engine saved-state checks, zero engine errors.
+  Native 2D/3D pose and new-chain Ctrl+Z/Ctrl+Shift+Z checks pass.
+- The fixture's apparent saved-default reset defect was runtime instancing:
+  use GEN_EDIT_STATE_INSTANCE for editor fixtures, matching Godot AI's public
+  node instancing path. Two-dimensional fixtures use valid arm_L/arm_R node
+  names; dots are retained as supported 3D bone names, refused for 2D nodes.
+- Full local editor is 278/278 with zero captured engine errors; four Bone2D
+  leaf warnings plus intentional NaN-request serialization warning are separate.
+  All fourteen headless suites pass. The new rig_pose_history CI gate requires
+  96 states and keeps earlier route gates. Platform CI is next for this checkpoint.
+- See docs/rig-history-validation.md. Recovery rig_history_20261006 stores
+  baseline/proof logs, source and 96 state scenes plus 32 instance source scenes.
+  Eight rig clip writers and all five modifier history matrices remain next;
+  motion/sequence histories and visual review remain open. Branch unreleased.
+
+### 2026-10-06 - Chain dry-run allocation follow-up
+
+- A precise Node.get_orphan_node_ids regression reproduced orphan allocations
+  in chain dry runs; the synchronous Performance node counter had missed them.
+  Validated chain plans now return before allocating skeletons/Bone2D nodes.
+  Planned paths must match committed paths; invalid/occupied skeleton names
+  return typed errors before allocation. This is a resource/history repair;
+  no cause of the earlier PC crashes has been established.
+- Final fresh editor remains 278/278, zero captured engine/tool-route errors.
+  The complete external ci_mcp_route.py passes all retained family gates and
+  rig_pose_history (all nine tests plus 96 fresh-engine persisted states).
+  Fourteen headless suites passed before the chain-only follow-up; hosted
+  platform gates will rerun the complete source checkpoint after pushing.

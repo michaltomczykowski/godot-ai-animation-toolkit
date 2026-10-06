@@ -142,11 +142,6 @@ errors. See [history validation](../../docs/preset-library-history-validation.md
 | op | What it does |
 | --- | --- |
 | `rig_chain` | Build bones from a spec or turn a Node3D/Node2D subtree into a skeleton. |
-| `ik_setup` | Attach a two-bone / CCDIK / FABRIK / Jacobian IK modifier wired to a target and pole; `spline` follows a `Path3D` instead. Validated chains, rest-frame default markers. |
-| `spring_setup` | Attach spring bones (stiffness, drag, gravity, radius, collisions). |
-| `look_at_setup` | One bone tracks a target, with origin, limits, secondary rotation, turn duration. |
-| `retarget_setup` | Retarget a source skeleton onto a child target (auto / humanoid / res:// profile); refuses an empty map and reconfigures an existing modifier. |
-| `twist_setup` | Spread a twist over the bones above it with a `BoneTwistDisperser3D` (even or weighted, over the detected or explicit `spine_chain`); rejects parameters the mode ignores. |
 | `walk_cycle` | Looping in-place walk: thigh swing, knee bend, counter-swinging arms (`arm_down` for T-pose rigs), hip bob. For smooth character cycles prefer `animation_motion` below. |
 | `idle_breathing` | Subtle idle: the whole torso chain breathes, the head counter-moves, an optional hip bob. For a richer loop prefer `animation_motion`'s `idle_cycle`. |
 | `blink` | Scale/rotate lid bones closed, N blinks per clip. |
@@ -160,6 +155,30 @@ errors. See [history validation](../../docs/preset-library-history-validation.md
 | `pose_to_clip` | Keyframe a pose sequence into a clip (lean: only moving bones). |
 | `pose_list` | List saved pose files. |
 | `rig_get` | Dump bones, rests, pose, modifiers, springs, twist joint lists + issues. |
+
+`pose_apply` creates one scene Undo action, including required instance
+permissions. It applies 2D scale and resets unlisted bones when `reset_first`
+is enabled; reset-first blending starts from rest. Poses must be rest-relative
+and contain finite Quaternion/Vector3 values with nonzero rotations/scales.
+A pose matching no target bones is rejected. `pose_save` and `pose_blend`
+file writes are non-undoable; dry runs validate paths and overwrite rules.
+2D bone names must be valid Godot node names (`arm_L`, rather than `arm.L`).
+Chain conversion preserves complete local rests, including scale and 2D skew.
+See [rig history checks](../../docs/rig-history-validation.md).
+
+## `animation_rig_modifiers`
+
+These operations belong to the separate modifier tool family. Discover it
+through `custom_manage(op="list")` and invoke it through `custom_manage` with
+`tool_name="animation_rig_modifiers"` and the operation parameters.
+
+| op | What it does |
+| --- | --- |
+| `ik_setup` | Attach a two-bone / CCDIK / FABRIK / Jacobian IK modifier wired to a target and pole; `spline` follows a `Path3D` instead. Validated chains, rest-frame default markers. |
+| `spring_setup` | Attach spring bones (stiffness, drag, gravity, radius, collisions). |
+| `look_at_setup` | One bone tracks a target, with origin, limits, secondary rotation, turn duration. |
+| `retarget_setup` | Retarget a source skeleton onto a child target (auto / humanoid / res:// profile); refuses an empty map and reconfigures an existing modifier. |
+| `twist_setup` | Spread a twist over the bones above it with a `BoneTwistDisperser3D` (even or weighted, over the detected or explicit `spine_chain`); rejects parameters the mode ignores. |
 
 ## `animation_motion`
 

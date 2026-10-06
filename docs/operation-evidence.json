@@ -2000,17 +2000,20 @@
       "mcp_invocation": "pass",
       "valid_effect": "pass",
       "track_paths_types": "not_applicable_direct_pose",
-      "dry_run": "pass",
-      "save_reopen": "pass",
+      "dry_run": "pass_no_effect_history",
+      "save_reopen": "pass_independent_saved_states",
       "typed_errors": "pass",
-      "undo_redo": "pass_editor",
+      "undo_redo": "pass_public_history_matrix",
       "playback": "pending",
-      "visual_review": "pending"
+      "visual_review": "pending",
+      "reported_errors": "pass_typed_no_effect"
     },
     "evidence": [
       "2026-09-30: on the static imported dummy, live Godot AI MCP dry-run left B-upperArm.L at rest; write rotated it 0.6 rad. The first saved-scene pass lost this override. pose_apply now makes containing scene instances editable within the same UndoRedo action. Rerun mcp_rig_pose_apply_editable.log, run 20260930_160635, retained the exact quaternion after save/forced reopen and returned typed NODE_NOT_FOUND for an invalid skeleton. Direct editor regression covers nonmutating dry run; editor suite 213/213. Live editor undo, animation interaction, and Linux remain.",
       "2026-09-30: on unsaved res://repair_ui_undo/rig_pose_20260930_161530.tscn, live MCP applied the 0.6 rad arm pose. Ctrl+Z in visible Godot 4.7.2 editor returned the bone to identity; Ctrl+Shift+Z restored quaternion (0,0.29552,0,0.955336). See tools/mcp_rig_pose_ui_undo.py.",
-      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The saved static bone pose survived reopen; clip playback is not applicable. Animation interaction and visual pose review remain open."
+      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The saved static bone pose survived reopen; clip playback is not applicable. Animation interaction and visual pose review remain open.",
+      "2026-10-06: Rig pose/chain checkpoint through the public Godot AI dispatcher and external MCP on Godot 4.7.2, repeated after core reload. 30 direct-pose writes (2D/3D apply/blend/reset/reset+blend/mirror) and 18 chain writes (create/append/subtree) in local/locked/editable layouts; exact scene Undo/Redo, permissions, metadata, ownership and source/peer isolation. Three fresh engines verify 96 authored saved states with zero errors. Separate pose file/read checks preserve dry/rejected bytes and both histories; file writes remain non-undoable. Native shortcuts pass 2D/3D pose and new 3D chain. Full local editor 278/278, zero engine errors; 14 headless suites pass. Platform CI pending; clip/modifier matrices and visual review remain. See docs/rig-history-validation.md.",
+      "2026-10-06 final local gate: fresh editor 278/278 with zero captured engine/tool-route errors; complete external ci_mcp_route.py passes every retained family gate plus rig_pose_history (nine named tests and 96 fresh-engine saved states), after core reload. Hosted platform CI pending."
     ],
     "platforms": {
       "windows": "partial",
@@ -2026,12 +2029,14 @@
       "dry_run": "pass",
       "file_persistence": "pass",
       "typed_errors": "pending",
-      "undo_redo": "not_applicable_file_write",
+      "undo_redo": "not_applicable_read_or_file",
       "visual_review": "pending"
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP on a static imported dummy; see mcp_rig_pose_crud_first.log, run 20260930_161028. Dry-run created no file; write saved 56 rest-relative bones as JSON.",
-      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. File creation or listing and persistence matched the documented effect; scene playback is not applicable. File rollback semantics and visual pose review remain open where applicable."
+      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. File creation or listing and persistence matched the documented effect; scene playback is not applicable. File rollback semantics and visual pose review remain open where applicable.",
+      "2026-10-06: Rig pose/chain checkpoint through the public Godot AI dispatcher and external MCP on Godot 4.7.2, repeated after core reload. 30 direct-pose writes (2D/3D apply/blend/reset/reset+blend/mirror) and 18 chain writes (create/append/subtree) in local/locked/editable layouts; exact scene Undo/Redo, permissions, metadata, ownership and source/peer isolation. Three fresh engines verify 96 authored saved states with zero errors. Separate pose file/read checks preserve dry/rejected bytes and both histories; file writes remain non-undoable. Native shortcuts pass 2D/3D pose and new 3D chain. Full local editor 278/278, zero engine errors; 14 headless suites pass. Platform CI pending; clip/modifier matrices and visual review remain. See docs/rig-history-validation.md.",
+      "2026-10-06 final local gate: fresh editor 278/278 with zero captured engine/tool-route errors; complete external ci_mcp_route.py passes every retained family gate plus rig_pose_history (nine named tests and 96 fresh-engine saved states), after core reload. Hosted platform CI pending."
     ],
     "platforms": {
       "windows": "partial",
@@ -2046,11 +2051,14 @@
       "valid_effect": "pass",
       "source_unchanged": "pass",
       "typed_errors": "pending",
-      "visual_review": "not_applicable"
+      "visual_review": "not_applicable",
+      "undo_redo": "not_applicable_read_or_file"
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP on a static imported dummy; see mcp_rig_pose_crud_first.log, run 20260930_161028. Listed the two captured pose files in the timestamped toolkit directory.",
-      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. File creation or listing and persistence matched the documented effect; scene playback is not applicable. File rollback semantics and visual pose review remain open where applicable."
+      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. File creation or listing and persistence matched the documented effect; scene playback is not applicable. File rollback semantics and visual pose review remain open where applicable.",
+      "2026-10-06: Rig pose/chain checkpoint through the public Godot AI dispatcher and external MCP on Godot 4.7.2, repeated after core reload. 30 direct-pose writes (2D/3D apply/blend/reset/reset+blend/mirror) and 18 chain writes (create/append/subtree) in local/locked/editable layouts; exact scene Undo/Redo, permissions, metadata, ownership and source/peer isolation. Three fresh engines verify 96 authored saved states with zero errors. Separate pose file/read checks preserve dry/rejected bytes and both histories; file writes remain non-undoable. Native shortcuts pass 2D/3D pose and new 3D chain. Full local editor 278/278, zero engine errors; 14 headless suites pass. Platform CI pending; clip/modifier matrices and visual review remain. See docs/rig-history-validation.md.",
+      "2026-10-06 final local gate: fresh editor 278/278 with zero captured engine/tool-route errors; complete external ci_mcp_route.py passes every retained family gate plus rig_pose_history (nine named tests and 96 fresh-engine saved states), after core reload. Hosted platform CI pending."
     ],
     "platforms": {
       "windows": "partial",
@@ -2066,12 +2074,14 @@
       "dry_run": "pass",
       "file_persistence": "pass",
       "typed_errors": "pass_missing_pose",
-      "undo_redo": "not_applicable_file_write",
+      "undo_redo": "not_applicable_read_or_file",
       "visual_review": "pending"
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP on a static imported dummy; see mcp_rig_pose_crud_first.log, run 20260930_161028. Blended rest and raised-arm poses at 0.5 into a 56-bone pose file; dry-run created no file; missing source returned typed INVALID_PARAMS.",
-      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. File creation or listing and persistence matched the documented effect; scene playback is not applicable. File rollback semantics and visual pose review remain open where applicable."
+      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. File creation or listing and persistence matched the documented effect; scene playback is not applicable. File rollback semantics and visual pose review remain open where applicable.",
+      "2026-10-06: Rig pose/chain checkpoint through the public Godot AI dispatcher and external MCP on Godot 4.7.2, repeated after core reload. 30 direct-pose writes (2D/3D apply/blend/reset/reset+blend/mirror) and 18 chain writes (create/append/subtree) in local/locked/editable layouts; exact scene Undo/Redo, permissions, metadata, ownership and source/peer isolation. Three fresh engines verify 96 authored saved states with zero errors. Separate pose file/read checks preserve dry/rejected bytes and both histories; file writes remain non-undoable. Native shortcuts pass 2D/3D pose and new 3D chain. Full local editor 278/278, zero engine errors; 14 headless suites pass. Platform CI pending; clip/modifier matrices and visual review remain. See docs/rig-history-validation.md.",
+      "2026-10-06 final local gate: fresh editor 278/278 with zero captured engine/tool-route errors; complete external ci_mcp_route.py passes every retained family gate plus rig_pose_history (nine named tests and 96 fresh-engine saved states), after core reload. Hosted platform CI pending."
     ],
     "platforms": {
       "windows": "partial",
@@ -2109,11 +2119,14 @@
       "valid_effect": "pass_arm_pose",
       "source_unchanged": "pass",
       "typed_errors": "pass_missing_skeleton",
-      "visual_review": "not_applicable"
+      "visual_review": "not_applicable",
+      "undo_redo": "not_applicable_read_or_file"
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP on a static imported dummy; see mcp_rig_pose_crud_first.log, run 20260930_161028. Returned the named arm bone rest-relative pose before/during/after pose_apply; invalid skeleton returned typed NODE_NOT_FOUND in mcp_rig_pose_apply_editable.log.",
-      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The rig query returned the expected bone data without changing the scene; clip playback is not applicable."
+      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The rig query returned the expected bone data without changing the scene; clip playback is not applicable.",
+      "2026-10-06: Rig pose/chain checkpoint through the public Godot AI dispatcher and external MCP on Godot 4.7.2, repeated after core reload. 30 direct-pose writes (2D/3D apply/blend/reset/reset+blend/mirror) and 18 chain writes (create/append/subtree) in local/locked/editable layouts; exact scene Undo/Redo, permissions, metadata, ownership and source/peer isolation. Three fresh engines verify 96 authored saved states with zero errors. Separate pose file/read checks preserve dry/rejected bytes and both histories; file writes remain non-undoable. Native shortcuts pass 2D/3D pose and new 3D chain. Full local editor 278/278, zero engine errors; 14 headless suites pass. Platform CI pending; clip/modifier matrices and visual review remain. See docs/rig-history-validation.md.",
+      "2026-10-06 final local gate: fresh editor 278/278 with zero captured engine/tool-route errors; complete external ci_mcp_route.py passes every retained family gate plus rig_pose_history (nine named tests and 96 fresh-engine saved states), after core reload. Hosted platform CI pending."
     ],
     "platforms": {
       "windows": "partial",
@@ -2126,19 +2139,23 @@
     "checks": {
       "mcp_invocation": "pass_append",
       "valid_effect": "pass_append",
-      "dry_run": "pass_append",
-      "save_reopen": "pass_append",
+      "dry_run": "pass_no_effect_history",
+      "save_reopen": "pass_independent_saved_states",
       "typed_errors": "pass_invalid_parent",
-      "undo_redo": "pass_editor_append",
+      "undo_redo": "pass_public_history_matrix",
       "playback": "not_applicable_structure",
       "visual_review": "pending",
-      "modes": "pass_append_new3d_new2d_subtree"
+      "modes": "pass_append_new3d_new2d_subtree",
+      "reported_errors": "pass_typed_no_effect"
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP appended repair_tool_tip to the imported 56-bone dummy. Dry-run kept 56 bones. First write reported 57 but force reopen returned 56. Shared _commit_node_add_many now enables editable instance levels for existing skeleton setup. Fresh run mcp_rig_chain_editable.log, id 20260930_162157, retained all 57 bones, tip parent index 7 and 5 cm rest offset after save/reopen. Invalid parent returned typed INVALID_PARAMS. Direct editor regression confirmed one undo restores the original 56-bone hierarchy. New-skeleton and subtree modes, live UI undo, and Linux remain.",
       "2026-09-30: live Godot AI MCP appended ui_undo_tool_tip on res://repair_ui_undo/rig_chain_20260930_163247.tscn. Ctrl+Z in the visible Godot 4.7.2 editor restored 56 bones with no tip. Ctrl+Shift+Z restored 57 bones and the tip under parent index 7. tools/mcp_rig_chain_ui_undo.py read back both states.",
       "2026-09-30: mcp_rig_chain_modes_first.log, run 20260930_163804: live Godot AI created a new 3D two-bone skeleton, a new 2D two-bone skeleton, and a three-bone skeleton from a Node3D subtree. Dry runs left targets missing, writes yielded expected hierarchy, and all three survived scene save/forced reopen. Visual inspection and Linux remain.",
-      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The saved skeleton hierarchy retained the appended bone; clip playback is not applicable. Other structural modes and visual deformation need broader review."
+      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The saved skeleton hierarchy retained the appended bone; clip playback is not applicable. Other structural modes and visual deformation need broader review.",
+      "2026-10-06: Rig pose/chain checkpoint through the public Godot AI dispatcher and external MCP on Godot 4.7.2, repeated after core reload. 30 direct-pose writes (2D/3D apply/blend/reset/reset+blend/mirror) and 18 chain writes (create/append/subtree) in local/locked/editable layouts; exact scene Undo/Redo, permissions, metadata, ownership and source/peer isolation. Three fresh engines verify 96 authored saved states with zero errors. Separate pose file/read checks preserve dry/rejected bytes and both histories; file writes remain non-undoable. Native shortcuts pass 2D/3D pose and new 3D chain. Full local editor 278/278, zero engine errors; 14 headless suites pass. Platform CI pending; clip/modifier matrices and visual review remain. See docs/rig-history-validation.md.",
+      "2026-10-06 follow-up: precise orphan-ID checks reproduced dry-run Node leaks. Validated plans now return before allocation, match the committed destination path, and reject invalid/occupied skeleton names. All 18 dry plans leave orphan IDs unchanged; exact history assertions remain green in the final 278/278 editor run. See docs/rig-history-validation.md.",
+      "2026-10-06 final local gate: fresh editor 278/278 with zero captured engine/tool-route errors; complete external ci_mcp_route.py passes every retained family gate plus rig_pose_history (nine named tests and 96 fresh-engine saved states), after core reload. Hosted platform CI pending."
     ],
     "platforms": {
       "windows": "partial",
