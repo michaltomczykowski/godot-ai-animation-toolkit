@@ -182,7 +182,18 @@ func _case(op: String, kind: String, mode: String) -> void:
 	assert_eq(history.get_version(), version, label + " dry/rejected no history")
 	assert_eq(root.is_editable_instance(fixture), mode == "editable", label + " dry/rejected permissions")
 	assert_has_key(_call(params), "data", label + " write")
-	assert_eq(Node.get_orphan_node_ids(), orphans, label + " write no orphan nodes")
+	# A new scene action discards the previous Redo branch. Its detached bake
+	# outputs/carriers can be freed legitimately; new orphan IDs are still leaks.
+	var after_commit := Node.get_orphan_node_ids()
+	var added: Array = []
+	var freed: Array = []
+	for id in after_commit:
+		if not orphans.has(id): added.append(id)
+	for id in orphans:
+		if not after_commit.has(id): freed.append(id)
+	assert_eq(added, [], label + " write no new orphan nodes " + str(added))
+	if not freed.is_empty(): print("RIG_CLIP_FREED_PRIOR_REDO=" + JSON.stringify({"case": label, "freed": freed.size(), "added": added.size()}))
+	orphans = after_commit
 	var generated := _snapshot(fixture)
 	var generated_clip := player.get_animation("generated")
 	assert_true(generated_clip != null and generated_clip.get_track_count() > 0, label + " effective clip")

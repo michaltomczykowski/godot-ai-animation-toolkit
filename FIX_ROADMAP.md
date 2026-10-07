@@ -3360,3 +3360,9 @@ spring from the current pose using the public reset API.
   0.281967 rad for a fast one-shot at 30 FPS. See the validation document for
   tolerances, limitations, commands and local recovery media. Hosted closing
   Windows/Linux verification remains pending the checkpoint push.
+- Expanded source `3126e2d` passed the new 201-case/603-state gate on Windows and
+  Linux, then exposed an ordering assumption in the older clip-history gate.
+  A successful commit can free detached outputs owned by a previous Redo branch.
+  The old exact-ID assertion failed on both hosts and reproduced locally; its
+  repair rejects all new orphan IDs and keeps exact sets for dry/refusal checks.
+  No production leak was waived. Full follow-up route verification is required.

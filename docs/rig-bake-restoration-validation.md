@@ -72,6 +72,8 @@ owner for each property/bone. Creating the output does not deactivate the source
   fractional world-target look-at are included. Worst played position error
   is below one micrometre; rotation error is below 0.001 radians. Explicit
   destination/carrier reuse/overwrite and five atomic input refusals pass.
+  Loop cases cover source clips wrapping during a finite capture; they do not
+  guarantee infinitely repeated, world-dependent baked output stays faithful.
 
 - Native modifier coverage includes all eight supported classes at 0/0.5/1
   influence and 30/60/120 FPS (72 cases), both look-at/spring orders (18 cases),
@@ -166,7 +168,21 @@ engine errors but rejected a stale generated operation audit. Its Windows
 external route lost the plugin-managed backend after reload when core process
 identity discovery failed. The route harness now owns an external backend across
 reload, using the supported authenticated adoption/attach path, and captures
-both backend/editor logs. Root checkpoint `e7c6fb8` passed all 34 required jobs in
+both backend/editor logs. Root checkpoint `e7c6fb8` passed all 34 validation jobs in
 [Actions run 37695353226](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37695353226),
 including complete external routes on Windows and Linux. The expanded closing
 matrix requires another hosted pass on its final source.
+
+Closing source `3126e2d` passed all headless/editor combinations and its new bake
+gate on both platforms in Actions run 37701427641. The following retained
+clip-history gate failed on both platforms because it required exact orphan IDs
+after committing a new action. That commit legitimately frees the previous Redo
+branch's detached bake outputs. The same sequence reproduced in the visible local
+editor. The assertion now permits freed prior IDs, rejects every new orphan ID,
+and requires the resulting exact set for dry/refused calls, matching the retained
+bake-state check. The expanded external route must pass again before closure.
+
+Hosted headless `scene_save` also logs a native dummy-renderer thumbnail error
+(`texture_2d_get`, null texture) through Godot AI's scene handler. Saved animation
+data is checked independently; this renderer/core limitation does not occur in
+the visible local capture. It is outside the toolkit's bake sampler.
