@@ -3,6 +3,10 @@
 Godot 4.7.2, unreleased branch `repair/toolkit-quality`. Approved contract:
 [rig-bake-restoration-plan.md](rig-bake-restoration-plan.md).
 
+**Status: complete 2026-10-08.** Implemented and validated source `e3a9e93` on
+the review branch. Broader character/action quality and the remaining repair
+roadmap are still open.
+
 ## Implemented checkpoints
 
 The public `animation_rig.bake_pose_sequence` route evaluates an unsaved scene
@@ -145,7 +149,14 @@ snapshot. No release, tag, merge or media upload is created.
   `test-project@269b9992a09c60c8` to `test-project@d1fe3262f78bee93`.
 - Fixed-camera final-source render: **488/488 frames**, zero render engine errors,
   eight comparison contact sheets and a local video. All eight pairs reviewed.
-- Hosted Windows/Linux closing-source verification is pending the checkpoint push.
+- Hosted source `e3a9e93`: **all 34 validation jobs pass** in
+  [Actions run 37702850985](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37702850985).
+  This includes fourteen headless suites on each platform, all four editor/core
+  combinations (342 passes, one optional X Bot skip, zero captured engine errors),
+  and both complete external MCP routes. Each route passes the 201-case/603-state
+  bake gate, retained clip/modifier history, allocation and reload checks, deferred
+  source-pose restoration, later-action guard and deferred script-error check.
+  The two current-core editor jobs are informational; both also pass.
 
 ## Reproduction
 
@@ -161,6 +172,12 @@ snapshot. No release, tag, merge or media upload is created.
    compose with `tools/compose_bake_restoration.py --frames <frame-dir>
    --output <media-dir> --ffmpeg <ffmpeg>` and review the paired captures.
 
+The complete CI route harness expects a headless editor for its 3D-preview
+contract. An extra local run against the visible editor stopped at that expected
+headless-preview refusal. The dedicated bake/clip gates passed in that editor;
+the graphical inspection rerun passed with four PNGs and a valid contact audit.
+The complete headless routes passed on both hosted platforms.
+
 ## CI infrastructure finding
 
 The graph checkpoint's Linux pinned-core editor job passed 327 tests with no
@@ -171,7 +188,7 @@ reload, using the supported authenticated adoption/attach path, and captures
 both backend/editor logs. Root checkpoint `e7c6fb8` passed all 34 validation jobs in
 [Actions run 37695353226](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37695353226),
 including complete external routes on Windows and Linux. The expanded closing
-matrix requires another hosted pass on its final source.
+matrix subsequently passed on `e3a9e93` in run 37702850985.
 
 Closing source `3126e2d` passed all headless/editor combinations and its new bake
 gate on both platforms in Actions run 37701427641. The following retained
@@ -180,7 +197,10 @@ after committing a new action. That commit legitimately frees the previous Redo
 branch's detached bake outputs. The same sequence reproduced in the visible local
 editor. The assertion now permits freed prior IDs, rejects every new orphan ID,
 and requires the resulting exact set for dry/refused calls, matching the retained
-bake-state check. The expanded external route must pass again before closure.
+bake-state check. Follow-up `e3a9e93` changes only this test expectation and its
+evidence; the production addon is unchanged from `3126e2d`. Both complete external
+routes pass in run 37702850985, including the sequential bake and clip-history
+gates. No new orphan IDs are permitted, and dry/refusal sets remain exact.
 
 Hosted headless `scene_save` also logs a native dummy-renderer thumbnail error
 (`texture_2d_get`, null texture) through Godot AI's scene handler. Saved animation

@@ -3359,10 +3359,25 @@ spring from the current pose using the public reset API.
   approximation remains reported separately: the largest sampled difference is
   0.281967 rad for a fast one-shot at 30 FPS. See the validation document for
   tolerances, limitations, commands and local recovery media. Hosted closing
-  Windows/Linux verification remains pending the checkpoint push.
+  Windows/Linux verification passes on follow-up source `e3a9e93`, below.
 - Expanded source `3126e2d` passed the new 201-case/603-state gate on Windows and
   Linux, then exposed an ordering assumption in the older clip-history gate.
   A successful commit can free detached outputs owned by a previous Redo branch.
   The old exact-ID assertion failed on both hosts and reproduced locally; its
   repair rejects all new orphan IDs and keeps exact sets for dry/refusal checks.
-  No production leak was waived. Full follow-up route verification is required.
+  No production leak was waived. The complete follow-up routes pass on both hosts.
+- **Active AnimationTree/modifier bake restoration complete, 2026-10-08.**
+  Source `e3a9e93` passes all 34 validation jobs in
+  [Actions run 37702850985](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37702850985):
+  fourteen headless suites on each platform, four editor/core combinations
+  (342 passes, one optional X Bot skip, zero captured engine errors), and both
+  complete external MCP routes. The current-core editor jobs are informational
+  and also pass. Routes include the expanded bake matrix, retained clip/modifier
+  history, allocation/reload, deferred poses and later-action/script-error guards.
+  The follow-up changes the retained test expectation; production remains the
+  validated `3126e2d` addon. Closing logs, source archives, 804 native scenes and
+  final local media are preserved in `bake_restoration_20261007` under recovery.
+- This completes all five checkpoints of docs/rig-bake-restoration-plan.md.
+  Broader motion/sequence history, full humanoid/action visual quality and the
+  remaining repair roadmap stay open. Operation evidence remains conservative;
+  this phase does not approve every advertised operation or create a release.

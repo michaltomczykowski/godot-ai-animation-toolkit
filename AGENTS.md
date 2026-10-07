@@ -68,6 +68,11 @@ Godot binary (local):
   frames). Refresh it after substantive edits. The current review branch is
   `repair/toolkit-quality`; it is unreleased and the operation ledger remains
   partial until visual, undo and Linux gates are satisfied.
+- Active graph/modifier bake restoration completed on `e3a9e93` (Actions
+  37702850985). Its closing validation and next-scope limits are in
+  `docs/rig-bake-restoration-validation.md`; recovery reports, native scenes and
+  media are in the snapshot's `bake_restoration_20261007` folder. Broader roadmap
+  work remains open; do not infer complete operation approval from this phase.
 - Launch: `& "<godot>" --editor --path test_project`.
 - Run `git checkout -- test_project/project.godot` before committing: the editor
   rewrites the plugin enable order.

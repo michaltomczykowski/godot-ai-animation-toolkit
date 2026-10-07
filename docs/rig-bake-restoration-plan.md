@@ -3,6 +3,10 @@
 Approved 2026-10-07. Unreleased branch: `repair/toolkit-quality`. Godot 4.7.2.
 Work alone and verify through Godot AI's public custom-tools API.
 
+**Completed 2026-10-08**, verified source `e3a9e93`, all five checkpoints.
+Results and remaining limits are recorded in
+[rig-bake-restoration-validation.md](rig-bake-restoration-validation.md).
+
 ## Contract
 
 Extend `animation_rig.bake_pose_sequence` rather than adding another operation.
