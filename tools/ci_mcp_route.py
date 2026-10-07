@@ -596,7 +596,7 @@ def rig_modifier_history_gate(args: argparse.Namespace) -> bool:
     marker = "MCP_RIG_MODIFIER_HISTORY="
     payload = next((line[len(marker):] for line in check.stdout.splitlines() if line.startswith(marker)), "")
     report = json.loads(payload) if payload else {}
-    if check.returncode or report.get("passed") is not True or report.get("runtime", {}).get("saved_states") != 810:
+    if check.returncode or report.get("passed") is not True or report.get("runtime", {}).get("saved_states") != 828:
         print("MCP_CI_FAIL=rig_modifier_history")
         print((check.stdout + check.stderr)[-9000:])
         return False

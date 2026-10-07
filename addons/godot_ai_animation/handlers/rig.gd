@@ -1871,6 +1871,13 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 	for child in modifier.get_children():
 		if child.get_script() == restore_script: pose_restore = child
 	var restore_created := pose_restore == null
+	if existing_modifier != null and restore_created:
+		for child in modifier.get_children():
+			if not child is Skeleton3D: continue
+			for bone in child.get_bone_count():
+				if not child.get_bone_pose(bone).is_equal_approx(child.get_bone_rest(bone)):
+					return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
+						"This existing native retarget has authored child poses without a persistence helper. Godot 4.7.2 resets those inputs when its original Undo scene reopens; preserving them would change the original scene. Reconfigure a toolkit-created retarget, or a native modifier whose children use their rest pose.")
 	if restore_created:
 		pose_restore = Node.new()
 		pose_restore.name = _unique_child_name(modifier, "ToolkitRetargetPoseRestore", {})

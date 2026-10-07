@@ -173,7 +173,9 @@ jobs:
   mcp-route:
     name: Live MCP route / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    # Full saved-history matrices and external reload checks take almost
+    # fifteen minutes on Windows; retain room for runner/startup variation.
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:

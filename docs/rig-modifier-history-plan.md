@@ -84,6 +84,10 @@ rigs (79.9/8.85 mm). These choices now return `OPERATION_UNAVAILABLE` before
 allocation or history commit. Jacobian is removed from advertised choices;
 world-center collisions and relative centers without collisions remain supported.
 Keep the native diagnostic failures as evidence before reconsidering either
-choice. The supported gate covers 90 cases / 270 saved scenes, with 810 saved
-playback checks and 270 independent references at 30/60/120 FPS. See
+choice. A final all-rig tree-entry check also reproduced native authored-child
+pose loss in original Undo scenes. Reconfiguring existing native retargets with
+non-rest child inputs and no helper is unavailable before allocation/history;
+toolkit-created modifiers and native rest-pose baselines remain supported.
+The supported gate covers 92 cases / 276 saved scenes, with 828 saved
+playback checks and 276 independent references at 30/60/120 FPS. See
 [implementation evidence](rig-modifier-history-validation.md).

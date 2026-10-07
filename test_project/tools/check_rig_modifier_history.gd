@@ -136,7 +136,10 @@ func _play(row: Dictionary, state: String, reference: bool = false, fps: int = 6
 	_check(packed != null, label + " saved scene exists")
 	if packed == null: return []
 	var scene := packed.instantiate()
-	var authored_target: Array = _poses(scene.get_node(row.receiver)) if row.op == "retarget_setup" and state != "undo" else []
+	var authored_inputs := {}
+	for rig in scene.find_children("*", "Skeleton3D", true, false):
+		authored_inputs[rig] = _poses(rig)
+		rig.modifier_callback_mode_process = Skeleton3D.MODIFIER_CALLBACK_MODE_PROCESS_MANUAL
 	root.add_child(scene)
 	var source := scene.get_node(row.source) as Skeleton3D
 	var peer := scene.get_node(row.peer) as Skeleton3D
@@ -144,6 +147,9 @@ func _play(row: Dictionary, state: String, reference: bool = false, fps: int = 6
 	peer.modifier_callback_mode_process = Skeleton3D.MODIFIER_CALLBACK_MODE_PROCESS_MANUAL
 	var peer_before := _poses(peer)
 	var modifier := scene.get_node_or_null(row.modifier) as SkeletonModifier3D
+	await process_frame
+	for rig in authored_inputs:
+		_check(_difference(authored_inputs[rig], _poses(rig)) < 0.001, label + " authored input survives tree entry " + str(rig.name))
 	if state == "undo":
 		_check(modifier != null if str(row.variant).begins_with("existing") else modifier == null, label + " modifier existence after Undo")
 		source.advance(1.0 / 60)
@@ -157,7 +163,6 @@ func _play(row: Dictionary, state: String, reference: bool = false, fps: int = 6
 	if modifier == null:
 		scene.free()
 		return []
-	await process_frame
 	if probe_jacobian:
 		# Build the disabled native solver from a supported saved fixture. This
 		# probe remains reproducible without older local Jacobian scene files.
@@ -171,7 +176,6 @@ func _play(row: Dictionary, state: String, reference: bool = false, fps: int = 6
 		var collision := SpringBoneCollisionSphere3D.new()
 		collision.name = "NativeProbeCollider"
 		modifier.add_child(collision)
-	if not authored_target.is_empty(): _check(_difference(authored_target, _poses(scene.get_node(row.receiver))) < 0.001, label + " saved target authored pose survives tree entry")
 	if reference:
 		var expected_saved := _properties(modifier)
 		modifier = Native.replace(row, source, modifier)

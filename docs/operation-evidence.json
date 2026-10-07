@@ -2651,13 +2651,13 @@
       "reported_errors": "pass_typed_refusals",
       "undo_redo": "pass_public_route_matrix",
       "playback": "pass",
-      "visual_review": "pending",
+      "visual_review": "partial_modifier_previews",
       "modifier_allocation": "pass_local",
       "dry_path_prediction": "pass_local",
       "modifier_local_history": "pass_local",
-      "modifier_saved_history": "pass_local_810_states",
+      "modifier_saved_history": "pass_local_828_states",
       "ordered_playback": "pass_local_108_states",
-      "native_references": "pass_local_270_states",
+      "native_references": "pass_local_276_states",
       "core_reload": "pass_external_10_cases"
     },
     "evidence": [
@@ -2665,7 +2665,8 @@
       "2026-10-03: GitHub Actions run 37072351007 passed live Godot AI invocation and fresh-process saved modifier playback on Windows and Linux. Editor handler undo passes; redo, other IK kinds and visual review remain.",
       "2026-10-07: public Godot AI modifier allocation checkpoint on 4.7.2: 18 paired dry/commit cases, 74 refusal calls, exact orphan IDs and complete scene/history checks; local Undo/Redo retains identities. Temporary allocations are scoped and dry paths predict committed moves/names. Look-at external origin is modifier-relative and independently plays inactive/active plus 0/0.5/1 influence (four states). Full modifier instance/saved history/evaluation and visual gates remain open. See docs/rig-modifier-allocation-validation.md.",
       "2026-10-07: Godot 4.7.2 modifier history matrix through the public Godot AI dispatcher: 90 required cases, 270 Do/Undo/Redo scenes, 810 saved playback checks and 270 independently configured native references at 30/60/120 FPS. All 14 named matrix tests pass locally with exact owners/order/poses/settings/identities, instance permissions, immutable source/peer/resource checks and zero captured errors. Ordered stacks and spring current-pose Redo restart pass. External custom_manage dry/write/save/force-reopen passes all five operations before/after core reload with a reconnected client. CI requires both strict reports. See docs/rig-modifier-history-validation.md; final previews/platform gates and broader graph/bake acceptance remain open.",
-      "2026-10-07: Generated targets start at the current effector origin, including virtual two-bone ends. Jacobian is removed from advertised choices and returns OPERATION_UNAVAILABLE: native 4.7.2 stalls 9.79 mm from a reachable 0.9 m chain target, exceeding 0.5% reach tolerance. TwoBone/CCDIK/FABRIK/spline variants remain covered."
+      "2026-10-07: Generated targets start at the current effector origin, including virtual two-bone ends. Jacobian is removed from advertised choices and returns OPERATION_UNAVAILABLE: native 4.7.2 stalls 9.79 mm from a reachable 0.9 m chain target, exceeding 0.5% reach tolerance. TwoBone/CCDIK/FABRIK/spline variants remain covered.",
+      "2026-10-07: Initial source a09c30a passed CI 37659896020: all 34 non-release jobs, both 116-gate Windows/Linux routes, headless suites and four editor/core combinations. Final all-rig tree-entry review then exposed original native retarget Undo input loss. The guarded 92-case matrix passes local editor 315/315 (22 suites), all 15 named matrix tests and independent 828 saved states / 276 native references / 108 stack states with zero captured errors; all 14 headless suites pass. Existing toolkit-created and native-rest retargets remain supported; unsafe native authored-child baselines are refused before allocation/history. Local fixed-camera previews (840 frames, 28 seconds, seven reviewed sheets) demonstrate modifier behavior, not character action quality. See docs/rig-modifier-history-validation.md; guarded hosted CI is pending."
     ],
     "platforms": {
       "windows": "partial",
@@ -2684,13 +2685,13 @@
       "reported_errors": "pass_typed_refusals",
       "undo_redo": "pass_public_route_matrix",
       "playback": "pass",
-      "visual_review": "pending",
+      "visual_review": "partial_modifier_previews",
       "modifier_allocation": "pass_local",
       "dry_path_prediction": "pass_local",
       "modifier_local_history": "pass_local",
-      "modifier_saved_history": "pass_local_810_states",
+      "modifier_saved_history": "pass_local_828_states",
       "ordered_playback": "pass_local_108_states",
-      "native_references": "pass_local_270_states",
+      "native_references": "pass_local_276_states",
       "core_reload": "pass_external_10_cases"
     },
     "evidence": [
@@ -2700,7 +2701,8 @@
       "2026-10-05: explicit collision mode exposed path wiring before reparenting. Setup now moves children before assigning paths in one scene action and restores parents/names/transforms on Undo. Automatic and explicit-list tests distinguish getter contracts; explicit Undo/Redo checks and whole-suite zero-engine-error gate pass locally. This does not complete all modifier history variants.",
       "2026-10-07: public Godot AI modifier allocation checkpoint on 4.7.2: 18 paired dry/commit cases, 74 refusal calls, exact orphan IDs and complete scene/history checks; local Undo/Redo retains identities. Temporary allocations are scoped and dry paths predict committed moves/names. Look-at external origin is modifier-relative and independently plays inactive/active plus 0/0.5/1 influence (four states). Full modifier instance/saved history/evaluation and visual gates remain open. See docs/rig-modifier-allocation-validation.md.",
       "2026-10-07: Godot 4.7.2 modifier history matrix through the public Godot AI dispatcher: 90 required cases, 270 Do/Undo/Redo scenes, 810 saved playback checks and 270 independently configured native references at 30/60/120 FPS. All 14 named matrix tests pass locally with exact owners/order/poses/settings/identities, instance permissions, immutable source/peer/resource checks and zero captured errors. Ordered stacks and spring current-pose Redo restart pass. External custom_manage dry/write/save/force-reopen passes all five operations before/after core reload with a reconnected client. CI requires both strict reports. See docs/rig-modifier-history-validation.md; final previews/platform gates and broader graph/bake acceptance remain open.",
-      "2026-10-07: Rotated node/bone centers with collisions return OPERATION_UNAVAILABLE after native penetration failures of 79.9/8.85 mm. Use world-center collisions or relative centers without collisions. Supported contacts stay below 3 mm (worst dummy 2.59 mm at 30 FPS) and alter the trajectory against an unobstructed reference. Redo resets only the restored simulator from its current authored input."
+      "2026-10-07: Rotated node/bone centers with collisions return OPERATION_UNAVAILABLE after native penetration failures of 79.9/8.85 mm. Use world-center collisions or relative centers without collisions. Supported contacts stay below 3 mm (worst dummy 2.59 mm at 30 FPS) and alter the trajectory against an unobstructed reference. Redo resets only the restored simulator from its current authored input.",
+      "2026-10-07: Initial source a09c30a passed CI 37659896020: all 34 non-release jobs, both 116-gate Windows/Linux routes, headless suites and four editor/core combinations. Final all-rig tree-entry review then exposed original native retarget Undo input loss. The guarded 92-case matrix passes local editor 315/315 (22 suites), all 15 named matrix tests and independent 828 saved states / 276 native references / 108 stack states with zero captured errors; all 14 headless suites pass. Existing toolkit-created and native-rest retargets remain supported; unsafe native authored-child baselines are refused before allocation/history. Local fixed-camera previews (840 frames, 28 seconds, seven reviewed sheets) demonstrate modifier behavior, not character action quality. See docs/rig-modifier-history-validation.md; guarded hosted CI is pending."
     ],
     "platforms": {
       "windows": "partial",
@@ -2719,21 +2721,22 @@
       "reported_errors": "pass_typed_refusals",
       "undo_redo": "pass_public_route_matrix",
       "playback": "pass",
-      "visual_review": "pending",
+      "visual_review": "partial_modifier_previews",
       "modifier_allocation": "pass_local",
       "dry_path_prediction": "pass_local",
       "modifier_local_history": "pass_local",
       "external_origin_playback": "pass_local",
-      "modifier_saved_history": "pass_local_810_states",
+      "modifier_saved_history": "pass_local_828_states",
       "ordered_playback": "pass_local_108_states",
-      "native_references": "pass_local_270_states",
+      "native_references": "pass_local_276_states",
       "core_reload": "pass_external_10_cases"
     },
     "evidence": [
       "2026-09-30: live Godot AI custom_manage(invoke), mcp_rig_modifiers_leaf_rejected.log run 20260930_173516, on imported dummy. Dry run left skeleton unchanged; write made one modifier, saved and forced reopen retained it, invalid skeleton returned typed NODE_NOT_FOUND. Godot 4.7.2 saved-scene modifier callback measured 0.310 rad head change after moving the target. Editor undo, additional rig combinations, visual review and Linux remain.",
       "2026-10-03: GitHub Actions run 37072351007 passed live Godot AI invocation and fresh-process saved modifier playback on Windows and Linux. Editor handler undo passes; redo and visual review remain.",
       "2026-10-07: public Godot AI modifier allocation checkpoint on 4.7.2: 18 paired dry/commit cases, 74 refusal calls, exact orphan IDs and complete scene/history checks; local Undo/Redo retains identities. Temporary allocations are scoped and dry paths predict committed moves/names. Look-at external origin is modifier-relative and independently plays inactive/active plus 0/0.5/1 influence (four states). Full modifier instance/saved history/evaluation and visual gates remain open. See docs/rig-modifier-allocation-validation.md.",
-      "2026-10-07: Godot 4.7.2 modifier history matrix through the public Godot AI dispatcher: 90 required cases, 270 Do/Undo/Redo scenes, 810 saved playback checks and 270 independently configured native references at 30/60/120 FPS. All 14 named matrix tests pass locally with exact owners/order/poses/settings/identities, instance permissions, immutable source/peer/resource checks and zero captured errors. Ordered stacks and spring current-pose Redo restart pass. External custom_manage dry/write/save/force-reopen passes all five operations before/after core reload with a reconnected client. CI requires both strict reports. See docs/rig-modifier-history-validation.md; final previews/platform gates and broader graph/bake acceptance remain open."
+      "2026-10-07: Godot 4.7.2 modifier history matrix through the public Godot AI dispatcher: 90 required cases, 270 Do/Undo/Redo scenes, 810 saved playback checks and 270 independently configured native references at 30/60/120 FPS. All 14 named matrix tests pass locally with exact owners/order/poses/settings/identities, instance permissions, immutable source/peer/resource checks and zero captured errors. Ordered stacks and spring current-pose Redo restart pass. External custom_manage dry/write/save/force-reopen passes all five operations before/after core reload with a reconnected client. CI requires both strict reports. See docs/rig-modifier-history-validation.md; final previews/platform gates and broader graph/bake acceptance remain open.",
+      "2026-10-07: Initial source a09c30a passed CI 37659896020: all 34 non-release jobs, both 116-gate Windows/Linux routes, headless suites and four editor/core combinations. Final all-rig tree-entry review then exposed original native retarget Undo input loss. The guarded 92-case matrix passes local editor 315/315 (22 suites), all 15 named matrix tests and independent 828 saved states / 276 native references / 108 stack states with zero captured errors; all 14 headless suites pass. Existing toolkit-created and native-rest retargets remain supported; unsafe native authored-child baselines are refused before allocation/history. Local fixed-camera previews (840 frames, 28 seconds, seven reviewed sheets) demonstrate modifier behavior, not character action quality. See docs/rig-modifier-history-validation.md; guarded hosted CI is pending."
     ],
     "platforms": {
       "windows": "partial",
@@ -2752,13 +2755,13 @@
       "reported_errors": "pass_typed_refusals",
       "undo_redo": "pass_public_route_matrix",
       "playback": "pass",
-      "visual_review": "pending",
+      "visual_review": "partial_modifier_previews",
       "modifier_allocation": "pass_local",
       "dry_path_prediction": "pass_local",
       "modifier_local_history": "pass_local",
-      "modifier_saved_history": "pass_local_810_states",
+      "modifier_saved_history": "pass_local_828_states",
       "ordered_playback": "pass_local_108_states",
-      "native_references": "pass_local_270_states",
+      "native_references": "pass_local_276_states",
       "core_reload": "pass_external_10_cases"
     },
     "evidence": [
@@ -2766,7 +2769,8 @@
       "2026-09-30: unextended end uses its parent as the twist reference per Godot 4.7; handler now reports reference_bone=B-spine for the B-hips\u2192B-chest fixture and documents this in tool discovery.",
       "2026-10-03: GitHub Actions run 37072351007 passed live Godot AI invocation and fresh-process saved modifier playback on Windows and Linux. Local editor handler Undo/Redo passes; modifier stack order and visual review remain.",
       "2026-10-07: public Godot AI modifier allocation checkpoint on 4.7.2: 18 paired dry/commit cases, 74 refusal calls, exact orphan IDs and complete scene/history checks; local Undo/Redo retains identities. Temporary allocations are scoped and dry paths predict committed moves/names. Look-at external origin is modifier-relative and independently plays inactive/active plus 0/0.5/1 influence (four states). Full modifier instance/saved history/evaluation and visual gates remain open. See docs/rig-modifier-allocation-validation.md.",
-      "2026-10-07: Godot 4.7.2 modifier history matrix through the public Godot AI dispatcher: 90 required cases, 270 Do/Undo/Redo scenes, 810 saved playback checks and 270 independently configured native references at 30/60/120 FPS. All 14 named matrix tests pass locally with exact owners/order/poses/settings/identities, instance permissions, immutable source/peer/resource checks and zero captured errors. Ordered stacks and spring current-pose Redo restart pass. External custom_manage dry/write/save/force-reopen passes all five operations before/after core reload with a reconnected client. CI requires both strict reports. See docs/rig-modifier-history-validation.md; final previews/platform gates and broader graph/bake acceptance remain open."
+      "2026-10-07: Godot 4.7.2 modifier history matrix through the public Godot AI dispatcher: 90 required cases, 270 Do/Undo/Redo scenes, 810 saved playback checks and 270 independently configured native references at 30/60/120 FPS. All 14 named matrix tests pass locally with exact owners/order/poses/settings/identities, instance permissions, immutable source/peer/resource checks and zero captured errors. Ordered stacks and spring current-pose Redo restart pass. External custom_manage dry/write/save/force-reopen passes all five operations before/after core reload with a reconnected client. CI requires both strict reports. See docs/rig-modifier-history-validation.md; final previews/platform gates and broader graph/bake acceptance remain open.",
+      "2026-10-07: Initial source a09c30a passed CI 37659896020: all 34 non-release jobs, both 116-gate Windows/Linux routes, headless suites and four editor/core combinations. Final all-rig tree-entry review then exposed original native retarget Undo input loss. The guarded 92-case matrix passes local editor 315/315 (22 suites), all 15 named matrix tests and independent 828 saved states / 276 native references / 108 stack states with zero captured errors; all 14 headless suites pass. Existing toolkit-created and native-rest retargets remain supported; unsafe native authored-child baselines are refused before allocation/history. Local fixed-camera previews (840 frames, 28 seconds, seven reviewed sheets) demonstrate modifier behavior, not character action quality. See docs/rig-modifier-history-validation.md; guarded hosted CI is pending."
     ],
     "platforms": {
       "windows": "partial",
@@ -2785,13 +2789,13 @@
       "reported_errors": "pass_typed_refusals",
       "undo_redo": "pass_public_route_matrix",
       "playback": "pass_modifier_callback",
-      "visual_review": "pending",
+      "visual_review": "partial_modifier_previews",
       "modifier_allocation": "pass_local",
       "dry_path_prediction": "pass_local",
       "modifier_local_history": "pass_local",
-      "modifier_saved_history": "pass_local_810_states",
+      "modifier_saved_history": "pass_local_828_states",
       "ordered_playback": "pass_local_108_states",
-      "native_references": "pass_local_270_states",
+      "native_references": "pass_local_276_states",
       "core_reload": "pass_external_10_cases"
     },
     "evidence": [
@@ -2799,7 +2803,9 @@
       "2026-10-03: GitHub Actions run 37072351007 passed live Godot AI invocation and fresh-process saved modifier playback on Windows and Linux. Editor handler undo passes; redo, other profiles and visual review remain.",
       "2026-10-07: public Godot AI modifier allocation checkpoint on 4.7.2: 18 paired dry/commit cases, 74 refusal calls, exact orphan IDs and complete scene/history checks; local Undo/Redo retains identities. Temporary allocations are scoped and dry paths predict committed moves/names. Look-at external origin is modifier-relative and independently plays inactive/active plus 0/0.5/1 influence (four states). Full modifier instance/saved history/evaluation and visual gates remain open. See docs/rig-modifier-allocation-validation.md.",
       "2026-10-07: Godot 4.7.2 modifier history matrix through the public Godot AI dispatcher: 90 required cases, 270 Do/Undo/Redo scenes, 810 saved playback checks and 270 independently configured native references at 30/60/120 FPS. All 14 named matrix tests pass locally with exact owners/order/poses/settings/identities, instance permissions, immutable source/peer/resource checks and zero captured errors. Ordered stacks and spring current-pose Redo restart pass. External custom_manage dry/write/save/force-reopen passes all five operations before/after core reload with a reconnected client. CI requires both strict reports. See docs/rig-modifier-history-validation.md; final previews/platform gates and broader graph/bake acceptance remain open.",
-      "2026-10-07: Inactive retarget saved scenes preserve authored child inputs after native deferred cache resets through scene-owned retarget_pose_restore.gd. The addon script must accompany these scenes. Existing reconfiguration Undo restores target sibling order and authored poses; all transform flags/global/different-rest/direct-instance variants pass."
+      "2026-10-07: Inactive retarget saved scenes preserve authored child inputs after native deferred cache resets through scene-owned retarget_pose_restore.gd. The addon script must accompany these scenes. Existing reconfiguration Undo restores target sibling order and authored poses; all transform flags/global/different-rest/direct-instance variants pass.",
+      "2026-10-07: Initial source a09c30a passed CI 37659896020: all 34 non-release jobs, both 116-gate Windows/Linux routes, headless suites and four editor/core combinations. Final all-rig tree-entry review then exposed original native retarget Undo input loss. The guarded 92-case matrix passes local editor 315/315 (22 suites), all 15 named matrix tests and independent 828 saved states / 276 native references / 108 stack states with zero captured errors; all 14 headless suites pass. Existing toolkit-created and native-rest retargets remain supported; unsafe native authored-child baselines are refused before allocation/history. Local fixed-camera previews (840 frames, 28 seconds, seven reviewed sheets) demonstrate modifier behavior, not character action quality. See docs/rig-modifier-history-validation.md; guarded hosted CI is pending.",
+      "2026-10-07: Native existing retargets with non-rest child inputs and no preservation helper return OPERATION_UNAVAILABLE. Their original Undo scene loses those inputs at tree entry in 4.7.2; retaining a helper would violate exact original hierarchy restoration. Public paired dry/write refusal tests cover local/editable layouts without nodes, history or pose changes. Toolkit-seeded existing modifiers and native rest-pose baselines pass exact Undo/Redo and fresh Do/Undo/Redo input preservation."
     ],
     "platforms": {
       "windows": "partial",

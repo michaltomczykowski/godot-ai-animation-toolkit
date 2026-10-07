@@ -4,18 +4,29 @@ extends SceneTree
 ## Only authored input/target stimuli change; native modifiers supply output.
 class Witness extends SkeletonModifier3D:
 	func _process_modification_with_delta(_delta: float) -> void: pass
+class CaptureErrors extends Logger:
+	var errors: Array[String] = []
+	func _log_error(_fn: String, _file: String, _line: int, code: String, rationale: String, _notify: bool, type: int, _backtraces: Array) -> void:
+		if type != 1: errors.append(rationale if not rationale.is_empty() else code)
 
 const CASES := ["local_ik_setup_dummy", "local_look_at_setup_dummy", "local_twist_setup_dummy", "local_spring_setup_dummy", "local_retarget_setup_dummy", "stack_2_1.0", "stack_4_0.5"]
 const TITLES := ["Two-bone IK / bundled dummy", "Look-at / false secondary default", "Twist distribution / bundled dummy", "Spring / world-center collision", "Retarget / authored receiver", "Ordered IK > look-at > twist", "Ordered IK > spring / final influence 0.5"]
 var views: Array[Dictionary] = []
 var heading: Label
 var output := "user://modifier_history_preview"
+var logger := CaptureErrors.new()
 
-func _initialize() -> void: _run.call_deferred()
+func _initialize() -> void:
+	OS.add_logger(logger)
+	_run.call_deferred()
+func _clear_owners(node: Node) -> void:
+	node.owner = null
+	for child in node.get_children(): _clear_owners(child)
 func _material(color: Color) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.no_depth_test = true
 	return material
 func _sphere(parent: Node, radius: float, color: Color) -> MeshInstance3D:
 	var node := MeshInstance3D.new()
@@ -48,16 +59,20 @@ func _poses(source: Skeleton3D) -> Array:
 	return poses
 func _restore(source: Skeleton3D, poses: Array) -> void:
 	for i in poses.size(): source.set_bone_pose(i, poses[i])
-func _overlay(source: Skeleton3D, world: Node3D) -> Dictionary:
+func _overlay(source: Skeleton3D, world: Node3D, focus: Array) -> Dictionary:
 	var bones: Array = []
 	var axes: Array = []
 	for i in source.get_bone_count():
 		bones.append(_rod(world, 0.008, Color(0.2, 0.85, 0.9)))
 		axes.append([_rod(world, 0.004, Color(1, 0.3, 0.3)), _rod(world, 0.004, Color(0.35, 0.5, 1))])
-	return {"source": source, "bones": bones, "axes": axes}
+	return {"source": source, "bones": bones, "axes": axes, "focus": focus}
 func _draw_rig(rig: Dictionary) -> void:
 	var source: Skeleton3D = rig.source
 	for i in source.get_bone_count():
+		if source.get_bone_count() > 10 and i not in rig.focus:
+			rig.bones[i].visible = false
+			for axis in rig.axes[i]: axis.visible = false
+			continue
 		var pose := source.global_transform * source.get_bone_global_pose(i)
 		var parent := source.get_bone_parent(i)
 		if parent >= 0: _line(rig.bones[i], (source.global_transform * source.get_bone_global_pose(parent)).origin, pose.origin)
@@ -94,7 +109,7 @@ func _view(index: int) -> SubViewport:
 	var camera := Camera3D.new()
 	world.add_child(camera)
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = 3.6
+	camera.size = 2.7
 	camera.position = Vector3(3.8, 2.4, 5.5)
 	camera.look_at(Vector3(0, 1.0, 0), Vector3.UP)
 	camera.current = true
@@ -107,7 +122,9 @@ func _load(row: Dictionary, viewport: SubViewport, enabled: bool) -> Dictionary:
 	# These saved test scenes have a Node2D root. Reparent their 3D fixture roots
 	# together, preserving every modifier-relative path and local transform.
 	for child in scene.get_children():
-		if child.name in ["ModifierHistory", "Receiver", "MH_LastSibling"]: child.reparent(group, false)
+		if child is Node3D:
+			_clear_owners(child)
+			child.reparent(group, false)
 	scene.free()
 	var source := group.get_node(row.source) as Skeleton3D
 	group.position -= source.global_position
@@ -117,8 +134,13 @@ func _load(row: Dictionary, viewport: SubViewport, enabled: bool) -> Dictionary:
 	# Hide peer mesh ancestors too, while leaving the configured source visible.
 	group.get_node("ModifierHistory/Peer").visible = false
 	var observed: Skeleton3D = group.get_node(row.receiver) if row.op == "retarget_setup" else source
+	if row.op != "retarget_setup" and row.has("receiver"):
+		group.get_node(row.receiver).visible = false
 	if row.op == "retarget_setup":
-		for mesh in source.find_children("*", "MeshInstance3D", true, false): mesh.visible = false
+		# Hide only source skin meshes; receiver meshes are descendants of the
+		# source through RetargetModifier3D and must remain visible.
+		for child in source.get_children():
+			if child is MeshInstance3D: child.visible = false
 		observed.global_position = source.global_position + Vector3(0.6, 0, 0)
 		group.position.x -= 0.3
 	var modifiers: Array[SkeletonModifier3D] = []
@@ -134,7 +156,23 @@ func _load(row: Dictionary, viewport: SubViewport, enabled: bool) -> Dictionary:
 	observed.modifier_callback_mode_process = Skeleton3D.MODIFIER_CALLBACK_MODE_PROCESS_MANUAL
 	var witness := Witness.new()
 	source.add_child(witness)
-	var rig := _overlay(observed, world)
+	var focus: Array = []
+	for modifier in modifiers:
+		if modifier is TwoBoneIK3D:
+			focus.append_array([modifier.get_root_bone(0), modifier.get_middle_bone(0), modifier.get_end_bone(0)])
+		elif modifier is LookAtModifier3D: focus.append(modifier.bone)
+		elif modifier is BoneTwistDisperser3D:
+			var bone: int = modifier.get_end_bone(0)
+			while bone >= 0:
+				focus.append(bone)
+				if bone == modifier.get_root_bone(0): break
+				bone = source.get_bone_parent(bone)
+		elif modifier is SpringBoneSimulator3D:
+			for setting in modifier.get_setting_count():
+				for joint in modifier.get_joint_count(setting): focus.append(modifier.get_joint_bone(setting, joint))
+		elif modifier is RetargetModifier3D:
+			for bone in ["B-upperArm.L", "B-forearm.L", "B-hand.L", "B-spine", "B-chest", "B-head"]: focus.append(observed.find_bone(bone))
+	var rig := _overlay(observed, world, focus)
 	witness.modification_processed.connect(func(): _draw_rig(rig))
 	var markers: Array = []
 	for modifier in modifiers:
@@ -234,5 +272,6 @@ func _run() -> void:
 			for marker in view.markers:
 				if marker != null: marker.free()
 		views.clear()
-	print("MODIFIER_HISTORY_PREVIEW=" + JSON.stringify({"cases": CASES, "frames": 840, "fps": 30, "output": output, "comparison": "inactive authored input vs configured output; not prior-addon footage"}))
-	quit()
+	OS.remove_logger(logger)
+	print("MODIFIER_HISTORY_PREVIEW=" + JSON.stringify({"cases": CASES, "frames": 840, "fps": 30, "output": output, "engine_errors": logger.errors, "comparison": "inactive authored input vs configured output; not prior-addon footage"}))
+	quit(0 if logger.errors.is_empty() else 1)

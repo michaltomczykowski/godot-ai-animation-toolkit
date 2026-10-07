@@ -1802,7 +1802,7 @@ static func _rig_modifiers_ops() -> Array:
 		},
 		{
 			"name": "retarget_setup",
-			"summary": "Retarget a source skeleton's poses onto a child target skeleton through a RetargetModifier3D and a bone-name profile.",
+			"summary": "Retarget a source onto child skeletons through RetargetModifier3D and a bone-name profile. Reconfigure toolkit-created modifiers or native modifiers with rest-pose children. Existing native authored-child poses without the persistence helper cannot survive Undo/reopen on Godot 4.7.2 and are unavailable.",
 			"params": ["skeleton_path", "target_path", "profile", "position", "rotation", "scale", "use_global_pose", "move_target", "name", "active"],
 			"example": {"op": "retarget_setup", "skeleton_path": "/Main/Source/Skeleton3D", "target_path": "/Main/Target/Skeleton3D", "profile": "auto"},
 		},

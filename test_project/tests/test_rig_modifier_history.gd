@@ -211,23 +211,32 @@ func _resolve_values(value: Variant, fixture: Dictionary) -> Variant:
 		if value.begins_with("@source/"): return str(fixture.source.get_node(value.substr(8)).get_path())
 		if value == "@source": return str(fixture.source.get_path())
 	return value
-func _existing_retarget(fixture: Dictionary) -> void:
+func _existing_retarget(fixture: Dictionary, native: bool = false, at_rest: bool = false) -> void:
 	var target: Skeleton3D = fixture.receiver
 	var poses: Array = []
 	for i in target.get_bone_count(): poses.append(target.get_bone_pose(i))
-	var modifier := RetargetModifier3D.new()
-	modifier.name = "ExistingRetarget"
-	modifier.active = false
+	var modifier: RetargetModifier3D
+	if native:
+		modifier = RetargetModifier3D.new()
+		modifier.name = "ExistingRetarget"
+		modifier.active = false
+		fixture.source.add_child(modifier)
+		modifier.owner = EditorInterface.get_edited_scene_root()
+		target.reparent(modifier, true)
+	else:
+		var seed := _call({"op": "retarget_setup", "skeleton_path": str(fixture.source.get_path()), "target_path": str(target.get_path()), "profile": "auto", "name": "ExistingRetarget", "active": false})
+		assert_has_key(seed, "data", "existing retarget seeded through public route")
+		modifier = target.get_parent() as RetargetModifier3D
 	modifier.profile = SkeletonProfile.new()
 	modifier.profile.set_bone_size(1)
 	modifier.profile.set_bone_name(0, "hips")
-	fixture.source.add_child(modifier)
-	modifier.owner = EditorInterface.get_edited_scene_root()
-	target.reparent(modifier, true)
 	var second := _skeleton("OtherReceiver")
 	modifier.add_child(second)
 	_pose._checks._own(second, EditorInterface.get_edited_scene_root())
 	for i in poses.size(): target.set_bone_pose(i, poses[i])
+	if at_rest:
+		target.reset_bone_poses()
+		second.reset_bone_poses()
 func _params(op: String, fixture: Dictionary) -> Dictionary:
 	var source: Skeleton3D = fixture.source
 	var params := {"op": op, "skeleton_path": str(source.get_path()), "name": "Configured", "active": false}
@@ -275,7 +284,7 @@ func _case(op: String, layout: String, variant: String = "base", overrides: Dict
 			rest.basis = rest.basis * Basis(Vector3.UP, 0.2)
 			fixture.receiver.set_bone_rest(i, rest)
 			fixture.receiver.set_bone_pose(i, rest)
-	if variant.begins_with("existing"): _existing_retarget(fixture)
+	if variant.begins_with("existing"): _existing_retarget(fixture, variant == "existing_native_rest", variant == "existing_native_rest")
 	var params: Dictionary = _resolve_values(_params(op, fixture).merged(overrides, true), fixture)
 	if variant == "dummy":
 		if op == "ik_setup": params.chain = ["B-upperArm.L", "B-forearm.L", "B-hand.L"]
@@ -400,6 +409,7 @@ func test_retarget_variants() -> void:
 		_case("retarget_setup", "local", field, {"position": field in ["position", "all"], "rotation": field in ["rotation", "all", "global"], "scale": field in ["scale", "all"], "use_global_pose": field == "global"})
 	for layout in ["local", "editable"]:
 		_case("retarget_setup", layout, "existing", {"position": true, "scale": true, "use_global_pose": true, "move_target": false})
+		_case("retarget_setup", layout, "existing_native_rest", {"position": true, "scale": true, "use_global_pose": true, "move_target": false})
 	_case("retarget_setup", "local", "different_rests", {"position": true, "scale": true})
 	_case("retarget_setup", "local", "target_instance")
 
@@ -443,6 +453,31 @@ func test_predictable_refusals() -> void:
 	root.get_node("MH_LastSibling").free()
 func test_dummy_history() -> void:
 	for op in OPERATIONS: _case(op, "local", "dummy")
+func test_existing_native_retarget_refusal() -> void:
+	var root := EditorInterface.get_edited_scene_root()
+	for layout in ["local", "editable"]:
+		var previous := root.get_children()
+		var fixture := _fixture("native_refusal_" + layout, layout)
+		_existing_retarget(fixture, true)
+		var baseline := _snapshot(root)
+		var identities := _identities(root, {})
+		var history := _undo.get_history_undo_redo(_undo.get_object_history_id(root))
+		var version := history.get_version()
+		var global_history := _undo.get_history_undo_redo(EditorUndoRedoManager.GLOBAL_HISTORY)
+		var global_version := global_history.get_version()
+		var orphans := Node.get_orphan_node_ids()
+		var errors := _logger.errors.size()
+		for dry in [false, true]:
+			var result := _call(_params("retarget_setup", fixture).merged({"move_target": false, "dry_run": dry}, true))
+			assert_eq(result.get("error", {}).get("code"), "OPERATION_UNAVAILABLE", layout + " authored native retarget unavailable")
+			assert_true(_pose._same(_snapshot(root), baseline), "refusal leaves full scene unchanged")
+			assert_eq(_identities(root, {}), identities, "refusal preserves node identities")
+			assert_eq(history.get_version(), version, "refusal leaves scene history unchanged")
+			assert_eq(global_history.get_version(), global_version, "refusal leaves global history unchanged")
+			assert_eq(Node.get_orphan_node_ids(), orphans, "refusal allocates no nodes")
+		assert_eq(_logger.errors.size(), errors, "refusal has no engine errors")
+		for child in root.get_children():
+			if not previous.has(child): child.free()
 func test_registry_coverage() -> void:
 	var names: Array = Ops.op_names("animation_rig_modifiers")
 	names.sort()

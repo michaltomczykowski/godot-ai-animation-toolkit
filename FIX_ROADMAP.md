@@ -3177,3 +3177,26 @@ spring from the current pose using the public reset API.
   with authored effector preservation plus stable rest-pole checks, matching
   the independently played contract. Source checkpoint is ready for push;
   final runtime report, previews, native shortcuts and hosted CI follow.
+- `a09c30a` is pushed and [CI 37659896020](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37659896020)
+  passes all 34 non-release jobs: both platforms' complete 116-gate routes,
+  headless suites and all four editor/core combinations. All three final-source
+  Windows shortcut witnesses pass. External ten-case reload report passes in a
+  fresh visible editor. Local media contains 840 fixed-camera frames, 28 seconds
+  of native playback and seven reviewed contact sheets; functional preview
+  approval does not approve authored character action quality.
+- Final review strengthened fresh runtime checks to preserve every rig's
+  authored input during tree entry in Do/Undo/Redo. It exposed 12 input losses
+  in original native retarget Undo scenes (two children, two layouts, three
+  rates), without engine errors. A helper cannot be retained on Undo without
+  changing the original hierarchy. Such existing native non-rest baselines
+  now return typed `OPERATION_UNAVAILABLE` before allocation/history. Existing
+  toolkit-created modifiers and native rest-pose baselines remain supported.
+  The strengthened matrix has 92 cases, 276 scenes, 828 saved-state checks,
+  276 native references and 15 named tests; fresh regression/CI are running.
+- Guarded source passes fresh local editor 315/315 across 22 suites and all
+  15 named matrix tests, with zero captured engine/tool-route/discovery errors
+  and no script errors. The strengthened independent gate passes 828 saved
+  states / 276 native references / 108 stack states with zero errors. All 14
+  headless suites pass. CI's route deadline is now 25 minutes because the
+  previous Windows route consumed almost the full 15-minute limit; per-gate
+  deadlines and exact report/case checks remain strict.
