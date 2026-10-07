@@ -77,10 +77,13 @@ and [Bone2D](https://docs.godotengine.org/en/4.7/classes/class_bone2d.html).
 
 ## Remaining phase work
 
-The eight rig clip writers still need the five-layout exact history matrix,
-including bake restoration of source pose, player state, graph activity and
-modifier state. The five modifier setups still need complete creation and
-supported reconfiguration history/evaluation coverage, measured at
+The [rig clip five-layout matrix](rig-clip-history-validation.md) and
+[source bake playback restoration](rig-bake-state-validation.md) now have
+their own completed checkpoints. Active graph/stateful modifier bake
+restoration remains open. The [modifier allocation checkpoint](rig-modifier-allocation-validation.md)
+covers dry/refusal cleanup, predicted paths and local history integrity.
+The five modifier setups still need complete instance creation and supported
+reconfiguration history/evaluation coverage, measured at
 [modification_processed](https://docs.godotengine.org/en/4.7/classes/class_skeletonmodifier3d.html).
 Broader motion/sequence history and fixed-camera visual review remain open.
 All operation statuses stay partial; this checkpoint does not approve visuals.

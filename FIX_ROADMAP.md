@@ -3054,19 +3054,68 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   later-action batch guard and zero deferred script errors. Hosted source CI
   is required on Windows/Linux after pushing this unreleased checkpoint.
 
-### Next phase detail — modifier allocation, history and evaluation
+### 2026-10-07 — Modifier allocation checkpoint
 
-1. Reproduce through `animation_rig_modifiers`, using precise orphan IDs,
-   complete scene snapshots, scene/global history versions and captured errors.
-   Cover IK generated/existing targets and poles, CCDIK/FABRIK/two-bone/spline;
-   look-at generated/existing targets and late invalid origin/axis settings;
-   new twist dispersers with late weight/damping/reference refusals; spring
-   generated/existing colliders and centers; retarget create and documented
-   existing-modifier reconfiguration. Preserve failing logs before repairs.
-2. Track only nodes created by the current call. Validate pure settings first;
-   free temporary nodes on every dry/error path and transfer ownership to the
-   history action on commit. Caller-owned targets, modifiers and colliders
-   must survive. Compare advertised dry paths to actual committed paths.
+- Reproduced through public Godot AI: IK/look-at/twist dry/refusal orphan leaks,
+  retarget dry leak (direct-target fixture), spring dry path/name mismatch,
+  invalid look-at external-origin type, and missing/invalid spring centers.
+  Baseline test harness array-type/path-resolution mistakes were corrected
+  before treating its allocation results as production evidence.
+- Scoped allocations now free only callee-created temporary nodes and transfer
+  committed nodes to scene history. Reserve modifier names before building paths;
+  predict target/collider moves during dry runs. Validate pure settings first;
+  reject invalid spring centers/arrays and non-unit twist references.
+- Correct look-at external-origin paths to be modifier-relative, require Node3D
+  and verify committed wiring. Initial repaired public route passes all seven
+  original named cases. Independent saved playback passes active/inactive and
+  influence 0/0.5/1 (four states), zero captured engine errors. Expanded eight-case
+  final suite, reload, full regression and platform CI are pending.
+- See `docs/rig-modifier-allocation-validation.md`. This is an allocation
+  checkpoint; the remaining modifier instance/history/evaluation matrix and
+  bake stack restoration are still required. No visual approval is claimed.
+- Expanded source passes fresh editor 300/300 (21 suites), zero captured
+  engine/tool-route/discovery errors and zero script errors in the log; all
+  fourteen headless suites pass. Core reload retains all ten families. The
+  full route is in progress. Final review flags an uppercase spring-center
+  validation bypass: compare the normalized enum, add public NODE/BONE refusal
+  cases, and validate in a fresh editor before pushing.
+- Expanded following checkpoint plan is saved in
+  `docs/rig-modifier-history-plan.md`. Retarget only reconfigures an existing
+  modifier; the other setups create nodes. Test supported behavior explicitly.
+- Complete fresh public route passes 114/114 gates, including core reload and
+  the new eight-case allocation/four-state origin playback gate. Final enum
+  follow-up closes uppercase NODE/BONE center validation; fresh exact-source
+  editor regression and external modifier gate are pending before push.
+- Final enum source passes fresh editor 300/300 across 21 suites, zero captured
+  engine/tool-route/discovery errors and zero script errors in the log. The
+  modifier cases now require 18 paired dry/commit writes and 74 refusal calls,
+  including NODE/BONE and skeleton-as-external-origin branches. Final fresh
+  external modifier gate and hosted exact-source CI remain before closing.
+- Final fresh visible Godot AI route passes the strict eight-case modifier gate
+  (required assertion counts 292/264/59/1/162/212/319/183) and four independently
+  played origin states, zero captured errors and zero editor log script errors.
+  The complete 114-gate route precedes only the final enum validation follow-up;
+  hosted Windows/Linux CI will repeat the full route on the pushed exact source.
+  Fourteen local headless suites pass. Recovery contains the baseline logs,
+  final source/logs, played fixture and the applied enum follow-up patch.
+
+Checkpoint update (2026-10-07): rig clip fixes are pushed at `208b402`.
+[CI 37579228743](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37579228743)
+is green: Windows/Linux headless, four editor/core combinations and both complete
+113-gate Godot AI routes. Local editor 292/292; hosted editor 291 pass plus one
+optional X Bot asset skip, zero captured errors. Starting modifier allocation
+as its own checkpoint; wider history/evaluation and bake-stack gates remain open.
+
+### Next phase detail — modifier history and evaluation
+
+1. Preserve the public allocation gate: all five operations, generated/supplied
+   IK targets/poles/paths, look-at origin/axis refusals, twist reference refusals,
+   caller-owned spring colliders/centers and existing retarget reconfiguration.
+   Spring setup creates a simulator; colliders are supplied by the caller.
+   Keep exact orphan IDs and nonwriting scene/history snapshots required.
+2. Keep temporary-node ownership scoped to each call, transferring to history
+   before post-commit validation. Require predicted dry paths to equal committed
+   paths. Never free caller-owned or successfully committed history-held nodes.
 3. Expand local/locked/editable history cases, collisions/names, nontrivial
    transforms/owners, source/peer isolation and immutable source bytes. Require
    one scene action, zero global actions, exact Undo/Redo settings and identities.
@@ -3075,14 +3124,17 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
    `modification_processed`. Time-dependent solvers need explicit simulation.
    [Modifier timing](https://docs.godotengine.org/en/4.7/classes/class_skeletonmodifier3d.html)
    and [look-at ordering](https://docs.godotengine.org/en/4.7/classes/class_lookatmodifier3d.html)
-   are the engine contracts. Source inspection also flags look-at external
-   origin wiring: the toolkit builds it relative to the skeleton, while the
-   [engine resolves it on the modifier](https://github.com/godotengine/godot/blob/4.7/scene/3d/look_at_modifier_3d.cpp).
-   Reproduce that branch through Godot AI before changing it.
+   are the engine contracts. The external look-at origin branch is repaired
+   and independently played in this checkpoint; extend that independent
+   playback contract to all remaining modifier layouts and ordered stacks.
 5. Treat bake stack restoration as a separate checkpoint: active/inactive
    AnimationTree, ordered modifiers, retarget, continued stateful spring
    playback and late sample failure. Preserve private state if supported;
    otherwise return a clear typed refusal for unsupported arrangements.
+   Reproduce fractional last-modifier influence: current bake capture reads
+   each real modifier's signal before the engine's final influence blend.
+   This source-inspection risk needs a runtime baseline and a comparison with
+   the final blended pose before changing the capture path.
 6. Repeat external MCP/reload/native checks and required Windows/Linux CI;
    update operation evidence, docs and recovery before pushing. Motion/sequence
    history and representative visual approval remain subsequent gates.

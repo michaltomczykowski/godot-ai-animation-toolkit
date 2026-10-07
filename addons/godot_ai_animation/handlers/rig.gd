@@ -13,6 +13,7 @@ const PoseSolver := preload("res://addons/godot_ai_animation/spec/pose_solver.gd
 const SpineTwist := preload("res://addons/godot_ai_animation/spec/spine_twist.gd")
 const SpecJson := preload("res://addons/godot_ai_animation/spec/spec_json.gd")
 const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
+const ModifierAllocation := preload("res://addons/godot_ai_animation/utils/modifier_allocation.gd")
 
 const POSE_DIR := "res://animation_toolkit/poses"
 ## bake_pose_sequence cost is duration * fps samples, each a full skeleton
@@ -32,7 +33,7 @@ func run(params: Dictionary, ctx) -> Dictionary:
 
 func _dispatch(params: Dictionary, ctx = null) -> Dictionary:
 	var op: String = params.get("op", "")
-	for field in ["bones", "chain", "keys"]:
+	for field in ["bones", "chain", "keys", "springs"]:
 		if params.has(field) and not params[field] is Array:
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s must be an array" % field)
 	# Both public tool families share this script. Godot AI forwards params to
@@ -814,6 +815,7 @@ static func _skeleton_restore_calls(skeleton: Skeleton3D) -> Array:
 ## Attach an IK modifier to a Skeleton3D and point it at a target node. The
 ## modifier is created inactive unless active=true.
 func ik_setup(params: Dictionary) -> Dictionary:
+	var allocation := ModifierAllocation.new()
 	var undo_ready := _require_undo("ik_setup")
 	if not undo_ready.is_empty():
 		return undo_ready
@@ -890,6 +892,7 @@ func ik_setup(params: Dictionary) -> Dictionary:
 		pole_direction = (middle_pose.basis.inverse() * side).normalized()
 		var marker := Marker3D.new()
 		marker.name = _unique_child_name(scene_root, str(params.get("pole_name", "IKPole")), taken_names)
+		allocation.track(marker)
 		pole_entries.append({"parent": scene_root, "node": marker,
 			"setup": [{"method": "set_global_position", "args": [skeleton.global_transform * pole_position]}]})
 		pole = marker
@@ -901,7 +904,8 @@ func ik_setup(params: Dictionary) -> Dictionary:
 	if modifier == null:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"%s is not available in this Godot build" % IK_3D_KINDS[kind])
-	modifier.name = str(params.get("name", "IK%s" % kind.capitalize()))
+	allocation.track(modifier)
+	modifier.name = _unique_child_name(skeleton, str(params.get("name", "IK%s" % kind.capitalize())), {})
 	var active := bool(params.get("active", false))
 	var entries: Array = []
 	var target_created := false
@@ -909,6 +913,7 @@ func ik_setup(params: Dictionary) -> Dictionary:
 	if target_node == null:
 		var marker := Marker3D.new()
 		marker.name = _unique_child_name(scene_root, str(params.get("target_name", "IKTarget")), taken_names)
+		allocation.track(marker)
 		entries.append({"parent": scene_root, "node": marker,
 			"setup": [{"method": "set_global_position", "args": [tip.position]}]})
 		target_node = marker
@@ -942,6 +947,7 @@ func ik_setup(params: Dictionary) -> Dictionary:
 	entries.append_array(pole_entries)
 	entries.append({"parent": skeleton, "node": modifier, "setup": setup})
 	_commit_node_add_many("MCP: IK setup (%s)" % kind, entries)
+	if not _dry_run: allocation.transfer_to_history()
 	# Failsafe: the settings are readable once the action has run, so confirm the
 	# modifier really points at the markers it was given.
 	if not _dry_run:
@@ -955,11 +961,11 @@ func ik_setup(params: Dictionary) -> Dictionary:
 		"kind": resolved.kind,
 		"ik_kind": kind,
 		"modifier_class": IK_3D_KINDS[kind],
-		"modifier_path": ValueCodec.from_node(modifier, scene_root),
-		"target_path": ValueCodec.from_node(target_node, scene_root),
+		"modifier_path": _planned_modifier_path(modifier, skeleton, scene_root),
+		"target_path": _planned_modifier_path(target_node, scene_root, scene_root),
 		"target_created": target_created,
 		"chain": chain,
-		"pole_path": "" if pole == null else ValueCodec.from_node(pole, scene_root),
+		"pole_path": "" if pole == null else _planned_modifier_path(pole, scene_root, scene_root),
 		"pole_created": pole_created,
 		"active": active,
 		"warnings": warnings,
@@ -1017,6 +1023,7 @@ static func _is_bone_parent(skeleton: Skeleton3D, parent_name: String, child_nam
 ## a path instead - the caller's `target_path`, or a straight two-point path
 ## created at the end bone so the modifier can solve straight away.
 func _ik_setup_spline(skeleton: Skeleton3D, scene_root: Node, params: Dictionary, chain: Array) -> Dictionary:
+	var allocation := ModifierAllocation.new()
 	var warnings: Array = []
 	var scale := _skeleton_scale(skeleton)
 	if not is_equal_approx(scale, 1.0):
@@ -1051,6 +1058,7 @@ func _ik_setup_spline(skeleton: Skeleton3D, scene_root: Node, params: Dictionary
 		curve.add_point(Vector3.ZERO)
 		curve.add_point(skeleton.global_transform.basis.z.normalized() * span)
 		var created := Path3D.new()
+		allocation.track(created)
 		created.curve = curve
 		created.name = _unique_child_name(scene_root, str(params.get("path_name", "IKPath")), taken_names)
 		entries.append({"parent": scene_root, "node": created,
@@ -1061,7 +1069,8 @@ func _ik_setup_spline(skeleton: Skeleton3D, scene_root: Node, params: Dictionary
 	var modifier: SkeletonModifier3D = ClassDB.instantiate(IK_3D_KINDS["spline"])
 	if modifier == null:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "SplineIK3D is not available in this Godot build")
-	modifier.name = str(params.get("name", "IKSpline"))
+	allocation.track(modifier)
+	modifier.name = _unique_child_name(skeleton, str(params.get("name", "IKSpline")), {})
 	var active := bool(params.get("active", false))
 	var setup: Array = [
 		{"property": "active", "value": active},
@@ -1075,6 +1084,7 @@ func _ik_setup_spline(skeleton: Skeleton3D, scene_root: Node, params: Dictionary
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, setup_error)
 	entries.append({"parent": skeleton, "node": modifier, "setup": setup})
 	_commit_node_add_many("MCP: IK setup (spline)", entries)
+	if not _dry_run: allocation.transfer_to_history()
 	# Failsafe: a spline solver needs both a path it can resolve and a curve with
 	# something in it, so confirm both instead of reporting an inert modifier.
 	if not _dry_run:
@@ -1090,8 +1100,8 @@ func _ik_setup_spline(skeleton: Skeleton3D, scene_root: Node, params: Dictionary
 		"kind": "3d",
 		"ik_kind": "spline",
 		"modifier_class": IK_3D_KINDS["spline"],
-		"modifier_path": ValueCodec.from_node(modifier, scene_root),
-		"path_path": ValueCodec.from_node(path_node, scene_root),
+		"modifier_path": _planned_modifier_path(modifier, skeleton, scene_root),
+		"path_path": _planned_modifier_path(path_node, scene_root, scene_root),
 		"path_created": path_created,
 		"target_path": "",
 		"target_created": false,
@@ -1115,6 +1125,7 @@ func _ik_setup_spline(skeleton: Skeleton3D, scene_root: Node, params: Dictionary
 ## Attach a SpringBoneSimulator3D to a Skeleton3D, one spring setting per entry
 ## in `springs`. Created inactive unless active=true.
 func spring_setup(params: Dictionary) -> Dictionary:
+	var allocation := ModifierAllocation.new()
 	var undo_ready := _require_undo("spring_setup")
 	if not undo_ready.is_empty():
 		return undo_ready
@@ -1178,6 +1189,15 @@ func spring_setup(params: Dictionary) -> Dictionary:
 			if center < 0:
 				return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 					"springs[%d]: invalid center_from '%s'. Valid: world_origin, node, bone" % [index, str(spring.center_from)])
+			if center == SpringBoneSimulator3D.CENTER_FROM_NODE and not spring.has("center_node"):
+				return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM, "springs[%d]: center_from=node needs center_node" % index)
+			if center == SpringBoneSimulator3D.CENTER_FROM_BONE and not spring.has("center_bone"):
+				return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM, "springs[%d]: center_from=bone needs center_bone" % index)
+		if spring.has("center_bone") and skeleton.find_bone(str(spring.center_bone)) < 0:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "springs[%d]: center_bone '%s' not found" % [index, str(spring.center_bone)])
+		for field in ["collisions", "exclude_collisions"]:
+			if spring.has(field) and not spring[field] is Array:
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "springs[%d].%s must be an array" % [index, field])
 		var collisions: Array = []
 		for path in spring.get("collisions", []):
 			var collider := ValueCodec.resolve_scene_path(str(path), scene_root)
@@ -1198,6 +1218,8 @@ func spring_setup(params: Dictionary) -> Dictionary:
 			if center_node == null:
 				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
 					"springs[%d]: center node %s" % [index, ValueCodec.format_node_error(str(spring.center_node), scene_root)])
+			if not center_node is Node3D:
+				return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "springs[%d]: center_node must be a Node3D (got %s)" % [index, center_node.get_class()])
 		planned.append({
 			"spec": spring, "root": root_name, "end": end_name,
 			"collisions": collisions, "exclude": exclude, "center_node": center_node,
@@ -1221,7 +1243,8 @@ func spring_setup(params: Dictionary) -> Dictionary:
 					collider_moves.append({"node": collider, "parent": collider.get_parent(), "transform": collider.transform})
 	var active := bool(params.get("active", false))
 	var simulator := SpringBoneSimulator3D.new()
-	simulator.name = str(params.get("name", "SpringBones"))
+	allocation.track(simulator)
+	simulator.name = _unique_child_name(skeleton, str(params.get("name", "SpringBones")), {})
 	var collision_names := {}
 	var taken_names := {}
 	for move in collider_moves:
@@ -1230,7 +1253,6 @@ func spring_setup(params: Dictionary) -> Dictionary:
 		# Preserve unique engine-generated names without assigning them again:
 		# Godot sanitizes '@' on assignment, making exact Undo impossible.
 		if move.new_name != move.old_name and move.old_name.validate_node_name() != move.old_name:
-			simulator.free()
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"Collisions share the generated name '%s'. Give them distinct editor names before setup." % move.old_name)
 		collision_names[move.node.get_instance_id()] = move.new_name
@@ -1279,7 +1301,7 @@ func spring_setup(params: Dictionary) -> Dictionary:
 					"args": [index, collision_index, NodePath(collision_names[entry.exclude[collision_index].node.get_instance_id()])]})
 	var modifier_path := str(ValueCodec.from_node(skeleton, scene_root)).path_join(str(simulator.name))
 	var moved_collisions: Array = []
-	for move in collider_moves: moved_collisions.append(ValueCodec.from_node(move.node, scene_root))
+	for move in collider_moves: moved_collisions.append(modifier_path.path_join(move.new_name))
 	if not _dry_run:
 		_create_scene_pinned_action("MCP: Spring bones (%d)" % planned.size())
 		var undo := ToolContext.undo_redo
@@ -1302,11 +1324,9 @@ func spring_setup(params: Dictionary) -> Dictionary:
 		for call in collision_setup: _add_do_call(undo, simulator, call.method, call.args)
 		undo.add_undo_method(skeleton, "remove_child", simulator)
 		undo.commit_action()
+		allocation.transfer_to_history()
 		moved_collisions.clear()
 		for move in collider_moves: moved_collisions.append(ValueCodec.from_node(move.node, scene_root))
-	else:
-		# A dry run must release its unparented temporary modifier.
-		simulator.free()
 	var data := {
 		"skeleton_path": resolved.path,
 		"kind": resolved.kind,
@@ -1332,6 +1352,7 @@ func spring_setup(params: Dictionary) -> Dictionary:
 
 ## Attach a LookAtModifier3D to a Skeleton3D so one bone tracks a target node.
 func look_at_setup(params: Dictionary) -> Dictionary:
+	var allocation := ModifierAllocation.new()
 	var undo_ready := _require_undo("look_at_setup")
 	if not undo_ready.is_empty():
 		return undo_ready
@@ -1370,6 +1391,35 @@ func look_at_setup(params: Dictionary) -> Dictionary:
 			return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
 				"The look-at target must be a Node3D (got %s)" % found.get_class())
 		target = found
+	# Validate settings that need no new nodes before allocating the modifier
+	# or generated target. The allocation scope still covers engine API refusals.
+	var origin_setup: Array = []
+	if params.has("origin_from"):
+		var origin_from := _look_at_origin_from(str(params.origin_from))
+		if origin_from < 0:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+				"Invalid origin_from '%s'. Valid: self, bone, external_node" % str(params.origin_from))
+		origin_setup.append({"method": "set_origin_from", "args": [origin_from]})
+	if params.has("origin_bone"):
+		var origin_bone := str(params.origin_bone)
+		if skeleton.find_bone(origin_bone) < 0:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"origin_bone '%s' not found on %s" % [origin_bone, resolved.path])
+		origin_setup.append({"method": "set_origin_bone_name", "args": [origin_bone]})
+	var origin_node: Node = null
+	if params.has("origin_node"):
+		origin_node = ValueCodec.resolve_scene_path(str(params.origin_node), scene_root)
+		if origin_node == null:
+			return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
+				"origin_node %s" % ValueCodec.format_node_error(str(params.origin_node), scene_root))
+		if not origin_node is Node3D:
+			return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "origin_node must be a Node3D (got %s)" % origin_node.get_class())
+	if params.has("primary_axis"):
+		var primary := _vector_axis(str(params.primary_axis))
+		if primary < 0:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+				"Invalid primary_axis '%s'. Valid: x, y, z" % str(params.primary_axis))
+		origin_setup.append({"method": "set_primary_rotation_axis", "args": [primary]})
 	var bone_pose := skeleton.get_bone_global_pose(bone_index)
 	var ahead := bone_pose.basis * _bone_axis_vector(forward) * 1.0
 	var target_created := false
@@ -1384,13 +1434,15 @@ func look_at_setup(params: Dictionary) -> Dictionary:
 		# be unique up front, like the IK markers already are.
 		var taken_names := {}
 		marker.name = _unique_child_name(scene_root, str(params.get("target_name", "LookAtTarget")), taken_names)
+		allocation.track(marker)
 		entries.append({"parent": scene_root, "node": marker,
 			"setup": [{"method": "set_global_position", "args": [skeleton.global_transform * (bone_pose.origin + ahead)]}]})
 		target_node = marker
 		target_created = true
 	var active := bool(params.get("active", false))
 	var modifier := LookAtModifier3D.new()
-	modifier.name = str(params.get("name", "LookAt"))
+	allocation.track(modifier)
+	modifier.name = _unique_child_name(skeleton, str(params.get("name", "LookAt")), {})
 	var target_rel := _modifier_target_path(skeleton, modifier, target_node, scene_root)
 	var setup: Array = [
 		{"property": "active", "value": active},
@@ -1398,24 +1450,9 @@ func look_at_setup(params: Dictionary) -> Dictionary:
 		{"method": "set_target_node", "args": [target_rel]},
 		{"method": "set_forward_axis", "args": [forward]},
 	]
-	if params.has("origin_from"):
-		var origin_from := _look_at_origin_from(str(params.origin_from))
-		if origin_from < 0:
-			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
-				"Invalid origin_from '%s'. Valid: self, bone, external_node" % str(params.origin_from))
-		setup.append({"method": "set_origin_from", "args": [origin_from]})
-	if params.has("origin_bone"):
-		var origin_bone := str(params.origin_bone)
-		if skeleton.find_bone(origin_bone) < 0:
-			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-				"origin_bone '%s' not found on %s" % [origin_bone, resolved.path])
-		setup.append({"method": "set_origin_bone_name", "args": [origin_bone]})
-	if params.has("origin_node"):
-		var origin_node := ValueCodec.resolve_scene_path(str(params.origin_node), scene_root)
-		if origin_node == null:
-			return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
-				"origin_node %s" % ValueCodec.format_node_error(str(params.origin_node), scene_root))
-		setup.append({"method": "set_origin_external_node", "args": [NodePath(str(skeleton.get_path_to(origin_node)))]})
+	setup.append_array(origin_setup)
+	if origin_node != null:
+		setup.append({"method": "set_origin_external_node", "args": [_modifier_target_path(skeleton, modifier, origin_node, scene_root)]})
 	if params.has("origin_offset"):
 		setup.append({"method": "set_origin_offset", "args": [_spec_vector3(params.origin_offset)]})
 	if params.has("origin_safe_margin"):
@@ -1433,26 +1470,28 @@ func look_at_setup(params: Dictionary) -> Dictionary:
 				"args": [deg_to_rad(float(params.secondary_limit_angle))]})
 	if bool(params.get("use_secondary_rotation", false)):
 		setup.append({"method": "set_use_secondary_rotation", "args": [true]})
-	if params.has("primary_axis"):
-		var primary := _vector_axis(str(params.primary_axis))
-		if primary < 0:
-			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
-				"Invalid primary_axis '%s'. Valid: x, y, z" % str(params.primary_axis))
-		setup.append({"method": "set_primary_rotation_axis", "args": [primary]})
 	if bool(params.get("relative", false)):
 		setup.append({"method": "set_relative", "args": [true]})
 	if params.has("duration"):
 		setup.append({"method": "set_duration", "args": [float(params.duration)]})
+	var setup_error := _setup_calls_error(modifier, setup)
+	if not setup_error.is_empty(): return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, setup_error)
 	entries.append({"parent": skeleton, "node": modifier, "setup": setup})
 	_commit_node_add_many("MCP: Look-at setup", entries)
+	if not _dry_run: allocation.transfer_to_history()
+	if not _dry_run:
+		var wiring := _verify_setting_node(modifier, "get_target_node", [], target_node)
+		if wiring.is_empty() and origin_node != null:
+			wiring = _verify_setting_node(modifier, "get_origin_external_node", [], origin_node)
+		if not wiring.is_empty(): return _undo_and_fail(ErrorCodes.INVALID_PARAMS, wiring)
 	var data := {
 		"skeleton_path": resolved.path,
 		"kind": resolved.kind,
 		"modifier_class": "LookAtModifier3D",
-		"modifier_path": ValueCodec.from_node(modifier, scene_root),
+		"modifier_path": _planned_modifier_path(modifier, skeleton, scene_root),
 		"bone": bone_name,
 		"forward_axis": forward_spec,
-		"target_path": ValueCodec.from_node(target_node, scene_root),
+		"target_path": _planned_modifier_path(target_node, scene_root, scene_root),
 		"target_created": target_created,
 		"active": active,
 		"warnings": warnings,
@@ -1478,6 +1517,7 @@ func look_at_setup(params: Dictionary) -> Dictionary:
 ## (or explicit) spine chain, and the joint amounts default to the same
 ## distribution the motion recipes use, so the modifier and the clips agree.
 func twist_setup(params: Dictionary, ctx = null) -> Dictionary:
+	var allocation := ModifierAllocation.new()
 	var undo_ready := _require_undo("twist_setup")
 	if not undo_ready.is_empty():
 		return undo_ready
@@ -1544,8 +1584,6 @@ func twist_setup(params: Dictionary, ctx = null) -> Dictionary:
 	if not twist_from_rest and not spec_dict.has("twist_from"):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"disperse.twist_from_rest=false needs disperse.twist_from: the quaternion the chain is measured against, otherwise Godot measures against identity and the disperser does nothing useful. Read one from pose_save on the reference pose, or drop twist_from_rest.")
-	var disperser := BoneTwistDisperser3D.new()
-	disperser.name = str(params.get("name", "TwistDisperser"))
 	var setup: Array = [
 		{"property": "active", "value": active},
 		{"method": "set_setting_count", "args": [1]},
@@ -1572,6 +1610,8 @@ func twist_setup(params: Dictionary, ctx = null) -> Dictionary:
 		if not (reference.ok is Quaternion):
 			return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
 				"disperse.twist_from must be a quaternion value ({kind: quaternion, x, y, z, w})")
+		if not (reference.ok as Quaternion).is_normalized():
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "disperse.twist_from must be a normalized rotation quaternion")
 		setup.append({"method": "set_twist_from_rest", "args": [0, false]})
 		setup.append({"method": "set_twist_from", "args": [0, reference.ok]})
 	# A two-bone range has no joint between the ends, so there is nothing to
@@ -1589,15 +1629,19 @@ func twist_setup(params: Dictionary, ctx = null) -> Dictionary:
 		setup.append({"method": "set_mutable_bone_axes", "args": [bool(params.mutable_bone_axes)]})
 	if params.has("influence"):
 		setup.append({"property": "influence", "value": clampf(float(params.influence), 0.0, 1.0)})
+	var disperser := BoneTwistDisperser3D.new()
+	allocation.track(disperser)
+	disperser.name = _unique_child_name(skeleton, str(params.get("name", "TwistDisperser")), {})
 	var setup_error := _setup_calls_error(disperser, setup)
 	if not setup_error.is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, setup_error)
 	_commit_node_add("MCP: Twist disperser", skeleton, disperser, setup)
+	if not _dry_run: allocation.transfer_to_history()
 	var data := {
 		"skeleton_path": resolved.path,
 		"kind": resolved.kind,
 		"modifier_class": "BoneTwistDisperser3D",
-		"modifier_path": ValueCodec.from_node(disperser, scene_root),
+		"modifier_path": _planned_modifier_path(disperser, skeleton, scene_root),
 		"root_bone": root_name,
 		"end_bone": end_name,
 		"reference_bone": reference_name,
@@ -1666,6 +1710,7 @@ func _damping_curve(amount: float) -> Curve:
 
 
 func retarget_setup(params: Dictionary) -> Dictionary:
+	var allocation := ModifierAllocation.new()
 	var undo_ready := _require_undo("retarget_setup")
 	if not undo_ready.is_empty():
 		return undo_ready
@@ -1802,7 +1847,8 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 	var modifier: RetargetModifier3D = existing_modifier if existing_modifier != null else RetargetModifier3D.new()
 	var modifier_created := existing_modifier == null
 	if modifier_created:
-		modifier.name = str(params.get("name", "Retarget"))
+		allocation.track(modifier)
+		modifier.name = _unique_child_name(source, str(params.get("name", "Retarget")), {})
 	var previous := {
 		"active": modifier.active,
 		"profile": modifier.profile,
@@ -1852,6 +1898,7 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 		elif modifier_created:
 			undo.add_undo_method(source, "remove_child", modifier)
 		undo.commit_action()
+		allocation.transfer_to_history()
 	# Failsafe: the modifier is only useful if the target skeleton is a direct
 	# child of it, and a profile is only useful if its bones resolved. Check
 	# after the commit (the settings are readable then) and roll the whole thing
@@ -1868,15 +1915,17 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 				and not _profile_bones_resolve(modifier.get_profile(), target):
 			return _undo_and_fail(ErrorCodes.INVALID_PARAMS,
 				"The retarget profile's bones do not resolve on the target skeleton, so the modifier would drive nothing")
+	var modifier_path := _planned_modifier_path(modifier, source, scene_root)
+	var resulting_target_path := modifier_path.path_join(str(target.name)) if _dry_run and move_target and not already_under_modifier else ValueCodec.from_node(target, scene_root)
 	var data := {
 		"skeleton_path": resolved.path,
 		"kind": resolved.kind,
 		"modifier_class": "RetargetModifier3D",
-		"modifier_path": ValueCodec.from_node(modifier, scene_root),
+		"modifier_path": modifier_path,
 		"modifier_created": modifier_created,
-		"target_path": ValueCodec.from_node(target, scene_root),
+		"target_path": resulting_target_path,
 		"moved_target": move_target and not already_under_modifier,
-		"moved_path": ValueCodec.from_node(move_node, scene_root) if move_target and not already_under_modifier else "",
+		"moved_path": resulting_target_path if move_target and not already_under_modifier else "",
 		"profile_source": str(resolved_profile.source),
 		"profile_bones": profile.get_bone_size(),
 		"mapped_bones": mapped_bones.size(),
@@ -3219,10 +3268,14 @@ func _bone_tip_3d(skeleton: Skeleton3D, bone_index: int) -> Dictionary:
 
 # --- modifier enum helpers --------------------------------------------------
 
-## NodePath from a modifier (a child of `skeleton`) to a target node: IK and
-## look-at settings resolve their paths against the modifier. Targets created by
-## the same action are not in the tree yet, so their path is built by hand (they
-## land directly under the edited scene root).
+## Scene path of an existing node or a not-yet-parented generated node.
+static func _planned_modifier_path(node: Node, parent: Node, scene_root: Node) -> String:
+	if node.is_inside_tree(): return ValueCodec.from_node(node, scene_root)
+	return ValueCodec.from_node(parent, scene_root).path_join(str(node.name))
+
+
+## NodePath from a modifier (a child of `skeleton`) to a target node. Generated
+## targets land under target_parent; existing targets retain their scene path.
 static func _modifier_target_path(skeleton: Skeleton3D, modifier: Node, target: Node, target_parent: Node) -> NodePath:
 	if target.is_inside_tree() and modifier.is_inside_tree():
 		return modifier.get_path_to(target)
@@ -3240,7 +3293,8 @@ static func _modifier_target_path(skeleton: Skeleton3D, modifier: Node, target: 
 		relative = str(skeleton.get_path_to(target))
 	elif target_parent != null and target_parent.is_inside_tree():
 		relative = "%s/%s" % [str(skeleton.get_path_to(target_parent)), str(target.name)]
-	if relative.is_empty() or relative == ".":
+	if relative == ".": return NodePath("..")
+	if relative.is_empty():
 		return NodePath(str(target.name))
 	return NodePath("../%s" % relative)
 
