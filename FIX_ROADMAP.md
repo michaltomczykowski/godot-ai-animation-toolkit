@@ -3317,6 +3317,46 @@ spring from the current pose using the public reset API.
 - See docs/rig-bake-restoration-validation.md. Complete saved/continuation/native
   modifier matrices and visual/platform approval remain checkpoint 5 work.
 - Checkpoint 4 full local gate: all fourteen headless suites and a fresh editor
-  pass (333 tests, one optional X Bot skip, zero engine/route/discovery errors).
+  pass (333 tests, zero skips, zero engine/route/discovery errors). Hosted rigs
+  without the optional X Bot asset record one optional skip.
   The retained bake-state leak check now permits only freed previous Redo nodes
   on commit; dry/refusal calls still require the exact orphan set.
+
+#### Checkpoint 5: saved playback and continuation matrix
+
+- Public bake routes export 201 required cases and 603 Do/Undo/Redo scenes:
+  graph replay, all three movement modes, all eight supported native modifier
+  classes at 0/0.5/1 influence, reordered fractional stacks, retargeted child
+  stacks, and locked/editable/missing-library/local-library/overwrite storage.
+- The independent fresh-process checker imports only engine reference helpers,
+  requires every case/state/sample, plays 402 generated states, validates all
+  track paths/types/times, and checks keys/intermediate engine interpolation.
+  Native source-motion approximation is reported separately from key fidelity.
+- Live spring/graph continuation at 30/60/120 FPS agrees with untouched native
+  controls after dry run, write, refusal, Undo and Redo (27 configurations).
+  Atomic semantic/empty/nonfinite-track refusals and animated activation of an
+  unsupported scripted modifier now have public-route regressions.
+- Fixed-camera native source versus saved-bake footage captures 488 frames for
+  eight representative graph/modifier/root cases. Technical bone/axis review
+  shows matching weighted stacks and single-owner travel; broader authored
+  character/action quality remains a later roadmap gate. Media is local only.
+- Direct custom_manage bake calls pass for a state machine and each movement
+  mode before/after core reload, retaining source pose and save/forced-reopen
+  output. CI now requires this gate and the complete saved playback matrix.
+- A final independent midpoint check exposed early interpolation of abrupt
+  graph parameter events. Added a sample immediately before each positive
+  event, preventing a whole frame of premature blending. The short bridge holds
+  the preceding pose: native approximate key lookup otherwise extrapolates
+  a large event delta backward. Its gap scales with event time; samples too
+  close for native key/interpolation tolerances receive OPERATION_UNAVAILABLE.
+  Played regressions cover 0.07/10.07-second events and short final samples.
+  Scripted resource refusal also runs before duplication can construct its script.
+- Final local source passes 343/343 fresh editor tests (zero skips and captured
+  engine/discovery/route errors), all fourteen headless suites, 24/24 external
+  bake tests, the complete native saved checker and eight direct calls around
+  core reload. Final 488-frame paired capture has zero render errors and all
+  eight representative pairs pass technical review. Native continuous-motion
+  approximation remains reported separately: the largest sampled difference is
+  0.281967 rad for a fast one-shot at 30 FPS. See the validation document for
+  tolerances, limitations, commands and local recovery media. Hosted closing
+  Windows/Linux verification remains pending the checkpoint push.

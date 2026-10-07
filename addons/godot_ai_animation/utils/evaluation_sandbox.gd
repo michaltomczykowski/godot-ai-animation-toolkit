@@ -17,6 +17,10 @@ static func copy_hierarchy(node: Node) -> Node:
 
 func open(root: Node) -> Dictionary:
 	source = root
+	# Refuse scripted resources before any native duplicate(true) can construct
+	# their scripts. Node scripts themselves are omitted by duplicate(0).
+	_check_node_resources(root, {})
+	if not problem.is_empty(): return _fail(problem)
 	scene = copy_hierarchy(root)
 	if scene == null: return _fail("could not copy the edited hierarchy")
 	_map(root, scene)
@@ -34,6 +38,27 @@ func open(root: Node) -> Dictionary:
 	# and transforms after entry, without reinstantiating the saved PackedScene.
 	restore_inputs()
 	return {"ok": true}
+
+func _check_node_resources(node: Node, seen: Dictionary) -> void:
+	for entry in node.get_property_list():
+		var key := str(entry.name)
+		if not int(entry.usage) & PROPERTY_USAGE_STORAGE or int(entry.usage) & PROPERTY_USAGE_SCRIPT_VARIABLE or key in ["script", "owner"]: continue
+		_check_resource_scripts(node.get(key), seen)
+	for child in node.get_children(): _check_node_resources(child, seen)
+
+func _check_resource_scripts(value: Variant, seen: Dictionary) -> void:
+	if value is Resource:
+		if value is Script or seen.has(value): return
+		seen[value] = true
+		if value.get_script() != null:
+			problem = "scripted resource %s cannot be isolated" % value.get_class()
+			return
+		for entry in value.get_property_list():
+			if int(entry.usage) & PROPERTY_USAGE_STORAGE and str(entry.name) != "script": _check_resource_scripts(value.get(entry.name), seen)
+	elif value is Array:
+		for entry in value: _check_resource_scripts(entry, seen)
+	elif value is Dictionary:
+		for key in value: _check_resource_scripts(value[key], seen)
 
 func _map(original: Node, copy: Node) -> void:
 	nodes[original] = copy
@@ -131,6 +156,9 @@ func _remap(original: Node) -> void:
 				var library: AnimationLibrary = copy.get_animation_library(library_name)
 				for name in library.get_animation_list():
 					var animation := library.get_animation(name)
+					if animation.get_script() != null:
+						problem = "scripted animation '%s' cannot be replayed" % name
+						return
 					# Rooted libraries can be shared by multiple players. Give each
 					# player its own animations before rewriting track paths.
 					animation = animation.duplicate(true)
@@ -141,9 +169,44 @@ func _remap(original: Node) -> void:
 							excluded_tracks.append({"player": str(original.get_path()), "animation": str(name), "track": i})
 							animation.remove_track(i)
 							continue
+						if not animation.track_is_enabled(i):
+							animation.remove_track(i)
+							continue
+						var invalid := _track_problem(origin, animation, i)
+						if not invalid.is_empty():
+							problem = "animation '%s' track %d: %s" % [name, i, invalid]
+							return
 						animation.track_set_path(i, _path(origin, nodes[origin], animation.track_get_path(i)))
 	for child in original.get_children():
 		if nodes.has(child): _remap(child)
+
+func _track_problem(origin: Node, animation: Animation, index: int) -> String:
+	var path := animation.track_get_path(index)
+	var target := origin.get_node_or_null(NodePath(path.get_concatenated_names()))
+	if target == null or not nodes.has(target): return "unresolved/external target " + str(path)
+	var type := animation.track_get_type(index)
+	if type in [Animation.TYPE_POSITION_3D, Animation.TYPE_ROTATION_3D, Animation.TYPE_SCALE_3D]:
+		if not target is Node3D: return "3D transform target is not Node3D"
+		if path.get_subname_count() > 0:
+			if not target is Skeleton3D or path.get_subname_count() != 1 or target.find_bone(path.get_subname(0)) < 0: return "unknown bone " + str(path)
+	elif type in [Animation.TYPE_VALUE, Animation.TYPE_BEZIER]:
+		if path.get_subname_count() != 1: return "nested/custom property cannot be reproduced: " + str(path)
+		var known := false
+		for entry in nodes[target].get_property_list():
+			if str(entry.name) == str(path.get_subname(0)) and not int(entry.usage) & PROPERTY_USAGE_READ_ONLY: known = true
+		if not known: return "property unavailable on native copy: " + str(path)
+	elif type == Animation.TYPE_BLEND_SHAPE:
+		if not target is MeshInstance3D or target.mesh == null or path.get_subname_count() != 1: return "invalid blend shape target"
+		var name := str(path.get_subname(0)).trim_prefix("blend_shapes/")
+		if target.find_blend_shape_by_name(name) < 0: return "unknown blend shape " + name
+	else: return "unsupported track type " + str(type)
+	if animation.track_get_key_count(index) == 0: return "enabled track has no keys"
+	for i in animation.track_get_key_count(index):
+		var value: Variant = animation.track_get_key_value(index, i)
+		if type == Animation.TYPE_ROTATION_3D and (not value is Quaternion or not value.is_finite() or not value.is_normalized()): return "rotation key must be a finite normalized quaternion"
+		if type in [Animation.TYPE_POSITION_3D, Animation.TYPE_SCALE_3D] and (not value is Vector3 or not value.is_finite()): return "transform key must be a finite Vector3"
+		if value is float and not is_finite(value): return "key must be finite"
+	return ""
 
 func _paths(original: Node, copy: Node, value: Variant) -> Variant:
 	if value is NodePath: return _path(original, copy, value)

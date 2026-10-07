@@ -2675,8 +2675,12 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 		if not undo_error.is_empty(): return undo_error
 	var sampler := PoseBakeSampler.new()
 	var times: Array = replay.sample_times(length, fps) if source_tree != null else []
+	if source_tree != null and not replay.sampling_problem.is_empty(): return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, replay.sampling_problem)
 	if source_tree == null:
 		for i in samples: times.append(minf(float(i) / fps, length))
+	for i in times.size() - 1:
+		if float(times[i + 1]) - float(times[i]) <= 0.00002 * maxf(1.0, absf(times[i + 1])):
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "sample spacing is below Godot's distinct-key tolerance; adjust duration, event timing or FPS")
 	if times.size() + replay.events.size() > MAX_BAKE_SAMPLES:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "samples and graph events exceed the 1200-evaluation budget")
 	samples = times.size()
@@ -2689,17 +2693,21 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 	var motion_keys := {"rotation": [], "position": [], "scale": []}
 	for time_value in times:
 		var time := float(time_value)
+		# Hold the infinitesimal event bridge. Native approximate key lookup
+		# can select this key just before its time; linear interpolation would
+		# then extrapolate the abrupt event backward by a large pose delta.
+		var transition: Variant = 0.0 if replay.pre_event_times.has(time_value) else "linear"
 		var sampled := sampler.sample(time - previous, time)
 		if sampled.has("error"): return sampled
 		previous = time
 		for channel in sampled.motion:
-			motion_keys[channel].append({"time": time, "value": sampled.motion[channel], "transition": "linear"})
+			motion_keys[channel].append({"time": time, "value": sampled.motion[channel], "transition": transition})
 		for bone in indices:
 			var entry: Dictionary = keys[skeleton.get_bone_name(bone)]
 			var pose: Dictionary = sampled.poses[bone]
-			entry.rotation.append({"time": time, "value": pose.rotation, "transition": "linear"})
-			if include_positions: entry.position.append({"time": time, "value": pose.position, "transition": "linear"})
-			if include_scales: entry.scale.append({"time": time, "value": pose.scale, "transition": "linear"})
+			entry.rotation.append({"time": time, "value": pose.rotation, "transition": transition})
+			if include_positions: entry.position.append({"time": time, "value": pose.position, "transition": transition})
+			if include_scales: entry.scale.append({"time": time, "value": pose.scale, "transition": transition})
 	var modifier_classes := sampler.modifiers.duplicate()
 	var reset_classes := sampler.reset_modifiers.duplicate()
 	var exclusions := sampler.sandbox.excluded_tracks.duplicate(true)

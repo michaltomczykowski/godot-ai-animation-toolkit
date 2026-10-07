@@ -12,6 +12,8 @@ var events: Array = []
 var cursor := 0
 var tree: AnimationTree
 var last_motion: Dictionary = {}
+var sampling_problem := ""
+var pre_event_times: Dictionary = {}
 
 func configure(source: AnimationTree, params: Dictionary, duration: float) -> Dictionary:
 	if source.tree_root == null: return _error("source tree has no root")
@@ -29,6 +31,7 @@ func configure(source: AnimationTree, params: Dictionary, duration: float) -> Di
 		if path.ends_with("/request"): value = 0
 		elif path.ends_with("/seek_request"): value = -1.0
 		elif path.ends_with("/transition_request"): value = ""
+		if value is float and not is_finite(value) or (value is Vector2 or value is Vector3 or value is Quaternion) and not value.is_finite(): return _error("source parameter '%s' must be finite" % path)
 		initial[path] = value
 	var overrides: Variant = params.get("tree_parameters", {})
 	if not overrides is Dictionary: return _error("tree_parameters must be an object")
@@ -46,6 +49,7 @@ func configure(source: AnimationTree, params: Dictionary, duration: float) -> Di
 		starts.append({"action": "start", "path": entry.playback_path, "state": entry.state})
 	var raw_events: Variant = params.get("tree_events", [])
 	if not raw_events is Array: return _error("tree_events must be an array")
+	if raw_events.size() > 1200: return Errors.make(Errors.VALUE_OUT_OF_RANGE, "Graph events exceed the 1200-evaluation budget")
 	var previous := 0.0
 	for entry in raw_events:
 		if not entry is Dictionary: return _error("each tree_events entry must be an object")
@@ -91,6 +95,24 @@ func sample_times(duration: float, fps: int) -> Array:
 	for entry in events:
 		if not times.has(entry.time): times.append(entry.time)
 	times.sort()
+	# A changed parameter can jump the native pose at an event. Capture the
+	# preceding controls immediately before it so linear output tracks do not
+	# start blending that jump a whole sampling interval early.
+	var bounded := {}
+	for entry in events:
+		if entry.time <= 0.0 or bounded.has(entry.time): continue
+		bounded[entry.time] = true
+		var previous := 0.0
+		for time in times:
+			if time < entry.time: previous = maxf(previous, time)
+		# Godot merges keys closer than its approximate-equality tolerance.
+		var before: float = entry.time - minf(0.00004 * maxf(1.0, absf(entry.time)), (entry.time - previous) * 0.5)
+		if not times.has(before): times.append(before)
+		pre_event_times[before] = true
+	times.sort()
+	for i in times.size() - 1:
+		if float(times[i + 1]) - float(times[i]) <= 0.00002 * maxf(1.0, absf(times[i + 1])):
+			sampling_problem = "sample/event spacing at t=%.9f is below Godot's distinct-key tolerance; adjust event timing or FPS" % float(times[i + 1])
 	return times
 
 func _command(command: Dictionary) -> void:
@@ -112,6 +134,14 @@ func _parameter(source: AnimationTree, entries: Dictionary, path: Variant, raw: 
 	if expected == TYPE_INT and value is float and is_finite(value) and value == floor(value): value = int(value)
 	if expected == TYPE_STRING_NAME and value is String: value = StringName(value)
 	if typeof(value) != expected: return _error("parameter '%s' requires %s" % [path, type_string(expected)])
+	if expected == TYPE_INT and int(entry.hint) == PROPERTY_HINT_ENUM:
+		var allowed: Array = []
+		var next := 0
+		for option in str(entry.hint_string).split(","):
+			if option.contains(":"): next = int(option.get_slice(":", 1))
+			allowed.append(next)
+			next += 1
+		if not allowed.has(value): return _error("parameter '%s' enum value is out of range" % path)
 	if value is float and not is_finite(value): return _error("parameter '%s' must be finite" % path)
 	if (value is Vector2 or value is Vector3 or value is Quaternion) and not value.is_finite(): return _error("parameter '%s' must be finite" % path)
 	return {"value": value}

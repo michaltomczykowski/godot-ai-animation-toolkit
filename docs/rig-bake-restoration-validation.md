@@ -16,6 +16,13 @@ suppressed and reported. Dry runs and failures free the private hierarchy.
 Tree replay starts at zero. `tree_parameters` seeds writable public parameters;
 transient requests are cleared. `tree_starts` starts state machines and ordered
 `tree_events` applies set/start/travel commands. Event times become sample keys.
+Positive event times also receive a sample 40 microseconds before the event,
+so an abrupt control change cannot blend backward over a whole frame. Native
+key lookup has a relative time tolerance: the gap scales with event times over
+one second. The bridge holds the preceding pose instead of interpolating the
+jump; this also prevents backward extrapolation near the pre-event key. Sample
+spacing at or below 20 microseconds (scaled for times over one second) is refused
+with `OPERATION_UNAVAILABLE`; adjust duration, event timing or sampling FPS.
 Nested machines use their own playback paths; grouped machines use parent
 travel. Native grouped AUTO boundary transitions are refused because they
 produce condition evaluation errors in Godot 4.7.2.
@@ -55,9 +62,10 @@ owner for each property/bone. Creating the output does not deactivate the source
 - Four restoration tests reproduce/fix fractional final influence, verify live
   spring continuation at 30/60/120 FPS, evaluate animated external targets using
   actual final delta, and inject a late failure with atomic cleanup.
-- Nine graph tests cover 24 native replay cases at 30/60/120 FPS: 1D/2D blends,
+- Ten graph tests cover 24 native replay cases at 30/60/120 FPS: 1D/2D blends,
   filtered additive, one-shot, TimeScale, inactive/root/nested/grouped machines,
-  crossfades and queued travel; eleven typed preflight refusals.
+  crossfades and queued travel; twelve typed preflight refusals and played
+  regressions for premature parameter blending at 0.07 and 10.07 seconds.
 - Five root-motion tests cover 72 native replay cases across all movement modes,
   clip/tree sources, local extraction on/off, loops on/off and 30/60/120 FPS.
   Transformed/scaled characters and parents, turning/scaling travel and a
@@ -65,9 +73,91 @@ owner for each property/bone. Creating the output does not deactivate the source
   is below one micrometre; rotation error is below 0.001 radians. Explicit
   destination/carrier reuse/overwrite and five atomic input refusals pass.
 
-Full saved playback, modifier/continuation matrix, fixed-camera review and final
-hosted Windows/Linux gates remain required for checkpoint 5. These local tests
-do not approve broader character/action visual quality.
+- Native modifier coverage includes all eight supported classes at 0/0.5/1
+  influence and 30/60/120 FPS (72 cases), both look-at/spring orders (18 cases),
+  and a retargeted child with its own fractional look-at stack. Each public bake
+  checks dry/write/Undo/Redo, exact source state and one scene history action.
+- Fifteen storage cases cover locked instances, editable instances, missing
+  libraries, existing local libraries and overwrites. Source files, shared peer
+  instances, authored library identity and permissions survive the operation.
+- Twenty-seven source configurations compare continued spring/graph traces
+  against untouched native controls after dry/write/refusal/Undo/Redo at all
+  three rates. External direct calls also compare source poses after a separate
+  RPC, covering deferred editor refresh.
+- Semantic invalid/empty/nonfinite tracks, animated activation of unsupported
+  scripted modifiers, and scripted Animation resources return typed errors.
+  Scripted resources are refused before duplication can execute constructors.
+  Inspection covers the copied hierarchy and its libraries, so an unsupported
+  dependency elsewhere in that hierarchy may also prevent baking.
+
+## Independent saved playback
+
+`check_rig_bake_restoration.gd` imports only a native-engine reference helper.
+It requires all **201 case IDs / 603 Do, Undo and Redo states** and plays the
+402 generated Do/Redo states in a fresh process. It checks resolved track paths,
+native track types, every key time/count, overwritten Undo contents, weighted
+bone poses, movement ownership and engine interpolation between reference keys.
+Missing cases, captures, reports and engine errors fail the gate.
+
+The current matrix checks **10,764 key samples and 10,362 intermediate samples**.
+Worst played reference errors are 0.000001014 m position, 0.000001610 rad rotation
+and 0.000000338 scale, inside the required 0.1 mm / 0.001 rad / 0.0001 limits.
+
+Finite sampling remains an approximation of continuous native graph evaluation.
+The checker separately reports native motion evaluated with additional midpoint
+steps: the worst rotation difference is **0.281967 rad**, a fast one-shot at
+30 FPS over 0.100–0.133333 s. This is not a key-fidelity tolerance. It records
+native timing/blend changes across different evaluation intervals; increase
+sampling FPS for fast actions and review the played output. Instantaneous event
+bridges are excluded from this continuous-motion statistic, but their keys and
+engine interpolation are still required and checked.
+
+## Visual review
+
+`render_bake_restoration.gd` captures native source and saved public-route bake
+side by side, using a fixed camera and native playback with one writer per bone.
+The overlay reads final played bone transforms; it does not assign authored poses.
+Eight cases cover a state machine, one-shot, fractional spring, reordered stack,
+retargeted child, and all three movement modes. The renderer requires **488
+frames**, and `compose_bake_restoration.py` creates a video and contact sheets.
+
+Paired contact sheets and representative played frames show matching weighted
+orientation, spring curvature and retargeted child stacks. Preserve/apply travel
+matches the native source without doubled displacement; pose_only stays in place.
+These technical rigs test bake fidelity and travel ownership. They do not approve
+the broader humanoid locomotion, action sequencing or flykick visual quality.
+Media stays under `bake_restoration_20261007/media` in the persistent recovery
+snapshot. No release, tag, merge or media upload is created.
+
+## Closing verification
+
+- Fresh local Godot 4.7.2 editor: **343/343 tests**, zero skips, zero captured
+  engine/discovery/route errors, all ten families and 103 dry invocation routes.
+- All fourteen headless suites pass. `tier1_proportions` also prints an exit
+  warning for ten ObjectDB instances; its assertions pass. This bake matrix and
+  fresh saved checker report no engine errors or exit resource errors.
+- Fresh visible editor and external MCP client: **24/24 named bake tests**,
+  complete 201-case native checker and four direct operations before/after core
+  reload. Source poses survive separate RPC refresh; saved outputs reopen with
+  all expected resolved tracks/keys. Sessions change from
+  `test-project@269b9992a09c60c8` to `test-project@d1fe3262f78bee93`.
+- Fixed-camera final-source render: **488/488 frames**, zero render engine errors,
+  eight comparison contact sheets and a local video. All eight pairs reviewed.
+- Hosted Windows/Linux closing-source verification is pending the checkpoint push.
+
+## Reproduction
+
+1. Run `tools/test_tier1.ps1 -Godot <Godot 4.7.2 console>`.
+2. Run a fresh editor with `ANIMATION_TOOLKIT_CI=1` and
+   `GODOT_AI_ALLOW_HEADLESS=1`; require `CI_SUITE_PASS` and no engine/route errors.
+3. Run `tools/mcp_rig_bake_restoration.py` against a fresh visible editor, supplying
+   `--core-root`, `--project-root`, `--session-hint`, `--port`, `--ws-port`,
+   `--godot`, and optionally `--record`. It runs six public-route suites, invokes
+   the independent saved checker, and calls graph/preserve/pose_only/apply directly
+   before and after `editor_reload_plugin`, with dry/write/refused/save/reopen.
+4. Run Godot with `--script res://tools/render_bake_restoration.gd -- <frame-dir>`;
+   compose with `tools/compose_bake_restoration.py --frames <frame-dir>
+   --output <media-dir> --ffmpeg <ffmpeg>` and review the paired captures.
 
 ## CI infrastructure finding
 
@@ -76,5 +166,7 @@ engine errors but rejected a stale generated operation audit. Its Windows
 external route lost the plugin-managed backend after reload when core process
 identity discovery failed. The route harness now owns an external backend across
 reload, using the supported authenticated adoption/attach path, and captures
-both backend/editor logs. Hosted verification is required before claiming this
-gate repaired.
+both backend/editor logs. Root checkpoint `e7c6fb8` passed all 34 required jobs in
+[Actions run 37695353226](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37695353226),
+including complete external routes on Windows and Linux. The expanded closing
+matrix requires another hosted pass on its final source.

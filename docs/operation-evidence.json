@@ -2337,19 +2337,22 @@
     "status": "partial",
     "fixture": "res://repair_rig_audit/20260930_164952/bake.tscn",
     "checks": {
-      "mcp_invocation": "pass_dummy_source",
-      "valid_effect": "pass_dummy_source",
-      "track_paths_types": "pass_112_tracks",
-      "dry_run": "pass_history_pose_playback_orphans_and_refusals",
-      "save_reopen": "pass_90_independent_saved_states",
-      "typed_errors": "pass_missing_source",
-      "undo_redo": "pass_five_layout_clip_matrix",
-      "playback": "pass_24_samples",
-      "state_restoration": "pass_source_skeleton",
-      "modifier_stack": "pass_final_weighted_and_spring_continuation",
-      "visual_review": "pending",
-      "graph_replay": "pass_24_native_cases",
-      "root_motion": "pass_72_native_cases_all_modes"
+      "mcp_invocation": "pass_24_external_tests_and_8_direct_calls",
+      "valid_effect": "pass_201_native_playback_cases",
+      "track_paths_types": "pass_required_saved_tracks_types_and_all_key_times",
+      "dry_run": "pass_exact_live_state_history_orphans_and_refusals",
+      "save_reopen": "pass_603_native_saved_states_plus_90_clip_states",
+      "typed_errors": "pass_preflight_semantic_late_activation_resource_and_spacing_refusals",
+      "undo_redo": "pass_201_case_do_undo_redo_five_layouts",
+      "playback": "pass_10764_keys_10362_intermediates_native",
+      "state_restoration": "pass_27_continuation_configurations_and_deferred_rpc_poses",
+      "modifier_stack": "pass_8_native_classes_weights_orders_retarget_child",
+      "visual_review": "pass_8_technical_pairs_character_quality_pending",
+      "graph_replay": "pass_24_native_cases_and_short_long_event_boundaries",
+      "root_motion": "pass_72_native_cases_all_modes",
+      "external_reload": "pass_8_direct_calls_before_after_core_reload",
+      "native_approximation": "reported_fast_oneshot_30fps_0.281967rad_not_key_fidelity",
+      "reported_errors": "pass_zero_bake_engine_errors_and_typed_atomic_refusals"
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP generated a walk source and baked it at 10 FPS over 0.5 s. Dry run left no clip or thigh-pose change; write restored source skeleton pose, created 112 resolved rotation/position tracks and 672 keys, and survived save/forced reopen. An unknown source returned typed INVALID_PARAMS. First live pass logged an engine error reading current_animation_position with no current animation; handler now guards that read. Rerun mcp_rig_bake_fixed.log, id 20260930_164952, had no new editor errors. Headless Godot 4.7.2 played source and baked clips at 24 bone/time samples with worst rotation difference 0 rad. Active modifier evaluation, full player-state restoration, editor undo, visual review and Linux remain.",
@@ -2359,7 +2362,8 @@
       "2026-10-07: Prior playback-state source b7c6920 passed Actions 37446592866 on Windows/Linux: fourteen headless suites, four editor/core combinations (285 passed, one optional X Bot skip, zero captured errors), both complete external Godot AI routes. Active graph/stateful modifier bake restoration remains open.",
       "2026-10-07: Native Do source-pose checks exposed deferred Animation panel refresh resetting scale. Bone pose restoration now runs after refresh with scene/history/latest-ticket guards and script-swap cancellation. Freed target validity is checked before Object assignment. Visible Godot 4.7.2 Do/Undo/Redo passes for blink, 2D pose-clip overwrite and bake. Public batch clip then pose actions both succeed; the later pose survives. Complete CI requires post-refresh blink/2D/bake checks, later-action guard and no deferred script errors. See docs/rig-clip-history-validation.md; visual approval and broader histories remain open.",
       "2026-10-07: Final guarded source passes fresh editor 292/292 with zero engine/tool/discovery/script errors, all fourteen headless suites and the complete external Godot AI route (113 required gates including core reload, rig clip six-case/90-state matrix, retained bake eight-case/16-state gate, strict post-refresh source poses and later-action guard). Hosted Windows/Linux source CI pending. All operation statuses remain partial pending remaining modifier/graph/character history and visual gates.",
-      "2026-10-08: Isolated bake restoration fixes fractional final influence and live spring momentum loss. Four restoration, nine graph and five root-motion tests pass through the public Godot AI dispatcher on visible Godot 4.7.2. Graph replay covers 24 cases and root motion covers 72 native clip/tree cases at 30/60/120 FPS, three modes, local extraction and loops, transformed owners, weighted world-target modifiers, carrier reuse/overwrite history and typed refusals. Keys/body agree within 0.1 mm / 0.001 rad / 0.0001 scale; live sources remain untouched. Preserved nonloop clips report a 1 ms stationary end hold. Full saved continuation/modifier matrix, visuals and final hosted gates remain partial. See docs/rig-bake-restoration-validation.md."
+      "2026-10-08: Isolated bake restoration fixes fractional final influence and live spring momentum loss. Four restoration, nine graph and five root-motion tests pass through the public Godot AI dispatcher on visible Godot 4.7.2. Graph replay covers 24 cases and root motion covers 72 native clip/tree cases at 30/60/120 FPS, three modes, local extraction and loops, transformed owners, weighted world-target modifiers, carrier reuse/overwrite history and typed refusals. Keys/body agree within 0.1 mm / 0.001 rad / 0.0001 scale; live sources remain untouched. Preserved nonloop clips report a 1 ms stationary end hold. Full saved continuation/modifier matrix, visuals and final hosted gates remain partial. See docs/rig-bake-restoration-validation.md.",
+      "2026-10-08: Closing isolated bake matrix passes 343/343 fresh local editor tests, fourteen headless suites, 24/24 external Godot AI bake tests and eight direct graph/preserve/pose_only/apply calls before and after core reload. Independent native playback requires 201 IDs / 603 Do-Undo-Redo states, plays 402 outputs and checks 10764 keys / 10362 intermediates inside 0.1 mm / 0.001 rad / 0.0001 scale. All eight native modifier classes at 0/.5/1 influence, reordered stacks, retarget child stacks, five storage layouts and 27 live continuation configurations pass. Event bridges hold preceding poses and account for native relative key tolerance; early/late event and close-sample refusal regressions pass. Scripted resources are refused before duplication. Fixed-camera source/bake review passes eight technical pairs / 488 frames; media stays local. Continuous-motion approximation is reported separately (fast one-shot at 30 FPS: 0.281967 rad), and broader character quality remains open. Hosted closing-source results are recorded after push. See docs/rig-bake-restoration-validation.md."
     ],
     "platforms": {
       "windows": "partial",

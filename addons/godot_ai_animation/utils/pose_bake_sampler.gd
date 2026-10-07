@@ -29,6 +29,7 @@ var graph_replay: RefCounted
 var root_motion: RefCounted
 var rigs: Array[Skeleton3D] = []
 var witnesses: Dictionary = {}
+var guarded_modifiers: Dictionary = {}
 var modifiers: Array = []
 var reset_modifiers: Array = []
 var preserved: Array = []
@@ -60,6 +61,9 @@ func open(scene_root: Node, source_skeleton: Skeleton3D, source_player: Animatio
 					return _fail("relative spring centers with collisions remain unavailable")
 	var opened := sandbox.open(scene_root)
 	if opened.has("error"): return opened
+	for candidate in candidates:
+		if candidate.get_script() != null or not SUPPORTED.has(candidate.get_class()):
+			guarded_modifiers[sandbox.get_copy(candidate)] = "unsupported modifier %s (%s)" % [candidate.get_path(), candidate.get_class()]
 	skeleton = sandbox.get_copy(source_skeleton)
 	player = sandbox.get_copy(source_player)
 	if skeleton == null or player == null:
@@ -103,7 +107,9 @@ func open(scene_root: Node, source_skeleton: Skeleton3D, source_player: Animatio
 
 func _retarget_rigs(rig: Skeleton3D, needed: Dictionary) -> void:
 	for child in rig.get_children():
-		if not child is RetargetModifier3D or not child.active: continue
+		# An animation may activate a retarget later. Include its descendants
+		# before evaluating so their own stacks are never silently omitted.
+		if not child is RetargetModifier3D: continue
 		for target in child.find_children("*", "Skeleton3D", true, false):
 			if needed.has(target): continue
 			needed[target] = true
@@ -128,10 +134,21 @@ func sample(delta: float, time: float) -> Dictionary:
 			return consumed
 	var count: int = witnesses[skeleton].count
 	for rig in rigs:
+		for child in rig.get_children():
+			if not child is SkeletonModifier3D or not child.active: continue
+			if child is PhysicalBoneSimulator3D and not child.is_simulating_physics(): continue
+			if guarded_modifiers.has(child): return _fail("%s at t=%.6f" % [guarded_modifiers[child], time])
+			if child is LookAtModifier3D and (rig.find_bone(child.bone_name) < 0 or child.get_node_or_null(child.target_node) == null): return _fail("invalid look-at wiring rig=%s t=%.6f" % [rig.name, time])
+			if child is SpringBoneSimulator3D:
+				for i in child.get_setting_count():
+					if child.get_center_from(i) != SpringBoneSimulator3D.CENTER_FROM_WORLD_ORIGIN and not child.get_children().filter(func(node): return node is SpringBoneCollision3D).is_empty():
+						return _fail("relative spring center with collisions rig=%s t=%.6f" % [rig.name, time])
 		var final_capture: Witness = witnesses[rig]
+		var prior_count := final_capture.count
 		var skin_count := final_capture.skin_count
 		rig.advance(delta)
 		rig.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
+		if final_capture.count != prior_count + 1 or final_capture.poses.size() != rig.get_bone_count(): return _fail("missing final capture rig=%s t=%.6f" % [rig.name, time])
 		if final_capture.skin_count > skin_count:
 			if final_capture.skin_poses.size() != final_capture.poses.size(): return _fail("skin capture missing rig=%s t=%.6f" % [rig.name, time])
 			for i in final_capture.skin_poses.size():
@@ -151,6 +168,7 @@ func sample(delta: float, time: float) -> Dictionary:
 func close() -> void:
 	sandbox.close()
 	witnesses.clear()
+	guarded_modifiers.clear()
 	rigs.clear()
 	skeleton = null
 	player = null

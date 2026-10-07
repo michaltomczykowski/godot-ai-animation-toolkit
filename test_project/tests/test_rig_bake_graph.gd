@@ -4,6 +4,7 @@ extends McpTestSuite
 const Registry := preload("res://addons/godot_ai/custom_tools/mcp_tool_registry.gd")
 const Context := preload("res://addons/godot_ai_animation/utils/tool_context.gd")
 const Helpers := preload("res://tests/test_rig_bake_restoration.gd")
+const Saved := preload("res://tests/bake_saved_matrix.gd")
 var helper := Helpers.new()
 var dispatcher
 var undo: EditorUndoRedoManager
@@ -160,6 +161,7 @@ func _case(kind: String, fps: int) -> void:
 	params.erase("source_animation")
 	params.merge({"source_tree_path": str(subject.tree.get_path()), "duration": 0.205, "fps": fps,
 		"tree_parameters": subject.initial, "tree_starts": subject.starts, "tree_events": subject.events}, true)
+	var saved := Saved.begin(subject, params, "graph_%s_%d" % [kind, fps])
 	var dry := _call(params.merged({"dry_run": true}, true))
 	assert_has_key(dry, "data", kind + " dry graph bake " + str(dry.get("error", {})))
 	assert_eq(helper._history().get_version(), version, "dry history unchanged")
@@ -195,10 +197,14 @@ func _case(kind: String, fps: int) -> void:
 		assert_true(actual.angle_to(reference.skeleton.get_bone_pose_rotation(0)) < 0.001, "native graph key kind=%s fps=%d t=%.6f" % [kind, fps, time])
 		previous = time
 	assert_eq(helper._history().get_version(), version + 1, "one output action")
+	Saved.state(saved, output, "do")
 	assert_true(helper._history().undo(), "output undo")
+	Saved.state(saved, output, "undo")
 	assert_false(output.is_inside_tree(), "undo removes output")
 	assert_eq(_public(subject.tree), state, "undo graph state exact")
 	assert_true(helper._history().redo(), "output redo")
+	Saved.state(saved, output, "redo")
+	Saved.finish(saved)
 	assert_true(output.is_inside_tree(), "redo restores output")
 	assert_eq(_public(subject.tree), state, "redo graph state exact")
 	assert_true(helper._history().undo(), "final output undo")
@@ -240,6 +246,7 @@ func test_graph_preflight_is_atomic() -> void:
 		{"tree_events": [{"time": 0.1, "action": "travel", "path": "parameters/playback", "state": "Action"}, {"time": 0.05, "action": "travel", "path": "parameters/playback", "state": "Idle"}]},
 		{"output_player_path": str(f.player.get_path())}, {"fps": 1e100},
 		{"duration": 0}, {"duration": "bad"}, {"source_tree_path": false},
+		{"tree_events": [{"time": 0.100001, "action": "travel", "path": "parameters/playback", "state": "Action"}]},
 	]:
 		var result := _call(params.merged(invalid, true))
 		assert_has_key(result.get("error", {}), "code", "typed refusal " + str(invalid))
@@ -247,4 +254,41 @@ func test_graph_preflight_is_atomic() -> void:
 		assert_eq(helper._history().get_version(), version, "refused history exact")
 		assert_eq(Node.get_orphan_node_ids(), orphans, "refused no orphan nodes")
 	assert_eq(helper._logger.errors.size(), errors, "zero preflight engine errors")
+	f.root.free()
+
+func test_event_does_not_preblend() -> void:
+	for event_time in [0.07, 10.07]: _event_boundary(event_time)
+func _event_boundary(event_time: float) -> void:
+	var f := _fixture("BakeEventBoundary", "blend1d")
+	f.events[0].time = event_time
+	var params := helper._params(f)
+	params.erase("source_animation")
+	params.merge({"source_tree_path": str(f.tree.get_path()), "tree_parameters": f.initial, "tree_events": f.events, "duration": event_time + 0.135}, true)
+	var result := _call(params)
+	assert_has_key(result, "data", "event boundary bake")
+	if result.has("data"):
+		var output: AnimationPlayer = f.root.get_node("AnimationBakeOutput")
+		var clip := output.get_animation("baked")
+		var track := clip.find_track("Skeleton:arm", Animation.TYPE_ROTATION_3D)
+		var before_key := -1
+		var before := event_time - 0.00004 * maxf(1.0, event_time)
+		var observed := before - 0.00001
+		for i in clip.track_get_key_count(track):
+			if absf(clip.track_get_key_time(track, i) - before) < 0.00000001: before_key = i
+		assert_true(before_key >= 0, "pre-event sample present")
+		assert_eq(clip.track_get_key_transition(track, before_key), 0.0, "event bridge holds pose")
+		_begin(f)
+		f.tree.advance(observed)
+		var native: Quaternion = f.skeleton.get_bone_pose_rotation(0)
+		f.tree.active = false
+		f.player.active = false
+		output.active = true
+		output.play("baked")
+		output.advance(0)
+		output.advance(observed)
+		assert_true(f.skeleton.get_bone_pose_rotation(0).angle_to(native) < 0.001, "no early parameter blend")
+		output.seek((before + event_time) * 0.5, true)
+		assert_true(f.skeleton.get_bone_pose_rotation(0).angle_to(clip.track_get_key_value(track, before_key)) < 0.001, "played bridge holds preceding pose")
+		output.stop()
+		assert_true(helper._history().undo(), "boundary bake Undo")
 	f.root.free()

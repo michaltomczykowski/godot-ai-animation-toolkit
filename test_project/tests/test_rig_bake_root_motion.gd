@@ -2,6 +2,7 @@
 extends McpTestSuite
 
 const Graph := preload("res://tests/test_rig_bake_graph.gd")
+const Saved := preload("res://tests/bake_saved_matrix.gd")
 var helper := Graph.new()
 class FinalPose extends SkeletonModifier3D:
 	var value: Transform3D
@@ -89,6 +90,7 @@ func _case(graph: bool, local: bool, looping: bool, mode: String, fps: int) -> v
 	if graph:
 		params.erase("source_animation")
 		params.merge({"source_tree_path": str(subject.tree.get_path()), "tree_parameters": subject.initial, "tree_events": subject.events}, true)
+	var saved := Saved.begin(subject, params, "root_%s_%s_%s_%s_%d" % [mode, graph, local, looping, fps])
 	var errors := helper.helper._logger.errors.size()
 	var version := helper.helper._history().get_version()
 	var dry := helper._call(params.merged({"dry_run": true}, true))
@@ -169,10 +171,14 @@ func _case(graph: bool, local: bool, looping: bool, mode: String, fps: int) -> v
 	assert_true(reference.root.position.distance_to(initial.origin) > 0.2 if mode != "pose_only" else reference.root.transform.is_equal_approx(initial), "movement is effective or explicitly omitted")
 	assert_eq(result.data.travel_omitted, mode == "pose_only", "travel omission reported")
 	assert_eq(helper.helper._history().get_version(), version + 1, "root one action")
+	Saved.state(saved, source_output, "do")
 	assert_true(helper.helper._history().undo(), "root undo")
+	Saved.state(saved, source_output, "undo")
 	assert_false(source_output.is_inside_tree(), "undo removes output and carrier")
 	assert_eq(_public(subject), before, "undo source exact")
 	assert_true(helper.helper._history().redo(), "root redo")
+	Saved.state(saved, source_output, "redo")
+	Saved.finish(saved)
 	assert_true(source_output.is_inside_tree(), "redo restores output")
 	assert_eq(_public(subject), before, "redo source exact")
 	assert_true(helper.helper._history().undo(), "root final undo")

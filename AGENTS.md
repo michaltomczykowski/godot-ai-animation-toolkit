@@ -46,6 +46,12 @@ Godot binary (local):
   writes selected motions through MCP; `tools/mcp_motion_audit_saved.py` plays
   their saved scenes at 30/60/120 FPS. `tools/mcp_locomotion_sequence_review.py`
   creates a single-player start→walk→stop action through `custom_manage`.
+- Isolated graph/modifier bake gate: `tools/mcp_rig_bake_restoration.py` runs six
+  public-route suites, requires 201 cases/603 saved history states, then invokes
+  graph/all root-motion modes directly before and after core reload. Its fresh
+  checker is `test_project/tools/check_rig_bake_restoration.gd`; the paired native
+  renderer is `render_bake_restoration.gd` and composer is
+  `tools/compose_bake_restoration.py`. See the phase validation document for args.
 - Release zip: `powershell -ExecutionPolicy Bypass -File tools\release_zip.ps1`
 - Parse check without the editor:
   `& "<godot>" --headless --path test_project --check-only --script res://path.gd`
