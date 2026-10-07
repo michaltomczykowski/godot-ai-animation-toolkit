@@ -929,7 +929,9 @@ def rig_playback_gate(args: argparse.Namespace) -> bool:
 
 def run(args: argparse.Namespace) -> int:
     editor: subprocess.Popen[bytes] | None = None
+    backend: subprocess.Popen[bytes] | None = None
     log_stream = None
+    backend_stream = None
     log_path = Path(args.log).resolve()
     try:
         fixture = args.project / "repair_mcp_ci" / "route.tscn"
@@ -950,6 +952,26 @@ def run(args: argparse.Namespace) -> int:
             env["PYTHONPATH"] = os.pathsep.join(filter(None, [source, env.get("PYTHONPATH", "")]))
             log_path.parent.mkdir(parents=True, exist_ok=True)
             log_stream = log_path.open("wb")
+            # The harness owns the backend across core reload. Plugin-managed
+            # restarts on hosted Windows can fail process-identity discovery;
+            # an externally owned authenticated endpoint follows the same
+            # supported attach/adoption path used by local editor sessions.
+            if port_open(args.port) or port_open(args.ws_port):
+                raise RuntimeError("CI requires unused backend ports before startup")
+            backend_path = log_path.with_name("mcp-backend.log")
+            backend_stream = backend_path.open("wb")
+            backend = subprocess.Popen(
+                [sys.executable, "-m", "godot_ai", "--transport", "streamable-http",
+                 "--port", str(args.port), "--ws-port", str(args.ws_port)],
+                cwd=args.core_root, stdout=backend_stream,
+                stderr=subprocess.STDOUT, env=env,
+            )
+            backend_deadline = time.monotonic() + 45
+            while not (port_open(args.port) and port_open(args.ws_port)):
+                if backend.poll() is not None or time.monotonic() >= backend_deadline:
+                    raise RuntimeError("CI backend failed to start: " + tail(backend_path))
+                time.sleep(0.25)
+            print(f"MCP_CI_BACKEND_PID={backend.pid}", flush=True)
             command = [godot_executable(args.godot), "--headless", "--editor", "--path", str(args.project)]
             editor = subprocess.Popen(
                 command,
@@ -1071,8 +1093,17 @@ def run(args: argparse.Namespace) -> int:
             except subprocess.TimeoutExpired:
                 editor.kill()
                 editor.wait(timeout=5)
+        if backend is not None and backend.poll() is None:
+            backend.terminate()
+            try:
+                backend.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                backend.kill()
+                backend.wait(timeout=5)
         if log_stream is not None:
             log_stream.close()
+        if backend_stream is not None:
+            backend_stream.close()
 
 
 def main() -> int:

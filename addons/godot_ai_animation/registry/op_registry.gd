@@ -1529,6 +1529,8 @@ static func _rig_schema() -> Dictionary:
 			"tree_starts": {"type": "array", "items": {"type": "object"}, "description": "bake: [{playback_path,state}]. Nested machines use their own playback path; grouped machines use parent travel events."},
 			"tree_events": {"type": "array", "items": {"type": "object"}, "description": "bake: ordered [{time,action:set|start|travel,path,value?/state?}]. Event times become sample keys."},
 			"output_player_path": {"type": "string", "description": "bake: existing inactive, stopped, unlinked destination. Otherwise graph sources get a new inactive output player."},
+			"root_motion_mode": {"type": "string", "enum": ["preserve", "pose_only", "apply"], "description": "bake: extraction carrier (default), in-place pose, or movement-owner transform tracks."},
+			"root_motion_target_path": {"type": "string", "description": "bake preserve/apply: explicit Node3D movement owner of the skeleton."},
 			"skeleton_path": {
 				"type": "string",
 				"description": "Skeleton3D/2D path (default: first one).",
@@ -1771,7 +1773,7 @@ static func _rig_ops() -> Array:
 		{
 			"name": "bake_pose_sequence",
 			"summary": "Bake one skeleton's final weighted pose using a private clip or deterministic AnimationTree replay; live playback and solver state remain untouched.",
-			"params": ["player_path", "skeleton_path", "animation_name", "duration", "fps", "bones", "positions", "scales", "source_animation", "source_tree_path", "tree_parameters", "tree_starts", "tree_events", "output_player_path", "loop_mode", "overwrite"],
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "fps", "bones", "positions", "scales", "source_animation", "source_tree_path", "tree_parameters", "tree_starts", "tree_events", "output_player_path", "root_motion_mode", "root_motion_target_path", "loop_mode", "overwrite"],
 			"example": {"op": "bake_pose_sequence", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "walk_baked", "duration": 1.0, "loop_mode": "linear"},
 		},
 	])

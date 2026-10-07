@@ -16,6 +16,7 @@ const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registr
 const ModifierAllocation := preload("res://addons/godot_ai_animation/utils/modifier_allocation.gd")
 const PoseBakeSampler := preload("res://addons/godot_ai_animation/utils/pose_bake_sampler.gd")
 const BakeGraphReplay := preload("res://addons/godot_ai_animation/utils/bake_graph_replay.gd")
+const BakeRootMotion := preload("res://addons/godot_ai_animation/utils/bake_root_motion.gd")
 
 const POSE_DIR := "res://animation_toolkit/poses"
 ## bake_pose_sequence cost is duration * fps samples, each a full skeleton
@@ -2590,8 +2591,20 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 	if root_mode not in ["preserve", "pose_only", "apply"]:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "root_motion_mode must be preserve, pose_only or apply")
 	var source_mixer: AnimationMixer = source_tree if source_tree != null else source_player
-	if not source_mixer.root_motion_track.is_empty() and root_mode != "pose_only":
-		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Root-motion preservation/application is pending its independent playback checkpoint; explicit pose_only is available")
+	var motion: RefCounted
+	var motion_owner: Node3D
+	if not source_mixer.root_motion_track.is_empty():
+		var owner_path := str(params.get("root_motion_target_path", ""))
+		if root_mode != "pose_only" and owner_path.is_empty():
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "preserve/apply extraction requires root_motion_target_path")
+		if not owner_path.is_empty():
+			var owner_node := ValueCodec.resolve_scene_path(owner_path, EditorInterface.get_edited_scene_root())
+			if not owner_node is Node3D or owner_node != skeleton and not owner_node.is_ancestor_of(skeleton):
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "root_motion_target_path must be a Node3D owning the selected skeleton")
+			motion_owner = owner_node
+		motion = BakeRootMotion.new()
+		var motion_ready: Dictionary = motion.configure(source_mixer, source_player, motion_owner, source, root_mode)
+		if motion_ready.has("error"): return motion_ready
 	var loop_result := _loop_mode(params)
 	if loop_result.has("error"): return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, loop_result.error)
 	var include_positions := bool(params.get("positions", true))
@@ -2621,7 +2634,7 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 		for tree in scene_root.find_children("*", "AnimationTree", true, false):
 			if tree.get_node_or_null(tree.anim_player) == player:
 				return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Explicit output is linked to an AnimationTree")
-	elif not protected_trees.is_empty():
+	elif not protected_trees.is_empty() or motion != null:
 		player = AnimationPlayer.new()
 		allocation.track(player)
 		player_created = true
@@ -2647,6 +2660,16 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "animation_name must be a plain nonempty clip name")
 	var existing := _existing_animation(library, anim_name, bool(params.get("overwrite", false)))
 	if existing.has("error"): return existing.error
+	var reusable_carrier: Skeleton3D
+	if motion != null and root_mode == "preserve" and not player_created and not player.root_motion_track.is_empty():
+		var candidate := destination_root.get_node_or_null(NodePath(player.root_motion_track.get_concatenated_names()))
+		if candidate is Skeleton3D and candidate.get_meta("godot_ai_animation_motion_carrier", false) and candidate.get_meta("godot_ai_animation_motion_owner", "") == ValueCodec.from_node(motion_owner, scene_root) and player.root_motion_track.get_concatenated_subnames() == "motion":
+			reusable_carrier = candidate
+	var extraction_changes := motion != null and root_mode == "preserve" and reusable_carrier == null or (motion == null or root_mode != "preserve") and not player.root_motion_track.is_empty()
+	if not player_created and extraction_changes:
+		for name in player.get_animation_list():
+			if str(name) != anim_name:
+				return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Changing output extraction would invalidate another clip; choose an unused output player or a compatible toolkit carrier")
 	if not _dry_run:
 		var undo_error := _require_undo("Baking a clip")
 		if not undo_error.is_empty(): return undo_error
@@ -2657,17 +2680,20 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 	if times.size() + replay.events.size() > MAX_BAKE_SAMPLES:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "samples and graph events exceed the 1200-evaluation budget")
 	samples = times.size()
-	var opened := sampler.open(scene_root, skeleton, source_player, source, source_tree, replay)
+	var opened := sampler.open(scene_root, skeleton, source_player, source, source_tree, replay, motion, motion_owner)
 	if opened.has("error"): return opened
 	var keys := {}
 	for index in indices: keys[skeleton.get_bone_name(index)] = {"rotation": [], "position": [], "scale": []}
 	var step := 1.0 / fps
 	var previous := 0.0
+	var motion_keys := {"rotation": [], "position": [], "scale": []}
 	for time_value in times:
 		var time := float(time_value)
 		var sampled := sampler.sample(time - previous, time)
 		if sampled.has("error"): return sampled
 		previous = time
+		for channel in sampled.motion:
+			motion_keys[channel].append({"time": time, "value": sampled.motion[channel], "transition": "linear"})
 		for bone in indices:
 			var entry: Dictionary = keys[skeleton.get_bone_name(bone)]
 			var pose: Dictionary = sampled.poses[bone]
@@ -2685,27 +2711,68 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 			preserved_paths.append(path)
 			if skeleton.is_ancestor_of(node): retarget_paths.append(path)
 	sampler.close()
-	var spec := ClipSpec.make(length, loop_result.ok)
+	# AnimationPlayer clears extraction on the finishing tick. A stationary tail
+	# keeps the last moving interval readable without shifting any captured key.
+	var terminal_hold := 0.001 if motion != null and root_mode == "preserve" and int(loop_result.ok) == Animation.LOOP_NONE else 0.0
+	var spec := ClipSpec.make(length + terminal_hold, loop_result.ok)
 	for bone_name in keys:
 		var entry: Dictionary = keys[bone_name]
 		for channel in ["rotation", "position", "scale"]:
 			if entry[channel].is_empty(): continue
 			var type: int = {"rotation": Animation.TYPE_ROTATION_3D, "position": Animation.TYPE_POSITION_3D, "scale": Animation.TYPE_SCALE_3D}[channel]
 			ClipSpec.add_value_track(spec, "%s:%s" % [track_root, bone_name], entry[channel], Animation.INTERPOLATION_LINEAR, type)
+	var carrier: Skeleton3D
+	var movement_track := ""
+	var node_entries: Array = []
+	var output_props := _bone_pose_history_props(skeleton)
+	if motion != null:
+		if root_mode == "preserve":
+			if reusable_carrier != null:
+				carrier = reusable_carrier
+				movement_track = str(player.root_motion_track)
+			else:
+				carrier = Skeleton3D.new()
+				allocation.track(carrier)
+				carrier.name = _unique_child_name(player, "RootMotionCarrier", {})
+				carrier.add_bone("motion")
+				carrier.set_bone_rest(0, Transform3D.IDENTITY)
+				carrier.set_bone_pose(0, Transform3D.IDENTITY)
+				carrier.set_meta("godot_ai_animation_motion_carrier", true)
+				carrier.set_meta("godot_ai_animation_motion_owner", ValueCodec.from_node(motion_owner, scene_root))
+				var player_track_path := str(destination_root.get_path_to(source_player.get_parent())) + "/" + str(player.name) if player_created else str(destination_root.get_path_to(player))
+				movement_track = player_track_path.trim_prefix("./") + "/" + str(carrier.name) + ":motion"
+				node_entries.append({"parent": player, "node": carrier})
+		elif root_mode == "apply": movement_track = str(destination_root.get_path_to(motion_owner))
+		for channel in motion_keys:
+			if motion_keys[channel].is_empty(): continue
+			var type: int = {"rotation": Animation.TYPE_ROTATION_3D, "position": Animation.TYPE_POSITION_3D, "scale": Animation.TYPE_SCALE_3D}[channel]
+			ClipSpec.add_value_track(spec, movement_track, motion_keys[channel], Animation.INTERPOLATION_LINEAR, type)
+		var extraction_path := NodePath(movement_track) if root_mode == "preserve" else NodePath()
+		if player_created:
+			player.root_motion_track = extraction_path
+			player.root_motion_local = root_mode == "preserve"
+		else:
+			output_props.append({"object": player, "property": "root_motion_track", "old": player.root_motion_track, "value": extraction_path})
+			output_props.append({"object": player, "property": "root_motion_local", "old": player.root_motion_local, "value": root_mode == "preserve"})
+	elif player != source_player and not player.root_motion_track.is_empty():
+		output_props.append({"object": player, "property": "root_motion_track", "old": player.root_motion_track, "value": NodePath()})
 	var valid := SpecBuilder.validate(spec)
 	if valid.has("error"): return valid
 	var anim := SpecBuilder.to_animation(spec)
 	if player_created:
 		player.add_animation_library("", library)
 		library.add_animation(anim_name, anim)
-		_commit_node_add_many("MCP: Baked clip %s" % anim_name, [{"parent": source_player.get_parent(), "node": player}])
+		node_entries.push_front({"parent": source_player.get_parent(), "node": player})
+		_commit_node_add_many("MCP: Baked clip %s" % anim_name, node_entries)
 		if not _dry_run: allocation.transfer_to_history()
 	else:
-		_commit_animation_add("MCP: Baked clip %s" % anim_name, player, library, created_library, anim_name, anim, existing.old_anim, _bone_pose_history_props(skeleton))
+		_commit_animation_add("MCP: Baked clip %s" % anim_name, player, library, created_library, anim_name, anim, existing.old_anim, output_props, node_entries)
+		if not _dry_run: allocation.transfer_to_history()
 	return {"data": {
 		"player_path": output_path, "source_player_path": ValueCodec.from_node(source_player, scene_root),
 		"output_player_created": player_created, "skeleton_path": resolved.path,
-		"animation_name": anim_name, "length": length, "fps": fps, "samples": samples,
+		"animation_name": anim_name, "length": length + terminal_hold, "capture_duration": length,
+		"root_motion_terminal_hold": terminal_hold, "fps": fps, "samples": samples,
 		"bone_count": indices.size(), "track_count": spec.tracks.size(),
 		"positions": include_positions, "scales": include_scales, "source_animation": source,
 		"source_tree_path": ValueCodec.from_node(source_tree, scene_root) if source_tree != null else "",
@@ -2716,6 +2783,11 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 		"reset_scope": "private_copy", "sample_delta": step,
 		"evaluation_isolated": true, "live_state_untouched": true,
 		"excluded_tracks": exclusions, "root_motion_mode": root_mode,
+		"root_motion_target_path": ValueCodec.from_node(motion_owner, scene_root) if motion_owner != null else "",
+		"root_motion_track": movement_track if root_mode == "preserve" else "",
+		"root_motion_local": motion != null and root_mode == "preserve",
+		"travel_omitted": motion != null and root_mode == "pose_only",
+		"movement_owner_count": 1 if motion != null and root_mode != "pose_only" else 0,
 		"restored_skeletons": preserved_paths, "retarget_targets": retarget_paths,
 		"note": "Sampling used a private scene. Disable source playback and source modifiers when playing the baked clip.",
 	}}

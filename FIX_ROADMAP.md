@@ -3295,3 +3295,28 @@ spring from the current pose using the public reset API.
 - Root motion and the complete saved-playback/continuation/visual/hosted gates
   remain in progress. Recovery contains checkpoint JSON and the exact source
   archive; the review branch remains unreleased.
+
+#### Checkpoint 4: root-motion ownership
+
+- Preserve, pose_only and apply are implemented through the public bake route.
+  Native deltas move a private explicit movement owner before world-dependent
+  modifiers. A separate Skeleton3D carrier keeps extraction independent of
+  final root-bone poses; apply writes owner transforms and disables extraction.
+- Fresh visible Godot 4.7.2 passes five named root tests: 72 clip/tree cases at
+  30/60/120 FPS, local extraction on/off, loops on/off, turning/scaling travel,
+  transformed/scaled parents and characters, fractional world-target look-at,
+  explicit destination, overwrite/carrier reuse and five atomic refusals.
+  Played position error is below one micrometre, rotation below 0.001 radians,
+  no captured engine errors. One Undo action owns output and carrier lifetime.
+- Preserved nonlooping clips include a reported 1 ms stationary terminal hold
+  so Godot does not clear the last moving root delta on its finishing tick.
+- The previous graph CI passed its pinned Linux editor tests but failed a stale
+  generated audit and Windows core backend process identification after reload.
+  Generated evidence is refreshed and the route harness now owns an external
+  backend across reload. Hosted confirmation remains required.
+- See docs/rig-bake-restoration-validation.md. Complete saved/continuation/native
+  modifier matrices and visual/platform approval remain checkpoint 5 work.
+- Checkpoint 4 full local gate: all fourteen headless suites and a fresh editor
+  pass (333 tests, one optional X Bot skip, zero engine/route/discovery errors).
+  The retained bake-state leak check now permits only freed previous Redo nodes
+  on commit; dry/refusal calls still require the exact orphan set.

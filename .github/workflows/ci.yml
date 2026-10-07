@@ -224,7 +224,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mcp-editor-${{ matrix.os }}
-          path: mcp-editor.log
+          path: |
+            mcp-editor.log
+            mcp-backend.log
           if-no-files-found: ignore
 
   version-check:

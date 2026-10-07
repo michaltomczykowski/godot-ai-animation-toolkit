@@ -5,11 +5,13 @@ extends RefCounted
 ## the source's private current crossfade, travel queue or solver state.
 const Errors := preload("res://addons/godot_ai_animation/utils/error_codes.gd")
 const Json := preload("res://addons/godot_ai_animation/spec/spec_json.gd")
+const Motion := preload("res://addons/godot_ai_animation/utils/bake_root_motion.gd")
 var initial: Dictionary = {}
 var starts: Array = []
 var events: Array = []
 var cursor := 0
 var tree: AnimationTree
+var last_motion: Dictionary = {}
 
 func configure(source: AnimationTree, params: Dictionary, duration: float) -> Dictionary:
 	if source.tree_root == null: return _error("source tree has no root")
@@ -73,6 +75,9 @@ func begin(copy: AnimationTree) -> void:
 func advance(delta: float, time: float) -> void:
 	# Events at an endpoint take effect after advancing with preceding controls.
 	if delta > 0.0: tree.advance(delta)
+	# A following zero-time parameter refresh clears native deltas. Preserve the
+	# just-played interval before applying commands at its endpoint.
+	last_motion = Motion.capture(tree)
 	var changed := false
 	while cursor < events.size() and events[cursor].time <= time + 0.00000001:
 		_command(events[cursor])

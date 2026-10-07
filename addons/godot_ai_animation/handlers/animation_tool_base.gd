@@ -175,11 +175,17 @@ func _commit_animation_changes(
 	removed: Dictionary,
 	added: Dictionary,
 	extra_props: Array = [],
+	extra_nodes: Array = [],
 ) -> void:
 	if _dry_run:
 		return
 	_create_scene_pinned_action(action_label)
 	var undo := ToolContext.undo_redo
+	for entry in extra_nodes:
+		undo.add_do_method(entry.parent, "add_child", entry.node, true)
+		undo.add_undo_method(entry.parent, "remove_child", entry.node)
+		undo.add_do_method(entry.node, "set_owner", EditorInterface.get_edited_scene_root())
+		undo.add_do_reference(entry.node)
 	_stage_animation_changes(undo, player, library, created_library, removed, added)
 	for entry in extra_props:
 		undo.add_do_property(entry.object, entry.property, entry.value)
@@ -289,11 +295,12 @@ func _commit_animation_add(
 	anim: Animation,
 	old_anim: Animation,
 	extra_props: Array = [],
+	extra_nodes: Array = [],
 ) -> void:
 	var removed := {}
 	if old_anim != null:
 		removed[anim_name] = old_anim
-	_commit_animation_changes(action_label, player, library, created_library, removed, {anim_name: anim}, extra_props)
+	_commit_animation_changes(action_label, player, library, created_library, removed, {anim_name: anim}, extra_props, extra_nodes)
 
 
 ## Open an action pinned to the edited scene's history. The first do-targets

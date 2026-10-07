@@ -100,7 +100,15 @@ func _case(state: String) -> void:
 	assert_true(_checks._same(_checks._snapshot(skeleton), before_pose), state + " dry pose")
 	assert_eq(history.get_version(), version, state + " dry history")
 	assert_has_key(_call(params), "data", state + " bake")
-	assert_eq(Node.get_orphan_node_ids(), orphans, state + " bake no orphan nodes")
+	# Committing discards the previous suite's Redo branch and may free its
+	# detached output/carrier references. Require no new orphan IDs, then use
+	# the remaining exact set for read-only/refused calls.
+	var after_commit := Node.get_orphan_node_ids()
+	var added: Array = []
+	for id in after_commit:
+		if not orphans.has(id): added.append(id)
+	assert_eq(added, [], state + " bake no orphan nodes")
+	orphans = after_commit
 	assert_true(_checks._same(_player_state(player), before_player), state + " bake playback state")
 	_zero_speed(player, state, "bake")
 	assert_true(_checks._same(_checks._snapshot(skeleton), before_pose), state + " bake pose")

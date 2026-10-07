@@ -3,6 +3,7 @@ extends RefCounted
 
 const Sandbox := preload("res://addons/godot_ai_animation/utils/evaluation_sandbox.gd")
 const Errors := preload("res://addons/godot_ai_animation/utils/error_codes.gd")
+const RootMotion := preload("res://addons/godot_ai_animation/utils/bake_root_motion.gd")
 const SUPPORTED := ["TwoBoneIK3D", "CCDIK3D", "FABRIK3D", "SplineIK3D", "LookAtModifier3D", "BoneTwistDisperser3D", "RetargetModifier3D", "SpringBoneSimulator3D"]
 class Witness extends SkeletonModifier3D:
 	var poses: Array = []
@@ -25,6 +26,7 @@ var skeleton: Skeleton3D
 var player: AnimationPlayer
 var tree: AnimationTree
 var graph_replay: RefCounted
+var root_motion: RefCounted
 var rigs: Array[Skeleton3D] = []
 var witnesses: Dictionary = {}
 var modifiers: Array = []
@@ -32,7 +34,7 @@ var reset_modifiers: Array = []
 var preserved: Array = []
 var _test_fail_at := -1.0 # Internal failure injection; never exposed on the tool wire.
 
-func open(scene_root: Node, source_skeleton: Skeleton3D, source_player: AnimationPlayer, animation: String, source_tree: AnimationTree = null, replay: RefCounted = null) -> Dictionary:
+func open(scene_root: Node, source_skeleton: Skeleton3D, source_player: AnimationPlayer, animation: String, source_tree: AnimationTree = null, replay: RefCounted = null, motion: RefCounted = null, motion_owner: Node3D = null) -> Dictionary:
 	if source_player.get_script() != null:
 		return _fail("custom animation processors cannot be replayed")
 	if source_tree != null and source_tree.get_script() != null: return _fail("custom tree processors cannot be replayed")
@@ -92,6 +94,8 @@ func open(scene_root: Node, source_skeleton: Skeleton3D, source_player: Animatio
 		player.active = true
 		player.play(animation)
 		player.advance(0.0)
+	root_motion = motion
+	if root_motion != null: root_motion.begin(sandbox.get_copy(motion_owner) if motion_owner != null else null)
 	for rig in rigs:
 		for child in rig.get_children():
 			if child is SpringBoneSimulator3D and child.active: child.reset()
@@ -108,9 +112,20 @@ func _retarget_rigs(rig: Skeleton3D, needed: Dictionary) -> void:
 func sample(delta: float, time: float) -> Dictionary:
 	if _test_fail_at >= 0.0 and time >= _test_fail_at:
 		return _fail("injected missing capture at t=%.6f" % time)
+	var motion_delta: Dictionary = {"position": Vector3.ZERO, "rotation": Quaternion.IDENTITY, "scale": Vector3.ZERO, "accumulator": Quaternion.IDENTITY}
 	if tree != null:
 		if time > 0.0: graph_replay.advance(delta, time)
-	elif delta > 0.0 and player.is_playing(): player.advance(delta)
+		motion_delta = graph_replay.last_motion
+	elif delta > 0.0:
+		# Stopped players retain old getter values; consume only played intervals.
+		if player.is_playing():
+			player.advance(delta)
+			motion_delta = RootMotion.capture(player)
+	if root_motion != null and time > 0.0:
+		var consumed: Dictionary = root_motion.consume(motion_delta, time)
+		if consumed.has("error"):
+			close()
+			return consumed
 	var count: int = witnesses[skeleton].count
 	for rig in rigs:
 		var final_capture: Witness = witnesses[rig]
@@ -131,7 +146,7 @@ func sample(delta: float, time: float) -> Dictionary:
 		var pose: Dictionary = witness.poses[i]
 		if not pose.rotation.is_finite() or not pose.position.is_finite() or not pose.scale.is_finite():
 			return _fail("nonfinite final pose bone=%s t=%.6f" % [skeleton.get_bone_name(i), time])
-	return {"poses": witness.poses.duplicate(true)}
+	return {"poses": witness.poses.duplicate(true), "motion": root_motion.sample() if root_motion != null else {}}
 
 func close() -> void:
 	sandbox.close()
@@ -141,6 +156,7 @@ func close() -> void:
 	player = null
 	tree = null
 	graph_replay = null
+	root_motion = null
 
 func _fail(message: String) -> Dictionary:
 	close()
