@@ -164,8 +164,11 @@ from every family has a recorded visual/effect review.
 
 **Status:** In progress. Eleven graph scenarios have live MCP save/reopen and
 dry-run checks; ten saved graphs have fresh-process AnimationTree playback
-evidence. All five rig-modifier operations have measured saved playback, and
-all 16 advertised FX operations have saved runtime checks in Windows/Linux
+evidence. All five rig-modifier operations now pass the supported 92-case
+setup/history/playback matrix (828 saved states, 276 native references,
+2,160 influence checks) and Windows/Linux public-route CI. Active graph/modifier
+bake restoration is the next separate gate. All 16 advertised FX operations
+have saved runtime checks in Windows/Linux
 CI. All 20 clip edits have played interpolation checks in Windows/Linux CI.
 All nine presets and seven library operations have live route checks in both
 platforms; saved playback covers the eight standalone presets, showcase's
@@ -3213,3 +3216,15 @@ spring from the current pose using the public reset API.
   mode, selective flags, disabled bones and different rests. Retarget's 378
   weight checks and the full fresh Godot AI 15-test/828-state/276-native gate
   pass locally, zero captured errors and zero measured weight discrepancy.
+- Modifier setup/history/playback checkpoint is complete on code `623e776`.
+  [CI 37667134975](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37667134975)
+  passes all 34 required non-release jobs: fourteen headless suites on each
+  platform, four editor/core combinations and both complete 116-gate public
+  Godot AI routes. Hosted editor runs pass 314 with one optional X Bot asset
+  skip (local 315/315), zero captured errors. The Windows direct modifier
+  reload gate passes with the new readiness wait. Recovery contains both route
+  logs, all four editor summaries, 276 saved scenes, source hashes and media.
+  Three native limitations remain typed refusals; broader operation statuses
+  stay partial. Next: active graph/modifier bake restoration, then motion/
+  sequence history and character action visual approval. Draft PR #1 remains
+  open and unreleased. The closing evidence commit changes documentation only.

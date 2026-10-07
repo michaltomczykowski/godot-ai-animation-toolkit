@@ -3,6 +3,11 @@
 Approved 2026-10-07. Baseline: `1074877`, Godot 4.7.2, public Godot AI
 `animation_rig_modifiers` route. Work alone on `repair/toolkit-quality`.
 
+**Status:** Complete as the supported modifier setup/history/playback checkpoint
+on source `623e776`. CI `37667134975` passes all 34 required Windows/Linux jobs.
+The documented engine refusals remain; active graph/modifier baking and broader
+character action approval are separate following checkpoints.
+
 ## Checkpoint 1: history and persistence
 
 Use authored synthetic rigs, immutable source scenes and untouched peer

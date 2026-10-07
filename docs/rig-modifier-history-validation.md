@@ -133,8 +133,8 @@ an explicit current-pose reset at all three frame rates.
 - The final weight gate passes locally through Godot AI: all 15 named tests,
   828 saved states / 276 native references / 108 stack states, zero errors,
   and all 2,160 mandatory weight checks. Retarget-only playback passes its
-  378 geometric weight checks with zero measured pose discrepancy. Hosted CI
-  on the reconnect/weight follow-up remains required before closing this phase.
+  378 geometric weight checks with zero measured pose discrepancy. The hosted
+  result below closes the reconnect/weight follow-up.
 
 The route job now has a 25-minute limit: the prior complete Windows run took
 almost 15 minutes. Per-gate deadlines and all required states/IDs remain strict.
@@ -147,6 +147,28 @@ diagnostics, exact suite/runtime reports and shortcut witnesses.
 These checks cover setup/history/evaluation. They do not approve locomotion,
 action readability or active AnimationTree/modifier baking. Operation audit
 statuses remain partial until the broader visual and bake gates are complete.
+
+## Phase closure — 2026-10-07
+
+Code checkpoint **`623e776`** passes
+[CI 37667134975](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37667134975):
+all **34 required non-release jobs**, including all fourteen headless suites on
+Windows/Linux, four editor/platform/core combinations and both complete
+**116-gate** public Godot AI routes. Each hosted editor run has 314 passing
+tests and one optional X Bot asset skip, with zero captured engine/tool-route/
+discovery errors. Local editor coverage includes that asset: 315/315.
+
+Decision: the supported modifier setup/history/playback matrix is complete.
+All 92 cases, saved states, native references, influence weights and reload
+reports are mandatory; the three native limitations remain typed refusals.
+Windows/Linux route logs, editor summaries, gate integrity checks, source
+hashes, all 276 required saved scenes and local media are in the recovery
+directory. The review branch and its existing draft PR remain unreleased.
+
+Next: plan and reproduce active AnimationTree/ordered modifier bake restoration,
+including fractional final influence, retarget child poses, stateful springs,
+outside-rig properties and late sample failures. Motion/sequence history and
+character action visual approval follow. This phase does not close those gates.
 
 ## Local playback media
 
@@ -180,3 +202,35 @@ Reference contracts: [modifier timing and influence](https://docs.godotengine.or
 [spring reset/collisions](https://docs.godotengine.org/en/4.7/classes/class_springbonesimulator3d.html),
 [look-at axes and origins](https://docs.godotengine.org/en/4.7/classes/class_lookatmodifier3d.html),
 and [retarget child ownership](https://docs.godotengine.org/en/4.7/classes/class_retargetmodifier3d.html).
+
+## Reproduce the matrix
+
+Start a fresh Godot 4.7.2 editor in the configured `test_project`, then run one
+mutation client at a time. The local paths/ports below match this checkpoint;
+use the active editor session's ports when testing another installation.
+
+```powershell
+$taskRepo = 'G:/godot-ai-dev/godot-ai-animation-toolkit'
+$taskCore = 'G:/godot-ai-dev/godot-ai-v4-animation'
+$taskPython = "$taskCore/.venv/Scripts/python.exe"
+$taskGodot = 'F:/GODOTAITESTING/Godot_v4.7.2-stable_win64/Godot_v4.7.2-stable_win64_console.exe'
+Set-Location $taskRepo
+& $taskPython tools/mcp_rig_modifier_history.py --core-root $taskCore --project-root "$taskRepo/test_project" --godot $taskGod --session-hint test-project --port 18131 --ws-port 18132
+& $taskPython tools/mcp_rig_modifier_ui_history.py --mode route --core-root $taskCore --project-root "$taskRepo/test_project" --session-hint test-project --port 18131 --ws-port 18132 --record "$env:TEMP/modifier_reload_report.json"
+```
+
+The first command recreates the manifest and all saved states through Godot AI,
+then runs the independent engine and strict ID/state/weight report gate. The
+second repeats all five operations before/after core reload with fresh clients.
+Both commands return nonzero on any required failure. CI executes these inside
+the full public-route gate, alongside headless and editor suites.
+
+After generating the manifest, repeat the diagnostic native probes with:
+
+```powershell
+& $taskGodot --headless --path "$taskRepo/test_project" --script res://tools/check_rig_modifier_history.gd -- probe_jacobian
+& $taskGodot --headless --path "$taskRepo/test_project" --script res://tools/check_rig_modifier_history.gd -- probe_centers
+```
+
+These probes are expected to fail on the documented engine limitations; they
+cannot approve the supported-operation gate.
