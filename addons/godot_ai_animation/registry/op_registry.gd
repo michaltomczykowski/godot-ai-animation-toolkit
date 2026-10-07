@@ -1524,6 +1524,11 @@ static func _rig_schema() -> Dictionary:
 			"cycles": {"type": "integer", "description": "punch: punches per clip (2; odd ends mid-combo)."},
 			"fps": {"type": "integer", "description": "bake_pose_sequence: samples/s (30)."},
 			"source_animation": {"type": "string", "description": "bake_pose_sequence: clip to sample."},
+			"source_tree_path": {"type": "string", "description": "bake: replay this tree from zero; exclusive with source_animation."},
+			"tree_parameters": {"type": "object", "description": "bake: writable parameters/... overrides. Vector2 uses {kind:vector2,x,y}. Transient requests default to cleared."},
+			"tree_starts": {"type": "array", "items": {"type": "object"}, "description": "bake: [{playback_path,state}]. Nested machines use their own playback path; grouped machines use parent travel events."},
+			"tree_events": {"type": "array", "items": {"type": "object"}, "description": "bake: ordered [{time,action:set|start|travel,path,value?/state?}]. Event times become sample keys."},
+			"output_player_path": {"type": "string", "description": "bake: existing inactive, stopped, unlinked destination. Otherwise graph sources get a new inactive output player."},
 			"skeleton_path": {
 				"type": "string",
 				"description": "Skeleton3D/2D path (default: first one).",
@@ -1765,8 +1770,8 @@ static func _rig_ops() -> Array:
 		},
 		{
 			"name": "bake_pose_sequence",
-			"summary": "Sample a skeleton over time into a clip: seek the source clip, run the active modifiers (IK, springs, retarget), key the final pose.",
-			"params": ["player_path", "skeleton_path", "animation_name", "duration", "fps", "bones", "positions", "scales", "source_animation", "loop_mode", "overwrite"],
+			"summary": "Bake one skeleton's final weighted pose using a private clip or deterministic AnimationTree replay; live playback and solver state remain untouched.",
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "fps", "bones", "positions", "scales", "source_animation", "source_tree_path", "tree_parameters", "tree_starts", "tree_events", "output_player_path", "loop_mode", "overwrite"],
 			"example": {"op": "bake_pose_sequence", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "walk_baked", "duration": 1.0, "loop_mode": "linear"},
 		},
 	])

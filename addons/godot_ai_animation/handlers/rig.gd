@@ -15,6 +15,7 @@ const SpecJson := preload("res://addons/godot_ai_animation/spec/spec_json.gd")
 const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
 const ModifierAllocation := preload("res://addons/godot_ai_animation/utils/modifier_allocation.gd")
 const PoseBakeSampler := preload("res://addons/godot_ai_animation/utils/pose_bake_sampler.gd")
+const BakeGraphReplay := preload("res://addons/godot_ai_animation/utils/bake_graph_replay.gd")
 
 const POSE_DIR := "res://animation_toolkit/poses"
 ## bake_pose_sequence cost is duration * fps samples, each a full skeleton
@@ -2531,6 +2532,9 @@ static func _punch_deltas(skeleton: Skeleton3D, roles: Dictionary, punching: Str
 ## is seeked to each sample first, then the skeleton is updated so modifiers
 ## (IK, springs, retarget) run - the baked clip plays without them.
 func bake_pose_sequence(params: Dictionary) -> Dictionary:
+	for field in ["animation_name", "source_animation", "source_tree_path", "output_player_path", "root_motion_mode", "root_motion_target_path"]:
+		if params.has(field) and not params[field] is String:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s must be a string" % field)
 	for field in ["duration", "fps"]:
 		if params.has(field) and not (params[field] is int or params[field] is float):
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s must be numeric" % field)
@@ -2540,6 +2544,8 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "duration must be finite and >= 0.001")
 	if not is_finite(fps_value) or fps_value < 1.0 or fps_value != floor(fps_value):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "fps must be a positive integer")
+	if not is_finite(length * fps_value) or length * fps_value > MAX_BAKE_SAMPLES - 1:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "duration x fps exceeds the 1200-pose bake budget")
 	var fps := int(fps_value)
 	var samples := int(ceil(length * fps_value)) + 1
 	if samples > MAX_BAKE_SAMPLES:
@@ -2547,8 +2553,6 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 	for field in ["positions", "scales", "overwrite", "dry_run"]:
 		if params.has(field) and not params[field] is bool:
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s must be a boolean" % field)
-	if not str(params.get("source_tree_path", "")).is_empty():
-		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "AnimationTree replay is the next bake checkpoint; clip sampling is available")
 	var resolved := _resolve_skeleton(params)
 	if resolved.has("error"): return resolved
 	if resolved.kind != "3d":
@@ -2561,14 +2565,32 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 	if root_node == null:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "The source AnimationPlayer has no resolvable root_node")
 	var source := str(params.get("source_animation", ""))
-	if source.is_empty(): source = str(source_player.current_animation)
-	if source.is_empty(): source = str(source_player.assigned_animation)
+	var source_tree: AnimationTree
+	var replay := BakeGraphReplay.new()
+	var tree_path := str(params.get("source_tree_path", ""))
+	if not tree_path.is_empty():
+		if params.has("source_animation"):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "source_tree_path and source_animation are mutually exclusive")
+		var tree_node := ValueCodec.resolve_scene_path(tree_path, EditorInterface.get_edited_scene_root())
+		if not tree_node is AnimationTree:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "source_tree_path must resolve an AnimationTree")
+		source_tree = tree_node
+		if source_tree.get_node_or_null(source_tree.anim_player) != source_player:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "source tree must link player_path")
+		var configured := replay.configure(source_tree, params, length)
+		if configured.has("error"): return configured
+	elif params.has("tree_parameters") or params.has("tree_starts") or params.has("tree_events"):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "tree controls require source_tree_path")
+	else:
+		if source.is_empty(): source = str(source_player.current_animation)
+		if source.is_empty(): source = str(source_player.assigned_animation)
 	if not source.is_empty() and not source_player.has_animation(source):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Animation '%s' not found. Available: %s" % [source, ", ".join(source_player.get_animation_list())])
 	var root_mode := str(params.get("root_motion_mode", "preserve"))
 	if root_mode not in ["preserve", "pose_only", "apply"]:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "root_motion_mode must be preserve, pose_only or apply")
-	if not source_player.root_motion_track.is_empty() and root_mode != "pose_only":
+	var source_mixer: AnimationMixer = source_tree if source_tree != null else source_player
+	if not source_mixer.root_motion_track.is_empty() and root_mode != "pose_only":
 		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Root-motion preservation/application is pending its independent playback checkpoint; explicit pose_only is available")
 	var loop_result := _loop_mode(params)
 	if loop_result.has("error"): return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, loop_result.error)
@@ -2610,6 +2632,10 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 		output_path = ValueCodec.from_node(source_player.get_parent(), scene_root) + "/" + str(player.name)
 	if output_path.is_empty(): output_path = ValueCodec.from_node(player, scene_root)
 	var destination_root := root_node if player_created else ValueCodec.player_root_node(player)
+	if destination_root == null:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Output AnimationPlayer has no resolvable root_node")
+	if player.get_script() != null:
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Custom output animation processors cannot reproduce the baked result")
 	var track_root := str(destination_root.get_path_to(skeleton))
 	if track_root.is_empty() or track_root == ".":
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "The skeleton must have a valid path from the output player's root")
@@ -2625,14 +2651,20 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 		var undo_error := _require_undo("Baking a clip")
 		if not undo_error.is_empty(): return undo_error
 	var sampler := PoseBakeSampler.new()
-	var opened := sampler.open(scene_root, skeleton, source_player, source)
+	var times: Array = replay.sample_times(length, fps) if source_tree != null else []
+	if source_tree == null:
+		for i in samples: times.append(minf(float(i) / fps, length))
+	if times.size() + replay.events.size() > MAX_BAKE_SAMPLES:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "samples and graph events exceed the 1200-evaluation budget")
+	samples = times.size()
+	var opened := sampler.open(scene_root, skeleton, source_player, source, source_tree, replay)
 	if opened.has("error"): return opened
 	var keys := {}
 	for index in indices: keys[skeleton.get_bone_name(index)] = {"rotation": [], "position": [], "scale": []}
 	var step := 1.0 / fps
 	var previous := 0.0
-	for index in samples:
-		var time := minf(index * step, length)
+	for time_value in times:
+		var time := float(time_value)
 		var sampled := sampler.sample(time - previous, time)
 		if sampled.has("error"): return sampled
 		previous = time
@@ -2676,6 +2708,8 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 		"animation_name": anim_name, "length": length, "fps": fps, "samples": samples,
 		"bone_count": indices.size(), "track_count": spec.tracks.size(),
 		"positions": include_positions, "scales": include_scales, "source_animation": source,
+		"source_tree_path": ValueCodec.from_node(source_tree, scene_root) if source_tree != null else "",
+		"graph_restart_from_zero": source_tree != null, "graph_events": replay.events.size(),
 		"loop_mode": ValueCodec.loop_mode_to_string(int(spec.loop_mode)),
 		"library_created": created_library, "overwritten": existing.old_anim != null,
 		"undoable": true, "modifiers": modifier_classes, "reset_modifiers": reset_classes,
@@ -3457,5 +3491,3 @@ func _retarget_missing_core(mapped: Array, source: Skeleton3D, target: Skeleton3
 		if not mapped.has(bone_name):
 			missing.append(bone_name)
 	return missing
-
-

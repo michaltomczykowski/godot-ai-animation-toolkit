@@ -521,7 +521,7 @@ Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 | `jumping_jack` | Build a looping jumping jack: arms swing down to overhead while the legs spread apart and back together, with a small rise. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `amplitude`, `stride`, `bob`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
 | `squat` | Build a looping squat with planted feet: the hips drop, the knees bend forward and the leg chains are solved to keep the ankles in place. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `bob`, `amplitude`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
 | `punch` | Build a looping boxing combo: guard, then alternating straight punches. `amplitude` is the *total* torso twist in degrees, spread up the spine chain (most of it in the upper chest); `cycles` punches fit in the clip. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `cycles`, `amplitude`, `bob`, `roles`, `profile`, `spine_chain`, `loop_mode`, `overwrite`, `dry_run` |
-| `bake_pose_sequence` | Sample a skeleton over time into a clip: seek the source clip, run the active modifiers (IK, springs, retarget), key the final pose. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `fps`, `bones`, `positions`, `scales`, `source_animation`, `loop_mode`, `overwrite`, `dry_run` |
+| `bake_pose_sequence` | Bake one skeleton's final weighted pose using a private clip or deterministic AnimationTree replay; live playback and solver state remain untouched. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `fps`, `bones`, `positions`, `scales`, `source_animation`, `source_tree_path`, `tree_parameters`, `tree_starts`, `tree_events`, `output_player_path`, `loop_mode`, `overwrite`, `dry_run` |
 
 ### `animation_rig` parameters
 
@@ -545,6 +545,11 @@ Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 | `cycles` | integer | punch: punches per clip (2; odd ends mid-combo). |
 | `fps` | integer | bake_pose_sequence: samples/s (30). |
 | `source_animation` | string | bake_pose_sequence: clip to sample. |
+| `source_tree_path` | string | bake: replay this tree from zero; exclusive with source_animation. |
+| `tree_parameters` | object | bake: writable parameters/... overrides. Vector2 uses {kind:vector2,x,y}. Transient requests default to cleared. |
+| `tree_starts` | array | bake: [{playback_path,state}]. Nested machines use their own playback path; grouped machines use parent travel events. |
+| `tree_events` | array | bake: ordered [{time,action:set|start|travel,path,value?/state?}]. Event times become sample keys. |
+| `output_player_path` | string | bake: existing inactive, stopped, unlinked destination. Otherwise graph sources get a new inactive output player. |
 | `skeleton_path` | string | Skeleton3D/2D path (default: first one). |
 | `bones` | array | rig_chain: [{name, parent?, position?, rotation?, scale?, length?}]; else a bone filter. |
 | `node_path` | string | rig_chain: Node3D/Node2D subtree to become a skeleton (locals = rests). |

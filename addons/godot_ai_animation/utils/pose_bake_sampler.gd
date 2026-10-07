@@ -23,6 +23,8 @@ class Witness extends SkeletonModifier3D:
 var sandbox := Sandbox.new()
 var skeleton: Skeleton3D
 var player: AnimationPlayer
+var tree: AnimationTree
+var graph_replay: RefCounted
 var rigs: Array[Skeleton3D] = []
 var witnesses: Dictionary = {}
 var modifiers: Array = []
@@ -30,9 +32,10 @@ var reset_modifiers: Array = []
 var preserved: Array = []
 var _test_fail_at := -1.0 # Internal failure injection; never exposed on the tool wire.
 
-func open(scene_root: Node, source_skeleton: Skeleton3D, source_player: AnimationPlayer, animation: String) -> Dictionary:
+func open(scene_root: Node, source_skeleton: Skeleton3D, source_player: AnimationPlayer, animation: String, source_tree: AnimationTree = null, replay: RefCounted = null) -> Dictionary:
 	if source_player.get_script() != null:
 		return _fail("custom animation processors cannot be replayed")
+	if source_tree != null and source_tree.get_script() != null: return _fail("custom tree processors cannot be replayed")
 	var needed := {source_skeleton: true}
 	var ancestor := source_skeleton.get_parent()
 	while ancestor != null and ancestor != scene_root:
@@ -78,7 +81,14 @@ func open(scene_root: Node, source_skeleton: Skeleton3D, source_player: Animatio
 	# are evaluated before native retarget children and their own stacks.
 	player.speed_scale = 1.0
 	player.playback_auto_capture = false
-	if not animation.is_empty():
+	if source_tree != null:
+		tree = sandbox.get_copy(source_tree)
+		if tree == null: return _fail("source tree missing from private hierarchy")
+		graph_replay = replay
+		tree.active = true
+		graph_replay.begin(tree)
+		graph_replay.advance(0.0, 0.0)
+	elif not animation.is_empty():
 		player.active = true
 		player.play(animation)
 		player.advance(0.0)
@@ -98,7 +108,9 @@ func _retarget_rigs(rig: Skeleton3D, needed: Dictionary) -> void:
 func sample(delta: float, time: float) -> Dictionary:
 	if _test_fail_at >= 0.0 and time >= _test_fail_at:
 		return _fail("injected missing capture at t=%.6f" % time)
-	if delta > 0.0 and player.is_playing(): player.advance(delta)
+	if tree != null:
+		if time > 0.0: graph_replay.advance(delta, time)
+	elif delta > 0.0 and player.is_playing(): player.advance(delta)
 	var count: int = witnesses[skeleton].count
 	for rig in rigs:
 		var final_capture: Witness = witnesses[rig]
@@ -127,6 +139,8 @@ func close() -> void:
 	rigs.clear()
 	skeleton = null
 	player = null
+	tree = null
+	graph_replay = null
 
 func _fail(message: String) -> Dictionary:
 	close()

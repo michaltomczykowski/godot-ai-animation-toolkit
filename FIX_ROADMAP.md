@@ -3267,3 +3267,31 @@ spring from the current pose using the public reset API.
   not advertised yet; callers receive OPERATION_UNAVAILABLE for graph replay or
   unresolved extraction modes. Full editor/hosted CI and independent visual
   approval are required at the closing checkpoint. No release is created.
+
+#### Checkpoint 3: deterministic graph replay and inactive output storage
+
+- `bake_pose_sequence` now exposes source_tree_path, tree_parameters,
+  tree_starts, tree_events and output_player_path through the public registry.
+  Sources restart privately at zero, seed ordinary writable parameters, clear
+  transient requests and execute validated ordered commands. Event times are
+  included in sampling and count against the 1,200-evaluation budget.
+- A linked source player is protected from library refresh by creating a new
+  inactive/manual scene-owned output player. Dry run predicts its path; Undo
+  removes it and Redo restores it in the same scene action. Explicit outputs
+  must be inactive, stopped and unlinked. Source library/graph/playback resource
+  identities and public playback state remain exact through dry/write/Undo/Redo.
+- Fresh visible Godot AI passes nine named graph tests: 24 native replay cases
+  at 30/60/120 FPS, covering inactive/root/nested/grouped/crossfading/queued
+  state machines, 1D/2D blend spaces, filtered additive, one-shot and TimeScale,
+  plus eleven atomic preflight refusals. Final keys agree within 0.001 radians;
+  all captures are present, zero captured engine errors. The four restoration
+  tests remain green. Registry documentation was regenerated.
+- Native grouped AUTO boundary transitions reproduce condition evaluation
+  errors on both original and private graphs in Godot 4.7.2. That configuration
+  receives OPERATION_UNAVAILABLE. Verified grouped playback uses ENABLED
+  boundaries and explicit parent travel. Nested machines use their own
+  playback paths; slash-delimited child travel is allowed only for grouped
+  machines. Scripted resources/processors and expressions remain refused.
+- Root motion and the complete saved-playback/continuation/visual/hosted gates
+  remain in progress. Recovery contains checkpoint JSON and the exact source
+  archive; the review branch remains unreleased.
