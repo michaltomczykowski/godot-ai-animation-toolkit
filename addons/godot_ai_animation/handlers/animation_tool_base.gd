@@ -17,10 +17,21 @@ const ValueCodec := preload("res://addons/godot_ai_animation/utils/value_codec.g
 ## (used by `animation_inspect(op="dry_run")` and the tools' own `dry_run`).
 var _dry_run := false
 
+# Editor animation-list refreshes run deferred and can reset newly introduced
+# channels. Tickets prevent an older restoration from winning after Undo/Redo
+# within one frame; the history version also protects later non-clip edits.
+static var _pose_restore_serial: int = 0
+static var _pose_restore_tickets: Dictionary = {}
+var _owned_pose_restore_tickets: Dictionary = {}
+
 
 ## The core asks cached handlers to quiesce before a script update. Calls in
-## base families are synchronous and own no work after run() returns.
+## Cancel any pending pose restoration before a handler script is replaced.
 func quiesce_for_script_swap() -> Dictionary:
+	for scene_id in _owned_pose_restore_tickets:
+		if _pose_restore_tickets.get(scene_id, -1) == _owned_pose_restore_tickets[scene_id]:
+			_pose_restore_tickets.erase(scene_id)
+	_owned_pose_restore_tickets.clear()
 	return {"ok": true}
 
 
@@ -155,6 +166,7 @@ static func _existing_animation(library: AnimationLibrary, anim_name: String, ov
 ##
 ## Optional `extra_props` entries are {object, property, value, old} changes
 ## bundled into the same action (e.g. Control pivot recentering).
+## Bone pose entries can set after_refresh to survive deferred editor refreshes.
 func _commit_animation_changes(
 	action_label: String,
 	player: AnimationPlayer,
@@ -172,7 +184,47 @@ func _commit_animation_changes(
 	for entry in extra_props:
 		undo.add_do_property(entry.object, entry.property, entry.value)
 		undo.add_undo_property(entry.object, entry.property, entry.old)
+	var restore_props: Array = extra_props.filter(func(entry: Dictionary) -> bool:
+		return bool(entry.get("after_refresh", false)))
+	if not restore_props.is_empty():
+		var root := EditorInterface.get_edited_scene_root()
+		var history: UndoRedo = undo.get_history_undo_redo(undo.get_object_history_id(root))
+		var version := history.get_version()
+		undo.add_do_method(self, "_queue_pose_restore", restore_props, history,
+			root.get_instance_id(), version + 1, false)
+		undo.add_undo_method(self, "_queue_pose_restore", restore_props, history,
+			root.get_instance_id(), version, true)
 	undo.commit_action()
+
+
+func _queue_pose_restore(props: Array, history: UndoRedo, scene_id: int,
+		version: int, use_old: bool) -> void:
+	_pose_restore_serial += 1
+	var ticket := _pose_restore_serial
+	_pose_restore_tickets[scene_id] = ticket
+	_owned_pose_restore_tickets[scene_id] = ticket
+	_restore_pose_after_refresh.call_deferred(props, history, scene_id, version, use_old, ticket)
+
+
+func _restore_pose_after_refresh(props: Array, history: UndoRedo, scene_id: int,
+		version: int, use_old: bool, ticket: int) -> void:
+	if _owned_pose_restore_tickets.get(scene_id, -1) == ticket:
+		_owned_pose_restore_tickets.erase(scene_id)
+	if _pose_restore_tickets.get(scene_id, -1) != ticket:
+		return
+	_pose_restore_tickets.erase(scene_id)
+	var root := EditorInterface.get_edited_scene_root()
+	if root == null or root.get_instance_id() != scene_id or history.get_version() != version:
+		return
+	for entry in props:
+		# Check the Variant before assigning it to an Object-typed local: a freed
+		# node cannot be assigned, even when the next statement checks validity.
+		if not is_instance_valid(entry.object):
+			continue
+		var target: Object = entry.object
+		if not target is Node or not target.is_inside_tree():
+			continue
+		target.set(entry.property, entry.old if use_old else entry.value)
 
 
 ## Stage clip add/remove calls on an already-open undo action, including the

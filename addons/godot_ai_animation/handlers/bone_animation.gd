@@ -252,6 +252,26 @@ static func _pose_restore(skeleton: Skeleton3D, snapshot: Array) -> void:
 		skeleton.set_bone_pose_scale(index, snapshot[index].scale)
 
 
+## A clip edit can invalidate the editor's animation caches and reset channels
+## absent from the remaining clips. Restore the authored pose after the library
+## mutation in the same action, including native Undo/Redo on later frames.
+static func _bone_pose_history_props(skeleton: Node) -> Array:
+	var props: Array = []
+	if skeleton is Skeleton3D:
+		var rig := skeleton as Skeleton3D
+		var pose := _pose_snapshot(rig)
+		for index in pose.size():
+			for field in ["rotation", "position", "scale"]:
+				props.append({"object": rig, "property": "bones/%d/%s" % [index, field],
+					"value": pose[index][field], "old": pose[index][field], "after_refresh": true})
+	elif skeleton is Skeleton2D:
+		for index in skeleton.get_bone_count():
+			var bone: Bone2D = skeleton.get_bone(index)
+			props.append({"object": bone, "property": "transform", "value": bone.transform,
+				"old": bone.transform, "after_refresh": true})
+	return props
+
+
 ## Apply a clip spec to the skeleton at `time` (rest + sampled key values), so
 ## read-only probes and spring passes can pose the skeleton without a player.
 static func _apply_spec_at(skeleton: Skeleton3D, spec: Dictionary, time: float) -> void:
@@ -425,7 +445,7 @@ func _commit_procedural_clip(
 	if existing.has("error"):
 		return existing.error
 	_commit_animation_add("MCP: %s" % anim_name, built.player, built.library, built.created_library,
-		anim_name, built.anim, existing.old_anim, extra_props)
+		anim_name, built.anim, existing.old_anim, extra_props + _bone_pose_history_props(resolved.node))
 	return {"data": {
 		"player_path": str(params.get("player_path", "")),
 		"skeleton_path": resolved.path,

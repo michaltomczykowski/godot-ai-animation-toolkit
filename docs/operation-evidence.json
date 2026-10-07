@@ -2099,16 +2099,19 @@
       "mcp_invocation": "pass",
       "valid_effect": "pass",
       "track_paths_types": "pass",
-      "dry_run": "pass",
-      "save_reopen": "pass",
+      "dry_run": "pass_history_pose_playback_orphans_and_refusals",
+      "save_reopen": "pass_90_independent_saved_states",
       "typed_errors": "pending",
-      "undo_redo": "pending",
+      "undo_redo": "pass_five_layout_clip_matrix",
       "playback": "pass",
       "visual_review": "pending"
     },
     "evidence": [
       "2026-09-30: live Godot AI MCP on a static imported dummy; see mcp_rig_pose_crud_first.log, run 20260930_161028. Dry-run left no clip. Write produced one resolved bone rotation track, survived save/forced reopen, and check_rig_pose_clip_runtime.gd played 0, 0.6, 0 radians at 0, 0.5, 1.0 s (worst error 1.55e-7 rad).",
-      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The saved clip played in a fresh Godot 4.7.2 process and matched authored pose samples. Visual quality and editor Undo/Redo remain open."
+      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The saved clip played in a fresh Godot 4.7.2 process and matched authored pose samples. Visual quality and editor Undo/Redo remain open.",
+      "2026-10-07: Public Godot AI route on fresh Godot 4.7.2 passes the five-layout rig clip history matrix (eight 3D writers plus 2D pose_to_clip, 45 writes, 90 independent fresh-engine saved playback states), repeated after core reload. Exact scene history, resource identities, paused playback, instance permissions, named/unrelated libraries, custom roots and source/peer isolation checked. Native blink Undo exposed authored scale resetting after cache invalidation; shared bone-pose history restoration fixes it. Native blink and 2D pose-clip overwrite Undo/Redo pass. Final full regression/platform results pending; visual quality remains open. See docs/rig-clip-history-validation.md.",
+      "2026-10-07: Native Do source-pose checks exposed deferred Animation panel refresh resetting scale. Bone pose restoration now runs after refresh with scene/history/latest-ticket guards and script-swap cancellation. Freed target validity is checked before Object assignment. Visible Godot 4.7.2 Do/Undo/Redo passes for blink, 2D pose-clip overwrite and bake. Public batch clip then pose actions both succeed; the later pose survives. Complete CI requires post-refresh blink/2D/bake checks, later-action guard and no deferred script errors. See docs/rig-clip-history-validation.md; visual approval and broader histories remain open.",
+      "2026-10-07: Final guarded source passes fresh editor 292/292 with zero engine/tool/discovery/script errors, all fourteen headless suites and the complete external Godot AI route (113 required gates including core reload, rig clip six-case/90-state matrix, retained bake eight-case/16-state gate, strict post-refresh source poses and later-action guard). Hosted Windows/Linux source CI pending. All operation statuses remain partial pending remaining modifier/graph/character history and visual gates."
     ],
     "platforms": {
       "windows": "partial",
@@ -2175,17 +2178,20 @@
       "mcp_invocation": "pass_dummy",
       "valid_effect": "pass_dummy",
       "track_paths_types": "pass_dummy",
-      "dry_run": "pass_dummy",
-      "save_reopen": "pass_dummy",
+      "dry_run": "pass_history_pose_playback_orphans_and_refusals",
+      "save_reopen": "pass_90_independent_saved_states",
       "typed_errors": "pass_missing_skeleton",
-      "undo_redo": "pending_live",
+      "undo_redo": "pass_five_layout_clip_matrix",
       "playback": "pass_authored_keys_dummy",
       "visual_review": "pending",
       "contact_quality": "pending"
     },
     "evidence": [
       "2026-09-30: tools/mcp_rig_recipes.py invoked walk_cycle through live Godot AI on static imported dummy. Dry run left no clip, write created 7 resolved typed bone tracks and 25 keys, save/forced reopen preserved it; invalid skeleton returned typed NODE_NOT_FOUND. See mcp_rig_recipes_first.log, run 20260930_164109. check_rig_recipe_runtime.gd played the saved scene through AnimationPlayer, and every checked track set its bone to the authored key; at least one moved bone was observed. Contact/visual quality, editor undo, independent rigs and Linux remain.",
-      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The saved clip played in a fresh Godot 4.7.2 process, with moving bone tracks matching authored keys. Contact and visual quality remain open."
+      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The saved clip played in a fresh Godot 4.7.2 process, with moving bone tracks matching authored keys. Contact and visual quality remain open.",
+      "2026-10-07: Public Godot AI route on fresh Godot 4.7.2 passes the five-layout rig clip history matrix (eight 3D writers plus 2D pose_to_clip, 45 writes, 90 independent fresh-engine saved playback states), repeated after core reload. Exact scene history, resource identities, paused playback, instance permissions, named/unrelated libraries, custom roots and source/peer isolation checked. Native blink Undo exposed authored scale resetting after cache invalidation; shared bone-pose history restoration fixes it. Native blink and 2D pose-clip overwrite Undo/Redo pass. Final full regression/platform results pending; visual quality remains open. See docs/rig-clip-history-validation.md.",
+      "2026-10-07: Native Do source-pose checks exposed deferred Animation panel refresh resetting scale. Bone pose restoration now runs after refresh with scene/history/latest-ticket guards and script-swap cancellation. Freed target validity is checked before Object assignment. Visible Godot 4.7.2 Do/Undo/Redo passes for blink, 2D pose-clip overwrite and bake. Public batch clip then pose actions both succeed; the later pose survives. Complete CI requires post-refresh blink/2D/bake checks, later-action guard and no deferred script errors. See docs/rig-clip-history-validation.md; visual approval and broader histories remain open.",
+      "2026-10-07: Final guarded source passes fresh editor 292/292 with zero engine/tool/discovery/script errors, all fourteen headless suites and the complete external Godot AI route (113 required gates including core reload, rig clip six-case/90-state matrix, retained bake eight-case/16-state gate, strict post-refresh source poses and later-action guard). Hosted Windows/Linux source CI pending. All operation statuses remain partial pending remaining modifier/graph/character history and visual gates."
     ],
     "platforms": {
       "windows": "partial",
@@ -2199,17 +2205,20 @@
       "mcp_invocation": "pass_dummy",
       "valid_effect": "pass_dummy",
       "track_paths_types": "pass_dummy",
-      "dry_run": "pass_dummy",
-      "save_reopen": "pass_dummy",
+      "dry_run": "pass_history_pose_playback_orphans_and_refusals",
+      "save_reopen": "pass_90_independent_saved_states",
       "typed_errors": "pass_missing_skeleton",
-      "undo_redo": "pending_live",
+      "undo_redo": "pass_five_layout_clip_matrix",
       "playback": "pass_authored_keys_dummy",
       "visual_review": "pending",
       "contact_quality": "pending"
     },
     "evidence": [
       "2026-09-30: tools/mcp_rig_recipes.py invoked idle_breathing through live Godot AI on static imported dummy. Dry run left no clip, write created 5 resolved typed bone tracks and 19 keys, save/forced reopen preserved it; invalid skeleton returned typed NODE_NOT_FOUND. See mcp_rig_recipes_first.log, run 20260930_164109. check_rig_recipe_runtime.gd played the saved scene through AnimationPlayer, and every checked track set its bone to the authored key; at least one moved bone was observed. Contact/visual quality, editor undo, independent rigs and Linux remain.",
-      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The saved clip played in a fresh Godot 4.7.2 process, with moving bone tracks matching authored keys. Contact and visual quality remain open."
+      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The saved clip played in a fresh Godot 4.7.2 process, with moving bone tracks matching authored keys. Contact and visual quality remain open.",
+      "2026-10-07: Public Godot AI route on fresh Godot 4.7.2 passes the five-layout rig clip history matrix (eight 3D writers plus 2D pose_to_clip, 45 writes, 90 independent fresh-engine saved playback states), repeated after core reload. Exact scene history, resource identities, paused playback, instance permissions, named/unrelated libraries, custom roots and source/peer isolation checked. Native blink Undo exposed authored scale resetting after cache invalidation; shared bone-pose history restoration fixes it. Native blink and 2D pose-clip overwrite Undo/Redo pass. Final full regression/platform results pending; visual quality remains open. See docs/rig-clip-history-validation.md.",
+      "2026-10-07: Native Do source-pose checks exposed deferred Animation panel refresh resetting scale. Bone pose restoration now runs after refresh with scene/history/latest-ticket guards and script-swap cancellation. Freed target validity is checked before Object assignment. Visible Godot 4.7.2 Do/Undo/Redo passes for blink, 2D pose-clip overwrite and bake. Public batch clip then pose actions both succeed; the later pose survives. Complete CI requires post-refresh blink/2D/bake checks, later-action guard and no deferred script errors. See docs/rig-clip-history-validation.md; visual approval and broader histories remain open.",
+      "2026-10-07: Final guarded source passes fresh editor 292/292 with zero engine/tool/discovery/script errors, all fourteen headless suites and the complete external Godot AI route (113 required gates including core reload, rig clip six-case/90-state matrix, retained bake eight-case/16-state gate, strict post-refresh source poses and later-action guard). Hosted Windows/Linux source CI pending. All operation statuses remain partial pending remaining modifier/graph/character history and visual gates."
     ],
     "platforms": {
       "windows": "partial",
@@ -2223,17 +2232,20 @@
       "mcp_invocation": "pass_dummy",
       "valid_effect": "pass_dummy",
       "track_paths_types": "pass_dummy",
-      "dry_run": "pass_dummy",
-      "save_reopen": "pass_dummy",
+      "dry_run": "pass_history_pose_playback_orphans_and_refusals",
+      "save_reopen": "pass_90_independent_saved_states",
       "typed_errors": "pass_missing_skeleton",
-      "undo_redo": "pending_live",
+      "undo_redo": "pass_five_layout_clip_matrix",
       "playback": "pass_authored_keys_dummy",
       "visual_review": "pending",
       "contact_quality": "pending"
     },
     "evidence": [
       "2026-09-30: tools/mcp_rig_recipes.py invoked blink through live Godot AI on static imported dummy. Dry run left no clip, write created 1 resolved typed bone tracks and 7 keys, save/forced reopen preserved it; invalid skeleton returned typed NODE_NOT_FOUND. See mcp_rig_recipes_first.log, run 20260930_164109. check_rig_recipe_runtime.gd played the saved scene through AnimationPlayer, and every checked track set its bone to the authored key; at least one moved bone was observed. Contact/visual quality, editor undo, independent rigs and Linux remain.",
-      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The saved clip played in a fresh Godot 4.7.2 process, with moving bone tracks matching authored keys. Contact and visual quality remain open."
+      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The saved clip played in a fresh Godot 4.7.2 process, with moving bone tracks matching authored keys. Contact and visual quality remain open.",
+      "2026-10-07: Public Godot AI route on fresh Godot 4.7.2 passes the five-layout rig clip history matrix (eight 3D writers plus 2D pose_to_clip, 45 writes, 90 independent fresh-engine saved playback states), repeated after core reload. Exact scene history, resource identities, paused playback, instance permissions, named/unrelated libraries, custom roots and source/peer isolation checked. Native blink Undo exposed authored scale resetting after cache invalidation; shared bone-pose history restoration fixes it. Native blink and 2D pose-clip overwrite Undo/Redo pass. Final full regression/platform results pending; visual quality remains open. See docs/rig-clip-history-validation.md.",
+      "2026-10-07: Native Do source-pose checks exposed deferred Animation panel refresh resetting scale. Bone pose restoration now runs after refresh with scene/history/latest-ticket guards and script-swap cancellation. Freed target validity is checked before Object assignment. Visible Godot 4.7.2 Do/Undo/Redo passes for blink, 2D pose-clip overwrite and bake. Public batch clip then pose actions both succeed; the later pose survives. Complete CI requires post-refresh blink/2D/bake checks, later-action guard and no deferred script errors. See docs/rig-clip-history-validation.md; visual approval and broader histories remain open.",
+      "2026-10-07: Final guarded source passes fresh editor 292/292 with zero engine/tool/discovery/script errors, all fourteen headless suites and the complete external Godot AI route (113 required gates including core reload, rig clip six-case/90-state matrix, retained bake eight-case/16-state gate, strict post-refresh source poses and later-action guard). Hosted Windows/Linux source CI pending. All operation statuses remain partial pending remaining modifier/graph/character history and visual gates."
     ],
     "platforms": {
       "windows": "partial",
@@ -2247,17 +2259,20 @@
       "mcp_invocation": "pass_dummy",
       "valid_effect": "pass_dummy",
       "track_paths_types": "pass_dummy",
-      "dry_run": "pass_dummy",
-      "save_reopen": "pass_dummy",
+      "dry_run": "pass_history_pose_playback_orphans_and_refusals",
+      "save_reopen": "pass_90_independent_saved_states",
       "typed_errors": "pass_missing_skeleton",
-      "undo_redo": "pending_live",
+      "undo_redo": "pass_five_layout_clip_matrix",
       "playback": "pass_authored_keys_dummy",
       "visual_review": "pending",
       "contact_quality": "pending"
     },
     "evidence": [
       "2026-09-30: tools/mcp_rig_recipes.py invoked jumping_jack through live Godot AI on static imported dummy. Dry run left no clip, write created 5 resolved typed bone tracks and 15 keys, save/forced reopen preserved it; invalid skeleton returned typed NODE_NOT_FOUND. See mcp_rig_recipes_first.log, run 20260930_164109. check_rig_recipe_runtime.gd played the saved scene through AnimationPlayer, and every checked track set its bone to the authored key; at least one moved bone was observed. Contact/visual quality, editor undo, independent rigs and Linux remain.",
-      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The saved clip played in a fresh Godot 4.7.2 process, with moving bone tracks matching authored keys. Contact and visual quality remain open."
+      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The saved clip played in a fresh Godot 4.7.2 process, with moving bone tracks matching authored keys. Contact and visual quality remain open.",
+      "2026-10-07: Public Godot AI route on fresh Godot 4.7.2 passes the five-layout rig clip history matrix (eight 3D writers plus 2D pose_to_clip, 45 writes, 90 independent fresh-engine saved playback states), repeated after core reload. Exact scene history, resource identities, paused playback, instance permissions, named/unrelated libraries, custom roots and source/peer isolation checked. Native blink Undo exposed authored scale resetting after cache invalidation; shared bone-pose history restoration fixes it. Native blink and 2D pose-clip overwrite Undo/Redo pass. Final full regression/platform results pending; visual quality remains open. See docs/rig-clip-history-validation.md.",
+      "2026-10-07: Native Do source-pose checks exposed deferred Animation panel refresh resetting scale. Bone pose restoration now runs after refresh with scene/history/latest-ticket guards and script-swap cancellation. Freed target validity is checked before Object assignment. Visible Godot 4.7.2 Do/Undo/Redo passes for blink, 2D pose-clip overwrite and bake. Public batch clip then pose actions both succeed; the later pose survives. Complete CI requires post-refresh blink/2D/bake checks, later-action guard and no deferred script errors. See docs/rig-clip-history-validation.md; visual approval and broader histories remain open.",
+      "2026-10-07: Final guarded source passes fresh editor 292/292 with zero engine/tool/discovery/script errors, all fourteen headless suites and the complete external Godot AI route (113 required gates including core reload, rig clip six-case/90-state matrix, retained bake eight-case/16-state gate, strict post-refresh source poses and later-action guard). Hosted Windows/Linux source CI pending. All operation statuses remain partial pending remaining modifier/graph/character history and visual gates."
     ],
     "platforms": {
       "windows": "partial",
@@ -2271,17 +2286,20 @@
       "mcp_invocation": "pass_dummy",
       "valid_effect": "pass_dummy",
       "track_paths_types": "pass_dummy",
-      "dry_run": "pass_dummy",
-      "save_reopen": "pass_dummy",
+      "dry_run": "pass_history_pose_playback_orphans_and_refusals",
+      "save_reopen": "pass_90_independent_saved_states",
       "typed_errors": "pass_missing_skeleton",
-      "undo_redo": "pending_live",
+      "undo_redo": "pass_five_layout_clip_matrix",
       "playback": "pass_authored_keys_dummy",
       "visual_review": "pending",
       "contact_quality": "pending"
     },
     "evidence": [
       "2026-09-30: tools/mcp_rig_recipes.py invoked squat through live Godot AI on static imported dummy. Dry run left no clip, write created 7 resolved typed bone tracks and 28 keys, save/forced reopen preserved it; invalid skeleton returned typed NODE_NOT_FOUND. See mcp_rig_recipes_first.log, run 20260930_164109. check_rig_recipe_runtime.gd played the saved scene through AnimationPlayer, and every checked track set its bone to the authored key; at least one moved bone was observed. Contact/visual quality, editor undo, independent rigs and Linux remain.",
-      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The saved clip played in a fresh Godot 4.7.2 process, with moving bone tracks matching authored keys. Contact and visual quality remain open."
+      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The saved clip played in a fresh Godot 4.7.2 process, with moving bone tracks matching authored keys. Contact and visual quality remain open.",
+      "2026-10-07: Public Godot AI route on fresh Godot 4.7.2 passes the five-layout rig clip history matrix (eight 3D writers plus 2D pose_to_clip, 45 writes, 90 independent fresh-engine saved playback states), repeated after core reload. Exact scene history, resource identities, paused playback, instance permissions, named/unrelated libraries, custom roots and source/peer isolation checked. Native blink Undo exposed authored scale resetting after cache invalidation; shared bone-pose history restoration fixes it. Native blink and 2D pose-clip overwrite Undo/Redo pass. Final full regression/platform results pending; visual quality remains open. See docs/rig-clip-history-validation.md.",
+      "2026-10-07: Native Do source-pose checks exposed deferred Animation panel refresh resetting scale. Bone pose restoration now runs after refresh with scene/history/latest-ticket guards and script-swap cancellation. Freed target validity is checked before Object assignment. Visible Godot 4.7.2 Do/Undo/Redo passes for blink, 2D pose-clip overwrite and bake. Public batch clip then pose actions both succeed; the later pose survives. Complete CI requires post-refresh blink/2D/bake checks, later-action guard and no deferred script errors. See docs/rig-clip-history-validation.md; visual approval and broader histories remain open.",
+      "2026-10-07: Final guarded source passes fresh editor 292/292 with zero engine/tool/discovery/script errors, all fourteen headless suites and the complete external Godot AI route (113 required gates including core reload, rig clip six-case/90-state matrix, retained bake eight-case/16-state gate, strict post-refresh source poses and later-action guard). Hosted Windows/Linux source CI pending. All operation statuses remain partial pending remaining modifier/graph/character history and visual gates."
     ],
     "platforms": {
       "windows": "partial",
@@ -2295,17 +2313,20 @@
       "mcp_invocation": "pass_dummy",
       "valid_effect": "pass_dummy",
       "track_paths_types": "pass_dummy",
-      "dry_run": "pass_dummy",
-      "save_reopen": "pass_dummy",
+      "dry_run": "pass_history_pose_playback_orphans_and_refusals",
+      "save_reopen": "pass_90_independent_saved_states",
       "typed_errors": "pass_missing_skeleton",
-      "undo_redo": "pending_live",
+      "undo_redo": "pass_five_layout_clip_matrix",
       "playback": "pass_authored_keys_dummy",
       "visual_review": "pending",
       "contact_quality": "pending"
     },
     "evidence": [
       "2026-09-30: tools/mcp_rig_recipes.py invoked punch through live Godot AI on static imported dummy. Dry run left no clip, write created 9 resolved typed bone tracks and 45 keys, save/forced reopen preserved it; invalid skeleton returned typed NODE_NOT_FOUND. See mcp_rig_recipes_first.log, run 20260930_164109. check_rig_recipe_runtime.gd played the saved scene through AnimationPlayer, and every checked track set its bone to the authored key; at least one moved bone was observed. Contact/visual quality, editor undo, independent rigs and Linux remain.",
-      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The saved clip played in a fresh Godot 4.7.2 process, with moving bone tracks matching authored keys. Contact and visual quality remain open."
+      "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The saved clip played in a fresh Godot 4.7.2 process, with moving bone tracks matching authored keys. Contact and visual quality remain open.",
+      "2026-10-07: Public Godot AI route on fresh Godot 4.7.2 passes the five-layout rig clip history matrix (eight 3D writers plus 2D pose_to_clip, 45 writes, 90 independent fresh-engine saved playback states), repeated after core reload. Exact scene history, resource identities, paused playback, instance permissions, named/unrelated libraries, custom roots and source/peer isolation checked. Native blink Undo exposed authored scale resetting after cache invalidation; shared bone-pose history restoration fixes it. Native blink and 2D pose-clip overwrite Undo/Redo pass. Final full regression/platform results pending; visual quality remains open. See docs/rig-clip-history-validation.md.",
+      "2026-10-07: Native Do source-pose checks exposed deferred Animation panel refresh resetting scale. Bone pose restoration now runs after refresh with scene/history/latest-ticket guards and script-swap cancellation. Freed target validity is checked before Object assignment. Visible Godot 4.7.2 Do/Undo/Redo passes for blink, 2D pose-clip overwrite and bake. Public batch clip then pose actions both succeed; the later pose survives. Complete CI requires post-refresh blink/2D/bake checks, later-action guard and no deferred script errors. See docs/rig-clip-history-validation.md; visual approval and broader histories remain open.",
+      "2026-10-07: Final guarded source passes fresh editor 292/292 with zero engine/tool/discovery/script errors, all fourteen headless suites and the complete external Godot AI route (113 required gates including core reload, rig clip six-case/90-state matrix, retained bake eight-case/16-state gate, strict post-refresh source poses and later-action guard). Hosted Windows/Linux source CI pending. All operation statuses remain partial pending remaining modifier/graph/character history and visual gates."
     ],
     "platforms": {
       "windows": "partial",
@@ -2319,10 +2340,10 @@
       "mcp_invocation": "pass_dummy_source",
       "valid_effect": "pass_dummy_source",
       "track_paths_types": "pass_112_tracks",
-      "dry_run": "pass_playback_pose_orphans_history",
-      "save_reopen": "pass_16_independent_saved_states",
+      "dry_run": "pass_history_pose_playback_orphans_and_refusals",
+      "save_reopen": "pass_90_independent_saved_states",
       "typed_errors": "pass_missing_source",
-      "undo_redo": "partial_public_playback_states_and_native",
+      "undo_redo": "pass_five_layout_clip_matrix",
       "playback": "pass_24_samples",
       "state_restoration": "pass_source_skeleton",
       "modifier_stack": "pending_live",
@@ -2331,7 +2352,11 @@
     "evidence": [
       "2026-09-30: live Godot AI MCP generated a walk source and baked it at 10 FPS over 0.5 s. Dry run left no clip or thigh-pose change; write restored source skeleton pose, created 112 resolved rotation/position tracks and 672 keys, and survived save/forced reopen. An unknown source returned typed INVALID_PARAMS. First live pass logged an engine error reading current_animation_position with no current animation; handler now guards that read. Rerun mcp_rig_bake_fixed.log, id 20260930_164952, had no new editor errors. Headless Godot 4.7.2 played source and baked clips at 24 bone/time samples with worst rotation difference 0 rad. Active modifier evaluation, full player-state restoration, editor undo, visual review and Linux remain.",
       "2026-10-03: GitHub Actions run 37108958001 passed the live Godot AI rig route on Windows and Linux, including dry/write/save/reopen and typed-error assertions. The saved clip played in a fresh Godot 4.7.2 process and matched authored pose samples. Visual quality and editor Undo/Redo remain open.",
-      "2026-10-06: Public Godot AI route reproduced six playback-state failures. A temporary manual engine sampler now preserves the authors player queue, custom speed/direction, paused time, sections and unassigned state; overwrite refuses before sampling. Eight cases cover dry/write/refused/Undo/Redo, library/clip identities and precise orphan IDs. Standalone fresh-engine checks pass 16 saved states at key/intermediate played times. Native Undo exposed an editor cache reset of an unkeyed position; the original pose is now in the clip history action and native Undo/Redo both pass. Full local editor 286/286 and complete external route 107 gates passed before this final pose-history follow-up; final editor/platform checks are recorded when complete. See docs/rig-bake-state-validation.md. Five-layout clip matrices, graph/stateful modifier restoration and visuals remain partial."
+      "2026-10-06: Public Godot AI route reproduced six playback-state failures. A temporary manual engine sampler now preserves the authors player queue, custom speed/direction, paused time, sections and unassigned state; overwrite refuses before sampling. Eight cases cover dry/write/refused/Undo/Redo, library/clip identities and precise orphan IDs. Standalone fresh-engine checks pass 16 saved states at key/intermediate played times. Native Undo exposed an editor cache reset of an unkeyed position; the original pose is now in the clip history action and native Undo/Redo both pass. Full local editor 286/286 and complete external route 107 gates passed before this final pose-history follow-up; final editor/platform checks are recorded when complete. See docs/rig-bake-state-validation.md. Five-layout clip matrices, graph/stateful modifier restoration and visuals remain partial.",
+      "2026-10-07: Public Godot AI route on fresh Godot 4.7.2 passes the five-layout rig clip history matrix (eight 3D writers plus 2D pose_to_clip, 45 writes, 90 independent fresh-engine saved playback states), repeated after core reload. Exact scene history, resource identities, paused playback, instance permissions, named/unrelated libraries, custom roots and source/peer isolation checked. Native blink Undo exposed authored scale resetting after cache invalidation; shared bone-pose history restoration fixes it. Native blink and 2D pose-clip overwrite Undo/Redo pass. Final full regression/platform results pending; visual quality remains open. See docs/rig-clip-history-validation.md.",
+      "2026-10-07: Prior playback-state source b7c6920 passed Actions 37446592866 on Windows/Linux: fourteen headless suites, four editor/core combinations (285 passed, one optional X Bot skip, zero captured errors), both complete external Godot AI routes. Active graph/stateful modifier bake restoration remains open.",
+      "2026-10-07: Native Do source-pose checks exposed deferred Animation panel refresh resetting scale. Bone pose restoration now runs after refresh with scene/history/latest-ticket guards and script-swap cancellation. Freed target validity is checked before Object assignment. Visible Godot 4.7.2 Do/Undo/Redo passes for blink, 2D pose-clip overwrite and bake. Public batch clip then pose actions both succeed; the later pose survives. Complete CI requires post-refresh blink/2D/bake checks, later-action guard and no deferred script errors. See docs/rig-clip-history-validation.md; visual approval and broader histories remain open.",
+      "2026-10-07: Final guarded source passes fresh editor 292/292 with zero engine/tool/discovery/script errors, all fourteen headless suites and the complete external Godot AI route (113 required gates including core reload, rig clip six-case/90-state matrix, retained bake eight-case/16-state gate, strict post-refresh source poses and later-action guard). Hosted Windows/Linux source CI pending. All operation statuses remain partial pending remaining modifier/graph/character history and visual gates."
     ],
     "platforms": {
       "windows": "partial",

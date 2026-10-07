@@ -172,6 +172,11 @@ It samples poses without executing method/audio/playback events.
 See [bake state checks](../../docs/rig-bake-state-validation.md) for covered
 cases and the remaining graph/modifier restoration checks.
 
+Rig clip writes preserve the authored bone pose when the editor refreshes its
+animation list, including native Undo/Redo. A later scene action takes priority
+over queued pose restoration. See [rig clip history checks](../../docs/rig-clip-history-validation.md)
+for the five-layout matrix and independent saved-scene playback contracts.
+
 ## `animation_rig_modifiers`
 
 These operations belong to the separate modifier tool family. Discover it

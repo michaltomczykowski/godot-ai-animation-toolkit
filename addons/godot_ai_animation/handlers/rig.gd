@@ -380,7 +380,7 @@ func rig_pose_to_clip(params: Dictionary) -> Dictionary:
 		return existing.error
 	var anim := SpecBuilder.to_animation(spec)
 	_commit_animation_add("MCP: Pose clip %s" % anim_name, player, library,
-		created_library, anim_name, anim, existing.old_anim)
+		created_library, anim_name, anim, existing.old_anim, _bone_pose_history_props(resolved.node))
 	return {"data": {
 		"player_path": player_path,
 		"skeleton_path": resolved.path,
@@ -2629,13 +2629,8 @@ func bake_pose_sequence(params: Dictionary) -> Dictionary:
 	# Removing newly cached transform channels can restore bone rest values in
 	# the editor. Keep the source pose in the same clip history action so Undo
 	# and Redo restore it after the library mutation as well as after sampling.
-	var pose_props: Array = []
-	for index in restore.size():
-		for field in ["rotation", "position", "scale"]:
-			pose_props.append({"object": skeleton, "property": "bones/%d/%s" % [index, field],
-				"value": restore[index][field], "old": restore[index][field]})
 	_commit_animation_add("MCP: Baked clip %s" % anim_name, player, library,
-		created_library, anim_name, anim, existing.old_anim, pose_props)
+		created_library, anim_name, anim, existing.old_anim, _bone_pose_history_props(skeleton))
 	return {"data": {
 		"player_path": str(params.get("player_path", "")),
 		"skeleton_path": resolved.path,

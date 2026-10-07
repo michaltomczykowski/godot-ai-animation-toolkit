@@ -63,8 +63,17 @@ fixture are preserved in raw logs rather than counted as handler errors.
 
 ## Remaining work
 
-This covers playback-state preservation for one rig writer. All eight clip
-writers still require the five-layout library/instance history matrix. Active
+Source `b7c6920` passed
+[GitHub Actions 37446592866](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37446592866):
+fourteen headless suites on Windows/Linux, all four editor platform/core
+combinations, and both complete external routes including the bake-state gate.
+Hosted editor results are 285 passed plus one optional X Bot asset skip,
+zero captured engine/tool-route errors. Local results retain all 286 cases.
+
+This covers playback-state preservation for one rig writer. The subsequent
+[rig clip checkpoint](rig-clip-history-validation.md) covers all eight clip
+writers across five library/instance layouts, and stricter native pose checks.
+Active
 graph and complete modifier/retarget-stack bake restoration remain open,
 including stateful modifier internals and animated properties outside the rig.
 Full modifier history and motion/sequence histories remain later checkpoints.

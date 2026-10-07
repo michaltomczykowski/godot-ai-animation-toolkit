@@ -3004,3 +3004,85 @@ produced much of the earlier work; it is not a toolkit runtime dependency.
   hosted CI repeats it on the pushed source. Existing exit-time ObjectDB cleanup
   warning is separate from the suite's captured errors; exact bake-call orphan
   checks pass. No visual approval or full rig-writer matrix is claimed.
+
+### 2026-10-07 - Rig clip history matrix and native cache repair
+
+- Prior bake source b7c6920 is pushed; CI 37446592866 is fully green on
+  Windows/Linux: fourteen headless suites, four editor/core combinations,
+  both complete public Godot AI routes. Hosted editor 285 pass/one optional
+  X Bot skip, zero captured engine/tool-route errors. Local 286/286.
+- Expanded plan: eight 3D writers plus 2D pose_to_clip in local, overwritten,
+  missing-library, locked-instance and editable-instance layouts: 45 writes,
+  90 saved Undo/Redo states. Preserve named/unrelated libraries, custom roots,
+  paused source playback, ownership, metadata, source/peer isolation, exact
+  identities, one scene action and zero global actions; precise dry/refused
+  orphan checks and typed overwrite refusals. Registry completeness is required.
+- The public-route matrix and independent fresh-engine playback initially pass.
+  The locked-instance fixture was corrected to author its source pose/speed
+  before packing, rather than expecting transient playback changes to persist.
+- Native blink Undo exposes the same editor cache issue as bake: removing a
+  scale track resets the authored bone scale. Preserve the bone pose in the
+  shared procedural commit action and in 2D/3D pose clip commits, after library
+  mutation. Restarted editor before validating changed addon dependencies.
+  Native shortcuts, final matrix/reload/full regression/platform gates pending.
+- Final source: external matrix passes before/after core reload (six required
+  cases and 90 independent saved states). Native blink and 2D clip overwrite
+  Undo/Redo pass, including source pose. Fresh editor 292/292, zero captured
+  errors; fourteen headless suites pass. Complete route/platform checks next.
+  Recovery rig_clip_history_20261007 contains 108 saved/source scenes and the
+  expanded next modifier/bake-stack phase plan.
+- Active graph/stateful modifier bake restoration, five modifier histories,
+  motion/sequence history and representative visual review remain open.
+- Complete pre-deferral route passed 108 gates. A stricter native Do assertion
+  then exposed source scale resetting when adding a clip. Queue one bone pose
+  restoration after the editor refresh, guarded by scene identity, history
+  version and a latest-request ticket; cancel on script-swap quiescence and
+  skip freed/detached targets. A freed Variant assignment error was caught in
+  the post-test log and repaired by checking validity before Object assignment.
+- Visible native Do/Undo/Redo passes for blink, 2D clip overwrite and bake.
+  Public same-frame batch proves a later pose edit wins (aggregate batch undo
+  disabled for the mixed family; both writing calls remain individually
+  undoable). Final external clip matrix six cases/90 states and bake eight
+  cases/16 states pass. New CI gates require post-refresh pose preservation,
+  the later-action guard and no deferred script errors in the full route log.
+- After the freed-target guard repair, fresh editor regression passes 292/292,
+  zero captured engine/tool-route/discovery errors and zero script errors in
+  the editor log. All fourteen headless suites pass on the repaired source.
+- Complete fresh external Godot AI route passes all 113 required gates on the
+  guarded source, including core reload, rig clip matrix/90 played states,
+  bake state/16 played states, strict blink/2D/bake source-pose preservation,
+  later-action batch guard and zero deferred script errors. Hosted source CI
+  is required on Windows/Linux after pushing this unreleased checkpoint.
+
+### Next phase detail — modifier allocation, history and evaluation
+
+1. Reproduce through `animation_rig_modifiers`, using precise orphan IDs,
+   complete scene snapshots, scene/global history versions and captured errors.
+   Cover IK generated/existing targets and poles, CCDIK/FABRIK/two-bone/spline;
+   look-at generated/existing targets and late invalid origin/axis settings;
+   new twist dispersers with late weight/damping/reference refusals; spring
+   generated/existing colliders and centers; retarget create and documented
+   existing-modifier reconfiguration. Preserve failing logs before repairs.
+2. Track only nodes created by the current call. Validate pure settings first;
+   free temporary nodes on every dry/error path and transfer ownership to the
+   history action on commit. Caller-owned targets, modifiers and colliders
+   must survive. Compare advertised dry paths to actual committed paths.
+3. Expand local/locked/editable history cases, collisions/names, nontrivial
+   transforms/owners, source/peer isolation and immutable source bytes. Require
+   one scene action, zero global actions, exact Undo/Redo settings and identities.
+4. Save both states and evaluate in independent engines: modifier-relative
+   paths, inactive/active response, influence and ordered stacks measured at
+   `modification_processed`. Time-dependent solvers need explicit simulation.
+   [Modifier timing](https://docs.godotengine.org/en/4.7/classes/class_skeletonmodifier3d.html)
+   and [look-at ordering](https://docs.godotengine.org/en/4.7/classes/class_lookatmodifier3d.html)
+   are the engine contracts. Source inspection also flags look-at external
+   origin wiring: the toolkit builds it relative to the skeleton, while the
+   [engine resolves it on the modifier](https://github.com/godotengine/godot/blob/4.7/scene/3d/look_at_modifier_3d.cpp).
+   Reproduce that branch through Godot AI before changing it.
+5. Treat bake stack restoration as a separate checkpoint: active/inactive
+   AnimationTree, ordered modifiers, retarget, continued stateful spring
+   playback and late sample failure. Preserve private state if supported;
+   otherwise return a clear typed refusal for unsupported arrangements.
+6. Repeat external MCP/reload/native checks and required Windows/Linux CI;
+   update operation evidence, docs and recovery before pushing. Motion/sequence
+   history and representative visual approval remain subsequent gates.

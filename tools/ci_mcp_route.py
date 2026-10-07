@@ -550,6 +550,50 @@ def rig_bake_state_gate(args: argparse.Namespace) -> bool:
     return True
 
 
+def rig_clip_history_gate(args: argparse.Namespace) -> bool:
+    check = subprocess.run([
+        sys.executable, str(Path(__file__).with_name("mcp_rig_clip_history.py")),
+        "--core-root", str(args.core_root), "--project-root", str(args.project),
+        "--session-hint", args.project.name, "--port", str(args.port),
+        "--ws-port", str(args.ws_port), "--godot", godot_executable(args.godot),
+    ], capture_output=True, text=True, timeout=120, check=False)
+    marker = "MCP_RIG_CLIP_HISTORY="
+    payload = next((line[len(marker):] for line in check.stdout.splitlines() if line.startswith(marker)), "")
+    report = json.loads(payload) if payload else {}
+    if check.returncode or report.get("passed") is not True or report.get("saved_states") != 90:
+        print("MCP_CI_FAIL=rig_clip_history")
+        print((check.stdout + check.stderr)[-6000:])
+        return False
+    print("MCP_CI_PASS=rig_clip_history", flush=True)
+    return True
+
+
+def rig_deferred_pose_gate(args: argparse.Namespace) -> bool:
+    """Observe poses on later tool requests, after deferred editor refreshes."""
+    for op, later_pose in (("blink", False), ("clip2d", False), ("bake", False), ("blink", True)):
+        name = "later_pose" if later_pose else op
+        command = [
+            sys.executable, str(Path(__file__).with_name("mcp_rig_pose_ui_history.py")),
+            "--core-root", str(args.core_root), "--project-root", str(args.project),
+            "--session-hint", args.project.name, "--port", str(args.port),
+            "--ws-port", str(args.ws_port), "--mode", "setup", "--op", op,
+            "--record", str(args.project / "repair_ui_undo" / ("deferred_" + name + ".json")),
+        ]
+        if later_pose:
+            command.append("--later-pose")
+        check = subprocess.run(command, capture_output=True, text=True, timeout=60, check=False)
+        marker = "MCP_RIG_UI_HISTORY="
+        payload = next((line[len(marker):] for line in check.stdout.splitlines() if line.startswith(marker)), "")
+        report = json.loads(payload) if payload else {}
+        contract = "later_pose_preserved" if later_pose else "source_pose_preserved"
+        if check.returncode or report.get("passed") is not True or report.get(contract) is not True:
+            print("MCP_CI_FAIL=rig_deferred_pose:" + name)
+            print((check.stdout + check.stderr)[-6000:])
+            return False
+        print("MCP_CI_PASS=rig_deferred_pose:" + name, flush=True)
+    return True
+
+
 def preset_library_history_gate(args: argparse.Namespace) -> bool:
     """Require history and fresh-engine playback as well as the older audits."""
     history = subprocess.run([
@@ -939,6 +983,20 @@ def run(args: argparse.Namespace) -> int:
         if not rig_bake_state_gate(args):
             print(tail(log_path))
             return 1
+        if not rig_clip_history_gate(args):
+            print(tail(log_path))
+            return 1
+        if not rig_deferred_pose_gate(args):
+            print(tail(log_path))
+            return 1
+        if not args.existing:
+            # Deferred callbacks can fail after the synchronous test runner has
+            # removed its error logger. Keep those failures visible to CI too.
+            if "SCRIPT ERROR:" in log_path.read_text(encoding="utf-8", errors="replace"):
+                print("MCP_CI_FAIL=deferred_script_errors")
+                print(tail(log_path))
+                return 1
+            print("MCP_CI_PASS=deferred_script_errors", flush=True)
         return 0
     finally:
         if editor is not None and editor.poll() is None:
