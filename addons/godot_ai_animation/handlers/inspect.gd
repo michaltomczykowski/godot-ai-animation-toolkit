@@ -10,6 +10,7 @@ extends "res://addons/godot_ai_animation/handlers/bone_animation.gd"
 ## `path`; that write honours `dry_run` like every other op in the catalog.
 
 const SpecIO := preload("res://addons/godot_ai_animation/spec/spec_io.gd")
+const EvaluationSandbox := preload("res://addons/godot_ai_animation/utils/evaluation_sandbox.gd")
 const QualityModifiers := preload("res://addons/godot_ai_animation/spec/quality_modifiers.gd")
 const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
 const GenerateHandler := preload("res://addons/godot_ai_animation/handlers/generate.gd")
@@ -1099,7 +1100,7 @@ func inspect_motion_audit(params: Dictionary) -> Dictionary:
 ## the private evaluation copy joins its SubViewport. Playback of the authored
 ## transform tracks does not need game scripts or a scene controller.
 static func _copy_audit_scene(source: Node) -> Node:
-	return source.duplicate(0)
+	return EvaluationSandbox.copy_hierarchy(source)
 
 
 func _strip_audit_scripts(node: Node) -> void:

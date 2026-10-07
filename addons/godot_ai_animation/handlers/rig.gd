@@ -14,6 +14,7 @@ const SpineTwist := preload("res://addons/godot_ai_animation/spec/spine_twist.gd
 const SpecJson := preload("res://addons/godot_ai_animation/spec/spec_json.gd")
 const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
 const ModifierAllocation := preload("res://addons/godot_ai_animation/utils/modifier_allocation.gd")
+const PoseBakeSampler := preload("res://addons/godot_ai_animation/utils/pose_bake_sampler.gd")
 
 const POSE_DIR := "res://animation_toolkit/poses"
 ## bake_pose_sequence cost is duration * fps samples, each a full skeleton
@@ -2530,237 +2531,159 @@ static func _punch_deltas(skeleton: Skeleton3D, roles: Dictionary, punching: Str
 ## is seeked to each sample first, then the skeleton is updated so modifiers
 ## (IK, springs, retarget) run - the baked clip plays without them.
 func bake_pose_sequence(params: Dictionary) -> Dictionary:
-	var resolved := _resolve_skeleton(params)
-	if resolved.has("error"):
-		return resolved
-	if resolved.kind != "3d":
-		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-			"bake_pose_sequence needs a Skeleton3D")
-	var skeleton: Skeleton3D = resolved.node
+	for field in ["duration", "fps"]:
+		if params.has(field) and not (params[field] is int or params[field] is float):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s must be numeric" % field)
 	var length := float(params.get("duration", 1.0))
-	if length <= 0.0:
-		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "duration must be > 0")
-	var fps := maxi(1, int(params.get("fps", 30)))
+	var fps_value := float(params.get("fps", 30))
+	if not is_finite(length) or length < 0.001:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "duration must be finite and >= 0.001")
+	if not is_finite(fps_value) or fps_value < 1.0 or fps_value != floor(fps_value):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "fps must be a positive integer")
+	var fps := int(fps_value)
+	var samples := int(ceil(length * fps_value)) + 1
+	if samples > MAX_BAKE_SAMPLES:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "duration x fps exceeds the %d-pose bake budget" % MAX_BAKE_SAMPLES)
+	for field in ["positions", "scales", "overwrite", "dry_run"]:
+		if params.has(field) and not params[field] is bool:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s must be a boolean" % field)
+	if not str(params.get("source_tree_path", "")).is_empty():
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "AnimationTree replay is the next bake checkpoint; clip sampling is available")
+	var resolved := _resolve_skeleton(params)
+	if resolved.has("error"): return resolved
+	if resolved.kind != "3d":
+		return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "bake_pose_sequence needs a Skeleton3D")
+	var skeleton: Skeleton3D = resolved.node
+	var player_resolved := _resolve_player(str(params.get("player_path", "")))
+	if player_resolved.has("error"): return player_resolved
+	var source_player: AnimationPlayer = player_resolved.player
+	var root_node := ValueCodec.player_root_node(source_player)
+	if root_node == null:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "The source AnimationPlayer has no resolvable root_node")
+	var source := str(params.get("source_animation", ""))
+	if source.is_empty(): source = str(source_player.current_animation)
+	if source.is_empty(): source = str(source_player.assigned_animation)
+	if not source.is_empty() and not source_player.has_animation(source):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Animation '%s' not found. Available: %s" % [source, ", ".join(source_player.get_animation_list())])
+	var root_mode := str(params.get("root_motion_mode", "preserve"))
+	if root_mode not in ["preserve", "pose_only", "apply"]:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "root_motion_mode must be preserve, pose_only or apply")
+	if not source_player.root_motion_track.is_empty() and root_mode != "pose_only":
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Root-motion preservation/application is pending its independent playback checkpoint; explicit pose_only is available")
 	var loop_result := _loop_mode(params)
-	if loop_result.has("error"):
-		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, loop_result.error)
+	if loop_result.has("error"): return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, loop_result.error)
 	var include_positions := bool(params.get("positions", true))
 	var include_scales := bool(params.get("scales", false))
 	var bones_filter: Array = params.get("bones", [])
-	var player_resolved := _resolve_player(str(params.get("player_path", "")))
-	if player_resolved.has("error"):
-		return player_resolved
-	var player: AnimationPlayer = player_resolved.player
-	var library: AnimationLibrary = player_resolved.library
-	var created_library := false
-	if library == null:
-		library = AnimationLibrary.new()
-		created_library = true
-	# The source clip has to be assigned to the player before seek() can sample
-	# it - a player that was never played has no current animation, and seeking
-	# it would leave the skeleton at rest.
-	var source := str(params.get("source_animation", ""))
-	if source.is_empty():
-		source = player.current_animation
-	if source.is_empty() and not String(player.assigned_animation).is_empty():
-		source = String(player.assigned_animation)
-	if not source.is_empty() and not player.has_animation(source):
-		var names: Array = []
-		for name in library.get_animation_list():
-			names.append(str(name))
-		names.sort()
-		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-			"Animation '%s' not found on the player. Available: %s"
-			% [source, ", ".join(names) if not names.is_empty() else "(none)"])
-	var root_node := ValueCodec.player_root_node(player)
-	if root_node == null:
-		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-			"The AnimationPlayer has no resolvable root_node")
-	var track_root := str(root_node.get_path_to(skeleton))
-	if track_root.is_empty() or track_root == ".":
-		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-			"The skeleton must live under the player's root_node")
-	# Remember the current pose so the bake leaves the scene as it found it. A
-	# RetargetModifier3D writes to its target's skeleton, so the target counts as
-	# "the scene" here too - restoring only the source left the target posed.
-	var restore: Array = []
-	for index in skeleton.get_bone_count():
-		restore.append({
-			"rotation": skeleton.get_bone_pose_rotation(index),
-			"position": skeleton.get_bone_pose_position(index),
-			"scale": skeleton.get_bone_pose_scale(index),
-		})
-	var retarget_targets: Array = []
-	var retarget_restores: Array = []
-	for child in skeleton.get_children():
-		if child is RetargetModifier3D and (child as RetargetModifier3D).active:
-			for grandchild in child.get_children():
-				var found_skeleton := _skeleton_below(grandchild)
-				if found_skeleton != null and not retarget_targets.has(found_skeleton):
-					retarget_targets.append(found_skeleton)
-					retarget_restores.append({
-						"skeleton": found_skeleton,
-						"pose": _pose_snapshot(found_skeleton),
-					})
+	for name in bones_filter:
+		if not name is String or skeleton.find_bone(name) < 0:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Unknown bake bone '%s'" % str(name))
 	var indices: Array = []
 	for index in skeleton.get_bone_count():
-		var bone_name := skeleton.get_bone_name(index)
-		if not bones_filter.is_empty() and not bones_filter.has(bone_name):
-			continue
-		indices.append(index)
-	if indices.is_empty():
-		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "No bones to bake")
-	var samples := int(ceil(length * float(fps))) + 1
-	if samples > MAX_BAKE_SAMPLES:
-		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
-			"duration x fps would sample %d poses (max %d). Lower fps or shorten the clip." % [samples, MAX_BAKE_SAMPLES])
-	var step := 1.0 / float(fps)
+		if bones_filter.is_empty() or bones_filter.has(skeleton.get_bone_name(index)): indices.append(index)
+	if indices.is_empty(): return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "No bones to bake")
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var protected_trees: Array = []
+	for tree in scene_root.find_children("*", "AnimationTree", true, false):
+		if tree.get_node_or_null(tree.anim_player) == source_player: protected_trees.append(tree)
+	var allocation := ModifierAllocation.new()
+	var player: AnimationPlayer = source_player
+	var player_created := false
+	var output_path := str(params.get("output_player_path", ""))
+	if not output_path.is_empty():
+		var destination := _resolve_player(output_path)
+		if destination.has("error"): return destination
+		player = destination.player
+		if player.active or player.is_playing():
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Explicit bake output must be inactive and stopped")
+		for tree in scene_root.find_children("*", "AnimationTree", true, false):
+			if tree.get_node_or_null(tree.anim_player) == player:
+				return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Explicit output is linked to an AnimationTree")
+	elif not protected_trees.is_empty():
+		player = AnimationPlayer.new()
+		allocation.track(player)
+		player_created = true
+		player.name = _unique_child_name(source_player.get_parent(), "AnimationBakeOutput", {})
+		player.root_node = source_player.root_node
+		player.active = false
+		player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+		output_path = ValueCodec.from_node(source_player.get_parent(), scene_root) + "/" + str(player.name)
+	if output_path.is_empty(): output_path = ValueCodec.from_node(player, scene_root)
+	var destination_root := root_node if player_created else ValueCodec.player_root_node(player)
+	var track_root := str(destination_root.get_path_to(skeleton))
+	if track_root.is_empty() or track_root == ".":
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "The skeleton must have a valid path from the output player's root")
+	var library: AnimationLibrary = player.get_animation_library("") if player.has_animation_library("") else null
+	var created_library := library == null
+	if created_library: library = AnimationLibrary.new()
 	var anim_name := str(params.get("animation_name", "baked"))
-	var overwrite := bool(params.get("overwrite", false))
-	var existing := _existing_animation(library, anim_name, overwrite)
-	if existing.has("error"):
-		return existing.error
+	if anim_name.is_empty() or anim_name.contains("/") or anim_name.contains(":"):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "animation_name must be a plain nonempty clip name")
+	var existing := _existing_animation(library, anim_name, bool(params.get("overwrite", false)))
+	if existing.has("error"): return existing.error
+	if not _dry_run:
+		var undo_error := _require_undo("Baking a clip")
+		if not undo_error.is_empty(): return undo_error
+	var sampler := PoseBakeSampler.new()
+	var opened := sampler.open(scene_root, skeleton, source_player, source)
+	if opened.has("error"): return opened
 	var keys := {}
-	for index in indices:
-		keys[skeleton.get_bone_name(index)] = {"rotation": [], "position": [], "scale": []}
-	# Sampling the author's player destroys its queue, section and custom speed;
-	# pause/stop cannot reconstruct its private playback state. Use a temporary,
-	# manually processed player with the same root and libraries instead. It is
-	# never scene-owned and is freed before committing the resulting clip.
-	var sampler: AnimationPlayer = null
-	if not source.is_empty():
-		sampler = AnimationPlayer.new()
-		sampler.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
-		sampler.callback_mode_discrete = player.callback_mode_discrete
-		sampler.deterministic = player.deterministic
-		sampler.root_motion_track = player.root_motion_track
-		sampler.root_motion_local = player.root_motion_local
-		sampler.playback_auto_capture = player.playback_auto_capture
-		for library_name in player.get_animation_library_list():
-			sampler.add_animation_library(library_name, player.get_animation_library(library_name))
-		player.get_parent().add_child(sampler)
-		sampler.root_node = root_node.get_path()
-		sampler.play(source)
-	# Active modifiers (IK, springs, retarget) only run in the skeleton's
-	# deferred update, and their result is only readable inside
-	# modification_processed - get_bone_pose_* outside it returns the
-	# pre-modifier pose. Drive that update manually per sample and capture the
-	# final pose in the signal handler.
-	var modifiers: Array = []
-	for child in skeleton.get_children():
-		if child is SkeletonModifier3D and (child as SkeletonModifier3D).active:
-			modifiers.append(child)
-	# Stateful modifiers carry internal velocity/spring state between updates, so
-	# a second bake would start from wherever the first one ended. Reset what can
-	# be reset (SpringBoneSimulator3D.reset()) so the result only depends on fps.
-	var reset_modifiers: Array = []
-	for modifier in modifiers:
-		if (modifier as SkeletonModifier3D).has_method("reset"):
-			(modifier as SkeletonModifier3D).call("reset")
-			reset_modifiers.append((modifier as SkeletonModifier3D).get_class())
-	var sampled: Dictionary = {}
-	var capture := func() -> void:
-		sampled.clear()
-		for index in indices:
-			sampled[index] = {
-				"rotation": skeleton.get_bone_pose_rotation(index),
-				"position": skeleton.get_bone_pose_position(index),
-				"scale": skeleton.get_bone_pose_scale(index),
-			}
-	for modifier in modifiers:
-		(modifier as SkeletonModifier3D).modification_processed.connect(capture)
-	# Sample 0 is the state after one step of modifier time, so the baked clip
-	# starts where playback would put it rather than at an unresolved step.
-	var missing_capture_at := -1.0
-	for sample in samples:
-		var time := minf(sample * step, length)
-		if not source.is_empty():
-			sampler.seek(time, true, true)
-		sampled.clear()
-		if not modifiers.is_empty():
-			# advance() accumulates the delta and the deferred update consumes it,
-			# so the pair gives the modifiers exactly `step` instead of whatever
-			# the editor's frame time was - springs integrate deterministically.
-			skeleton.advance(step)
-			skeleton.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
-			# `sampled` stays empty when no modifier reported in, which would mean
-			# the clip would hold pre-modifier poses.
-			if sampled.is_empty() and missing_capture_at < 0.0:
-				missing_capture_at = time
-		for index in indices:
-			var bone_name := skeleton.get_bone_name(index)
-			var entry: Dictionary = keys[bone_name]
-			var rotation: Quaternion = skeleton.get_bone_pose_rotation(index)
-			var position: Vector3 = skeleton.get_bone_pose_position(index)
-			var bone_scale: Vector3 = skeleton.get_bone_pose_scale(index)
-			if sampled.has(index):
-				rotation = sampled[index].rotation
-				position = sampled[index].position
-				bone_scale = sampled[index].scale
-			(entry.rotation as Array).append({"time": time, "value": rotation, "transition": "linear"})
-			if include_positions:
-				(entry.position as Array).append({"time": time, "value": position, "transition": "linear"})
-			if include_scales:
-				(entry.scale as Array).append({"time": time, "value": bone_scale, "transition": "linear"})
-	for modifier in modifiers:
-		if (modifier as SkeletonModifier3D).modification_processed.is_connected(capture):
-			(modifier as SkeletonModifier3D).modification_processed.disconnect(capture)
-	if sampler != null:
-		sampler.free()
-	if missing_capture_at >= 0.0:
-		_restore_bake_state(skeleton, restore, retarget_restores)
-		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-			"The active modifier on %s never reported modification_processed at t=%.3f, so the sampled pose would be the pre-modifier one. Nothing was written - make the modifier active, or bake with the modifiers disabled."
-				% [resolved.path, missing_capture_at])
-	_restore_bake_state(skeleton, restore, retarget_restores)
+	for index in indices: keys[skeleton.get_bone_name(index)] = {"rotation": [], "position": [], "scale": []}
+	var step := 1.0 / fps
+	var previous := 0.0
+	for index in samples:
+		var time := minf(index * step, length)
+		var sampled := sampler.sample(time - previous, time)
+		if sampled.has("error"): return sampled
+		previous = time
+		for bone in indices:
+			var entry: Dictionary = keys[skeleton.get_bone_name(bone)]
+			var pose: Dictionary = sampled.poses[bone]
+			entry.rotation.append({"time": time, "value": pose.rotation, "transition": "linear"})
+			if include_positions: entry.position.append({"time": time, "value": pose.position, "transition": "linear"})
+			if include_scales: entry.scale.append({"time": time, "value": pose.scale, "transition": "linear"})
+	var modifier_classes := sampler.modifiers.duplicate()
+	var reset_classes := sampler.reset_modifiers.duplicate()
+	var exclusions := sampler.sandbox.excluded_tracks.duplicate(true)
+	var preserved_paths: Array = [resolved.path]
+	var retarget_paths: Array = []
+	for node in sampler.preserved:
+		if node != skeleton:
+			var path := ValueCodec.from_node(node, scene_root)
+			preserved_paths.append(path)
+			if skeleton.is_ancestor_of(node): retarget_paths.append(path)
+	sampler.close()
 	var spec := ClipSpec.make(length, loop_result.ok)
 	for bone_name in keys:
 		var entry: Dictionary = keys[bone_name]
-		var rotation_keys: Array = entry.rotation
-		if not rotation_keys.is_empty():
-			ClipSpec.add_value_track(spec, "%s:%s" % [track_root, bone_name], rotation_keys,
-				Animation.INTERPOLATION_LINEAR, Animation.TYPE_ROTATION_3D)
-		var position_keys: Array = entry.position
-		if include_positions and not position_keys.is_empty():
-			ClipSpec.add_value_track(spec, "%s:%s" % [track_root, bone_name], position_keys,
-				Animation.INTERPOLATION_LINEAR, Animation.TYPE_POSITION_3D)
-		var scale_keys: Array = entry.scale
-		if include_scales and not scale_keys.is_empty():
-			ClipSpec.add_value_track(spec, "%s:%s" % [track_root, bone_name], scale_keys,
-				Animation.INTERPOLATION_LINEAR, Animation.TYPE_SCALE_3D)
+		for channel in ["rotation", "position", "scale"]:
+			if entry[channel].is_empty(): continue
+			var type: int = {"rotation": Animation.TYPE_ROTATION_3D, "position": Animation.TYPE_POSITION_3D, "scale": Animation.TYPE_SCALE_3D}[channel]
+			ClipSpec.add_value_track(spec, "%s:%s" % [track_root, bone_name], entry[channel], Animation.INTERPOLATION_LINEAR, type)
 	var valid := SpecBuilder.validate(spec)
-	if valid.has("error"):
-		return valid
+	if valid.has("error"): return valid
 	var anim := SpecBuilder.to_animation(spec)
-	# Removing newly cached transform channels can restore bone rest values in
-	# the editor. Keep the source pose in the same clip history action so Undo
-	# and Redo restore it after the library mutation as well as after sampling.
-	_commit_animation_add("MCP: Baked clip %s" % anim_name, player, library,
-		created_library, anim_name, anim, existing.old_anim, _bone_pose_history_props(skeleton))
+	if player_created:
+		player.add_animation_library("", library)
+		library.add_animation(anim_name, anim)
+		_commit_node_add_many("MCP: Baked clip %s" % anim_name, [{"parent": source_player.get_parent(), "node": player}])
+		if not _dry_run: allocation.transfer_to_history()
+	else:
+		_commit_animation_add("MCP: Baked clip %s" % anim_name, player, library, created_library, anim_name, anim, existing.old_anim, _bone_pose_history_props(skeleton))
 	return {"data": {
-		"player_path": str(params.get("player_path", "")),
-		"skeleton_path": resolved.path,
-		"animation_name": anim_name,
-		"length": length,
-		"fps": fps,
-		"samples": samples,
-		"bone_count": indices.size(),
-		"track_count": (spec.tracks as Array).size(),
-		"positions": include_positions,
-		"scales": include_scales,
-		"source_animation": source,
+		"player_path": output_path, "source_player_path": ValueCodec.from_node(source_player, scene_root),
+		"output_player_created": player_created, "skeleton_path": resolved.path,
+		"animation_name": anim_name, "length": length, "fps": fps, "samples": samples,
+		"bone_count": indices.size(), "track_count": spec.tracks.size(),
+		"positions": include_positions, "scales": include_scales, "source_animation": source,
 		"loop_mode": ValueCodec.loop_mode_to_string(int(spec.loop_mode)),
-		"library_created": created_library,
-		"overwritten": existing.old_anim != null,
-		"undoable": true,
-		"modifiers": _modifier_names(modifiers),
-		"reset_modifiers": reset_modifiers,
-		"sample_delta": step,
-		"restored_skeletons": [resolved.path] + _skeleton_paths(retarget_restores,
-			EditorInterface.get_edited_scene_root()),
-		"retarget_targets": _skeleton_paths(retarget_restores,
-			EditorInterface.get_edited_scene_root()),
-		"note": "the skeleton's pose was restored after sampling; disable the source modifiers once you play the baked clip",
+		"library_created": created_library, "overwritten": existing.old_anim != null,
+		"undoable": true, "modifiers": modifier_classes, "reset_modifiers": reset_classes,
+		"reset_scope": "private_copy", "sample_delta": step,
+		"evaluation_isolated": true, "live_state_untouched": true,
+		"excluded_tracks": exclusions, "root_motion_mode": root_mode,
+		"restored_skeletons": preserved_paths, "retarget_targets": retarget_paths,
+		"note": "Sampling used a private scene. Disable source playback and source modifiers when playing the baked clip.",
 	}}
 
 
@@ -3534,3 +3457,5 @@ func _retarget_missing_core(mapped: Array, source: Skeleton3D, target: Skeleton3
 		if not mapped.has(bone_name):
 			missing.append(bone_name)
 	return missing
+
+

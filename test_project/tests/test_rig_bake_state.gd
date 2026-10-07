@@ -89,7 +89,11 @@ func _case(state: String) -> void:
 		"player_path": str(player.get_path()), "source_animation": "source/input",
 		"animation_name": "generated", "duration": 0.5, "fps": 4}
 	var orphans := Node.get_orphan_node_ids()
-	assert_has_key(_call(params.merged({"dry_run": true})), "data", state + " dry")
+	var dry := _call(params.merged({"dry_run": true}))
+	assert_has_key(dry, "data", state + " dry " + str(dry.get("error", {})))
+	if not dry.has("data"):
+		fixture.free()
+		return
 	assert_eq(Node.get_orphan_node_ids(), orphans, state + " dry no orphan nodes")
 	assert_true(_checks._same(_player_state(player), before_player), state + " dry playback state " + str(_player_state(player)) + " expected " + str(before_player))
 	_zero_speed(player, state, "dry")

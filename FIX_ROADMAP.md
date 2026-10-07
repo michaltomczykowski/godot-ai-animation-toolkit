@@ -3228,3 +3228,42 @@ spring from the current pose using the public reset API.
   stay partial. Next: active graph/modifier bake restoration, then motion/
   sequence history and character action visual approval. Draft PR #1 remains
   open and unreleased. The closing evidence commit changes documentation only.
+
+### 2026-10-07 — Active graph/modifier bake restoration started
+
+- Approved specification: `docs/rig-bake-restoration-plan.md`. Implement both
+  isolated clip baking and deterministic AnimationTree replay. Capture one
+  selected skeleton; support preserve/pose-only/apply root motion and automatic
+  inactive output storage when needed to preserve graph state.
+- Starting source is pushed `742f7f4`, with prior modifier checkpoint CI green.
+  Checkpoints: runtime reproductions, sandbox/final capture/history, graph
+  replay/storage, root motion, complete independent playback/visual/CI gates.
+- Work alone. Each verified checkpoint records results, refreshes recovery and
+  is pushed on the unreleased review branch. This phase is in progress.
+
+#### Checkpoint 1–2: reproduced failures and isolated clip capture
+
+- Baseline public Godot AI tests reproduce final-influence loss and live spring
+  momentum destruction: continued rotations diverge by 1.592916 / 1.193408 /
+  0.957115 radians at 30 / 60 / 120 FPS. Baseline JSON and logs are saved in
+  `bake_restoration_20261007` under the persistent recovery snapshot.
+- Clip baking now evaluates an unsaved hierarchy copy in its own world, with
+  private libraries/resources, stripped scripts/signals, remapped NodePaths,
+  manual processing and excluded method/audio/playback tracks. Active custom
+  modifiers/processors and unresolved/external dependencies return typed errors.
+  Source players, target properties and solver momentum are never sampled on
+  the live scene. Native physics modifiers are ignored only when not simulating.
+- Capture uses an inert final witness after the real weighted stack, checks
+  agreement with `skeleton_updated`, initializes private springs at time zero,
+  and evaluates actual intervals including the shorter final step. A native
+  oracle verifies animated targets and the 0.205-second endpoint. Internal late
+  failure injection verifies complete cleanup and unchanged Undo history.
+- Fresh visible Godot 4.7.2 through Godot AI passes 38/38 selected tests:
+  four new restoration checks, eight bake playback states, five existing bake
+  checks, six clip history checks and fifteen modifier history checks. Captured
+  bake/fixture engine errors are zero. Continued springs match untouched native
+  peers within 0.001 radians at all three rates. All fourteen tier-1 suites pass.
+- Graph replay and all three movement modes remain required. Their schema is
+  not advertised yet; callers receive OPERATION_UNAVAILABLE for graph replay or
+  unresolved extraction modes. Full editor/hosted CI and independent visual
+  approval are required at the closing checkpoint. No release is created.
