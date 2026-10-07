@@ -37,6 +37,44 @@ func _restore(skeleton: Skeleton3D, poses: Array) -> void:
 		skeleton.set_bone_pose_position(i, poses[i].origin)
 		skeleton.set_bone_pose_rotation(i, poses[i].basis.get_rotation_quaternion())
 		skeleton.set_bone_pose_scale(i, poses[i].basis.get_scale())
+func _global_from_local(skeleton: Skeleton3D, poses: Array, bone: int) -> Transform3D:
+	var parent := skeleton.get_bone_parent(bone)
+	var local: Transform3D = poses[bone] if skeleton.is_bone_enabled(bone) and not skeleton.show_rest_only else skeleton.get_bone_rest(bone)
+	return _global_from_local(skeleton, poses, parent) * local if parent >= 0 else local
+func _retarget_expected(source: Skeleton3D, target: Skeleton3D, modifier: RetargetModifier3D, input: Array, authored: Array, weight: float) -> Array:
+	# Retarget weights source rest -> source pose internally. It does not blend
+	# authored target -> full target like a modifier writing its own skeleton.
+	# Compute the 4.7 rest-space contract without evaluating a native modifier.
+	# https://github.com/godotengine/godot/blob/4.7/scene/3d/retarget_modifier_3d.cpp
+	var expected := authored.duplicate()
+	for profile_index in modifier.profile.get_bone_size():
+		var name := modifier.profile.get_bone_name(profile_index)
+		var a := source.find_bone(name)
+		var b := target.find_bone(name)
+		if a < 0 or b < 0: continue
+		var a_parent := source.get_bone_parent(a)
+		var b_parent := target.get_bone_parent(b)
+		var a_rest_parent := source.get_bone_global_rest(a_parent).basis if a_parent >= 0 else Basis.IDENTITY
+		var b_rest_parent := target.get_bone_global_rest(b_parent).basis if b_parent >= 0 else Basis.IDENTITY
+		var post := source.get_bone_rest(a).basis.inverse() * a_rest_parent.inverse() * b_rest_parent * target.get_bone_rest(b).basis
+		if modifier.use_global_pose:
+			var source_global := _global_from_local(source, input, a)
+			var mapped := source.get_bone_global_rest(a).interpolate_with(source_global, weight) if weight < 1.0 else source_global
+			mapped.basis = mapped.basis * post
+			var local := _global_from_local(target, expected, b_parent).affine_inverse() * mapped if b_parent >= 0 else mapped
+			expected[b] = Transform3D(Basis(local.basis.get_rotation_quaternion()) * Basis.from_scale(local.basis.get_scale()), local.origin)
+		else:
+			var pre := b_rest_parent.inverse() * a_rest_parent
+			var mapped: Transform3D = source.get_bone_rest(a).interpolate_with(input[a], weight) if weight < 1.0 else input[a]
+			var basis := pre * mapped.basis * post
+			var position: Vector3 = expected[b].origin
+			var rotation: Quaternion = expected[b].basis.get_rotation_quaternion()
+			var scale: Vector3 = expected[b].basis.get_scale()
+			if modifier.is_position_enabled(): position = pre * ((mapped.origin - source.get_bone_rest(a).origin) * target.motion_scale / source.motion_scale) + target.get_bone_rest(b).origin
+			if modifier.is_rotation_enabled(): rotation = basis.get_rotation_quaternion()
+			if modifier.is_scale_enabled(): scale = basis.get_scale()
+			expected[b] = Transform3D(Basis(rotation) * Basis.from_scale(scale), position)
+	return expected
 func _difference(a: Array, b: Array) -> float:
 	if a.size() != b.size(): return INF
 	var error := 0.0
@@ -55,10 +93,11 @@ func _effector(source: Skeleton3D, modifier: SkeletonModifier3D) -> Vector3:
 		var axis := (rest.basis.inverse() * (rest.origin - parent.origin)).normalized()
 		pose.origin += pose.basis * axis * modifier.get_end_bone_length(0)
 	return source.global_transform * pose.origin
-func _sample(source: Skeleton3D, observed: Skeleton3D, modifier: SkeletonModifier3D, witness: Witness, poses: Array, active: bool, weight: float, fps: int = 60) -> Dictionary:
+func _sample(source: Skeleton3D, observed: Skeleton3D, modifier: SkeletonModifier3D, witness: Witness, poses: Array, active: bool, weight: float, fps: int = 60, observed_input: Array = []) -> Dictionary:
 	modifier.active = active
 	modifier.influence = weight
 	_restore(source, poses)
+	if observed != source and not observed_input.is_empty(): _restore(observed, observed_input)
 	if modifier is SpringBoneSimulator3D: modifier.reset()
 	var result := {"raw_count": 0, "final_count": 0, "skin_count": 0, "raw": [], "final": [], "skin": [], "input": [], "globals": [], "endpoint": Vector3.ZERO, "collision_checks": 0, "penetration": 0.0}
 	var raw := func():
@@ -98,6 +137,7 @@ func _sample(source: Skeleton3D, observed: Skeleton3D, modifier: SkeletonModifie
 	if modifier is LookAtModifier3D and modifier.duration > 0: frames = int(ceil(modifier.duration * fps)) + 2
 	for frame in frames:
 		_restore(source, poses)
+		if observed != source and not observed_input.is_empty(): _restore(observed, observed_input)
 		if modifier is SpringBoneSimulator3D:
 			source.set_bone_pose_rotation(0, poses[0].basis.get_rotation_quaternion() * Quaternion(Vector3.FORWARD, 0.15 * sin(float(frame) / fps * TAU)))
 		result.input = _poses(source)
@@ -238,10 +278,10 @@ func _play(row: Dictionary, state: String, reference: bool = false, fps: int = 6
 		target.global_position = root_position + direction * 0.7 + side * direction.length() * 0.15
 		target.reset_physics_interpolation()
 	var observed_before := _poses(observed)
-	var off := _sample(source, observed, modifier, witness, input, false, 1.0, fps)
+	var off := _sample(source, observed, modifier, witness, input, false, 1.0, fps, observed_before)
 	_check(off.raw_count == 0 and off.final_count >= 1 and off.skin_count >= 1, label + " inactive signals observed")
 	_check(_difference(off.final, off.input if observed == source else observed_before) < 0.001, label + " inactive inert")
-	var full := _sample(source, observed, modifier, witness, input, true, 1.0, fps)
+	var full := _sample(source, observed, modifier, witness, input, true, 1.0, fps, observed_before)
 	_check(full.raw_count >= 1 and full.final_count >= 1 and full.skin_count >= 1, label + " active signals observed")
 	_check(_difference(full.final, full.skin) < 0.001, label + " witness agrees with skin pose")
 	if modifier is SpringBoneSimulator3D:
@@ -279,14 +319,25 @@ func _play(row: Dictionary, state: String, reference: bool = false, fps: int = 6
 		var unobstructed := _sample(source, observed, modifier, witness, input, true, 1.0, fps)
 		collision_response = _difference(full.final, unobstructed.final)
 		_check(collision_response > 0.001, label + " collision changes trajectory")
-	if row.op != "retarget_setup":
-		for weight in [0.0, 0.5]:
+	var influence_error := 0.0
+	for weight in [0.0, 0.5, 1.0]:
+		if row.op == "retarget_setup":
+			var expected := _retarget_expected(source, observed, modifier, input, observed_before, weight)
+			var sample := _sample(source, observed, modifier, witness, input, true, weight, fps, observed_before)
+			_check(sample.raw_count >= 1 and sample.final_count >= 1 and sample.skin_count >= 1, label + " retarget influence signals=" + str(weight))
+			var error := _difference(sample.final, expected)
+			influence_error = maxf(influence_error, error)
+			_check(error < 0.001, label + " source-rest retarget influence=" + str(weight) + " error=" + str(error))
+			_check(_difference(sample.raw, sample.final) < 0.001 and _difference(sample.final, sample.skin) < 0.001, label + " retarget weight applied once=" + str(weight))
+			_check(_difference(input, _poses(source)) < 0.001, label + " retarget source unchanged=" + str(weight))
+		else:
 			var sample := _sample(source, observed, modifier, witness, input, true, weight, fps)
 			for i in input.size():
 				var expected := Transform3D(Basis(sample.input[i].basis.get_rotation_quaternion().slerp(sample.raw[i].basis.get_rotation_quaternion(), weight)).scaled(sample.input[i].basis.get_scale().lerp(sample.raw[i].basis.get_scale(), weight)), sample.input[i].origin.lerp(sample.raw[i].origin, weight))
+				influence_error = maxf(influence_error, _difference([sample.final[i]], [expected]))
 				_check(sample.final[i].is_equal_approx(expected), label + " influence=" + str(weight) + " bone=" + str(i))
 	_check(_difference(peer_before, _poses(peer)) < 0.001, label + " peer isolated during playback")
-	rows.append({"id": row.id, "state": state, "fps": fps, "native": reference, "effect": _difference(off.final, full.final), "samples": full.final_count, "collision_checks": full.collision_checks, "penetration": full.penetration, "collision_response": collision_response})
+	rows.append({"id": row.id, "state": state, "fps": fps, "native": reference, "effect": _difference(off.final, full.final), "samples": full.final_count, "collision_checks": full.collision_checks, "penetration": full.penetration, "collision_response": collision_response, "influences": [0.0, 0.5, 1.0], "influence_error": influence_error, "influence_contract": "source_rest" if row.op == "retarget_setup" else "pose_blend"})
 	var result: Array = full.final
 	if reference: native_states += 1
 	else: saved_states += 1

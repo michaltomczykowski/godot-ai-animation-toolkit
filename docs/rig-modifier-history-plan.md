@@ -91,3 +91,9 @@ toolkit-created modifiers and native rest-pose baselines remain supported.
 The supported gate covers 92 cases / 276 saved scenes, with 828 saved
 playback checks and 276 independent references at 30/60/120 FPS. See
 [implementation evidence](rig-modifier-history-validation.md).
+
+Final verification requires 0/0.5/1 weights for all individual playback runs,
+including retarget's internally weighted source-rest conversion. The external
+reload client must wait for a different ready session for this exact project;
+it may retry readiness probes, never the required writes. These close the
+retarget weight omission and a Windows plugin-managed restart timing failure.

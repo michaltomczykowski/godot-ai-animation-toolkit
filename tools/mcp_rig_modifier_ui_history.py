@@ -2,10 +2,12 @@
 from __future__ import annotations
 import argparse
 import asyncio
+from contextlib import AsyncExitStack, asynccontextmanager
 from datetime import datetime, timezone
 import json
 from pathlib import Path
 import sys
+import time
 from fastmcp import Client
 from fastmcp.client.transports import StdioTransport
 from mcp_presets_audit import call
@@ -26,8 +28,12 @@ def valid_route(report: dict) -> bool:
     phases = report.get('phases', [])
     return (report.get('passed') is True and len(phases) == 2
         and [phase.get('phase') for phase in phases] == ['before_reload', 'after_reload']
+        and phases[0].get('connection', {}).get('session_id') != phases[1].get('connection', {}).get('session_id')
         and isinstance(report.get('reload'), dict) and not report['reload'].get('error')
         and all(len(phase.get('rows', [])) == len(OPS)
+            and phase.get('connection', {}).get('ready') is True
+            and phase['connection'].get('session_id')
+            and phase['connection'].get('attempts', 0) >= 1
             and [row.get('op') for row in phase['rows']] == list(OPS)
             and all(row.get('passed') is True and all(isinstance(row.get(key), dict)
                 and not row[key].get('error') for key in ('made', 'dry', 'save', 'reopen'))
@@ -124,16 +130,55 @@ async def run(args: argparse.Namespace) -> int:
     print('MCP_RIG_MODIFIER_UI_HISTORY=' + json.dumps(result, sort_keys=True))
     return 0 if result['passed'] else 1
 
+@asynccontextmanager
+async def connected_editor(args: argparse.Namespace, excluded_session_id: str = ''):
+    """Wait for the authenticated endpoint/session after a plugin-managed reload.
+
+    Only connection and read-only readiness calls are retried. The caller's
+    dry/write/save/reopen operations execute once outside this retry loop.
+    """
+    started = time.monotonic()
+    deadline = started + 60
+    attempts = 0
+    last_error = 'No matching ready editor session'
+    while time.monotonic() < deadline:
+        attempts += 1
+        stack = AsyncExitStack()
+        try:
+            async with asyncio.timeout(min(12, deadline - time.monotonic())):
+                transport = StdioTransport(sys.executable, ['-m', 'godot_ai', 'attach', '--port', str(args.port),
+                    '--ws-port', str(args.ws_port)], cwd=str(args.core_root), keep_alive=False)
+                client = await stack.enter_async_context(Client(transport))
+                sessions = await call(client, 'session_manage', {'op': 'list'})
+                matches = [s for s in sessions.get('sessions', [])
+                    if Path(s.get('project_path', '')).resolve() == args.project_root.resolve()
+                    and s.get('session_id') != excluded_session_id]
+                if len(matches) != 1: raise RuntimeError('Expected one matching editor session: ' + repr(matches))
+                session_id = matches[0]['session_id']
+                activated = await call(client, 'session_activate', {'session_id': session_id})
+                if activated.get('error'): raise RuntimeError(activated)
+                state = await call(client, 'editor_state', {'session_id': session_id})
+                if state.get('error') or state.get('readiness') != 'ready': raise RuntimeError('Editor not ready: ' + repr(state))
+        except Exception as exc:
+            last_error = f'{type(exc).__name__}: {exc}'
+            await stack.aclose()
+            await asyncio.sleep(min(1, max(0, deadline - time.monotonic())))
+            continue
+        break
+    else:
+        raise RuntimeError(f'Editor did not reconnect within 60 seconds ({attempts} attempts): {last_error}')
+    async with stack:
+        yield client, {'ready': True, 'session_id': session_id, 'attempts': attempts,
+            'elapsed_seconds': round(time.monotonic() - started, 3), 'last_retry_error': last_error if attempts > 1 else ''}
+
 async def run_route(args: argparse.Namespace) -> int:
     phases = []
     reload_result = {}
     for phase in ('before_reload', 'after_reload'):
         # Reconnect the attach client after a core reload. A prior attach
         # transport can retain the old session routing hint.
-        transport = StdioTransport(sys.executable, ['-m', 'godot_ai', 'attach', '--port', str(args.port),
-            '--ws-port', str(args.ws_port)], cwd=str(args.core_root), keep_alive=False)
-        async with Client(transport) as client:
-            await client.call_tool('session_activate', {'session_id': args.session_hint})
+        old_session = phases[0]['connection']['session_id'] if phase == 'after_reload' else ''
+        async with connected_editor(args, old_session) as (client, connection):
             rows = []
             for op in OPS:
                 row = await setup(client, args, op)
@@ -146,9 +191,8 @@ async def run_route(args: argparse.Namespace) -> int:
                     and equivalent(row['generated']['source_pose'], row['saved']['source_pose'])
                     and equivalent(row['generated']['receiver_pose'], row['saved']['receiver_pose']))
                 rows.append(row)
-            phases.append({'phase': phase, 'rows': rows})
+            phases.append({'phase': phase, 'rows': rows, 'connection': connection})
             if phase == 'before_reload': reload_result = await call(client, 'editor_reload_plugin', {})
-        if phase == 'before_reload': await asyncio.sleep(1.0)
     result = {'passed': all(row['passed'] for phase in phases for row in phase['rows']),
               'phases': phases, 'reload': reload_result}
     result['passed'] = valid_route(result)

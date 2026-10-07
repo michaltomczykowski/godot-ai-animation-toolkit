@@ -74,6 +74,14 @@ and `skeleton_updated`. Missing states, duplicate/missing IDs, samples or report
 fail the Python gate. Generated scenes can contain the retarget restoration
 script described above; this dependency is exercised by the fresh process.
 
+All 720 individual Do/Redo/native runs require influence 0/0.5/1, giving
+2,160 weight checks. Retarget has a different engine contract: influence blends
+source rest toward source pose before rest-space conversion, rather than blending
+the target's authored pose toward its result. A separate geometric calculation
+checks local/global conversion, transform flags, motion scale, disabled bones
+and different rests. Raw/final/skin poses must agree and source inputs stay
+unchanged. The strict report rejects missing weights or the wrong contract.
+
 Geometry checks require point IK within 0.5% chain length, unrestricted
 secondary look-at to aim its requested forward axis at the target, finite
 poses, and world-center spring sphere penetration below **3 mm** at every
@@ -113,6 +121,20 @@ an explicit current-pose reset at all three frame rates.
   reconnects after reload and waits for the new fixture's unique sentinel.
 - `ci_mcp_route.py` requires the matrix on Windows and Linux. Full suite,
   hosted CI and final preview results are recorded below as they complete.
+
+- Guarded source `04e8754`: [CI 37662645355](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37662645355)
+  passed 33 required jobs, including both modifier history gates. The Windows
+  direct modifier reload gate failed while reconnecting to the plugin-managed
+  server during restart. Its fixed one-second delay was insufficient. The
+  client now waits up to 60 seconds for the authenticated endpoint, a different
+  session ID for this exact project and editor readiness. Only connection and
+  readiness calls are retried; all required writes run once. Reports require
+  both ready connections and all ten operations. The local repeat passes.
+- The final weight gate passes locally through Godot AI: all 15 named tests,
+  828 saved states / 276 native references / 108 stack states, zero errors,
+  and all 2,160 mandatory weight checks. Retarget-only playback passes its
+  378 geometric weight checks with zero measured pose discrepancy. Hosted CI
+  on the reconnect/weight follow-up remains required before closing this phase.
 
 The route job now has a 25-minute limit: the prior complete Windows run took
 almost 15 minutes. Per-gate deadlines and all required states/IDs remain strict.

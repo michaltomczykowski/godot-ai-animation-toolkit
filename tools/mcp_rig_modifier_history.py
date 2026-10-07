@@ -59,7 +59,11 @@ def valid_runtime(report: dict) -> bool:
             and report.get('native_states') == 276 and report.get('stack_states') == 108
             and actual == expected and all(r.get('samples', 0) >= 1 for r in rows)
             and all(r.get('samples') == r['fps'] and len(r.get('order', [])) in (2, 3)
-                    for r in rows if str(r.get('id', '')).startswith('stack_') and r.get('state') != 'undo'))
+                    for r in rows if str(r.get('id', '')).startswith('stack_') and r.get('state') != 'undo')
+            and all(r.get('influences') == [0.0, 0.5, 1.0]
+                    and r.get('influence_error', float('inf')) < 0.001
+                    and r.get('influence_contract') == ('source_rest' if '_retarget_setup_' in r['id'] else 'pose_blend')
+                    for r in rows if not str(r.get('id', '')).startswith('stack_') and r.get('state') != 'undo'))
 
 async def run(args: argparse.Namespace) -> int:
     transport = StdioTransport(sys.executable, ['-m', 'godot_ai', 'attach', '--port', str(args.port),

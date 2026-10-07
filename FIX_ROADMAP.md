@@ -3200,3 +3200,16 @@ spring from the current pose using the public reset API.
   headless suites pass. CI's route deadline is now 25 minutes because the
   previous Windows route consumed almost the full 15-minute limit; per-gate
   deadlines and exact report/case checks remain strict.
+- Guarded checkpoint `04e8754` passed 33 required hosted jobs and both strict
+  modifier history gates in CI `37662645355`. The Windows direct modifier
+  reload client connected during the plugin-managed server restart and failed
+  with Connection closed. Replaced the fixed one-second delay with a bounded
+  authenticated connection/readiness wait for a new session in the exact
+  project; required dry/write/save/reopen calls execute once. Local ten-case
+  repeat passes; final hosted CI on this harness repair remains required.
+- Closed the independent checker's retarget influence omission. All 720
+  individual playback runs now require 0/0.5/1 (2,160 weight checks), with a
+  geometric source-rest conversion check for retarget, including global/local
+  mode, selective flags, disabled bones and different rests. Retarget's 378
+  weight checks and the full fresh Godot AI 15-test/828-state/276-native gate
+  pass locally, zero captured errors and zero measured weight discrepancy.
