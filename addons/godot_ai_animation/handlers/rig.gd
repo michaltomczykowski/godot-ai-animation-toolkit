@@ -555,7 +555,6 @@ const IK_3D_KINDS := {
 	"two_bone": "TwoBoneIK3D",
 	"ccdik": "CCDIK3D",
 	"fabrik": "FABRIK3D",
-	"jacobian": "JacobianIK3D",
 	"spline": "SplineIK3D",
 }
 
@@ -826,6 +825,9 @@ func ik_setup(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"ik_setup supports Skeleton3D for now: the 2D skeleton modification stack is Experimental in Godot 4.7. Build 2D chains with rig_chain and pose them with pose_apply / pose_to_clip.")
 	var kind := str(params.get("kind", "two_bone"))
+	if kind == "jacobian":
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
+			"Jacobian IK is disabled: independent Godot 4.7.2 playback stalls 9.8 mm short on a reachable 0.9 m chain, exceeding this toolkit's 0.5% reach tolerance. Use two_bone, ccdik or fabrik for point targets. Re-enable only after native playback meets that tolerance.")
 	if not IK_3D_KINDS.has(kind):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 			"Invalid kind '%s'. Valid: %s" % [kind, ", ".join(IK_3D_KINDS.keys())])
@@ -897,9 +899,16 @@ func ik_setup(params: Dictionary) -> Dictionary:
 			"setup": [{"method": "set_global_position", "args": [skeleton.global_transform * pole_position]}]})
 		pole = marker
 		pole_created = true
-	var tip := _bone_tip_3d(skeleton, end_index)
-	if tip.get("warning") != null:
-		warnings.append(str(tip.warning))
+	# An ordinary IK effector is the last bone's origin, not its child's
+	# origin/virtual tip. Generated targets start at the current authored pose.
+	var tip := {"position": skeleton.global_transform * skeleton.get_bone_global_pose(end_index).origin}
+	if kind == "two_bone" and use_virtual_end:
+		var middle_index := skeleton.find_bone(str(chain[1]))
+		var middle_pose := skeleton.get_bone_global_pose(middle_index)
+		var middle_rest := skeleton.get_bone_global_rest(middle_index)
+		var root_rest := skeleton.get_bone_global_rest(skeleton.find_bone(str(chain[0])))
+		var axis := (middle_rest.basis.inverse() * (middle_rest.origin - root_rest.origin)).normalized()
+		tip.position = skeleton.global_transform * (middle_pose.origin + middle_pose.basis * axis * float(params.get("end_bone_length", 0.1)))
 	var modifier: SkeletonModifier3D = ClassDB.instantiate(IK_3D_KINDS[kind])
 	if modifier == null:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
@@ -1198,6 +1207,9 @@ func spring_setup(params: Dictionary) -> Dictionary:
 		for field in ["collisions", "exclude_collisions"]:
 			if spring.has(field) and not spring[field] is Array:
 				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "springs[%d].%s must be an array" % [index, field])
+		if _spring_center_from(str(spring.get("center_from", "world_origin"))) != SpringBoneSimulator3D.CENTER_FROM_WORLD_ORIGIN and not (spring.get("collisions", []) as Array).is_empty():
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
+				"springs[%d]: node/bone centers with collisions are disabled: native Godot 4.7.2 contact penetrates by up to 8 cm on rotated rigs. Use center_from=world_origin for collisions, or omit collisions for relative-center simulation." % index)
 		var collisions: Array = []
 		for path in spring.get("collisions", []):
 			var collider := ValueCodec.resolve_scene_path(str(path), scene_root)
@@ -1322,6 +1334,9 @@ func spring_setup(params: Dictionary) -> Dictionary:
 			undo.add_undo_property(move.node, "transform", move.transform)
 			if move.new_name != move.old_name: undo.add_undo_property(move.node, "name", move.old_name)
 		for call in collision_setup: _add_do_call(undo, simulator, call.method, call.args)
+		# Redo reuses the history-held node. Drop its old simulation momentum
+		# after reattachment/settings/colliders, relative to the current pose.
+		undo.add_do_method(simulator, "reset")
 		undo.add_undo_method(skeleton, "remove_child", simulator)
 		undo.commit_action()
 		allocation.transfer_to_history()
@@ -1420,6 +1435,9 @@ func look_at_setup(params: Dictionary) -> Dictionary:
 			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 				"Invalid primary_axis '%s'. Valid: x, y, z" % str(params.primary_axis))
 		origin_setup.append({"method": "set_primary_rotation_axis", "args": [primary]})
+	var primary_spec := str(params.get("primary_axis", "y"))
+	if forward_spec.right(1) == primary_spec:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "primary_axis must differ from forward_axis so look-at can rotate toward its target")
 	var bone_pose := skeleton.get_bone_global_pose(bone_index)
 	var ahead := bone_pose.basis * _bone_axis_vector(forward) * 1.0
 	var target_created := false
@@ -1468,8 +1486,7 @@ func look_at_setup(params: Dictionary) -> Dictionary:
 		if params.has("secondary_limit_angle"):
 			setup.append({"method": "set_secondary_limit_angle",
 				"args": [deg_to_rad(float(params.secondary_limit_angle))]})
-	if bool(params.get("use_secondary_rotation", false)):
-		setup.append({"method": "set_use_secondary_rotation", "args": [true]})
+	setup.append({"method": "set_use_secondary_rotation", "args": [bool(params.get("use_secondary_rotation", false))]})
 	if bool(params.get("relative", false)):
 		setup.append({"method": "set_relative", "args": [true]})
 	if params.has("duration"):
@@ -1849,6 +1866,16 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 	if modifier_created:
 		allocation.track(modifier)
 		modifier.name = _unique_child_name(source, str(params.get("name", "Retarget")), {})
+	var restore_script: Script = preload("res://addons/godot_ai_animation/utils/retarget_pose_restore.gd")
+	var pose_restore: Node = null
+	for child in modifier.get_children():
+		if child.get_script() == restore_script: pose_restore = child
+	var restore_created := pose_restore == null
+	if restore_created:
+		pose_restore = Node.new()
+		pose_restore.name = _unique_child_name(modifier, "ToolkitRetargetPoseRestore", {})
+		pose_restore.set_script(restore_script)
+		allocation.track(pose_restore)
 	var previous := {
 		"active": modifier.active,
 		"profile": modifier.profile,
@@ -1871,6 +1898,11 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 	var setup_error := _setup_calls_error(modifier, setup)
 	if not setup_error.is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, setup_error)
+	var target_pose_props := _bone_pose_history_props(target)
+	if existing_modifier != null:
+		for child in existing_modifier.get_children():
+			if child is Skeleton3D and child != target:
+				target_pose_props.append_array(_bone_pose_history_props(child))
 	if not _dry_run:
 		_create_scene_pinned_action("MCP: Retarget setup")
 		var undo := ToolContext.undo_redo
@@ -1878,6 +1910,11 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 			undo.add_do_method(source, "add_child", modifier, true)
 			undo.add_do_method(modifier, "set_owner", scene_root)
 			undo.add_do_reference(modifier)
+		if restore_created:
+			undo.add_do_method(modifier, "add_child", pose_restore, true)
+			undo.add_do_property(pose_restore, "owner", scene_root)
+			undo.add_do_reference(pose_restore)
+			undo.add_undo_method(modifier, "remove_child", pose_restore)
 		for call in setup:
 			if call.has("property"):
 				undo.add_do_property(modifier, call.property, call.value)
@@ -1890,13 +1927,26 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 					_add_undo_call(undo, modifier, call.method, call.previous_args)
 		if move_target and not already_under_modifier:
 			var old_parent := move_node.get_parent()
+			var old_index := move_node.get_index()
 			undo.add_do_method(move_node, "reparent", modifier, true)
 			# Undo methods run in registration order, so the target goes back to
 			# its old parent before the modifier (its current parent) is removed.
 			undo.add_undo_method(move_node, "reparent", old_parent, true)
+			undo.add_undo_method(old_parent, "move_child", move_node, old_index)
 			undo.add_undo_method(source, "remove_child", modifier)
 		elif modifier_created:
 			undo.add_undo_method(source, "remove_child", modifier)
+		# Retarget resets cached child poses when its profile, flags, children or
+		# tree attachment changes. Restore AFTER all structural/settings calls,
+		# then after the engine's deferred child-cache reset as well. Use the
+		# existing scene/version ticket so later authored edits still win.
+		for entry in target_pose_props:
+			undo.add_do_property(entry.object, entry.property, entry.value)
+			undo.add_undo_property(entry.object, entry.property, entry.old)
+		var history: UndoRedo = undo.get_history_undo_redo(undo.get_object_history_id(scene_root))
+		var version := history.get_version()
+		undo.add_do_method(self, "_queue_pose_restore", target_pose_props, history, scene_root.get_instance_id(), version + 1, false)
+		undo.add_undo_method(self, "_queue_pose_restore", target_pose_props, history, scene_root.get_instance_id(), version, true)
 		undo.commit_action()
 		allocation.transfer_to_history()
 	# Failsafe: the modifier is only useful if the target skeleton is a direct

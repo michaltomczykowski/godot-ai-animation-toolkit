@@ -1180,7 +1180,7 @@ func test_look_at_markers_get_collision_safe_names() -> void:
 	_teardown(rig)
 
 
-func test_ik_default_markers_ignore_the_current_pose() -> void:
+func test_ik_default_target_preserves_current_effector() -> void:
 	var rig := _rig("RigIKRest")
 	if rig.has("error"):
 		skip(rig.error)
@@ -1188,6 +1188,8 @@ func test_ik_default_markers_ignore_the_current_pose() -> void:
 	var scene_root := EditorInterface.get_edited_scene_root()
 	var skeleton := ValueCodec.resolve_scene_path(rig.skeleton_path, scene_root) as Skeleton3D
 	var chain := ["B-upperArm.L", "B-forearm.L", "B-hand.L"]
+	var end_bone := skeleton.find_bone(chain[-1])
+	var neutral_effector := skeleton.global_transform * skeleton.get_bone_global_pose(end_bone).origin
 	var neutral := _handler.run({
 		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "two_bone",
 		"chain": chain, "target_name": "RestTarget",
@@ -1195,11 +1197,12 @@ func test_ik_default_markers_ignore_the_current_pose() -> void:
 	assert_true(neutral.has("data"), "neutral setup: %s" % str(neutral))
 	var neutral_target := ValueCodec.resolve_scene_path(str(neutral.data.target_path), scene_root) as Marker3D
 	var neutral_pole := ValueCodec.resolve_scene_path(str(neutral.data.pole_path), scene_root) as Marker3D
-	# Pose the chain, then set it up again: the default markers must land in the
-	# rest frame, not wherever the editor was left.
+	# A default target preserves the current effector to avoid an activation
+	# snap. The default pole keeps its stable rest-based bend plane.
 	skeleton.set_bone_pose_rotation(0, Quaternion.IDENTITY)
 	for bone_name in chain:
 		skeleton.set_bone_pose_rotation(skeleton.find_bone(bone_name), Quaternion(Vector3(1, 0, 0), 0.9))
+	var posed_effector := skeleton.global_transform * skeleton.get_bone_global_pose(end_bone).origin
 	var posed := _handler.run({
 		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "two_bone",
 		"chain": chain, "target_name": "PosedTarget",
@@ -1207,9 +1210,12 @@ func test_ik_default_markers_ignore_the_current_pose() -> void:
 	assert_true(posed.has("data"), "posed setup: %s" % str(posed))
 	var posed_target := ValueCodec.resolve_scene_path(str(posed.data.target_path), scene_root) as Marker3D
 	var posed_pole := ValueCodec.resolve_scene_path(str(posed.data.pole_path), scene_root) as Marker3D
-	assert_true(posed_target.global_position.distance_to(neutral_target.global_position) < 0.001,
-		"the target lands in the rest frame (%s vs %s)"
-			% [str(posed_target.global_position), str(neutral_target.global_position)])
+	assert_true(neutral_target.global_position.distance_to(neutral_effector) < 0.001,
+		"the neutral target matches the current effector origin")
+	assert_true(posed_target.global_position.distance_to(posed_effector) < 0.001,
+		"the posed target matches the current effector origin")
+	assert_true(posed_target.global_position.distance_to(neutral_target.global_position) > 0.01,
+		"the fixture exercises a distinct authored pose")
 	assert_true(posed_pole.global_position.distance_to(neutral_pole.global_position) < 0.001,
 		"the pole lands in the rest frame")
 	_teardown(rig)

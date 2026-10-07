@@ -1487,9 +1487,9 @@ static func _rig_description() -> String:
 static func _rig_modifiers_description() -> String:
 	return (
 		"Skeleton modifier setup: TwoBoneIK3D (ik_setup, including spline "
-		+ "chains), SpringBoneModifier3D (spring_setup), LookAtModifier3D "
+		+ "chains), SpringBoneSimulator3D (spring_setup), LookAtModifier3D "
 		+ "(look_at_setup), RetargetModifier3D (retarget_setup) and "
-		+ "TwistModifier3D (twist_setup). Each setup is verified after it commits "
+		+ "BoneTwistDisperser3D (twist_setup). Each setup is verified after it commits "
 		+ "and rolled back if the wiring did not take. Modifiers are created "
 		+ "inactive because an active one also drives the scene while you edit it."
 	)
@@ -1539,15 +1539,15 @@ static func _rig_schema() -> Dictionary:
 			},
 			"kind": {
 				"type": "string",
-				"enum": ["3d", "2d", "two_bone", "ccdik", "fabrik", "jacobian", "spline"],
-				"description": "rig_chain: 3d|2d. ik_setup: solver (two_bone|ccdik|fabrik|jacobian|spline; spline follows a Path3D).",
+				"enum": ["3d", "2d", "two_bone", "ccdik", "fabrik", "spline"],
+				"description": "rig_chain: 3d|2d. ik_setup: two_bone|ccdik|fabrik|spline (Path3D). Jacobian is unavailable: native 4.7.2 reach exceeds tolerance.",
 			},
 			"chain": {
 				"type": "array",
 				"items": {"type": "string"},
 				"description": "ik_setup: bones root -> effector (3 for two_bone, else root + end).",
 			},
-			"target_path": {"type": "string", "description": "ik_setup: target node (a Path3D for spline); created at the tip if omitted."},
+			"target_path": {"type": "string", "description": "ik_setup: target node (Path3D for spline); created at the current effector if omitted."},
 			"target_name": {"type": "string", "description": "ik_setup: name of the created target (IKTarget)."},
 			"pole_path": {"type": "string", "description": "ik_setup two_bone: pole node for the bend."},
 			"use_virtual_end": {
@@ -1564,7 +1564,8 @@ static func _rig_schema() -> Dictionary:
 				"items": {"type": "object"},
 				"description": "spring_setup: [{root_bone, end_bone?, stiffness?, drag?, gravity?, radius?}]; end_bone = leaf.",
 			},
-			"mutable_bone_axes": {"type": "boolean", "description": "spring_setup: allow any-axis rotation (off)."},
+			"mutable_bone_axes": {"type": "boolean", "description": "spring_setup/twist_setup: update axes from the current pose (engine default)."},
+			"influence": {"type": "number", "description": "twist_setup: blend weight, clamped 0-1 (1)."},
 			"bone": {"type": "string", "description": "look_at: bone that tracks the target."},
 			"spine_chain": {
 				"type": "array",
@@ -1789,9 +1790,9 @@ static func _rig_modifiers_ops() -> Array:
 		},
 		{
 			"name": "spring_setup",
-			"summary": "Attach spring bones (SpringBoneSimulator3D) to a skeleton, one setting per entry. Each spring needs a root and descendant end bone; single leaf bones are rejected because they did not move in Godot 4.7.2 playback.",
+			"summary": "Attach SpringBoneSimulator3D settings with a root and descendant end bone. Single leaf bones are unavailable. Collisions require world_origin center; node/bone centers with collisions fail native 4.7.2 contact checks. Redo resets the restored simulator from the current pose.",
 			"params": ["skeleton_path", "springs", "name", "active", "mutable_bone_axes"],
-			"example": {"op": "spring_setup", "skeleton_path": "/Main/Rig/Skeleton3D", "springs": [{"root_bone": "B-hair01", "stiffness": 0.3, "drag": 0.2, "gravity": 0.1, "radius": 0.05}]},
+			"example": {"op": "spring_setup", "skeleton_path": "/Main/Rig/Skeleton3D", "springs": [{"root_bone": "B-forearm.L", "end_bone": "B-hand.L", "stiffness": 0.3, "drag": 0.2, "gravity": 0.1, "radius": 0.05}]},
 		},
 		{
 			"name": "look_at_setup",
@@ -1808,7 +1809,7 @@ static func _rig_modifiers_ops() -> Array:
 		{
 			"name": "twist_setup",
 			"summary": "Attach a BoneTwistDisperser3D to spread a reference bone's twist toward the chain root. The reference is the end bone's parent unless disperse.extend_end_bone=true. The root/end default to the detected spine chain; mode picks even or weighted distribution. Godot builds the joint list at runtime, so custom amounts live in the Inspector. Created inactive.",
-			"params": ["skeleton_path", "disperse", "spine_chain", "name", "active"],
+			"params": ["skeleton_path", "disperse", "spine_chain", "name", "active", "influence", "mutable_bone_axes"],
 			"example": {"op": "twist_setup", "skeleton_path": "/Main/Rig/Skeleton3D", "disperse": {"root_bone": "B-hips", "end_bone": "B-chest", "mode": "even"}},
 		},
 	])

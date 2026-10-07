@@ -548,7 +548,7 @@ Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 | `skeleton_path` | string | Skeleton3D/2D path (default: first one). |
 | `bones` | array | rig_chain: [{name, parent?, position?, rotation?, scale?, length?}]; else a bone filter. |
 | `node_path` | string | rig_chain: Node3D/Node2D subtree to become a skeleton (locals = rests). |
-| `kind` | string: 3d \| 2d \| two_bone \| ccdik \| fabrik \| jacobian \| spline | rig_chain: 3d|2d. ik_setup: solver (two_bone|ccdik|fabrik|jacobian|spline; spline follows a Path3D). |
+| `kind` | string: 3d \| 2d \| two_bone \| ccdik \| fabrik \| spline | rig_chain: 3d|2d. ik_setup: two_bone|ccdik|fabrik|spline (Path3D). Jacobian is unavailable: native 4.7.2 reach exceeds tolerance. |
 | `spine_chain` | array | Recipes: torso chain, hips first (auto-detected). |
 | `duration` | number | look_at: turn time, seconds (0 = instant). |
 | `profile` | string | retarget_setup: auto|humanoid|res:// path; recipes: saved rig profile. |
@@ -694,10 +694,10 @@ Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 | op | What it does | Params |
 | --- | --- | --- |
 | `ik_setup` | Attach a 3D IK modifier to a skeleton and wire it to a target node. kind=spline follows a Path3D (target_path) instead, because SplineIK3D solves against a path. | `skeleton_path`, `kind`, `chain`, `target_path`, `target_name`, `pole_path`, `use_virtual_end`, `end_bone_length`, `name`, `active`, `dry_run` |
-| `spring_setup` | Attach spring bones (SpringBoneSimulator3D) to a skeleton, one setting per entry. Each spring needs a root and descendant end bone; single leaf bones are rejected because they did not move in Godot 4.7.2 playback. | `skeleton_path`, `springs`, `name`, `active`, `mutable_bone_axes`, `dry_run` |
+| `spring_setup` | Attach SpringBoneSimulator3D settings with a root and descendant end bone. Single leaf bones are unavailable. Collisions require world_origin center; node/bone centers with collisions fail native 4.7.2 contact checks. Redo resets the restored simulator from the current pose. | `skeleton_path`, `springs`, `name`, `active`, `mutable_bone_axes`, `dry_run` |
 | `look_at_setup` | Attach a look-at modifier so one bone tracks a target node (created in front of the bone when omitted). | `skeleton_path`, `bone`, `target_path`, `target_name`, `forward_axis`, `origin_from`, `origin_bone`, `origin_node`, `origin_offset`, `origin_safe_margin`, `use_angle_limitation`, `primary_limit_angle`, `secondary_limit_angle`, `use_secondary_rotation`, `primary_axis`, `relative`, `duration`, `name`, `active`, `dry_run` |
 | `retarget_setup` | Retarget a source skeleton's poses onto a child target skeleton through a RetargetModifier3D and a bone-name profile. | `skeleton_path`, `target_path`, `profile`, `position`, `rotation`, `scale`, `use_global_pose`, `move_target`, `name`, `active`, `dry_run` |
-| `twist_setup` | Attach a BoneTwistDisperser3D to spread a reference bone's twist toward the chain root. The reference is the end bone's parent unless disperse.extend_end_bone=true. The root/end default to the detected spine chain; mode picks even or weighted distribution. Godot builds the joint list at runtime, so custom amounts live in the Inspector. Created inactive. | `skeleton_path`, `disperse`, `spine_chain`, `name`, `active`, `dry_run` |
+| `twist_setup` | Attach a BoneTwistDisperser3D to spread a reference bone's twist toward the chain root. The reference is the end bone's parent unless disperse.extend_end_bone=true. The root/end default to the detected spine chain; mode picks even or weighted distribution. Godot builds the joint list at runtime, so custom amounts live in the Inspector. Created inactive. | `skeleton_path`, `disperse`, `spine_chain`, `name`, `active`, `influence`, `mutable_bone_axes`, `dry_run` |
 
 ### `animation_rig_modifiers` parameters
 
@@ -705,16 +705,17 @@ Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 | --- | --- | --- |
 | `op` | string: ik_setup \| spring_setup \| look_at_setup \| retarget_setup \| twist_setup | Rig op to run. |
 | `skeleton_path` | string | Skeleton3D/2D path (default: first one). |
-| `kind` | string: 3d \| 2d \| two_bone \| ccdik \| fabrik \| jacobian \| spline | rig_chain: 3d|2d. ik_setup: solver (two_bone|ccdik|fabrik|jacobian|spline; spline follows a Path3D). |
+| `kind` | string: 3d \| 2d \| two_bone \| ccdik \| fabrik \| spline | rig_chain: 3d|2d. ik_setup: two_bone|ccdik|fabrik|spline (Path3D). Jacobian is unavailable: native 4.7.2 reach exceeds tolerance. |
 | `chain` | array | ik_setup: bones root -> effector (3 for two_bone, else root + end). |
-| `target_path` | string | ik_setup: target node (a Path3D for spline); created at the tip if omitted. |
+| `target_path` | string | ik_setup: target node (Path3D for spline); created at the current effector if omitted. |
 | `target_name` | string | ik_setup: name of the created target (IKTarget). |
 | `pole_path` | string | ik_setup two_bone: pole node for the bend. |
 | `use_virtual_end` | boolean | ik_setup two_bone: last chain bone = effector (off). |
 | `end_bone_length` | number | ik_setup: virtual end length (0.1). |
 | `active` | boolean | Modifier setups: enable now (off). |
 | `springs` | array | spring_setup: [{root_bone, end_bone?, stiffness?, drag?, gravity?, radius?}]; end_bone = leaf. |
-| `mutable_bone_axes` | boolean | spring_setup: allow any-axis rotation (off). |
+| `mutable_bone_axes` | boolean | spring_setup/twist_setup: update axes from the current pose (engine default). |
+| `influence` | number | twist_setup: blend weight, clamped 0-1 (1). |
 | `bone` | string | look_at: bone that tracks the target. |
 | `spine_chain` | array | Recipes: torso chain, hips first (auto-detected). |
 | `disperse` | object | twist_setup: {root_bone, end_bone?, mode? even|weighted, weight_position?, damping?, twist_from_rest?}; root/end default to the chain. |
@@ -746,7 +747,7 @@ Required: `op`.
 
 ```json
 {"chain":["B-upperArm.L","B-forearm.L","B-hand.L"],"kind":"two_bone","op":"ik_setup","skeleton_path":"/Main/Rig/Skeleton3D","target_name":"HandTarget"}
-{"op":"spring_setup","skeleton_path":"/Main/Rig/Skeleton3D","springs":[{"drag":0.2,"gravity":0.1,"radius":0.05,"root_bone":"B-hair01","stiffness":0.3}]}
+{"op":"spring_setup","skeleton_path":"/Main/Rig/Skeleton3D","springs":[{"drag":0.2,"end_bone":"B-hand.L","gravity":0.1,"radius":0.05,"root_bone":"B-forearm.L","stiffness":0.3}]}
 {"bone":"B-head","forward_axis":"+z","op":"look_at_setup","skeleton_path":"/Main/Rig/Skeleton3D","target_name":"HeadTarget"}
 {"op":"retarget_setup","profile":"auto","skeleton_path":"/Main/Source/Skeleton3D","target_path":"/Main/Target/Skeleton3D"}
 {"disperse":{"end_bone":"B-chest","mode":"even","root_bone":"B-hips"},"op":"twist_setup","skeleton_path":"/Main/Rig/Skeleton3D"}

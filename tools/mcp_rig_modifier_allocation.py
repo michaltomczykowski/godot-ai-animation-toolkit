@@ -12,7 +12,7 @@ from mcp_presets_audit import call
 from mcp_preset_library_history import valid_suite
 
 EXPECTED = {
-    'test_ik_allocation': 292,
+    'test_ik_allocation': 234,
     'test_look_at_allocation_and_refusal': 264,
     'test_twist_allocation_and_refusal': 183,
     'test_spring_allocation_and_refusal': 212,

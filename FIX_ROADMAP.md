@@ -3108,6 +3108,14 @@ as its own checkpoint; wider history/evaluation and bake-stack gates remain open
 
 ### Next phase detail — modifier history and evaluation
 
+Checkpoint `1074877` subsequently passed hosted CI run `37599523837`: all 34
+non-release jobs succeeded; Windows/Linux each passed the complete 114-gate
+public route. Local final result was 300/300; hosted editor jobs passed 299
+with one optional X Bot asset skip and zero captured errors. Full modifier
+history/playback implementation starts from that verified source. The expanded
+approved plan is `docs/rig-modifier-history-plan.md`; Redo must restart a restored
+spring from the current pose using the public reset API.
+
 1. Preserve the public allocation gate: all five operations, generated/supplied
    IK targets/poles/paths, look-at origin/axis refusals, twist reference refusals,
    caller-owned spring colliders/centers and existing retarget reconfiguration.
@@ -3138,3 +3146,34 @@ as its own checkpoint; wider history/evaluation and bake-stack gates remain open
 6. Repeat external MCP/reload/native checks and required Windows/Linux CI;
    update operation evidence, docs and recovery before pushing. Motion/sequence
    history and representative visual approval remain subsequent gates.
+
+### 2026-10-07 — Modifier history/playback implementation
+
+- Saved the expanded approved plan and implemented 90 required public-route
+  cases: 270 Do/Undo/Redo scenes, played at 30/60/120 FPS (810 saved-state
+  checks plus 270 independent native references). All 14 named editor tests
+  and the strict fresh-process playback gate pass locally with zero errors.
+- Fixed generated IK endpoint placement, look-at secondary=false, retarget
+  authored child poses and original sibling order. Added a scene-owned one-time
+  retarget pose restoration helper for fresh scene entry; generated retarget
+  scenes require its addon script. Spring Redo resets from the current pose
+  after collider wiring. Twist influence/mutable axes are discoverable.
+- Native Jacobian stalls 9.79 mm from a reachable target; rotated relative-center
+  spring collisions penetrate 79.9/8.85 mm. These choices now return typed
+  `OPERATION_UNAVAILABLE` before allocation/history and have documented
+  alternatives. Supported world-center contacts stay below 3 mm and measurably
+  alter the trajectory; the worst dummy residual is 2.59 mm at 30 FPS.
+- External dry/write/save/force-reopen checks pass all five operations before
+  and after core reload. The client reconnects after reload and waits for each
+  fixture's unique sentinel. Both platform CI routes now require this exact
+  ten-case report as well as the matrix. Final source regression, shortcut
+  repetition, fixed-camera previews and hosted CI are the closing gates.
+- See `docs/rig-modifier-history-validation.md` for contracts, limitations and
+  evidence. Active graph/modifier bake restoration is the next separate phase;
+  broader motion/sequence history and locomotion visual approval remain open.
+- Final fresh local editor regression passes 314/314 across 22 suites with zero
+  captured engine/tool-route/discovery errors and no script errors. All 14
+  headless suites pass. The older rest-only IK target assertion was replaced
+  with authored effector preservation plus stable rest-pole checks, matching
+  the independently played contract. Source checkpoint is ready for push;
+  final runtime report, previews, native shortcuts and hosted CI follow.

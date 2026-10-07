@@ -151,7 +151,7 @@ func _success(params: Dictionary, fixture: Node, label: String) -> void:
 		if not existing.has(child): child.free()
 	fixture.free()
 func test_ik_allocation() -> void:
-	for kind in ["two_bone", "ccdik", "fabrik", "jacobian", "spline"]:
+	for kind in ["two_bone", "ccdik", "fabrik", "spline"]:
 		for supplied in [false, true]:
 			var fixture := _fixture()
 			var params := _base("ik_setup", fixture).merged({"kind": kind, "chain": ["hips", "spine", "chest"]})
@@ -177,7 +177,7 @@ func test_spring_allocation_and_refusal() -> void:
 	for supplied in [false, true]:
 		var fixture := _fixture()
 		var spring := {"root_bone": "hips", "end_bone": "chest"}
-		if supplied: spring.merge({"collisions": [str(fixture.get_node("Targets/Collider").get_path())], "center_from": "node", "center_node": str(fixture.get_node("Targets/Center").get_path()), "enable_all_child_collisions": false})
+		if supplied: spring.merge({"collisions": [str(fixture.get_node("Targets/Collider").get_path())], "center_from": "world_origin", "enable_all_child_collisions": false})
 		var params := _base("spring_setup", fixture).merged({"springs": [spring]})
 		for invalid in [{"rotation_axis": "invalid"}, {"center_from": "invalid"}, {"collisions": ["/Missing"]}]:
 			for dry in [false, true]: _probe(params.merged({"springs": [spring.merged(invalid, true)], "dry_run": dry}, true), fixture, true, "spring refusal " + str(invalid) + " dry=" + str(dry))

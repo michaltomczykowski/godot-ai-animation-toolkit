@@ -1,66 +1,89 @@
-# Next checkpoint: modifier history and evaluation
+# Modifier history and playback implementation plan
 
-## Fixtures and routes
+Approved 2026-10-07. Baseline: `1074877`, Godot 4.7.2, public Godot AI
+`animation_rig_modifiers` route. Work alone on `repair/toolkit-quality`.
 
-Use the public Godot AI `animation_rig_modifiers` route for every write, dry run
-and refusal. Preserve the allocation gate introduced in the previous checkpoint.
-Start with a synthetic rig with authored rest/pose, nontrivial transforms and
-metadata; then cover the bundled dummy. Use separate source and peer instances
-from immutable packed scenes. Record source file bytes and original resource
-identities before every operation.
+## Checkpoint 1: history and persistence
 
-| Modifier | Request variants | Layouts |
-| --- | --- | --- |
-| IK | All five kinds; generated/existing targets, mixed two-bone target/pole ownership, virtual end, authored spline | Local, locked and editable source instance |
-| Look-at | Generated/existing targets; self, parent bone, external node and skeleton origins; rotated parent; limits | Local, locked and editable source instance |
-| Twist | Even/weighted, rest/reference, extended end, influence | Local, locked and editable source instance |
-| Spring | Automatic/list/excluded collisions; bone/node/world center; collision name clashes; nontrivial caller transforms | Local and supported editable layouts; explicit refusal for forbidden instanced colliders |
-| Retarget | Create and existing reconfiguration; transform flags/global mode; bare target root and wrapped-target refusal | Local and editable source; locked source refusal; direct target instance where supported |
+Use authored synthetic rigs, immutable source scenes and untouched peer
+instances. Base matrix: IK, look-at, twist and spring in local/locked/editable
+layouts; retarget in local/editable layouts and a typed locked-source refusal.
+For each write run dry mode first, require one scene action/no global action,
+then save/reopen Do, Undo and Redo. Record exact owners, order, transforms,
+settings, node identities, editable permissions, source bytes and resource
+sharing. Add IK/spring nested instances with all four outer/inner permission
+combinations. Preserve the earlier allocation gate.
 
-Avoid multiplying every parameter by every layout. Exercise shared ownership
-rules across layouts; add targeted cases for operation-specific risks.
+## Checkpoint 2: individual playback
 
-## History and persistence gates
+Audit all five IK kinds with generated/supplied targets or paths, all four
+two-bone target/pole ownership combinations, virtual ends and rotated parents.
+Look-at covers generated/supplied targets, every origin, six forward axes,
+secondary rotation omitted/false/true, limits, relative mode and interpolation.
+Twist covers even/weighted, weights 0/0.5/1, rest/reference, extended end and
+influence. Spring covers all/list/excluded collisions, world/node/bone centers,
+multiple settings, mutable axes, name collisions and caller transforms.
+Retarget covers new/existing modifier, transform flags, global mode, different
+rests and direct target instances. Run one valid dummy case per operation.
 
-For each supported write require one scene action and no global action. Save
-the Do, Undo and Redo states. Assert complete scene structure, owners, transforms,
-settings, caller-node identities, permissions and source/peer isolation.
-For refusals require typed reasons, no new orphan IDs, no scene mutation and no
-history/version change. Locked retarget source and wrapped target are documented
-refusals, rather than successes that cannot survive saving.
+Independent engine checkers import no toolkit/test helpers. Validate requested
+settings and resolved paths, capture each stage in modification_processed and
+the final influence blend through an inert witness, cross-checked against
+skeleton_updated. Require inert Undo, effective Do, equal replay of Redo, and
+active/inactive plus 0/0.5/1 influence. Reachable non-spline IK must reach within
+0.5% of chain length. Use independently configured native references for spline,
+twist, retarget and stateful solvers; add geometric checks so a shared inert
+native result cannot approve success.
 
-Independent checkers must load these saved files without toolkit/test imports.
-Verify the expected modifier classes, settings and resolved relative paths;
-evaluate active/inactive and influence behavior inside `modification_processed`.
-Observe final influence through an inert final modifier, since the engine blends
-after the original modifier's signal. Repeat source/peer playback to prove no
-changes to shared source scenes.
+Reproduce before repairing look-at secondary=false, generated IK endpoint
+placement, persistence and ordering problems. Expose already accepted twist
+influence/mutable_bone_axes in the schema; preserve defaults and response shapes.
+Predictable refusals must precede history commit; never clear user history to
+hide a failed action. Correct class names and examples in generated docs.
 
-## Evaluation beyond a single solver
+## Checkpoint 3: state and order
 
-Use explicit target motion and nonzero simulation delta to test stateful spring
-response, collision selection and continued playback after Undo/Redo. Compare
-ordered parent/child look-at and combined IK/look-at/twist stacks. Test different
-orders only where the engine contract permits them, with an independent expected
-result. Numerical movement alone does not approve visual quality.
+User selected: newly created/restored springs restart from the current pose
+after attachment/configuration and before their first simulated step. Use the
+public reset API; do not reset unrelated running modifiers. Drive nonzero delta
+and deterministic animation at 30/60/120 FPS. Test collision separation, finite
+poses and repeated Do/Redo response. Compare ordered parent/child look-at,
+IK/look-at/twist and IK/spring stacks against independent native stacks; include
+changed creation order and fractional final influence.
 
-Use native Undo/Redo on representative new modifier, caller-node reparent and
-existing retarget reconfiguration requests. Repeat external MCP after core
-reload and in a fresh editor. Require Windows/Linux headless/editor/public-route
-CI before closing this checkpoint; update operation evidence and recovery files.
+## Checkpoint 4: integration
 
-## Following checkpoint
+Direct external custom_manage calls must cover every operation before/after
+core reload and in a fresh editor. Native Windows Undo/Redo covers new look-at,
+spring collider reparenting and existing retarget reconfiguration. Required
+Windows/Linux headless/editor/public-route CI must pass; retain current-core
+drift reporting. Missing case IDs, samples, states or reports fail validation.
 
-Bake restoration gets separate fixtures for active/inactive AnimationTree,
-ordered modifiers, retarget, continued stateful springs, outside-rig animated
-properties, custom mixer processing and late sampling failure. Preserve private
-state where supported; otherwise refuse explicitly. Motion/sequence history and
-fixed-camera visual approval follow those correctness gates.
+## Checkpoint 5: evidence
 
-Reproduce a last active modifier with fractional influence first: the current
-bake capture subscribes to each real modifier's signal, while Skeleton3D blends
-influence afterward. Source inspection therefore indicates that the last
-modifier may be baked at full influence. Compare baked keys with the final
-blended engine pose using the independent witness technique; preserve this
-baseline before changing the bake capture. This is a source-based inference,
-not a runtime-confirmed bake result yet.
+After each checkpoint update FIX_ROADMAP, operation evidence and the persistent
+recovery snapshot; commit/push verified source. Deliver required case IDs, saved
+state counts, measurements/refusals/CI links and fixed-camera previews of each
+family and combined stacks. Review for incorrect targets, flips, snapping and
+unstable springs. Keep operation statuses partial where visual/bake acceptance
+remains open. No release, tag, merge or media upload.
+
+## Following work
+
+Active AnimationTree/ordered modifier bake restoration, fractional last-modifier
+influence, retarget/private spring state/outside-rig property restoration and
+late sampling failures are the next separate checkpoint. Motion/sequence
+history and full locomotion visual approval follow.
+
+## Implementation boundary discovered during playback
+
+The independent native 4.7.2 checks reproduced two engine limitations. Jacobian
+stalls 9.79 mm from a reachable target on a 0.9 m chain, beyond the 0.5% contract.
+Node/bone spring centers with collisions penetrate a reachable sphere on rotated
+rigs (79.9/8.85 mm). These choices now return `OPERATION_UNAVAILABLE` before
+allocation or history commit. Jacobian is removed from advertised choices;
+world-center collisions and relative centers without collisions remain supported.
+Keep the native diagnostic failures as evidence before reconsidering either
+choice. The supported gate covers 90 cases / 270 saved scenes, with 810 saved
+playback checks and 270 independent references at 30/60/120 FPS. See
+[implementation evidence](rig-modifier-history-validation.md).
