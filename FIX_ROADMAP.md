@@ -3479,3 +3479,8 @@ review branch; no release or media upload is part of this phase.
   in chat, preserving continuous front/side playback. Their hashes and delivery
   status are in the review state. Wait for the user to confirm they actually play
   and provide feedback; posting media never grants visual approval.
+- The user confirms the inline GIFs are not visible either. Delivery remains
+  incomplete. Animation work is paused pending an accessible hosted file route.
+  The repository is public; the approved plan excluded media uploads, so public
+  video upload requires the user's explicit approval. A private Dropbox connection
+  is an alternative. No hosted upload, playback confirmation or review has occurred.

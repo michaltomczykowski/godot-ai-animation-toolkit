@@ -102,6 +102,10 @@ Godot binary (local):
   The user reviews remotely: PC-local video links are inaccessible. Continuous
   GIF previews were sent as inline binary tool images; playback confirmation and
   baseline feedback are still pending. Do not infer review from sending a link.
+  The user subsequently confirmed the GIFs are invisible too. First obtain a
+  remotely accessible delivery method. Do not resend local paths or claim the
+  videos were received. Public GitHub media upload needs approval because the
+  approved plan explicitly excluded it; private storage requires a connection.
 - Launch: `& "<godot>" --editor --path test_project`.
 - Run `git checkout -- test_project/project.godot` before committing: the editor
   rewrites the plugin enable order.
