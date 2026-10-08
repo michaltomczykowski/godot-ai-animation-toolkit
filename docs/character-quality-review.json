@@ -3,7 +3,7 @@
   "phase": "character_quality",
   "operation": "walk_cycle",
   "revision": "walk-baseline-r001",
-  "state": "awaiting_baseline_video_feedback",
+  "state": "awaiting_inline_playback_confirmation_and_baseline_feedback",
   "baseline_source": "1389c6655e6a1fcda34ed9249b9f715f1e8e85cd",
   "required_rigs": [
     "dummy",
@@ -16,9 +16,9 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Read and record human timestamped baseline feedback before changing motion or producing candidate profiles.",
+  "next_action": "Wait for the user to confirm the inline animated previews play, then record baseline feedback before any motion tuning.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
-  "updated_utc": "2026-10-08T19:29:51.073245+00:00",
+  "updated_utc": "2026-10-08T19:49:15.243411+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-baseline-r001",
   "route": {
     "run_id": "9ad66ecc6b294f62823069b6a4050fc2",
@@ -83,5 +83,56 @@
     "test_project/tools/character_quality_native.gd": "b7702e28d71aff12f77b8141af9d7908087536e67a89fc00d5acd97ab1bc907e",
     "test_project/tools/check_character_quality.gd": "8837987a5cea53423cc5920db1cb0043adbbf6a5dd68e55c68e8d470bdbefe44",
     "test_project/tools/render_character_quality.gd": "76ba061e044a04afad47e55fc912bfbab57209ae3c2c805eec581c55758b2c2a"
+  },
+  "remote_delivery": {
+    "original_mp4_links": "User cannot access PC-local video links remotely; review has not occurred.",
+    "inline_format": "image/gif sent as binary tool image content in this chat",
+    "previews": [
+      {
+        "rig": "dummy",
+        "frames": 180,
+        "duration_s": 6,
+        "size": [
+          960,
+          540
+        ],
+        "nominal_fps": 30,
+        "sha256": "2e96a35398385ab9a63e87c07d73cbebd87186881c7db75c0e6de40e83e3fc23"
+      },
+      {
+        "rig": "xbot",
+        "frames": 180,
+        "duration_s": 6,
+        "size": [
+          960,
+          540
+        ],
+        "nominal_fps": 30,
+        "sha256": "35a06c0dd7231eaa6fdb62de1052c8f15fc77efc8d9bc4fbfb2c52dd46981ac9"
+      },
+      {
+        "rig": "short",
+        "frames": 180,
+        "duration_s": 6,
+        "size": [
+          960,
+          540
+        ],
+        "nominal_fps": 30,
+        "sha256": "bfbc04c8a8d358f9c15308ace94ad2f87a4e20480015022f8ba20f2519b32ac1"
+      },
+      {
+        "rig": "zup_tall",
+        "frames": 180,
+        "duration_s": 6,
+        "size": [
+          960,
+          540
+        ],
+        "nominal_fps": 30,
+        "sha256": "381fe61fc28a1e8c57040b7f2410c5bce51b279a559276865b91ae4c15f6c865"
+      }
+    ],
+    "playback_confirmed_by_user": false
   }
 }

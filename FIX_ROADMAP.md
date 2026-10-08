@@ -3473,3 +3473,9 @@ review branch; no release or media upload is part of this phase.
 - Next action requires human timestamped baseline feedback. Record it before
   producing grounded/responsive walk candidates. No profile is approved, motion
   defaults remain unpromoted, and a plain “continue” does not grant visual approval.
+- Delivery correction: the user works remotely and cannot access PC-local MP4
+  links. The first review has **not** happened. Four six-second/180-frame animated
+  GIF previews (960x540, nominal 30 FPS) were sent as binary image content directly
+  in chat, preserving continuous front/side playback. Their hashes and delivery
+  status are in the review state. Wait for the user to confirm they actually play
+  and provide feedback; posting media never grants visual approval.

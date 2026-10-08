@@ -99,6 +99,9 @@ Godot binary (local):
   composer/archive tools are documented in its validation file. Videos must be
   continuous; contact sheets alone never approve motion. Do not redo completed
   history phases or promote defaults merely because numeric checks pass.
+  The user reviews remotely: PC-local video links are inaccessible. Continuous
+  GIF previews were sent as inline binary tool images; playback confirmation and
+  baseline feedback are still pending. Do not infer review from sending a link.
 - Launch: `& "<godot>" --editor --path test_project`.
 - Run `git checkout -- test_project/project.godot` before committing: the editor
   rewrites the plugin enable order.
