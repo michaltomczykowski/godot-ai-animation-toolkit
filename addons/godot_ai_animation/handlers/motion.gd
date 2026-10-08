@@ -29,7 +29,7 @@ const _CYCLE_KINDS := {
 	"walk_stop": "walk_stop",
 }
 
-const _GAIT_KEYS := ["stride", "knee_bend", "arm_swing", "arm_twist", "bob", "sway", "hip_yaw", "hip_roll", "chest_yaw", "lean", "foot_lift", "elbow", "elbow_swing", "lag", "stance", "crouch", "toe_roll", "twist_spread"]
+const _GAIT_KEYS := ["stride", "knee_bend", "arm_swing", "arm_twist", "bob", "sway", "hip_yaw", "hip_roll", "chest_yaw", "lean", "foot_lift", "elbow", "elbow_swing", "lag", "stance", "crouch", "toe_roll", "twist_spread", "elbow_lag", "wrist_swing", "wrist_lag", "torso_twist"]
 
 ## Overrides that are switches rather than numbers, so they are not coerced.
 const _BOOLEAN_OVERRIDES := ["planted"]
@@ -252,6 +252,17 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 	var rate := float(built.rate)
 	var ctx: Dictionary = built.ctx
 	ctx["config"] = config
+	for field in ["elbow_lag", "wrist_lag"]:
+		if config.has(field) and (float(config[field]) < 0.0 or float(config[field]) > 0.25):
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "%s must be between 0 and 0.25 cycle fractions" % field)
+	if absf(float(config.get("wrist_swing", 0.0))) > 20.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "wrist_swing must be between -20 and 20 degrees")
+	if absf(float(config.get("torso_twist", 0.0))) > 45.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "torso_twist must be between -45 and 45 degrees")
+	if not is_zero_approx(float(config.get("wrist_swing", 0.0))):
+		for side in ["l", "r"]:
+			if not ctx.roles.has("hand_" + side) or not ctx.roles.has("forearm_" + side):
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "wrist_swing requires resolved hand and forearm roles on both sides")
 	_scale_distances_to_rig(config, params, overrides, ctx)
 	ctx["foot_lift_explicit"] = params.has("foot_lift") or overrides.has("foot_lift")
 	ctx["speed"] = maxf(float(params.get("speed", 0.0)), 0.0)
@@ -896,11 +907,21 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 	var lateral: Vector3 = frame.lateral
 	var arm_down := {}
 	var arm_amount := float(params.get("arm_down", -1.0))
-	if arm_amount < 0.0:
+	# Stage the revised arm geometry through explicit follow-through controls.
+	# Existing profile/default references are retained until human video approval.
+	var measured_arms := false
+	var overrides: Dictionary = params.get("overrides", {})
+	for field in ["elbow_lag", "wrist_swing", "wrist_lag", "torso_twist"]:
+		measured_arms = measured_arms or params.has(field) or overrides.has(field)
+	if not measured_arms and arm_amount < 0.0:
 		arm_amount = _default_arm_down(skeleton, roles)
 	for side in ["l", "r"]:
 		var arm := str(roles.get("arm_" + side, ""))
-		arm_down[side] = _aim_delta(skeleton, arm, Vector3.DOWN, arm_amount) if not arm.is_empty() else Quaternion.IDENTITY
+		if measured_arms:
+			arm_down[side] = MotionSpecs.arm_lower_delta(
+				MotionSpecs._rest_basis(measured, arm), measured.arm_directions.get(side, Vector3.ZERO), up, arm_amount)
+		else:
+			arm_down[side] = _aim_delta(skeleton, arm, Vector3.DOWN, arm_amount) if not arm.is_empty() else Quaternion.IDENTITY
 	return {
 		"resolved": resolved,
 		"skeleton": skeleton,
@@ -920,6 +941,8 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 			"hips_origin": rest[hips].origin if not hips.is_empty() else Vector3.ZERO,
 			"legs": legs,
 			"rest": rest,
+			"arm_directions": measured.arm_directions,
+			"measured_arms": measured_arms,
 			"arm_down": arm_down,
 			# A travelling strafe needs extracted character-root translation.
 			# Keep the in-place shuffle available when callers explicitly opt out.
@@ -954,15 +977,15 @@ static func _first_non_finite(value: Variant, path: String) -> String:
 func _spine_chain(params: Dictionary, skeleton: Skeleton3D, roles: Dictionary) -> Dictionary:
 	return resolve_spine_chain(params, skeleton, roles)
 
+
+## Legacy profile lowering retained only until the recorded candidate is approved.
+## Candidate controls above use measured rig-up/child geometry instead.
 func _default_arm_down(skeleton: Skeleton3D, roles: Dictionary) -> float:
 	for side in ["l", "r"]:
 		var arm := str(roles.get("arm_" + side, ""))
-		if arm.is_empty():
-			continue
 		var index := skeleton.find_bone(arm)
-		if index < 0:
-			continue
+		if index < 0: continue
 		var rest_dir := (skeleton.get_bone_global_rest(index).basis * Vector3.UP).normalized()
-		if absf(rest_dir.dot(Vector3.UP)) < 0.5:
-			return 78.0
+		if absf(rest_dir.dot(Vector3.UP)) < 0.5: return 78.0
 	return 0.0
+

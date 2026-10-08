@@ -92,20 +92,19 @@ Godot binary (local):
 - Character quality starts with `docs/character-quality-plan.md`. The first
   walk baseline on all four rigs is recorded under recovery's
   `character_quality_20261008/walk-baseline-r001`; review state lives in
-  `docs/character-quality-review.json`. **Wait for human baseline video feedback
-  before motion tuning.** Plain “continue”, silence and usage resets do not grant
+  `docs/character-quality-review.json`. The user viewed the baseline and requested
+  less stiff hands/arms and pelvis on 2026-10-08. Revise the walk upper body;
+  **pause for human review of the next continuous comparison videos.**
+  Plain “continue”, silence and usage resets do not grant
   visual approval. Current walk has green ankle checks but raised Z-up arms.
   The public-route baseline script, engine-only native checker/renderer and MP4
   composer/archive tools are documented in its validation file. Videos must be
   continuous; contact sheets alone never approve motion. Do not redo completed
   history phases or promote defaults merely because numeric checks pass.
-  The user reviews remotely: PC-local video links are inaccessible. Continuous
-  GIF previews were sent as inline binary tool images; playback confirmation and
-  baseline feedback are still pending. Do not infer review from sending a link.
-  The user subsequently confirmed the GIFs are invisible too. First obtain a
-  remotely accessible delivery method. Do not resend local paths or claim the
-  videos were received. Public GitHub media upload needs approval because the
-  approved plan explicitly excluded it; private storage requires a connection.
+  The user reviews remotely: chat file links and GIFs are inaccessible. They chose
+  PC viewing instead: open File Explorer with the review MP4 selected, then ask
+  for feedback. Do not retry chat attachments. Public media upload is excluded
+  from the approved plan. Preserve baseline files; defaults stay unpromoted.
 - Launch: `& "<godot>" --editor --path test_project`.
 - Run `git checkout -- test_project/project.godot` before committing: the editor
   rewrites the plugin enable order.

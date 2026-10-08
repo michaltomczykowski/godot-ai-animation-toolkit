@@ -3484,3 +3484,20 @@ review branch; no release or media upload is part of this phase.
   The repository is public; the approved plan excluded media uploads, so public
   video upload requires the user's explicit approval. A private Dropbox connection
   is an alternative. No hosted upload, playback confirmation or review has occurred.
+
+- Review received (2026-10-08): the user viewed the MP4s through File Explorer
+  remotely on the PC. Walking improved, but hands/arms and pelvis still feel
+  stiff. Feedback is recorded verbatim in the review state. The r002 plan is
+  `docs/walk-upper-body-revision-plan.md`; delivery stays PC Explorer and no
+  media is uploaded. This supersedes the earlier pending-delivery notes.
+- Native baseline checks confirm zero local wrist articulation on all four rigs.
+  Candidate generation adds measured arm geometry/rig-up lowering, incoming
+  parent-frame elbow conversion, delayed elbow and restrained wrist motion, and
+  an explicit total torso-twist control. Grounded/responsive preview coefficients
+  are separate JSON recipes. Existing default clips/goldens remain unchanged:
+  these corrections are opt-in until human review. Finger posing is not claimed.
+- Fourteen headless suites and the fresh visible editor's 51 motion tests pass,
+  including existing walk/run/idle goldens and new native wrist/refusal checks.
+  Next: real-route all-rig candidate generation, native checks and continuous
+  comparisons, then a mandatory review pause. This does not close character
+  quality or promote either profile.

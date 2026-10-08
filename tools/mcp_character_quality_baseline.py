@@ -1,7 +1,7 @@
-"""Save four mandatory walk baselines through the real Godot AI public route.
+"""Save four mandatory walk baselines or opt-in candidates via Godot AI.
 
-No motion coefficients/defaults are changed. Recipe tuning stays implicit;
-looping and root extraction are explicit for continuous travelling review.
+Defaults remain implicit for a baseline. Candidate tuning is supplied explicitly
+and preserved in the route receipt; no profile is promoted by this script.
 Progress is persisted after every rig so interruption cannot erase completed work.
 """
 from __future__ import annotations
@@ -34,9 +34,11 @@ async def run(args: argparse.Namespace) -> int:
     folder.mkdir(parents=True)
     args.output.mkdir(parents=True, exist_ok=True)
     head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=args.project_root.parent, text=True).strip()
-    report = {"schema_version": 1, "revision": "walk-baseline-r001", "source_head": head,
+    overrides = json.loads(args.overrides.read_text(encoding="utf-8")) if args.overrides else {}
+    baseline = json.loads(args.baseline.read_text(encoding="utf-8")) if args.baseline else None
+    report = {"schema_version": 1, "revision": args.revision, "source_head": head,
               "created_utc": datetime.now(timezone.utc).isoformat(), "run_id": run_id,
-              "operation": "walk_cycle", "profile": "current default", "fps": 60,
+              "operation": "walk_cycle", "profile": args.profile, "fps": 60,
               "seconds_per_rig": 6, "cases": [], "failures": [], "passed": False}
     record = args.output / "route.json"
     save(record, report)
@@ -51,6 +53,13 @@ async def run(args: argparse.Namespace) -> int:
                       "skeleton_path": f"/{scene_root}/{rig_path}",
                       "animation_name": "quality_baseline_walk", "root_motion": True,
                       "loop_mode": "linear"}
+            if overrides:
+                params["animation_name"] = "quality_candidate_walk"
+                params["overrides"] = overrides
+                params["samples"] = 60.0
+            if baseline:
+                reference = next(row for row in baseline["cases"] if row["id"] == rig_id)
+                params["speed"] = reference["write"]["speed"]
             row = {"id": rig_id, "label": label, "scene": scene,
                    "skeleton": rig_path, "player": player_path,
                    "synthetic": synthetic, "params": params}
@@ -92,4 +101,8 @@ if __name__ == "__main__":
     p.add_argument("--port", type=int, default=18131)
     p.add_argument("--ws-port", type=int, default=18132)
     p.add_argument("--output", type=Path, required=True)
+    p.add_argument("--revision", default="walk-baseline-r001")
+    p.add_argument("--profile", default="current default")
+    p.add_argument("--overrides", type=Path)
+    p.add_argument("--baseline", type=Path, help="Hold the recorded baseline speed per rig for comparisons")
     raise SystemExit(asyncio.run(run(p.parse_args())))

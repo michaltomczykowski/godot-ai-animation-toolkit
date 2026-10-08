@@ -3,7 +3,7 @@
   "phase": "character_quality",
   "operation": "walk_cycle",
   "revision": "walk-baseline-r001",
-  "state": "awaiting_pc_video_review_feedback",
+  "state": "revising_walk_upper_body_after_user_feedback",
   "baseline_source": "1389c6655e6a1fcda34ed9249b9f715f1e8e85cd",
   "required_rigs": [
     "dummy",
@@ -12,11 +12,15 @@
     "zup_tall"
   ],
   "approvals": {
-    "baseline_feedback": null,
+    "baseline_feedback": {
+      "received_date": "2026-10-08",
+      "verbatim": "well the walking looks better, but the hands are weirdly stiff and kinda weird motion, also the hip is maybe a bit too stiff, I don't now, doesn't look really like real walking",
+      "decision": "Revise arms/hands and pelvis; baseline is not visual approval of either candidate profile."
+    },
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Wait for baseline feedback after the user views the MP4s remotely on their own PC; no motion tuning.",
+  "next_action": "Correct measured arm axes, prepare an opt-in upper-body walk revision through Godot AI, record continuous baseline comparisons, open Explorer on the PC, and pause for human review.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
   "updated_utc": "2026-10-08T20:41:02.632459+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-baseline-r001",
@@ -133,7 +137,7 @@
         "sha256": "381fe61fc28a1e8c57040b7f2410c5bce51b279a559276865b91ae4c15f6c865"
       }
     ],
-    "playback_confirmed_by_user": false,
+    "playback_confirmed_by_user": true,
     "inline_attempt_result": "User confirms no GIF previews are visible in the remote chat.",
     "hosted_upload_status": "Not uploaded; user chose PC viewing.",
     "chosen_method": "User chose to view the original MP4s on their PC remotely. File Explorer was opened and its review-folder window verified; clean MP4 selected."

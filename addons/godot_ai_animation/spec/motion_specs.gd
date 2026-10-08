@@ -223,8 +223,10 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 	# hips lead forward, everything above counter-rotates: [hips, spine, chest,
 	# head] as [-counter on the torso, half back on the head to stabilise].
 	var torso_weights := [0.0, -counter, -counter, counter * 0.5]
+	if config.has("torso_twist"):
+		torso_weights = [0.0, -1.0, -1.0, 0.5]
 	var torso_channels := _twist_channels(
-		ctx, config, hip_yaw, up, torso_weights, _spread(config), lag)
+		ctx, config, float(config.get("torso_twist", hip_yaw)), up, torso_weights, _spread(config), lag)
 	var bob_channel := _channel(up, -0.5 * float(config.bob), 2.0, 0.0, 0.0, "cosine")
 	# `lateral` points from the right hip toward the left. At t=0.25 the
 	# left foot is in stance and the right foot is swinging, so positive sine
@@ -505,6 +507,9 @@ static func _solve_arms(ctx: Dictionary, keys: Dictionary, time: float, t: float
 	var elbow_swing := float(config.get("elbow_swing", 0.6 * arm_swing))
 	var lag := float(config.lag)
 	var phase := cos(TAU * (t - lag))
+	var elbow_phase := cos(TAU * (t - lag - float(config.get("elbow_lag", 0.0))))
+	var wrist_phase := sin(TAU * (t - lag - float(config.get("wrist_lag", 0.0))))
+	var coordinated := config.has("elbow_lag") or config.has("wrist_swing") or config.has("wrist_lag") or config.has("torso_twist")
 	for side in ["l", "r"]:
 		var sign := -1.0 if side == "l" else 1.0
 		# `_solve_arm_chain`'s hinge is positive-forward by construction, so the
@@ -512,9 +517,12 @@ static func _solve_arms(ctx: Dictionary, keys: Dictionary, time: float, t: float
 		# (same side leg forward). The elbow straightens at the back and bends as
 		# the arm comes forward.
 		var swing_degrees := sign * arm_swing * phase
-		var forward_weight := (1.0 - phase) * 0.5 if side == "l" else (1.0 + phase) * 0.5
+		var forward_weight := (1.0 + sign * elbow_phase) * 0.5
 		var bend_degrees := elbow + elbow_swing * forward_weight
-		_solve_arm_chain(ctx, keys, side, time, swing_degrees, bend_degrees)
+		# Small periodic wrist follow-through trails shoulder angular velocity.
+		# No random offsets: repeated playback has the same pose and seam.
+		var wrist := sign * float(config.get("wrist_swing", 0.0)) * wrist_phase
+		_solve_arm_chain(ctx, keys, side, time, swing_degrees, bend_degrees, "", wrist, coordinated)
 
 
 ## One arm from the shoulder down: lower it by the rig's `arm_down`, swing it
@@ -525,6 +533,7 @@ static func _solve_arms(ctx: Dictionary, keys: Dictionary, time: float, t: float
 static func _solve_arm_chain(
 	ctx: Dictionary, keys: Dictionary, side: String, time: float,
 	swing_degrees: float, bend_degrees: float, transition: String = "",
+	wrist_degrees: float = 0.0, coordinate_parents: bool = false,
 ) -> void:
 	var roles: Dictionary = ctx.roles
 	var forward: Vector3 = ctx.forward
@@ -534,7 +543,10 @@ static func _solve_arm_chain(
 	var g_arm := _rest_basis(ctx, arm)
 	var down_delta: Quaternion = (ctx.get("arm_down", {}) as Dictionary).get(side, Quaternion.IDENTITY)
 	var down_world := (g_arm * Basis(down_delta) * g_arm.inverse()).get_rotation_quaternion()
-	var hang_dir := ((Basis(down_world) * g_arm) * Vector3.UP).normalized()
+	var rest_direction := g_arm * Vector3.UP
+	if bool(ctx.get("measured_arms", false)):
+		rest_direction = (ctx.get("arm_directions", {}) as Dictionary).get(side, rest_direction)
+	var hang_dir := (Basis(down_world) * rest_direction).normalized()
 	var hinge := hang_dir.cross(forward)
 	if hinge.length_squared() < 0.000001:
 		hinge = ctx.lateral
@@ -561,8 +573,47 @@ static func _solve_arm_chain(
 	if forearm.is_empty():
 		return
 	var arm_animated := Basis(arm_world) * g_arm
+	if coordinate_parents:
+		# Include the incoming torso and clavicle animation. Flex about the hinge
+		# carried by that parent frame, rather than an assumed unanimated parent.
+		var parent := str((ctx.rest[arm] as Dictionary).get("parent", ""))
+		var parent_delta := _animated_basis(ctx, keys, parent, time) * _rest_basis(ctx, parent).inverse()
+		hinge = (parent_delta * hinge).normalized()
+		arm_animated = _animated_basis(ctx, keys, arm, time)
 	_append_rotation(keys, forearm, time, MotionDrivers.world_delta(
 		arm_animated, g_arm, _rest_basis(ctx, forearm), Quaternion(hinge, deg_to_rad(bend_degrees))), transition)
+	var hand := str(roles.get("hand_" + side, ""))
+	if coordinate_parents and not hand.is_empty():
+		_append_rotation(keys, hand, time, MotionDrivers.world_delta(
+			_animated_basis(ctx, keys, forearm, time), _rest_basis(ctx, forearm),
+			_rest_basis(ctx, hand), Quaternion(hinge, deg_to_rad(wrist_degrees))), transition)
+
+
+## Current sampled parent basis, including non-role intermediary bones at rest.
+## This evaluates the current generation sample, not engine playback or a bake.
+static func _animated_basis(ctx: Dictionary, keys: Dictionary, bone: String, time: float) -> Basis:
+	if bone.is_empty() or not ctx.rest.has(bone): return Basis.IDENTITY
+	var entry: Dictionary = ctx.rest[bone]
+	var parent := str(entry.get("parent", ""))
+	var delta := Quaternion.IDENTITY
+	var rotations: Array = (keys.get(bone, {}) as Dictionary).get("rotation", [])
+	if not rotations.is_empty() and is_equal_approx(float(rotations[-1].time), time):
+		delta = rotations[-1].delta
+	return _animated_basis(ctx, keys, parent, time) * _rest_basis(ctx, parent).inverse() * _rest_basis(ctx, bone) * Basis(delta)
+
+
+## Lower the measured arm-to-elbow direction toward rig down. Imported bones
+## need not point along local Y, and the skeleton need not be world-Y-up.
+## Automatic lowering leaves twelve degrees of outward clearance in a T pose.
+static func arm_lower_delta(rest_basis: Basis, rest_direction: Vector3, up: Vector3, degrees: float = -1.0) -> Quaternion:
+	if rest_direction.length_squared() < 0.000001: return Quaternion.IDENTITY
+	var direction := rest_direction.normalized()
+	var target := -up.normalized()
+	var full := Quaternion(direction, target)
+	var limit := rad_to_deg(direction.angle_to(target))
+	var amount := maxf(0.0, limit - 12.0) if degrees < 0.0 else minf(degrees, limit)
+	if limit < 0.000001: return Quaternion.IDENTITY
+	return MotionDrivers.rotation_delta(rest_basis, Quaternion.IDENTITY.slerp(full, amount / limit))
 
 
 ## Relative forward/height motion of one ankle over a cycle. `p` is the foot's
@@ -685,6 +736,7 @@ static func context_from_skeleton(skeleton: Skeleton3D, roles: Dictionary,
 		"hips_origin": (rest[str(roles.get("hips", ""))] as Dictionary).origin,
 		"legs": legs,
 		"rest": rest,
+		"arm_directions": _arm_directions(skeleton, roles),
 		"arm_down": {},
 		"root_motion": false,
 	}
@@ -787,9 +839,31 @@ static func _rest_map_of(skeleton: Skeleton3D, roles: Dictionary, chain: Array) 
 		var index := skeleton.find_bone(bone)
 		if index < 0:
 			continue
-		var xform := skeleton.get_bone_global_rest(index)
-		rest[bone] = {"global": xform.basis, "origin": xform.origin}
+		while index >= 0:
+			var name := skeleton.get_bone_name(index)
+			if rest.has(name): break
+			var xform := skeleton.get_bone_global_rest(index)
+			var parent := skeleton.get_bone_parent(index)
+			rest[name] = {"global": xform.basis, "origin": xform.origin,
+				"parent": skeleton.get_bone_name(parent) if parent >= 0 else ""}
+			index = parent
 	return rest
+
+
+static func _arm_directions(skeleton: Skeleton3D, roles: Dictionary) -> Dictionary:
+	var out := {}
+	for side in ["l", "r"]:
+		var arm := skeleton.find_bone(str(roles.get("arm_" + side, "")))
+		var child := skeleton.find_bone(str(roles.get("forearm_" + side, "")))
+		if arm < 0: continue
+		if child < 0:
+			for index in skeleton.get_bone_count():
+				if skeleton.get_bone_parent(index) == arm:
+					child = index
+					break
+		if child >= 0:
+			out[side] = skeleton.get_bone_global_rest(child).origin - skeleton.get_bone_global_rest(arm).origin
+	return out
 
 
 ## The per-side leg geometry a two-bone solve needs: the bones, the hip and ankle
@@ -1813,5 +1887,5 @@ static func _axis_signs(ctx: Dictionary) -> Dictionary:
 		"yaw": 1.0 if up.cross(left_hip - hips_origin).dot(forward) >= 0.0 else -1.0,
 		"roll": 1.0 if forward.cross(right_hip - hips_origin).dot(-up) >= 0.0 else -1.0,
 		"lean": 1.0 if lateral.cross(up).dot(forward) >= 0.0 else -1.0,
-		"swing": 1.0 if lateral.cross(Vector3.DOWN).dot(forward) >= 0.0 else -1.0,
+		"swing": 1.0 if lateral.cross(-up).dot(forward) >= 0.0 else -1.0,
 	}

@@ -1874,7 +1874,7 @@ static func _motion_schema() -> Dictionary:
 			},
 			"overrides": {
 				"type": "object",
-				"description": "Deep tuning, e.g. {\"stride\": 18, \"lag\": 0.1}; walk/run keys: stride, knee_bend, arm_swing, arm_twist, bob, sway, hip_yaw, hip_roll, chest_yaw, twist_spread, lean, foot_lift, elbow, elbow_swing, lag, stance, crouch; idle keys: amplitude, head_amplitude, look, twist, bob, sway, shift, noise, lean, arm_sway, elbow, arm_twist, twist_spread.",
+				"description": "Deep tuning: stride, knee_bend, arm_swing, arm_twist, bob, sway, hip_yaw, hip_roll, chest_yaw, twist_spread, lean, foot_lift, elbow, elbow_swing, lag, stance, crouch. Opt-in gait follow-through: elbow_lag/wrist_lag (0..0.25 cycles), wrist_swing (+/-20 deg, hand roles required), torso_twist (+/-45 deg total). Idle: amplitude, head_amplitude, look, twist, bob, sway, shift, noise, lean, arm_sway, elbow, arm_twist, twist_spread.",
 			},
 			"samples": {
 				"type": "number",

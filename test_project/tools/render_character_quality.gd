@@ -109,12 +109,21 @@ func _setup(row: Dictionary, viewport: SubViewport, index: int) -> Dictionary:
 	v.height = Native.rest(v.rig, v.roles, "head").y + 0.25 * leg
 	v.segments = []
 	v.joints = []
+	v.hand_shapes = []
 	if bool(row.synthetic):
 		for pair in [["hips", "spine", 0.13], ["spine", "chest", 0.13], ["chest", "head", 0.10], ["arm_l", "arm_r", 0.10], ["thigh_l", "thigh_r", 0.10], ["thigh_l", "shin_l", 0.065], ["thigh_r", "shin_r", 0.065], ["shin_l", "foot_l", 0.055], ["shin_r", "foot_r", 0.055], ["arm_l", "forearm_l", 0.045], ["arm_r", "forearm_r", 0.045], ["forearm_l", "hand_l", 0.04], ["forearm_r", "hand_r", 0.04], ["foot_l", "toe_l", 0.035], ["foot_r", "toe_r", 0.035]]:
 			v.segments.append({"node": _rod(world, leg * float(pair[2]), Color(0.13, 0.55, 0.7)), "a": pair[0], "b": pair[1]})
 		for role in ["hips", "shin_l", "shin_r", "arm_l", "arm_r", "forearm_l", "forearm_r", "hand_l", "hand_r", "foot_l", "foot_r"]:
 			v.joints.append({"node": _sphere(world, leg * (0.04 if role.begins_with("hand") else 0.065), Color(0.22, 0.67, 0.78)), "role": role})
 		v.joints.append({"node": _sphere(world, leg * 0.135, Color(0.34, 0.73, 0.83)), "role": "head"})
+		for side in ["l", "r"]:
+			var hand_index: int = v.indices["hand_" + side]
+			var fore_index: int = v.indices["forearm_" + side]
+			var hand_rest: Transform3D = v.rig.get_bone_global_rest(hand_index)
+			var rest_direction: Vector3 = hand_rest.origin - v.rig.get_bone_global_rest(fore_index).origin
+			v.hand_shapes.append({"node": _rod(world, leg * 0.035, Color(0.55, 0.8, 0.88)),
+				"role": "hand_" + side, "index": hand_index,
+				"local_direction": hand_rest.basis.inverse() * rest_direction.normalized(), "length": 0.14 * leg})
 	# This floor is a visual rest-sole alignment, not a collision measurement.
 	var floor := _box(world, Vector3(40, 0.02, 40), Color(0.14, 0.19, 0.23))
 	floor.position.y = -0.015
@@ -148,6 +157,9 @@ func _setup(row: Dictionary, viewport: SubViewport, index: int) -> Dictionary:
 func _update(v: Dictionary) -> void:
 	for segment: Dictionary in v.segments: _line(segment.node, Native.point(v, segment.a), Native.point(v, segment.b))
 	for joint: Dictionary in v.joints: joint.node.global_position = Native.point(v, joint.role)
+	for hand: Dictionary in v.hand_shapes:
+		var pose: Transform3D = v.rig.global_transform * v.rig.get_bone_global_pose(hand.index)
+		_line(hand.node, pose.origin, pose.origin + pose.basis * hand.local_direction * float(hand.length))
 	var center: Vector3 = v.body.global_position + v.center_offset
 	v.camera.position = center + v.camera_offset
 	v.camera.look_at(center, Vector3.UP)

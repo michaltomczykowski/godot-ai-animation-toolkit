@@ -1217,8 +1217,57 @@ func test_walk_arms_swing_forward_with_forward_elbow() -> void:
 	var hand_back := _pose_of(rig, anim, 0.0, "B-hand.L")
 	assert_gt((hand.origin - hand_back.origin).dot(forward), 0.05,
 		"the hand travels forward between the back and front of the swing")
-	var arm_down := _handler._default_arm_down(rig.skeleton, roles)
-	assert_gt(arm_down, 0.0, "the T-pose rest is detected and the arms lowered")
+	var context := _handler._build_context({"skeleton_path": rig.skeleton_path}, "walk")
+	assert_true(absf((context.ctx.arm_down.l as Quaternion).w) < 0.999,
+		"the measured T-pose arm is lowered")
+	_teardown(rig)
+
+
+func test_walk_follow_through_native_wrists_and_refusals() -> void:
+	var rig := _rig("FollowThrough")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var params := {"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "follow", "loop_mode": "linear",
+		"overrides": {"elbow_lag": 0.06, "wrist_swing": 4.0, "wrist_lag": 0.08, "torso_twist": 8.0}}
+	var dry := params.duplicate(true)
+	dry.dry_run = true
+	assert_true(_handler.run(dry, null).has("data"), "follow-through dry run builds")
+	assert_false(rig.player.has_animation("follow"), "dry run leaves player untouched")
+	var result := _handler.run(params, null)
+	assert_true(result.has("data"), "follow-through builds: " + str(result))
+	if not result.has("data"):
+		_teardown(rig)
+		return
+	var player: AnimationPlayer = rig.player
+	player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	player.playback_auto_capture = false
+	player.play("follow", 0.0)
+	player.advance(0.0)
+	var skeleton: Skeleton3D = rig.skeleton
+	var roles: Dictionary = result.data.roles
+	var index := skeleton.find_bone(str(roles.hand_l))
+	var first := skeleton.get_bone_pose_rotation(index)
+	var change := 0.0
+	for tick in 60:
+		player.advance(1.0 / 60.0)
+		change = maxf(change, first.angle_to(skeleton.get_bone_pose_rotation(index)))
+	assert_gt(change, deg_to_rad(3.0), "native playback has restrained wrist articulation")
+	assert_true(first.angle_to(skeleton.get_bone_pose_rotation(index)) < 0.0001,
+		"native wrist pose repeats at the loop seam")
+	player.stop()
+	for override in [{"wrist_swing": 21.0}, {"wrist_lag": -0.01}, {"elbow_lag": 0.3}, {"torso_twist": 46.0}]:
+		var bad := params.duplicate(true)
+		bad.animation_name = "refused_follow"
+		bad.overrides = override
+		assert_is_error(_handler.run(bad, null), ErrorCodes.VALUE_OUT_OF_RANGE)
+		assert_false(player.has_animation("refused_follow"), "invalid follow-through is not committed")
+	var missing := params.duplicate(true)
+	missing.roles = roles.duplicate()
+	# Require a typed role error rather than accepting an unresolved hand path.
+	missing.roles.hand_l = "missing_hand"
+	assert_is_error(_handler.run(missing, null), ErrorCodes.INVALID_PARAMS)
 	_teardown(rig)
 
 
