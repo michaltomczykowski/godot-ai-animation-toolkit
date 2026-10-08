@@ -754,6 +754,7 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 				var displacement := vector.normalized() * angle if angle > 0.000001 else Vector3.ZERO
 				velocity += (displacement * stiffness - velocity * damping) * dt
 				var turn := velocity.length() * dt
+				if not velocity.is_finite() or not is_finite(turn): return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Secondary spring exceeded finite precision; lower coefficients")
 				if turn > 0.000001: state = (Quaternion(velocity.normalized(), turn) * state).normalized()
 			if not state.is_finite(): return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Secondary spring produced a nonfinite rotation; lower coefficients")
 			states.append(state)

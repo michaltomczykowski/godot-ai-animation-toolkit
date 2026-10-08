@@ -49,6 +49,41 @@ before and after core reload. A separate pose request observes the deferred
 refresh and retains the input pose. The new required CI gate fails on missing
 suite names, case IDs, states, samples or reload output.
 
+## Closing source and review
+
+The final local editor run passes **375/375 tests, zero skips** in a fresh,
+visible Godot 4.7.2 editor. The final external phase gate passes all 32 tests:
+13 atomic/native regressions, two continuation matrices and 17 history tests.
+Each of the eight direct examples also writes a later hand pose in the same
+batch; a separate RPC requires that pose to survive deferred refresh.
+The final fresh-process replay repeats every measurement in the checkpoint
+table above: 273 cases, 819 states, 2,457 runs and zero captured engine errors.
+
+The final regressions reject scripted resources in enabled or disabled source
+event keys before duplication can construct them. Extremely large finite spring
+coefficients that exceed floating-point precision, degenerate sampled parent
+transforms and missing isolated player/rig copies receive typed errors with
+cleanup. No inert spring output may report success for those inputs.
+
+Four fixed-camera pairs were captured from native playback, 316 frames at 60 FPS,
+with zero captured render errors. The start/walk/stop output is created through
+four actual Godot AI calls, cropping source terminal holds at the requested
+endpoints. Jump, two spring branches and cropped rooted/pose composition use
+saved public-route matrix scenes and independent native references.
+
+| Representative | Technical visual review |
+| --- | --- |
+| Start/walk/stop | Leg phases, approach/stop timing and final hold match the native clip; no extra actor or doubled travel. |
+| Jump/recovery | Anticipation, airborne pose, landing compression and recovery match saved native playback. |
+| Two spring branches | Authored rests and changing parent frames match the independent spring reference, with no playback-induced flip. |
+| Rooted/pose sequence | Source timing, pose hold and character travel match the independent composition reference, with one movement owner. |
+
+The capture tool now frees each case's overlay/floor with that case. An earlier
+capture retained preceding-case geometry and was replaced. Bone/axis fixtures
+approve technical playback fidelity only. They do not approve the remaining
+humanoid/action animation quality work. Continuous approximation remains the
+separate measurement in the table above.
+
 ## Repairs and behavior
 
 - Individual writers refuse playing destinations, including zero-speed playback,
@@ -88,6 +123,11 @@ suite names, case IDs, states, samples or reload output.
 ```powershell
 & "$core\.venv\Scripts\python.exe" tools/mcp_motion_sequence_history.py --core-root $core --project-root "$repo\test_project" --session-hint test_project --port 18131 --ws-port 18132 --godot $godot --record "$evidence\motion-sequence-route.json"
 & $godot --headless --path test_project --script res://tools/check_motion_sequence_history.gd
+
+# Generate public-route start/walk/stop and select three saved native cases.
+& "$core\.venv\Scripts\python.exe" tools/mcp_motion_sequence_preview.py --core-root $core --project-root "$repo\test_project" --session-hint test_project --port 18131 --ws-port 18132 --checkpoint "$evidence\final-source-route.json" --record "$evidence\review-manifest.json"
+& $godot --path test_project --script res://tools/render_motion_sequence_history.gd --rendering-method gl_compatibility --resolution 1280x720 --fixed-fps 60 --disable-vsync -- "$evidence\review-manifest.json" "$evidence\media\frames"
+& "$core\.venv\Scripts\python.exe" tools/compose_motion_sequence_history.py --frames "$evidence\media\frames" --manifest "$evidence\review-manifest.json" --output "$evidence\media" --ffmpeg $ffmpeg
 ```
 
 Run the checker immediately after the complete history suite: selected regression
@@ -95,17 +135,19 @@ suites reset the exported manifest. Always use a fresh editor after addon or
 preloaded test/reference edits. External gate checks guard/continuation suites
 first and the complete matrix last.
 
-## Remaining closing gates
+## Platform verification
 
-The constructor refusal and deferred later-action regressions were added after
-the checkpoint report and still require final execution. Fixed-camera
-start/walk/stop, jump, spring and rooted/pose footage; full retained Windows
-headless/editor suites; complete hosted Windows/Linux routes; final operation
-evidence and recovery archive remain required. This checkpoint does not close
-the phase or approve the broader humanoid/action visual roadmap.
+Checkpoint source `0c75b58` passes all 34 validation jobs in
+[Actions run 37779095835](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37779095835):
+fourteen headless suites on each platform, four editor/core combinations and
+both complete live Godot AI routes. Current-core editor jobs are informational
+and also pass. Final follow-up source and hosted confirmation are still required
+to close this phase.
 
 Recovery:
 `F:/GODOTAITESTING/toolkit_repair_snapshot_2026-09-30/motion_sequence_history_20261008`
 contains the approved plan, baseline 22c85c8 source and failing public-route
-evidence, checkpoint-route.json, saved native scenes and current source snapshot.
+evidence, checkpoint-route.json, final-editor-all.json, final-source-route.json,
+saved native scenes, current source snapshot and media. The media directory has
+the paired video, four contact sheets, render/media reports and technical review.
 No release, tag, merge or media upload.

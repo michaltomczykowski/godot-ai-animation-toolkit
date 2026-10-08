@@ -67,6 +67,11 @@ func run(params: Dictionary, _ctx) -> Dictionary:
 					"segments[%d] animation '%s' is missing" % [index, source_name])
 			var anim := player.get_animation(source_name)
 			if anim.get_script() != null: return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Scripted sequence source animations cannot be duplicated")
+			# Refuse side-effect/value tracks before duplication can construct a
+			# scripted resource stored in a key, including disabled tracks.
+			for track in anim.get_track_count():
+				if not anim.track_get_type(track) in [Animation.TYPE_POSITION_3D, Animation.TYPE_ROTATION_3D, Animation.TYPE_SCALE_3D]:
+					return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "compose accepts only native 3D transform source tracks")
 			if not SpecIO.unsupported_tracks(anim).is_empty() or not SpecIO.compressed_tracks(anim).is_empty():
 				return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
 					"segments[%d] contains unsupported or compressed tracks" % index)

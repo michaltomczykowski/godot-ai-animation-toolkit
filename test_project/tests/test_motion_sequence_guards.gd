@@ -7,6 +7,9 @@ var helper := Matrix.new()
 class ScriptedClip extends Animation:
 	static var constructed := 0
 	func _init() -> void: constructed += 1
+class ScriptedPayload extends Resource:
+	static var constructed := 0
+	func _init() -> void: constructed += 1
 func suite_name() -> String: return "motion_sequence_guards"
 func suite_setup(ctx: Dictionary) -> void: helper.suite_setup(ctx)
 func suite_teardown() -> void: helper.suite_teardown()
@@ -232,4 +235,29 @@ func test_scripted_sources_refused_before_construction() -> void:
 	_refusal(f, "animation_motion", helper._params(f, "secondary_motion").merged({"animation_name": "unrelated", "bones": ["hand_L"]}, true), "OPERATION_UNAVAILABLE")
 	_refusal(f, "animation_sequence", helper._params(f, "compose").merged({"segments": [{"start": 0, "duration": 1, "source_animation": "unrelated"}]}, true), "OPERATION_UNAVAILABLE")
 	assert_eq(ScriptedClip.constructed, count, "source constructor never duplicated")
+	f.free()
+func test_source_payload_refused_before_duplication() -> void:
+	var f := helper._fixture()
+	helper._prepare_inputs(f, "sequence", "partial")
+	var player := f.get_node("Playback/AnimationPlayer") as AnimationPlayer
+	var clip := player.get_animation("source/first")
+	var track := clip.add_track(Animation.TYPE_METHOD)
+	clip.track_set_path(track, ".")
+	var payload := ScriptedPayload.new()
+	clip.track_insert_key(track, 0.0, {"method": "set_meta", "args": ["payload", payload]})
+	var count := ScriptedPayload.constructed
+	for enabled in [false, true]:
+		clip.track_set_enabled(track, enabled)
+		_refusal(f, "animation_sequence", helper._case_params(f, "sequence", "partial", "local", 30), "WRONG_TYPE")
+	assert_eq(ScriptedPayload.constructed, count, "key resource constructor never duplicated")
+	f.free()
+func test_secondary_extreme_and_degenerate_sources() -> void:
+	var f := helper._fixture()
+	helper._prepare_inputs(f, "secondary", "single")
+	var p := helper._case_params(f, "secondary", "single", "local", 30)
+	_refusal(f, "animation_motion", p.merged({"stiffness": 1.0e308}, true), "OPERATION_UNAVAILABLE")
+	var clip: Animation = f.get_node("Playback/AnimationPlayer").get_animation("unrelated")
+	var index := clip.find_track("Skeleton:hips", Animation.TYPE_SCALE_3D)
+	clip.track_set_key_value(index, 1, Vector3.ZERO)
+	_refusal(f, "animation_motion", p, "OPERATION_UNAVAILABLE")
 	f.free()

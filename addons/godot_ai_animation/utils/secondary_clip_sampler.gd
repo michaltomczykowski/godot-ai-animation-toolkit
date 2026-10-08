@@ -13,6 +13,9 @@ static func capture(root: Node, rig: Skeleton3D, source: AnimationPlayer, animat
 	if opened.has("error"): return opened
 	var skeleton := sandbox.get_copy(rig) as Skeleton3D
 	var player := sandbox.get_copy(source) as AnimationPlayer
+	if skeleton == null or player == null:
+		sandbox.close()
+		return Errors.make(Errors.OPERATION_UNAVAILABLE, "The source rig/player could not be isolated from this scene")
 	for original in sandbox.nodes:
 		var copy := sandbox.get_copy(original)
 		if copy is SkeletonModifier3D: copy.active = false
@@ -43,7 +46,11 @@ static func capture(root: Node, rig: Skeleton3D, source: AnimationPlayer, animat
 		for bone in bones:
 			var index := skeleton.find_bone(str(bone))
 			var parent := skeleton.get_bone_parent(index)
-			var parent_basis := skeleton.get_bone_global_pose(parent).basis.orthonormalized()
+			var raw_basis := skeleton.get_bone_global_pose(parent).basis
+			if not raw_basis.is_finite() or absf(raw_basis.determinant()) <= 0.00000001:
+				sandbox.close()
+				return Errors.make(Errors.OPERATION_UNAVAILABLE, "Degenerate secondary parent transform at sample %d" % step)
+			var parent_basis := raw_basis.orthonormalized()
 			var target := (parent_basis * Basis(authored[bone])).get_rotation_quaternion().normalized()
 			if not parent_basis.is_finite() or not target.is_finite():
 				sandbox.close()

@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+import uuid
 from mcp_presets_audit import call
 from mcp_preset_library_history import valid_suite
 from mcp_rig_modifier_ui_history import connected_editor
@@ -22,7 +23,9 @@ SUITES = {
         'test_sequence_abrupt_boundaries_use_native_holds',
         'test_sequence_boundaries_and_extraction_refusals',
         'test_rooted_sequence_delivers_last_native_delta',
-        'test_scripted_sources_refused_before_construction')},
+        'test_scripted_sources_refused_before_construction',
+        'test_source_payload_refused_before_duplication',
+        'test_secondary_extreme_and_degenerate_sources')},
     'motion_sequence_continuation': {
         'test_clip_spring_continuation': 7938, 'test_tree_spring_continuation': 7938},
     'motion_sequence_history': {name: 4 for name in (
@@ -56,11 +59,11 @@ def runtime(args) -> dict:
     return report
 
 async def direct(client, row, phase, args) -> dict:
-    folder = args.project_root / 'repair_motion_sequence_route'
-    folder.mkdir(exist_ok=True)
+    folder = args.project_root / 'repair_motion_sequence_route' / args.route_id
+    folder.mkdir(parents=True, exist_ok=True)
     target = folder / (row['id'] + '_' + phase + '.tscn')
     shutil.copyfile(row['_disk_path'], target)
-    scene = 'res://repair_motion_sequence_route/' + target.name
+    scene = 'res://' + target.relative_to(args.project_root).as_posix()
     opened = await call(client, 'scene_open', {'path': scene, 'force_reload': True})
     if opened.get('error') or opened.get('switched') is not True: raise RuntimeError(opened)
     await ready(client)
@@ -99,7 +102,7 @@ async def direct(client, row, phase, args) -> dict:
     later_file = folder / (row['id'] + '_' + phase + '_later.tscn')
     shutil.copyfile(row['_disk_path'], later_file)
     opened = await call(client, 'scene_open', {
-        'path': 'res://repair_motion_sequence_route/' + later_file.name, 'force_reload': True})
+        'path': 'res://' + later_file.relative_to(args.project_root).as_posix(), 'force_reload': True})
     if opened.get('error') or opened.get('switched') is not True: raise RuntimeError(opened)
     await ready(client)
     later = await call(client, 'batch_execute', {'undo': False, 'commands': [
@@ -119,6 +122,7 @@ async def direct(client, row, phase, args) -> dict:
             'source_pose_preserved': True, 'later_pose_preserved': True}
 
 async def run(args):
+    args.route_id = uuid.uuid4().hex
     suites, phases = {}, []
     async with connected_editor(args) as (client, connection):
         await call(client, 'scene_open', {'path': 'res://main.tscn'})
@@ -126,8 +130,15 @@ async def run(args):
             await ready(client)
             result = await call(client, 'test_run', {'suite': name, 'verbose': True})
             suites[name] = result
+            if args.record:
+                args.record.parent.mkdir(parents=True, exist_ok=True)
+                args.record.with_suffix('.progress.json').write_text(
+                    json.dumps({'suites': suites}, indent=2), encoding='utf-8')
             if not valid_suite(result, expected): raise RuntimeError('Invalid suite ' + name + ': ' + repr(result))
         played = runtime(args)
+        if args.record:
+            args.record.with_suffix('.progress.json').write_text(
+                json.dumps({'suites': suites, 'runtime': played}, indent=2), encoding='utf-8')
         manifest = Path(played['manifest_path'])
         rows = {row['id']: row for row in json.loads(manifest.read_text(encoding='utf-8'))['cases']}
         for key in DIRECT_IDS:
