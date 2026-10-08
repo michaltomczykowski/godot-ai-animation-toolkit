@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "phase": "character_quality",
+  "operation": "walk_cycle",
+  "revision": "walk-baseline-r001",
+  "state": "awaiting_baseline_video_feedback",
+  "baseline_source": "1389c6655e6a1fcda34ed9249b9f715f1e8e85cd",
+  "required_rigs": [
+    "dummy",
+    "xbot",
+    "short",
+    "zup_tall"
+  ],
+  "approvals": {
+    "baseline_feedback": null,
+    "grounded": null,
+    "responsive": null
+  },
+  "next_action": "Read and record human timestamped baseline feedback before changing motion or producing candidate profiles.",
+  "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
+  "updated_utc": "2026-10-08T19:29:51.073245+00:00",
+  "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-baseline-r001",
+  "route": {
+    "run_id": "9ad66ecc6b294f62823069b6a4050fc2",
+    "passed": true,
+    "required_rigs_present": 4
+  },
+  "numeric": {
+    "runs": 12,
+    "actual_fps": [
+      30,
+      60,
+      120
+    ],
+    "engine_errors": [],
+    "structural_failures": [],
+    "thresholds_pass": true,
+    "limits": "Played ankles/declared markers; no skinned-sole or COM proof."
+  },
+  "videos": {
+    "clean": {
+      "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-baseline-r001\\walk-baseline-r001-clean.mp4",
+      "sha256": "a60d75491eba95382b7446ef5aed11d540b1b32617cc840fea3c3d6367b21f9d",
+      "decoded_frames": 1440,
+      "decoded_duration_s": 24.0
+    },
+    "diagnostic": {
+      "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-baseline-r001\\walk-baseline-r001-diagnostic.mp4",
+      "sha256": "26bfe394f537664dbe92c1fd2bdf00812223f8026d51ff0b8591127f10a035c9",
+      "decoded_frames": 1440,
+      "decoded_duration_s": 24.0
+    }
+  },
+  "chapters": [
+    {
+      "rig": "dummy",
+      "start_s": 0,
+      "end_s": 6
+    },
+    {
+      "rig": "xbot",
+      "start_s": 6,
+      "end_s": 12
+    },
+    {
+      "rig": "short",
+      "start_s": 12,
+      "end_s": 18
+    },
+    {
+      "rig": "zup_tall",
+      "start_s": 18,
+      "end_s": 24
+    }
+  ],
+  "observed_concerns": [
+    "Tall Z-up rig keeps arms raised despite passing ankle contact checks; human review pending."
+  ],
+  "capture_tooling_sha256": {
+    "tools/mcp_character_quality_baseline.py": "ccd173bc9272b20b4e5fa8d7941c5abfa540fb3c9c00a014185185210746f7b6",
+    "tools/compose_character_quality.py": "3904d3389135e1f83f37d287a274615b98c80ede0173ea6a7eaeb28f2eb70e76",
+    "tools/archive_character_quality.py": "9694807e9d7e7b12c308c8e70bb01350f53a7843d07d7f3dfda62fcaecffa351",
+    "test_project/tools/character_quality_native.gd": "b7702e28d71aff12f77b8141af9d7908087536e67a89fc00d5acd97ab1bc907e",
+    "test_project/tools/check_character_quality.gd": "8837987a5cea53423cc5920db1cb0043adbbf6a5dd68e55c68e8d470bdbefe44",
+    "test_project/tools/render_character_quality.gd": "76ba061e044a04afad47e55fc912bfbab57209ae3c2c805eec581c55758b2c2a"
+  }
+}

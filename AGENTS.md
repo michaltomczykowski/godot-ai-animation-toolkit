@@ -89,6 +89,16 @@ Godot binary (local):
   Generated native clips now refuse running destinations/active linked trees;
   extracted nonlooping motion/sequence clips report a 34.333 ms terminal hold.
   Full humanoid/action visual quality remains a separate roadmap gate.
+- Character quality starts with `docs/character-quality-plan.md`. The first
+  walk baseline on all four rigs is recorded under recovery's
+  `character_quality_20261008/walk-baseline-r001`; review state lives in
+  `docs/character-quality-review.json`. **Wait for human baseline video feedback
+  before motion tuning.** Plain “continue”, silence and usage resets do not grant
+  visual approval. Current walk has green ankle checks but raised Z-up arms.
+  The public-route baseline script, engine-only native checker/renderer and MP4
+  composer/archive tools are documented in its validation file. Videos must be
+  continuous; contact sheets alone never approve motion. Do not redo completed
+  history phases or promote defaults merely because numeric checks pass.
 - Launch: `& "<godot>" --editor --path test_project`.
 - Run `git checkout -- test_project/project.godot` before committing: the editor
   rewrites the plugin enable order.

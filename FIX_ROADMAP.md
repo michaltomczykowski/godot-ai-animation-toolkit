@@ -3436,3 +3436,40 @@ motion_sequence_history_20261008 folder.
   history phase. The new complete MCP gate is required by CI; the branch stays
   unreleased. Full humanoid/action visual quality, remaining real-project/core
   combinations and agent task usability remain open. Operation rows stay partial.
+
+### Character animation quality / manual video review (2026-10-08, in progress)
+
+Approved plan: docs/character-quality-plan.md. Durable review state:
+docs/character-quality-review.json. The first gate is the current walk baseline
+on the dummy, local X Bot, short synthetic and tall Z-up synthetic. Human video
+feedback is required before any motion tuning. Work remains on the unreleased
+review branch; no release or media upload is part of this phase.
+
+- Confirmed the visible Godot 4.7.2 editor is connected to Godot AI 4.1.0.
+  Four clips were generated through public `custom_manage` / `animation_motion`,
+  with dry-run invariance, resolved tracks and save/force-reopen checks. Motion
+  tuning, implicit duration and sampling remain unchanged. Root extraction and
+  linear looping are explicit review conditions. The default nonlooping route
+  is also preserved; it returns 1 s of motion plus its reported terminal hold.
+- Added engine-only fresh native playback checks at actual 30/60/120 FPS for
+  six seconds each. All 12 runs have valid saved paths/types/counts and no engine
+  errors/nonfinite poses/detected knee-pole flips. Played declared-stance ankle
+  slide and penetration against the rest ankle plane pass the stated thresholds.
+  These are ankle/marker measurements, not skinned-sole collision or visual approval.
+- Added continuous shaded front/side capture with a stationary floor, translation
+  tracking cameras, one root consumer, solid played-bone synthetic bodies and a
+  separate diagnostic mode. Render QA exposed and fixed a display-cylinder local
+  scale error before the review capture; no animation pose was edited to hide it.
+- Current baseline previews expose raised arms on the tall Z-up rig despite green
+  contact numbers. Preserve this output for the first human review. Capture and
+  recovery are under `character_quality_20261008/walk-baseline-r001` in the snapshot.
+- **First checkpoint complete; awaiting baseline video feedback.** Clean and
+  diagnostic MP4s each decode to 1,440 frames, 1920x1080 H.264 at 60 FPS, 24 s.
+  Each rig has continuous six-second front/side playback. Both captures contain
+  zero engine errors. Twelve fresh checks additionally verify six-cycle native
+  pose repetition (maximum error 0.000000148 m / 0.000000191 rad). Source, eight
+  generated scenes, local rig dependencies, exact route receipts, checks, media
+  and hashes are archived. See docs/character-quality-baseline-validation.md.
+- Next action requires human timestamped baseline feedback. Record it before
+  producing grounded/responsive walk candidates. No profile is approved, motion
+  defaults remain unpromoted, and a plain “continue” does not grant visual approval.
