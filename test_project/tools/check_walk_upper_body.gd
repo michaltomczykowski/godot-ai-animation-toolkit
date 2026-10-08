@@ -15,6 +15,12 @@ func _run() -> void:
 			var v := Native.load_case(row, root)
 			var ranges := {}
 			var trace: Array = []
+			var yaw_components := {}
+			for role in ["hips", "chest"]:
+				var index: int = v.indices[role]
+				var delta: Quaternion = v.rig.get_bone_rest(index).basis.get_rotation_quaternion().inverse() * v.rig.get_bone_pose_rotation(index)
+				var axis: Vector3 = v.rig.global_basis * v.rig.get_bone_global_rest(index).basis * Vector3(delta.x, delta.y, delta.z)
+				yaw_components[role] = axis.dot(v.up)
 			for role in ["hips", "chest", "arm_l", "arm_r", "forearm_l", "forearm_r", "hand_l", "hand_r"]:
 				if not v.indices.has(role): continue
 				var index: int = v.indices[role]
@@ -41,7 +47,9 @@ func _run() -> void:
 			for role: String in ranges:
 				ranges[role].erase("initial")
 				ranges[role].erase("previous")
-			runs.append({"id": row.id, "fps": fps, "ranges": ranges, "trace": trace})
+			runs.append({"id": row.id, "fps": fps, "ranges": ranges, "trace": trace,
+				"initial_intrinsic_yaw_components": yaw_components,
+				"initial_torso_opposes_hips": float(yaw_components.hips) * float(yaw_components.chest) < 0.0})
 			v.scene.free()
 	FileAccess.open(args[1], FileAccess.WRITE).store_string(JSON.stringify({"runs": runs, "engine_errors": logger.errors}, "\t"))
 	print("UPPER_BODY_CHECK runs=%d errors=%d" % [runs.size(), logger.errors.size()])

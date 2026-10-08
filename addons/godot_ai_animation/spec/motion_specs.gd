@@ -225,8 +225,9 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 	var torso_weights := [0.0, -counter, -counter, counter * 0.5]
 	if config.has("torso_twist"):
 		torso_weights = [0.0, -1.0, -1.0, 0.5]
+	var torso_amount := float(config.torso_twist) * float(signs.yaw) if config.has("torso_twist") else hip_yaw
 	var torso_channels := _twist_channels(
-		ctx, config, float(config.get("torso_twist", hip_yaw)), up, torso_weights, _spread(config), lag)
+		ctx, config, torso_amount, up, torso_weights, _spread(config), lag)
 	var bob_channel := _channel(up, -0.5 * float(config.bob), 2.0, 0.0, 0.0, "cosine")
 	# `lateral` points from the right hip toward the left. At t=0.25 the
 	# left foot is in stance and the right foot is swinging, so positive sine

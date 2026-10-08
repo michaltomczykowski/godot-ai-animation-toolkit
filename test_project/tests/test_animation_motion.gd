@@ -1247,6 +1247,15 @@ func test_walk_follow_through_native_wrists_and_refusals() -> void:
 	player.advance(0.0)
 	var skeleton: Skeleton3D = rig.skeleton
 	var roles: Dictionary = result.data.roles
+	var yaw := {}
+	var frame := RigAnalysis.rig_frame(skeleton, roles)
+	for role in ["hips", "chest"]:
+		var bone_index := skeleton.find_bone(str(roles[role]))
+		var delta := skeleton.get_bone_rest(bone_index).basis.get_rotation_quaternion().inverse() * skeleton.get_bone_pose_rotation(bone_index)
+		var axis := skeleton.get_bone_global_rest(bone_index).basis * Vector3(delta.x, delta.y, delta.z)
+		yaw[role] = axis.dot(frame.up)
+	assert_true(float(yaw.hips) * float(yaw.chest) < 0.0,
+		"played torso counterrotates against hips in the measured rig convention")
 	var index := skeleton.find_bone(str(roles.hand_l))
 	var first := skeleton.get_bone_pose_rotation(index)
 	var change := 0.0
