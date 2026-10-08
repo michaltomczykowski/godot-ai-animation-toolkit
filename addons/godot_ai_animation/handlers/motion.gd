@@ -261,8 +261,8 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "torso_twist must be between -45 and 45 degrees")
 	if not is_zero_approx(float(config.get("wrist_swing", 0.0))):
 		for side in ["l", "r"]:
-			if not ctx.roles.has("hand_" + side) or not ctx.roles.has("forearm_" + side):
-				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "wrist_swing requires resolved hand and forearm roles on both sides")
+			if not ctx.roles.has("arm_" + side) or not ctx.roles.has("hand_" + side) or not ctx.roles.has("forearm_" + side):
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "wrist_swing requires resolved arm, forearm and hand roles on both sides")
 	_scale_distances_to_rig(config, params, overrides, ctx)
 	ctx["foot_lift_explicit"] = params.has("foot_lift") or overrides.has("foot_lift")
 	ctx["speed"] = maxf(float(params.get("speed", 0.0)), 0.0)

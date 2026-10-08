@@ -1277,6 +1277,24 @@ func test_walk_follow_through_native_wrists_and_refusals() -> void:
 	# Require a typed role error rather than accepting an unresolved hand path.
 	missing.roles.hand_l = "missing_hand"
 	assert_is_error(_handler.run(missing, null), ErrorCodes.INVALID_PARAMS)
+	var arm_indices: Array[int] = []
+	var arm_names: Array[String] = []
+	for side in ["l", "r"]:
+		var arm_name := str(roles["arm_" + side])
+		var arm_index := skeleton.find_bone(arm_name)
+		arm_indices.append(arm_index)
+		arm_names.append(arm_name)
+		skeleton.set_bone_name(arm_index, "unidentified_link_" + side)
+	var partial_roles := MotionHandler._resolve_roles({}, skeleton)
+	assert_false(partial_roles.has("arm_l"), "partial rig has no resolved upper arm")
+	assert_true(partial_roles.has("forearm_l") and partial_roles.has("hand_l"),
+		"partial rig still has forearm and hand roles")
+	var partial := params.duplicate(true)
+	partial.animation_name = "partial_follow"
+	assert_is_error(_handler.run(partial, null), ErrorCodes.INVALID_PARAMS)
+	assert_false(player.has_animation("partial_follow"), "missing upper arm cannot silently skip requested wrist motion")
+	for side_index in arm_indices.size():
+		skeleton.set_bone_name(arm_indices[side_index], arm_names[side_index])
 	_teardown(rig)
 
 
