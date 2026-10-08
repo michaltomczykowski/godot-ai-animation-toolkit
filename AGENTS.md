@@ -105,6 +105,18 @@ Godot binary (local):
   PC viewing instead: open File Explorer with the review MP4 selected, then ask
   for feedback. Do not retry chat attachments. Public media upload is excluded
   from the approved plan. Preserve baseline files; defaults stay unpromoted.
+  The r002 upper-body plan/recipes are in `docs/walk-upper-body-*`; final animation
+  source is `671a2ff`, with Godot AI scene UUIDs recorded in its validation doc.
+  Recovery root is `character_quality_20261008/walk-review-r002`. The first
+  `9fbbae3` attempt failed the new played torso-sign check and is preserved in
+  `attempt-9fbbae3`. Read `recording-progress.json` before resuming captures;
+  `tools/record_walk_review.ps1` produces four continuous comparison MP4s and
+  `archive_walk_revision.py` requires every route/native/media gate before marking
+  review pending. New controls are opt-in; no profile/default/finger-pose approval
+  has been granted. Deliver through PC Explorer and stop for the next review.
+  All four r002 MP4s are complete and decode-verified. Explorer's `review-videos`
+  window is confirmed, with grounded clean selected. The source/scene/tooling
+  archives and receipts are complete. **Wait for r002 human feedback now.**
 - Launch: `& "<godot>" --editor --path test_project`.
 - Run `git checkout -- test_project/project.godot` before committing: the editor
   rewrites the plugin enable order.

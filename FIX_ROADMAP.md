@@ -3501,3 +3501,25 @@ review branch; no release or media upload is part of this phase.
   Next: real-route all-rig candidate generation, native checks and continuous
   comparisons, then a mandatory review pause. This does not close character
   quality or promote either profile.
+
+- r002 comparisons complete: two candidate recipes generated through Godot AI
+  on all four rigs, with recorded baseline speeds held fixed. Twenty-four native
+  contact/loop runs and twenty-four upper-body runs pass at actual 30/60/120 FPS.
+  An independent played-sign check caught wrong torso handedness in the first
+  attempt; corrected animation source is `671a2ff`, with that failed attempt
+  preserved. Explicit follow-through stays opt-in and fingers remain at rest.
+- Four clean/diagnostic baseline comparisons each decode to 2,880 frames at
+  1080p60 H.264 / 48 s: six seconds front plus six seconds side per rig. Every
+  capture has zero engine errors. Sixteen before/after-core-reload candidate
+  dry invocations preserve the inspected clips. Source `671a2ff` passes all 34
+  Windows/Linux validation jobs in Actions run 37844680472.
+- Final refusal guard `1ec8348` requires arm/forearm/hand roles for nonzero wrist
+  swing; an incomplete rig cannot silently skip requested wrist motion. Fresh
+  visible Godot 4.7.2 still passes 51/51 motion tests and all sixteen candidate
+  route/reload checks. This guard changes no valid recorded candidate keys.
+- **Walk upper-body review pending.** Exact sources, twelve native scenes/local
+  rigs, route/native/CI receipts, media and hashes are preserved under recovery's
+  `character_quality_20261008/walk-review-r002`. See
+  `docs/walk-upper-body-r002-validation.md`. Open PC Explorer with both clean
+  candidate comparisons and stop for human arms/hands/pelvis feedback; no defaults,
+  candidate profiles, finger poses or next motion are approved by these tests.
