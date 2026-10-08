@@ -780,11 +780,13 @@ func test_motion_audit_grades_planted_feet_and_hips() -> void:
 		rig_root.rotation.z = 0.0
 	# The same walk authored in place: the stance foot travels backwards with the
 	# body by design, and the audit has to say that instead of calling it a defect.
+	rig.player.pause() # Individual clip writes require an idle destination.
 	var in_place := motion.run({
 		"op": "walk_cycle", "player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
 		"duration": 1.0, "loop_mode": "linear", "animation_name": "walk_in_place", "speed": 1.0,
 	}, null)
 	assert_true(in_place.has("data"), "the in-place variant builds: %s" % str(in_place))
+	rig.player.play() # Resume the selected source for the read-only audit checks.
 	var audit_in_place := _audit_route({
 		"op": "motion_audit", "player_path": rig.player_path, "animation_name": "walk_in_place",
 		"skeleton_path": rig.skeleton_path, "samples": 24,

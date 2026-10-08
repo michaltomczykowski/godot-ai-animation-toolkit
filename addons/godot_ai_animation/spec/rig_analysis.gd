@@ -454,6 +454,14 @@ static func _frame_forward(skeleton: Skeleton3D, roles: Dictionary, up: Vector3)
 		direction -= up * direction.dot(up)
 		if direction.length_squared() > 0.000001:
 			return direction.normalized()
+	# Without toe roles, use hip separation to avoid guessing forward along the
+	# same axis as lateral. Keep the conventional -Z forward on a Y-up rig.
+	var left := skeleton.find_bone(str(roles.get("thigh_l", "")))
+	var right := skeleton.find_bone(str(roles.get("thigh_r", "")))
+	if left >= 0 and right >= 0:
+		var across := skeleton.get_bone_global_rest(left).origin - skeleton.get_bone_global_rest(right).origin
+		across -= up * across.dot(up)
+		if across.length_squared() > 0.000001: return up.cross(across).normalized()
 	return _perpendicular(up)
 
 
@@ -498,7 +506,9 @@ static func _perpendicular(axis: Vector3, other: Vector3 = Vector3.ZERO) -> Vect
 		return Vector3.RIGHT
 	direction = direction.normalized()
 	if not other.is_zero_approx():
-		direction = (direction - other * other.dot(direction)).normalized()
+		direction = direction - other * other.dot(direction)
+		if direction.length_squared() < 0.000001: direction = axis.cross(other)
+		direction = direction.normalized()
 	return direction
 
 

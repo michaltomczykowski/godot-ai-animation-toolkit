@@ -550,6 +550,24 @@ def rig_bake_state_gate(args: argparse.Namespace) -> bool:
     return True
 
 
+def motion_sequence_history_gate(args: argparse.Namespace) -> bool:
+    check = subprocess.run([
+        sys.executable, str(Path(__file__).with_name("mcp_motion_sequence_history.py")),
+        "--core-root", str(args.core_root), "--project-root", str(args.project),
+        "--session-hint", args.project.name, "--port", str(args.port),
+        "--ws-port", str(args.ws_port), "--godot", godot_executable(args.godot),
+    ], capture_output=True, text=True, timeout=420, check=False)
+    marker = "MCP_MOTION_SEQUENCE_HISTORY="
+    payload = next((line[len(marker):] for line in check.stdout.splitlines() if line.startswith(marker)), "")
+    report = json.loads(payload) if payload else {}
+    if check.returncode or report.get("passed") is not True or len(report.get("phases", [])) != 2 or report.get("runtime", {}).get("saved_states") != 819 or report.get("runtime", {}).get("playback_runs") != 2457:
+        print("MCP_CI_FAIL=motion_sequence_history")
+        print((check.stdout + check.stderr)[-7000:])
+        return False
+    print("MCP_CI_PASS=motion_sequence_history 273 cases / 819 states / 2457 native runs / reload", flush=True)
+    return True
+
+
 def rig_bake_restoration_gate(args: argparse.Namespace) -> bool:
     check = subprocess.run([
         sys.executable, str(Path(__file__).with_name("mcp_rig_bake_restoration.py")),
@@ -1068,6 +1086,9 @@ def run(args: argparse.Namespace) -> int:
             print(tail(log_path))
             return 1
         if not sequence_playback_gate(args):
+            print(tail(log_path))
+            return 1
+        if not motion_sequence_history_gate(args):
             print(tail(log_path))
             return 1
         if not rig_playback_gate(args):

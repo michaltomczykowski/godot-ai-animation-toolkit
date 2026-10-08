@@ -188,7 +188,11 @@ func _track_problem(origin: Node, animation: Animation, index: int) -> String:
 	if type in [Animation.TYPE_POSITION_3D, Animation.TYPE_ROTATION_3D, Animation.TYPE_SCALE_3D]:
 		if not target is Node3D: return "3D transform target is not Node3D"
 		if path.get_subname_count() > 0:
-			if not target is Skeleton3D or path.get_subname_count() != 1 or target.find_bone(path.get_subname(0)) < 0: return "unknown bone " + str(path)
+			if target is Skeleton3D:
+				if path.get_subname_count() != 1 or target.find_bone(path.get_subname(0)) < 0: return "unknown bone " + str(path)
+			else:
+				var channel: String = {Animation.TYPE_POSITION_3D: "position", Animation.TYPE_ROTATION_3D: "rotation", Animation.TYPE_SCALE_3D: "scale"}[type]
+				if path.get_subname_count() != 1 or str(path.get_subname(0)) != channel: return "invalid native transform channel " + str(path)
 	elif type in [Animation.TYPE_VALUE, Animation.TYPE_BEZIER]:
 		if path.get_subname_count() != 1: return "nested/custom property cannot be reproduced: " + str(path)
 		var known := false

@@ -3381,3 +3381,36 @@ spring from the current pose using the public reset API.
   Broader motion/sequence history, full humanoid/action visual quality and the
   remaining repair roadmap stay open. Operation evidence remains conservative;
   this phase does not approve every advertised operation or create a release.
+
+### Motion and sequence history/playback repair (2026-10-08, in progress)
+
+Approved plan: docs/motion-sequence-history-plan.md. Validation and limits:
+docs/motion-sequence-history-validation.md. The baseline source and three
+failing public-route regressions are preserved under recovery's
+motion_sequence_history_20261008 folder.
+
+- Checkpoints 1-4: individual writers now protect running destinations and
+  incompatible extraction. Secondary generation uses private native playback,
+  preserves rotated rests and uses consistent angular coordinates. Sequence
+  generation holds authored/missing channels, samples native curves and exact
+  boundaries, preserves annotations and refuses unsupported fades/extraction.
+  Dry/refusal/history/source identities are required throughout.
+- Native checks exposed a no-toe frame fallback producing a zero lateral axis,
+  float key/grid discontinuity collisions, small-angle spring drift, and lost
+  last root travel on finishing ticks. All have explicit repairs/regressions.
+  Extracted nonlooping individual outputs report a 34.333 ms stationary tail;
+  the requested motion endpoint remains capture_duration.
+- Fresh visible Godot 4.7.2 through the real Godot AI route passes 29 named
+  checkpoint tests, all 273 required generation cases, 819 saved history states
+  and 2,457 fresh-process playback runs. Played rotation error is below
+  0.000000450 rad, root delta below 0.000000534 m, zero captured engine errors.
+  Native single-owner full travel passes 270 runs. Eight direct calls pass
+  before/after core reload with deferred source pose preserved.
+- Live source clip/tree/spring continuation passes 18 configurations across all
+  three families and 30/60/120 FPS after dry/write/refusal/Undo/Redo. Independent
+  source/denser-spring approximation is reported separately (48,011 samples;
+  maximum 0.01634 rad); it does not approve visual humanoid/action quality.
+- Checkpoint 5 remains open: constructor and deferred later-action regressions,
+  fixed-camera review, full retained suites and Windows/Linux CI, final source/
+  media recovery and operation ledger. The new complete MCP gate is required by
+  CI. The branch remains unreleased; broader repair work is still open.

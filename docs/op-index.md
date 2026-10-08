@@ -614,7 +614,7 @@ Handler: `res://addons/godot_ai_animation/handlers/motion.gd`
 | `idle_cycle` | Build a looping idle: a pronounced look-around and torso twist over subtle breathing, weight shift and seeded micro-motion. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `amplitude`, `head_amplitude`, `bob`, `sway`, `lean`, `roles`, `profile`, `spine_chain`, `twist_spread`, `planted`, `loop_mode`, `overwrite`, `dry_run` |
 | `cycle` | Generic entry point: build the cycle named by `preset` (walk, run or idle) with the same parameters as the dedicated ops. | `preset`, `player_path`, `skeleton_path`, `animation_name`, `duration`, `style`, `overrides`, `samples`, `root_motion`, `set_root_motion`, `speed`, `stride`, `knee_bend`, `arm_swing`, `arm_down`, `bob`, `sway`, `lean`, `roles`, `profile`, `spine_chain`, `twist_spread`, `loop_mode`, `overwrite`, `amplitude`, `head_amplitude`, `dry_run` |
 | `character_setup` | One call, one undo: build idle + walk + run (optionally jump/turn), wire the locomotion AnimationTree and set the root-motion track; returns the speed parameter and a game-side snippet. | `player_path`, `skeleton_path`, `roles`, `profile`, `style`, `samples`, `speed`, `run_speed`, `duration`, `run_duration`, `idle_duration`, `root_motion`, `include_jump`, `include_turn`, `height`, `crouch`, `distance`, `jump_duration`, `angle`, `direction`, `turn_duration`, `tree_path`, `active`, `overwrite`, `dry_run` |
-| `secondary_motion` | Bake offline spring bones into an existing clip: hair/tail/cloth roots lag behind their animated parent, deterministically. | `player_path`, `skeleton_path`, `animation_name`, `bones`, `stiffness`, `damping`, `samples`, `dry_run` |
+| `secondary_motion` | Bake unkeyed bone rotations from private native parent playback with an offline angular spring. Preserves authored rest rotations. Paused destination; active linked trees, scripted sources and source events are refused. Modifiers are excluded; use bake_pose_sequence for final stacks. | `player_path`, `skeleton_path`, `animation_name`, `bones`, `stiffness`, `damping`, `samples`, `dry_run` |
 | `jump` | Build a one-shot jump: anticipation crouch, launch, air arc, landing absorb and recovery; feet planted before takeoff and after landing, and the lean is spread up `spine_chain`. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `height`, `crouch`, `distance`, `style`, `overrides`, `samples`, `roles`, `profile`, `spine_chain`, `loop_mode`, `overwrite`, `dry_run` |
 | `turn_cycle` | Build an in-place pivot turn with anticipation, a stepping foot and a settle; one-shot, direction left/right. `steps` splits a big turn into that many pivot steps (opposite foot each) so a 180-degree turn reads as weight shifts, not a spin; the torso lead is bounded per step and spread over `spine_chain`, so a long spine cannot corkscrew; re-base the root yaw between steps in your driver. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `angle`, `direction`, `steps`, `style`, `overrides`, `samples`, `roles`, `profile`, `spine_chain`, `loop_mode`, `overwrite`, `dry_run` |
 | `strafe_cycle` | Build a looping sideways step with the leading foot out, trailing foot closing and one extracted character-root translation track; root_motion defaults on. Set root_motion=false for an in-place shuffle. Requested speed is bounded by leg reach. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `direction`, `speed`, `stride`, `style`, `overrides`, `samples`, `root_motion`, `set_root_motion`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
@@ -768,7 +768,7 @@ Handler: `res://addons/godot_ai_animation/handlers/sequence.gd`
 
 | op | What it does | Params |
 | --- | --- | --- |
-| `compose` | Bake timed 3D clips and saved poses into one clip, crossfading overlaps and carrying contact markers. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `segments`, `samples`, `overwrite`, `dry_run` |
+| `compose` | Compose native 3D curves and saved poses with timed fades and contact markers. Missing channels hold authored/prior values. Pause the destination and deactivate linked trees; only two concurrent fade contributors and translation extraction are supported. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `segments`, `samples`, `overwrite`, `dry_run` |
 
 ### `animation_sequence` parameters
 
@@ -778,7 +778,7 @@ Handler: `res://addons/godot_ai_animation/handlers/sequence.gd`
 | `player_path` | string | AnimationPlayer receiving the clip. |
 | `skeleton_path` | string | Skeleton3D animated by the clips and poses. |
 | `animation_name` | string | Output clip name (sequence). |
-| `duration` | number | Output length in seconds. |
+| `duration` | number | Authored timeline seconds. Extracted outputs append a reported 34.333 ms stationary tail for complete travel at 30/60/120 FPS. |
 | `segments` | array | Ordered timeline segments: {start, duration, source_animation or pose_name or inline pose, source_start?, source_end?, fade_in?, contacts?: [{name,time}]}. The first starts at 0; gaps hold the previous pose. A saved pose comes from animation_rig pose_save. |
 | `samples` | integer | Output samples per second (30, max 1200 keys per track). |
 | `overwrite` | boolean | Replace an existing output clip (false). |

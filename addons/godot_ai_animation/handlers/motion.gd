@@ -14,6 +14,8 @@ const MotionSpecs := preload("res://addons/godot_ai_animation/spec/motion_specs.
 const MotionDrivers := preload("res://addons/godot_ai_animation/spec/motion_drivers.gd")
 const SpecIO := preload("res://addons/godot_ai_animation/spec/spec_io.gd")
 const GraphBuilders := preload("res://addons/godot_ai_animation/spec/graph_builders.gd")
+const SecondarySampler := preload("res://addons/godot_ai_animation/utils/secondary_clip_sampler.gd")
+var _test_secondary_fail_at := -1 # Internal failure injection, not on the tool wire.
 
 const _CYCLE_KINDS := {
 	"walk_cycle": "walk",
@@ -86,6 +88,14 @@ func run(params: Dictionary, _ctx) -> Dictionary:
 
 func _dispatch(params: Dictionary) -> Dictionary:
 	var op: String = params.get("op", "")
+	if _CYCLE_KINDS.has(op) or op == "secondary_motion":
+		if not _dry_run:
+			var context := _require_undo("animation_motion " + op)
+			if context.has("error"): return context
+		var destination := _resolve_player(str(params.get("player_path", "")))
+		if destination.has("error"): return destination
+		var available := _idle_clip_destination(destination.player)
+		if available.has("error"): return available
 	match op:
 		"walk_cycle":
 			return _run_cycle(params, "walk")
@@ -130,6 +140,8 @@ func _run_cycle(params: Dictionary, kind: String) -> Dictionary:
 			var motion_node := _root_motion_node(root_node, prepared.resolved.node) if root_node != null else null
 			if motion_node != null:
 				root_motion_track = "%s:position" % str(root_node.get_path_to(motion_node))
+				var compatible := _extraction_change_safe(player_resolved.player, NodePath(root_motion_track), true, [prepared.anim_name])
+				if compatible.has("error"): return compatible
 				extra_props.append({
 					"object": player_resolved.player,
 					"property": "root_motion_track",
@@ -149,7 +161,7 @@ func _run_cycle(params: Dictionary, kind: String) -> Dictionary:
 						"old": false,
 					})
 	var committed := _commit_procedural_clip(params, prepared.resolved, prepared.anim_name,
-		prepared.length, prepared.loop_mode, prepared.keys, prepared.markers, extra_props)
+		prepared.length, prepared.loop_mode, prepared.keys, prepared.markers, extra_props, true)
 	if committed.has("error"):
 		return committed
 	committed.data["style"] = prepared.style
@@ -191,6 +203,18 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		if not valid_keys.has(str(key)):
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"Unknown %s override '%s'. Valid: %s" % [kind, str(key), ", ".join(valid_keys)])
+		if str(key) in _BOOLEAN_OVERRIDES:
+			if not overrides[key] is bool: return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Override '%s' must be a boolean" % key)
+		elif not (overrides[key] is int or overrides[key] is float):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Override '%s' must be a number" % key)
+	var numeric_fields := valid_keys.duplicate()
+	numeric_fields.append_array(["duration", "samples", "speed", "phase", "arm_down", "height", "distance", "crouch", "angle"])
+	for field in numeric_fields:
+		if not params.has(field): continue
+		if str(field) in _BOOLEAN_OVERRIDES:
+			if not params[field] is bool: return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'%s' must be a boolean" % field)
+		elif not (params[field] is int or params[field] is float):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'%s' must be a number" % field)
 	var built := _build_context(params, kind)
 	if built.has("error"):
 		return built
@@ -649,6 +673,10 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"Animation '%s' not found on %s" % [anim_name, player_path])
 	var anim := library.get_animation(anim_name)
+	if anim.get_script() != null: return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Scripted secondary source animations cannot be duplicated")
+	for track in anim.get_track_count():
+		if anim.track_is_enabled(track) and anim.track_get_type(track) in [Animation.TYPE_METHOD, Animation.TYPE_AUDIO, Animation.TYPE_ANIMATION]:
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Secondary source events cannot be sampled offline; use a transform-only source")
 	var unsupported := SpecIO.unsupported_tracks(anim)
 	if not unsupported.is_empty():
 		return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
@@ -660,12 +688,14 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 	if resolved.kind != "3d":
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "secondary_motion needs a Skeleton3D")
 	var skeleton: Skeleton3D = resolved.node
-	var bones: Array = params.get("bones", [])
+	var raw_bones: Variant = params.get("bones", [])
+	if not raw_bones is Array: return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'bones' must be an array")
+	var bones: Array = raw_bones
 	if bones.is_empty():
 		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM,
 			"secondary_motion needs 'bones': [\"B-hair01\", ...]")
 	var root_node := ValueCodec.player_root_node(player)
-	if root_node == null:
+	if root_node == null or not root_node.is_ancestor_of(skeleton):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "The AnimationPlayer has no resolvable root_node")
 	var track_root := str(root_node.get_path_to(skeleton))
 	if track_root.is_empty() or track_root == ".":
@@ -676,6 +706,7 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "The clip is empty (length 0)")
 	var infos := {}
 	for bone in bones:
+		if not bone is String or infos.has(bone): return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Secondary bones must be distinct names")
 		var bone_name := str(bone)
 		var index := skeleton.find_bone(bone_name)
 		if index < 0:
@@ -686,58 +717,56 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 		if ClipSpec.find_track_index(spec, "%s:%s" % [track_root, bone_name], Animation.TYPE_ROTATION_3D) >= 0:
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"'%s' already has a rotation track in '%s' - jiggle bones must be unkeyed" % [bone_name, anim_name])
-		infos[bone_name] = {
-			"index": index,
-			"parent_index": parent_index,
-			"parent_rest": skeleton.get_bone_global_rest(parent_index).basis,
-			"bone_rest": skeleton.get_bone_global_rest(index).basis,
-			"local_rest": skeleton.get_bone_rest(index).basis,
-		}
-	var fps := clampf(float(params.get("samples", 30.0)), 4.0, 120.0)
-	var steps := maxi(2, int(round(length * fps)))
-	var dt := length / float(steps)
-	var snapshot := _pose_snapshot(skeleton)
-	var parent_globals := {}
-	for bone_name in infos:
-		parent_globals[bone_name] = []
-	var targets := {}
-	for bone_name in infos:
-		targets[bone_name] = []
-	for step in steps + 1:
-		var time := length * float(step) / float(steps)
-		_apply_spec_at(skeleton, spec, time)
-		for bone_name in infos:
-			var info: Dictionary = infos[bone_name]
-			var parent_basis := skeleton.get_bone_global_pose(int(info.parent_index)).basis
-			parent_globals[bone_name].append(parent_basis)
-			targets[bone_name].append(
-				(parent_basis * (info.parent_rest as Basis).inverse() * (info.bone_rest as Basis)).get_rotation_quaternion())
-	_pose_restore(skeleton, snapshot)
+		infos[bone_name] = true
+	for field in ["samples", "stiffness", "damping"]:
+		if params.has(field) and not (params[field] is int or params[field] is float):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'%s' must be a number" % field)
+	var fps := float(params.get("samples", 30.0))
 	var stiffness := float(params.get("stiffness", 120.0))
 	var damping := float(params.get("damping", 12.0))
-	if stiffness < 0.0 or damping < 0.0:
-		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'stiffness' and 'damping' must be >= 0")
+	if not is_finite(fps) or fps < 4.0 or fps > 120.0 or not is_finite(length) or ceili(length * fps) > MAX_CYCLE_INTERVALS:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "Secondary motion needs 4-120 samples/s and at most 1200 intervals")
+	if not is_finite(stiffness) or not is_finite(damping) or stiffness < 0.0 or damping < 0.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'stiffness' and 'damping' must be finite and >= 0")
+	if not SpecIO.compressed_tracks(anim).is_empty(): return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Compressed secondary source tracks cannot be edited")
+	var times: Array = [0.0]
+	for step in range(1, ceili(length * fps) + 1): times.append(minf(float(step) / fps, length))
+	if times.size() > 1 and length - float(times[times.size() - 2]) <= 0.00002 * maxf(1.0, length):
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Secondary endpoint is too close for native key lookup; adjust duration or sampling")
+	var sampled := SecondarySampler.capture(EditorInterface.get_edited_scene_root(), skeleton, player, anim_name, bones, times, _test_secondary_fail_at)
+	if sampled.has("error"): return sampled
+	var parent_globals: Dictionary = sampled.parents
+	var targets: Dictionary = sampled.targets
 	var substeps := 2
-	var sim_dt := dt / float(substeps)
 	for bone_name in infos:
-		var expanded: Array = []
-		for target in targets[bone_name]:
+		var states: Array = [targets[bone_name][0]]
+		var state: Quaternion = states[0]
+		var velocity := Vector3.ZERO
+		for step in range(1, times.size()):
+			var dt := (float(times[step]) - float(times[step - 1])) / substeps
 			for _sub in substeps:
-				expanded.append(target)
-		var states := MotionDrivers.follow_spring(
-			expanded, stiffness, damping, sim_dt, (targets[bone_name][0] as Quaternion))
+				# Velocity and the premultiplied step are in skeleton space.
+				# Form the error in that same frame, including rotated rests.
+				var error: Quaternion = (targets[bone_name][step] as Quaternion) * state.inverse()
+				if error.w < 0.0: error = -error
+				var vector := Vector3(error.x, error.y, error.z)
+				var angle := 2.0 * atan2(vector.length(), absf(error.w))
+				var displacement := vector.normalized() * angle if angle > 0.000001 else Vector3.ZERO
+				velocity += (displacement * stiffness - velocity * damping) * dt
+				var turn := velocity.length() * dt
+				if turn > 0.000001: state = (Quaternion(velocity.normalized(), turn) * state).normalized()
+			if not state.is_finite(): return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Secondary spring produced a nonfinite rotation; lower coefficients")
+			states.append(state)
 		var keys: Array = []
-		for step in steps + 1:
-			var time := length * float(step) / float(steps)
-			var state: Quaternion = states[mini(step * substeps, states.size() - 1)]
+		for step in times.size():
+			var time := float(times[step])
+			var sampled_state: Quaternion = states[step]
 			var parent_global: Basis = parent_globals[bone_name][step]
-			var info: Dictionary = infos[bone_name]
-			# Skeleton3D rotation tracks are pose deltas after the local rest
-			# basis. Omitting that inverse keys the rest orientation itself; a
-			# sideways jaw or tail then jumps as soon as the clip begins.
+			# Native pose rotation already includes its local rest orientation.
+			# Convert the followed skeleton-space rotation into the parent frame.
 			keys.append({
 				"time": time,
-				"value": ((info.local_rest as Basis).inverse() * parent_global.inverse() * Basis(state)).get_rotation_quaternion().normalized(),
+				"value": (parent_global.inverse() * Basis(sampled_state)).get_rotation_quaternion().normalized(),
 				"transition": "linear",
 			})
 		ClipSpec.align_quaternions(keys)
@@ -750,7 +779,7 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 		return valid
 	var built := SpecBuilder.to_animation(spec)
 	_commit_animation_changes("MCP: Secondary motion %s" % anim_name, player, library, false,
-		{anim_name: anim}, {anim_name: built})
+		{anim_name: anim}, {anim_name: built}, _bone_pose_history_props(skeleton))
 	return {"data": {
 		"player_path": player_path,
 		"skeleton_path": resolved.path,

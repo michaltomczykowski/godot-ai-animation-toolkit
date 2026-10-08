@@ -2221,6 +2221,7 @@ func test_secondary_motion_bakes_spring_bones() -> void:
 		"duration": 1.0, "loop_mode": "linear",
 	}, null)
 	assert_true(built.has("data"), "the source walk builds, got: %s" % str(built))
+	var authored_jaw := (rig.skeleton as Skeleton3D).get_bone_pose_rotation((rig.skeleton as Skeleton3D).find_bone("B-jaw"))
 	var result := _handler.run({
 		"op": "secondary_motion", "skeleton_path": rig.skeleton_path,
 		"player_path": rig.player_path, "animation_name": "walk",
@@ -2233,8 +2234,8 @@ func test_secondary_motion_bakes_spring_bones() -> void:
 	assert_eq(anim.track_get_key_count(jaw), 31, "1s at 30 samples/s gives 31 keys")
 	var first: Quaternion = anim.track_get_key_value(jaw, 0)
 	var last: Quaternion = anim.track_get_key_value(jaw, anim.track_get_key_count(jaw) - 1)
-	assert_true(first.angle_to(Quaternion.IDENTITY) < 0.001,
-		"the spring track starts at the jaw's rest-relative pose")
+	assert_true(first.angle_to(authored_jaw) < 0.001,
+		"native spring playback starts at the jaw's authored pose")
 	assert_true(first.dot(last) > 0.9999, "the spring track closes its loop")
 	var moved := false
 	for key in anim.track_get_key_count(jaw):

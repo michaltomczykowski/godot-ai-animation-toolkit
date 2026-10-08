@@ -64,6 +64,33 @@ func _resolve_player(player_path: String) -> Dictionary:
 	return {"player": player, "library": library}
 
 
+## Motion/sequence writes keep the caller's destination. Never reconstruct a
+## running controller's private blend state to make a library edit succeed.
+func _idle_clip_destination(player: AnimationPlayer) -> Dictionary:
+	if player.is_playing():
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
+			"Pause the destination AnimationPlayer or select an inactive player before writing clips")
+	var root := EditorInterface.get_edited_scene_root()
+	var trees := root.find_children("*", "AnimationTree", true, false)
+	if root is AnimationTree: trees.append(root)
+	for tree in trees:
+		if tree.active and tree.get_node_or_null(tree.anim_player) == player:
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
+				"Deactivate the destination's AnimationTree or select an unlinked inactive player before writing clips")
+	return {}
+
+func _extraction_change_safe(player: AnimationPlayer, path: NodePath, local: bool, replaced: Array) -> Dictionary:
+	if player.root_motion_track == path and player.root_motion_local == local: return {}
+	for name in player.get_animation_list():
+		if replaced.has(str(name)): continue
+		var animation := player.get_animation(name)
+		for index in animation.get_track_count():
+			if animation.track_is_enabled(index) and animation.track_get_type(index) in [Animation.TYPE_POSITION_3D, Animation.TYPE_ROTATION_3D, Animation.TYPE_SCALE_3D] and animation.track_get_path(index) in [player.root_motion_track, path]:
+				return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
+					"Changing extraction would alter clip '%s'; use a separate inactive destination player" % name)
+	return {}
+
+
 ## Resolve the target skeleton: `skeleton_path` (scene-absolute or relative), or
 ## the first Skeleton3D / Skeleton2D in the edited scene.
 func _resolve_skeleton(params: Dictionary) -> Dictionary:

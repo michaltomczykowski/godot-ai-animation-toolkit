@@ -589,6 +589,15 @@ Notes:
 
 ## `animation_motion`
 
+Individual writes and dry runs require a stopped/paused player and inactive
+linked trees. Secondary motion uses private native clip evaluation, preserves
+authored rest rotations and excludes modifiers/events/scripted sources. For
+final modifier stacks use `bake_pose_sequence`. Extracted nonlooping individual
+motions and composed sequences report a 34.333 ms stationary tail in their
+actual output length, keeping the motion endpoint in `capture_duration`.
+See [history/playback repair](motion-sequence-history-validation.md) for
+composition rules, validated playback rates and remaining phase gates.
+
 Procedural humanoid cycles. Unlike `animation_rig`'s sparse recipes, these build
 **densely sampled** clips from analytic curves (24 keys/s by default) with
 two-bone leg solving and phase-offset follow-through. Review saved playback

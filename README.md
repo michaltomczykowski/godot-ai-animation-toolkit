@@ -307,10 +307,27 @@ follow-through. Pass `speed` (m/s) and the stride is solved for you; `style`
 `contact`/`toe_off`/`passing` phase markers for footsteps and blends;
 `root_motion` keys forward travel and wires `AnimationPlayer.root_motion_track`
 in the same undo action; `secondary_motion` bakes offline spring bones (hair,
-tails, cloth) into any clip; `character_setup` goes from a bare rig to a
+tails, cloth) into supported clips; `character_setup` goes from a bare rig to a
 playable locomotion set — idle + walk + run (optionally jump/turn), a speed
 blend space, the `AnimationTree` and the root-motion track — in one call and one
 undo. T-pose rigs get their arms lowered automatically.
+
+Individual motion/secondary/sequence writes and dry runs require a stopped or
+paused destination and inactive linked AnimationTrees. An incompatible extraction
+change returns `OPERATION_UNAVAILABLE` with guidance to use another inactive
+player. Secondary motion evaluates the source clip privately with native
+AnimationPlayer interpolation; it excludes modifiers and refuses source events
+and scripted processors. Use `bake_pose_sequence` to capture a final modifier stack.
+
+Composition holds authored values before a channel first appears, then holds
+preceding values when later segments omit it. Source easing/cubic interpolation,
+crop boundaries, fade endpoints and markers are retained. A third segment during
+an unfinished fade, unsupported track semantics, or rotation/scale extraction
+receives a typed refusal. Extracted nonlooping individual motions and sequences
+append a reported 34.333 ms stationary tail so native playback at 30/60/120 FPS
+delivers the final movement delta. `capture_duration` is the authored endpoint;
+`length`/`duration` includes the tail. Sequence `source_end` can crop it out.
+See [motion/sequence validation](docs/motion-sequence-history-validation.md).
 
 `walk_stop` now transfers support to the leading foot and continues root travel
 forward while settling into the rig's neutral leg pose. For a start→cycle→stop

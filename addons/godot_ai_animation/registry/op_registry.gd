@@ -133,7 +133,7 @@ static func families() -> Dictionary:
 		FAMILY_SEQUENCE: {
 			"handler": "res://addons/godot_ai_animation/handlers/sequence.gd",
 			"summary": "Compose character clips and saved poses on one timeline.",
-			"description": "Compose existing 3D clips and saved rig poses into one character-owned clip with timed crossfades and contact markers. The output is one ordinary Animation with one undo action. Use custom_manage(op=\"invoke\", tool_name=\"animation_sequence\", params={...}).",
+			"description": "Compose native 3D clips and poses into one character clip with timed fades, held missing channels and contact markers. Pause the destination and deactivate linked trees before writes or dry runs. Translation extraction only; rooted outputs include a reported stationary tail. One Undo action. Invoke through custom_manage.",
 			"schema": _sequence_schema(),
 			"ops": _sequence_ops(),
 			"requires_writable": true,
@@ -1828,15 +1828,12 @@ static func _rig_modifiers_ops() -> Array:
 
 static func _motion_description() -> String:
 	return (
-		"Procedural humanoid motion: walk_cycle, run_cycle, strafe_cycle, "
-		+ "idle_cycle and a generic cycle build dense clips with two-bone IK leg "
-		+ "solves (planted feet, toe roll), pelvis bob/sway/yaw/roll, "
-		+ "counter-rotating torso and forward elbow follow-through; jump and "
-		+ "turn_cycle are one-shots, walk_start/walk_stop blend in and out of a "
-		+ "gait, and secondary_motion bakes spring bones. `speed` solves the "
-		+ "stride from a target m/s; style/overrides tune the motion; root_motion "
-		+ "keys and wires travel. character_setup builds idle+walk+run and the "
-		+ "locomotion tree in one call."
+		"Generate humanoid walk/run/idle/strafe cycles, jump, turn, start/stop "
+		+ "or offline secondary spring rotations. Speed, style and overrides tune "
+		+ "rig-relative motion. Pause the destination and deactivate linked trees "
+		+ "before individual writes or dry runs. Rooted one-shots include a "
+		+ "reported stationary tail. character_setup builds clips and a locomotion "
+		+ "tree in one action; secondary samples private native clip playback."
 	)
 
 
@@ -2095,7 +2092,7 @@ static func _motion_ops() -> Array:
 		},
 		{
 			"name": "secondary_motion",
-			"summary": "Bake offline spring bones into an existing clip: hair/tail/cloth roots lag behind their animated parent, deterministically.",
+			"summary": "Bake unkeyed bone rotations from private native parent playback with an offline angular spring. Preserves authored rest rotations. Paused destination; active linked trees, scripted sources and source events are refused. Modifiers are excluded; use bake_pose_sequence for final stacks.",
 			"params": ["player_path", "skeleton_path", "animation_name", "bones", "stiffness", "damping", "samples"],
 			"example": {"op": "secondary_motion", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "walk", "bones": ["B-hair01", "B-hair02"], "stiffness": 120.0, "damping": 12.0},
 		},
@@ -2144,7 +2141,7 @@ static func _sequence_schema() -> Dictionary:
 			"player_path": {"type": "string", "description": "AnimationPlayer receiving the clip."},
 			"skeleton_path": {"type": "string", "description": "Skeleton3D animated by the clips and poses."},
 			"animation_name": {"type": "string", "description": "Output clip name (sequence)."},
-			"duration": {"type": "number", "description": "Output length in seconds."},
+			"duration": {"type": "number", "description": "Authored timeline seconds. Extracted outputs append a reported 34.333 ms stationary tail for complete travel at 30/60/120 FPS."},
 			"segments": {"type": "array", "items": {"type": "object"},
 				"description": "Ordered timeline segments: {start, duration, source_animation or pose_name or inline pose, source_start?, source_end?, fade_in?, contacts?: [{name,time}]}. The first starts at 0; gaps hold the previous pose. A saved pose comes from animation_rig pose_save."},
 			"samples": {"type": "integer", "description": "Output samples per second (30, max 1200 keys per track)."},
@@ -2158,7 +2155,7 @@ static func _sequence_schema() -> Dictionary:
 static func _sequence_ops() -> Array:
 	return [{
 		"name": "compose",
-		"summary": "Bake timed 3D clips and saved poses into one clip, crossfading overlaps and carrying contact markers.",
+		"summary": "Compose native 3D curves and saved poses with timed fades and contact markers. Missing channels hold authored/prior values. Pause the destination and deactivate linked trees; only two concurrent fade contributors and translation extraction are supported.",
 		"params": ["player_path", "skeleton_path", "animation_name", "duration", "segments", "samples", "overwrite", "dry_run"],
 		"example": {"op": "compose", "player_path": "/Main/Rig/AnimationPlayer",
 			"skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "action", "duration": 2.0,

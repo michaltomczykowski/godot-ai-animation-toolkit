@@ -437,10 +437,20 @@ func _root_motion_node(player_root: Node, skeleton: Skeleton3D) -> Node3D:
 func _commit_procedural_clip(
 	params: Dictionary, resolved: Dictionary, anim_name: String, length: float,
 	loop_mode: int, keys: Dictionary, markers: Array = [], extra_props: Array = [],
+	preserve_root_endpoint: bool = false,
 ) -> Dictionary:
 	var built := _build_procedural_animation(params, resolved, anim_name, length, loop_mode, keys, markers)
 	if built.has("error"):
 		return built
+	var hold := 0.0
+	if preserve_root_endpoint and not str(built.root_motion_track).is_empty():
+		var extracting: bool = built.player.root_motion_track == NodePath(built.root_motion_track)
+		for entry in extra_props:
+			if entry.object == built.player and entry.property == "root_motion_track":
+				extracting = entry.value == NodePath(built.root_motion_track)
+		if extracting:
+			hold = preserve_translation_endpoint(built.spec, str(built.root_motion_track))
+			built.anim = SpecBuilder.to_animation(built.spec)
 	var existing := _existing_animation(built.library, anim_name, bool(params.get("overwrite", false)))
 	if existing.has("error"):
 		return existing.error
@@ -450,7 +460,9 @@ func _commit_procedural_clip(
 		"player_path": str(params.get("player_path", "")),
 		"skeleton_path": resolved.path,
 		"animation_name": anim_name,
-		"length": length,
+		"length": float(built.spec.length),
+		"capture_duration": length,
+		"root_motion_terminal_hold": hold,
 		"loop_mode": ValueCodec.loop_mode_to_string(int(built.spec.loop_mode)),
 		"track_count": (built.spec.tracks as Array).size(),
 		"key_count": ClipSpec.total_key_count(built.spec),
@@ -459,3 +471,19 @@ func _commit_procedural_clip(
 		"overwritten": existing.old_anim != null,
 		"undoable": true,
 	}}
+
+
+## AnimationPlayer clears extraction on its finishing tick. Hold all channels
+## for more than one 30 FPS frame, so an arbitrary motion endpoint is reached
+## before that tick at the supported 30/60/120 playback rates.
+static func preserve_translation_endpoint(spec: Dictionary, root_path: String) -> float:
+	if int(spec.loop_mode) != Animation.LOOP_NONE or root_path.is_empty() or ClipSpec.find_track_index(spec, root_path, Animation.TYPE_POSITION_3D) < 0: return 0.0
+	var original := float(spec.length)
+	var hold := 1.0 / 30.0 + 0.001
+	var native := SpecBuilder.to_animation(spec)
+	for index in (spec.tracks as Array).size():
+		var track: Dictionary = spec.tracks[index]
+		var value: Variant = native.position_track_interpolate(index, original) if int(track.type) == Animation.TYPE_POSITION_3D else native.rotation_track_interpolate(index, original) if int(track.type) == Animation.TYPE_ROTATION_3D else native.scale_track_interpolate(index, original)
+		track.keys.append({"time": original + hold, "value": value, "transition": 1.0})
+	spec.length = original + hold
+	return hold
