@@ -320,8 +320,9 @@ AnimationPlayer interpolation; it excludes modifiers and refuses source events
 and scripted processors. Use `bake_pose_sequence` to capture a final modifier stack.
 
 Composition holds authored values before a channel first appears, then holds
-preceding values when later segments omit it. Source easing/cubic interpolation,
-crop boundaries, fade endpoints and markers are retained. A third segment during
+preceding values when later segments omit it. It samples native source easing
+and cubic interpolation; output interpolation between samples is an approximation.
+Crop boundaries, fade endpoints and markers are retained. A third segment during
 an unfinished fade, unsupported track semantics, or rotation/scale extraction
 receives a typed refusal. Extracted nonlooping individual motions and sequences
 append a reported 34.333 ms stationary tail so native playback at 30/60/120 FPS

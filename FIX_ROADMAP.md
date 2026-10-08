@@ -167,14 +167,16 @@ dry-run checks; ten saved graphs have fresh-process AnimationTree playback
 evidence. All five rig-modifier operations now pass the supported 92-case
 setup/history/playback matrix (828 saved states, 276 native references,
 2,160 influence checks) and Windows/Linux public-route CI. Active graph/modifier
-bake restoration is the next separate gate. All 16 advertised FX operations
-have saved runtime checks in Windows/Linux
+bake restoration and motion/sequence history repair are complete; their closing
+validation documents record the native matrices and platform evidence. All 16
+advertised FX operations have saved runtime checks in Windows/Linux
 CI. All 20 clip edits have played interpolation checks in Windows/Linux CI.
 All nine presets and seven library operations have live route checks in both
 platforms; saved playback covers the eight standalone presets, showcase's
 seven players, and both library-applied clips.
-Sequence compose has a live MCP save/reopen and played-bone check; its
-boundary, gap, pose and ownership review remains open.
+Sequence compose passes the complete native boundary/gap/pose/root-ownership
+and Do/Undo/Redo matrix through Godot AI on Windows/Linux. Representative
+technical playback review passes; full authored action visual quality remains open.
 
 ## Phase 5 — agent usability, CI and review
 
@@ -3382,7 +3384,7 @@ spring from the current pose using the public reset API.
   remaining repair roadmap stay open. Operation evidence remains conservative;
   this phase does not approve every advertised operation or create a release.
 
-### Motion and sequence history/playback repair (2026-10-08, in progress)
+### Motion and sequence history/playback repair (2026-10-08, complete)
 
 Approved plan: docs/motion-sequence-history-plan.md. Validation and limits:
 docs/motion-sequence-history-validation.md. The baseline source and three
@@ -3424,6 +3426,13 @@ motion_sequence_history_20261008 folder.
 - Checkpoint source `0c75b58` passes all 34 validation jobs in
   [Actions run 37779095835](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37779095835)
   on Windows/Linux, including both complete live routes. Final follow-up source
-  and hosted confirmation remain required to close checkpoint 5. Final reports,
-  scenes/source/media recovery and operation evidence are being archived.
-  The new complete MCP gate is required by CI; the branch stays unreleased.
+  `7513708` also passes all 34 validation jobs in
+  [Actions run 37783627161](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37783627161):
+  28 headless jobs, four editor/core combinations (374 passes, one optional X Bot
+  asset skip, zero captured engine/discovery/tool-route errors) and both complete
+  external MCP routes. Final reports, 1,366 native scene files, exact source,
+  preview scenes and media are archived with SHA-256 receipts.
+- **All five checkpoints complete.** This closes the approved motion/sequence
+  history phase. The new complete MCP gate is required by CI; the branch stays
+  unreleased. Full humanoid/action visual quality, remaining real-project/core
+  combinations and agent task usability remain open. Operation rows stay partial.

@@ -52,6 +52,13 @@ Godot binary (local):
   checker is `test_project/tools/check_rig_bake_restoration.gd`; the paired native
   renderer is `render_bake_restoration.gd` and composer is
   `tools/compose_bake_restoration.py`. See the phase validation document for args.
+- Motion/sequence history gate: `tools/mcp_motion_sequence_history.py` runs guard,
+  continuation and complete history suites in that order, requires 273 cases /
+  819 saved states / 2,457 native playback runs, and invokes four examples before
+  and after core reload. Fresh checker: `check_motion_sequence_history.gd`;
+  independent engine references: `motion_sequence_native_reference.gd`.
+  Each external attempt uses a UUID output directory to avoid cached scene
+  subresources from earlier attempts. See the phase validation document for args.
 - Release zip: `powershell -ExecutionPolicy Bypass -File tools\release_zip.ps1`
 - Parse check without the editor:
   `& "<godot>" --headless --path test_project --check-only --script res://path.gd`
@@ -73,6 +80,15 @@ Godot binary (local):
   `docs/rig-bake-restoration-validation.md`; recovery reports, native scenes and
   media are in the snapshot's `bake_restoration_20261007` folder. Broader roadmap
   work remains open; do not infer complete operation approval from this phase.
+- Motion/sequence history completed on `7513708` (Actions 37783627161); local
+  reports, 1,366 native scene files, exact source, preview scenes and media are in
+  `motion_sequence_history_20261008` under recovery. The approved scope and gates
+  are in `docs/motion-sequence-history-plan.md` and its validation document.
+  Selected guard/continuation suites reset the saved matrix manifest: run the
+  complete history suite last and archive it before running selected tests.
+  Generated native clips now refuse running destinations/active linked trees;
+  extracted nonlooping motion/sequence clips report a 34.333 ms terminal hold.
+  Full humanoid/action visual quality remains a separate roadmap gate.
 - Launch: `& "<godot>" --editor --path test_project`.
 - Run `git checkout -- test_project/project.godot` before committing: the editor
   rewrites the plugin enable order.

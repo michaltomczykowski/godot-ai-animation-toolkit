@@ -596,7 +596,11 @@ final modifier stacks use `bake_pose_sequence`. Extracted nonlooping individual
 motions and composed sequences report a 34.333 ms stationary tail in their
 actual output length, keeping the motion endpoint in `capture_duration`.
 See [history/playback repair](motion-sequence-history-validation.md) for
-composition rules, validated playback rates and remaining phase gates.
+composition rules, validated playback rates and remaining quality work.
+
+Sequence and secondary output is sampled: native interpolation between output
+keys approximates continuous source/spring motion. The validation report measures
+that approximation separately from saved key/playback fidelity.
 
 Procedural humanoid cycles. Unlike `animation_rig`'s sparse recipes, these build
 **densely sampled** clips from analytic curves (24 keys/s by default) with

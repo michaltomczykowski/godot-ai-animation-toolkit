@@ -141,8 +141,29 @@ Checkpoint source `0c75b58` passes all 34 validation jobs in
 [Actions run 37779095835](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37779095835):
 fourteen headless suites on each platform, four editor/core combinations and
 both complete live Godot AI routes. Current-core editor jobs are informational
-and also pass. Final follow-up source and hosted confirmation are still required
-to close this phase.
+and also pass. Follow-up source `7513708` also passes all 28 headless jobs and
+all four editor/core combinations (374 passes, one optional local X Bot asset
+skip, zero captured engine/discovery/tool-route errors). Both complete external
+routes also pass in
+[Actions run 37783627161](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37783627161).
+All 34 validation jobs pass on the final production/test source. The routes
+require this phase's complete native matrix and direct reload/later-pose checks,
+plus every retained family/history/playback gate.
+
+## Phase completion
+
+**Motion and sequence history/playback repair complete, 2026-10-08.** All five
+checkpoints of the approved plan are satisfied on source `7513708`. Closing
+documentation does not change production, tests or CI from that verified source.
+The full humanoid/action visual-quality roadmap, remaining real-project/core
+integration combinations and agent task usability remain open. Operation rows
+stay partial until those broader contracts are approved.
+
+Hosted headless scene saves also log Godot's dummy-renderer thumbnail error
+(`texture_2d_get`, null texture) through the core scene handler, as in the prior
+bake phase. This is separate from the zero-error native animation/test reports.
+Saved clip data passes fresh-process playback; the visible local captures have
+no render errors. The core/headless thumbnail limitation remains open.
 
 Recovery:
 `F:/GODOTAITESTING/toolkit_repair_snapshot_2026-09-30/motion_sequence_history_20261008`
