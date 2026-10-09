@@ -47,6 +47,7 @@ def main() -> None:
     for profile in PROFILES:
         folder = args.folder / profile
         route = read(folder / "route.json")
+        reference = references[PROFILES.index(profile)] if len(references) == 2 else references[0]
         checks = read(folder / "native-check.json")
         upper = read(folder / "upper-body-check.json")
         media = read(folder / "media.json")
@@ -87,6 +88,14 @@ def main() -> None:
         for mode, video in media["videos"].items():
             if video["decoded_frames"] != 2880 or abs(video["decoded_duration_s"] - 48) > 0.017 or video["render"]["errors"]:
                 raise ValueError(f"Incomplete comparison video: {profile}/{mode}")
+            render = video["render"]
+            expected_chapters = [(row["id"], angle, next(r["scene"] for r in reference["cases"] if r["id"] == row["id"]), row["scene"])
+                for row in route["cases"] for angle in ("FRONT", "SIDE")]
+            chapters = [(row["id"], row["angle"], row["baseline_scene"], row["candidate_scene"]) for row in render["cases"]]
+            if (render["source_head"] != route["source_head"] or render["revision"] != route["revision"]
+                    or render["baseline_source_head"] != reference["source_head"] or render["profile"] != profile
+                    or chapters != expected_chapters or render["root_consumers_per_view"] != 1):
+                raise ValueError(f"Comparison does not match exact candidate/reference clips: {profile}/{mode}")
             if digest(Path(video["path"])) != video["sha256"]:
                 raise ValueError("Review media changed after verification")
         detail = None

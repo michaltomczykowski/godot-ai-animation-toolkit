@@ -1,4 +1,4 @@
-# Walk hand/forearm/wrist r004 — recording in progress
+# Walk hand/forearm/wrist r004 — awaiting human video review
 
 Animation source: `68e06aa5247145ecb8a8f1f09b000e9f4cd21123`.
 Reference r003 source: `86ea12a8d2521c00c6155bb1a032ffdd3055d4ac`.
@@ -16,6 +16,10 @@ axis and bounded periodic variation. Elbow bend/swing and wrist delay are
 tuned together. Axes use actual connected rest geometry and animated parent
 frames; local bone offsets stay unchanged. These are baked keys in the existing
 clip, with one playback owner. No additional runtime bone writer is required.
+
+Both comparison panels now draw the synthetic rigs' finger segments from played
+bone globals. The left panel loads the original r003 saved clip; this makes its
+rest fingers and the candidate's posed fingers visible in the same preview.
 
 The seeded variation uses smooth periodic harmonics: a given seed reproduces
 the same clip and its loop repeats the same variation. Changing the seed creates
@@ -79,18 +83,35 @@ Finger gain is a dimensionless change of direction projected toward the palm,
 not a claim about skinned fingertip collision. Contact checks measure ankle
 planes/markers; skin soles and whole-body center of mass are not validated.
 
-## Pending delivery gate
+## Media, recovery and manual review
 
 Animation source CI passes all **34 Windows/Linux validation jobs**, including
 both public MCP routes, in [Actions 37982111931](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37982111931).
 The archive gate checks the complete job list against the exact animation SHA.
 
-Continuous same-profile r003/r004 comparisons are being recorded: four rigs,
+Four continuous same-profile r003/r004 comparisons are complete: four rigs,
 six seconds front and six seconds side per rig, clean and diagnostic modes.
-Enlarged hand-detail copies use fixed crops of the clean recordings, preserving
-timing and frame order. No media has been delivered or approved at this point.
+Two enlarged hand-detail copies use fixed crops of the clean recordings,
+preserving timing and frame order. **All six MP4s independently decode to
+2,880 frames / 48 seconds, 1920×1080 H.264 at 60 FPS.** Every native capture
+reports zero engine errors and one root consumer per view.
+
+The archive gate verifies candidate/reference source revisions, exact native
+scene paths and front/side chapter order, media hashes, all source CI jobs,
+fresh editor results, actual-FPS checks and before/after-core-reload routes.
+It preserves both exact sources, sixteen reference/candidate scenes with local
+FBX dependencies, review tooling/docs and hashed receipts. Imported rigs and
+videos stay local; this is an unreleased review branch.
 
 Recovery root:
 `F:\GODOTAITESTING\toolkit_repair_snapshot_2026-09-30\character_quality_20261009\walk-review-r004`.
-Finish recording/decode checks, exact-source CI, archive/hash verification and
-PC Explorer delivery, then stop for human review of both profiles/all four rigs.
+Six hash-verified review copies and `START-HERE.txt` are under `review-videos`
+inside that root. The Explorer window is confirmed open at this location.
+Start with `walk-grounded-r004-hand-detail.mp4`, then responsive hand detail
+and both whole-body clean comparisons. Previous r003 is left; r004 is right.
+Chapters: dummy 00:00–00:12, X Bot 00:12–00:24, short 00:24–00:36,
+tall Z-up 00:36–00:48. Diagnostic versions show contact/root markers.
+
+**Pause here for hand/forearm/wrist/finger and whole-walk feedback on both
+profiles/all four rigs.** New playback confirmation and visual approval remain
+pending. Numerical/CI passes do not approve quality or promote defaults.

@@ -137,6 +137,20 @@ Godot binary (local):
   Preserve r003 as the comparison reference; new multi-axis forearm/wrist
   controls and bounded seeded variation remain opt-in. Review finger curl
   using validated chains/palm geometry; pause again after continuous videos.
+  r004 animation source is `68e06aa`: 54 fresh editor motion tests, fourteen
+  headless suites, 24 native contact runs and 24 upper-body traces pass; all
+  34 Windows/Linux source jobs pass (Actions 37982111931). Eight saved/reopened
+  public Godot AI clips and sixteen before/after-core-reload dry routes pass.
+  Four continuous full-body comparisons and two enlarged hand-detail MP4s are
+  complete, each 48s / 1080p60 / 2,880 independently decoded frames.
+  The verified archive has sixteen reference/candidate scenes/local rigs,
+  exact sources, parameters and receipts under
+  `character_quality_20261009/walk-review-r004`. See
+  `docs/walk-hand-follow-through-r004-validation.md`.
+  Explorer's r004 `review-videos` folder is confirmed open with six verified
+  copies. Start with grounded hand-detail. **Wait for r004 human feedback now.**
+  Both profile approvals and new playback confirmation remain pending. No
+  default promotion or next motion is authorized by these verification passes.
 - Launch: `& "<godot>" --editor --path test_project`.
 - Run `git checkout -- test_project/project.godot` before committing: the editor
   rewrites the plugin enable order.

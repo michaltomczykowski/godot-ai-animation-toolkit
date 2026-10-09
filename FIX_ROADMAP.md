@@ -3560,3 +3560,24 @@ review branch; no release or media upload is part of this phase.
   seeded variation and validated light finger curl. Preserve r003 as the
   reference and record continuous full-body and enlarged hand comparisons.
   Source/default promotion and final walk approval remain pending human review.
+
+- r004 hand-motion implementation and recording complete on source `68e06aa`:
+  opt-in forearm axial turn, multi-axis wrist follow-through, bounded smooth
+  seeded variation and measured finger curl. Elbow timing/swing is coordinated
+  with wrists; thumb posing stays at rest. The seeded loop repeats its authored
+  variation, and a new seed creates a different take. Defaults/goldens remain
+  unchanged; unsupported/ambiguous hands refuse requested finger posing.
+- Fifty-four fresh visible Godot 4.7.2 motion tests, fourteen local headless
+  suites, 24 contact/loop runs and 24 native upper-body traces pass at actual
+  30/60/120 FPS. Eight clips pass the real Godot AI route, dry run, save/reopen
+  and track resolution; sixteen before/after-core-reload dry routes pass.
+  All 34 Windows/Linux source jobs pass in Actions 37982111931.
+- Four same-profile r003/r004 full-body comparisons plus two enlarged hand
+  copies are complete and independently decoded: each 48s / 1080p60 / 2,880
+  frames. Archive checks bind videos to exact sources/scenes and preserve
+  sixteen native scenes/local rigs, both sources, recipes and hashed receipts.
+  Six verified review copies are delivered in the confirmed PC Explorer folder
+  under `character_quality_20261009/walk-review-r004`. See
+  `docs/walk-hand-follow-through-r004-validation.md`.
+  **Stop for human hands/forearms/wrists/fingers and whole-walk review.** New
+  playback confirmation, profile approval and default promotion remain pending.
