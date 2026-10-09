@@ -20,7 +20,7 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Implement docs/walk-head-torso-r003-plan.md, record continuous same-profile r002/r003 comparisons, then pause for human review.",
+  "next_action": "Record r003 same-profile comparisons (check recording-progress.json); archive route/native/editor/CI/media gates, deliver through PC Explorer, and pause for review.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
   "updated_utc": "2026-10-09T11:34:40.636264+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-baseline-r001",
@@ -672,5 +672,7 @@
         "decision": "Revise torso/head; no profile visual approval."
       }
     }
-  ]
+  ],
+  "pending_candidate_source": "86ea12a8d2521c00c6155bb1a032ffdd3055d4ac",
+  "pending_candidate_recovery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r003"
 }

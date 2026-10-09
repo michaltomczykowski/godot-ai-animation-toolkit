@@ -39,6 +39,9 @@ def main() -> None:
     records = ([read(args.baseline / "route.json")] if (args.baseline / "route.json").exists()
                else [read(args.baseline / profile / "route.json") for profile in PROFILES])
     references = list(records)
+    for index, record in enumerate(references):
+        label = PROFILES[index] if len(references) == 2 else "baseline"
+        write(args.folder / f"reference-{label}-route.json", record)
     summaries = {}
     heads = set()
     for profile in PROFILES:
@@ -87,6 +90,7 @@ def main() -> None:
             "max_loop_position_error_m": max(r["loop_position_error_m"] for r in checks["runs"]),
             "max_loop_rotation_error_rad": max(r["loop_rotation_error_rad"] for r in checks["runs"]),
             "counterrotation_pass": True, "thresholds_pass": True,
+            "head_torso_spatial": {run["id"]: run.get("spatial", {}) for run in upper["runs"] if run["fps"] == 60},
             "videos": {mode: {k: video[k] for k in ("path", "sha256", "bytes", "decoded_frames", "decoded_duration_s")}
                        for mode, video in media["videos"].items()},
             "chapters": media["videos"]["clean"]["render"]["cases"],
@@ -142,6 +146,7 @@ def main() -> None:
         "human_approval": None, "limits": "Authored candidates, ankle/marker checks; no finger posing, skinned-sole collision or COM validation."})
     tooling = ["tools/mcp_character_quality_baseline.py", "tools/compose_character_quality.py",
         "tools/mcp_walk_revision_reload.py",
+        "tools/deliver_walk_review.py",
         "tools/record_walk_review.ps1", "tools/archive_walk_revision.py", "test_project/tools/character_quality_native.gd",
         "test_project/tools/check_character_quality.gd", "test_project/tools/check_walk_upper_body.gd",
         "test_project/tools/render_character_quality.gd", "test_project/tools/render_walk_comparison.gd"]
