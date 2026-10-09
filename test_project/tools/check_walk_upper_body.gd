@@ -21,13 +21,32 @@ func _run() -> void:
 				var delta: Quaternion = v.rig.get_bone_rest(index).basis.get_rotation_quaternion().inverse() * v.rig.get_bone_pose_rotation(index)
 				var axis: Vector3 = v.rig.global_basis * v.rig.get_bone_global_rest(index).basis * Vector3(delta.x, delta.y, delta.z)
 				yaw_components[role] = axis.dot(v.up)
-			for role in ["hips", "chest", "arm_l", "arm_r", "forearm_l", "forearm_r", "hand_l", "hand_r"]:
+			for role in ["hips", "chest", "head", "arm_l", "arm_r", "forearm_l", "forearm_r", "hand_l", "hand_r"]:
 				if not v.indices.has(role): continue
 				var index: int = v.indices[role]
 				ranges[role] = {"initial": v.rig.get_bone_pose_rotation(index), "previous": v.rig.get_bone_pose_rotation(index), "max_change_deg": 0.0, "max_step_deg": 0.0, "loop_error_deg": 0.0}
+			var spatial := {}
+			for role in ["hips", "chest", "head"]:
+				spatial[role] = {"min_height_m": INF, "max_height_m": -INF,
+					"min_pitch_deg": INF, "max_pitch_deg": -INF,
+					"min_roll_deg": INF, "max_roll_deg": -INF}
 			for frame in fps * 6 + 1:
 				if frame > 0: Native.advance(v, 1.0 / fps)
 				var sample := {"t": v.time}
+				for role: String in spatial:
+					var index: int = v.indices[role]
+					var rest_basis: Basis = v.rig.global_basis * v.rig.get_bone_global_rest(index).basis
+					var played_basis: Basis = v.rig.global_basis * v.rig.get_bone_global_pose(index).basis
+					var delta := played_basis * rest_basis.inverse()
+					var played_up: Vector3 = delta * v.up
+					var height: float = (Native.point(v, role) - v.body.global_position).dot(v.up)
+					var pitch := rad_to_deg(atan2(played_up.dot(v.forward), played_up.dot(v.up)))
+					var roll := rad_to_deg(atan2(played_up.dot(v.right), played_up.dot(v.up)))
+					for field in ["height_m", "pitch_deg", "roll_deg"]:
+						var value: float = height if field == "height_m" else (pitch if field == "pitch_deg" else roll)
+						spatial[role]["min_" + field] = minf(spatial[role]["min_" + field], value)
+						spatial[role]["max_" + field] = maxf(spatial[role]["max_" + field], value)
+						sample[role + "_" + field] = value
 				for role: String in ranges:
 					var index: int = v.indices[role]
 					var q: Quaternion = v.rig.get_bone_pose_rotation(index)
@@ -47,7 +66,7 @@ func _run() -> void:
 			for role: String in ranges:
 				ranges[role].erase("initial")
 				ranges[role].erase("previous")
-			runs.append({"id": row.id, "fps": fps, "ranges": ranges, "trace": trace,
+			runs.append({"id": row.id, "fps": fps, "ranges": ranges, "spatial": spatial, "trace": trace,
 				"initial_intrinsic_yaw_components": yaw_components,
 				"initial_torso_opposes_hips": float(yaw_components.hips) * float(yaw_components.chest) < 0.0})
 			v.scene.free()

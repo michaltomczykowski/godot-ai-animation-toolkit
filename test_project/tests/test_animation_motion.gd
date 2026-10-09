@@ -1300,6 +1300,84 @@ func test_walk_follow_through_native_wrists_and_refusals() -> void:
 
 # --- idle -------------------------------------------------------------------
 
+func test_walk_head_torso_native_articulation_and_history() -> void:
+	for case in [DUMMY, "res://repair_synthetic_short.tscn", "res://repair_synthetic_zup_tall.tscn", "rotated_rest"]:
+		var asset: String = DUMMY if case == "rotated_rest" else case
+		var rig := _rig("HeadTorso", asset)
+		if rig.has("error"):
+			skip(rig.error)
+			return
+		if case == "rotated_rest":
+			var rotation := Basis(Vector3(1, 2, 3).normalized(), 0.73)
+			var skeleton: Skeleton3D = rig.skeleton
+			for index in skeleton.get_bone_count():
+				if skeleton.get_bone_parent(index) < 0:
+					var rest := skeleton.get_bone_rest(index)
+					skeleton.set_bone_rest(index, Transform3D(rotation * rest.basis, rotation * rest.origin))
+			skeleton.reset_bone_poses()
+		var params := {"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+			"player_path": rig.player_path, "animation_name": "articulated", "samples": 60,
+			"loop_mode": "linear", "overrides": {"torso_flex": 2.0, "torso_roll": 1.0,
+				"head_nod": 2.4, "head_roll": 0.3, "head_lag": 0.03, "head_stabilize": 0.55}}
+		var dry := params.duplicate(true)
+		dry.dry_run = true
+		assert_true(_handler.run(dry, null).has("data"), "articulation dry run builds")
+		assert_false(rig.player.has_animation("articulated"), "dry run does not write")
+		var built := _handler.run(params, _undo_redo)
+		assert_true(built.has("data"), "articulation builds: " + str(built))
+		if not built.has("data"):
+			_teardown(rig)
+			continue
+		var skeleton: Skeleton3D = rig.skeleton
+		var player: AnimationPlayer = rig.player
+		var roles: Dictionary = built.data.roles
+		var frame := RigAnalysis.rig_frame(skeleton, roles)
+		player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+		player.playback_auto_capture = false
+		for fps in [30, 60, 120]:
+			player.play("articulated", 0.0)
+			player.advance(0.0)
+			var first := {}
+			var extrema := {"chest": [INF, -INF], "head": [INF, -INF]}
+			for role in ["chest", "head"]:
+				first[role] = skeleton.get_bone_global_pose(skeleton.find_bone(roles[role])).basis.get_rotation_quaternion()
+			for tick in fps + 1:
+				if tick > 0: player.advance(1.0 / fps)
+				for role in ["chest", "head"]:
+					var index := skeleton.find_bone(roles[role])
+					var played := skeleton.get_bone_global_pose(index).basis
+					var delta := played * skeleton.get_bone_global_rest(index).basis.inverse()
+					var up: Vector3 = delta * (frame.up as Vector3)
+					var pitch := rad_to_deg(atan2(up.dot(frame.forward), up.dot(frame.up)))
+					extrema[role][0] = minf(extrema[role][0], pitch)
+					extrema[role][1] = maxf(extrema[role][1], pitch)
+					assert_true(skeleton.get_bone_pose_position(index).is_equal_approx(skeleton.get_bone_rest(index).origin),
+						"articulation preserves local joint lengths")
+			for role in ["chest", "head"]:
+				assert_gt(float(extrema[role][1]) - float(extrema[role][0]), 2.0,
+					"native " + role + " pitch articulates in the rig frame at " + str(fps))
+				var index := skeleton.find_bone(roles[role])
+				var final := skeleton.get_bone_global_pose(index).basis.get_rotation_quaternion()
+				var difference: Quaternion = (first[role] as Quaternion).inverse() * final
+				assert_true(Vector3(difference.x, difference.y, difference.z).length() < 0.0001, "played joint loop closes")
+			player.stop()
+		assert_true(editor_undo(_undo_redo), "articulated walk undo succeeds")
+		assert_false(player.has_animation("articulated"), "undo removes generated clip")
+		assert_true(editor_redo(_undo_redo), "articulated walk redo succeeds")
+		assert_true(player.has_animation("articulated"), "redo restores generated clip")
+		for override in [{"head_nod": 10.1}, {"torso_roll": -10.1}, {"head_lag": 0.26}, {"head_stabilize": 1.01}]:
+			var bad := params.duplicate(true)
+			bad.animation_name = "refused_articulation"
+			bad.overrides = override
+			assert_is_error(_handler.run(bad, null), ErrorCodes.VALUE_OUT_OF_RANGE)
+			assert_false(player.has_animation(bad.animation_name), "invalid articulation cannot write")
+		var head_index := skeleton.find_bone(roles.head)
+		var head_name := skeleton.get_bone_name(head_index)
+		skeleton.set_bone_name(head_index, "unidentified_endpoint")
+		assert_is_error(_handler.run(params, null), ErrorCodes.INVALID_PARAMS)
+		skeleton.set_bone_name(head_index, head_name)
+		_teardown(rig)
+
 func test_idle_twist_is_shared_over_the_spine_chain() -> void:
 	var rig := _rig("MotionTwist")
 	if rig.has("error"):

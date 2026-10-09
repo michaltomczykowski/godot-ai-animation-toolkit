@@ -29,7 +29,7 @@ const _CYCLE_KINDS := {
 	"walk_stop": "walk_stop",
 }
 
-const _GAIT_KEYS := ["stride", "knee_bend", "arm_swing", "arm_twist", "bob", "sway", "hip_yaw", "hip_roll", "chest_yaw", "lean", "foot_lift", "elbow", "elbow_swing", "lag", "stance", "crouch", "toe_roll", "twist_spread", "elbow_lag", "wrist_swing", "wrist_lag", "torso_twist"]
+const _GAIT_KEYS := ["stride", "knee_bend", "arm_swing", "arm_twist", "bob", "sway", "hip_yaw", "hip_roll", "chest_yaw", "lean", "foot_lift", "elbow", "elbow_swing", "lag", "stance", "crouch", "toe_roll", "twist_spread", "elbow_lag", "wrist_swing", "wrist_lag", "torso_twist", "torso_flex", "torso_roll", "head_nod", "head_roll", "head_lag", "head_stabilize"]
 
 ## Overrides that are switches rather than numbers, so they are not coerced.
 const _BOOLEAN_OVERRIDES := ["planted"]
@@ -252,13 +252,26 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 	var rate := float(built.rate)
 	var ctx: Dictionary = built.ctx
 	ctx["config"] = config
-	for field in ["elbow_lag", "wrist_lag"]:
+	for field in ["elbow_lag", "wrist_lag", "head_lag"]:
 		if config.has(field) and (float(config[field]) < 0.0 or float(config[field]) > 0.25):
 			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "%s must be between 0 and 0.25 cycle fractions" % field)
 	if absf(float(config.get("wrist_swing", 0.0))) > 20.0:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "wrist_swing must be between -20 and 20 degrees")
 	if absf(float(config.get("torso_twist", 0.0))) > 45.0:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "torso_twist must be between -45 and 45 degrees")
+	var articulate := false
+	for field in ["torso_flex", "torso_roll", "head_nod", "head_roll"]:
+		if absf(float(config.get(field, 0.0))) > 10.0:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "%s must be between -10 and 10 degrees" % field)
+	for field in ["torso_flex", "torso_roll", "head_nod", "head_roll", "head_lag", "head_stabilize"]:
+		articulate = articulate or config.has(field)
+	if float(config.get("head_stabilize", 0.0)) < 0.0 or float(config.get("head_stabilize", 0.0)) > 1.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "head_stabilize must be between 0 and 1")
+	if articulate:
+		var layout := MotionSpecs.upper_body_layout(ctx)
+		if layout.has("error"):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, str(layout.error))
+		ctx["upper_body_layout"] = layout
 	if not is_zero_approx(float(config.get("wrist_swing", 0.0))):
 		for side in ["l", "r"]:
 			if not ctx.roles.has("arm_" + side) or not ctx.roles.has("hand_" + side) or not ctx.roles.has("forearm_" + side):
@@ -911,7 +924,7 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 	# Existing profile/default references are retained until human video approval.
 	var measured_arms := false
 	var overrides: Dictionary = params.get("overrides", {})
-	for field in ["elbow_lag", "wrist_swing", "wrist_lag", "torso_twist"]:
+	for field in ["elbow_lag", "wrist_swing", "wrist_lag", "torso_twist", "torso_flex", "torso_roll", "head_nod", "head_roll", "head_lag", "head_stabilize"]:
 		measured_arms = measured_arms or params.has(field) or overrides.has(field)
 	if not measured_arms and arm_amount < 0.0:
 		arm_amount = _default_arm_down(skeleton, roles)

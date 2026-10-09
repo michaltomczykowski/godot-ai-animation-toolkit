@@ -13,6 +13,7 @@ $reviewProgress = @{state='recording'; completed=@(); current=$null}
 try {
     foreach ($reviewProfile in @('grounded','responsive')) {
         $reviewFolder = Join-Path $reviewRootPath $reviewProfile
+        $reviewReference = if (Test-Path -LiteralPath $Baseline -PathType Container) { Join-Path $Baseline "$reviewProfile\route.json" } else { $Baseline }
         foreach ($reviewMode in @('clean','diagnostic')) {
             $reviewProgress.current = "$reviewProfile/$reviewMode"
             $reviewProgress | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $reviewProgressPath -Encoding UTF8
@@ -20,7 +21,7 @@ try {
             $reviewArgs = @('--path', ('"'+(Join-Path $reviewRepo 'test_project')+'"'),
                 '--rendering-method','gl_compatibility','--resolution','1920x1080','--disable-vsync',
                 '--script','res://tools/render_walk_comparison.gd','--',
-                ('"'+$Baseline+'"'), ('"'+(Join-Path $reviewFolder 'route.json')+'"'),
+                ('"'+$reviewReference+'"'), ('"'+(Join-Path $reviewFolder 'route.json')+'"'),
                 ('"'+$reviewFrames+'"'),$reviewMode)
             $reviewProcess = Start-Process -WindowStyle Hidden -FilePath $Godot -ArgumentList $reviewArgs -Wait -PassThru `
                 -RedirectStandardOutput (Join-Path $reviewRootPath "$reviewProfile-$reviewMode-render.log") `

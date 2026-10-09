@@ -3523,3 +3523,12 @@ review branch; no release or media upload is part of this phase.
   `docs/walk-upper-body-r002-validation.md`. Open PC Explorer with both clean
   candidate comparisons and stop for human arms/hands/pelvis feedback; no defaults,
   candidate profiles, finger poses or next motion are approved by these tests.
+
+- r002 review received (2026-10-09): walking improved, but torso/head remain
+  stiff; the user requests a small head bob. This authorizes r003, not approval.
+  `docs/walk-head-torso-r003-plan.md` records the next implementation/manual gate.
+  Engine-only r002 measurements show 3–6 cm inherited head height variation,
+  but under 0.45 degrees pitch range. Add periodic torso flex and cervical nod
+  with partial tilt stabilization, preserving local bone offsets and contacts.
+  The new controls remain opt-in. Compare previous/new same-profile clips on
+  all four rigs and stop for remote PC Explorer video review.

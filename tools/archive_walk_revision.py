@@ -32,9 +32,13 @@ def main() -> None:
     p.add_argument("folder", type=Path)
     p.add_argument("--repo", type=Path, required=True)
     p.add_argument("--baseline", type=Path, required=True)
+    p.add_argument("--revision", default="walk-review-r002")
+    p.add_argument("--editor-tests", type=int, default=51)
+    p.add_argument("--ci-report", type=Path)
     args = p.parse_args()
-    baseline = read(args.baseline / "route.json")
-    records = [baseline]
+    records = ([read(args.baseline / "route.json")] if (args.baseline / "route.json").exists()
+               else [read(args.baseline / profile / "route.json") for profile in PROFILES])
+    references = list(records)
     summaries = {}
     heads = set()
     for profile in PROFILES:
@@ -53,6 +57,13 @@ def main() -> None:
         if len(upper["runs"]) != 12 or {(r["id"], r["fps"]) for r in upper["runs"]} != expected or upper["engine_errors"]:
             raise ValueError(f"Incomplete native upper-body checks: {profile}")
         for run in upper["runs"]:
+            if any("head_nod" in row["params"].get("overrides", {}) for row in route["cases"]):
+                for role in ("head", "chest"):
+                    spatial = run["spatial"][role]
+                    pitch = spatial["max_pitch_deg"] - spatial["min_pitch_deg"]
+                    if not (2 < pitch < 10 and run["ranges"][role]["loop_error_deg"] < 0.001
+                            and run["ranges"][role]["max_step_deg"] < 2):
+                        raise ValueError(f"Inert/discontinuous head/torso: {profile}/{run['id']}/{role}")
             if not run["initial_torso_opposes_hips"]:
                 raise ValueError(f"Torso does not oppose hips: {profile}/{run['id']}")
             for side in ("l", "r"):
@@ -85,7 +96,7 @@ def main() -> None:
     if len(heads) != 1:
         raise ValueError("Candidate profiles must share an exact source revision")
     source_head = heads.pop()
-    ci = read(args.folder / "ci-source-671a2ff.json")
+    ci = read(args.ci_report or args.folder / "ci-source-671a2ff.json")
     if ci.get("headSha") != source_head or ci.get("conclusion") != "success" or sum(job["conclusion"] == "success" for job in ci["jobs"]) != 34:
         raise ValueError("Animation source must pass all 34 Windows/Linux validation jobs")
     api_head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=args.repo, text=True).strip()
@@ -94,19 +105,21 @@ def main() -> None:
             path = args.repo / "test_project" / row["scene"].removeprefix("res://")
             if digest(path) != row["scene_sha256"]: raise ValueError("Saved scene changed after invocation")
     editor = read(args.folder / "editor-motion-results.json")
-    if editor.get("failed", 1) or editor.get("skipped", 1) or editor.get("passed") != 51:
+    if editor.get("failed", 1) or editor.get("skipped", 1) or editor.get("passed") != args.editor_tests:
         raise ValueError("Fresh editor motion suite is incomplete")
     reload = read(args.folder / "core-reload.json")
     if not reload.get("passed") or len(reload.get("phases", [])) != 2 or any(len(phase["rows"]) != 8 or not all(row["passed"] for row in phase["rows"]) for phase in reload["phases"]):
         raise ValueError("Candidate routes must pass before and after core reload")
     subprocess.run(["git", "archive", "--format=zip", "--output", str(args.folder / "candidate-source.zip"), source_head], cwd=args.repo, check=True)
     subprocess.run(["git", "archive", "--format=zip", "--output", str(args.folder / "api-guard-source.zip"), api_head], cwd=args.repo, check=True)
-    shutil.copy2(args.baseline / "baseline-source.zip", args.folder / "baseline-source.zip")
+    reference_heads = {record["source_head"] for record in references}
+    for head in reference_heads:
+        archive_path = args.folder / ("baseline-source.zip" if len(reference_heads) == 1 else f"reference-source-{head[:7]}.zip")
+        subprocess.run(["git", "archive", "--format=zip", "--output", str(archive_path), head], cwd=args.repo, check=True)
+    scene_paths = {args.repo / "test_project" / row["scene"].removeprefix("res://") for record in records for row in record["cases"]}
     with zipfile.ZipFile(args.folder / "native-scenes-and-local-rigs.zip", "w", zipfile.ZIP_DEFLATED) as archive:
-        for record in records:
-            for row in record["cases"]:
-                path = args.repo / "test_project" / row["scene"].removeprefix("res://")
-                archive.write(path, path.relative_to(args.repo).as_posix())
+        for path in sorted(scene_paths):
+            archive.write(path, path.relative_to(args.repo).as_posix())
         for asset in ("models/human_dummy/HumanCharacterDummy_F.fbx", "models/x_bot/X Bot.fbx"):
             path = args.repo / "test_project" / asset
             archive.write(path, path.relative_to(args.repo).as_posix())
@@ -114,14 +127,16 @@ def main() -> None:
     state = read(state_path)
     if any(state["approvals"][profile] is not None for profile in PROFILES):
         raise ValueError("Cannot overwrite a human-approved candidate review")
-    state.update(revision="walk-review-r002", state="awaiting_walk_upper_body_video_review",
+    if state["revision"] != args.revision:
+        state.pop("candidate_delivery", None)
+    state.update(revision=args.revision, state="awaiting_walk_upper_body_video_review",
         api_refusal_source=api_head,
         updated_utc=datetime.now(timezone.utc).isoformat(), candidate_review=summaries,
-        next_action="Open Explorer with the r002 comparison videos on the PC; ask for arms/hands and pelvis/torso feedback on both profiles/all four rigs, then stop. No default promotion or next operation before review.")
+        next_action=f"Open Explorer with the {args.revision} comparison videos on the PC; ask for head/torso and whole-walk feedback on both profiles/all four rigs, then stop. No default promotion or next operation before review.")
     state.pop("pending_candidate_source", None)
     state.pop("pending_candidate_recovery", None)
     if state.get("candidate_delivery", {}).get("explorer_window_verified"):
-        state["next_action"] = "Wait for human r002 video feedback after Explorer was opened on the PC. Ask about both candidates/all four rigs, then stop; no default promotion or next motion before review."
+        state["next_action"] = f"Wait for human {args.revision} video feedback after Explorer was opened on the PC. Ask about both candidates/all four rigs, then stop; no default promotion or next motion before review."
     write(state_path, state)
     write(args.folder / "validation.json", {"source_head": source_head, "profiles": summaries,
         "human_approval": None, "limits": "Authored candidates, ankle/marker checks; no finger posing, skinned-sole collision or COM validation."})
@@ -133,6 +148,7 @@ def main() -> None:
     docs = ["AGENTS.md", "FIX_ROADMAP.md", "docs/character-quality-plan.md", "docs/character-quality-review.json",
         "docs/walk-upper-body-revision-plan.md", "docs/walk-upper-body-r002-validation.md",
         "docs/walk-upper-body-grounded-r002.json", "docs/walk-upper-body-responsive-r002.json"]
+    docs += [path.relative_to(args.repo).as_posix() for path in (args.repo / "docs").glob("walk-head-torso-*")]
     with zipfile.ZipFile(args.folder / "review-tooling-and-docs.zip", "w", zipfile.ZIP_DEFLATED) as archive:
         for relative in (*tooling, *docs): archive.write(args.repo / relative, relative)
     paths = [path for path in args.folder.iterdir() if path.is_file() and path.name != "receipts.json"]
@@ -140,6 +156,6 @@ def main() -> None:
     write(args.folder / "receipts.json", {"source_head": source_head,
         "files": {path.relative_to(args.folder).as_posix(): {"sha256": digest(path), "bytes": path.stat().st_size} for path in paths},
         "tooling": {path: digest(args.repo / path) for path in tooling}})
-    print(json.dumps({"state": state["state"], "profiles": 2, "scenes": 12, "videos": 4, "source_head": source_head}))
+    print(json.dumps({"state": state["state"], "profiles": 2, "scenes": len(scene_paths), "videos": 4, "source_head": source_head}))
 
 if __name__ == "__main__": main()

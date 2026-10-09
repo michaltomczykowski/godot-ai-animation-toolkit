@@ -116,7 +116,10 @@ Godot binary (local):
   has been granted. Deliver through PC Explorer and stop for the next review.
   All four r002 MP4s are complete and decode-verified. Explorer's `review-videos`
   window is confirmed, with grounded clean selected. The source/scene/tooling
-  archives and receipts are complete. **Wait for r002 human feedback now.**
+  archives and receipts are complete. On 2026-10-09 the user viewed r002 and
+  requested a less stiff torso/head and a small walking head bob. Follow
+  `docs/walk-head-torso-r003-plan.md`; record same-profile r002/r003 continuous
+  comparisons and pause again. No profile approval or default promotion yet.
 - Launch: `& "<godot>" --editor --path test_project`.
 - Run `git checkout -- test_project/project.godot` before committing: the editor
   rewrites the plugin enable order.

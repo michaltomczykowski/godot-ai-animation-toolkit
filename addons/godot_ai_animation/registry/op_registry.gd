@@ -1874,7 +1874,7 @@ static func _motion_schema() -> Dictionary:
 			},
 			"overrides": {
 				"type": "object",
-				"description": "Deep tuning: stride, knee_bend, arm_swing, arm_twist, bob, sway, hip_yaw, hip_roll, chest_yaw, twist_spread, lean, foot_lift, elbow, elbow_swing, lag, stance, crouch. Opt-in gait follow-through: elbow_lag/wrist_lag (0..0.25 cycles), wrist_swing (+/-20 deg, hand roles required), torso_twist (+/-45 deg total). Idle: amplitude, head_amplitude, look, twist, bob, sway, shift, noise, lean, arm_sway, elbow, arm_twist, twist_spread.",
+				"description": "Gait: stride, knee_bend, arm_swing, arm_twist, bob, sway, hip_yaw, hip_roll, chest_yaw, twist_spread, lean, foot_lift, elbow, elbow_swing, lag, stance, crouch. Opt-in: elbow_lag/wrist_lag/head_lag (0..0.25 cycles), wrist_swing (+/-20 deg, arm/forearm/hand roles), torso_twist (+/-45 deg), torso_flex/torso_roll/head_nod/head_roll (+/-10 deg), head_stabilize (0..1). Head/torso needs connected hips/chest/head. Idle: amplitude, head_amplitude, look, twist, bob, sway, shift, noise, lean, arm_sway, elbow, arm_twist, twist_spread.",
 			},
 			"samples": {
 				"type": "number",

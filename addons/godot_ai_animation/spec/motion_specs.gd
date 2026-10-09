@@ -325,6 +325,8 @@ static func gait_keys(ctx: Dictionary, run: bool) -> Dictionary:
 				lean * float(lean_shares.get(bone, 0.0)))]
 			var world := _compose_with_twist(own, torso_channels, bone, t)
 			_append_rotation(keys, bone, time, MotionDrivers.rotation_delta(_rest_basis(ctx, bone), world))
+		if ctx.has("upper_body_layout"):
+			_articulate_upper_body(ctx, keys, time, t)
 		_solve_arms(ctx, keys, time, t)
 	if not run and not bool(ctx.get("lateral_step", false)) \
 			and clamp_shortfall > 0.01 * leg_length:
@@ -1741,6 +1743,84 @@ static func _solve_idle_arms(ctx: Dictionary, keys: Dictionary, time: float, t: 
 
 
 # --- helpers ----------------------------------------------------------------
+
+## Actual connected hips -> chest -> head ancestry. Rest offsets determine
+## distribution, independently of bone-local axes and spine bone count.
+static func upper_body_layout(ctx: Dictionary) -> Dictionary:
+	var roles: Dictionary = ctx.get("roles", {})
+	for role in ["hips", "chest", "head"]:
+		if str(roles.get(role, "")).is_empty():
+			return {"error": "Head/torso articulation requires hips, chest and head roles"}
+	var hips := str(roles.hips)
+	var chest := str(roles.chest)
+	var head := str(roles.head)
+	if hips == chest or chest == head or hips == head:
+		return {"error": "Head/torso articulation requires distinct hips, chest and head joints"}
+	var result := {}
+	for segment in ["torso", "cervical"]:
+		var bone := chest if segment == "torso" else head
+		var stop := hips if segment == "torso" else chest
+		var chain: Array = []
+		while bone != stop and not bone.is_empty() and not chain.has(bone):
+			if not ctx.rest.has(bone): break
+			chain.push_front(bone)
+			bone = str(ctx.rest[bone].get("parent", ""))
+		if bone != stop or chain.is_empty():
+			return {"error": "Head/torso articulation needs a connected hips -> chest -> head rest hierarchy"}
+		var lengths: Array = []
+		var total := 0.0
+		for joint: String in chain:
+			var parent := str(ctx.rest[joint].parent)
+			var distance: float = (ctx.rest[joint].origin as Vector3).distance_to(ctx.rest[parent].origin as Vector3)
+			lengths.append(distance)
+			total += distance
+		if total < 0.0001:
+			return {"error": "Head/torso articulation needs nonzero torso and cervical rest lengths"}
+		var shares := {}
+		for i in chain.size(): shares[chain[i]] = float(lengths[i]) / total
+		result[segment] = shares
+	return result
+
+
+## Layer a skeleton-space rotation over this sample's existing pose, converting
+## through the already animated parent. Replace the sample, never duplicate it.
+static func _layer_rotation(ctx: Dictionary, keys: Dictionary, bone: String,
+		time: float, rotation: Quaternion) -> void:
+	var parent := str(ctx.rest[bone].get("parent", ""))
+	var incoming := _animated_basis(ctx, keys, parent, time) * _rest_basis(ctx, parent).inverse() * _rest_basis(ctx, bone)
+	var delta := MotionDrivers.rotation_delta(incoming, rotation)
+	var rotations: Array = keys.get(bone, {}).get("rotation", [])
+	if not rotations.is_empty() and is_equal_approx(float(rotations[-1].time), time):
+		rotations[-1].delta = (delta * (rotations[-1].delta as Quaternion)).normalized()
+	else:
+		_append_rotation(keys, bone, time, delta)
+
+
+## Periodic authored flex and cervical articulation. Vertical head bob comes
+## from the pelvis; local bone offsets stay unchanged (no stretched neck).
+static func _articulate_upper_body(ctx: Dictionary, keys: Dictionary, time: float, t: float) -> void:
+	var config: Dictionary = ctx.config
+	var layout: Dictionary = ctx.upper_body_layout
+	var up: Vector3 = ctx.up
+	var lateral: Vector3 = ctx.lateral
+	var forward: Vector3 = ctx.forward
+	var signs := _axis_signs(ctx)
+	var flex := float(config.get("torso_flex", 0.0)) * cos(TAU * 2.0 * t)
+	var roll := -float(config.get("torso_roll", 0.0)) * float(signs.roll) * sin(TAU * t)
+	for bone: String in layout.torso:
+		var share := float(layout.torso[bone])
+		_layer_rotation(ctx, keys, bone, time,
+			Quaternion(lateral, deg_to_rad(flex * share)) * Quaternion(forward, deg_to_rad(roll * share)))
+	var chest := str(ctx.roles.chest)
+	var chest_up := (_animated_basis(ctx, keys, chest, time) * _rest_basis(ctx, chest).inverse() * up).normalized()
+	# Partial swing correction preserves incoming yaw while moderating pitch/roll.
+	var stabilize := Quaternion.IDENTITY.slerp(Quaternion(chest_up, up), float(config.get("head_stabilize", 0.0)))
+	var delayed := t - float(config.get("head_lag", 0.0))
+	var nod := -float(config.get("head_nod", 0.0)) * cos(TAU * 2.0 * delayed)
+	var head_roll := float(config.get("head_roll", 0.0)) * sin(TAU * delayed)
+	var cervical := Quaternion(lateral, deg_to_rad(nod)) * Quaternion(forward, deg_to_rad(head_roll)) * stabilize
+	for bone: String in layout.cervical:
+		_layer_rotation(ctx, keys, bone, time, Quaternion.IDENTITY.slerp(cervical, float(layout.cervical[bone])))
 
 ## The torso chain a recipe should twist: the context's detected chain, or the
 ## scalar roles as a fallback so hand-built and 2D contexts still move something.

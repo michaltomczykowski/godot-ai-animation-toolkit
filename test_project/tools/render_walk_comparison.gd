@@ -19,8 +19,8 @@ func _run() -> void:
 	root.add_child(background)
 	title = _label("", Vector2(24, 10), 30)
 	status = _label("", Vector2(24, 50), 23)
-	_label("BASELINE r001", Vector2(24, 92), 23)
-	_label(str(candidate.profile).to_upper() + " r002", Vector2(984, 92), 23)
+	_label("PREVIOUS | " + str(baseline.revision), Vector2(24, 92), 23)
+	_label(str(candidate.profile).to_upper() + " | " + str(candidate.revision), Vector2(984, 92), 23)
 	_label("Green: declared contact | Magenta: hip projection (not COM) | Blue: root travel" if diagnostic else "Original saved clips | matched cameras | actual 60 FPS playback | candidate awaiting human approval", Vector2(24, 1035), 21)
 	var ports := [_viewport(0), _viewport(1)]
 	var frames := 0
