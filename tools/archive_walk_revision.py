@@ -89,6 +89,15 @@ def main() -> None:
                 raise ValueError(f"Incomplete comparison video: {profile}/{mode}")
             if digest(Path(video["path"])) != video["sha256"]:
                 raise ValueError("Review media changed after verification")
+        detail = None
+        if (folder / "hand-detail-media.json").exists():
+            detail = read(folder / "hand-detail-media.json")
+            if (detail["decoded_frames"] != 2880 or abs(detail["decoded_duration_s"] - 48) > 0.017
+                    or detail["source_sha256"] != media["videos"]["clean"]["sha256"]
+                    or digest(Path(detail["path"])) != detail["sha256"]):
+                raise ValueError(f"Hand-detail media changed or is incomplete: {profile}")
+        elif extended_hand:
+            raise ValueError(f"Hand revision requires continuous enlarged detail: {profile}")
         feet = [f for run in checks["runs"] for f in run["feet"].values()]
         summaries[profile] = {"revision": route["revision"], "source_head": route["source_head"],
             "run_id": route["run_id"], "recovery_folder": str(folder), "route_passed": True,
@@ -104,6 +113,11 @@ def main() -> None:
                        for mode, video in media["videos"].items()},
             "chapters": media["videos"]["clean"]["render"]["cases"],
             "playback_confirmed_by_user": False, "visual_approval": None}
+        if detail:
+            summaries[profile]["hand_detail"] = {k: detail[k] for k in (
+                "path", "sha256", "bytes", "source_sha256", "decoded_frames", "decoded_duration_s", "description")}
+        summaries[profile]["hand_articulation"] = {run["id"]: run.get("hands", {})
+            for run in upper["runs"] if run["fps"] == 60}
         heads.add(route["source_head"])
         records.append(route)
     if len(heads) != 1:
@@ -145,14 +159,14 @@ def main() -> None:
     state.update(revision=args.revision, state="awaiting_walk_upper_body_video_review",
         api_refusal_source=api_head,
         updated_utc=datetime.now(timezone.utc).isoformat(), candidate_review=summaries,
-        next_action=f"Open Explorer with the {args.revision} comparison videos on the PC; ask for head/torso and whole-walk feedback on both profiles/all four rigs, then stop. No default promotion or next operation before review.")
+        next_action=f"Open Explorer with the {args.revision} comparison videos on the PC; ask for articulation and whole-walk feedback on both profiles/all four rigs, then stop. No default promotion or next operation before review.")
     state.pop("pending_candidate_source", None)
     state.pop("pending_candidate_recovery", None)
     if state.get("candidate_delivery", {}).get("explorer_window_verified"):
         state["next_action"] = f"Wait for human {args.revision} video feedback after Explorer was opened on the PC. Ask about both candidates/all four rigs, then stop; no default promotion or next motion before review."
     write(state_path, state)
     write(args.folder / "validation.json", {"source_head": source_head, "profiles": summaries,
-        "human_approval": None, "limits": "Authored candidates, ankle/marker checks; no finger posing, skinned-sole collision or COM validation."})
+        "human_approval": None, "limits": "Authored candidates and ankle/marker checks; finger curl uses validated named chains/palm geometry only, thumbs stay at rest; no skinned-sole collision or COM validation."})
     tooling = ["tools/mcp_character_quality_baseline.py", "tools/compose_character_quality.py",
         "tools/mcp_walk_revision_reload.py",
         "tools/deliver_walk_review.py",
@@ -160,6 +174,8 @@ def main() -> None:
         "test_project/tools/check_character_quality.gd", "test_project/tools/check_walk_upper_body.gd",
         "test_project/tools/render_character_quality.gd", "test_project/tools/render_walk_comparison.gd"]
     tooling += ["test_project/tools/measure_walk_hand_geometry.gd"]
+    if (args.repo / "tools/compose_walk_hand_detail.py").exists():
+        tooling += ["tools/compose_walk_hand_detail.py"]
     docs = ["AGENTS.md", "FIX_ROADMAP.md", "docs/character-quality-plan.md", "docs/character-quality-review.json",
         "docs/walk-upper-body-revision-plan.md", "docs/walk-upper-body-r002-validation.md",
         "docs/walk-upper-body-grounded-r002.json", "docs/walk-upper-body-responsive-r002.json"]

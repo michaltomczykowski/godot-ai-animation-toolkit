@@ -1,4 +1,9 @@
-# Walk head and torso r003 — awaiting human video review
+# Walk head and torso r003 — feedback received
+
+The user viewed these videos and confirmed substantial improvement, then
+requested softer hand/forearm/wrist motion. This authorizes r004; neither
+profile nor all rigs/defaults have been approved. r003 remains the reference
+for `walk-hand-follow-through-r004-plan.md`.
 
 Animation source: `86ea12a8d2521c00c6155bb1a032ffdd3055d4ac`.
 Previous same-profile source: `671a2fff8acaaf6c0410c756cebec61da687d47a`.
