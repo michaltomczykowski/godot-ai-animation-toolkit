@@ -110,6 +110,7 @@ func _setup(row: Dictionary, viewport: SubViewport, index: int) -> Dictionary:
 	v.segments = []
 	v.joints = []
 	v.hand_shapes = []
+	v.finger_segments = []
 	if bool(row.synthetic):
 		for pair in [["hips", "spine", 0.13], ["spine", "chest", 0.13], ["chest", "head", 0.10], ["arm_l", "arm_r", 0.10], ["thigh_l", "thigh_r", 0.10], ["thigh_l", "shin_l", 0.065], ["thigh_r", "shin_r", 0.065], ["shin_l", "foot_l", 0.055], ["shin_r", "foot_r", 0.055], ["arm_l", "forearm_l", 0.045], ["arm_r", "forearm_r", 0.045], ["forearm_l", "hand_l", 0.04], ["forearm_r", "hand_r", 0.04], ["foot_l", "toe_l", 0.035], ["foot_r", "toe_r", 0.035]]:
 			v.segments.append({"node": _rod(world, leg * float(pair[2]), Color(0.13, 0.55, 0.7)), "a": pair[0], "b": pair[1]})
@@ -124,6 +125,15 @@ func _setup(row: Dictionary, viewport: SubViewport, index: int) -> Dictionary:
 			v.hand_shapes.append({"node": _rod(world, leg * 0.035, Color(0.55, 0.8, 0.88)),
 				"role": "hand_" + side, "index": hand_index,
 				"local_direction": hand_rest.basis.inverse() * rest_direction.normalized(), "length": 0.14 * leg})
+			# Show actual played finger geometry on BOTH reference and candidate.
+			var pending: Array = [hand_index]
+			while not pending.is_empty():
+				var parent_index: int = pending.pop_front()
+				for child_index in v.rig.get_bone_children(parent_index):
+					var name: String = v.rig.get_bone_name(child_index).to_lower()
+					if not (name.contains("finger") or name.contains("pinky") or name.contains("thumb")): continue
+					pending.append(child_index)
+					v.finger_segments.append({"node": _rod(world, leg * 0.008, Color(0.65, 0.86, 0.94)), "a": parent_index, "b": child_index})
 	# This floor is a visual rest-sole alignment, not a collision measurement.
 	var floor := _box(world, Vector3(40, 0.02, 40), Color(0.14, 0.19, 0.23))
 	floor.position.y = -0.015
@@ -160,6 +170,10 @@ func _update(v: Dictionary) -> void:
 	for hand: Dictionary in v.hand_shapes:
 		var pose: Transform3D = v.rig.global_transform * v.rig.get_bone_global_pose(hand.index)
 		_line(hand.node, pose.origin, pose.origin + pose.basis * hand.local_direction * float(hand.length))
+	for finger: Dictionary in v.finger_segments:
+		var a: Vector3 = (v.rig.global_transform * v.rig.get_bone_global_pose(finger.a)).origin
+		var b: Vector3 = (v.rig.global_transform * v.rig.get_bone_global_pose(finger.b)).origin
+		_line(finger.node, a, b)
 	var center: Vector3 = v.body.global_position + v.center_offset
 	v.camera.position = center + v.camera_offset
 	v.camera.look_at(center, Vector3.UP)

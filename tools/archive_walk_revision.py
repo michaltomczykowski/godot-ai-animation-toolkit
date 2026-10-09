@@ -60,6 +60,14 @@ def main() -> None:
         if len(upper["runs"]) != 12 or {(r["id"], r["fps"]) for r in upper["runs"]} != expected or upper["engine_errors"]:
             raise ValueError(f"Incomplete native upper-body checks: {profile}")
         for run in upper["runs"]:
+            extended_hand = any("forearm_twist" in row["params"].get("overrides", {}) for row in route["cases"])
+            if extended_hand:
+                relax = any(row["params"].get("overrides", {}).get("hand_relax", 0) > 0 for row in route["cases"])
+                for side in ("l", "r"):
+                    hand = run["hands"][side]
+                    if not (hand["forearm_axial_max"] - hand["forearm_axial_min"] > 0.06
+                            and hand["wrist_axis_cross_max"] > 0.5 and (not relax or hand["min_finger_curl_gain"] > 0.04)):
+                        raise ValueError(f"Inert/wrong-direction hand articulation: {profile}/{run['id']}/{side}")
             if any("head_nod" in row["params"].get("overrides", {}) for row in route["cases"]):
                 for role in ("head", "chest"):
                     spatial = run["spatial"][role]
@@ -71,7 +79,8 @@ def main() -> None:
                 raise ValueError(f"Torso does not oppose hips: {profile}/{run['id']}")
             for side in ("l", "r"):
                 wrist = run["ranges"]["hand_" + side]
-                if not (2 < wrist["max_change_deg"] < 12 and wrist["max_step_deg"] < 2 and wrist["loop_error_deg"] < 0.001):
+                if not (2 < wrist["max_change_deg"] < (22 if extended_hand else 12)
+                        and wrist["max_step_deg"] < (3 if extended_hand else 2) and wrist["loop_error_deg"] < 0.001):
                     raise ValueError(f"Inert/discontinuous wrist: {profile}/{run['id']}/{side}")
         if set(media["videos"]) != {"clean", "diagnostic"}:
             raise ValueError(f"Both continuous review modes required: {profile}")
@@ -150,10 +159,12 @@ def main() -> None:
         "tools/record_walk_review.ps1", "tools/archive_walk_revision.py", "test_project/tools/character_quality_native.gd",
         "test_project/tools/check_character_quality.gd", "test_project/tools/check_walk_upper_body.gd",
         "test_project/tools/render_character_quality.gd", "test_project/tools/render_walk_comparison.gd"]
+    tooling += ["test_project/tools/measure_walk_hand_geometry.gd"]
     docs = ["AGENTS.md", "FIX_ROADMAP.md", "docs/character-quality-plan.md", "docs/character-quality-review.json",
         "docs/walk-upper-body-revision-plan.md", "docs/walk-upper-body-r002-validation.md",
         "docs/walk-upper-body-grounded-r002.json", "docs/walk-upper-body-responsive-r002.json"]
     docs += [path.relative_to(args.repo).as_posix() for path in (args.repo / "docs").glob("walk-head-torso-*")]
+    docs += [path.relative_to(args.repo).as_posix() for path in (args.repo / "docs").glob("walk-hand-follow-through-*")]
     with zipfile.ZipFile(args.folder / "review-tooling-and-docs.zip", "w", zipfile.ZIP_DEFLATED) as archive:
         for relative in (*tooling, *docs): archive.write(args.repo / relative, relative)
     paths = [path for path in args.folder.iterdir() if path.is_file() and path.name != "receipts.json"]

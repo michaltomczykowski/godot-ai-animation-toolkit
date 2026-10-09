@@ -1300,6 +1300,133 @@ func test_walk_follow_through_native_wrists_and_refusals() -> void:
 
 # --- idle -------------------------------------------------------------------
 
+func test_walk_hand_variation_native_axes_fingers_and_history() -> void:
+	for case in [DUMMY, "res://repair_synthetic_short.tscn", "res://repair_synthetic_zup_tall.tscn", "rotated_rest"]:
+		var rig := _rig("HandVariation", DUMMY if case == "rotated_rest" else case)
+		if rig.has("error"):
+			skip(rig.error)
+			return
+		var skeleton: Skeleton3D = rig.skeleton
+		if case == "rotated_rest":
+			var rotation := Basis(Vector3(1, 2, 3).normalized(), 0.73)
+			for index in skeleton.get_bone_count():
+				if skeleton.get_bone_parent(index) < 0:
+					var rest := skeleton.get_bone_rest(index)
+					skeleton.set_bone_rest(index, Transform3D(rotation * rest.basis, rotation * rest.origin))
+			skeleton.reset_bone_poses()
+		var params := {"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+			"player_path": rig.player_path, "animation_name": "loose", "samples": 60,
+			"loop_mode": "linear", "overrides": {"elbow": 8.0, "elbow_swing": 18.0,
+				"elbow_lag": 0.075, "wrist_swing": 6.0, "wrist_sway": 2.5,
+				"wrist_lag": 0.1, "forearm_twist": 5.5, "arm_variation": 0.9,
+				"variation_seed": 241, "hand_relax": 20.0}}
+		var dry := params.duplicate(true)
+		dry.dry_run = true
+		assert_true(_handler.run(dry, null).has("data"), "hand variation dry run builds")
+		assert_false(rig.player.has_animation("loose"), "dry run leaves library untouched")
+		var built := _handler.run(params, _undo_redo)
+		assert_true(built.has("data"), "hand variation builds: " + str(built))
+		if not built.has("data"):
+			_teardown(rig)
+			continue
+		var player: AnimationPlayer = rig.player
+		var roles: Dictionary = built.data.roles
+		var hand := skeleton.find_bone(roles.hand_l)
+		var forearm := skeleton.find_bone(roles.forearm_l)
+		var finger := skeleton.find_bone("B-indexFinger01.L")
+		var child := skeleton.find_bone("B-indexFinger02.L")
+		var pinky := skeleton.find_bone("B-pinky01.L")
+		var middle := skeleton.find_bone("B-middleFinger01.L")
+		var thumb := skeleton.find_bone("B-thumb01.L")
+		var hand_rest := skeleton.get_bone_global_rest(hand)
+		var rest_direction := skeleton.get_bone_global_rest(child).origin - skeleton.get_bone_global_rest(finger).origin
+		var palm := (skeleton.get_bone_global_rest(middle).origin - hand_rest.origin).cross(
+			skeleton.get_bone_global_rest(finger).origin - skeleton.get_bone_global_rest(pinky).origin).normalized()
+		palm *= signf((skeleton.get_bone_global_rest(thumb).origin - hand_rest.origin).dot(palm))
+		var fore_axis := (hand_rest.origin - skeleton.get_bone_global_rest(forearm).origin).normalized()
+		player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+		player.playback_auto_capture = false
+		for fps in [30, 60, 120]:
+			player.play("loose", 0.0)
+			player.advance(0.0)
+			var first := {}
+			for index in [hand, forearm, finger, child]: first[index] = skeleton.get_bone_pose_rotation(index)
+			var wrist_axes: Array[Vector3] = []
+			var twist_min := INF
+			var twist_max := -INF
+			for tick in fps + 1:
+				if tick > 0: player.advance(1.0 / fps)
+				var hand_delta := skeleton.get_bone_global_pose(hand).basis * hand_rest.basis.inverse()
+				var direction := hand_delta.inverse() * (skeleton.get_bone_global_pose(child).origin - skeleton.get_bone_global_pose(finger).origin)
+				assert_gt(direction.normalized().dot(palm) - rest_direction.normalized().dot(palm), 0.08,
+					"native finger curls into the measured palm, independent of rig orientation")
+				for index in [hand, forearm, finger, child]:
+					assert_true(skeleton.get_bone_pose_position(index).is_equal_approx(skeleton.get_bone_rest(index).origin), "joint lengths stay fixed")
+				var wrist_q := skeleton.get_bone_rest(hand).basis.get_rotation_quaternion().inverse() * skeleton.get_bone_pose_rotation(hand)
+				wrist_axes.append(Vector3(wrist_q.x, wrist_q.y, wrist_q.z).normalized())
+				var fore_q := skeleton.get_bone_rest(forearm).basis.get_rotation_quaternion().inverse() * skeleton.get_bone_pose_rotation(forearm)
+				var projected: float = (skeleton.get_bone_global_rest(forearm).basis * Vector3(fore_q.x, fore_q.y, fore_q.z)).dot(fore_axis)
+				twist_min = minf(twist_min, projected)
+				twist_max = maxf(twist_max, projected)
+			assert_gt(twist_max - twist_min, 0.06, "native forearm has axial articulation")
+			var cross_max := 0.0
+			for axis in wrist_axes: cross_max = maxf(cross_max, axis.cross(wrist_axes[0]).length())
+			assert_gt(cross_max, 0.5, "native wrist moves in two planes")
+			for index in first:
+				var difference: Quaternion = (first[index] as Quaternion).inverse() * skeleton.get_bone_pose_rotation(index)
+				assert_true(Vector3(difference.x, difference.y, difference.z).length() < 0.0001, "finger/forearm/wrist loop closes")
+			player.stop()
+		assert_true(editor_undo(_undo_redo), "hand revision undo succeeds")
+		assert_false(player.has_animation("loose"), "undo removes revised clip")
+		assert_true(editor_redo(_undo_redo), "hand revision redo succeeds")
+		assert_true(player.has_animation("loose"), "redo restores revised clip")
+		var copied := params.duplicate(true)
+		copied.animation_name = "repeat_seed"
+		assert_true(_handler.run(copied, null).has("data"), "repeat seed builds")
+		var original: Animation = player.get_animation("loose")
+		var repeated: Animation = player.get_animation("repeat_seed")
+		for track in original.get_track_count():
+			for key in original.track_get_key_count(track):
+				assert_eq(original.track_get_key_value(track, key), repeated.track_get_key_value(track, key), "same seed yields identical keys")
+		copied.animation_name = "other_seed"
+		copied.overrides.variation_seed = 242
+		assert_true(_handler.run(copied, null).has("data"), "other seed builds")
+		var changed: Animation = player.get_animation("other_seed")
+		var different := false
+		for track in original.get_track_count():
+			if original.track_get_path(track).get_subname(0) == roles.hand_l:
+				different = original.track_get_key_value(track, 0) != changed.track_get_key_value(track, 0)
+		assert_true(different, "different seed changes authored hand motion")
+		_teardown(rig)
+
+
+func test_walk_hand_variation_refuses_bad_parameters_and_geometry() -> void:
+	var rig := _rig("HandRefusal")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var params := {"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "refused_hand"}
+	for override in [{"forearm_twist": 20.1}, {"wrist_sway": -10.1}, {"arm_variation": 3.01},
+		{"arm_variation": -0.1}, {"variation_seed": 1.5}, {"variation_seed": -1},
+		{"variation_seed": 2147483648}, {"hand_relax": 45.1}]:
+		params.overrides = override
+		assert_is_error(_handler.run(params, null), ErrorCodes.VALUE_OUT_OF_RANGE)
+		assert_false(rig.player.has_animation("refused_hand"), "invalid controls do not commit")
+	var skeleton: Skeleton3D = rig.skeleton
+	var finger := skeleton.find_bone("B-indexFinger01.L")
+	skeleton.set_bone_name(finger, "unidentified_finger")
+	params.overrides = {"hand_relax": 20.0}
+	assert_is_error(_handler.run(params, null), ErrorCodes.OPERATION_UNAVAILABLE)
+	assert_false(rig.player.has_animation("refused_hand"), "missing finger geometry is not an inert success")
+	skeleton.set_bone_name(finger, "B-indexFinger01.L")
+	var thumb := skeleton.find_bone("B-thumb01.L")
+	var thumb_rest := skeleton.get_bone_rest(thumb)
+	skeleton.set_bone_rest(thumb, skeleton.get_bone_rest(skeleton.find_bone("B-middleFinger01.L")))
+	assert_is_error(_handler.run(params, null), ErrorCodes.OPERATION_UNAVAILABLE)
+	skeleton.set_bone_rest(thumb, thumb_rest)
+	_teardown(rig)
+
 func test_walk_head_torso_native_articulation_and_history() -> void:
 	for case in [DUMMY, "res://repair_synthetic_short.tscn", "res://repair_synthetic_zup_tall.tscn", "rotated_rest"]:
 		var asset: String = DUMMY if case == "rotated_rest" else case

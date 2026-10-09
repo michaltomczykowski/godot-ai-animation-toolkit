@@ -512,7 +512,7 @@ static func _solve_arms(ctx: Dictionary, keys: Dictionary, time: float, t: float
 	var phase := cos(TAU * (t - lag))
 	var elbow_phase := cos(TAU * (t - lag - float(config.get("elbow_lag", 0.0))))
 	var wrist_phase := sin(TAU * (t - lag - float(config.get("wrist_lag", 0.0))))
-	var coordinated := config.has("elbow_lag") or config.has("wrist_swing") or config.has("wrist_lag") or config.has("torso_twist")
+	var coordinated := bool(ctx.get("measured_arms", false))
 	for side in ["l", "r"]:
 		var sign := -1.0 if side == "l" else 1.0
 		# `_solve_arm_chain`'s hinge is positive-forward by construction, so the
@@ -522,10 +522,21 @@ static func _solve_arms(ctx: Dictionary, keys: Dictionary, time: float, t: float
 		var swing_degrees := sign * arm_swing * phase
 		var forward_weight := (1.0 + sign * elbow_phase) * 0.5
 		var bend_degrees := elbow + elbow_swing * forward_weight
-		# Small periodic wrist follow-through trails shoulder angular velocity.
-		# No random offsets: repeated playback has the same pose and seam.
+		var variation := float(config.get("arm_variation", 0.0))
+		var seed_value := int(config.get("variation_seed", 0)) + (101 if side == "r" else 0)
+		if variation > 0.0:
+			bend_degrees += 0.6 * variation * MotionDrivers.periodic_noise(t, seed_value, 2)
+		# Bounded seeded curves are baked into the clip, not sampled every frame.
 		var wrist := sign * float(config.get("wrist_swing", 0.0)) * wrist_phase
-		_solve_arm_chain(ctx, keys, side, time, swing_degrees, bend_degrees, "", wrist, coordinated)
+		var twist := sign * float(config.get("forearm_twist", 0.0)) * sin(TAU * (t - lag - 0.04))
+		var sway := sign * float(config.get("wrist_sway", 0.0)) * cos(TAU * (t - lag - float(config.get("wrist_lag", 0.0))))
+		if variation > 0.0:
+			wrist += variation * MotionDrivers.periodic_noise(t, seed_value + 23, 2)
+			twist += 0.6 * variation * MotionDrivers.periodic_noise(t, seed_value + 47, 2)
+			sway += 0.4 * variation * MotionDrivers.periodic_noise(t, seed_value + 71, 2)
+		_solve_arm_chain(ctx, keys, side, time, swing_degrees, bend_degrees, "", wrist, coordinated, twist, sway)
+		if ctx.has("hand_layout"):
+			_relax_fingers(ctx, keys, side, time, t)
 
 
 ## One arm from the shoulder down: lower it by the rig's `arm_down`, swing it
@@ -537,6 +548,7 @@ static func _solve_arm_chain(
 	ctx: Dictionary, keys: Dictionary, side: String, time: float,
 	swing_degrees: float, bend_degrees: float, transition: String = "",
 	wrist_degrees: float = 0.0, coordinate_parents: bool = false,
+	forearm_twist: float = 0.0, wrist_sway: float = 0.0,
 ) -> void:
 	var roles: Dictionary = ctx.roles
 	var forward: Vector3 = ctx.forward
@@ -587,9 +599,103 @@ static func _solve_arm_chain(
 		arm_animated, g_arm, _rest_basis(ctx, forearm), Quaternion(hinge, deg_to_rad(bend_degrees))), transition)
 	var hand := str(roles.get("hand_" + side, ""))
 	if coordinate_parents and not hand.is_empty():
+		var fore_basis := _animated_basis(ctx, keys, forearm, time)
+		var direction: Vector3 = (ctx.rest[hand].origin as Vector3) - (ctx.rest[forearm].origin as Vector3)
+		var fore_axis := (fore_basis * _rest_basis(ctx, forearm).inverse() * direction).normalized()
+		var axial := Quaternion(fore_axis, deg_to_rad(forearm_twist))
+		if not is_zero_approx(forearm_twist):
+			_layer_rotation(ctx, keys, forearm, time, axial)
+			hinge = Basis(axial) * hinge
+		var sway_axis := fore_axis.cross(hinge).normalized()
 		_append_rotation(keys, hand, time, MotionDrivers.world_delta(
 			_animated_basis(ctx, keys, forearm, time), _rest_basis(ctx, forearm),
-			_rest_basis(ctx, hand), Quaternion(hinge, deg_to_rad(wrist_degrees))), transition)
+			_rest_basis(ctx, hand), Quaternion(hinge, deg_to_rad(wrist_degrees)) * Quaternion(sway_axis, deg_to_rad(wrist_sway))), transition)
+
+
+static func rest_ancestor(ctx: Dictionary, bone: String, ancestor: String) -> bool:
+	var seen: Array = []
+	while not bone.is_empty() and ctx.rest.has(bone) and not seen.has(bone):
+		if bone == ancestor: return true
+		seen.append(bone)
+		bone = str(ctx.rest[bone].get("parent", ""))
+	return false
+
+
+## Recognized chains plus a non-coplanar thumb base disambiguate palm direction.
+## Never assume a finger bone's local Y, or infer curl sign from left/right.
+static func hand_layout(skeleton: Skeleton3D, ctx: Dictionary) -> Dictionary:
+	var out := {}
+	var extra_roles := {}
+	for side in ["l", "r"]:
+		var hand := str(ctx.roles["hand_" + side])
+		var hand_index := skeleton.find_bone(hand)
+		var roots := {}
+		for kind in ["index", "middle", "ring", "pinky", "thumb"]:
+			var candidates: Array = []
+			for child in skeleton.get_bone_children(hand_index):
+				if skeleton.get_bone_name(child).to_lower().contains(kind): candidates.append(child)
+			if candidates.size() != 1:
+				return {"error": "hand_relax unavailable: needs one recognized %s finger root on hand %s" % [kind, side]}
+			roots[kind] = candidates[0]
+		var origin := skeleton.get_bone_global_rest(hand_index).origin
+		var direction := skeleton.get_bone_global_rest(roots.middle).origin - origin
+		var across := skeleton.get_bone_global_rest(roots.index).origin - skeleton.get_bone_global_rest(roots.pinky).origin
+		var normal := direction.cross(across)
+		if normal.length() < 0.01 * direction.length() * across.length():
+			return {"error": "hand_relax unavailable: degenerate palm geometry on hand " + side}
+		normal = normal.normalized()
+		var thumb := skeleton.get_bone_global_rest(roots.thumb).origin - origin
+		var bias := thumb.dot(normal)
+		if absf(bias) < 0.02 * direction.length():
+			return {"error": "hand_relax unavailable: ambiguous palm side on hand " + side}
+		normal *= signf(bias)
+		var fingers := {}
+		for kind in ["index", "middle", "ring", "pinky"]:
+			var joints: Array = []
+			var index: int = roots[kind]
+			while index >= 0:
+				var children := skeleton.get_bone_children(index)
+				if children.is_empty(): break # terminal/tip has no measured distal segment
+				if children.size() != 1 or not skeleton.get_bone_name(children[0]).to_lower().contains(kind):
+					return {"error": "hand_relax unavailable: branching/unrecognized finger chain " + kind}
+				var child: int = children[0]
+				var segment := skeleton.get_bone_global_rest(child).origin - skeleton.get_bone_global_rest(index).origin
+				if segment.length() < 0.0001 or segment.normalized().cross(normal).length() < 0.1:
+					return {"error": "hand_relax unavailable: unusable finger segment " + kind}
+				var name := skeleton.get_bone_name(index)
+				joints.append({"bone": name, "direction": segment})
+				extra_roles[name] = name
+				index = child
+			if joints.size() < 2:
+				return {"error": "hand_relax unavailable: needs at least two measured joints per finger"}
+			fingers[kind] = joints
+		out[side] = {"hand": hand, "normal": normal, "fingers": fingers}
+	ctx.rest.merge(_rest_map_of(skeleton, extra_roles, []))
+	return out
+
+
+static func _relax_fingers(ctx: Dictionary, keys: Dictionary, side: String, time: float, t: float) -> void:
+	var layout: Dictionary = ctx.hand_layout[side]
+	var hand := str(layout.hand)
+	var hand_delta := _animated_basis(ctx, keys, hand, time) * _rest_basis(ctx, hand).inverse()
+	var normal: Vector3 = hand_delta * (layout.normal as Vector3)
+	var config: Dictionary = ctx.config
+	var seed_value := int(config.get("variation_seed", 0)) + (101 if side == "r" else 0)
+	var strengths := {"index": 0.75, "middle": 0.9, "ring": 1.0, "pinky": 1.1}
+	for kind: String in layout.fingers:
+		var joints: Array = layout.fingers[kind]
+		var fraction := 0.93 + 0.07 * sin(TAU * (t - float(config.get("lag", 0.0)) - 0.1))
+		var amount := float(config.hand_relax) * float(strengths[kind]) * fraction
+		if float(config.get("arm_variation", 0.0)) > 0.0:
+			amount += 0.35 * float(config.arm_variation) * MotionDrivers.periodic_noise(t, seed_value + 97, 2)
+		amount = maxf(0.0, amount)
+		for joint: Dictionary in joints:
+			var bone := str(joint.bone)
+			var parent := str(ctx.rest[bone].parent)
+			var incoming := _animated_basis(ctx, keys, parent, time) * _rest_basis(ctx, parent).inverse()
+			var direction: Vector3 = incoming * (joint.direction as Vector3)
+			var hinge := direction.normalized().cross(normal.normalized()).normalized()
+			_layer_rotation(ctx, keys, bone, time, Quaternion(hinge, deg_to_rad(amount / joints.size())))
 
 
 ## Current sampled parent basis, including non-role intermediary bones at rest.

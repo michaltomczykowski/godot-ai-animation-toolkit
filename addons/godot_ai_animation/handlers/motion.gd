@@ -29,7 +29,7 @@ const _CYCLE_KINDS := {
 	"walk_stop": "walk_stop",
 }
 
-const _GAIT_KEYS := ["stride", "knee_bend", "arm_swing", "arm_twist", "bob", "sway", "hip_yaw", "hip_roll", "chest_yaw", "lean", "foot_lift", "elbow", "elbow_swing", "lag", "stance", "crouch", "toe_roll", "twist_spread", "elbow_lag", "wrist_swing", "wrist_lag", "torso_twist", "torso_flex", "torso_roll", "head_nod", "head_roll", "head_lag", "head_stabilize"]
+const _GAIT_KEYS := ["stride", "knee_bend", "arm_swing", "arm_twist", "bob", "sway", "hip_yaw", "hip_roll", "chest_yaw", "lean", "foot_lift", "elbow", "elbow_swing", "lag", "stance", "crouch", "toe_roll", "twist_spread", "elbow_lag", "wrist_swing", "wrist_lag", "torso_twist", "torso_flex", "torso_roll", "head_nod", "head_roll", "head_lag", "head_stabilize", "forearm_twist", "wrist_sway", "arm_variation", "variation_seed", "hand_relax"]
 
 ## Overrides that are switches rather than numbers, so they are not coerced.
 const _BOOLEAN_OVERRIDES := ["planted"]
@@ -272,10 +272,35 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		if layout.has("error"):
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, str(layout.error))
 		ctx["upper_body_layout"] = layout
-	if not is_zero_approx(float(config.get("wrist_swing", 0.0))):
+	for field in ["forearm_twist", "wrist_sway"]:
+		var limit := 20.0 if field == "forearm_twist" else 10.0
+		if absf(float(config.get(field, 0.0))) > limit:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "%s must be between -%s and %s degrees" % [field, limit, limit])
+	for field in ["arm_variation", "hand_relax"]:
+		var limit := 3.0 if field == "arm_variation" else 45.0
+		if float(config.get(field, 0.0)) < 0.0 or float(config.get(field, 0.0)) > limit:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "%s must be between 0 and %s degrees" % [field, limit])
+	var seed_value := float(config.get("variation_seed", 0))
+	if seed_value < 0.0 or seed_value > 2147483647.0 or seed_value != floorf(seed_value):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "variation_seed must be an integer from 0 to 2147483647")
+	var moving_hands := false
+	for field in ["wrist_swing", "forearm_twist", "wrist_sway", "arm_variation", "hand_relax"]:
+		moving_hands = moving_hands or not is_zero_approx(float(config.get(field, 0.0)))
+	if moving_hands:
 		for side in ["l", "r"]:
 			if not ctx.roles.has("arm_" + side) or not ctx.roles.has("hand_" + side) or not ctx.roles.has("forearm_" + side):
-				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "wrist_swing requires resolved arm, forearm and hand roles on both sides")
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Requested hand motion requires resolved arm, forearm and hand roles on both sides")
+			var arm := str(ctx.roles["arm_" + side])
+			var fore := str(ctx.roles["forearm_" + side])
+			var hand := str(ctx.roles["hand_" + side])
+			if not MotionSpecs.rest_ancestor(ctx, fore, arm) or not MotionSpecs.rest_ancestor(ctx, hand, fore) \
+					or (ctx.rest[hand].origin as Vector3).distance_to(ctx.rest[fore].origin as Vector3) < 0.0001:
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Requested hand motion needs connected arm -> forearm -> hand geometry")
+	if float(config.get("hand_relax", 0.0)) > 0.0:
+		var fingers := MotionSpecs.hand_layout(built.skeleton, ctx)
+		if fingers.has("error"):
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, str(fingers.error))
+		ctx["hand_layout"] = fingers
 	_scale_distances_to_rig(config, params, overrides, ctx)
 	ctx["foot_lift_explicit"] = params.has("foot_lift") or overrides.has("foot_lift")
 	ctx["speed"] = maxf(float(params.get("speed", 0.0)), 0.0)
@@ -924,7 +949,7 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 	# Existing profile/default references are retained until human video approval.
 	var measured_arms := false
 	var overrides: Dictionary = params.get("overrides", {})
-	for field in ["elbow_lag", "wrist_swing", "wrist_lag", "torso_twist", "torso_flex", "torso_roll", "head_nod", "head_roll", "head_lag", "head_stabilize"]:
+	for field in ["elbow_lag", "wrist_swing", "wrist_lag", "torso_twist", "torso_flex", "torso_roll", "head_nod", "head_roll", "head_lag", "head_stabilize", "forearm_twist", "wrist_sway", "arm_variation", "variation_seed", "hand_relax"]:
 		measured_arms = measured_arms or params.has(field) or overrides.has(field)
 	if not measured_arms and arm_amount < 0.0:
 		arm_amount = _default_arm_down(skeleton, roles)

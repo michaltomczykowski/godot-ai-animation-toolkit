@@ -3551,3 +3551,12 @@ review branch; no release or media upload is part of this phase.
   See `docs/walk-head-torso-r003-validation.md`. Deliver through PC Explorer
   and **stop for head/torso and whole-walk human review**. No candidate/default
   promotion or next motion is approved by these test/recording results.
+
+- r003 feedback received: “it's way better!” but hands/forearms/wrists remain
+  too stiff; the user suggests a movement randomizer. Revision r004 follows
+  `docs/walk-hand-follow-through-r004-plan.md`. Existing motion only flexes
+  elbow/wrist in one plane; all four fixtures have usable finger rest chains.
+  Add coordinated axial forearm movement, wrist deviation, bounded smooth
+  seeded variation and validated light finger curl. Preserve r003 as the
+  reference and record continuous full-body and enlarged hand comparisons.
+  Source/default promotion and final walk approval remain pending human review.

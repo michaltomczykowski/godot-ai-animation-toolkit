@@ -132,6 +132,11 @@ Godot binary (local):
   The archive/receipts and four review copies are complete; Explorer's r003
   `review-videos` window is confirmed with grounded clean selected.
   **Wait for r003 human feedback now.** No playback/profile approval yet.
+  r003 feedback subsequently received: greatly improved, but hands/forearms/
+  wrists still stiff. Follow `docs/walk-hand-follow-through-r004-plan.md`.
+  Preserve r003 as the comparison reference; new multi-axis forearm/wrist
+  controls and bounded seeded variation remain opt-in. Review finger curl
+  using validated chains/palm geometry; pause again after continuous videos.
 - Launch: `& "<godot>" --editor --path test_project`.
 - Run `git checkout -- test_project/project.godot` before committing: the editor
   rewrites the plugin enable order.
