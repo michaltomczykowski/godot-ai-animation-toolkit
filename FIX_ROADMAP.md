@@ -3532,3 +3532,22 @@ review branch; no release or media upload is part of this phase.
   with partial tilt stabilization, preserving local bone offsets and contacts.
   The new controls remain opt-in. Compare previous/new same-profile clips on
   all four rigs and stop for remote PC Explorer video review.
+
+- r003 implementation/recording complete on animation source `86ea12a`:
+  opt-in torso flex/roll, cervical nod/roll/delay and partial tilt stabilization
+  use actual connected rest ancestry, segment-length shares and animated parent
+  frames. No head translation or default/golden promotion. Fifty-two fresh
+  visible Godot 4.7.2 motion tests pass (including native orientation/history
+  checks), fourteen local headless suites pass, and all 34 Windows/Linux jobs
+  pass in Actions 37925284348. Eight actual Godot AI generated/saved/reopened
+  clips and sixteen before/after-core-reload dry invocations pass. Twenty-four
+  native contact runs and twenty-four upper-body traces retain contact/loop
+  thresholds while adding 2.6–3.1 degrees played head pitch range.
+- Four same-profile r002/r003 comparisons are complete and independently
+  decode-verified: each 48s / 1080p60 / 2,880 frames, clean and diagnostic for
+  both recipes, front/side on all four rigs. Recovery root is
+  `character_quality_20261009/walk-review-r003`. The archive gate preserves
+  exact sources, sixteen native scenes/local rigs, recipes and hashed receipts.
+  See `docs/walk-head-torso-r003-validation.md`. Deliver through PC Explorer
+  and **stop for head/torso and whole-walk human review**. No candidate/default
+  promotion or next motion is approved by these test/recording results.

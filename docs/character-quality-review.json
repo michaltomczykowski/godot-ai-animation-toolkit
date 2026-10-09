@@ -2,8 +2,8 @@
   "schema_version": 1,
   "phase": "character_quality",
   "operation": "walk_cycle",
-  "revision": "walk-review-r002",
-  "state": "revising_walk_head_torso",
+  "revision": "walk-review-r003",
+  "state": "awaiting_walk_upper_body_video_review",
   "baseline_source": "1389c6655e6a1fcda34ed9249b9f715f1e8e85cd",
   "required_rigs": [
     "dummy",
@@ -20,9 +20,9 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Record r003 same-profile comparisons (check recording-progress.json); archive route/native/editor/CI/media gates, deliver through PC Explorer, and pause for review.",
+  "next_action": "Wait for human walk-review-r003 video feedback after Explorer was opened on the PC. Ask about both candidates/all four rigs, then stop; no default promotion or next motion before review.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
-  "updated_utc": "2026-10-09T11:34:40.636264+00:00",
+  "updated_utc": "2026-10-09T12:10:28.174183+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-baseline-r001",
   "route": {
     "run_id": "9ad66ecc6b294f62823069b6a4050fc2",
@@ -142,13 +142,13 @@
     "hosted_upload_status": "Not uploaded; user chose PC viewing.",
     "chosen_method": "User chose to view the original MP4s on their PC remotely. File Explorer was opened and its review-folder window verified; clean MP4 selected."
   },
-  "api_refusal_source": "1ec8348c9d9c694aa9df33da276b6a5d6782f2c1",
+  "api_refusal_source": "bec550ae85b1d84e271e0f840262a183bd985730",
   "candidate_review": {
     "grounded": {
-      "revision": "walk-grounded-r002",
-      "source_head": "671a2fff8acaaf6c0410c756cebec61da687d47a",
-      "run_id": "2fe5864ed2254d5c82d3e940dd579355",
-      "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-review-r002\\grounded",
+      "revision": "walk-grounded-r003",
+      "source_head": "86ea12a8d2521c00c6155bb1a032ffdd3055d4ac",
+      "run_id": "6309f428f9ed4ceeae0203d012f3b312",
+      "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r003\\grounded",
       "route_passed": true,
       "numeric_runs": 12,
       "upper_body_runs": 12,
@@ -164,18 +164,124 @@
       "max_loop_rotation_error_rad": 1.50775244838957e-07,
       "counterrotation_pass": true,
       "thresholds_pass": true,
+      "head_torso_spatial": {
+        "dummy": {
+          "chest": {
+            "max_height_m": 1.21830248832703,
+            "max_pitch_deg": 4.78171272512769,
+            "max_roll_deg": 2.0299472756425,
+            "min_height_m": 1.17295706272125,
+            "min_pitch_deg": 1.19483242683155,
+            "min_roll_deg": -2.03435458105502
+          },
+          "head": {
+            "max_height_m": 1.5614652633667,
+            "max_pitch_deg": 2.35583764353471,
+            "max_roll_deg": 1.26542845168105,
+            "min_height_m": 1.51634478569031,
+            "min_pitch_deg": -0.267203848621282,
+            "min_roll_deg": -1.25558297369635
+          },
+          "hips": {
+            "max_height_m": 0.960071384906769,
+            "max_pitch_deg": 1.7165554505909,
+            "max_roll_deg": 3.20399476329213,
+            "min_height_m": 0.914688169956207,
+            "min_pitch_deg": 1.27122461077126,
+            "min_roll_deg": -3.20399435917892
+          }
+        },
+        "xbot": {
+          "chest": {
+            "max_height_m": 1.13568830490112,
+            "max_pitch_deg": 3.88674453725194,
+            "max_roll_deg": 2.01804941017381,
+            "min_height_m": 1.08906328678131,
+            "min_pitch_deg": 0.293961701108006,
+            "min_roll_deg": -2.01804943738364
+          },
+          "head": {
+            "max_height_m": 1.59030330181122,
+            "max_pitch_deg": 3.0003165928407,
+            "max_roll_deg": 1.2634472707754,
+            "min_height_m": 1.54398310184479,
+            "min_pitch_deg": 0.374738130168819,
+            "min_roll_deg": -1.26258281358214
+          },
+          "hips": {
+            "max_height_m": 1.03408527374268,
+            "max_pitch_deg": 1.71655651375748,
+            "max_roll_deg": 3.20399497647048,
+            "min_height_m": 0.987435758113861,
+            "min_pitch_deg": 1.27122371165935,
+            "min_roll_deg": -3.20399497647048
+          }
+        },
+        "short": {
+          "chest": {
+            "max_height_m": 0.648072600364685,
+            "max_pitch_deg": 4.78171271864255,
+            "max_roll_deg": 2.02994718973613,
+            "min_height_m": 0.614995002746582,
+            "min_pitch_deg": 1.19483157222781,
+            "min_roll_deg": -2.03435428021053
+          },
+          "head": {
+            "max_height_m": 0.836975514888763,
+            "max_pitch_deg": 2.35584361612397,
+            "max_roll_deg": 1.26542845168105,
+            "min_height_m": 0.803803026676178,
+            "min_pitch_deg": -0.267197002318863,
+            "min_roll_deg": -1.25558336885052
+          },
+          "hips": {
+            "max_height_m": 0.505972325801849,
+            "max_pitch_deg": 1.71655574021007,
+            "max_roll_deg": 3.20399484300967,
+            "min_height_m": 0.472961783409119,
+            "min_pitch_deg": 1.2712242114783,
+            "min_roll_deg": -3.20399443889631
+          }
+        },
+        "zup_tall": {
+          "chest": {
+            "max_height_m": 1.94933211803436,
+            "max_pitch_deg": 4.78171087631034,
+            "max_roll_deg": 2.02994688401173,
+            "min_height_m": 1.8881824016571,
+            "min_pitch_deg": 1.19483100289248,
+            "min_roll_deg": -2.03435525491483
+          },
+          "head": {
+            "max_height_m": 2.49839758872986,
+            "max_pitch_deg": 2.35584219048664,
+            "max_roll_deg": 1.26542863390368,
+            "min_height_m": 2.43819975852966,
+            "min_pitch_deg": -0.267197834607029,
+            "min_roll_deg": -1.25558298480851
+          },
+          "hips": {
+            "max_height_m": 1.53612530231476,
+            "max_pitch_deg": 1.71655275108487,
+            "max_roll_deg": 3.20399462983124,
+            "min_height_m": 1.47462546825409,
+            "min_pitch_deg": 1.27122175553041,
+            "min_roll_deg": -3.20399443889631
+          }
+        }
+      },
       "videos": {
         "clean": {
-          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-review-r002\\grounded\\walk-grounded-r002-clean.mp4",
-          "sha256": "808a3fc6f5363a91f32ea2c32d372fcba1a9467f8075ee1d990e53b8ce3f9e73",
-          "bytes": 28283122,
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r003\\grounded\\walk-grounded-r003-clean.mp4",
+          "sha256": "561dadd21930a29a81fa6824cd0259d0d9717ea793a4455fb020334ba7a9ae81",
+          "bytes": 28281592,
           "decoded_frames": 2880,
           "decoded_duration_s": 48.0
         },
         "diagnostic": {
-          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-review-r002\\grounded\\walk-grounded-r002-diagnostic.mp4",
-          "sha256": "eedaccc8e918b17ac36a207a421bc9c42183095da4ba39516fc5f9bc15aa63e3",
-          "bytes": 29100868,
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r003\\grounded\\walk-grounded-r003-diagnostic.mp4",
+          "sha256": "852e0eddaa5ff5bb5eb1665354c739e03899d36852a00d782eb76812bfb2cca8",
+          "bytes": 29147232,
           "decoded_frames": 2880,
           "decoded_duration_s": 48.0
         }
@@ -183,8 +289,8 @@
       "chapters": [
         {
           "angle": "FRONT",
-          "baseline_scene": "res://repair_character_quality/9ad66ecc6b294f62823069b6a4050fc2/walk_dummy.tscn",
-          "candidate_scene": "res://repair_character_quality/2fe5864ed2254d5c82d3e940dd579355/walk_dummy.tscn",
+          "baseline_scene": "res://repair_character_quality/2fe5864ed2254d5c82d3e940dd579355/walk_dummy.tscn",
+          "candidate_scene": "res://repair_character_quality/6309f428f9ed4ceeae0203d012f3b312/walk_dummy.tscn",
           "duration_s": 6.0,
           "frames": 360,
           "id": "dummy",
@@ -192,8 +298,8 @@
         },
         {
           "angle": "SIDE",
-          "baseline_scene": "res://repair_character_quality/9ad66ecc6b294f62823069b6a4050fc2/walk_dummy.tscn",
-          "candidate_scene": "res://repair_character_quality/2fe5864ed2254d5c82d3e940dd579355/walk_dummy.tscn",
+          "baseline_scene": "res://repair_character_quality/2fe5864ed2254d5c82d3e940dd579355/walk_dummy.tscn",
+          "candidate_scene": "res://repair_character_quality/6309f428f9ed4ceeae0203d012f3b312/walk_dummy.tscn",
           "duration_s": 6.0,
           "frames": 360,
           "id": "dummy",
@@ -201,8 +307,8 @@
         },
         {
           "angle": "FRONT",
-          "baseline_scene": "res://repair_character_quality/9ad66ecc6b294f62823069b6a4050fc2/walk_xbot.tscn",
-          "candidate_scene": "res://repair_character_quality/2fe5864ed2254d5c82d3e940dd579355/walk_xbot.tscn",
+          "baseline_scene": "res://repair_character_quality/2fe5864ed2254d5c82d3e940dd579355/walk_xbot.tscn",
+          "candidate_scene": "res://repair_character_quality/6309f428f9ed4ceeae0203d012f3b312/walk_xbot.tscn",
           "duration_s": 6.0,
           "frames": 360,
           "id": "xbot",
@@ -210,8 +316,8 @@
         },
         {
           "angle": "SIDE",
-          "baseline_scene": "res://repair_character_quality/9ad66ecc6b294f62823069b6a4050fc2/walk_xbot.tscn",
-          "candidate_scene": "res://repair_character_quality/2fe5864ed2254d5c82d3e940dd579355/walk_xbot.tscn",
+          "baseline_scene": "res://repair_character_quality/2fe5864ed2254d5c82d3e940dd579355/walk_xbot.tscn",
+          "candidate_scene": "res://repair_character_quality/6309f428f9ed4ceeae0203d012f3b312/walk_xbot.tscn",
           "duration_s": 6.0,
           "frames": 360,
           "id": "xbot",
@@ -219,8 +325,8 @@
         },
         {
           "angle": "FRONT",
-          "baseline_scene": "res://repair_character_quality/9ad66ecc6b294f62823069b6a4050fc2/walk_short.tscn",
-          "candidate_scene": "res://repair_character_quality/2fe5864ed2254d5c82d3e940dd579355/walk_short.tscn",
+          "baseline_scene": "res://repair_character_quality/2fe5864ed2254d5c82d3e940dd579355/walk_short.tscn",
+          "candidate_scene": "res://repair_character_quality/6309f428f9ed4ceeae0203d012f3b312/walk_short.tscn",
           "duration_s": 6.0,
           "frames": 360,
           "id": "short",
@@ -228,8 +334,8 @@
         },
         {
           "angle": "SIDE",
-          "baseline_scene": "res://repair_character_quality/9ad66ecc6b294f62823069b6a4050fc2/walk_short.tscn",
-          "candidate_scene": "res://repair_character_quality/2fe5864ed2254d5c82d3e940dd579355/walk_short.tscn",
+          "baseline_scene": "res://repair_character_quality/2fe5864ed2254d5c82d3e940dd579355/walk_short.tscn",
+          "candidate_scene": "res://repair_character_quality/6309f428f9ed4ceeae0203d012f3b312/walk_short.tscn",
           "duration_s": 6.0,
           "frames": 360,
           "id": "short",
@@ -237,8 +343,8 @@
         },
         {
           "angle": "FRONT",
-          "baseline_scene": "res://repair_character_quality/9ad66ecc6b294f62823069b6a4050fc2/walk_zup_tall.tscn",
-          "candidate_scene": "res://repair_character_quality/2fe5864ed2254d5c82d3e940dd579355/walk_zup_tall.tscn",
+          "baseline_scene": "res://repair_character_quality/2fe5864ed2254d5c82d3e940dd579355/walk_zup_tall.tscn",
+          "candidate_scene": "res://repair_character_quality/6309f428f9ed4ceeae0203d012f3b312/walk_zup_tall.tscn",
           "duration_s": 6.0,
           "frames": 360,
           "id": "zup_tall",
@@ -246,22 +352,22 @@
         },
         {
           "angle": "SIDE",
-          "baseline_scene": "res://repair_character_quality/9ad66ecc6b294f62823069b6a4050fc2/walk_zup_tall.tscn",
-          "candidate_scene": "res://repair_character_quality/2fe5864ed2254d5c82d3e940dd579355/walk_zup_tall.tscn",
+          "baseline_scene": "res://repair_character_quality/2fe5864ed2254d5c82d3e940dd579355/walk_zup_tall.tscn",
+          "candidate_scene": "res://repair_character_quality/6309f428f9ed4ceeae0203d012f3b312/walk_zup_tall.tscn",
           "duration_s": 6.0,
           "frames": 360,
           "id": "zup_tall",
           "start_s": 42.0
         }
       ],
-      "playback_confirmed_by_user": true,
+      "playback_confirmed_by_user": false,
       "visual_approval": null
     },
     "responsive": {
-      "revision": "walk-responsive-r002",
-      "source_head": "671a2fff8acaaf6c0410c756cebec61da687d47a",
-      "run_id": "bbd6e3b291da4e6e9b11066c80f77e3e",
-      "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-review-r002\\responsive",
+      "revision": "walk-responsive-r003",
+      "source_head": "86ea12a8d2521c00c6155bb1a032ffdd3055d4ac",
+      "run_id": "154724bf372a43ffa82db31fedc76a31",
+      "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r003\\responsive",
       "route_passed": true,
       "numeric_runs": 12,
       "upper_body_runs": 12,
@@ -277,18 +383,124 @@
       "max_loop_rotation_error_rad": 1.19267113518617e-07,
       "counterrotation_pass": true,
       "thresholds_pass": true,
+      "head_torso_spatial": {
+        "dummy": {
+          "chest": {
+            "max_height_m": 1.21902585029602,
+            "max_pitch_deg": 5.58125812276132,
+            "max_roll_deg": 2.01844129064819,
+            "min_height_m": 1.17210698127747,
+            "min_pitch_deg": 0.402125508583144,
+            "min_roll_deg": -2.02414954005573
+          },
+          "head": {
+            "max_height_m": 1.56203162670136,
+            "max_pitch_deg": 2.46715818612702,
+            "max_roll_deg": 1.2542230417007,
+            "min_height_m": 1.51552331447601,
+            "min_pitch_deg": -0.674549838623696,
+            "min_roll_deg": -1.23767315360396
+          },
+          "hips": {
+            "max_height_m": 0.96073454618454,
+            "max_pitch_deg": 1.66583996962879,
+            "max_roll_deg": 2.8035714200059,
+            "min_height_m": 0.913786828517914,
+            "min_pitch_deg": 1.32479437245,
+            "min_roll_deg": -2.80357163326348
+          }
+        },
+        "xbot": {
+          "chest": {
+            "max_height_m": 1.13628911972046,
+            "max_pitch_deg": 4.68436231634367,
+            "max_roll_deg": 2.01437535509081,
+            "min_height_m": 1.08837080001831,
+            "min_pitch_deg": -0.498721733688804,
+            "min_roll_deg": -2.01437547513638
+          },
+          "head": {
+            "max_height_m": 1.59058952331543,
+            "max_pitch_deg": 3.15699721569911,
+            "max_roll_deg": 1.24728040112833,
+            "min_height_m": 1.54317951202393,
+            "min_pitch_deg": 0.0134455218700945,
+            "min_roll_deg": -1.24522877544615
+          },
+          "hips": {
+            "max_height_m": 1.03465247154236,
+            "max_pitch_deg": 1.66583987029343,
+            "max_roll_deg": 2.80357125291214,
+            "min_height_m": 0.986715316772461,
+            "min_pitch_deg": 1.32479407992838,
+            "min_roll_deg": -2.80357146616971
+          }
+        },
+        "short": {
+          "chest": {
+            "max_height_m": 0.647514402866364,
+            "max_pitch_deg": 5.58125697961066,
+            "max_roll_deg": 2.01844132916496,
+            "min_height_m": 0.614478230476379,
+            "min_pitch_deg": 0.402125364686331,
+            "min_roll_deg": -2.02414924292649
+          },
+          "head": {
+            "max_height_m": 0.836390256881714,
+            "max_pitch_deg": 2.46716657046772,
+            "max_roll_deg": 1.2542229349374,
+            "min_height_m": 0.803278803825378,
+            "min_pitch_deg": -0.674540447338244,
+            "min_roll_deg": -1.23767240636546
+          },
+          "hips": {
+            "max_height_m": 0.505408048629761,
+            "max_pitch_deg": 1.66583971173332,
+            "max_roll_deg": 2.80357156953824,
+            "min_height_m": 0.472414433956146,
+            "min_pitch_deg": 1.32479441944714,
+            "min_roll_deg": -2.80357156953824
+          }
+        },
+        "zup_tall": {
+          "chest": {
+            "max_height_m": 1.95041942596436,
+            "max_pitch_deg": 5.58125518740912,
+            "max_roll_deg": 2.01844080949128,
+            "min_height_m": 1.88813614845276,
+            "min_pitch_deg": 0.402121597857515,
+            "min_roll_deg": -2.02414924292649
+          },
+          "head": {
+            "max_height_m": 2.4993052482605,
+            "max_pitch_deg": 2.46716665125517,
+            "max_roll_deg": 1.25422319129792,
+            "min_height_m": 2.43802523612976,
+            "min_pitch_deg": -0.674540340619091,
+            "min_roll_deg": -1.23767280041148
+          },
+          "hips": {
+            "max_height_m": 1.53713178634644,
+            "max_pitch_deg": 1.66583715000956,
+            "max_roll_deg": 2.80357135628059,
+            "min_height_m": 1.47462546825409,
+            "min_pitch_deg": 1.32479196400547,
+            "min_roll_deg": -2.80357199605356
+          }
+        }
+      },
       "videos": {
         "clean": {
-          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-review-r002\\responsive\\walk-responsive-r002-clean.mp4",
-          "sha256": "42ba4af70c29adf7e47412e68b2bced478053b4b81dea835feeb3c189f2f92f6",
-          "bytes": 28378860,
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r003\\responsive\\walk-responsive-r003-clean.mp4",
+          "sha256": "c2d92a138fbcc8bde0f1c5bd068f8fa739a1e03b5dd2870e95d44539c16dbeba",
+          "bytes": 28535000,
           "decoded_frames": 2880,
           "decoded_duration_s": 48.0
         },
         "diagnostic": {
-          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-review-r002\\responsive\\walk-responsive-r002-diagnostic.mp4",
-          "sha256": "a2bda2b582ec8fc5cf40cb933b97a73192aa8bf6eb668266ec14d6eb7af93311",
-          "bytes": 29244182,
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r003\\responsive\\walk-responsive-r003-diagnostic.mp4",
+          "sha256": "a9cb945b2e5078847fa0d96252997f47943ebac397cb4ec4f33533c2576e2218",
+          "bytes": 29438585,
           "decoded_frames": 2880,
           "decoded_duration_s": 48.0
         }
@@ -296,8 +508,8 @@
       "chapters": [
         {
           "angle": "FRONT",
-          "baseline_scene": "res://repair_character_quality/9ad66ecc6b294f62823069b6a4050fc2/walk_dummy.tscn",
-          "candidate_scene": "res://repair_character_quality/bbd6e3b291da4e6e9b11066c80f77e3e/walk_dummy.tscn",
+          "baseline_scene": "res://repair_character_quality/bbd6e3b291da4e6e9b11066c80f77e3e/walk_dummy.tscn",
+          "candidate_scene": "res://repair_character_quality/154724bf372a43ffa82db31fedc76a31/walk_dummy.tscn",
           "duration_s": 6.0,
           "frames": 360,
           "id": "dummy",
@@ -305,8 +517,8 @@
         },
         {
           "angle": "SIDE",
-          "baseline_scene": "res://repair_character_quality/9ad66ecc6b294f62823069b6a4050fc2/walk_dummy.tscn",
-          "candidate_scene": "res://repair_character_quality/bbd6e3b291da4e6e9b11066c80f77e3e/walk_dummy.tscn",
+          "baseline_scene": "res://repair_character_quality/bbd6e3b291da4e6e9b11066c80f77e3e/walk_dummy.tscn",
+          "candidate_scene": "res://repair_character_quality/154724bf372a43ffa82db31fedc76a31/walk_dummy.tscn",
           "duration_s": 6.0,
           "frames": 360,
           "id": "dummy",
@@ -314,8 +526,8 @@
         },
         {
           "angle": "FRONT",
-          "baseline_scene": "res://repair_character_quality/9ad66ecc6b294f62823069b6a4050fc2/walk_xbot.tscn",
-          "candidate_scene": "res://repair_character_quality/bbd6e3b291da4e6e9b11066c80f77e3e/walk_xbot.tscn",
+          "baseline_scene": "res://repair_character_quality/bbd6e3b291da4e6e9b11066c80f77e3e/walk_xbot.tscn",
+          "candidate_scene": "res://repair_character_quality/154724bf372a43ffa82db31fedc76a31/walk_xbot.tscn",
           "duration_s": 6.0,
           "frames": 360,
           "id": "xbot",
@@ -323,8 +535,8 @@
         },
         {
           "angle": "SIDE",
-          "baseline_scene": "res://repair_character_quality/9ad66ecc6b294f62823069b6a4050fc2/walk_xbot.tscn",
-          "candidate_scene": "res://repair_character_quality/bbd6e3b291da4e6e9b11066c80f77e3e/walk_xbot.tscn",
+          "baseline_scene": "res://repair_character_quality/bbd6e3b291da4e6e9b11066c80f77e3e/walk_xbot.tscn",
+          "candidate_scene": "res://repair_character_quality/154724bf372a43ffa82db31fedc76a31/walk_xbot.tscn",
           "duration_s": 6.0,
           "frames": 360,
           "id": "xbot",
@@ -332,8 +544,8 @@
         },
         {
           "angle": "FRONT",
-          "baseline_scene": "res://repair_character_quality/9ad66ecc6b294f62823069b6a4050fc2/walk_short.tscn",
-          "candidate_scene": "res://repair_character_quality/bbd6e3b291da4e6e9b11066c80f77e3e/walk_short.tscn",
+          "baseline_scene": "res://repair_character_quality/bbd6e3b291da4e6e9b11066c80f77e3e/walk_short.tscn",
+          "candidate_scene": "res://repair_character_quality/154724bf372a43ffa82db31fedc76a31/walk_short.tscn",
           "duration_s": 6.0,
           "frames": 360,
           "id": "short",
@@ -341,8 +553,8 @@
         },
         {
           "angle": "SIDE",
-          "baseline_scene": "res://repair_character_quality/9ad66ecc6b294f62823069b6a4050fc2/walk_short.tscn",
-          "candidate_scene": "res://repair_character_quality/bbd6e3b291da4e6e9b11066c80f77e3e/walk_short.tscn",
+          "baseline_scene": "res://repair_character_quality/bbd6e3b291da4e6e9b11066c80f77e3e/walk_short.tscn",
+          "candidate_scene": "res://repair_character_quality/154724bf372a43ffa82db31fedc76a31/walk_short.tscn",
           "duration_s": 6.0,
           "frames": 360,
           "id": "short",
@@ -350,8 +562,8 @@
         },
         {
           "angle": "FRONT",
-          "baseline_scene": "res://repair_character_quality/9ad66ecc6b294f62823069b6a4050fc2/walk_zup_tall.tscn",
-          "candidate_scene": "res://repair_character_quality/bbd6e3b291da4e6e9b11066c80f77e3e/walk_zup_tall.tscn",
+          "baseline_scene": "res://repair_character_quality/bbd6e3b291da4e6e9b11066c80f77e3e/walk_zup_tall.tscn",
+          "candidate_scene": "res://repair_character_quality/154724bf372a43ffa82db31fedc76a31/walk_zup_tall.tscn",
           "duration_s": 6.0,
           "frames": 360,
           "id": "zup_tall",
@@ -359,49 +571,17 @@
         },
         {
           "angle": "SIDE",
-          "baseline_scene": "res://repair_character_quality/9ad66ecc6b294f62823069b6a4050fc2/walk_zup_tall.tscn",
-          "candidate_scene": "res://repair_character_quality/bbd6e3b291da4e6e9b11066c80f77e3e/walk_zup_tall.tscn",
+          "baseline_scene": "res://repair_character_quality/bbd6e3b291da4e6e9b11066c80f77e3e/walk_zup_tall.tscn",
+          "candidate_scene": "res://repair_character_quality/154724bf372a43ffa82db31fedc76a31/walk_zup_tall.tscn",
           "duration_s": 6.0,
           "frames": 360,
           "id": "zup_tall",
           "start_s": 42.0
         }
       ],
-      "playback_confirmed_by_user": true,
+      "playback_confirmed_by_user": false,
       "visual_approval": null
     }
-  },
-  "candidate_delivery": {
-    "method": "PC File Explorer, user views remotely",
-    "playback_confirmed_by_user": true,
-    "files": [
-      {
-        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-review-r002\\review-videos\\walk-grounded-r002-clean.mp4",
-        "profile": "grounded",
-        "mode": "clean",
-        "sha256": "808a3fc6f5363a91f32ea2c32d372fcba1a9467f8075ee1d990e53b8ce3f9e73"
-      },
-      {
-        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-review-r002\\review-videos\\walk-grounded-r002-diagnostic.mp4",
-        "profile": "grounded",
-        "mode": "diagnostic",
-        "sha256": "eedaccc8e918b17ac36a207a421bc9c42183095da4ba39516fc5f9bc15aa63e3"
-      },
-      {
-        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-review-r002\\review-videos\\walk-responsive-r002-clean.mp4",
-        "profile": "responsive",
-        "mode": "clean",
-        "sha256": "42ba4af70c29adf7e47412e68b2bced478053b4b81dea835feeb3c189f2f92f6"
-      },
-      {
-        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-review-r002\\review-videos\\walk-responsive-r002-diagnostic.mp4",
-        "profile": "responsive",
-        "mode": "diagnostic",
-        "sha256": "a2bda2b582ec8fc5cf40cb933b97a73192aa8bf6eb668266ec14d6eb7af93311"
-      }
-    ],
-    "explorer_window_verified": true,
-    "explorer_location": "file:///F:/GODOTAITESTING/toolkit_repair_snapshot_2026-09-30/character_quality_20261008/walk-review-r002/review-videos"
   },
   "review_history": [
     {
@@ -673,6 +853,41 @@
       }
     }
   ],
-  "pending_candidate_source": "86ea12a8d2521c00c6155bb1a032ffdd3055d4ac",
-  "pending_candidate_recovery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r003"
+  "candidate_delivery": {
+    "method": "PC File Explorer, user views remotely",
+    "files": [
+      {
+        "profile": "grounded",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r003\\review-videos\\walk-grounded-r003-clean.mp4",
+        "sha256": "561dadd21930a29a81fa6824cd0259d0d9717ea793a4455fb020334ba7a9ae81",
+        "bytes": 28281592
+      },
+      {
+        "profile": "grounded",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r003\\review-videos\\walk-grounded-r003-diagnostic.mp4",
+        "sha256": "852e0eddaa5ff5bb5eb1665354c739e03899d36852a00d782eb76812bfb2cca8",
+        "bytes": 29147232
+      },
+      {
+        "profile": "responsive",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r003\\review-videos\\walk-responsive-r003-clean.mp4",
+        "sha256": "c2d92a138fbcc8bde0f1c5bd068f8fa739a1e03b5dd2870e95d44539c16dbeba",
+        "bytes": 28535000
+      },
+      {
+        "profile": "responsive",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r003\\review-videos\\walk-responsive-r003-diagnostic.mp4",
+        "sha256": "a9cb945b2e5078847fa0d96252997f47943ebac397cb4ec4f33533c2576e2218",
+        "bytes": 29438585
+      }
+    ],
+    "playback_confirmed_by_user": false,
+    "explorer_window_verified": true,
+    "explorer_location": "file:///F:/GODOTAITESTING/toolkit_repair_snapshot_2026-09-30/character_quality_20261009/walk-review-r003/review-videos",
+    "updated_utc": "2026-10-09T12:09:39.425844+00:00"
+  }
 }

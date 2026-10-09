@@ -1,4 +1,4 @@
-# Walk head and torso r003 — capture in progress
+# Walk head and torso r003 — awaiting human video review
 
 Animation source: `86ea12a8d2521c00c6155bb1a032ffdd3055d4ac`.
 Previous same-profile source: `671a2fff8acaaf6c0410c756cebec61da687d47a`.
@@ -50,9 +50,26 @@ Sixteen public-route overwrite dry runs before/after core reload pass without
 altering inspected saved clips. This demonstrates tool access and native motion,
 not natural walking, physical COM, skin-sole collision or human approval.
 
+The exact animation source passes all 34 Windows/Linux validation jobs in
+[Actions run 37925284348](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/37925284348):
+28 headless jobs, four editor/core combinations and both complete public Godot AI
+routes. The skipped tag-only version job is excluded from that count.
+
+| Native check | Grounded | Responsive |
+| --- | --- | --- |
+| Maximum declared-stance ankle slide | 0.000115 m | 0.000115 m |
+| Maximum rest-ankle-plane penetration | 0.000600 m | 0.000690 m |
+| Maximum loop bone position error | 0.000000062 m | 0.000000022 m |
+| Maximum loop rotation error | 0.000000151 rad | 0.000000120 rad |
+| Maximum local head/chest/wrist step, all FPS | 0.897 degrees | 1.156 degrees |
+| Initial intrinsic torso counterrotation | 12/12 | 12/12 |
+| Engine/path/nonfinite errors, reach clamps, knee flips | 0 | 0 |
+
+These are played-pose/contact gates; numerical success does not approve visual quality.
+
 ## Continuous comparison and recovery
 
-Capture is in progress: four 48-second 1080p60 H.264 videos, clean/diagnostic for
+All four 48-second 1080p60 H.264 videos are complete, clean/diagnostic for
 each recipe. Left is **the same recipe's r002**, right is **r003**. Each rig has
 six seconds front then six seconds side: dummy 0–12s, X Bot 12–24s, short 24–36s,
 tall Z-up 36–48s. Compare head nod/bob, torso flexibility and whole-body timing.
@@ -60,13 +77,20 @@ Continuous videos remain the required human review artifact.
 
 Recovery root:
 `F:/GODOTAITESTING/toolkit_repair_snapshot_2026-09-30/character_quality_20261009/walk-review-r003`.
-Source and eight saved clips are already archived; route/native/editor/reload
-receipts persist there. Check `recording-progress.json` when resuming. Recording
-uses one capture process at a time and a two-thread encoder. Final archive and
-delivery gates require four complete decode-verified MP4s, exact scene/media
-hashes and Windows/Linux CI before marking review pending.
+Each MP4 independently decodes to 2,880 frames / 48 seconds, and every capture
+reports zero engine errors. `recording-progress.json` is complete. Recording
+used one capture process at a time and a two-thread encoder. Archive and
+delivery gates require exact scene/media hashes and the successful source CI.
+The archive preserves both exact sources, sixteen previous/candidate scenes,
+local FBX dependencies, recipes, reference route receipts, native/editor/reload
+reports and SHA-256 receipts. PC review copies are byte-identical to the encoded
+files. Media/imported rigs stay local; source and documentation are pushed.
 
-After completion, open PC Explorer with the clean comparisons selected, ask for
+Open PC Explorer with the clean comparisons selected, ask for
 head/torso feedback on both recipes/all four rigs, and **stop for human review**.
 No media upload, release, default promotion or next motion is authorized by this
 candidate checkpoint.
+
+Explorer's `review-videos` folder window is confirmed with grounded clean
+selected. All four review copies match their encoded hashes. Playback and
+visual approval of r003 remain pending; wait for the user's next feedback.

@@ -120,6 +120,18 @@ Godot binary (local):
   requested a less stiff torso/head and a small walking head bob. Follow
   `docs/walk-head-torso-r003-plan.md`; record same-profile r002/r003 continuous
   comparisons and pause again. No profile approval or default promotion yet.
+  r003 animation source is `86ea12a`: 52 fresh editor tests, 24 native contact
+  runs and 24 upper-body traces pass; all 34 Windows/Linux source CI jobs pass
+  (Actions 37925284348). Four 48s 1080p60 comparisons are complete under
+  `character_quality_20261009/walk-review-r003`; left is same-profile r002,
+  right is r003. Validation: `docs/walk-head-torso-r003-validation.md`.
+  `archive_walk_revision.py --revision walk-review-r003 --editor-tests 52
+  --ci-report <root>/ci-source-86ea12a.json --baseline <r002-root>` enforces
+  the archive gate. `deliver_walk_review.py` prepares verified PC copies.
+  **Pause for r003 head/torso video feedback after opening PC Explorer.**
+  The archive/receipts and four review copies are complete; Explorer's r003
+  `review-videos` window is confirmed with grounded clean selected.
+  **Wait for r003 human feedback now.** No playback/profile approval yet.
 - Launch: `& "<godot>" --editor --path test_project`.
 - Run `git checkout -- test_project/project.godot` before committing: the editor
   rewrites the plugin enable order.

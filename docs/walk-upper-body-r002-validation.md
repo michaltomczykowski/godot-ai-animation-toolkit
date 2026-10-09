@@ -1,4 +1,9 @@
-# Walk upper-body r002 — awaiting human video review
+# Walk upper-body r002 — feedback received, revised in r003
+
+On 2026-10-09 the user viewed r002 and requested a less stiff torso/head with
+a small walking head bob. No profile approval was granted. The next candidate
+and current review gate are in `walk-head-torso-r003-validation.md`; the r002
+receipts/media below remain the preserved comparison reference.
 
 Candidate animation source: `671a2fff8acaaf6c0410c756cebec61da687d47a`.
 Final API refusal follow-up: `1ec8348` (requires upper-arm roles for nonzero
@@ -130,4 +135,5 @@ approve before profile/default promotion; “continue” alone grants no approva
 
 All four MP4s are verified and copied with matching hashes to `review-videos`.
 Explorer's folder window was confirmed with the grounded clean MP4 selected.
-Candidate playback/visual approval remains unconfirmed; await human feedback.
+Playback was subsequently confirmed by the 2026-10-09 feedback; no profile
+visual approval was granted. r003 is the current pending review.
