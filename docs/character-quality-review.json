@@ -3,7 +3,7 @@
   "phase": "character_quality",
   "operation": "walk_cycle",
   "revision": "walk-review-r004",
-  "state": "awaiting_walk_upper_body_video_review",
+  "state": "walk_revision_accepted_release_planning",
   "baseline_source": "1389c6655e6a1fcda34ed9249b9f715f1e8e85cd",
   "required_rigs": [
     "dummy",
@@ -20,9 +20,9 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Wait for human walk-review-r004 video feedback after Explorer was opened on the PC. Ask about both candidates/all four rigs, then stop; no default promotion or next motion before review.",
+  "next_action": "Follow docs/release-wrap-up-plan.md. Plan selected approved walk defaults/profile integration (R1), preserving r004 references. Resolve reviewed profile scope from optional user answer, then remaining visual/evidence/install gates before reviewed merge and release.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
-  "updated_utc": "2026-10-09T20:14:00.429131+00:00",
+  "updated_utc": "2026-10-09T20:26:50.352596+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-baseline-r001",
   "route": {
     "run_id": "9ad66ecc6b294f62823069b6a4050fc2",
@@ -1486,6 +1486,658 @@
         "verbatim": "it's way better! but the hands/forearms/wrists feel way too stiff, maybe add a moving randomizer to these parts or so something?",
         "decision": "Revise hands/forearms/wrists; no full profile/all-rig approval."
       }
+    },
+    {
+      "revision": "walk-review-r004",
+      "candidate_review": {
+        "grounded": {
+          "revision": "walk-grounded-r004",
+          "source_head": "68e06aa5247145ecb8a8f1f09b000e9f4cd21123",
+          "run_id": "a805d367eb0f4843954877ebf4441282",
+          "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r004\\grounded",
+          "route_passed": true,
+          "numeric_runs": 12,
+          "upper_body_runs": 12,
+          "fps": [
+            30,
+            60,
+            120
+          ],
+          "max_slide_m": 0.0001147142611444,
+          "max_rest_ankle_plane_penetration_m": 0.000599324703216553,
+          "max_root_error_m": 2.33740947450656e-05,
+          "max_loop_position_error_m": 6.14390600617298e-08,
+          "max_loop_rotation_error_rad": 1.50775244838957e-07,
+          "counterrotation_pass": true,
+          "thresholds_pass": true,
+          "head_torso_spatial": {
+            "dummy": {
+              "chest": {
+                "max_height_m": 1.21830248832703,
+                "max_pitch_deg": 4.78171272512769,
+                "max_roll_deg": 2.0299472756425,
+                "min_height_m": 1.17295706272125,
+                "min_pitch_deg": 1.19483242683155,
+                "min_roll_deg": -2.03435458105502
+              },
+              "head": {
+                "max_height_m": 1.5614652633667,
+                "max_pitch_deg": 2.35583764353471,
+                "max_roll_deg": 1.26542845168105,
+                "min_height_m": 1.51634478569031,
+                "min_pitch_deg": -0.267203848621282,
+                "min_roll_deg": -1.25558297369635
+              },
+              "hips": {
+                "max_height_m": 0.960071384906769,
+                "max_pitch_deg": 1.7165554505909,
+                "max_roll_deg": 3.20399476329213,
+                "min_height_m": 0.914688169956207,
+                "min_pitch_deg": 1.27122461077126,
+                "min_roll_deg": -3.20399435917892
+              }
+            },
+            "xbot": {
+              "chest": {
+                "max_height_m": 1.13568830490112,
+                "max_pitch_deg": 3.88674453725194,
+                "max_roll_deg": 2.01804941017381,
+                "min_height_m": 1.08906328678131,
+                "min_pitch_deg": 0.293961701108006,
+                "min_roll_deg": -2.01804943738364
+              },
+              "head": {
+                "max_height_m": 1.59030330181122,
+                "max_pitch_deg": 3.0003165928407,
+                "max_roll_deg": 1.2634472707754,
+                "min_height_m": 1.54398310184479,
+                "min_pitch_deg": 0.374738130168819,
+                "min_roll_deg": -1.26258281358214
+              },
+              "hips": {
+                "max_height_m": 1.03408527374268,
+                "max_pitch_deg": 1.71655651375748,
+                "max_roll_deg": 3.20399497647048,
+                "min_height_m": 0.987435758113861,
+                "min_pitch_deg": 1.27122371165935,
+                "min_roll_deg": -3.20399497647048
+              }
+            },
+            "short": {
+              "chest": {
+                "max_height_m": 0.648072600364685,
+                "max_pitch_deg": 4.78171271864255,
+                "max_roll_deg": 2.02994718973613,
+                "min_height_m": 0.614995002746582,
+                "min_pitch_deg": 1.19483157222781,
+                "min_roll_deg": -2.03435428021053
+              },
+              "head": {
+                "max_height_m": 0.836975514888763,
+                "max_pitch_deg": 2.35584361612397,
+                "max_roll_deg": 1.26542845168105,
+                "min_height_m": 0.803803026676178,
+                "min_pitch_deg": -0.267197002318863,
+                "min_roll_deg": -1.25558336885052
+              },
+              "hips": {
+                "max_height_m": 0.505972325801849,
+                "max_pitch_deg": 1.71655574021007,
+                "max_roll_deg": 3.20399484300967,
+                "min_height_m": 0.472961783409119,
+                "min_pitch_deg": 1.2712242114783,
+                "min_roll_deg": -3.20399443889631
+              }
+            },
+            "zup_tall": {
+              "chest": {
+                "max_height_m": 1.94933211803436,
+                "max_pitch_deg": 4.78171087631034,
+                "max_roll_deg": 2.02994688401173,
+                "min_height_m": 1.8881824016571,
+                "min_pitch_deg": 1.19483100289248,
+                "min_roll_deg": -2.03435525491483
+              },
+              "head": {
+                "max_height_m": 2.49839758872986,
+                "max_pitch_deg": 2.35584219048664,
+                "max_roll_deg": 1.26542863390368,
+                "min_height_m": 2.43819975852966,
+                "min_pitch_deg": -0.267197834607029,
+                "min_roll_deg": -1.25558298480851
+              },
+              "hips": {
+                "max_height_m": 1.53612530231476,
+                "max_pitch_deg": 1.71655275108487,
+                "max_roll_deg": 3.20399462983124,
+                "min_height_m": 1.47462546825409,
+                "min_pitch_deg": 1.27122175553041,
+                "min_roll_deg": -3.20399443889631
+              }
+            }
+          },
+          "videos": {
+            "clean": {
+              "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r004\\grounded\\walk-grounded-r004-clean.mp4",
+              "sha256": "daf801471480692451ab60fff7cdfb83b574eb6dd9e6995b01cffede20692eb7",
+              "bytes": 29141178,
+              "decoded_frames": 2880,
+              "decoded_duration_s": 48.0
+            },
+            "diagnostic": {
+              "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r004\\grounded\\walk-grounded-r004-diagnostic.mp4",
+              "sha256": "185635bb8eb5a6cebe8f166d7639284cb71c0881ced0ba989dc065cbd1fdf0d6",
+              "bytes": 30048789,
+              "decoded_frames": 2880,
+              "decoded_duration_s": 48.0
+            }
+          },
+          "chapters": [
+            {
+              "angle": "FRONT",
+              "baseline_scene": "res://repair_character_quality/6309f428f9ed4ceeae0203d012f3b312/walk_dummy.tscn",
+              "candidate_scene": "res://repair_character_quality/a805d367eb0f4843954877ebf4441282/walk_dummy.tscn",
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "start_s": 0.0
+            },
+            {
+              "angle": "SIDE",
+              "baseline_scene": "res://repair_character_quality/6309f428f9ed4ceeae0203d012f3b312/walk_dummy.tscn",
+              "candidate_scene": "res://repair_character_quality/a805d367eb0f4843954877ebf4441282/walk_dummy.tscn",
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "start_s": 6.0
+            },
+            {
+              "angle": "FRONT",
+              "baseline_scene": "res://repair_character_quality/6309f428f9ed4ceeae0203d012f3b312/walk_xbot.tscn",
+              "candidate_scene": "res://repair_character_quality/a805d367eb0f4843954877ebf4441282/walk_xbot.tscn",
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "start_s": 12.0
+            },
+            {
+              "angle": "SIDE",
+              "baseline_scene": "res://repair_character_quality/6309f428f9ed4ceeae0203d012f3b312/walk_xbot.tscn",
+              "candidate_scene": "res://repair_character_quality/a805d367eb0f4843954877ebf4441282/walk_xbot.tscn",
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "start_s": 18.0
+            },
+            {
+              "angle": "FRONT",
+              "baseline_scene": "res://repair_character_quality/6309f428f9ed4ceeae0203d012f3b312/walk_short.tscn",
+              "candidate_scene": "res://repair_character_quality/a805d367eb0f4843954877ebf4441282/walk_short.tscn",
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "start_s": 24.0
+            },
+            {
+              "angle": "SIDE",
+              "baseline_scene": "res://repair_character_quality/6309f428f9ed4ceeae0203d012f3b312/walk_short.tscn",
+              "candidate_scene": "res://repair_character_quality/a805d367eb0f4843954877ebf4441282/walk_short.tscn",
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "start_s": 30.0
+            },
+            {
+              "angle": "FRONT",
+              "baseline_scene": "res://repair_character_quality/6309f428f9ed4ceeae0203d012f3b312/walk_zup_tall.tscn",
+              "candidate_scene": "res://repair_character_quality/a805d367eb0f4843954877ebf4441282/walk_zup_tall.tscn",
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "start_s": 36.0
+            },
+            {
+              "angle": "SIDE",
+              "baseline_scene": "res://repair_character_quality/6309f428f9ed4ceeae0203d012f3b312/walk_zup_tall.tscn",
+              "candidate_scene": "res://repair_character_quality/a805d367eb0f4843954877ebf4441282/walk_zup_tall.tscn",
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "start_s": 42.0
+            }
+          ],
+          "playback_confirmed_by_user": false,
+          "visual_approval": null,
+          "hand_detail": {
+            "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r004\\grounded\\walk-grounded-r004-hand-detail.mp4",
+            "sha256": "84767947ef40d76eeae264f2d9ca430fd3337f7d6cf277184adc6ac9243575f0",
+            "bytes": 33633983,
+            "source_sha256": "daf801471480692451ab60fff7cdfb83b574eb6dd9e6995b01cffede20692eb7",
+            "decoded_frames": 2880,
+            "decoded_duration_s": 48.0,
+            "description": "Fixed enlarged crops from the verified clean comparison; same continuous playback and timing."
+          },
+          "hand_articulation": {
+            "dummy": {
+              "l": {
+                "finger_roots": 5,
+                "forearm_axial_max": 0.0442757532000542,
+                "forearm_axial_min": -0.0476400889456272,
+                "min_finger_curl_gain": 0.11370825022459,
+                "wrist_axis_cross_max": 0.997244417667389
+              },
+              "r": {
+                "finger_roots": 5,
+                "forearm_axial_max": 0.0450233370065689,
+                "forearm_axial_min": -0.0465194135904312,
+                "min_finger_curl_gain": 0.109862878918648,
+                "wrist_axis_cross_max": 0.999802768230438
+              }
+            },
+            "xbot": {
+              "l": {
+                "finger_roots": 5,
+                "forearm_axial_max": 0.0453600250184536,
+                "forearm_axial_min": -0.046827245503664,
+                "min_finger_curl_gain": 0.0767837637977209,
+                "wrist_axis_cross_max": 0.997244536876678
+              },
+              "r": {
+                "finger_roots": 5,
+                "forearm_axial_max": 0.043965294957161,
+                "forearm_axial_min": -0.0473146811127663,
+                "min_finger_curl_gain": 0.0741674836699531,
+                "wrist_axis_cross_max": 0.999802768230438
+              }
+            },
+            "short": {
+              "l": {
+                "finger_roots": 5,
+                "forearm_axial_max": 0.0442757420241833,
+                "forearm_axial_min": -0.0476400963962078,
+                "min_finger_curl_gain": 0.113709948956966,
+                "wrist_axis_cross_max": 0.997244477272034
+              },
+              "r": {
+                "finger_roots": 5,
+                "forearm_axial_max": 0.045023363083601,
+                "forearm_axial_min": -0.0465194024145603,
+                "min_finger_curl_gain": 0.109864443540573,
+                "wrist_axis_cross_max": 0.999802768230438
+              }
+            },
+            "zup_tall": {
+              "l": {
+                "finger_roots": 5,
+                "forearm_axial_max": 0.0442757941782475,
+                "forearm_axial_min": -0.047640036791563,
+                "min_finger_curl_gain": 0.113709904253483,
+                "wrist_axis_cross_max": 0.997244656085968
+              },
+              "r": {
+                "finger_roots": 5,
+                "forearm_axial_max": 0.0450232550501823,
+                "forearm_axial_min": -0.0465194471180439,
+                "min_finger_curl_gain": 0.109864681959152,
+                "wrist_axis_cross_max": 0.999802708625793
+              }
+            }
+          }
+        },
+        "responsive": {
+          "revision": "walk-responsive-r004",
+          "source_head": "68e06aa5247145ecb8a8f1f09b000e9f4cd21123",
+          "run_id": "125db16714764de4923a543897ebc16a",
+          "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r004\\responsive",
+          "route_passed": true,
+          "numeric_runs": 12,
+          "upper_body_runs": 12,
+          "fps": [
+            30,
+            60,
+            120
+          ],
+          "max_slide_m": 0.000114898633910343,
+          "max_rest_ankle_plane_penetration_m": 0.000689387321472168,
+          "max_root_error_m": 2.33740947450656e-05,
+          "max_loop_position_error_m": 2.98023223876953e-08,
+          "max_loop_rotation_error_rad": 2.79570571137809e-07,
+          "counterrotation_pass": true,
+          "thresholds_pass": true,
+          "head_torso_spatial": {
+            "dummy": {
+              "chest": {
+                "max_height_m": 1.21902585029602,
+                "max_pitch_deg": 5.58125812276132,
+                "max_roll_deg": 2.01844129064819,
+                "min_height_m": 1.17210698127747,
+                "min_pitch_deg": 0.402125508583144,
+                "min_roll_deg": -2.02414954005573
+              },
+              "head": {
+                "max_height_m": 1.56203162670136,
+                "max_pitch_deg": 2.46715818612702,
+                "max_roll_deg": 1.2542230417007,
+                "min_height_m": 1.51552331447601,
+                "min_pitch_deg": -0.674549838623696,
+                "min_roll_deg": -1.23767315360396
+              },
+              "hips": {
+                "max_height_m": 0.96073454618454,
+                "max_pitch_deg": 1.66583996962879,
+                "max_roll_deg": 2.8035714200059,
+                "min_height_m": 0.913786828517914,
+                "min_pitch_deg": 1.32479437245,
+                "min_roll_deg": -2.80357163326348
+              }
+            },
+            "xbot": {
+              "chest": {
+                "max_height_m": 1.13628911972046,
+                "max_pitch_deg": 4.68436231634367,
+                "max_roll_deg": 2.01437535509081,
+                "min_height_m": 1.08837080001831,
+                "min_pitch_deg": -0.498721733688804,
+                "min_roll_deg": -2.01437547513638
+              },
+              "head": {
+                "max_height_m": 1.59058952331543,
+                "max_pitch_deg": 3.15699721569911,
+                "max_roll_deg": 1.24728040112833,
+                "min_height_m": 1.54317951202393,
+                "min_pitch_deg": 0.0134455218700945,
+                "min_roll_deg": -1.24522877544615
+              },
+              "hips": {
+                "max_height_m": 1.03465247154236,
+                "max_pitch_deg": 1.66583987029343,
+                "max_roll_deg": 2.80357125291214,
+                "min_height_m": 0.986715316772461,
+                "min_pitch_deg": 1.32479407992838,
+                "min_roll_deg": -2.80357146616971
+              }
+            },
+            "short": {
+              "chest": {
+                "max_height_m": 0.647514402866364,
+                "max_pitch_deg": 5.58125697961066,
+                "max_roll_deg": 2.01844132916496,
+                "min_height_m": 0.614478230476379,
+                "min_pitch_deg": 0.402125364686331,
+                "min_roll_deg": -2.02414924292649
+              },
+              "head": {
+                "max_height_m": 0.836390256881714,
+                "max_pitch_deg": 2.46716657046772,
+                "max_roll_deg": 1.2542229349374,
+                "min_height_m": 0.803278803825378,
+                "min_pitch_deg": -0.674540447338244,
+                "min_roll_deg": -1.23767240636546
+              },
+              "hips": {
+                "max_height_m": 0.505408048629761,
+                "max_pitch_deg": 1.66583971173332,
+                "max_roll_deg": 2.80357156953824,
+                "min_height_m": 0.472414433956146,
+                "min_pitch_deg": 1.32479441944714,
+                "min_roll_deg": -2.80357156953824
+              }
+            },
+            "zup_tall": {
+              "chest": {
+                "max_height_m": 1.95041942596436,
+                "max_pitch_deg": 5.58125518740912,
+                "max_roll_deg": 2.01844080949128,
+                "min_height_m": 1.88813614845276,
+                "min_pitch_deg": 0.402121597857515,
+                "min_roll_deg": -2.02414924292649
+              },
+              "head": {
+                "max_height_m": 2.4993052482605,
+                "max_pitch_deg": 2.46716665125517,
+                "max_roll_deg": 1.25422319129792,
+                "min_height_m": 2.43802523612976,
+                "min_pitch_deg": -0.674540340619091,
+                "min_roll_deg": -1.23767280041148
+              },
+              "hips": {
+                "max_height_m": 1.53713178634644,
+                "max_pitch_deg": 1.66583715000956,
+                "max_roll_deg": 2.80357135628059,
+                "min_height_m": 1.47462546825409,
+                "min_pitch_deg": 1.32479196400547,
+                "min_roll_deg": -2.80357199605356
+              }
+            }
+          },
+          "videos": {
+            "clean": {
+              "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r004\\responsive\\walk-responsive-r004-clean.mp4",
+              "sha256": "7be2ab5977a34e7cd3a736e944ac914e3a73f0c2c868a19c39e33d95da598a46",
+              "bytes": 29583172,
+              "decoded_frames": 2880,
+              "decoded_duration_s": 48.0
+            },
+            "diagnostic": {
+              "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r004\\responsive\\walk-responsive-r004-diagnostic.mp4",
+              "sha256": "dfc80f8367f1ee978a193639eca2bf636d0cbce8ecba3fd8fe438641ed8e4ae7",
+              "bytes": 30478242,
+              "decoded_frames": 2880,
+              "decoded_duration_s": 48.0
+            }
+          },
+          "chapters": [
+            {
+              "angle": "FRONT",
+              "baseline_scene": "res://repair_character_quality/154724bf372a43ffa82db31fedc76a31/walk_dummy.tscn",
+              "candidate_scene": "res://repair_character_quality/125db16714764de4923a543897ebc16a/walk_dummy.tscn",
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "start_s": 0.0
+            },
+            {
+              "angle": "SIDE",
+              "baseline_scene": "res://repair_character_quality/154724bf372a43ffa82db31fedc76a31/walk_dummy.tscn",
+              "candidate_scene": "res://repair_character_quality/125db16714764de4923a543897ebc16a/walk_dummy.tscn",
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "start_s": 6.0
+            },
+            {
+              "angle": "FRONT",
+              "baseline_scene": "res://repair_character_quality/154724bf372a43ffa82db31fedc76a31/walk_xbot.tscn",
+              "candidate_scene": "res://repair_character_quality/125db16714764de4923a543897ebc16a/walk_xbot.tscn",
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "start_s": 12.0
+            },
+            {
+              "angle": "SIDE",
+              "baseline_scene": "res://repair_character_quality/154724bf372a43ffa82db31fedc76a31/walk_xbot.tscn",
+              "candidate_scene": "res://repair_character_quality/125db16714764de4923a543897ebc16a/walk_xbot.tscn",
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "start_s": 18.0
+            },
+            {
+              "angle": "FRONT",
+              "baseline_scene": "res://repair_character_quality/154724bf372a43ffa82db31fedc76a31/walk_short.tscn",
+              "candidate_scene": "res://repair_character_quality/125db16714764de4923a543897ebc16a/walk_short.tscn",
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "start_s": 24.0
+            },
+            {
+              "angle": "SIDE",
+              "baseline_scene": "res://repair_character_quality/154724bf372a43ffa82db31fedc76a31/walk_short.tscn",
+              "candidate_scene": "res://repair_character_quality/125db16714764de4923a543897ebc16a/walk_short.tscn",
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "start_s": 30.0
+            },
+            {
+              "angle": "FRONT",
+              "baseline_scene": "res://repair_character_quality/154724bf372a43ffa82db31fedc76a31/walk_zup_tall.tscn",
+              "candidate_scene": "res://repair_character_quality/125db16714764de4923a543897ebc16a/walk_zup_tall.tscn",
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "start_s": 36.0
+            },
+            {
+              "angle": "SIDE",
+              "baseline_scene": "res://repair_character_quality/154724bf372a43ffa82db31fedc76a31/walk_zup_tall.tscn",
+              "candidate_scene": "res://repair_character_quality/125db16714764de4923a543897ebc16a/walk_zup_tall.tscn",
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "start_s": 42.0
+            }
+          ],
+          "playback_confirmed_by_user": false,
+          "visual_approval": null,
+          "hand_detail": {
+            "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r004\\responsive\\walk-responsive-r004-hand-detail.mp4",
+            "sha256": "9a820b8f658459f27df75ff7511d91151024d07fffb7ee7720decd96195f4a15",
+            "bytes": 34469218,
+            "source_sha256": "7be2ab5977a34e7cd3a736e944ac914e3a73f0c2c868a19c39e33d95da598a46",
+            "decoded_frames": 2880,
+            "decoded_duration_s": 48.0,
+            "description": "Fixed enlarged crops from the verified clean comparison; same continuous playback and timing."
+          },
+          "hand_articulation": {
+            "dummy": {
+              "l": {
+                "finger_roots": 5,
+                "forearm_axial_max": 0.0529280863702297,
+                "forearm_axial_min": -0.0560220442712307,
+                "min_finger_curl_gain": 0.103456325829029,
+                "wrist_axis_cross_max": 0.99917060136795
+              },
+              "r": {
+                "finger_roots": 5,
+                "forearm_axial_max": 0.0529510751366615,
+                "forearm_axial_min": -0.0551532618701458,
+                "min_finger_curl_gain": 0.0981206595897675,
+                "wrist_axis_cross_max": 0.999971807003021
+              }
+            },
+            "xbot": {
+              "l": {
+                "finger_roots": 5,
+                "forearm_axial_max": 0.0540494658052921,
+                "forearm_axial_min": -0.0551333352923393,
+                "min_finger_curl_gain": 0.0698072040395346,
+                "wrist_axis_cross_max": 0.999170780181885
+              },
+              "r": {
+                "finger_roots": 5,
+                "forearm_axial_max": 0.0518601201474667,
+                "forearm_axial_min": -0.0560206957161427,
+                "min_finger_curl_gain": 0.0661829795662925,
+                "wrist_axis_cross_max": 0.999971747398376
+              }
+            },
+            "short": {
+              "l": {
+                "finger_roots": 5,
+                "forearm_axial_max": 0.0529280714690685,
+                "forearm_axial_min": -0.0560220517218113,
+                "min_finger_curl_gain": 0.103457875549793,
+                "wrist_axis_cross_max": 0.99917083978653
+              },
+              "r": {
+                "finger_roots": 5,
+                "forearm_axial_max": 0.0529511012136936,
+                "forearm_axial_min": -0.0551532544195652,
+                "min_finger_curl_gain": 0.0981224328279495,
+                "wrist_axis_cross_max": 0.999971866607666
+              }
+            },
+            "zup_tall": {
+              "l": {
+                "finger_roots": 5,
+                "forearm_axial_max": 0.05292809009552,
+                "forearm_axial_min": -0.0560220070183277,
+                "min_finger_curl_gain": 0.103458322584629,
+                "wrist_axis_cross_max": 0.999170660972595
+              },
+              "r": {
+                "finger_roots": 5,
+                "forearm_axial_max": 0.0529510676860809,
+                "forearm_axial_min": -0.0551533102989197,
+                "min_finger_curl_gain": 0.0981226712465286,
+                "wrist_axis_cross_max": 0.999971807003021
+              }
+            }
+          }
+        }
+      },
+      "candidate_delivery": {
+        "method": "PC File Explorer, user views remotely",
+        "files": [
+          {
+            "profile": "grounded",
+            "mode": "clean",
+            "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r004\\review-videos\\walk-grounded-r004-clean.mp4",
+            "sha256": "daf801471480692451ab60fff7cdfb83b574eb6dd9e6995b01cffede20692eb7",
+            "bytes": 29141178
+          },
+          {
+            "profile": "grounded",
+            "mode": "diagnostic",
+            "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r004\\review-videos\\walk-grounded-r004-diagnostic.mp4",
+            "sha256": "185635bb8eb5a6cebe8f166d7639284cb71c0881ced0ba989dc065cbd1fdf0d6",
+            "bytes": 30048789
+          },
+          {
+            "profile": "grounded",
+            "mode": "hand-detail",
+            "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r004\\review-videos\\walk-grounded-r004-hand-detail.mp4",
+            "sha256": "84767947ef40d76eeae264f2d9ca430fd3337f7d6cf277184adc6ac9243575f0",
+            "bytes": 33633983
+          },
+          {
+            "profile": "responsive",
+            "mode": "clean",
+            "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r004\\review-videos\\walk-responsive-r004-clean.mp4",
+            "sha256": "7be2ab5977a34e7cd3a736e944ac914e3a73f0c2c868a19c39e33d95da598a46",
+            "bytes": 29583172
+          },
+          {
+            "profile": "responsive",
+            "mode": "diagnostic",
+            "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r004\\review-videos\\walk-responsive-r004-diagnostic.mp4",
+            "sha256": "dfc80f8367f1ee978a193639eca2bf636d0cbce8ecba3fd8fe438641ed8e4ae7",
+            "bytes": 30478242
+          },
+          {
+            "profile": "responsive",
+            "mode": "hand-detail",
+            "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r004\\review-videos\\walk-responsive-r004-hand-detail.mp4",
+            "sha256": "9a820b8f658459f27df75ff7511d91151024d07fffb7ee7720decd96195f4a15",
+            "bytes": 34469218
+          }
+        ],
+        "playback_confirmed_by_user": true,
+        "explorer_window_verified": true,
+        "explorer_location": "file:///F:/GODOTAITESTING/toolkit_repair_snapshot_2026-09-30/character_quality_20261009/walk-review-r004/review-videos",
+        "updated_utc": "2026-10-09T20:12:32.534790+00:00",
+        "playback_scope": "r004 feedback received; individual video/profile coverage not specified"
+      },
+      "feedback": {
+        "received_date": "2026-10-09",
+        "verbatim": "yeah it's okay, what can we do next then to wrap up the fixes and push it as release on GitHub? because we have prs open and nothing pushed to the main",
+        "decision": "User accepts r004 and requests release closure planning. Exact reviewed profile/rig coverage was not specified; optional profile question pending.",
+        "profile_scope": "not specified",
+        "revision": "walk-review-r004"
+      }
     }
   ],
   "candidate_delivery": {
@@ -1534,9 +2186,17 @@
         "bytes": 34469218
       }
     ],
-    "playback_confirmed_by_user": false,
+    "playback_confirmed_by_user": true,
     "explorer_window_verified": true,
     "explorer_location": "file:///F:/GODOTAITESTING/toolkit_repair_snapshot_2026-09-30/character_quality_20261009/walk-review-r004/review-videos",
-    "updated_utc": "2026-10-09T20:12:32.534790+00:00"
+    "updated_utc": "2026-10-09T20:12:32.534790+00:00",
+    "playback_scope": "r004 feedback received; individual video/profile coverage not specified"
+  },
+  "revision_acceptance": {
+    "received_date": "2026-10-09",
+    "verbatim": "yeah it's okay, what can we do next then to wrap up the fixes and push it as release on GitHub? because we have prs open and nothing pushed to the main",
+    "decision": "User accepts r004 and requests release closure planning. Exact reviewed profile/rig coverage was not specified; optional profile question pending.",
+    "profile_scope": "not specified",
+    "revision": "walk-review-r004"
   }
 }

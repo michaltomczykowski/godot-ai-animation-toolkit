@@ -151,6 +151,12 @@ Godot binary (local):
   copies. Start with grounded hand-detail. **Wait for r004 human feedback now.**
   Both profile approvals and new playback confirmation remain pending. No
   default promotion or next motion is authorized by these verification passes.
+  Subsequent user feedback (2026-10-09): r004 is okay; asks to wrap the fixes,
+  merge to main and publish on GitHub. Follow `docs/release-wrap-up-plan.md`.
+  Record acceptance/playback separately from which profile/all-rig coverage
+  was reviewed; an optional question asks for the profile. Plan the approved
+  default/profile integration next. The release request expands the earlier
+  unreleased scope; prepare a concrete candidate and final review checkpoint.
 - Launch: `& "<godot>" --editor --path test_project`.
 - Run `git checkout -- test_project/project.godot` before committing: the editor
   rewrites the plugin enable order.

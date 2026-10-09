@@ -3581,3 +3581,25 @@ review branch; no release or media upload is part of this phase.
   `docs/walk-hand-follow-through-r004-validation.md`.
   **Stop for human hands/forearms/wrists/fingers and whole-walk review.** New
   playback confirmation, profile approval and default promotion remain pending.
+
+### 2026-10-09 — r004 accepted; release closure proposed
+
+- The user says r004 is okay and asks how to finish repairs, merge into main and
+  publish on GitHub. Record this as revision acceptance/playback; which walking
+  profile and rig coverage was reviewed is being clarified. Default promotion
+  has not happened: the accepted clips are still opt-in override recipes.
+- Live repository check: remote main `5e13a6c`, pushed repair `890f3a0`, 112
+  commits ahead; toolkit PR #1 is draft and mergeable. Its description has stale
+  milestone counts. Toolkit v1.13.0 remains the latest published release.
+- Saved the proposed closure in `docs/release-wrap-up-plan.md`: approved walk
+  defaults/profile integration, remaining visual motion/family reviews, evidence
+  reconciliation and real agent integration, packaged install candidate, then
+  reviewed merge/main CI/tag/release. The original repair's release exclusion
+  is superseded by this new release-preparation request; private media upload
+  remains excluded.
+- The ledger still has 103 partial rows, including 18 pending history and 49
+  pending/partial reported-error annotations. Reconcile exact existing matrices
+  before rerunning completed work; do not interpret incomplete annotations as
+  demonstrated failures or silently mark them passed. Correct justified N/A
+  handling in the audit exporter. Test the package with released Godot AI 4.3.0
+  as well as the documented minimum, using its public toolkit suite path.

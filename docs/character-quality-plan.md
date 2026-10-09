@@ -81,3 +81,9 @@ with `samples=fps+1` is not evidence of playback at that FPS.
 The final approved revision passes full Windows/Linux headless, editor and live
 MCP gates. Other-family visual review, integration combinations and agent task
 usability follow this phase. No tag, release, merge or media upload is authorized.
+
+2026-10-09 scope update: the user accepted r004 and requested a plan to finish
+the repairs, merge to main and publish a GitHub release. Follow
+`release-wrap-up-plan.md` for release preparation and the final reviewed
+publishing checkpoint. Record the selected accepted profile explicitly.
+The earlier exclusion of private review-video/local asset uploads remains.

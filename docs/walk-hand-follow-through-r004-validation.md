@@ -1,4 +1,9 @@
-# Walk hand/forearm/wrist r004 — awaiting human video review
+# Walk hand/forearm/wrist r004 — revision accepted
+
+2026-10-09: the user says r004 is okay and asks to wrap up the repairs and
+publish on GitHub. Revision acceptance/playback is recorded; the exact reviewed
+profile/rig coverage is being clarified. The proposed next scope is
+`release-wrap-up-plan.md`. This acceptance does not cover the remaining motions.
 
 Animation source: `68e06aa5247145ecb8a8f1f09b000e9f4cd21123`.
 Reference r003 source: `86ea12a8d2521c00c6155bb1a032ffdd3055d4ac`.
@@ -112,6 +117,7 @@ and both whole-body clean comparisons. Previous r003 is left; r004 is right.
 Chapters: dummy 00:00–00:12, X Bot 00:12–00:24, short 00:24–00:36,
 tall Z-up 00:36–00:48. Diagnostic versions show contact/root markers.
 
-**Pause here for hand/forearm/wrist/finger and whole-walk feedback on both
-profiles/all four rigs.** New playback confirmation and visual approval remain
-pending. Numerical/CI passes do not approve quality or promote defaults.
+The r004 feedback pause is complete. Plan integration of the selected accepted
+profile as actual defaults next, preserving these reference files. Keep the
+reviewed profile/rig coverage explicit; numerical/CI passes alone do not approve
+other motions or promote unreviewed profiles. See `release-wrap-up-plan.md`.
