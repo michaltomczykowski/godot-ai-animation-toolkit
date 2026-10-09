@@ -20,7 +20,7 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Implement docs/walk-hand-follow-through-r004-plan.md; record same-profile r003/r004 comparisons and pause for review.",
+  "next_action": "Finish r004 continuous recordings, source CI and archive verification, then open PC Explorer and pause for hand/forearm/wrist feedback. r003 is the preserved reference; no candidate/default promotion.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
   "updated_utc": "2026-10-09T19:30:45.940202+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-baseline-r001",
@@ -1374,5 +1374,7 @@
     "explorer_window_verified": true,
     "explorer_location": "file:///F:/GODOTAITESTING/toolkit_repair_snapshot_2026-09-30/character_quality_20261009/walk-review-r003/review-videos",
     "updated_utc": "2026-10-09T12:09:39.425844+00:00"
-  }
+  },
+  "pending_candidate_source": "68e06aa5247145ecb8a8f1f09b000e9f4cd21123",
+  "pending_candidate_recovery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r004"
 }
