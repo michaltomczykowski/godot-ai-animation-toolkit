@@ -45,6 +45,14 @@ versioned goldens and local regression pass. Windows/Linux CI remains the R1 exi
   errors or route errors. Historical initial failures remain documented.
   State: `approved_walk_styles_pending_ci`. Push the fixture candidate and verify
   Windows/Linux source CI before R2. No release yet.
+- Fixture candidate `9a35063` passes Actions `38056657619`: 32 required jobs plus
+  two advisory core-main jobs, both full live MCP routes (118 contract pass
+  markers each), and no engine/route/discovery errors. Each CI editor has two
+  explicit private-X-Bot skips; the full local suite includes both tests.
+  Standard `CI=true/1` recording refusal was added and the focused suite remains
+  59/59. Its final source CI is pending. Run phase planning and independent
+  baseline measurement follow `docs/run-quality-review-plan.md`; no run
+  generator changes before the R1 exit gate.
 
 Started 2026-09-28. This is the working repair plan and phase log for the
 unreleased `repair/toolkit-quality` branch. `ROADMAP.md` records the older

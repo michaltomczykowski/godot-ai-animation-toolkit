@@ -158,7 +158,8 @@ static func load_or_record(path: String, digest: Dictionary) -> Dictionary:
 		if parsed is Dictionary and (parsed as Dictionary).has("tracks"):
 			return {"recorded": false, "golden": parsed}
 		return {"error": "%s does not parse as a golden" % path}
-	if OS.get_environment(RECORD_ENV) != "1" or OS.get_environment("ANIMATION_TOOLKIT_CI") == "1":
+	var ci := OS.get_environment("CI").to_lower() in ["1", "true"]
+	if OS.get_environment(RECORD_ENV) != "1" or OS.get_environment("ANIMATION_TOOLKIT_CI") == "1" or ci:
 		return {"error": "Missing golden %s; explicit local %s=1 is required for recording (CI cannot record)" % [path, RECORD_ENV]}
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:

@@ -132,6 +132,32 @@ Logs/reports are under `release_r1_20261010/accepted-r005-regression`.
 State is `approved_walk_styles_pending_ci`. Windows/Linux source CI remains the
 R1 exit gate. R2-R5 and final release review remain pending.
 
+## Source CI and recording-guard follow-up
+
+Fixture candidate `9a350637c44e46cd56db203f3f7f2f984f835646` passes
+[Actions 38056657619](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/38056657619):
+all 32 required source jobs and both advisory core-main jobs. Both platforms'
+full live MCP routes record 118 passing contract markers and zero failure markers.
+Each editor job has 382/384 passing tests, no failures/errors, and exactly two
+private-X-Bot skips; locally all 384 pass with the asset installed. The skipped
+tests are `test_responsive_default_aliases_and_setup_use_identical_walks` and
+`test_xbot_rooted_walk_and_run_play_with_contact`, both reporting the missing
+local FBX. They are not a blanket skip allowance for future failures.
+
+CI tests synthetic PR merge `2a2fa0a5dd2ec735b37a132f25121fe54370566c`, whose
+tracked tree exactly matches the candidate. Released core is `bfc264200...`;
+advisory main is `b82b5c519b1b17228f70d8effce1626f391bd1dd`. Tag-only version/
+release jobs correctly skip. Raw jobs/logs and parsed receipts are preserved in
+the accepted-regression folder.
+
+The guard now also recognizes standard `CI=true/1`, used by pure headless jobs.
+The fresh public motion suite passes 59/59 including that additional refusal.
+This small test-helper follow-up needs its own full source CI before final R1
+closure. Animation generation and approved video output remain unchanged.
+The next operation's detailed plan is `docs/run-quality-review-plan.md`; baseline
+measurement can use the verified fixture source while this guard CI completes,
+but run generation-code changes wait for the R1 exit gate.
+
 These are candidate defaults on the review branch, not a release or approval of
 other motions. Non-walk profile tables still have their own previous baselines;
 R2 authors/reviews them separately rather than copying walk controls into them.

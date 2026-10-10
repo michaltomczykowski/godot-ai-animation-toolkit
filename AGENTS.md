@@ -25,6 +25,11 @@ good”); all five approvals and exact hashes are recorded. Current state is
 `approved_walk_styles_pending_ci`. Versioned fixtures preserve old files and
 normal/CI runs cannot record missing expectations. The remaining R1 exit gate
 is green Windows/Linux source CI; see the migration plan and validation note.
+Fixture source `9a35063` passed all 34 source jobs in Actions `38056657619`;
+standard-CI recording refusal is now a small follow-up with 59/59 focused
+passes and its own full CI pending. R2's run plan is saved. Baseline measurement
+is allowed against unchanged animation source, but generation-code changes
+still wait for final R1 CI.
 Do not rerun `tools/archive_walk_styles_review.py` after this approval; it refuses
 feedback reset. Preserve the delivered archives and write new closing evidence
 under `accepted-r005-regression`. R2 follows green R1 regression and still needs

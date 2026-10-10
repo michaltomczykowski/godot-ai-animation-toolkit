@@ -15,7 +15,8 @@ The approved r005 walk is guarded by:
 
 Quantization stays 2048 and tolerance stays 2. A missing fixture fails a normal
 or CI run. Local recording requires `ANIMATION_TOOLKIT_RECORD_GOLDENS=1`; CI
-always refuses recording. Generate a deliberate new versioned path after review,
+always refuses recording, through either `ANIMATION_TOOLKIT_CI=1` or standard
+`CI=true/1` (including pure headless jobs). Generate a new versioned path after review,
 then restart without the flag and compare against it. Do not overwrite historical
 files or regenerate goldens to suppress an unexplained failure.
 

@@ -24,7 +24,7 @@
     "preserved_golden_failures": [],
     "recording_progress": "Inspect recording-progress.json in the R1 recovery folder.",
     "release_ready": false,
-    "next_gate": "Green exact-candidate Windows/Linux source CI, then R2 run review.",
+    "next_gate": "Full Windows/Linux CI for the standard-CI recording guard follow-up. Run baselines may be measured; generator changes wait for R1 closure.",
     "state": "approved_walk_styles_pending_ci",
     "recording_complete": true,
     "media_videos": 10,
@@ -58,7 +58,28 @@
       "before_and_after_reload": true
     },
     "golden_epoch": "v2-responsive",
-    "regression_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\accepted-r005-regression"
+    "regression_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\accepted-r005-regression",
+    "ci_fixture_candidate": {
+      "source": "9a350637c44e46cd56db203f3f7f2f984f835646",
+      "run_id": 38056657619,
+      "required_jobs_passed": 32,
+      "advisory_main_jobs_passed": 2,
+      "editor_ci": {
+        "total": 384,
+        "passed": 382,
+        "failed": 0,
+        "skipped": 2,
+        "skip_reason": "private X Bot FBX unavailable; both tests pass locally"
+      },
+      "live_routes": {
+        "windows_contract_pass_markers": 118,
+        "linux_contract_pass_markers": 118
+      },
+      "core_commit": "bfc264200584ea5823f18356acb164781f57796d",
+      "core_main_commit": "b82b5c519b1b17228f70d8effce1626f391bd1dd",
+      "synthetic_merge_commit": "2a2fa0a5dd2ec735b37a132f25121fe54370566c",
+      "merge_tree_matches_candidate": true
+    }
   },
   "baseline_source": "1389c6655e6a1fcda34ed9249b9f715f1e8e85cd",
   "required_rigs": [
@@ -76,7 +97,7 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Verify the pushed fixture candidate in Windows/Linux source CI. Then implement the separately planned R2 run review and pause on continuous videos. No release before R2-R5 and final candidate approval.",
+  "next_action": "Full Windows/Linux CI for the standard-CI recording guard follow-up. Run baselines may be measured; generator changes wait for R1 closure. Then implement the separately planned R2 run revision and pause on continuous videos.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
   "updated_utc": "2026-10-10T13:40:33.095528+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
