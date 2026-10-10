@@ -23,6 +23,30 @@ versioned goldens and local regression pass. Windows/Linux CI remains the R1 exi
 
 ### R0/R1 checkpoint
 
+### R2 run checkpoint
+
+- Run-specific Responsive/Grounded profiles and isolated style overlays are
+  pushed as `97f17ce`; approved walk coefficients/goldens remain unchanged.
+- Actual public MCP: 40 ordinary clips, each with dry nonmutation, pose
+  preservation, Undo/Redo and save/reopen; 40 calls before/after core reload,
+  ten families/eight promoted tools present in both sessions.
+- Native matrix: 240/240 at 30/60/120 FPS, player/tree, extracted/in-place;
+  60/60 prototype parity comparisons. Maximum stance slide 15.416 mm (includes
+  caller-driven in-place output), penetration 0.283 mm, root error 0.089 mm,
+  zero knee flips/default reach clamps and zero repeated-pose difference.
+- Fresh motion 60/61, no skips: preserved legacy run golden is the sole failure.
+  Four Windows/Linux editor jobs: 383/386, the same sole failure plus two
+  private-X-Bot skips; no engine/route/discovery errors. Local headless 14/14.
+- First in-place checker attempts are preserved and explained in the validation
+  note. Final caller translation belongs to an unanimated gameplay parent;
+  the complete corrected matrix passes without removing baseline tracks.
+- Ten continuous MP4s are being recorded under `release_r2_run_20261010/candidate`.
+  Read its recording progress before resuming. Archive/open Explorer, then pause
+  for explicit run feedback; only then migrate the run golden and require green
+  regression before idle. Details: `docs/run-quality-validation.md`.
+
+### Preserved R0/R1 checkpoints
+
 - Locked decisions pushed as `917ec02`; R1 validation is recorded in
   `docs/walk-default-integration-validation.md`.
 - Resolved styles before rig geometry, exact r004 walking tables, typed explicit

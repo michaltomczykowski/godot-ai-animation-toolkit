@@ -2,6 +2,24 @@
 
 ## Current instruction (2026-10-10)
 
+R2 run animation source is `97f17ce`; candidate UUID
+`6bcece032a55484297d9d5b113f6af8d`. Forty public ordinary writes each pass actual
+Undo/Redo, dry/pose preservation and save/reopen. The complete 240 native runs,
+60 explicit-prototype comparisons, 40 reload dry calls and ten-family discovery
+pass. Motion 60/61 has only the deliberately preserved legacy run golden failing;
+14/14 headless pass. Four source CI editor jobs have the same one failure and
+two private-X-Bot skips, zero engine/route/discovery errors. Animation source is
+unchanged by later renderer/checker tooling commits. Validation:
+`docs/run-quality-validation.md`. Recovery: `release_r2_run_20261010`.
+Read `candidate/recording-progress.json` before resuming captures with
+`tools/record_run_review.ps1`; never reset or overwrite earlier archives.
+`check_run_review.py` requires 240 native and 60 prototype comparisons;
+`archive_run_review.py` requires all ten continuous MP4s and public history.
+In-place world contacts use an unanimated gameplay parent outside the visual
+mixer subtree, explicitly identified in receipts. Two failed checker attempts
+are preserved; final matrix has zero engine errors. Do not change run goldens
+before explicit run video feedback. Deliver through PC Explorer and pause.
+
 R1 closed on `8f7b6e7`: Actions `38057817851` passes all 32 required source
 jobs and two advisory main jobs. Four editor jobs: 382/384, two explicit private
 X Bot skips, zero failures/engine/route/discovery errors; locally 384/384.
