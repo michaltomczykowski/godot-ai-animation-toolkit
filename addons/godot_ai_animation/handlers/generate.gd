@@ -796,6 +796,14 @@ func preset_showcase(params: Dictionary) -> Dictionary:
 	if parent.has_node(NodePath(root_name)):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"%s already has a child named '%s'" % [parent.name, root_name])
+	if _dry_run:
+		return {"data": {
+			"path": str(ValueCodec.from_node(parent, scene_root)).path_join(root_name),
+			"players": ["AnimBounce", "AnimOrbit", "AnimSweep", "AnimDrift",
+				"AnimPulse", "AnimFloat", "AnimSpin"],
+			"animations": 7,
+			"undoable": false,
+		}}
 
 	var showcase := Node2D.new()
 	showcase.name = root_name
@@ -890,19 +898,12 @@ func preset_showcase(params: Dictionary) -> Dictionary:
 	_add_showcase_player(showcase, "AnimSpin", "spin", "World3D/SpinCube:quaternion",
 		build_spin_keys(1.0, true, 3.0), Animation.LOOP_LINEAR, animations, players)
 
-	_create_scene_pinned_action("MCP: Create animation showcase")
-	var undo := ToolContext.undo_redo
-	undo.add_do_method(parent, "add_child", showcase, true)
-	undo.add_undo_method(parent, "remove_child", showcase)
-	# The showcase is a node the do call creates, which is what a reference is
-	# for. Its clips are resources and are reached through it, so they are not
-	# referenced: the Godot docs are explicit, "Do not use for resources."
-	undo.add_do_reference(showcase)
-	undo.commit_action()
-	## Owners are set after the commit (redo re-adds the same node instances,
-	## so the assignment persists) — a Callable bound to this lazily loaded
-	## handler must not sit inside a long-lived undo action.
-	_assign_owners(showcase, scene_root)
+	# remove_child clears owners whose ancestor was removed. Set every owner
+	# inside the action so Redo persists the whole subtree again. The shared
+	# commit also enables editable children for an instanced parent.
+	var entries: Array = [{"parent": parent, "node": showcase}]
+	_stage_showcase_owners(showcase, scene_root, entries)
+	_commit_node_add_many("MCP: Create animation showcase", entries)
 
 	return {
 		"data": {
@@ -941,10 +942,11 @@ static func _last_key_time(keyframes: Array) -> float:
 
 
 ## Owner every node in a freshly built subtree so the scene can save it.
-static func _assign_owners(node: Node, owner: Node) -> void:
-	node.set_owner(owner)
+static func _stage_showcase_owners(node: Node, owner: Node, entries: Array) -> void:
 	for child in node.get_children():
-		_assign_owners(child, owner)
+		entries.append({"parent": node, "node": child, "existing": true,
+			"setup": [{"method": "set_owner", "args": [owner]}]})
+		_stage_showcase_owners(child, owner, entries)
 
 
 # ============================================================================

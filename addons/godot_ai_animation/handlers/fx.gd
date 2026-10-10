@@ -362,7 +362,7 @@ func fx_wave(params: Dictionary) -> Dictionary:
 			return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
 				"wave needs a Vector2/Vector3 position on %s" % str(entry))
 		baselines.append(baseline)
-		track_paths.append(resolved.track_path_root)
+		track_paths.append(str(resolved.track_path_root) + ":position")
 	var built := FxSpecs.wave_spec(track_paths, baselines, str(params.get("axis", "y")),
 		float(params.get("amplitude", 12.0)), float(params.get("period", 1.2)),
 		float(params.get("phase_step", 0.12)), int(params.get("cycles", 1)))
@@ -550,18 +550,34 @@ func fx_sprite_frames(params: Dictionary) -> Dictionary:
 	var sprite := node as AnimatedSprite2D
 	var old_frames: Variant = sprite.sprite_frames
 	var old_playing := sprite.is_playing()
-	sprite.stop()
+	var old_animation := sprite.animation
+	var old_frame := sprite.frame
+	var old_progress := sprite.frame_progress
+	var old_speed := sprite.get_playing_speed() / sprite.speed_scale if not is_zero_approx(sprite.speed_scale) else 1.0
 	var play := bool(params.get("play", true))
-	_create_scene_pinned_action("MCP: Sprite frames %s" % sprite_path)
-	var undo := ToolContext.undo_redo
-	undo.add_do_property(node, "sprite_frames", built.frames)
-	undo.add_undo_property(node, "sprite_frames", old_frames)
-	undo.add_do_method(sprite, "play", animation_name)
-	if old_playing:
-		undo.add_undo_method(sprite, "play")
-	else:
+	if not _dry_run:
+		_create_scene_pinned_action("MCP: Sprite frames %s" % sprite_path)
+		var undo := ToolContext.undo_redo
+		# Child resource overrides need editable instances to survive packing.
+		# Keep that permission change in the same scene history action.
+		for level in _instance_levels(sprite):
+			undo.add_do_method(level.parent, "set_editable_instance", level.instance, true)
+			undo.add_undo_method(level.parent, "set_editable_instance", level.instance, false)
+		undo.add_do_method(sprite, "stop")
+		undo.add_do_property(node, "sprite_frames", built.frames)
+		undo.add_do_property(sprite, "animation", StringName(animation_name))
 		undo.add_undo_method(sprite, "stop")
-	undo.commit_action()
+		if old_frames != null:
+			undo.add_undo_property(node, "sprite_frames", old_frames)
+			undo.add_undo_property(sprite, "animation", old_animation)
+		else:
+			undo.add_undo_method(self, "_restore_null_sprite_frames", sprite, old_animation)
+		if play:
+			undo.add_do_method(sprite, "play", animation_name)
+		if old_playing:
+			undo.add_undo_method(sprite, "play", old_animation, old_speed)
+		undo.add_undo_method(sprite, "set_frame_and_progress", old_frame, old_progress)
+		undo.commit_action()
 	return {"data": {
 		"sprite_path": sprite_path,
 		"texture": texture_path,
@@ -739,6 +755,18 @@ static func _loop_mode(params: Dictionary, default_mode: String) -> Dictionary:
 	if not _LOOP_MODES.has(mode):
 		return {"error": "Invalid loop_mode '%s'. Valid: %s" % [mode, ", ".join(_LOOP_MODES.keys())]}
 	return {"ok": _LOOP_MODES[mode]}
+
+
+func _restore_null_sprite_frames(sprite: AnimatedSprite2D, animation: StringName) -> void:
+	# Godot rejects selecting a name without frames, but retains that name
+	# when frames are removed. Select it against a temporary valid resource
+	# first, then remove the resource, preserving the original null state.
+	var temporary := SpriteFrames.new()
+	if not temporary.has_animation(animation):
+		temporary.add_animation(animation)
+	sprite.sprite_frames = temporary
+	sprite.animation = animation
+	sprite.sprite_frames = null
 
 
 func _coerce_vector(raw: Variant, like: Variant) -> Variant:

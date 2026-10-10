@@ -17,6 +17,23 @@ const ValueCodec := preload("res://addons/godot_ai_animation/utils/value_codec.g
 ## (used by `animation_inspect(op="dry_run")` and the tools' own `dry_run`).
 var _dry_run := false
 
+# Editor animation-list refreshes run deferred and can reset newly introduced
+# channels. Tickets prevent an older restoration from winning after Undo/Redo
+# within one frame; the history version also protects later non-clip edits.
+static var _pose_restore_serial: int = 0
+static var _pose_restore_tickets: Dictionary = {}
+var _owned_pose_restore_tickets: Dictionary = {}
+
+
+## The core asks cached handlers to quiesce before a script update. Calls in
+## Cancel any pending pose restoration before a handler script is replaced.
+func quiesce_for_script_swap() -> Dictionary:
+	for scene_id in _owned_pose_restore_tickets:
+		if _pose_restore_tickets.get(scene_id, -1) == _owned_pose_restore_tickets[scene_id]:
+			_pose_restore_tickets.erase(scene_id)
+	_owned_pose_restore_tickets.clear()
+	return {"ok": true}
+
 
 ## Every tool needs the editor undo manager (injected by the addon's
 ## EditorPlugin, or by the test suite).
@@ -45,6 +62,33 @@ func _resolve_player(player_path: String) -> Dictionary:
 	if player.has_animation_library(""):
 		library = player.get_animation_library("")
 	return {"player": player, "library": library}
+
+
+## Motion/sequence writes keep the caller's destination. Never reconstruct a
+## running controller's private blend state to make a library edit succeed.
+func _idle_clip_destination(player: AnimationPlayer) -> Dictionary:
+	if player.is_playing():
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
+			"Pause the destination AnimationPlayer or select an inactive player before writing clips")
+	var root := EditorInterface.get_edited_scene_root()
+	var trees := root.find_children("*", "AnimationTree", true, false)
+	if root is AnimationTree: trees.append(root)
+	for tree in trees:
+		if tree.active and tree.get_node_or_null(tree.anim_player) == player:
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
+				"Deactivate the destination's AnimationTree or select an unlinked inactive player before writing clips")
+	return {}
+
+func _extraction_change_safe(player: AnimationPlayer, path: NodePath, local: bool, replaced: Array) -> Dictionary:
+	if player.root_motion_track == path and player.root_motion_local == local: return {}
+	for name in player.get_animation_list():
+		if replaced.has(str(name)): continue
+		var animation := player.get_animation(name)
+		for index in animation.get_track_count():
+			if animation.track_is_enabled(index) and animation.track_get_type(index) in [Animation.TYPE_POSITION_3D, Animation.TYPE_ROTATION_3D, Animation.TYPE_SCALE_3D] and animation.track_get_path(index) in [player.root_motion_track, path]:
+				return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
+					"Changing extraction would alter clip '%s'; use a separate inactive destination player" % name)
+	return {}
 
 
 ## Resolve the target skeleton: `skeleton_path` (scene-absolute or relative), or
@@ -83,7 +127,17 @@ func _resolve_skeleton(params: Dictionary) -> Dictionary:
 ## so its nodes are saved as overrides of the source scene and the inherited
 ## library belongs to that source scene.
 static func _needs_local_library(player: AnimationPlayer) -> bool:
-	return not _instance_levels(player).is_empty()
+	# Editable Children controls serialization, not resource ownership. Even an
+	# already-editable instance can still share its library with a source/peer.
+	if not Engine.is_editor_hint() or not player.is_inside_tree():
+		return false
+	var edited_root := player.get_tree().edited_scene_root
+	var current: Node = player
+	while current != null and current != edited_root:
+		if not current.scene_file_path.is_empty():
+			return true
+		current = current.get_parent()
+	return false
 
 
 ## The scene-instance levels between `node` and the edited scene root that are
@@ -139,6 +193,7 @@ static func _existing_animation(library: AnimationLibrary, anim_name: String, ov
 ##
 ## Optional `extra_props` entries are {object, property, value, old} changes
 ## bundled into the same action (e.g. Control pivot recentering).
+## Bone pose entries can set after_refresh to survive deferred editor refreshes.
 func _commit_animation_changes(
 	action_label: String,
 	player: AnimationPlayer,
@@ -147,16 +202,62 @@ func _commit_animation_changes(
 	removed: Dictionary,
 	added: Dictionary,
 	extra_props: Array = [],
+	extra_nodes: Array = [],
 ) -> void:
 	if _dry_run:
 		return
 	_create_scene_pinned_action(action_label)
 	var undo := ToolContext.undo_redo
+	for entry in extra_nodes:
+		undo.add_do_method(entry.parent, "add_child", entry.node, true)
+		undo.add_undo_method(entry.parent, "remove_child", entry.node)
+		undo.add_do_method(entry.node, "set_owner", EditorInterface.get_edited_scene_root())
+		undo.add_do_reference(entry.node)
 	_stage_animation_changes(undo, player, library, created_library, removed, added)
 	for entry in extra_props:
 		undo.add_do_property(entry.object, entry.property, entry.value)
 		undo.add_undo_property(entry.object, entry.property, entry.old)
+	var restore_props: Array = extra_props.filter(func(entry: Dictionary) -> bool:
+		return bool(entry.get("after_refresh", false)))
+	if not restore_props.is_empty():
+		var root := EditorInterface.get_edited_scene_root()
+		var history: UndoRedo = undo.get_history_undo_redo(undo.get_object_history_id(root))
+		var version := history.get_version()
+		undo.add_do_method(self, "_queue_pose_restore", restore_props, history,
+			root.get_instance_id(), version + 1, false)
+		undo.add_undo_method(self, "_queue_pose_restore", restore_props, history,
+			root.get_instance_id(), version, true)
 	undo.commit_action()
+
+
+func _queue_pose_restore(props: Array, history: UndoRedo, scene_id: int,
+		version: int, use_old: bool) -> void:
+	_pose_restore_serial += 1
+	var ticket := _pose_restore_serial
+	_pose_restore_tickets[scene_id] = ticket
+	_owned_pose_restore_tickets[scene_id] = ticket
+	_restore_pose_after_refresh.call_deferred(props, history, scene_id, version, use_old, ticket)
+
+
+func _restore_pose_after_refresh(props: Array, history: UndoRedo, scene_id: int,
+		version: int, use_old: bool, ticket: int) -> void:
+	if _owned_pose_restore_tickets.get(scene_id, -1) == ticket:
+		_owned_pose_restore_tickets.erase(scene_id)
+	if _pose_restore_tickets.get(scene_id, -1) != ticket:
+		return
+	_pose_restore_tickets.erase(scene_id)
+	var root := EditorInterface.get_edited_scene_root()
+	if root == null or root.get_instance_id() != scene_id or history.get_version() != version:
+		return
+	for entry in props:
+		# Check the Variant before assigning it to an Object-typed local: a freed
+		# node cannot be assigned, even when the next statement checks validity.
+		if not is_instance_valid(entry.object):
+			continue
+		var target: Object = entry.object
+		if not target is Node or not target.is_inside_tree():
+			continue
+		target.set(entry.property, entry.old if use_old else entry.value)
 
 
 ## Stage clip add/remove calls on an already-open undo action, including the
@@ -221,11 +322,12 @@ func _commit_animation_add(
 	anim: Animation,
 	old_anim: Animation,
 	extra_props: Array = [],
+	extra_nodes: Array = [],
 ) -> void:
 	var removed := {}
 	if old_anim != null:
 		removed[anim_name] = old_anim
-	_commit_animation_changes(action_label, player, library, created_library, removed, {anim_name: anim}, extra_props)
+	_commit_animation_changes(action_label, player, library, created_library, removed, {anim_name: anim}, extra_props, extra_nodes)
 
 
 ## Open an action pinned to the edited scene's history. The first do-targets
@@ -263,12 +365,11 @@ func _add_undo_call(undo: Object, target: Object, method: String, args: Array = 
 ## Add nodes in one scene-pinned undo action, each owned by the edited scene
 ## root so the scene save keeps them, then run their setup calls
 ## ([{method, args?} | {property, value}]). Entries are
-## {parent, node, setup?, existing?} and are added in order (parents before
-## children); `existing: true` skips the add and only runs the setup calls, so
-## a call list can target a node that is already in the scene. Instance levels
-## between a parent and the scene root get Editable Children turned on, because
-## the editor only serializes overrides inside an editable instance. Undo
-## removes the added nodes, so the setup calls need no undo counterparts.
+## {parent, node, setup?, undo_setup?, existing?} and are added in order.
+## `existing: true` skips the add but runs the setup calls on a node already in
+## the scene; callers must provide undo_setup for mutations to that node.
+## Instance levels between a parent and the scene root get Editable Children
+## turned on so overrides inside imported scenes are saved.
 func _commit_node_add_many(action_label: String, entries: Array) -> void:
 	if _dry_run:
 		return
@@ -277,8 +378,8 @@ func _commit_node_add_many(action_label: String, entries: Array) -> void:
 	var scene_root := EditorInterface.get_edited_scene_root()
 	var seen_levels := {}
 	for entry in entries:
-		if entry.get("existing", false):
-			continue
+		# An existing skeleton inside an imported scene also needs editable
+		# children before appended bones can be serialized as overrides.
 		for level in _instance_levels(entry.parent):
 			var key := str(level.instance.get_path())
 			if seen_levels.has(key):
@@ -299,6 +400,11 @@ func _commit_node_add_many(action_label: String, entries: Array) -> void:
 				undo.add_do_property(node, call.property, call.value)
 			else:
 				_add_do_call(undo, node, call.method, call.get("args", []))
+		for call in entry.get("undo_setup", []):
+			if call.has("property"):
+				undo.add_undo_property(node, call.property, call.value)
+			else:
+				_add_undo_call(undo, node, call.method, call.get("args", []))
 	undo.commit_action()
 
 

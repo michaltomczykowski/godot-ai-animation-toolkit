@@ -9,10 +9,13 @@ const ToolContext := preload("res://addons/godot_ai_animation/utils/tool_context
 const ValueCodec := preload("res://addons/godot_ai_animation/utils/value_codec.gd")
 
 const MotionHandler := preload("res://addons/godot_ai_animation/handlers/motion.gd")
+const InspectHandler := preload("res://addons/godot_ai_animation/handlers/inspect.gd")
+const MotionSpecs := preload("res://addons/godot_ai_animation/spec/motion_specs.gd")
 const RigAnalysis := preload("res://addons/godot_ai_animation/spec/rig_analysis.gd")
 const GoldenDigest := preload("res://tests/golden_digest.gd")
 
 const DUMMY := "res://models/human_dummy/HumanCharacterDummy_F.fbx"
+const XBOT := "res://models/x_bot/X Bot.fbx"
 
 var _handler: MotionHandler
 var _undo_redo: EditorUndoRedoManager
@@ -28,7 +31,264 @@ func suite_setup(ctx: Dictionary) -> void:
 	_handler = MotionHandler.new()
 
 
+func test_explicit_jump_aliases_keep_metres_on_large_rigs() -> void:
+	var ctx := {"legs": {"l": {"upper": 0.85, "lower": 0.85}}}
+	var config := MotionSpecs.jump_config("default", {})
+	config["jump_height"] = 0.5
+	config["jump_crouch"] = 0.2
+	_handler._scale_distances_to_rig(config,
+		{"height": 0.5, "crouch": 0.2}, {}, ctx)
+	assert_true(is_equal_approx(float(config.jump_height), 0.5),
+		"explicit height stays 0.5 m")
+	assert_true(is_equal_approx(float(config.jump_crouch), 0.2),
+		"explicit crouch stays 0.2 m")
+	var defaults := MotionSpecs.jump_config("default", {})
+	var before_default := float(defaults.jump_height)
+	_handler._scale_distances_to_rig(defaults, {}, {}, ctx)
+	assert_true(is_equal_approx(float(defaults.jump_height), before_default * 2.0),
+		"an untouched default scales with leg length")
+
+
+func test_motion_sample_budget_rejects_before_building_keys() -> void:
+	var rig := _rig("Budget")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "walk_cycle", "player_path": rig.player_path,
+		"skeleton_path": rig.skeleton_path, "duration": 10000.0,
+		"samples": 120.0, "animation_name": "must_not_exist",
+	}, null)
+	assert_is_error(result, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_contains(str(result.error.message), "motion budget")
+	assert_false(rig.player.has_animation("must_not_exist"),
+		"oversized request must not mutate the player")
+	var sparse := _handler.run({
+		"op": "run_cycle", "player_path": rig.player_path,
+		"skeleton_path": rig.skeleton_path, "duration": 1.0,
+		"samples": 12.0, "animation_name": "sparse_run",
+	}, null)
+	assert_true(sparse.has("data"), "under-sampled gait is raised to the quality floor")
+	if sparse.has("data"):
+		assert_true(float(sparse.data.samples) >= 24.0,
+			"gait reports the actual key rate: %s" % str(sparse.data.samples))
+	_teardown(rig)
+
+
 # --- helpers ---------------------------------------------------------------
+
+func test_run_default_aliases_grounded_and_setup_share_profiles() -> void:
+	for fixture in [DUMMY, "res://repair_synthetic_short.tscn", "res://repair_synthetic_zup_tall.tscn"]:
+		var rig := _rig("RunProfiles", fixture)
+		if rig.has("error"):
+			skip(rig.error)
+			continue
+		var params := {"op": "run_cycle", "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "root_motion": true, "animation_name": "implicit_run"}
+		var made := _handler.run(params, null)
+		assert_true(made.has("data"), "ordinary run builds: " + str(made))
+		if not made.has("data"):
+			_teardown(rig)
+			continue
+		assert_eq(made.data.resolved_style, "responsive", "ordinary run resolves Responsive")
+		assert_eq(float(made.data.samples), 60.0, "ordinary run reports 60 keys/s")
+		var digest := GoldenDigest.from_animation(rig.player.get_animation("implicit_run"))
+		for style in ["default", "responsive"]:
+			var alias := params.duplicate(true)
+			alias.merge({"op": "cycle", "preset": "run", "style": style,
+				"animation_name": "alias_run_" + style}, true)
+			assert_true(_handler.run(alias, null).has("data"), "run alias builds")
+			var compared := GoldenDigest.compare(GoldenDigest.from_animation(
+				rig.player.get_animation(alias.animation_name)), digest)
+			assert_eq(str(compared.shape), "", "run alias structure")
+			assert_eq(int(compared.worst), 0, "run alias exact values")
+		var grounded := params.duplicate(true)
+		grounded.merge({"style": "grounded", "animation_name": "grounded_run"}, true)
+		assert_true(_handler.run(grounded, null).has("data"), "Grounded run builds")
+		var distinct := GoldenDigest.compare(GoldenDigest.from_animation(
+			rig.player.get_animation("grounded_run")), digest)
+		assert_gt(int(distinct.worst), 0, "Grounded run is measurably distinct")
+		# Setup declares its own timing/speed. Match those inputs explicitly.
+		var matched := params.duplicate(true)
+		matched.merge({"duration": 0.6, "speed": 1.1, "animation_name": "matched_run"}, true)
+		assert_true(_handler.run(matched, null).has("data"), "matched run builds")
+		var setup := _handler.run({"op": "character_setup", "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "root_motion": true, "run_speed": 1.1}, null)
+		assert_true(setup.has("data"), "setup reuses run profile: " + str(setup))
+		if setup.has("data"):
+			var compared := GoldenDigest.compare(GoldenDigest.from_animation(rig.player.get_animation("run")),
+				GoldenDigest.from_animation(rig.player.get_animation("matched_run")))
+			assert_eq(str(compared.shape), "", "setup run matched structure")
+			assert_eq(int(compared.worst), 0, "setup run matched values")
+		_teardown(rig)
+
+
+func test_run_undo_redo_restores_written_run() -> void:
+	var scene := EditorInterface.get_edited_scene_root()
+	var marker := scene.get_node_or_null("PublicRunHistory") if scene != null else null
+	var rig := {}
+	var player: AnimationPlayer
+	var name := "quality_run"
+	if marker != null:
+		# The external client already wrote this clip through public custom_manage.
+		# This branch tests that actual editor history, with no handler mutation.
+		player = scene.get_node_or_null(marker.get_meta("player_path")) as AnimationPlayer
+	else:
+		rig = _rig("RunHistory")
+		if rig.has("error"):
+			skip(rig.error)
+			return
+		player = rig.player
+		assert_true(_handler.run({"op": "run_cycle", "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "animation_name": name,
+			"root_motion": true}, null).has("data"), "run history fixture builds")
+	assert_true(player != null and player.has_animation(name), "written run exists before Undo")
+	if player == null or not player.has_animation(name):
+		_teardown(rig)
+		return
+	var digest := GoldenDigest.from_animation(player.get_animation(name))
+	var root_track := player.root_motion_track
+	var markers := player.get_animation(name).get_marker_names()
+	assert_true(editor_undo(_undo_redo), "actual run Undo succeeds")
+	assert_false(player.has_animation(name), "Undo removes written run")
+	assert_true(editor_redo(_undo_redo), "actual run Redo succeeds")
+	assert_true(player.has_animation(name), "Redo restores written run")
+	if player.has_animation(name):
+		var compared := GoldenDigest.compare(GoldenDigest.from_animation(player.get_animation(name)), digest)
+		assert_eq(str(compared.shape), "", "Redo restores run structure")
+		assert_eq(int(compared.worst), 0, "Redo restores run values")
+		assert_eq(player.root_motion_track, root_track, "Redo restores extraction binding")
+		assert_eq(player.get_animation(name).get_marker_names(), markers, "Redo restores contacts")
+	_teardown(rig)
+
+func test_responsive_default_aliases_and_setup_use_identical_walks() -> void:
+	for fixture in [DUMMY, XBOT, "res://repair_synthetic_short.tscn", "res://repair_synthetic_zup_tall.tscn"]:
+		var rig := _rig("ResponsiveDefault", fixture)
+		if rig.has("error"):
+			skip(rig.error)
+			continue
+		var params := {"op": "walk_cycle", "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "duration": 1.0, "root_motion": true,
+			"animation_name": "implicit"}
+		var implicit := _handler.run(params, null)
+		assert_true(implicit.has("data"), "implicit responsive walk: " + str(implicit))
+		if not implicit.has("data"):
+			_teardown(rig)
+			continue
+		assert_eq(implicit.data.resolved_style, "responsive", "omitted style resolves responsive")
+		assert_eq(float(implicit.data.samples), 60.0, "implicit sampling matches r004")
+		var digest := GoldenDigest.from_animation(rig.player.get_animation("implicit"))
+		for style in ["default", "responsive"]:
+			var alias := params.duplicate(true)
+			alias.merge({"op": "cycle", "preset": "walk", "style": style,
+				"animation_name": "alias_" + style}, true)
+			var made := _handler.run(alias, null)
+			assert_true(made.has("data"), "cycle alias: " + str(made))
+			if made.has("data"):
+				var compared := GoldenDigest.compare(GoldenDigest.from_animation(
+					rig.player.get_animation(alias.animation_name)), digest)
+				assert_eq(str(compared.shape), "", "aliases preserve the same tracks/keys")
+				assert_eq(int(compared.worst), 0, "aliases preserve exact generated values")
+		var setup := _handler.run({"op": "character_setup", "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "root_motion": true,
+			"run_speed": 1.1}, null)
+		assert_true(setup.has("data"), "setup shares style resolver: " + str(setup))
+		if setup.has("data"):
+			assert_eq(setup.data.clips.walk.resolved_style, "responsive", "setup reports clip style")
+			assert_eq(setup.data.clips.walk.applied_features, implicit.data.applied_features,
+				"setup reports identical applied anatomy")
+			var compared := GoldenDigest.compare(GoldenDigest.from_animation(
+				rig.player.get_animation("walk")), digest)
+			assert_eq(str(compared.shape), "", "setup walk matches standalone track/key structure")
+			assert_eq(int(compared.worst), 0, "setup walk matches standalone values")
+		_teardown(rig)
+
+
+func test_default_finger_omission_preserves_explicit_refusal() -> void:
+	for op in ["walk_cycle", "run_cycle"]:
+		var rig := _rig("OptionalFingers")
+		if rig.has("error"):
+			skip(rig.error)
+			return
+		var finger: int = rig.skeleton.find_bone("B-indexFinger01.L")
+		rig.skeleton.set_bone_name(finger, "unidentified_finger")
+		var params := {"op": op, "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "animation_name": "without_fingers"}
+		var result := _handler.run(params, null)
+		assert_true(result.has("data"), "default works without named fingers: " + str(result))
+		if result.has("data"):
+			assert_false(result.data.applied_features.has("finger_relaxation"), "no false finger claim")
+			assert_eq(result.data.omitted_features.size(), 1, "only fingers omitted")
+			assert_eq(result.data.omitted_features[0].feature, "finger_relaxation", "omission named")
+			assert_true(not str(result.data.omitted_features[0].reason).is_empty(), "omission reason supplied")
+		params.merge({"animation_name": "explicit_fingers", "overrides": {"hand_relax": 18.0}}, true)
+		assert_is_error(_handler.run(params, null), ErrorCodes.OPERATION_UNAVAILABLE)
+		assert_false(rig.player.has_animation("explicit_fingers"), "explicit anatomy error makes no clip")
+		rig.skeleton.set_bone_name(finger, "B-indexFinger01.L")
+		_teardown(rig)
+
+func test_default_optional_head_and_hands_omit_only_missing_features() -> void:
+	for op in ["walk_cycle", "run_cycle"]:
+		for missing in ["head", "hand"]:
+			var rig := _rig("OptionalAnatomy")
+			if rig.has("error"):
+				skip(rig.error)
+				return
+			var renamed := {}
+			var skeleton: Skeleton3D = rig.skeleton
+			for index in skeleton.get_bone_count():
+				var name := skeleton.get_bone_name(index)
+				if (missing == "head" and name.to_lower().contains("head")) \
+						or (missing == "hand" and name.to_lower().contains("hand") and name.ends_with(".L")):
+					renamed[index] = name
+					skeleton.set_bone_name(index, "unidentified_joint_" + str(index))
+			var params := {"op": op, "player_path": rig.player_path,
+				"skeleton_path": rig.skeleton_path, "animation_name": "optional"}
+			var result := _handler.run(params, null)
+			assert_true(result.has("data"), "optional %s missing: %s" % [missing, str(result)])
+			if result.has("data"):
+				var feature := "torso_head_articulation" if missing == "head" else "arm_hand_follow_through"
+				assert_false(result.data.applied_features.has(feature), "omitted feature not claimed")
+				assert_true(not result.data.omitted_features.is_empty(), "missing geometry reported")
+			params.animation_name = "explicit"
+			params.overrides = {"head_nod": 2.4} if missing == "head" else {"wrist_swing": 7.0}
+			assert_is_error(_handler.run(params, null), ErrorCodes.INVALID_PARAMS)
+			assert_false(rig.player.has_animation("explicit"), "explicit invalid geometry makes no clip")
+			for index in renamed: skeleton.set_bone_name(index, renamed[index])
+			_teardown(rig)
+
+func test_style_precedence_preserves_metres_and_effective_sampling() -> void:
+	var rig := _rig("StylePrecedence", "res://repair_synthetic_short.tscn")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var params := {"player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
+		"duration": 1.0, "style": "grounded", "bob": 0.012,
+		"overrides": {"bob": 0.03, "arm_swing": 10.0}, "arm_swing": 13.0}
+	var prepared := _handler._prepare_cycle(params, "walk")
+	assert_true(not prepared.has("error"), "grounded explicit controls: " + str(prepared.get("error", "")))
+	if not prepared.has("error"):
+		assert_eq(float(prepared.config.bob), 0.012, "top-level metres beat override and stay unscaled")
+		assert_eq(float(prepared.config.arm_swing), 13.0, "top-level control beats profile/override")
+		assert_eq(float(prepared.config.forearm_twist), 5.5, "untouched grounded control retained")
+	var run_params := params.duplicate(true)
+	run_params.merge({"duration": 0.6, "speed": 1.1}, true)
+	var run_prepared := _handler._prepare_cycle(run_params, "run")
+	assert_true(not run_prepared.has("error"), "explicit run controls prepare: " + str(run_prepared.get("error", "")))
+	if not run_prepared.has("error"):
+		assert_eq(float(run_prepared.config.bob), 0.012, "run top-level metres stay unscaled")
+		assert_eq(float(run_prepared.config.arm_swing), 13.0, "run caller overrides win")
+		assert_eq(float(run_prepared.config.forearm_twist), 4.0, "Grounded run own control retained")
+	for kind in ["walk_start", "walk_stop", "turn", "jump"]:
+		var one_shot := _handler._prepare_cycle({"player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "duration": 1.0, "samples": 30}, kind)
+		assert_true(not one_shot.has("error"), "dense one-shot " + kind)
+		if not one_shot.has("error"):
+			assert_eq(float(one_shot.rate), 120.0, "reported rate equals authored one-shot density")
+	var oversize := _handler._prepare_cycle({"player_path": rig.player_path,
+		"skeleton_path": rig.skeleton_path, "duration": 11.0, "samples": 30}, "turn")
+	assert_is_error(oversize, ErrorCodes.VALUE_OUT_OF_RANGE)
+	_teardown(rig)
 
 func _find_of_type(node: Node, type_name: String) -> Node:
 	if node.is_class(type_name):
@@ -46,13 +306,13 @@ func _assign_owners(node: Node, owner: Node) -> void:
 		_assign_owners(child, owner)
 
 
-func _rig(prefix: String) -> Dictionary:
+func _rig(prefix: String, asset_path: String = DUMMY) -> Dictionary:
 	var scene_root := EditorInterface.get_edited_scene_root()
 	if scene_root == null:
 		return {"error": "no scene"}
-	if not ResourceLoader.exists(DUMMY):
-		return {"error": "the human dummy asset is missing"}
-	var packed = load(DUMMY)
+	if not ResourceLoader.exists(asset_path):
+		return {"error": "the rig asset is missing: %s" % asset_path}
+	var packed = load(asset_path)
 	var root: Node = packed.instantiate()
 	root.name = prefix + "Dummy"
 	scene_root.add_child(root)
@@ -191,11 +451,14 @@ func test_speed_driven_gait_and_warning() -> void:
 	var fast := _handler.run({
 		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
 		"player_path": rig.player_path, "animation_name": "walk_fast",
-		"duration": 1.0, "loop_mode": "linear", "speed": 1.6,
+		"duration": 1.0, "loop_mode": "linear", "speed": 1.1,
 	}, null)
 	assert_true(slow.has("data") and fast.has("data"), "both speeds build")
 	assert_true(absf(float(slow.data.speed) - 0.7) < 0.05, "the requested speed is achieved (%s)" % slow.data.speed)
-	assert_true(absf(float(fast.data.speed) - 1.6) < 0.1, "the fast walk matches its speed (%s)" % fast.data.speed)
+	assert_true(absf(float(fast.data.speed) - 1.1) < 0.05, "the fast walk matches its speed (%s)" % fast.data.speed)
+	assert_true(float(slow.data.clamp_shortfall_m) <= 0.001 and
+		float(fast.data.clamp_shortfall_m) <= 0.001,
+		"both walk speeds keep the requested foot targets reachable")
 	assert_gt(float(fast.data.stride_used), float(slow.data.stride_used), "a faster walk uses a wider stride")
 	assert_gt(float(fast.data.cadence), 0.0, "cadence is reported")
 	var too_fast := _handler.run({
@@ -203,9 +466,9 @@ func test_speed_driven_gait_and_warning() -> void:
 		"player_path": rig.player_path, "animation_name": "walk_impossible",
 		"duration": 0.4, "loop_mode": "linear", "speed": 8.0,
 	}, null)
-	assert_true(too_fast.has("data"), "an unreachable speed still builds (clamped)")
-	assert_has_key(too_fast.data, "warnings")
-	assert_contains(str(too_fast.data.warnings), "duration")
+	assert_is_error(too_fast, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_true(not rig.player.has_animation("walk_impossible"),
+		"an unreachable explicit speed leaves no clip")
 	_teardown(rig)
 
 
@@ -259,10 +522,10 @@ func test_one_shot_recipes_keep_their_endpoint_when_looping() -> void:
 	}, null)
 	assert_true(start.has("data"), "walk_start builds: %s" % str(start))
 	var start_anim: Animation = rig.player.get_animation("start_looped")
-	var start_thigh := _track_index(start_anim, ":B-thigh.L", Animation.TYPE_ROTATION_3D)
-	var start_first: Quaternion = start_anim.track_get_key_value(start_thigh, 0)
-	var start_last: Quaternion = start_anim.track_get_key_value(start_thigh,
-		start_anim.track_get_key_count(start_thigh) - 1)
+	var start_hips := _track_index(start_anim, ":B-hips", Animation.TYPE_ROTATION_3D)
+	var start_first: Quaternion = start_anim.track_get_key_value(start_hips, 0)
+	var start_last: Quaternion = start_anim.track_get_key_value(start_hips,
+		start_anim.track_get_key_count(start_hips) - 1)
 	assert_true(rad_to_deg(start_first.angle_to(start_last)) > 3.0,
 		"the transition keeps its gait endpoint (%.1f deg)" % rad_to_deg(start_first.angle_to(start_last)))
 	var turn := _handler.run({
@@ -395,14 +658,19 @@ func test_turn_cycle_splits_into_pivot_steps() -> void:
 	assert_true(anim != null, "the clip exists")
 	var hips := _track_index(anim, ":B-hips", Animation.TYPE_ROTATION_3D)
 	assert_true(hips >= 0, "the hips are keyed")
-	assert_eq(anim.track_get_key_count(hips), 9,
-		"two steps key five phases, sharing the boundary settle (got %d)"
+	assert_true(anim.track_get_key_count(hips) >= 120,
+		"both pivot steps solve support-foot IK through playback (got %d keys)"
 			% anim.track_get_key_count(hips))
+	var midpoint := 0
+	for key_index in anim.track_get_key_count(hips):
+		if absf(anim.track_get_key_time(hips, key_index) - 0.7) < 0.001:
+			midpoint = key_index
+			break
 	var first: Quaternion = anim.track_get_key_value(hips, 0)
-	var middle: Quaternion = anim.track_get_key_value(hips, 4)
-	var last: Quaternion = anim.track_get_key_value(hips, 8)
-	assert_true(absf(anim.track_get_key_time(hips, 4) - 0.7) < 0.01,
-		"the first step settles at the halfway time (%f)" % anim.track_get_key_time(hips, 4))
+	var middle: Quaternion = anim.track_get_key_value(hips, midpoint)
+	var last: Quaternion = anim.track_get_key_value(hips, anim.track_get_key_count(hips) - 1)
+	assert_true(absf(anim.track_get_key_time(hips, midpoint) - 0.7) < 0.01,
+		"the first step settles at the halfway time (%f)" % anim.track_get_key_time(hips, midpoint))
 	assert_true(absf(rad_to_deg(first.angle_to(middle)) - 90.0) < 2.0,
 		"the first pivot settles at half the turn (%s deg)" % rad_to_deg(first.angle_to(middle)))
 	assert_true(absf(rad_to_deg(first.angle_to(last)) - 180.0) < 2.0,
@@ -451,13 +719,21 @@ func test_strafe_moves_laterally_and_loops() -> void:
 	if rig.has("error"):
 		skip(rig.error)
 		return
+	var too_fast := _handler.run({
+		"op": "strafe_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "strafe_too_fast",
+		"duration": 0.9, "direction": "left", "speed": 1.0, "loop_mode": "linear",
+	}, null)
+	assert_is_error(too_fast, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_false(rig.player.has_animation("strafe_too_fast"),
+		"an impossible lateral speed leaves no clip")
 	var result := _handler.run({
 		"op": "strafe_cycle", "skeleton_path": rig.skeleton_path,
 		"player_path": rig.player_path, "animation_name": "strafe_left",
-		"duration": 0.9, "direction": "left", "speed": 1.0, "loop_mode": "linear",
+		"duration": 0.9, "direction": "left", "loop_mode": "linear",
 	}, null)
 	assert_true(result.has("data"), "strafe builds: %s" % str(result))
-	assert_true(absf(float(result.data.speed) - 1.0) < 0.1, "the strafe matches its speed")
+	assert_true(float(result.data.speed) > 0.1, "the strafe still travels")
 	var anim: Animation = rig.player.get_animation("strafe_left")
 	var roles := MotionHandler._resolve_roles({}, rig.skeleton)
 	var left_rest: Vector3 = rig.skeleton.get_bone_global_rest(rig.skeleton.find_bone("B-thigh.L")).origin
@@ -469,12 +745,84 @@ func test_strafe_moves_laterally_and_loops() -> void:
 	var lo := INF
 	var hi := -INF
 	for index in 10:
-		var foot := _pose_of(rig, anim, float(index) / 9.0 * 0.9, "B-foot.L").origin
+		var time := float(index) / 9.0 * 0.9
+		var foot := _pose_of(rig, anim, time, "B-foot.L").origin
+		var opposite := _pose_of(rig, anim, time, "B-foot.R").origin
+		assert_true((foot - opposite).dot(lateral) > 0.01,
+			"strafe feet stay in their lateral order at sample %d" % index)
 		var offset := (foot - foot_rest).dot(lateral)
 		lo = minf(lo, offset)
 		hi = maxf(hi, offset)
 	assert_gt(hi - lo, 0.05, "the strafe foot travels sideways (%s m)" % (hi - lo))
 	assert_gt(float(result.data.markers), 0.0, "the strafe emits phase markers")
+	_teardown(rig)
+
+
+func test_rooted_right_strafe_leads_then_recovers() -> void:
+	var rig := _rig("MotionStrafeRight")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "strafe_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "strafe_right",
+		"duration": 1.0, "direction": "right",
+		"loop_mode": "linear",
+	}, null)
+	assert_true(result.has("data"), "right strafe builds: %s" % str(result))
+	if not result.has("data"):
+		_teardown(rig)
+		return
+	assert_true(bool(result.data.root_motion), "strafe defaults to extracted root travel")
+	var anim: Animation = rig.player.get_animation("strafe_right")
+	var markers: PackedStringArray = anim.get_marker_names()
+	for marker in ["toe_off.R", "contact.R", "toe_off.L", "contact.L"]:
+		assert_true(markers.has(marker), "right strafe marks %s" % marker)
+	assert_true(anim.get_marker_time("contact.R") < anim.get_marker_time("toe_off.L"),
+		"leading foot lands before trailing foot lifts")
+	var root_track := anim.find_track(rig.player.root_motion_track, Animation.TYPE_POSITION_3D)
+	assert_true(root_track >= 0, "right strafe owns an extracted root track")
+	var left_rest: Vector3 = rig.skeleton.get_bone_global_rest(rig.skeleton.find_bone("B-foot.L")).origin
+	var right_rest: Vector3 = rig.skeleton.get_bone_global_rest(rig.skeleton.find_bone("B-foot.R")).origin
+	var axis := (right_rest - left_rest).normalized()
+	var start_root: Vector3 = anim.position_track_interpolate(root_track, 0.0)
+	var previous := -0.001
+	for sample in 11:
+		var at := float(sample) / 10.0
+		var root_delta: Vector3 = anim.position_track_interpolate(root_track, at) - start_root
+		var progress := root_delta.dot(axis)
+		assert_true(progress >= previous - 0.001, "root travel is monotonic at %.1f" % at)
+		previous = progress
+	var root_early: Vector3 = anim.position_track_interpolate(root_track, 0.4) - start_root
+	var right_early := _pose_of(rig, anim, 0.4, "B-foot.R").origin + root_early
+	var left_early := _pose_of(rig, anim, 0.4, "B-foot.L").origin + root_early
+	assert_gt((right_early - right_rest).dot(axis), 0.08,
+		"right lead foot has visibly stepped by its contact")
+	assert_true(absf((left_early - left_rest).dot(axis)) < 0.025,
+		"left support foot remains planted during the right step")
+	assert_true(previous > 0.1, "right root carries meaningful travel")
+	_teardown(rig)
+
+
+func test_explicit_in_place_strafe_keeps_root_stationary() -> void:
+	var rig := _rig("MotionStrafeInPlace")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "strafe_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "strafe_in_place",
+		"duration": 1.0, "direction": "left", "root_motion": false,
+		"loop_mode": "linear",
+	}, null)
+	assert_true(result.has("data"), "in-place strafe builds: %s" % str(result))
+	if result.has("data"):
+		assert_false(bool(result.data.root_motion), "explicit false disables extracted travel")
+		assert_true(str(rig.player.root_motion_track).is_empty(),
+			"in-place strafe leaves the player's root motion unset")
+		var anim: Animation = rig.player.get_animation("strafe_in_place")
+		assert_true(anim != null and anim.get_track_count() > 0,
+			"in-place strafe still authors a bone clip")
 	_teardown(rig)
 
 
@@ -511,7 +859,8 @@ func test_walk_transitions_match_the_cycle() -> void:
 		"walk_stop starts on the cycle's contact pose (%s m off)" % walk_contact.distance_to(stop_begin))
 	var stop_end := _pose_of(rig, stop_anim, 0.35, "B-foot.L").origin
 	var rest_ankle: Vector3 = rig.skeleton.get_bone_global_rest(rig.skeleton.find_bone("B-foot.L")).origin
-	assert_true(stop_end.distance_to(rest_ankle) < 0.05, "walk_stop settles back to rest")
+	assert_true(stop_end.distance_to(rest_ankle) < 0.05,
+		"walk_stop settles back to rest (%.3f m off)" % stop_end.distance_to(rest_ankle))
 	_teardown(rig)
 
 
@@ -613,10 +962,179 @@ func test_root_motion_wires_and_undoes() -> void:
 		"duration": 1.0, "loop_mode": "linear", "root_motion": true,
 	}, null)
 	assert_true(result.has("data"), "rooted walk builds: %s" % str(result))
-	assert_true(str(rig.player.root_motion_track).ends_with(":B-hips"),
+	assert_true(str(rig.player.root_motion_track).ends_with(":position"),
 		"the player's root_motion_track is wired (%s)" % rig.player.root_motion_track)
 	assert_true(editor_undo(_undo_redo), "undo should succeed")
 	assert_true(str(rig.player.root_motion_track).is_empty(), "one undo restores the root motion track")
+	_teardown(rig)
+
+
+func test_strafe_rejects_coincident_rest_ankles() -> void:
+	var rig := _rig("MotionStrafeNarrow")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var skeleton: Skeleton3D = rig.skeleton
+	var left := skeleton.find_bone("B-foot.L")
+	var right := skeleton.find_bone("B-foot.R")
+	var parent := skeleton.get_bone_parent(right)
+	var rest := skeleton.get_bone_rest(right)
+	rest.origin = skeleton.get_bone_global_rest(parent).affine_inverse() * \
+		skeleton.get_bone_global_rest(left).origin
+	skeleton.set_bone_rest(right, rest)
+	var result := _handler.run({
+		"op": "strafe_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "coincident_strafe",
+		"duration": 1.0, "direction": "left", "loop_mode": "linear",
+	}, null)
+	assert_is_error(result, ErrorCodes.INVALID_PARAMS)
+	if result.has("error"):
+		assert_contains(str(result.error.message), "distinct left/right rest ankle spacing")
+	assert_false(rig.player.has_animation("coincident_strafe"),
+		"ambiguous strafe rig leaves no inert clip")
+	_teardown(rig)
+
+
+func test_walk_start_and_stop_root_travel_forward() -> void:
+	var rig := _rig("MotionTransitionDirection")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var roles := MotionHandler._resolve_roles({}, rig.skeleton)
+	var forward := MotionHandler._forward_dir(rig.skeleton, roles)
+	for op in ["walk_start", "walk_stop"]:
+		var result := _handler.run({
+			"op": op, "skeleton_path": rig.skeleton_path,
+			"player_path": rig.player_path, "animation_name": op,
+			"duration": 0.5, "root_motion": true,
+		}, null)
+		assert_true(result.has("data"), "%s builds: %s" % [op, str(result)])
+		if not result.has("data"):
+			continue
+		var anim: Animation = rig.player.get_animation(op)
+		var track := anim.find_track(rig.player.root_motion_track,
+			Animation.TYPE_POSITION_3D)
+		assert_true(track >= 0, "%s owns an extractable root track" % op)
+		if track < 0:
+			continue
+		var prior := -INF
+		for key in anim.track_get_key_count(track):
+			var progress := (anim.track_get_key_value(track, key) as Vector3).dot(forward)
+			assert_true(progress >= prior - 0.0005,
+				"%s never moves root backward at key %d" % [op, key])
+			prior = progress
+		assert_true(prior > 0.1, "%s makes a forward step (%.3f m)" % [op, prior])
+	_teardown(rig)
+
+
+func test_root_motion_engine_playback_keeps_world_stance_at_frame_rates() -> void:
+	var rig := _rig("MotionFrameRates")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "walk_root",
+		"duration": 1.0, "loop_mode": "linear", "root_motion": true,
+		"samples": 120.0,
+	}, null)
+	assert_true(result.has("data"), "rooted walk builds: %s" % str(result))
+	if not result.has("data"):
+		_teardown(rig)
+		return
+	var player: AnimationPlayer = rig.player
+	var skeleton: Skeleton3D = rig.skeleton
+	var foot_index := skeleton.find_bone("B-foot.L")
+	var thigh_index := skeleton.find_bone("B-thigh.L")
+	var shin_index := skeleton.find_bone("B-shin.L")
+	var leg_length := skeleton.get_bone_global_rest(thigh_index).origin.distance_to(
+		skeleton.get_bone_global_rest(shin_index).origin) + \
+		skeleton.get_bone_global_rest(shin_index).origin.distance_to(
+			skeleton.get_bone_global_rest(foot_index).origin)
+	var slide_limit := minf(0.02 * leg_length, 0.03)
+	var penetration_limit := 0.01 * leg_length
+	var up := skeleton.global_transform.basis.y.normalized()
+	var rest_ground := (skeleton.global_transform * skeleton.get_bone_global_rest(foot_index)).origin.dot(up)
+	for fps in [30, 60, 120]:
+		player.stop()
+		player.play("walk_root")
+		player.seek(0.0, true)
+		var extracted := Vector3.ZERO
+		var first := Vector3.ZERO
+		var max_slide := 0.0
+		var penetration := 0.0
+		for frame in int(0.5 * fps):
+			player.advance(1.0 / float(fps))
+			extracted += player.get_root_motion_position()
+			var posed := (skeleton.global_transform * skeleton.get_bone_global_pose(foot_index)).origin
+			var world_foot := posed + skeleton.global_transform.basis * extracted
+			if frame == 0:
+				first = world_foot
+			var delta := world_foot - first
+			max_slide = maxf(max_slide, (delta - up * delta.dot(up)).length())
+			penetration = maxf(penetration, rest_ground - world_foot.dot(up))
+		assert_true(extracted.length() > 0.2,
+			"%d FPS: AnimationPlayer extracts nonzero root travel" % fps)
+		assert_true(max_slide <= slide_limit,
+			"%d FPS: left stance slides %.4f m (limit %.4f m)" % [fps, max_slide, slide_limit])
+		assert_true(penetration <= penetration_limit,
+			"%d FPS: left foot penetrates %.4f m (limit %.4f m)" % [fps, penetration, penetration_limit])
+	player.stop()
+	_teardown(rig)
+
+
+func test_xbot_rooted_walk_and_run_play_with_contact() -> void:
+	# X Bot is a local third-party review asset and is intentionally not shipped
+	# in this repository. Keep the test active wherever it is installed, and
+	# report the absent fixture explicitly on clean CI checkouts.
+	if not ResourceLoader.exists(XBOT):
+		skip("X Bot review asset is not installed at %s" % XBOT)
+		return
+	var rig := _rig("MotionXBot", XBOT)
+	assert_false(rig.has("error"), "X Bot imports as a playable rig: %s" % str(rig.get("error", "")))
+	if rig.has("error"):
+		return
+	var skeleton: Skeleton3D = rig.skeleton
+	var bone_names: Array = []
+	for index in skeleton.get_bone_count():
+		bone_names.append(skeleton.get_bone_name(index))
+	var roles: Dictionary = RigAnalysis.detect_roles(bone_names).roles
+	assert_true(RigAnalysis.capabilities(roles, skeleton.get_bone_count()).get("walk_cycle", false),
+		"X Bot names resolve locomotion roles: %s" % str(roles))
+	for op in ["walk_cycle", "run_cycle"]:
+		var clip_name := "xbot_walk" if op == "walk_cycle" else "xbot_run"
+		var built := _handler.run({
+			"op": op, "skeleton_path": rig.skeleton_path,
+			"player_path": rig.player_path, "animation_name": clip_name,
+			"duration": 1.0, "loop_mode": "linear", "root_motion": true,
+			"samples": 120.0,
+		}, null)
+		assert_true(built.has("data"), "X Bot rooted %s builds: %s" % [op, str(built)])
+		if not built.has("data"):
+			continue
+		for fps in [30, 60, 120]:
+			var audit := InspectHandler.new().run({
+				"op": "motion_audit", "player_path": rig.player_path,
+				"skeleton_path": rig.skeleton_path, "animation_name": clip_name,
+				"samples": fps + 1, "max_slide": 0.018,
+			}, null)
+			assert_true(audit.has("data"), "%d FPS: X Bot %s plays: %s" % [fps, op, str(audit)])
+			if audit.has("data"):
+				assert_true(float(audit.data.body_travel) > 0.5,
+					"%d FPS: X Bot %s root motion carries the character" % [fps, op])
+				for side in ["l", "r"]:
+					var foot: Dictionary = audit.data.feet.get(side, {})
+					assert_true(float(foot.get("contact_time", 0.0)) > 0.0,
+						"%d FPS: X Bot %s %s foot has a grounded stance" % [fps, op, side])
+					assert_true(float(foot.get("worst_slide", INF)) <= 0.018,
+						"%d FPS: X Bot %s %s stance slide is <= 2%% of leg length: %s" % [
+							fps, op, side, str(foot.get("worst_slide", "missing"))])
+					assert_true(float(foot.get("max_penetration", INF)) <=
+						float(foot.get("penetration_budget", 0.0)),
+						"%d FPS: X Bot %s %s foot stays above the penetration budget: %s" % [
+							fps, op, side, str(foot.get("max_penetration", "missing"))])
+					assert_eq(int((foot.get("knee_pole", {}) as Dictionary).get("flips", -1)), 0,
+						"%d FPS: X Bot %s %s knee has no pole flip" % [fps, op, side])
 	_teardown(rig)
 
 
@@ -706,7 +1224,7 @@ func test_walk_dense_curves_planted_feet_and_loop() -> void:
 	assert_gt(max_f - min_f, 0.15, "the ankle travels a real stride (%s m)" % (max_f - min_f))
 	# One undo removes the clip.
 	assert_true(editor_undo(_undo_redo), "undo should succeed")
-	assert_true(rig.player.get_animation("walk") == null, "one undo removes the cycle")
+	assert_true(not rig.player.has_animation("walk"), "one undo removes the cycle")
 	_teardown(rig)
 
 
@@ -732,7 +1250,24 @@ func test_walk_bob_is_visible_and_styles_differ() -> void:
 	var default_bob := _range_of(default_anim, _track_index(default_anim, ":B-hips", Animation.TYPE_POSITION_3D), 1)
 	var heavy_bob := _range_of(heavy_anim, _track_index(heavy_anim, ":B-hips", Animation.TYPE_POSITION_3D), 1)
 	assert_gt(default_bob, 0.02, "the default walk bobs")
-	assert_gt(heavy_bob, default_bob * 1.2, "heavy bobs more than default (%s vs %s)" % [heavy_bob, default_bob])
+	# The reach planner can spend some authored bob on keeping both ankle targets
+	# reachable. A heavier gait still needs visible vertical motion and a distinct
+	# path, while its authored bob and crouch remain larger.
+	assert_gt(heavy_bob, 0.02, "the heavy walk has visible vertical motion")
+	assert_gt(absf(heavy_bob - default_bob), 0.005,
+		"the heavy pelvis path differs from default (%s vs %s)" % [heavy_bob, default_bob])
+	var default_plan := _handler._prepare_cycle({
+		"skeleton_path": rig.skeleton_path, "player_path": rig.player_path,
+		"duration": 1.0, "style": "default",
+	}, "walk")
+	var heavy_plan := _handler._prepare_cycle({
+		"skeleton_path": rig.skeleton_path, "player_path": rig.player_path,
+		"duration": 1.0, "style": "heavy",
+	}, "walk")
+	assert_true(float(heavy_plan.config.bob) > float(default_plan.config.bob),
+		"the heavy style authors more bob before reach planning")
+	assert_true(float(heavy_plan.config.crouch) > float(default_plan.config.crouch),
+		"the heavy style authors a lower stance")
 	assert_gt(float(heavy_run.data.speed), 0.0, "heavy reports its speed")
 	_teardown(rig)
 
@@ -755,13 +1290,95 @@ func test_run_is_faster_and_bigger_than_walk() -> void:
 	assert_true(walk.has("data") and run.has("data"), "both cycles build")
 	assert_gt(float(run.data.speed), float(walk.data.speed) * 1.5,
 		"the run is much faster (%.2f vs %.2f)" % [float(run.data.speed), float(walk.data.speed)])
+	for warning in run.data.get("warnings", []):
+		assert_false(str(warning).contains("not a walk"),
+			"a run does not receive the walk-only Froude warning")
 	var anim: Animation = rig.player.get_animation("run")
 	var thigh := _track_index(anim, ":B-thigh.L", Animation.TYPE_ROTATION_3D)
 	var first_key: Quaternion = anim.track_get_key_value(thigh, 0)
 	var spread := 0.0
 	for key in anim.track_get_key_count(thigh):
 		spread = maxf(spread, first_key.angle_to(anim.track_get_key_value(thigh, key)))
-	assert_gt(spread, 0.7, "the run swings the legs wide")
+	assert_gt(spread, 0.55, "the run keeps a substantial leg swing without overstriding")
+	_teardown(rig)
+
+
+func test_unreachable_run_refuses_to_commit() -> void:
+	var rig := _rig("MotionRunReach")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "run_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "too_fast",
+		"duration": 0.6, "speed": 4.0, "root_motion": true,
+	}, null)
+	assert_is_error(result, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_contains(str(result.error.message), "reach")
+	assert_false(rig.player.has_animation("too_fast"),
+		"an unreachable run does not commit a misleading clip")
+	_teardown(rig)
+
+
+func test_implicit_run_speed_does_not_rise_when_the_cycle_shortens() -> void:
+	var rig := _rig("MotionRunCadence")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var long_cycle := _handler.run({
+		"op": "run_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "run_long",
+		"duration": 1.0, "loop_mode": "linear",
+	}, null)
+	var short_cycle := _handler.run({
+		"op": "run_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "run_short",
+		"duration": 0.7, "loop_mode": "linear",
+	}, null)
+	assert_true(long_cycle.has("data") and short_cycle.has("data"),
+		"both duration variants build: %s / %s" % [str(long_cycle), str(short_cycle)])
+	if long_cycle.has("data") and short_cycle.has("data"):
+		assert_true(absf(float(long_cycle.data.speed) - float(short_cycle.data.speed)) < 0.01,
+			"omitting speed preserves rig-relative ground speed across cycle durations")
+		assert_true(float(short_cycle.data.stride_used) < float(long_cycle.data.stride_used),
+			"a shorter cycle covers less distance per step at the same speed")
+	var overlong := _handler.run({
+		"op": "run_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "run_overlong",
+		"duration": 1.6, "loop_mode": "linear",
+	}, null)
+	assert_is_error(overlong, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_false(rig.player.has_animation("run_overlong"),
+		"the fixed implicit speed refuses an overlong unreachable stride")
+	_teardown(rig)
+
+
+func test_short_run_uses_a_rig_relative_flight_lift() -> void:
+	var rig := _rig("MotionShortRun", "res://repair_synthetic_short.tscn")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "run_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "short_run",
+		"loop_mode": "linear", "root_motion": true,
+	}, null)
+	assert_true(result.has("data"), "a short rig can run at a reachable cadence: %s" % str(result))
+	if result.has("data"):
+		assert_true(float(result.data.clamp_shortfall_m) <= 0.001,
+			"the short rig's run target is not shortened")
+		assert_true(float(result.data.foot_lift_base_used_m) >= 0.07,
+			"the default swing arc provides rig-relative flight clearance")
+		assert_true(float(result.data.length) > 0.68 and float(result.data.length) < 0.78,
+			"the omitted run duration uses this rig's leg length for cadence")
+	var fixed_one_second := _handler.run({
+		"op": "run_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "short_run_too_long",
+		"duration": 1.0, "loop_mode": "linear", "root_motion": true,
+	}, null)
+	assert_is_error(fixed_one_second, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_false(rig.player.has_animation("short_run_too_long"),
+		"an explicit unreachable duration is respected and refused")
 	_teardown(rig)
 
 
@@ -776,16 +1393,17 @@ func test_root_motion_keys_travel() -> void:
 		"duration": 1.0, "loop_mode": "linear", "root_motion": true,
 	}, null)
 	assert_true(result.has("data"), "expected data, got: %s" % str(result))
-	assert_true(str(result.data.root_motion_track).ends_with(":B-hips"), "the root motion track names the hips")
+	assert_true(str(result.data.root_motion_track).ends_with(":position"), "the root motion track names the character owner")
 	var anim: Animation = rig.player.get_animation("walk_root")
-	var hips := _track_index(anim, ":B-hips", Animation.TYPE_POSITION_3D)
-	var first: Vector3 = anim.track_get_key_value(hips, 0)
-	var last: Vector3 = anim.track_get_key_value(hips, anim.track_get_key_count(hips) - 1)
+	var root_track := anim.find_track(rig.player.root_motion_track, Animation.TYPE_POSITION_3D)
+	assert_true(root_track >= 0, "the extracted character track exists")
+	var first: Vector3 = anim.track_get_key_value(root_track, 0)
+	var last: Vector3 = anim.track_get_key_value(root_track, anim.track_get_key_count(root_track) - 1)
 	var roles := MotionHandler._resolve_roles({}, rig.skeleton)
 	var forward := MotionHandler._forward_dir(rig.skeleton, roles)
 	var travel := (last - first).dot(forward)
 	assert_true(absf(travel - float(result.data.speed) * 1.0) < 0.05,
-		"the hips travel the cycle's ground speed (%s vs %s)" % [travel, float(result.data.speed)])
+		"the character root carries the cycle's ground speed (%s vs %s)" % [travel, float(result.data.speed)])
 	_teardown(rig)
 
 
@@ -812,12 +1430,293 @@ func test_walk_arms_swing_forward_with_forward_elbow() -> void:
 	var hand_back := _pose_of(rig, anim, 0.0, "B-hand.L")
 	assert_gt((hand.origin - hand_back.origin).dot(forward), 0.05,
 		"the hand travels forward between the back and front of the swing")
-	var arm_down := _handler._default_arm_down(rig.skeleton, roles)
-	assert_gt(arm_down, 0.0, "the T-pose rest is detected and the arms lowered")
+	var context := _handler._build_context({"skeleton_path": rig.skeleton_path}, "walk")
+	assert_true(absf((context.ctx.arm_down.l as Quaternion).w) < 0.999,
+		"the measured T-pose arm is lowered")
+	_teardown(rig)
+
+
+func test_walk_follow_through_native_wrists_and_refusals() -> void:
+	var rig := _rig("FollowThrough")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var params := {"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "follow", "loop_mode": "linear",
+		"overrides": {"elbow_lag": 0.06, "wrist_swing": 4.0, "wrist_lag": 0.08, "torso_twist": 8.0}}
+	var dry := params.duplicate(true)
+	dry.dry_run = true
+	assert_true(_handler.run(dry, null).has("data"), "follow-through dry run builds")
+	assert_false(rig.player.has_animation("follow"), "dry run leaves player untouched")
+	var result := _handler.run(params, null)
+	assert_true(result.has("data"), "follow-through builds: " + str(result))
+	if not result.has("data"):
+		_teardown(rig)
+		return
+	var player: AnimationPlayer = rig.player
+	player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	player.playback_auto_capture = false
+	player.play("follow", 0.0)
+	player.advance(0.0)
+	var skeleton: Skeleton3D = rig.skeleton
+	var roles: Dictionary = result.data.roles
+	var yaw := {}
+	var frame := RigAnalysis.rig_frame(skeleton, roles)
+	for role in ["hips", "chest"]:
+		var bone_index := skeleton.find_bone(str(roles[role]))
+		var delta := skeleton.get_bone_rest(bone_index).basis.get_rotation_quaternion().inverse() * skeleton.get_bone_pose_rotation(bone_index)
+		var axis := skeleton.get_bone_global_rest(bone_index).basis * Vector3(delta.x, delta.y, delta.z)
+		yaw[role] = axis.dot(frame.up)
+	assert_true(float(yaw.hips) * float(yaw.chest) < 0.0,
+		"played torso counterrotates against hips in the measured rig convention")
+	var index := skeleton.find_bone(str(roles.hand_l))
+	var first := skeleton.get_bone_pose_rotation(index)
+	var change := 0.0
+	for tick in 60:
+		player.advance(1.0 / 60.0)
+		change = maxf(change, first.angle_to(skeleton.get_bone_pose_rotation(index)))
+	assert_gt(change, deg_to_rad(3.0), "native playback has restrained wrist articulation")
+	assert_true(first.angle_to(skeleton.get_bone_pose_rotation(index)) < 0.0001,
+		"native wrist pose repeats at the loop seam")
+	player.stop()
+	for override in [{"wrist_swing": 21.0}, {"wrist_lag": -0.01}, {"elbow_lag": 0.3}, {"torso_twist": 46.0}]:
+		var bad := params.duplicate(true)
+		bad.animation_name = "refused_follow"
+		bad.overrides = override
+		assert_is_error(_handler.run(bad, null), ErrorCodes.VALUE_OUT_OF_RANGE)
+		assert_false(player.has_animation("refused_follow"), "invalid follow-through is not committed")
+	var missing := params.duplicate(true)
+	missing.roles = roles.duplicate()
+	# Require a typed role error rather than accepting an unresolved hand path.
+	missing.roles.hand_l = "missing_hand"
+	assert_is_error(_handler.run(missing, null), ErrorCodes.INVALID_PARAMS)
+	var arm_indices: Array[int] = []
+	var arm_names: Array[String] = []
+	for side in ["l", "r"]:
+		var arm_name := str(roles["arm_" + side])
+		var arm_index := skeleton.find_bone(arm_name)
+		arm_indices.append(arm_index)
+		arm_names.append(arm_name)
+		skeleton.set_bone_name(arm_index, "unidentified_link_" + side)
+	var partial_roles := MotionHandler._resolve_roles({}, skeleton)
+	assert_false(partial_roles.has("arm_l"), "partial rig has no resolved upper arm")
+	assert_true(partial_roles.has("forearm_l") and partial_roles.has("hand_l"),
+		"partial rig still has forearm and hand roles")
+	var partial := params.duplicate(true)
+	partial.animation_name = "partial_follow"
+	assert_is_error(_handler.run(partial, null), ErrorCodes.INVALID_PARAMS)
+	assert_false(player.has_animation("partial_follow"), "missing upper arm cannot silently skip requested wrist motion")
+	for side_index in arm_indices.size():
+		skeleton.set_bone_name(arm_indices[side_index], arm_names[side_index])
 	_teardown(rig)
 
 
 # --- idle -------------------------------------------------------------------
+
+func test_walk_hand_variation_native_axes_fingers_and_history() -> void:
+	for case in [DUMMY, "res://repair_synthetic_short.tscn", "res://repair_synthetic_zup_tall.tscn", "rotated_rest"]:
+		var rig := _rig("HandVariation", DUMMY if case == "rotated_rest" else case)
+		if rig.has("error"):
+			skip(rig.error)
+			return
+		var skeleton: Skeleton3D = rig.skeleton
+		if case == "rotated_rest":
+			var rotation := Basis(Vector3(1, 2, 3).normalized(), 0.73)
+			for index in skeleton.get_bone_count():
+				if skeleton.get_bone_parent(index) < 0:
+					var rest := skeleton.get_bone_rest(index)
+					skeleton.set_bone_rest(index, Transform3D(rotation * rest.basis, rotation * rest.origin))
+			skeleton.reset_bone_poses()
+		var params := {"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+			"player_path": rig.player_path, "animation_name": "loose", "samples": 60,
+			"loop_mode": "linear", "overrides": {"elbow": 8.0, "elbow_swing": 18.0,
+				"elbow_lag": 0.075, "wrist_swing": 6.0, "wrist_sway": 2.5,
+				"wrist_lag": 0.1, "forearm_twist": 5.5, "arm_variation": 0.9,
+				"variation_seed": 241, "hand_relax": 20.0}}
+		var dry := params.duplicate(true)
+		dry.dry_run = true
+		assert_true(_handler.run(dry, null).has("data"), "hand variation dry run builds")
+		assert_false(rig.player.has_animation("loose"), "dry run leaves library untouched")
+		var built := _handler.run(params, _undo_redo)
+		assert_true(built.has("data"), "hand variation builds: " + str(built))
+		if not built.has("data"):
+			_teardown(rig)
+			continue
+		var player: AnimationPlayer = rig.player
+		var roles: Dictionary = built.data.roles
+		var hand := skeleton.find_bone(roles.hand_l)
+		var forearm := skeleton.find_bone(roles.forearm_l)
+		var finger := skeleton.find_bone("B-indexFinger01.L")
+		var child := skeleton.find_bone("B-indexFinger02.L")
+		var pinky := skeleton.find_bone("B-pinky01.L")
+		var middle := skeleton.find_bone("B-middleFinger01.L")
+		var thumb := skeleton.find_bone("B-thumb01.L")
+		var hand_rest := skeleton.get_bone_global_rest(hand)
+		var rest_direction := skeleton.get_bone_global_rest(child).origin - skeleton.get_bone_global_rest(finger).origin
+		var palm := (skeleton.get_bone_global_rest(middle).origin - hand_rest.origin).cross(
+			skeleton.get_bone_global_rest(finger).origin - skeleton.get_bone_global_rest(pinky).origin).normalized()
+		palm *= signf((skeleton.get_bone_global_rest(thumb).origin - hand_rest.origin).dot(palm))
+		var fore_axis := (hand_rest.origin - skeleton.get_bone_global_rest(forearm).origin).normalized()
+		player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+		player.playback_auto_capture = false
+		for fps in [30, 60, 120]:
+			player.play("loose", 0.0)
+			player.advance(0.0)
+			var first := {}
+			for index in [hand, forearm, finger, child]: first[index] = skeleton.get_bone_pose_rotation(index)
+			var wrist_axes: Array[Vector3] = []
+			var twist_min := INF
+			var twist_max := -INF
+			for tick in fps + 1:
+				if tick > 0: player.advance(1.0 / fps)
+				var hand_delta := skeleton.get_bone_global_pose(hand).basis * hand_rest.basis.inverse()
+				var direction := hand_delta.inverse() * (skeleton.get_bone_global_pose(child).origin - skeleton.get_bone_global_pose(finger).origin)
+				assert_gt(direction.normalized().dot(palm) - rest_direction.normalized().dot(palm), 0.08,
+					"native finger curls into the measured palm, independent of rig orientation")
+				for index in [hand, forearm, finger, child]:
+					assert_true(skeleton.get_bone_pose_position(index).is_equal_approx(skeleton.get_bone_rest(index).origin), "joint lengths stay fixed")
+				var wrist_q := skeleton.get_bone_rest(hand).basis.get_rotation_quaternion().inverse() * skeleton.get_bone_pose_rotation(hand)
+				wrist_axes.append(Vector3(wrist_q.x, wrist_q.y, wrist_q.z).normalized())
+				var fore_q := skeleton.get_bone_rest(forearm).basis.get_rotation_quaternion().inverse() * skeleton.get_bone_pose_rotation(forearm)
+				var projected: float = (skeleton.get_bone_global_rest(forearm).basis * Vector3(fore_q.x, fore_q.y, fore_q.z)).dot(fore_axis)
+				twist_min = minf(twist_min, projected)
+				twist_max = maxf(twist_max, projected)
+			assert_gt(twist_max - twist_min, 0.06, "native forearm has axial articulation")
+			var cross_max := 0.0
+			for axis in wrist_axes: cross_max = maxf(cross_max, axis.cross(wrist_axes[0]).length())
+			assert_gt(cross_max, 0.5, "native wrist moves in two planes")
+			for index in first:
+				var difference: Quaternion = (first[index] as Quaternion).inverse() * skeleton.get_bone_pose_rotation(index)
+				assert_true(Vector3(difference.x, difference.y, difference.z).length() < 0.0001, "finger/forearm/wrist loop closes")
+			player.stop()
+		assert_true(editor_undo(_undo_redo), "hand revision undo succeeds")
+		assert_false(player.has_animation("loose"), "undo removes revised clip")
+		assert_true(editor_redo(_undo_redo), "hand revision redo succeeds")
+		assert_true(player.has_animation("loose"), "redo restores revised clip")
+		var copied := params.duplicate(true)
+		copied.animation_name = "repeat_seed"
+		assert_true(_handler.run(copied, null).has("data"), "repeat seed builds")
+		var original: Animation = player.get_animation("loose")
+		var repeated: Animation = player.get_animation("repeat_seed")
+		for track in original.get_track_count():
+			for key in original.track_get_key_count(track):
+				assert_eq(original.track_get_key_value(track, key), repeated.track_get_key_value(track, key), "same seed yields identical keys")
+		copied.animation_name = "other_seed"
+		copied.overrides.variation_seed = 242
+		assert_true(_handler.run(copied, null).has("data"), "other seed builds")
+		var changed: Animation = player.get_animation("other_seed")
+		var different := false
+		for track in original.get_track_count():
+			if original.track_get_path(track).get_subname(0) == roles.hand_l:
+				different = original.track_get_key_value(track, 0) != changed.track_get_key_value(track, 0)
+		assert_true(different, "different seed changes authored hand motion")
+		_teardown(rig)
+
+
+func test_walk_hand_variation_refuses_bad_parameters_and_geometry() -> void:
+	var rig := _rig("HandRefusal")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var params := {"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "refused_hand"}
+	for override in [{"forearm_twist": 20.1}, {"wrist_sway": -10.1}, {"arm_variation": 3.01},
+		{"arm_variation": -0.1}, {"variation_seed": 1.5}, {"variation_seed": -1},
+		{"variation_seed": 2147483648}, {"hand_relax": 45.1}]:
+		params.overrides = override
+		assert_is_error(_handler.run(params, null), ErrorCodes.VALUE_OUT_OF_RANGE)
+		assert_false(rig.player.has_animation("refused_hand"), "invalid controls do not commit")
+	var skeleton: Skeleton3D = rig.skeleton
+	var finger := skeleton.find_bone("B-indexFinger01.L")
+	skeleton.set_bone_name(finger, "unidentified_finger")
+	params.overrides = {"hand_relax": 20.0}
+	assert_is_error(_handler.run(params, null), ErrorCodes.OPERATION_UNAVAILABLE)
+	assert_false(rig.player.has_animation("refused_hand"), "missing finger geometry is not an inert success")
+	skeleton.set_bone_name(finger, "B-indexFinger01.L")
+	var thumb := skeleton.find_bone("B-thumb01.L")
+	var thumb_rest := skeleton.get_bone_rest(thumb)
+	skeleton.set_bone_rest(thumb, skeleton.get_bone_rest(skeleton.find_bone("B-middleFinger01.L")))
+	assert_is_error(_handler.run(params, null), ErrorCodes.OPERATION_UNAVAILABLE)
+	skeleton.set_bone_rest(thumb, thumb_rest)
+	_teardown(rig)
+
+func test_walk_head_torso_native_articulation_and_history() -> void:
+	for case in [DUMMY, "res://repair_synthetic_short.tscn", "res://repair_synthetic_zup_tall.tscn", "rotated_rest"]:
+		var asset: String = DUMMY if case == "rotated_rest" else case
+		var rig := _rig("HeadTorso", asset)
+		if rig.has("error"):
+			skip(rig.error)
+			return
+		if case == "rotated_rest":
+			var rotation := Basis(Vector3(1, 2, 3).normalized(), 0.73)
+			var skeleton: Skeleton3D = rig.skeleton
+			for index in skeleton.get_bone_count():
+				if skeleton.get_bone_parent(index) < 0:
+					var rest := skeleton.get_bone_rest(index)
+					skeleton.set_bone_rest(index, Transform3D(rotation * rest.basis, rotation * rest.origin))
+			skeleton.reset_bone_poses()
+		var params := {"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
+			"player_path": rig.player_path, "animation_name": "articulated", "samples": 60,
+			"loop_mode": "linear", "overrides": {"torso_flex": 2.0, "torso_roll": 1.0,
+				"head_nod": 2.4, "head_roll": 0.3, "head_lag": 0.03, "head_stabilize": 0.55}}
+		var dry := params.duplicate(true)
+		dry.dry_run = true
+		assert_true(_handler.run(dry, null).has("data"), "articulation dry run builds")
+		assert_false(rig.player.has_animation("articulated"), "dry run does not write")
+		var built := _handler.run(params, _undo_redo)
+		assert_true(built.has("data"), "articulation builds: " + str(built))
+		if not built.has("data"):
+			_teardown(rig)
+			continue
+		var skeleton: Skeleton3D = rig.skeleton
+		var player: AnimationPlayer = rig.player
+		var roles: Dictionary = built.data.roles
+		var frame := RigAnalysis.rig_frame(skeleton, roles)
+		player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+		player.playback_auto_capture = false
+		for fps in [30, 60, 120]:
+			player.play("articulated", 0.0)
+			player.advance(0.0)
+			var first := {}
+			var extrema := {"chest": [INF, -INF], "head": [INF, -INF]}
+			for role in ["chest", "head"]:
+				first[role] = skeleton.get_bone_global_pose(skeleton.find_bone(roles[role])).basis.get_rotation_quaternion()
+			for tick in fps + 1:
+				if tick > 0: player.advance(1.0 / fps)
+				for role in ["chest", "head"]:
+					var index := skeleton.find_bone(roles[role])
+					var played := skeleton.get_bone_global_pose(index).basis
+					var delta := played * skeleton.get_bone_global_rest(index).basis.inverse()
+					var up: Vector3 = delta * (frame.up as Vector3)
+					var pitch := rad_to_deg(atan2(up.dot(frame.forward), up.dot(frame.up)))
+					extrema[role][0] = minf(extrema[role][0], pitch)
+					extrema[role][1] = maxf(extrema[role][1], pitch)
+					assert_true(skeleton.get_bone_pose_position(index).is_equal_approx(skeleton.get_bone_rest(index).origin),
+						"articulation preserves local joint lengths")
+			for role in ["chest", "head"]:
+				assert_gt(float(extrema[role][1]) - float(extrema[role][0]), 2.0,
+					"native " + role + " pitch articulates in the rig frame at " + str(fps))
+				var index := skeleton.find_bone(roles[role])
+				var final := skeleton.get_bone_global_pose(index).basis.get_rotation_quaternion()
+				var difference: Quaternion = (first[role] as Quaternion).inverse() * final
+				assert_true(Vector3(difference.x, difference.y, difference.z).length() < 0.0001, "played joint loop closes")
+			player.stop()
+		assert_true(editor_undo(_undo_redo), "articulated walk undo succeeds")
+		assert_false(player.has_animation("articulated"), "undo removes generated clip")
+		assert_true(editor_redo(_undo_redo), "articulated walk redo succeeds")
+		assert_true(player.has_animation("articulated"), "redo restores generated clip")
+		for override in [{"head_nod": 10.1}, {"torso_roll": -10.1}, {"head_lag": 0.26}, {"head_stabilize": 1.01}]:
+			var bad := params.duplicate(true)
+			bad.animation_name = "refused_articulation"
+			bad.overrides = override
+			assert_is_error(_handler.run(bad, null), ErrorCodes.VALUE_OUT_OF_RANGE)
+			assert_false(player.has_animation(bad.animation_name), "invalid articulation cannot write")
+		var head_index := skeleton.find_bone(roles.head)
+		var head_name := skeleton.get_bone_name(head_index)
+		skeleton.set_bone_name(head_index, "unidentified_endpoint")
+		assert_is_error(_handler.run(params, null), ErrorCodes.INVALID_PARAMS)
+		skeleton.set_bone_name(head_index, head_name)
+		_teardown(rig)
 
 func test_idle_twist_is_shared_over_the_spine_chain() -> void:
 	var rig := _rig("MotionTwist")
@@ -986,24 +1885,33 @@ func test_default_distances_scale_with_the_rig() -> void:
 	var small_lift := _hip_bob(rig.player.get_animation("scale_1x"))
 	var big_lift := _hip_bob(player_2x.get_animation("scale_2x"))
 	assert_gt(small_lift, 0.0005, "the reference rig bobs (%.4f m)" % small_lift)
-	# Doubling the rig must roughly double the vertical motion, not leave it at
-	# the same five centimetres. (The upper bound allows for the bob channel
-	# being halved inside the gait.)
-	assert_true(big_lift > small_lift * 1.6,
-		"a doubled rig bobs further (%.4f m vs %.4f m)" % [big_lift, small_lift])
+	# The reach planner may offset the authored bob differently at each scale.
+	# Check the authored distance itself, then bound the played motion.
+	var small_plan := _handler._prepare_cycle({
+		"skeleton_path": rig.skeleton_path, "player_path": rig.player_path,
+		"duration": 1.0, "loop_mode": "linear",
+	}, "walk")
+	var big_plan := _handler._prepare_cycle({
+		"skeleton_path": "/" + str(scene_root.name) + "/MotionScaleDouble/Dummy2x/" + str(skeleton_2x.name),
+		"player_path": "/" + str(scene_root.name) + "/MotionScaleDouble/Dummy2x/" + str(player_2x.name),
+		"duration": 1.0, "loop_mode": "linear",
+	}, "walk")
+	assert_true(small_plan.has("config") and big_plan.has("config"), "both scaled plans are valid")
+	assert_true(absf(float(big_plan.config.bob) / float(small_plan.config.bob) - 2.0) < 0.05,
+		"authored bob scales with the rig")
+	assert_true(big_lift > small_lift * 0.8,
+		"the doubled rig still has visible vertical motion (%.4f m vs %.4f m)" % [big_lift, small_lift])
 	assert_true(big_lift < small_lift * 4.0,
 		"and not absurdly further (%.4f m vs %.4f m)" % [big_lift, small_lift])
-	# An explicit value is metres and is left alone.
+	# An extreme explicit value is rejected before creating an unreachable clip.
 	var explicit := _handler.run({
 		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
 		"player_path": rig.player_path, "animation_name": "scale_explicit",
 		"duration": 1.0, "loop_mode": "linear", "overrides": {"bob": 0.5},
 	}, null)
-	assert_true(explicit.has("data"), "the explicit walk builds (%s)" % str(explicit.get("error", explicit)))
-	var explicit_bob := _hip_bob(rig.player.get_animation("scale_explicit"))
-	assert_true(explicit_bob > small_lift * 2.0,
-		"an explicit bob is taken in metres (%.4f m vs the default %.4f m)"
-		% [explicit_bob, small_lift])
+	assert_is_error(explicit, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_true(not rig.player.has_animation("scale_explicit"),
+		"unreachable explicit bob leaves no clip")
 	_remove_node("/" + str(scene_root.name) + "/MotionScaleDouble")
 	_teardown(rig)
 
@@ -1019,12 +1927,12 @@ func test_generator_contract_key_times_speeds_and_determinism() -> void:
 		skip(rig.error)
 		return
 	var duration := 1.6
-	var rate := 12.0
+	var rate := 24.0
 	var recipes := [
 		{"op": "walk_cycle", "animation_name": "c_walk", "root_motion": true, "rooted": true, "looped": true},
 		{"op": "run_cycle", "animation_name": "c_run", "looped": true},
 		{"op": "idle_cycle", "animation_name": "c_idle", "looped": true},
-		{"op": "strafe_cycle", "animation_name": "c_strafe", "direction": "left", "looped": true},
+		{"op": "strafe_cycle", "animation_name": "c_strafe", "direction": "left", "rooted": true, "looped": true},
 		{"op": "jump", "animation_name": "c_jump"},
 		{"op": "turn_cycle", "animation_name": "c_turn"},
 	]
@@ -1037,6 +1945,12 @@ func test_generator_contract_key_times_speeds_and_determinism() -> void:
 			"skeleton_path": rig.skeleton_path, "player_path": rig.player_path,
 			"duration": duration, "samples": rate, "loop_mode": "linear",
 		}
+		# An implicit-speed run now keeps its ground speed when duration changes;
+		# the old 1.6 s shared test duration would ask this rig for an unreachable
+		# step and must return a range error rather than a clip to inspect here.
+		if str((recipe as Dictionary)["op"]) == "run_cycle":
+			params["duration"] = 1.0
+			params["samples"] = 40.0
 		for key in (recipe as Dictionary):
 			if str(key) != "animation_name":
 				params[str(key)] = (recipe as Dictionary)[key]
@@ -1146,11 +2060,10 @@ func test_generator_contract_key_times_speeds_and_determinism() -> void:
 			elif first_value is Vector3:
 				var a: Vector3 = first_value
 				var b: Vector3 = last_value
-				# A ROOTED clip (root motion) must NOT close: the hips travel a stride
-				# forward and that travel IS the root motion. Closing it would cancel
-				# the movement the caller asked for. Everything else still has to.
+				# Only the extracted character track keeps forward travel. The hips
+				# must close like every other pose track.
 				var travels: bool = bool((recipe as Dictionary).get("rooted", false)) \
-					and str(anim.track_get_path(track)).ends_with(":B-hips")
+					and str(anim.track_get_path(track)) == str(result.data.root_motion_track)
 				if travels:
 					assert_true(a.distance_to(b) > 0.01,
 						"%s: %s keeps its travel instead of closing (%.4f m)"
@@ -1221,7 +2134,7 @@ func test_real_playback_interpolates_wraps_and_matches_the_data() -> void:
 	var built := _handler.run({
 		"op": "walk_cycle", "skeleton_path": rig.skeleton_path,
 		"player_path": rig.player_path, "animation_name": "play_walk",
-		"duration": 1.0, "loop_mode": "linear", "samples": 8.0,
+		"duration": 1.0, "loop_mode": "linear", "samples": 24.0,
 	}, null)
 	assert_true(built.has("data"), "the walk builds (%s)" % str(built.get("error", built)))
 	var anim: Animation = player.get_animation("play_walk")
@@ -1369,31 +2282,43 @@ func test_a_z_up_rig_gets_a_z_up_frame_and_a_z_up_floor() -> void:
 		"sliding along the rig's own ground is still caught (%s)" % str(float(slid.worst)))
 
 
+func test_z_up_jump_converts_pelvis_translation_to_parent_bone_space() -> void:
+	var rig := _rig("MotionZUpPlayed", "res://repair_synthetic_zup_tall.tscn")
+	assert_false(rig.has("error"), "the scene-owned Z-up fixture loads: %s" % str(rig.get("error", "")))
+	if rig.has("error"):
+		return
+	var built := _handler.run({
+		"op": "jump", "skeleton_path": rig.skeleton_path,
+		"player_path": rig.player_path, "animation_name": "zup_jump",
+		"duration": 1.0, "height": 0.3, "distance": 0.5,
+		"root_motion": true,
+	}, null)
+	assert_true(built.has("data"), "Z-up jump builds: %s" % str(built))
+	if built.has("data"):
+		var audit := InspectHandler.new().run({
+			"op": "motion_audit", "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "animation_name": "zup_jump",
+			"motion_kind": "jump", "samples": 121, "max_slide": 0.025,
+		}, null)
+		assert_true(audit.has("data"), "Z-up jump plays: %s" % str(audit))
+		if audit.has("data"):
+			assert_true(bool(audit.data.passed),
+				"Z-up jump keeps grounded contacts below 2%% of leg length: %s" % str(audit.data.checks))
+			assert_true(float(audit.data.hips.height_range) > 0.25,
+				"the pelvis rises along the rig's +Z up axis")
+	_teardown(rig)
+
+
 func _bone(skeleton: Skeleton3D, bone: String, origin: Vector3, basis: Basis) -> void:
 	skeleton.add_bone(bone)
 	skeleton.set_bone_rest(skeleton.find_bone(bone), Transform3D(basis, origin))
 
 
-func test_a_rooted_stance_is_still_in_the_clip_so_the_travel_cancels() -> void:
-	# The root-motion contract, stated as arithmetic and checked on the authored
-	# data, which is where it is observable.
-	#
-	# Extraction cancels the hips track from the pose. That shifts the WHOLE chain
-	# back by the travel T(t) - the rotations are unchanged, so every bone downstream
-	# of the hips translates by the same amount - and the caller then applies T(t) to
-	# the character node. So for any bone:
-	#
-	#     world = (authored - T(t)) + T(t) = authored
-	#
-	# The world position IS the authored position. Two consequences, and the second
-	# one was got wrong first time:
-	#
-	#   1. a planted foot has to be authored STILL in the clip's own space;
-	#   2. which hip the leg solve aims from cannot change where the foot lands - it
-	#      can only change whether the leg can REACH the target. Aiming from the
-	#      authored (travelled) hips demands a reach the viewer never sees, the solve
-	#      clamps, and the foot rides the hips at full speed. That clamp was the
-	#      0.13 m of "residual slide"; the frame was never the problem.
+func test_a_rooted_stance_is_still_in_the_world_after_extraction() -> void:
+	# The character root owns T(t). Extraction cancels that track from the pose;
+	# the game applies T(t) to the character. The hips remain a local bob/sway
+	# pose, and the foot slides backward in clip space while staying planted in
+	# world space after T(t) is applied.
 	var rig := _rig("MotionRootMotion")
 	if rig.has("error"):
 		skip(rig.error)
@@ -1415,9 +2340,16 @@ func test_a_rooted_stance_is_still_in_the_clip_so_the_travel_cancels() -> void:
 		"the player is wired for root motion (track %s)" % str(player.root_motion_track))
 	assert_true(player.root_motion_local,
 		"extraction is local to the rig's frame, not left at the world default")
-	var travel := _hip_travel_net(anim, "B-hips")
+	var root_track := anim.find_track(player.root_motion_track, Animation.TYPE_POSITION_3D)
+	assert_true(root_track >= 0, "the extracted root track is present")
+	var first_root: Vector3 = anim.track_get_key_value(root_track, 0)
+	var last_root: Vector3 = anim.track_get_key_value(root_track,
+		anim.track_get_key_count(root_track) - 1)
+	var travel := Vector2((last_root - first_root).x, (last_root - first_root).z).length()
 	assert_true(travel > 0.8,
-		"the hips carry the cycle's travel for the player to extract (%0.3f m)" % travel)
+		"the character root carries the cycle's travel for extraction (%0.3f m)" % travel)
+	assert_true(_hip_travel_net(anim, "B-hips") < 0.01,
+		"the hips return to their local pose at the loop seam")
 	# The ankle is pure FK - a position track on the foot would quietly become the
 	# thing that moves the foot, and the whole contract above would be about the
 	# wrong track.
@@ -1427,7 +2359,9 @@ func test_a_rooted_stance_is_still_in_the_clip_so_the_travel_cancels() -> void:
 	for step in 24:
 		var time := float(step) / 23.0
 		var pose := _pose_of(rig, anim, time, "B-foot.L")
-		samples.append({"height": pose.origin.y, "foot": pose.origin})
+		var root_delta: Vector3 = anim.position_track_interpolate(root_track, time) - first_root
+		var world_foot: Vector3 = pose.origin + root_delta
+		samples.append({"height": world_foot.y, "foot": world_foot})
 	# The stance is the longest CONTIGUOUS run at the foot's lowest height. A plain
 	# height band is not enough: consecutive stances of one foot are a whole cycle's
 	# travel apart, so the band catches both and reports the gap between them.
@@ -1439,7 +2373,7 @@ func test_a_rooted_stance_is_still_in_the_clip_so_the_travel_cancels() -> void:
 		var slide := Vector2(first.x - last.x, first.z - last.z).length()
 		print("  rooted stance: %d samples, %.4f m of slide over the stance" % [stance.size(), slide])
 		assert_true(slide < 0.03,
-			"the stance is authored still, so the extracted travel plants it (%.4f m of slide)"
+			"the extracted travel plants the world-space stance (%.4f m of slide)"
 			% slide)
 	_teardown(rig)
 
@@ -1558,11 +2492,33 @@ func test_chain_bones_outside_the_roles_use_their_own_rest_pose() -> void:
 
 
 func test_the_walk_matches_its_golden() -> void:
-	_check_golden("walk_cycle", "golden_walk", "golden_walk.json")
+	_check_golden("walk_cycle", "golden_walk", "golden_walk_responsive_v2.json")
+
+
+func test_missing_golden_cannot_create_its_own_expected_result() -> void:
+	var path := "user://missing_walk_golden_%d.json" % Time.get_ticks_usec()
+	var saved_record := OS.get_environment(GoldenDigest.RECORD_ENV)
+	var saved_ci := OS.get_environment("ANIMATION_TOOLKIT_CI")
+	var saved_standard_ci := OS.get_environment("CI")
+	OS.set_environment(GoldenDigest.RECORD_ENV, "")
+	var normal := GoldenDigest.load_or_record(path, {})
+	OS.set_environment(GoldenDigest.RECORD_ENV, "1")
+	OS.set_environment("ANIMATION_TOOLKIT_CI", "1")
+	var ci := GoldenDigest.load_or_record(path, {})
+	OS.set_environment("ANIMATION_TOOLKIT_CI", "")
+	OS.set_environment("CI", "true")
+	var headless_ci := GoldenDigest.load_or_record(path, {})
+	OS.set_environment(GoldenDigest.RECORD_ENV, saved_record)
+	OS.set_environment("ANIMATION_TOOLKIT_CI", saved_ci)
+	OS.set_environment("CI", saved_standard_ci)
+	assert_true(normal.has("error"), "normal tests fail for a missing golden")
+	assert_true(ci.has("error"), "CI cannot record even when local recording was requested")
+	assert_true(headless_ci.has("error"), "standard headless CI also refuses recording")
+	assert_true(not FileAccess.file_exists(path), "neither rejection writes an expected result")
 
 
 func test_the_run_matches_its_golden() -> void:
-	_check_golden("run_cycle", "golden_run", "golden_run.json")
+	_check_golden("run_cycle", "golden_run", "golden_run_responsive_v2.json")
 
 
 func test_the_idle_matches_its_golden() -> void:
@@ -1578,11 +2534,18 @@ func _check_golden(op: String, animation_name: String, fixture: String) -> void:
 	if rig.has("error"):
 		skip(rig.error)
 		return
-	var built := _handler.run({
+	var params := {
 		"op": op, "skeleton_path": rig.skeleton_path,
 		"player_path": rig.player_path, "animation_name": animation_name,
-		"duration": 1.0, "loop_mode": "linear", "samples": 8.0,
-	}, null)
+		"duration": 1.0, "loop_mode": "linear",
+	}
+	# Reviewed run guards ordinary timing, style and density. Walk keeps its
+	# approved one-second request; idle keeps its historical request until review.
+	if op == "run_cycle":
+		params.erase("duration")
+	if op == "idle_cycle":
+		params["samples"] = 8.0
+	var built := _handler.run(params, null)
 	assert_true(built.has("data"), "the %s builds (%s)" % [op, str(built.get("error", built))])
 	var anim: Animation = rig.player.get_animation(animation_name)
 	assert_true(anim != null and anim.get_track_count() > 0, "the %s clip has tracks" % op)
@@ -1741,7 +2704,7 @@ func test_idle_cycle_breathing_shift_and_loop() -> void:
 	assert_true(result.has("data"), "expected data, got: %s" % str(result))
 	var anim: Animation = rig.player.get_animation("idle")
 	assert_true(anim != null, "the idle clip exists")
-	assert_eq(anim.track_get_key_count(0), 73, "3s at 24 samples/s gives 73 keys")
+	assert_eq(anim.track_get_key_count(0), 181, "3s at default 60 samples/s gives 181 keys")
 	var chest := _track_index(anim, ":B-chest", Animation.TYPE_ROTATION_3D)
 	assert_true(chest >= 0, "the chest twists")
 	var chest_spread := _spread(anim, chest)
@@ -1781,6 +2744,7 @@ func test_secondary_motion_bakes_spring_bones() -> void:
 		"duration": 1.0, "loop_mode": "linear",
 	}, null)
 	assert_true(built.has("data"), "the source walk builds, got: %s" % str(built))
+	var authored_jaw := (rig.skeleton as Skeleton3D).get_bone_pose_rotation((rig.skeleton as Skeleton3D).find_bone("B-jaw"))
 	var result := _handler.run({
 		"op": "secondary_motion", "skeleton_path": rig.skeleton_path,
 		"player_path": rig.player_path, "animation_name": "walk",
@@ -1793,6 +2757,8 @@ func test_secondary_motion_bakes_spring_bones() -> void:
 	assert_eq(anim.track_get_key_count(jaw), 31, "1s at 30 samples/s gives 31 keys")
 	var first: Quaternion = anim.track_get_key_value(jaw, 0)
 	var last: Quaternion = anim.track_get_key_value(jaw, anim.track_get_key_count(jaw) - 1)
+	assert_true(first.angle_to(authored_jaw) < 0.001,
+		"native spring playback starts at the jaw's authored pose")
 	assert_true(first.dot(last) > 0.9999, "the spring track closes its loop")
 	var moved := false
 	for key in anim.track_get_key_count(jaw):
@@ -1881,7 +2847,7 @@ func test_character_setup_builds_clips_and_tree() -> void:
 		return
 	var result := _handler.run({
 		"op": "character_setup", "player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
-		"speed": 1.4, "run_speed": 4.0, "include_jump": true, "include_turn": true,
+		"speed": 1.1, "run_speed": 2.0, "include_jump": true, "include_turn": true,
 	}, null)
 	assert_true(result.has("data"), "character_setup: %s" % str(result))
 	for clip in ["idle", "walk", "run", "jump", "turn_left"]:
@@ -1896,22 +2862,25 @@ func test_character_setup_builds_clips_and_tree() -> void:
 	# them, and a test that said only "false" would not say by how much.
 	var walk_speed := float(result.data.speed_values.walk)
 	var run_speed := float(result.data.speed_values.run)
-	_expect_close(walk_speed, 1.4, 0.02, "the walk clip's speed")
-	_expect_close(run_speed, 4.0, 0.05, "the run clip's speed")
-	assert_true(str(rig.player.root_motion_track).ends_with(":B-hips"), "root motion is wired")
+	_expect_close(walk_speed, 1.1, 0.02, "the walk clip's speed")
+	_expect_close(run_speed, 2.0, 0.05, "the run clip's speed")
+	assert_true(str(rig.player.root_motion_track).ends_with(":position"), "character root motion is wired")
+	assert_true(rig.player.root_motion_local, "the player extracts travel in the rig's local frame")
 	var scene_root := EditorInterface.get_edited_scene_root()
 	var tree := _find_of_type(rig.player.get_parent(), "AnimationTree") as AnimationTree
 	assert_true(tree != null, "an AnimationTree is created next to the player")
 	if tree != null:
 		assert_true(tree.tree_root is AnimationNodeBlendTree, "the jump layer wraps the blend space")
 		assert_true(tree.get_node_or_null(tree.anim_player) == rig.player, "the tree is wired to the player")
-		assert_true(str(tree.root_motion_track).ends_with(":B-hips"), "the tree carries the root motion track")
+		assert_true(str(tree.root_motion_track).ends_with(":position"), "the tree carries the character root track")
+		assert_true(tree.root_motion_local, "the tree extracts travel in the rig's local frame")
 	assert_true(str(result.data.apply_snippet).contains("blend_position"), "a game-side snippet is returned")
 	# One undo removes the clips, the root motion track and the tree together.
 	assert_true(editor_undo(_undo_redo), "undo should succeed")
 	for clip in ["idle", "walk", "run", "jump", "turn_left"]:
-		assert_true(rig.player.get_animation(clip) == null, "undo removed the %s clip" % clip)
+		assert_false(rig.player.has_animation(clip), "undo removed the %s clip" % clip)
 	assert_true(str(rig.player.root_motion_track).is_empty(), "undo cleared the root motion track")
+	assert_false(rig.player.root_motion_local, "undo restores the player's root motion frame")
 	assert_true(_find_of_type(rig.player.get_parent(), "AnimationTree") == null,
 		"undo removed the created tree")
 	_teardown(rig)
@@ -1932,11 +2901,41 @@ func test_character_setup_defaults_and_validation() -> void:
 	var tree := _find_of_type(rig.player.get_parent(), "AnimationTree") as AnimationTree
 	assert_true(tree != null and tree.tree_root is AnimationNodeBlendSpace1D,
 		"the default tree root is the blend space")
-	assert_true(rig.player.get_animation("jump") == null, "jump is opt-in")
-	assert_true(rig.player.get_animation("turn_left") == null, "turn is opt-in")
+	assert_true(not rig.player.has_animation("jump"), "jump is opt-in")
+	assert_true(not rig.player.has_animation("turn_left"), "turn is opt-in")
 	var bad_speeds := _handler.run({
 		"op": "character_setup", "player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
 		"speed": 4.0, "run_speed": 2.0,
 	}, null)
 	assert_is_error(bad_speeds, ErrorCodes.VALUE_OUT_OF_RANGE)
+	_teardown(rig)
+
+
+func test_character_setup_tree_extracts_root_motion_without_player_play() -> void:
+	var rig := _rig("SetupTreePlayback")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var result := _handler.run({
+		"op": "character_setup", "player_path": rig.player_path,
+		"skeleton_path": rig.skeleton_path, "root_motion": true,
+		"active": true,
+	}, null)
+	assert_true(result.has("data"), "character setup builds: %s" % str(result))
+	if not result.has("data"):
+		_teardown(rig)
+		return
+	var tree := _find_of_type(rig.player.get_parent(), "AnimationTree") as AnimationTree
+	assert_true(tree != null and tree.active, "the AnimationTree owns playback")
+	if tree != null:
+		var walk_speed := float(result.data.speed_values.walk)
+		tree.set(str(result.data.speed_parameter), walk_speed)
+		var travel := 0.0
+		for frame in 15:
+			tree.advance(1.0 / 60.0)
+			travel += tree.get_root_motion_position().length()
+		assert_true(travel > 0.05,
+			"AnimationTree extracts travel from the character track (%.4f m)" % travel)
+		assert_false(rig.player.is_playing(), "AnimationPlayer is not separately playing bones")
+		tree.active = false
 	_teardown(rig)

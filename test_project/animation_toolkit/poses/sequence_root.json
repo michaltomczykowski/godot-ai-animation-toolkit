@@ -1,0 +1,13 @@
+{
+  "format": "godot-ai-animation-pose",
+  "version": 1,
+  "source": "res://repair_sequence_fixture.tscn",
+  "rest_relative": true,
+  "bones": {
+    "Root": {
+      "rotation": {"kind": "quaternion", "x": 0.2955202067, "y": 0, "z": 0, "w": 0.9553364891},
+      "position": {"kind": "vector3", "x": 0, "y": 0, "z": 0},
+      "scale": {"kind": "vector3", "x": 1, "y": 1, "z": 1}
+    }
+  }
+}

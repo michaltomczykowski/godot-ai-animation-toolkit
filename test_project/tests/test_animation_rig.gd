@@ -189,6 +189,25 @@ func test_rollup_rejects_unknown_op() -> void:
 	assert_contains(unknown.error.message, "rig_get")
 
 
+func test_rig_families_refuse_cross_family_ops() -> void:
+	var rig_ctx := McpCallContext.new()
+	var rig_spec := McpCustomToolSpec.new()
+	rig_spec.name = OpRegistry.FAMILY_RIG
+	rig_ctx.spec = rig_spec
+	var rejected_modifier := _handler.run({"op": "ik_setup"}, rig_ctx)
+	assert_is_error(rejected_modifier, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_contains(rejected_modifier.error.message, "pose_save")
+	var modifier_ctx := McpCallContext.new()
+	var modifier_spec := McpCustomToolSpec.new()
+	modifier_spec.name = OpRegistry.FAMILY_RIG_MODIFIERS
+	modifier_ctx.spec = modifier_spec
+	var rejected_rig := _handler.run({"op": "pose_save"}, modifier_ctx)
+	assert_is_error(rejected_rig, ErrorCodes.VALUE_OUT_OF_RANGE)
+	assert_contains(rejected_rig.error.message, "ik_setup")
+	assert_false(rejected_rig.error.message.contains("pose_save, pose_apply"),
+		"the modifier family must report its own choices")
+
+
 # --- pose_save -------------------------------------------------------------
 
 func test_pose_save_captures_rest_and_pose() -> void:
@@ -267,6 +286,31 @@ func test_pose_apply_blend_and_mirror() -> void:
 	_teardown(rig)
 
 
+func test_pose_apply_dry_run_preserves_bones() -> void:
+	var rig := _rig("RigDryPose")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	_rotate_bone(rig.skeleton, "B-upperArm.L", PI / 3.0)
+	var saved := _handler.run({
+		"op": "pose_save", "skeleton_path": rig.skeleton_path, "path": POSE_FILE,
+		"overwrite": true,
+	}, null)
+	assert_has_key(saved, "data")
+	_rotate_bone(rig.skeleton, "B-upperArm.L", 0.0)
+	var dry := _handler.run({
+		"op": "pose_apply", "skeleton_path": rig.skeleton_path, "path": POSE_FILE,
+		"reset_first": true, "dry_run": true,
+	}, null)
+	assert_has_key(dry, "data")
+	assert_eq(int(dry.data.bone_count), 56)
+	assert_true(bool(dry.data.dry_run))
+	assert_false(bool(dry.data.undoable))
+	assert_true(_bone_angle(rig.skeleton, "B-upperArm.L") < 0.001,
+		"dry pose apply must leave the bone at rest")
+	_teardown(rig)
+
+
 # --- pose_blend ------------------------------------------------------------
 
 func test_pose_blend_op() -> void:
@@ -342,7 +386,7 @@ func test_pose_to_clip_builds_lean_clip() -> void:
 		"the keyed rotation matches the pose delta (%s)" % peak_delta)
 	var did_undo := editor_undo(_undo_redo)
 	assert_true(did_undo, "undo should succeed")
-	assert_true(rig.player.get_animation("wave") == null, "one undo removes the pose clip")
+	assert_true(not rig.player.has_animation("wave"), "one undo removes the pose clip")
 	_teardown(rig)
 
 
@@ -598,7 +642,9 @@ func test_rig_get_dumps_and_flags_unknown_bones() -> void:
 	# Inject a track that names a bone the skeleton does not have.
 	var anim: Animation = rig.player.get_animation("bogus")
 	var index: int = anim.add_track(Animation.TYPE_ROTATION_3D)
-	anim.track_set_path(index, NodePath("Rig/Skeleton3D:B-notABone"))
+	var player_root: Node = rig.player.get_node(rig.player.root_node)
+	var skeleton_track_path := str(player_root.get_path_to(rig.skeleton))
+	anim.track_set_path(index, NodePath("%s:B-notABone" % skeleton_track_path))
 	anim.rotation_track_insert_key(index, 0.0, Quaternion.IDENTITY)
 	var flagged := _handler.run({"op": "rig_get", "skeleton_path": rig.skeleton_path}, null)
 	var codes: Array = []
@@ -666,6 +712,14 @@ func test_rig_chain_appends_and_validates() -> void:
 		skip(rig.error)
 		return
 	var before: int = rig.skeleton.get_bone_count()
+	var original_bones: Array = []
+	for bone_index in before:
+		original_bones.append({
+			"name": rig.skeleton.get_bone_name(bone_index),
+			"parent": rig.skeleton.get_bone_parent(bone_index),
+			"rest": rig.skeleton.get_bone_rest(bone_index),
+			"rotation": rig.skeleton.get_bone_pose_rotation(bone_index),
+	})
 	var appended := _handler.run({
 		"op": "rig_chain", "skeleton_path": rig.skeleton_path,
 		"bones": [{"name": "tool_tip", "parent": "B-hand.R", "position": [0, 0.05, 0]}],
@@ -691,6 +745,22 @@ func test_rig_chain_appends_and_validates() -> void:
 	}, null)
 	assert_is_error(cycle, ErrorCodes.INVALID_PARAMS)
 	assert_contains(cycle.error.message, "cycle")
+	var undone := editor_undo(_undo_redo)
+	assert_true(undone, "one undo should remove the appended bone")
+	assert_eq(rig.skeleton.get_bone_count(), before,
+		"undo restores the imported skeleton's original bone count")
+	assert_eq(rig.skeleton.find_bone("tool_tip"), -1,
+		"undo removes the appended tip")
+	assert_true(rig.skeleton.find_bone("B-hand.R") >= 0,
+		"undo preserves existing imported bones")
+	for bone_index in before:
+		var original: Dictionary = original_bones[bone_index]
+		assert_eq(rig.skeleton.get_bone_name(bone_index), original.name)
+		assert_eq(rig.skeleton.get_bone_parent(bone_index), original.parent)
+		assert_true(rig.skeleton.get_bone_rest(bone_index).is_equal_approx(original.rest),
+			"undo keeps bone %d rest" % bone_index)
+		assert_true(rig.skeleton.get_bone_pose_rotation(bone_index).is_equal_approx(original.rotation),
+			"undo keeps bone %d pose" % bone_index)
 	_teardown(rig)
 
 
@@ -1110,7 +1180,7 @@ func test_look_at_markers_get_collision_safe_names() -> void:
 	_teardown(rig)
 
 
-func test_ik_default_markers_ignore_the_current_pose() -> void:
+func test_ik_default_target_preserves_current_effector() -> void:
 	var rig := _rig("RigIKRest")
 	if rig.has("error"):
 		skip(rig.error)
@@ -1118,6 +1188,8 @@ func test_ik_default_markers_ignore_the_current_pose() -> void:
 	var scene_root := EditorInterface.get_edited_scene_root()
 	var skeleton := ValueCodec.resolve_scene_path(rig.skeleton_path, scene_root) as Skeleton3D
 	var chain := ["B-upperArm.L", "B-forearm.L", "B-hand.L"]
+	var end_bone := skeleton.find_bone(chain[-1])
+	var neutral_effector := skeleton.global_transform * skeleton.get_bone_global_pose(end_bone).origin
 	var neutral := _handler.run({
 		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "two_bone",
 		"chain": chain, "target_name": "RestTarget",
@@ -1125,11 +1197,12 @@ func test_ik_default_markers_ignore_the_current_pose() -> void:
 	assert_true(neutral.has("data"), "neutral setup: %s" % str(neutral))
 	var neutral_target := ValueCodec.resolve_scene_path(str(neutral.data.target_path), scene_root) as Marker3D
 	var neutral_pole := ValueCodec.resolve_scene_path(str(neutral.data.pole_path), scene_root) as Marker3D
-	# Pose the chain, then set it up again: the default markers must land in the
-	# rest frame, not wherever the editor was left.
+	# A default target preserves the current effector to avoid an activation
+	# snap. The default pole keeps its stable rest-based bend plane.
 	skeleton.set_bone_pose_rotation(0, Quaternion.IDENTITY)
 	for bone_name in chain:
 		skeleton.set_bone_pose_rotation(skeleton.find_bone(bone_name), Quaternion(Vector3(1, 0, 0), 0.9))
+	var posed_effector := skeleton.global_transform * skeleton.get_bone_global_pose(end_bone).origin
 	var posed := _handler.run({
 		"op": "ik_setup", "skeleton_path": rig.skeleton_path, "kind": "two_bone",
 		"chain": chain, "target_name": "PosedTarget",
@@ -1137,9 +1210,12 @@ func test_ik_default_markers_ignore_the_current_pose() -> void:
 	assert_true(posed.has("data"), "posed setup: %s" % str(posed))
 	var posed_target := ValueCodec.resolve_scene_path(str(posed.data.target_path), scene_root) as Marker3D
 	var posed_pole := ValueCodec.resolve_scene_path(str(posed.data.pole_path), scene_root) as Marker3D
-	assert_true(posed_target.global_position.distance_to(neutral_target.global_position) < 0.001,
-		"the target lands in the rest frame (%s vs %s)"
-			% [str(posed_target.global_position), str(neutral_target.global_position)])
+	assert_true(neutral_target.global_position.distance_to(neutral_effector) < 0.001,
+		"the neutral target matches the current effector origin")
+	assert_true(posed_target.global_position.distance_to(posed_effector) < 0.001,
+		"the posed target matches the current effector origin")
+	assert_true(posed_target.global_position.distance_to(neutral_target.global_position) > 0.01,
+		"the fixture exercises a distinct authored pose")
 	assert_true(posed_pole.global_position.distance_to(neutral_pole.global_position) < 0.001,
 		"the pole lands in the rest frame")
 	_teardown(rig)
@@ -1179,6 +1255,17 @@ func test_spring_setup_builds_springs() -> void:
 	assert_true(leaf.has("data"), "expected data, got: %s" % str(leaf))
 	assert_eq((simulator as SpringBoneSimulator3D).get_setting_count(), 1, "the second call replaces the settings")
 	assert_true((leaf.data.warnings as Array).size() > 0, "the leaf fallback warns")
+	var single := _handler.run({
+		"op": "spring_setup", "skeleton_path": rig.skeleton_path,
+		"springs": [{"root_bone": "B-jaw"}],
+	}, null)
+	assert_is_error(single, ErrorCodes.INVALID_PARAMS)
+	assert_contains(str(single.error.message), "two-bone chain")
+	var unrelated := _handler.run({
+		"op": "spring_setup", "skeleton_path": rig.skeleton_path,
+		"springs": [{"root_bone": "B-forearm.L", "end_bone": "B-hand.R"}],
+	}, null)
+	assert_is_error(unrelated, ErrorCodes.INVALID_PARAMS)
 	var missing := _handler.run({
 		"op": "spring_setup", "skeleton_path": rig.skeleton_path,
 		"springs": [{"root_bone": "ghost"}],
@@ -1192,7 +1279,7 @@ func test_spring_setup_builds_springs() -> void:
 	var undone := editor_undo(_undo_redo)
 	assert_true(undone, "undo should succeed")
 	assert_true(ValueCodec.resolve_scene_path(str(leaf.data.modifier_path), scene_root) == null,
-		"one undo removes the simulator")
+		"one undo removes the latest simulator")
 	_teardown(rig)
 
 
@@ -1283,6 +1370,8 @@ func test_twist_setup_disperses_over_the_chain() -> void:
 	assert_true(even.has("data"), "an even disperser over part of the chain is accepted, got: %s" % str(even))
 	assert_eq(str(even.data.mode), "even")
 	assert_eq((even.data.joint_bones as Array).size(), 3, "hips, spine, chest")
+	assert_eq(str(even.data.reference_bone), "B-spine",
+		"an unextended end uses its parent as the twist reference")
 	var even_modifier := ValueCodec.resolve_scene_path(str(even.data.modifier_path), scene_root) as BoneTwistDisperser3D
 	assert_eq(even_modifier.get_end_bone_name(0), "B-chest")
 	assert_eq(even_modifier.get_disperse_mode(0), BoneTwistDisperser3D.DISPERSE_MODE_EVEN)
@@ -1374,6 +1463,13 @@ func test_twist_setup_disperses_over_the_chain() -> void:
 		"spine_chain": ["B-hips", "B-nope"],
 	}, null)
 	assert_is_error(missing_bone, ErrorCodes.NODE_NOT_FOUND)
+	var long_path := str(long_range.data.modifier_path)
+	assert_true(editor_undo(_undo_redo), "one undo removes the last twist modifier")
+	assert_true(ValueCodec.resolve_scene_path(long_path, scene_root) == null,
+		"twist undo removes the modifier")
+	assert_true(editor_redo(_undo_redo), "redo restores the twist modifier")
+	assert_true(ValueCodec.resolve_scene_path(long_path, scene_root) is BoneTwistDisperser3D,
+		"twist redo restores a wired disperser")
 	_remove_node(rig_path)
 
 
@@ -1647,7 +1743,7 @@ func test_walk_cycle_builds_roles_and_clip() -> void:
 	assert_true((rest.inverse() * first).get_angle() > 0.2, "the thigh actually swings")
 	var undone := editor_undo(_undo_redo)
 	assert_true(undone, "undo should succeed")
-	assert_true(rig.player.get_animation("walk") == null, "one undo removes the cycle")
+	assert_true(not rig.player.has_animation("walk"), "one undo removes the cycle")
 	_teardown(rig)
 
 
@@ -2286,14 +2382,9 @@ func test_spring_center_and_collision_paths_resolve_from_the_simulator() -> void
 	var simulator := ValueCodec.resolve_scene_path(str(result.data.modifier_path),
 		scene_root) as SpringBoneSimulator3D
 	var center_path := str(simulator.get_center_node(0))
-	var collision_path := str(simulator.get_collision_path(0, 0))
 	var center_resolves: bool = simulator.get_node_or_null(NodePath(center_path)) == center
-	# Godot resolves a spring setting's collision list on a deferred frame, so the
-	# stored path reads back empty in the same call - what is observable now is
-	# that the collision is where the engine can find it.
-	print("EVIDENCE spring center_path=%s resolves=%s collision_path=%s collisions=%d collider_parent=%s" % [
-		center_path, str(center_resolves), collision_path,
-		simulator.get_collision_count(0), str(collider.get_parent().name)])
+	assert_true(simulator.are_all_child_collisions_enabled(0), "default uses automatic child collisions")
+	assert_eq(simulator.get_collision_count(0), 0, "automatic mode has no explicit list")
 	assert_true(center_resolves,
 		"center_node resolves from the simulator (path %s points somewhere else)" % center_path)
 	# Godot only reads a collision that is a child of the simulator, so the op
@@ -2302,13 +2393,145 @@ func test_spring_center_and_collision_paths_resolve_from_the_simulator() -> void
 		"the collision was moved under the simulator, where Godot reads it")
 	assert_true((result.data.collisions_moved as Array).size() == 1,
 		"the move is reported: %s" % str(result.data.collisions_moved))
-	var collision_resolves: bool = simulator.get_node_or_null(NodePath(collision_path)) == collider
-	assert_true(collision_resolves or collision_path.is_empty(),
-		"the collision path is either resolved or still deferred (got '%s')" % collision_path)
 	var undone := editor_undo(_undo_redo)
 	assert_true(undone, "undo should succeed")
 	assert_true(collider.get_parent() == scene_root, "undo puts the collision back where it was")
 	scene_root.remove_child(center)
+	_teardown(rig)
+
+
+func test_spring_explicit_collision_paths_resolve_from_the_simulator() -> void:
+	var rig := _rig("RigSpringPaths")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var center := Marker3D.new()
+	center.name = "SpringCenter"
+	scene_root.add_child(center)
+	center.owner = scene_root
+	var collider := SpringBoneCollision3D.new()
+	collider.name = "SpringCollider"
+	collider.position = Vector3(0, 0.5, 0)
+	scene_root.add_child(collider)
+	collider.owner = scene_root
+	var history := _undo_redo.get_history_undo_redo(_undo_redo.get_object_history_id(scene_root))
+	var global_history := _undo_redo.get_history_undo_redo(EditorUndoRedoManager.GLOBAL_HISTORY)
+	var version := history.get_version()
+	var global_version := global_history.get_version()
+	var original_name := str(collider.name)
+	var original_transform := collider.transform
+	var original_global := collider.global_transform
+	var result := _handler.run({
+		"op": "spring_setup", "skeleton_path": rig.skeleton_path,
+		"springs": [{
+			"root_bone": "B-upperArm.L", "end_bone": "B-hand.L",
+			"center_node": str(ValueCodec.from_node(center, scene_root)),
+			"enable_all_child_collisions": false,
+			"collisions": [str(ValueCodec.from_node(collider, scene_root))],
+		}],
+	}, null)
+	assert_true(result.has("data"), "spring_setup: %s" % str(result))
+	if not result.has("data"):
+		scene_root.remove_child(center)
+		scene_root.remove_child(collider)
+		_teardown(rig)
+		return
+	var simulator := ValueCodec.resolve_scene_path(str(result.data.modifier_path),
+		scene_root) as SpringBoneSimulator3D
+	var center_path := str(simulator.get_center_node(0))
+	var center_resolves: bool = simulator.get_node_or_null(NodePath(center_path)) == center
+	assert_false(simulator.are_all_child_collisions_enabled(0), "explicit collision mode")
+	assert_eq(simulator.get_collision_count(0), 1, "explicit list has one collision")
+	if simulator.get_collision_count(0) == 1:
+		var collision_path := simulator.get_collision_path(0, 0)
+		assert_true(simulator.get_node_or_null(collision_path) == collider, "explicit collision path '%s' resolves to '%s'" % [collision_path, collider.name])
+	assert_true(center_resolves,
+		"center_node resolves from the simulator (path %s points somewhere else)" % center_path)
+	# Godot only reads a collision that is a child of the simulator, so the op
+	# moves it there (undoably) instead of wiring a reference that cannot fire.
+	assert_true(collider.get_parent() == simulator,
+		"the collision was moved under the simulator, where Godot reads it")
+	assert_true((result.data.collisions_moved as Array).size() == 1,
+		"the move is reported: %s" % str(result.data.collisions_moved))
+	assert_eq(history.get_version(), version + 1, "spring collision setup is one scene action")
+	assert_eq(global_history.get_version(), global_version, "spring collision setup has no global action")
+	assert_true(collider.global_transform.is_equal_approx(original_global), "spring move keeps world transform")
+	var undone := history.undo()
+	assert_true(undone, "undo should succeed")
+	assert_true(collider.get_parent() == scene_root, "undo puts the collision back where it was")
+	assert_eq(str(collider.name), original_name, "undo restores original or engine-generated name")
+	assert_true(collider.transform.is_equal_approx(original_transform), "undo restores collider transform")
+	assert_true(history.redo(), "spring collision redo")
+	assert_true(collider.get_parent() == simulator, "redo moves collider")
+	assert_true(collider.global_transform.is_equal_approx(original_global), "redo world transform")
+	if simulator.get_collision_count(0) == 1:
+		assert_true(simulator.get_node_or_null(simulator.get_collision_path(0, 0)) == collider, "redo explicit path resolves")
+	assert_true(history.undo(), "spring undo for cleanup")
+	scene_root.remove_child(center)
+	_teardown(rig)
+
+
+func test_spring_same_named_collisions_keep_paths_and_history() -> void:
+	var rig := _rig("RigSpringNames")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var parents: Array[Node3D] = []
+	var colliders: Array[SpringBoneCollisionSphere3D] = []
+	var transforms: Array[Transform3D] = []
+	for i in 2:
+		var parent := Node3D.new()
+		parent.name = "CollisionParent%d" % i
+		parent.position = Vector3(i * 2, 1, -1)
+		parent.rotation.y = 0.4
+		scene_root.add_child(parent)
+		parent.owner = scene_root
+		parents.append(parent)
+		var collider := SpringBoneCollisionSphere3D.new()
+		collider.name = "Shared"
+		collider.position = Vector3(0, 0.5, 0)
+		parent.add_child(collider)
+		collider.owner = scene_root
+		colliders.append(collider)
+		transforms.append(collider.global_transform)
+	# Renaming before reparenting would clash with this unmoved sibling.
+	var sentinel := Node3D.new()
+	sentinel.name = "Shared2"
+	parents[1].add_child(sentinel)
+	sentinel.owner = scene_root
+	var history := _undo_redo.get_history_undo_redo(_undo_redo.get_object_history_id(scene_root))
+	var version := history.get_version()
+	var registry = load("res://addons/godot_ai/custom_tools/mcp_tool_registry.gd").call("get_instance")
+	var result: Dictionary = registry.get("_dispatcher").call("_dispatch", {
+		"request_id": "spring-names", "command": "custom_tool:animation_rig_modifiers", "params": {
+			"op": "spring_setup", "skeleton_path": rig.skeleton_path,
+			"springs": [{"root_bone": "B-upperArm.L", "end_bone": "B-hand.L",
+				"enable_all_child_collisions": false,
+				"collisions": [str(colliders[0].get_path()), str(colliders[1].get_path())]}]}})
+	assert_has_key(result, "data", "spring names route " + str(result))
+	if result.has("data"):
+		var simulator := ValueCodec.resolve_scene_path(str(result.data.modifier_path), scene_root) as SpringBoneSimulator3D
+		assert_eq(history.get_version(), version + 1, "one spring action")
+		assert_eq(simulator.get_collision_count(0), 2, "both explicit collisions")
+		assert_eq(str(colliders[0].name), "Shared", "first name")
+		assert_eq(str(colliders[1].name), "Shared2", "second unique name")
+		for i in 2:
+			if simulator.get_collision_count(0) == 2:
+				assert_true(simulator.get_node_or_null(simulator.get_collision_path(0, i)) == colliders[i], "collision resolves")
+			assert_true(colliders[i].global_transform.is_equal_approx(transforms[i]), "world transform kept")
+			assert_true(ValueCodec.resolve_scene_path(str(result.data.collisions_moved[i]), scene_root) == colliders[i], "reported moved path resolves")
+		assert_true(history.undo(), "spring names undo")
+		for i in 2:
+			assert_true(colliders[i].get_parent() == parents[i], "original parent")
+			assert_eq(str(colliders[i].name), "Shared", "original name")
+			assert_true(colliders[i].global_transform.is_equal_approx(transforms[i]), "original transform")
+		assert_true(history.redo(), "spring names redo")
+		for i in 2:
+			assert_true(simulator.get_node_or_null(simulator.get_collision_path(0, i)) == colliders[i], "redo collision resolves")
+		assert_true(history.undo(), "cleanup undo")
+	for parent in parents: parent.free()
 	_teardown(rig)
 
 

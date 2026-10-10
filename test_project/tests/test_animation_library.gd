@@ -326,9 +326,9 @@ func test_spec_apply_with_remap_and_overwrite() -> void:
 		"op": "spec_apply", "player_path": rig.player_path, "path": SPEC,
 		"animation_name": "walk_elsewhere", "overwrite": true,
 	}, null)
-	assert_has_key(unresolved, "data")
-	assert_true(not (unresolved.data.issues as Array).is_empty(),
-		"applying without a remap flags the missing node")
+	assert_is_error(unresolved, ErrorCodes.NODE_NOT_FOUND)
+	assert_true(_fetch_anim(rig.player_path, "walk_elsewhere") == null,
+		"applying without a required remap must not create an inert clip")
 	_remove_node(source_path)
 	_teardown(rig)
 
@@ -342,7 +342,7 @@ func test_spec_apply_inline_and_validation() -> void:
 		"format": "godot-ai-animation-clip", "version": 1, "length": 0.5, "loop_mode": 0,
 		"markers": [],
 		"tracks": [{
-			"type": Animation.TYPE_VALUE, "path": "LibInlineTarget:scale", "enabled": true,
+			"type": Animation.TYPE_VALUE, "path": "InlineTarget:scale", "enabled": true,
 			"interp": Animation.INTERPOLATION_LINEAR, "update_mode": Animation.UPDATE_CONTINUOUS,
 			"keys": [
 				{"time": 0.0, "value": {"kind": "vector2", "x": 1, "y": 1}, "transition": 1.0},

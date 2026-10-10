@@ -13,12 +13,19 @@ const GraphBuilders := preload("res://addons/godot_ai_animation/spec/graph_build
 const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
 
 const _DEFAULT_TREE_NAME := "AnimationTree"
+var _pending_tree: AnimationTree
 
 
 ## Rollup entry registered with the Godot AI tool registry.
 func run(params: Dictionary, _ctx) -> Dictionary:
 	_dry_run = bool(params.get("dry_run", false))
+	_pending_tree = null
 	var result := _dispatch(params)
+	# Context resolution allocates a detached tree before builder validation.
+	# Dry runs and rejected builds must not leave orphan nodes behind.
+	if is_instance_valid(_pending_tree) and not _pending_tree.is_inside_tree():
+		_pending_tree.free()
+	_pending_tree = null
 	if _dry_run and result.has("data"):
 		result.data["dry_run"] = true
 		result.data["undoable"] = false
@@ -64,13 +71,13 @@ func graph_state_machine(params: Dictionary) -> Dictionary:
 	var extra := {
 		"state_count": int(built.state_count),
 		"transition_count": int(built.transition_count),
+		"authored_transition_count": int(built.authored_transition_count),
 		"conditions": built.conditions,
 		"states": _state_names(built.root),
+		"start_state": str(built.start_state),
 	}
-	if params.has("start"):
-		extra["start_state"] = str(params.get("start"))
-		extra["start_hint"] = "at runtime call get_node(tree).get(\"%s\").start(\"%s\")" % [
-			_playback_path(context, built.root), str(params.get("start"))]
+	extra["start_hint"] = "active tree enters '%s' from Start; to override at runtime call get_node(tree).get(\"%s\").start(\"%s\")" % [
+		str(built.start_state), _playback_path(context, built.root), str(built.start_state)]
 	return _commit_graph(context, built.root, "MCP: Animation state machine", extra)
 
 
@@ -119,6 +126,9 @@ func graph_wire(params: Dictionary) -> Dictionary:
 	var context := _graph_context(params)
 	if context.has("error"):
 		return context
+	if bool(context.active) and context.tree.tree_root == null:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"Cannot activate an AnimationTree without a graph root. Build a graph or pass active=false")
 	var extra := {}
 	if params.has("parameter_path"):
 		var path := str(params.get("parameter_path", ""))
@@ -127,8 +137,38 @@ func graph_wire(params: Dictionary) -> Dictionary:
 		if context.tree == null:
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"Cannot set '%s': no AnimationTree exists yet (call wire without parameter_path first)" % path)
+		if not _parameter_paths(context.tree).has(path):
+			return ErrorCodes.make(ErrorCodes.PROPERTY_NOT_ON_CLASS,
+				"AnimationTree has no writable graph parameter '%s'" % path)
+		if not params.has("parameter_value"):
+			return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM, "parameter_path needs parameter_value")
+		var raw: Variant = params.parameter_value
+		var current: Variant = context.tree.get(path)
+		if current is bool:
+			if not raw is bool:
+				return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "'%s' needs a boolean" % path)
+			extra["parameter_value"] = raw
+		else:
+			var parsed := ValueCodec.coerce_for_property(ValueCodec.serialize(raw), context.tree, path)
+			if parsed.has("error"):
+				return parsed
+			if current is int:
+				if float(parsed.ok) != floorf(float(parsed.ok)):
+					return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "'%s' needs an integer" % path)
+				for property in context.tree.get_property_list():
+					if str(property.name) == path and int(property.hint) == PROPERTY_HINT_ENUM:
+						var allowed: Array[int] = []
+						var value := 0
+						for choice in str(property.hint_string).split(","):
+							if choice.contains(":"): value = choice.get_slice(":", 1).to_int()
+							allowed.append(value)
+							value += 1
+						if not allowed.has(int(parsed.ok)):
+							return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "Invalid enum value for '%s'" % path)
+				extra["parameter_value"] = int(parsed.ok)
+			else:
+				extra["parameter_value"] = parsed.ok
 		extra["parameter_path"] = path
-		extra["parameter_value"] = params.get("parameter_value")
 	return _commit_graph(context, null, "MCP: Wire AnimationTree", extra)
 
 
@@ -207,6 +247,7 @@ func graph_locomotion(params: Dictionary) -> Dictionary:
 	var mode := str(params.get("mode", "blend_space"))
 	if mode == "state_machine":
 		var built := GraphBuilders.state_machine({
+			"start": str(params.get("start", "idle")),
 			"states": [
 				{"name": "idle", "animation": idle},
 				{"name": "walk", "animation": walk, "position": {"x": 240, "y": 0}},
@@ -226,12 +267,13 @@ func graph_locomotion(params: Dictionary) -> Dictionary:
 			"mode": mode,
 			"state_count": int(built.state_count),
 			"transition_count": int(built.transition_count),
+			"authored_transition_count": int(built.authored_transition_count),
 			"conditions": built.conditions,
 			"states": _state_names(built.root),
-			"start_state": str(params.get("start", "idle")),
+			"start_state": str(built.start_state),
 		}
-		extra["start_hint"] = "at runtime call get_node(tree).get(\"%s\").start(\"%s\")" % [
-			_playback_path(context, built.root), str(params.get("start", "idle"))]
+		extra["start_hint"] = "active tree enters '%s' from Start; to override at runtime call get_node(tree).get(\"%s\").start(\"%s\")" % [
+			str(built.start_state), _playback_path(context, built.root), str(built.start_state)]
 		return _commit_graph(context, built.root, "MCP: Locomotion state machine", extra)
 	if mode != "blend_space":
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
@@ -346,7 +388,14 @@ func _wrap_root(context: Dictionary, layer_node: AnimationNode, combiner: Animat
 	var layer_child: AnimationNode = options.get("layer_child")
 	if layer_child != null:
 		tree.add_node(StringName("Shot"), layer_child, Vector2(220.0, 140.0))
-		tree.connect_node(StringName(layer_name), 0, StringName("Shot"))
+	if layer_node is AnimationNodeOneShot:
+		# OneShot already blends `in` and `shot`; an outer Blend2 at its
+		# default zero weight mutes the one-shot completely.
+		tree.connect_node(StringName(layer_name), 0, StringName(base_name))
+		tree.connect_node(StringName(layer_name), 1, StringName("Shot"))
+		if tree.has_node(StringName("output")):
+			tree.connect_node(StringName("output"), 0, StringName(layer_name))
+		return {"root": tree, "node_count": tree.get_node_list().size(), "issues": []}
 	tree.add_node(StringName(combiner_name), combiner, Vector2(440.0, 0.0))
 	tree.connect_node(StringName(combiner_name), 0, StringName(base_name))
 	tree.connect_node(StringName(combiner_name), 1, StringName(layer_name))
@@ -395,6 +444,7 @@ func _graph_context(params: Dictionary) -> Dictionary:
 				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
 					"Cannot create an AnimationTree at %s: parent '%s' not found" % [tree_path, tree_path.get_base_dir()])
 			tree = AnimationTree.new()
+			_pending_tree = tree
 			tree.name = tree_path.get_file()
 			tree_parent = parent
 	else:
@@ -409,6 +459,7 @@ func _graph_context(params: Dictionary) -> Dictionary:
 					return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
 						ValueCodec.format_node_error(parent_path, scene_root))
 			tree = AnimationTree.new()
+			_pending_tree = tree
 			tree.name = str(params.get("name", _DEFAULT_TREE_NAME))
 			tree_parent = parent
 	return {
@@ -590,29 +641,42 @@ func _commit_graph(context: Dictionary, root: AnimationNode, action_label: Strin
 	if not _dry_run:
 		_create_scene_pinned_action(action_label)
 		var undo := ToolContext.undo_redo
+		var parent: Node = context.get("tree_parent", null) if created else tree.get_parent()
+		if parent == null:
+			parent = scene_root
+		var instance_levels := _instance_levels(parent if created else tree)
+		for level in instance_levels:
+			undo.add_do_method(level.parent, "set_editable_instance", level.instance, true)
+		# Configure graphs while inactive. Undo of a new node only needs to
+		# stop and detach it; setters on a detached tree resolve invalid paths.
+		undo.add_undo_property(tree, "active", false)
 		if created:
-			var parent: Node = context.get("tree_parent", null)
-			if parent == null:
-				parent = scene_root
 			undo.add_do_method(parent, "add_child", tree, true)
-			undo.add_undo_method(parent, "remove_child", tree)
 			undo.add_do_method(tree, "set_owner", scene_root)
 			undo.add_do_reference(tree)
+		undo.add_do_property(tree, "active", false)
 		if root != null:
 			undo.add_do_property(tree, "tree_root", root)
-			undo.add_undo_property(tree, "tree_root", old_root)
+			if not created:
+				undo.add_undo_property(tree, "tree_root", old_root)
 		var wanted_player := _anim_player_path(context, tree)
 		if tree.anim_player != wanted_player:
 			undo.add_do_property(tree, "anim_player", wanted_player)
-			undo.add_undo_property(tree, "anim_player", old_anim_player)
+			if not created:
+				undo.add_undo_property(tree, "anim_player", old_anim_player)
 		var want_active := bool(context.get("active", false))
-		if tree.active != want_active:
-			undo.add_do_property(tree, "active", want_active)
-			undo.add_undo_property(tree, "active", old_active)
 		if not parameter_path.is_empty():
 			var old_value = tree.get(parameter_path)
 			undo.add_do_property(tree, parameter_path, parameter_value)
-			undo.add_undo_property(tree, parameter_path, old_value)
+			if not created:
+				undo.add_undo_property(tree, parameter_path, old_value)
+		undo.add_do_property(tree, "active", want_active)
+		if created:
+			undo.add_undo_method(parent, "remove_child", tree)
+		else:
+			undo.add_undo_property(tree, "active", old_active)
+		for level in instance_levels:
+			undo.add_undo_method(level.parent, "set_editable_instance", level.instance, false)
 		undo.commit_action()
 	var tree_label := ""
 	if created and context.get("tree_parent", null) != null:
@@ -635,19 +699,19 @@ func _commit_graph(context: Dictionary, root: AnimationNode, action_label: Strin
 	cleaned.erase("parameter_value")
 	cleaned.erase("issues")
 	data.merge(cleaned, true)
+	if not parameter_path.is_empty():
+		data["parameter_set"] = {"path": parameter_path, "value": ValueCodec.serialize(parameter_value)}
 	if not _dry_run and tree.get_parent() != null:
 		var parameters := _parameter_paths(tree)
 		data["parameters"] = parameters
 		var playbacks := _playback_paths(tree)
 		data["playback_paths"] = playbacks
 		if data.has("start_state") and not playbacks.is_empty():
-			data["start_hint"] = "at runtime call get_node(tree).get(\"%s\").start(\"%s\")" % [
-				playbacks[0], str(data.start_state)]
-		if not parameter_path.is_empty():
-			data["parameter_set"] = {"path": parameter_path, "value": parameter_value}
+			data["start_hint"] = "active tree enters '%s' from Start; to override at runtime call get_node(tree).get(\"%s\").start(\"%s\")" % [
+				str(data.start_state), playbacks[0], str(data.start_state)]
 		for key in ["request_parameter", "amount_parameter"]:
 			if data.has(key) and str(data[key]).begins_with("parameters/"):
 				data[key] = _first_matching(parameters, "/" + str(data[key]).get_file())
 	else:
-		data["parameters_preview"] = _parameter_paths_preview(root)
+		data["parameters_preview"] = _parameter_paths_preview(root if root != null else tree.tree_root)
 	return {"data": data}

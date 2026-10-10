@@ -238,6 +238,11 @@ func library_spec_export(params: Dictionary) -> Dictionary:
 			"Animation '%s' has tracks this toolkit cannot export: %s"
 			% [anim_name, SpecIO.describe_unsupported(anim)])
 	var spec := SpecIO.from_animation(anim)
+	if not SpecIO.compressed_tracks(anim).is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Compressed clips cannot be exported losslessly. Decompress the source first.")
+	var export_error := SpecJson.export_error(spec)
+	if not export_error.is_empty():
+		return export_error
 	var path := str(params.get("path", ""))
 	if path.is_empty():
 		path = "%s/%s.json" % [SPEC_DIR, anim_name]
@@ -310,6 +315,9 @@ func library_spec_apply(params: Dictionary) -> Dictionary:
 	var valid := SpecBuilder.validate(spec)
 	if valid.has("error"):
 		return valid
+	var targets := _validate_apply_targets(spec, player)
+	if targets.has("error"):
+		return targets
 	var overwrite := bool(params.get("overwrite", false))
 	var existing := _existing_animation(library, anim_name, overwrite)
 	if existing.has("error"):
@@ -338,6 +346,66 @@ func library_spec_apply(params: Dictionary) -> Dictionary:
 # ============================================================================
 # Helpers
 # ============================================================================
+
+## Validate engine destinations before committing; warning-only inert clips
+## are not successful applications. Import remains a scene-independent read.
+func _validate_apply_targets(spec: Dictionary, player: AnimationPlayer) -> Dictionary:
+	var root := ValueCodec.player_root_node(player)
+	if root == null: return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "The player's root_node cannot resolve")
+	if float(spec.length) <= 0.0: return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Applied clips need positive length")
+	var active := false
+	for track in spec.tracks:
+		var path := NodePath(str(track.path))
+		var target := root.get_node_or_null(NodePath(path.get_concatenated_names()))
+		if target == null: return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND, "Track '%s' has no node on this player" % str(path))
+		if bool(track.get("enabled", true)): active = true
+		var type := int(track.type)
+		if type in [Animation.TYPE_METHOD, Animation.TYPE_AUDIO] and path.get_subname_count() != 0:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Method/audio track '%s' must point directly at a node" % str(path))
+		var current: Variant
+		if type == Animation.TYPE_VALUE:
+			var property := _track_property(target, str(path.get_concatenated_subnames()))
+			if property.has("error"): return property
+			current = property.value
+		elif type in [Animation.TYPE_POSITION_3D, Animation.TYPE_ROTATION_3D, Animation.TYPE_SCALE_3D]:
+			if not target is Node3D: return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "3D track '%s' needs a Node3D" % str(path))
+			if path.get_subname_count() > 0:
+				if not target is Skeleton3D or path.get_subname_count() != 1 or target.find_bone(str(path.get_subname(0))) < 0:
+					return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "3D track '%s' has no matching skeleton bone" % str(path))
+		elif type == Animation.TYPE_AUDIO and not (target is AudioStreamPlayer or target is AudioStreamPlayer2D or target is AudioStreamPlayer3D):
+			return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "Audio track '%s' needs an audio player" % str(path))
+		for key in track.keys:
+			if type == Animation.TYPE_METHOD and not target.has_method(str(key.method)):
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Track '%s' calls missing method '%s'" % [str(path), str(key.method)])
+			if ClipSpec.is_value_type(type):
+				var expected := typeof(current) if type == Animation.TYPE_VALUE else (TYPE_QUATERNION if type == Animation.TYPE_ROTATION_3D else TYPE_VECTOR3)
+				var actual := typeof(key.value)
+				if actual != expected and not (actual in [TYPE_FLOAT, TYPE_INT] and expected in [TYPE_FLOAT, TYPE_INT]):
+					return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "Track '%s' has %s keys for a %s destination" % [str(path), type_string(actual), type_string(expected)])
+	if not active: return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Applied clips need at least one enabled track")
+	return {}
+
+func _track_property(target: Node, property: String) -> Dictionary:
+	var value: Variant = target
+	for part in property.split(":"):
+		var fields := {}
+		if value is Object:
+			var found := false
+			for entry in value.get_property_list():
+				if str(entry.name) == part: found = true; break
+			if found: value = value.get(part); continue
+		elif value is Dictionary: fields = value
+		elif value is Vector2: fields = {"x": value.x, "y": value.y}
+		elif value is Vector3: fields = {"x": value.x, "y": value.y, "z": value.z}
+		elif value is Color: fields = {"r": value.r, "g": value.g, "b": value.b, "a": value.a}
+		elif value is Quaternion: fields = {"x": value.x, "y": value.y, "z": value.z, "w": value.w}
+		elif value is Transform3D: fields = {"basis": value.basis, "origin": value.origin}
+		elif value is Basis: fields = {"x": value.x, "y": value.y, "z": value.z}
+		elif value is Array and part.is_valid_int() and int(part) >= 0 and int(part) < value.size():
+			value = value[int(part)]; continue
+		if fields.has(part): value = fields[part]; continue
+		return ErrorCodes.make(ErrorCodes.PROPERTY_NOT_ON_CLASS, "Track property '%s' does not resolve on %s" % [property, str(target.name)])
+	return {"value": value}
 
 ## Resolve a remap target the way the presets do: scene-absolute paths become
 ## root_node-relative track paths, relative paths are used as-is.
@@ -431,6 +499,19 @@ func _load_library(path: String, _allow_missing: bool = false) -> Dictionary:
 	var templates = data.get("templates", {})
 	if not templates is Dictionary:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s has a malformed 'templates' section" % path)
+	var version = data.get("version", LIBRARY_VERSION)
+	if not (version is int or version is float) or float(version) != LIBRARY_VERSION:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s has an unsupported library version" % path)
+	for name in templates:
+		var entry = templates[name]
+		if not entry is Dictionary or not entry.get("params", {}) is Dictionary:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s template '%s' must contain an object and params object" % [path, str(name)])
+		var tool := str(entry.get("tool", ""))
+		var op := str(entry.get("op", ""))
+		if not _APPLIABLE_TOOLS.has(tool) or OpRegistry.find_op(tool, op).is_empty():
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s template '%s' names an unsupported tool/op" % [path, str(name)])
+		# Legacy recipes may omit params; normalize before the forwarding cast.
+		entry["params"] = entry.get("params", {})
 	return {"library": {"format": LIBRARY_FORMAT, "version": LIBRARY_VERSION, "templates": templates}, "exists": true}
 
 
@@ -438,8 +519,6 @@ func _save_library(path: String, library: Dictionary) -> Dictionary:
 	# A dry run must not touch the disk. It still validates by loading the current
 	# library first (the callers do), and the reply still describes the result, so
 	# the only thing a dry run skips is the write itself.
-	if _dry_run:
-		return {"ok": true, "dry_run": true}
 	var data := {
 		"format": LIBRARY_FORMAT,
 		"version": LIBRARY_VERSION,
@@ -455,9 +534,10 @@ func _read_json(path: String) -> Dictionary:
 			"Cannot read %s (%s)" % [path, error_string(FileAccess.get_open_error())])
 	var text := file.get_as_text()
 	file.close()
-	var parsed = JSON.parse_string(text)
-	if parsed == null:
+	var parser := JSON.new()
+	if parser.parse(text) != OK:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s is not valid JSON" % path)
+	var parsed = parser.data
 	if not parsed is Dictionary:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s must contain a JSON object" % path)
 	return {"data": parsed}
@@ -471,11 +551,11 @@ func _write_json(path: String, data: Dictionary, overwrite: bool) -> Dictionary:
 	var problem := ValueCodec.check_write_path(path)
 	if not problem.is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, problem)
-	if _dry_run:
-		return {"ok": true, "dry_run": true}
 	if not overwrite and FileAccess.file_exists(path):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"%s already exists. Pass overwrite=true to replace it." % path)
+	if _dry_run:
+		return {"ok": true, "dry_run": true}
 	var directory := path.get_base_dir()
 	if not directory.is_empty() and not DirAccess.dir_exists_absolute(directory):
 		var made := DirAccess.make_dir_recursive_absolute(directory)

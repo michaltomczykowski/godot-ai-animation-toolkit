@@ -164,6 +164,71 @@ jobs:
             exit 1
           fi
 
+      - name: Audit every registry operation
+        if: matrix.os == 'ubuntu-latest' && matrix.core-ref == 'v4.2.1'
+        run: |
+          godot --headless --path test_project --script res://tools/export_operation_audit.gd
+          git diff --exit-code -- docs/operation-audit.json
+
+  mcp-route:
+    name: Live MCP route / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    # Full saved-history matrices and external reload checks take almost
+    # fifteen minutes on Windows; retain room for runner/startup variation.
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout toolkit
+        uses: actions/checkout@v4
+
+      - name: Checkout Godot AI (pinned)
+        uses: actions/checkout@v4
+        with:
+          repository: hi-godot/godot-ai
+          ref: ${{ env.CORE_REF }}
+          path: .ci/godot-ai
+
+      - name: Set up Godot
+        uses: chickensoft-games/setup-godot@c233594225991af5aec714e52457cc76d6df8fa2 # v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pinned Godot AI backend
+        run: python -m pip install -e .ci/godot-ai
+
+      - name: Link addons
+        run: |
+          ln -s "$PWD/.ci/godot-ai/plugin/addons/godot_ai" test_project/addons/godot_ai
+          ln -s "$PWD/addons/godot_ai_animation" test_project/addons/godot_ai_animation
+
+      - name: Import project
+        run: godot --headless --path test_project --import
+
+      - name: Probe families and saved motion, graph, modifier, FX, edit, preset, library, inspect, sequence and rig contracts through Godot AI
+        run: python tools/ci_mcp_route.py --core-root .ci/godot-ai
+
+      - name: Preserve editor startup log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-editor-${{ matrix.os }}
+          path: |
+            mcp-editor.log
+            mcp-backend.log
+          if-no-files-found: ignore
+
   version-check:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
@@ -180,7 +245,7 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [tier1, editor-suite, version-check]
+    needs: [tier1, editor-suite, mcp-route, version-check]
     runs-on: ubuntu-latest
     permissions:
       contents: write

@@ -341,6 +341,9 @@ func test_wave_builds_one_track_per_target() -> void:
 	var anim := _fetch_anim(player_path, "wave")
 	assert_eq(anim.get_track_count(), 3, "one track per target")
 	assert_eq(anim.loop_mode, Animation.LOOP_LINEAR)
+	for index in 3:
+		assert_eq(str(anim.track_get_path(index)), "WaveItem%d:position" % index,
+			"wave tracks must animate each target's position")
 	var first = anim.track_get_key_value(0, 0)
 	var second = anim.track_get_key_value(1, 0)
 	assert_false((first as Vector2).is_equal_approx(second as Vector2), "targets are phase-shifted")
@@ -473,6 +476,78 @@ func test_sprite_frames_assigns_resource() -> void:
 	assert_is_error(rejected, ErrorCodes.WRONG_TYPE)
 	_teardown(rig)
 	_teardown(sprite_rig)
+
+
+func test_sprite_frames_dry_run_and_play_false_are_noninvasive() -> void:
+	if not ResourceLoader.exists(SHEET):
+		skip("fixture sheet.png is not imported")
+		return
+	var animated := AnimatedSprite2D.new()
+	var rig := _rig("SheetDry", animated)
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var params := {
+		"op": "sprite_frames", "sprite_path": rig.target_path,
+		"texture": SHEET, "hframes": 4, "vframes": 1,
+		"animation_name": "idle", "play": false,
+	}
+	var dry := _handler.run(params.merged({"dry_run": true}), null)
+	assert_has_key(dry, "data")
+	assert_true(animated.sprite_frames == null, "dry run must not assign SpriteFrames")
+	assert_false(animated.is_playing(), "dry run must not start playback")
+	var made := _handler.run(params, null)
+	assert_has_key(made, "data")
+	assert_true(animated.sprite_frames != null, "write assigns SpriteFrames")
+	assert_false(animated.is_playing(), "play=false must leave the sprite stopped")
+	assert_true(editor_undo(_undo_redo), "one undo restores the old resource")
+	assert_true(animated.sprite_frames == null, "undo removes the generated SpriteFrames")
+	assert_true(editor_redo(_undo_redo), "redo reapplies the resource")
+	assert_false(animated.is_playing(), "redo respects play=false")
+	_teardown(rig)
+
+
+func test_sprite_frames_undo_restores_selected_clip_and_playback_position() -> void:
+	if not ResourceLoader.exists(SHEET):
+		skip("fixture sheet.png is not imported")
+		return
+	for was_playing in [true, false]:
+		var animated := AnimatedSprite2D.new()
+		var rig := _rig("SheetRestore%s" % str(was_playing), animated)
+		if rig.has("error"):
+			skip(rig.error)
+			return
+		var original := SpriteFrames.new()
+		original.add_animation("prior_walk")
+		for index in 3:
+			original.add_frame("prior_walk", load(SHEET))
+		animated.sprite_frames = original
+		animated.speed_scale = 1.5
+		animated.play("prior_walk", 0.75)
+		if not was_playing:
+			animated.pause()
+		animated.set_frame_and_progress(2, 0.4)
+		var made := _handler.run({
+			"op": "sprite_frames", "sprite_path": rig.target_path,
+			"texture": SHEET, "hframes": 4, "vframes": 1,
+			"animation_name": "replacement", "play": false,
+		}, null)
+		assert_has_key(made, "data")
+		assert_eq(animated.animation, StringName("replacement"),
+			"play=false selects the generated animation")
+		assert_true(editor_undo(_undo_redo), "undo restores the prior sprite state")
+		assert_true(animated.sprite_frames == original, "undo restores the original resource")
+		assert_eq(animated.animation, StringName("prior_walk"), "undo restores the selected clip")
+		assert_eq(animated.frame, 2, "undo restores the frame")
+		assert_true(absf(animated.frame_progress - 0.4) < 0.0001, "undo restores frame progress")
+		assert_eq(animated.is_playing(), was_playing, "undo restores playing or paused state")
+		if was_playing:
+			assert_true(absf(animated.get_playing_speed() - 1.125) < 0.0001,
+				"undo restores custom playback speed")
+		assert_true(editor_redo(_undo_redo), "redo reapplies the generated animation")
+		assert_eq(animated.animation, StringName("replacement"), "redo selects the generated clip")
+		assert_false(animated.is_playing(), "redo respects play=false")
+		_teardown(rig)
 
 
 func test_audio_cue_builds_audio_track() -> void:

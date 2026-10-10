@@ -13,6 +13,10 @@ const PoseSolver := preload("res://addons/godot_ai_animation/spec/pose_solver.gd
 const SpineTwist := preload("res://addons/godot_ai_animation/spec/spine_twist.gd")
 const SpecJson := preload("res://addons/godot_ai_animation/spec/spec_json.gd")
 const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
+const ModifierAllocation := preload("res://addons/godot_ai_animation/utils/modifier_allocation.gd")
+const PoseBakeSampler := preload("res://addons/godot_ai_animation/utils/pose_bake_sampler.gd")
+const BakeGraphReplay := preload("res://addons/godot_ai_animation/utils/bake_graph_replay.gd")
+const BakeRootMotion := preload("res://addons/godot_ai_animation/utils/bake_root_motion.gd")
 
 const POSE_DIR := "res://animation_toolkit/poses"
 ## bake_pose_sequence cost is duration * fps samples, each a full skeleton
@@ -32,6 +36,18 @@ func run(params: Dictionary, ctx) -> Dictionary:
 
 func _dispatch(params: Dictionary, ctx = null) -> Dictionary:
 	var op: String = params.get("op", "")
+	for field in ["bones", "chain", "keys", "springs"]:
+		if params.has(field) and not params[field] is Array:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s must be an array" % field)
+	# Both public tool families share this script. Godot AI forwards params to
+	# handlers without checking the advertised schema, especially through
+	# custom_manage. Refuse a cross-family op before it can mutate the scene.
+	var family_name := OpRegistry.FAMILY_RIG
+	if ctx != null and ctx.get("spec") != null:
+		family_name = str(ctx.spec.name)
+	if ctx != null and not OpRegistry.op_names(family_name).has(op):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Unknown op '%s'. Valid: %s" % [op, ", ".join(OpRegistry.op_names(family_name))])
 	match op:
 		"pose_save":
 			return rig_pose_save(params)
@@ -136,7 +152,9 @@ func rig_pose_apply(params: Dictionary) -> Dictionary:
 		if not (subset.missing as Array).is_empty():
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"The pose has no bones: %s" % ", ".join(subset.missing))
-	var blend := clampf(float(params.get("blend", 1.0)), 0.0, 1.0)
+	var weight := _pose_weight(params, "blend", 1.0)
+	if weight.has("error"): return weight
+	var blend: float = weight.value
 	var reset_first := bool(params.get("reset_first", false))
 	var applied := _apply_pose(resolved, pose, blend, reset_first)
 	if applied.has("error"):
@@ -166,7 +184,9 @@ func rig_pose_blend(params: Dictionary) -> Dictionary:
 	var to_loaded := _resolve_pose(params, "to")
 	if to_loaded.has("error"):
 		return to_loaded
-	var factor := clampf(float(params.get("factor", 0.5)), 0.0, 1.0)
+	var weight := _pose_weight(params, "factor", 0.5)
+	if weight.has("error"): return weight
+	var factor: float = weight.value
 	var a: Dictionary = from_loaded.pose
 	var b: Dictionary = to_loaded.pose
 	if bool(params.get("mirror", false)):
@@ -364,7 +384,7 @@ func rig_pose_to_clip(params: Dictionary) -> Dictionary:
 		return existing.error
 	var anim := SpecBuilder.to_animation(spec)
 	_commit_animation_add("MCP: Pose clip %s" % anim_name, player, library,
-		created_library, anim_name, anim, existing.old_anim)
+		created_library, anim_name, anim, existing.old_anim, _bone_pose_history_props(resolved.node))
 	return {"data": {
 		"player_path": player_path,
 		"skeleton_path": resolved.path,
@@ -538,7 +558,6 @@ const IK_3D_KINDS := {
 	"two_bone": "TwoBoneIK3D",
 	"ccdik": "CCDIK3D",
 	"fabrik": "FABRIK3D",
-	"jacobian": "JacobianIK3D",
 	"spline": "SplineIK3D",
 }
 
@@ -587,7 +606,7 @@ func _rig_chain_from_spec(params: Dictionary) -> Dictionary:
 			return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
 				"Cannot create a skeleton at %s: its parent does not exist" % skeleton_path)
 	return _build_chain(params, spec, kind, existing, holder,
-		str(params.get("name", "Skeleton3D" if kind == "3d" else "Skeleton2D")), "spec", "")
+		str(params.get("name", skeleton_path.get_file())), "spec", "")
 
 
 ## `rig_chain` from a Node3D / Node2D subtree: the subtree's local transforms
@@ -612,7 +631,10 @@ func _rig_chain_from_subtree(params: Dictionary, from_node: String) -> Dictionar
 	while not queue.is_empty():
 		var item: Dictionary = queue.pop_front()
 		var node: Node = item.node
-		if node is Node3D or node is Node2D:
+		if (node is Node3D and kind != "3d") or (node is Node2D and kind != "2d"):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "A subtree rig must use one spatial dimension")
+		var spatial := node is Node3D or node is Node2D
+		if spatial:
 			var name := str(node.name)
 			if seen.has(name):
 				duplicates.append(name)
@@ -623,9 +645,10 @@ func _rig_chain_from_subtree(params: Dictionary, from_node: String) -> Dictionar
 					"parent": str(item.parent),
 					"position": _node_offset(node, kind),
 					"rotation": _node_rotation(node, kind),
+					"_source_rest": node.transform,
 				})
 		for child in node.get_children():
-			queue.append({"node": child, "parent": str(node.name)})
+			queue.append({"node": child, "parent": str(node.name) if spatial else str(item.parent)})
 	if not duplicates.is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"Duplicate node names cannot become bones: %s" % ", ".join(duplicates))
@@ -658,19 +681,48 @@ func _build_chain(
 		return validated
 	for bone in spec:
 		var bone_name := str((bone as Dictionary).name)
+		var transform_error := _chain_transform_error(bone, kind)
+		if not transform_error.is_empty():
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s: %s" % [bone_name, transform_error])
+		if kind == "2d" and bone_name.validate_node_name() != bone_name:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "2D bone name '%s' is not a valid Godot node name" % bone_name)
 		if occupied.has(bone_name):
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"Bone '%s' already exists on the skeleton" % bone_name)
-	var skeleton_node: Node = existing
-	var created := false
-	if skeleton_node == null:
-		skeleton_node = Skeleton3D.new() if kind == "3d" else Skeleton2D.new()
-		skeleton_node.name = default_name
-		created = true
+	var created := existing == null
+	if created:
+		if default_name.is_empty() or default_name.validate_node_name() != default_name:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Skeleton name '%s' is not a valid Godot node name" % default_name)
+		for child in holder.get_children():
+			if str(child.name) == default_name:
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "A child named '%s' already exists at the destination" % default_name)
 	var warnings: Array = []
 	var scale := _skeleton_scale(existing if existing != null else holder)
 	if not is_equal_approx(scale, 1.0):
 		warnings.append("the skeleton is scaled (%.2f): springs and IK assume unit scale" % scale)
+	var skeleton_path := ValueCodec.from_node(existing, scene_root) if not created else ValueCodec.from_node(holder, scene_root).path_join(default_name)
+	var data := {
+		"skeleton_path": skeleton_path,
+		"kind": kind,
+		"skeleton_created": created,
+		"mode": mode,
+		"bones_created": spec.size(),
+		"bones": spec.map(func(entry): return str((entry as Dictionary).name)),
+		"warnings": warnings,
+		"undoable": true,
+	}
+	if not source_path.is_empty():
+		data["source_path"] = source_path
+		data["note"] = "bone rests mirror the subtree's local transforms"
+	else:
+		data["note"] = "pose these bones with pose_apply and key them with pose_to_clip, or drive them with ik_setup"
+	# Plan without allocating off-tree Nodes: dry commits do not retain/free them.
+	if _dry_run:
+		return {"data": data}
+	var skeleton_node: Node = existing
+	if created:
+		skeleton_node = Skeleton3D.new() if kind == "3d" else Skeleton2D.new()
+		skeleton_node.name = default_name
 	var label := "MCP: Rig chain (%d bones)" % spec.size()
 	if kind == "3d":
 		var skeleton_3d_new: Skeleton3D = skeleton_node
@@ -678,6 +730,9 @@ func _build_chain(
 		for index in spec.size():
 			by_name[str((spec[index] as Dictionary).name)] = offset + index
 		var calls: Array = []
+		# New skeleton nodes retain their bones while detached by Undo. Rebuild
+		# them on Redo instead of attempting to add the same names again.
+		if created: calls.append({"method": "clear_bones", "args": []})
 		for index in spec.size():
 			var bone: Dictionary = spec[index]
 			var rest := _spec_rest_3d(bone)
@@ -697,7 +752,8 @@ func _build_chain(
 		if created:
 			entries.append({"parent": holder, "node": skeleton_3d_new, "setup": []})
 		entries.append({"parent": skeleton_3d_new, "node": skeleton_3d_new,
-			"existing": true, "setup": calls})
+			"existing": true, "setup": calls,
+			"undo_setup": _skeleton_restore_calls(skeleton_3d_new) if not created else []})
 		_commit_node_add_many(label, entries)
 	else:
 		var entries_2d: Array = []
@@ -706,31 +762,52 @@ func _build_chain(
 		var bone_nodes := {}
 		for index in spec.size():
 			var bone_node := Bone2D.new()
+			bone_node.set_autocalculate_length_and_angle(false)
 			bone_node.name = str((spec[index] as Dictionary).name)
 			bone_nodes[str((spec[index] as Dictionary).name)] = bone_node
 		for index in spec.size():
 			var bone_spec: Dictionary = spec[index]
 			var parent_name := str(bone_spec.get("parent", ""))
-			var bone_holder: Node = skeleton_node if parent_name.is_empty() else bone_nodes[parent_name]
+			var bone_holder: Node = skeleton_node
+			if not parent_name.is_empty():
+				bone_holder = bone_nodes.get(parent_name)
+				if bone_holder == null:
+					for bone_index in (skeleton_node as Skeleton2D).get_bone_count():
+						var candidate := (skeleton_node as Skeleton2D).get_bone(bone_index)
+						if str(candidate.name) == parent_name:
+							bone_holder = candidate
+							break
 			entries_2d.append({"parent": bone_holder, "node": bone_nodes[str(bone_spec.name)],
 				"setup": _bone_2d_setup(bone_spec)})
 		_commit_node_add_many(label, entries_2d)
-	var data := {
-		"skeleton_path": ValueCodec.from_node(skeleton_node, scene_root),
-		"kind": kind,
-		"skeleton_created": created,
-		"mode": mode,
-		"bones_created": spec.size(),
-		"bones": spec.map(func(entry): return str((entry as Dictionary).name)),
-		"warnings": warnings,
-		"undoable": true,
-	}
-	if not source_path.is_empty():
-		data["source_path"] = source_path
-		data["note"] = "bone rests mirror the subtree's local transforms"
-	else:
-		data["note"] = "pose these bones with pose_apply and key them with pose_to_clip, or drive them with ik_setup"
+	data["skeleton_path"] = ValueCodec.from_node(skeleton_node, scene_root)
 	return {"data": data}
+
+
+## Skeleton3D exposes clear_bones but no remove_bone in Godot 4.7.2. Undo an
+## append by reconstructing the original hierarchy in the same index order.
+static func _skeleton_restore_calls(skeleton: Skeleton3D) -> Array:
+	var calls: Array = [{"method": "clear_bones", "args": []}]
+	for index in skeleton.get_bone_count():
+		calls.append({"method": "add_bone", "args": [skeleton.get_bone_name(index)]})
+	for index in skeleton.get_bone_count():
+		calls.append({"method": "set_bone_rest", "args": [index, skeleton.get_bone_rest(index)]})
+		calls.append({"method": "set_bone_pose_position", "args": [index,
+			skeleton.get_bone_pose_position(index)]})
+		calls.append({"method": "set_bone_pose_rotation", "args": [index,
+			skeleton.get_bone_pose_rotation(index)]})
+		calls.append({"method": "set_bone_pose_scale", "args": [index,
+			skeleton.get_bone_pose_scale(index)]})
+		calls.append({"method": "set_bone_enabled", "args": [index,
+			skeleton.is_bone_enabled(index)]})
+		for key in skeleton.get_bone_meta_list(index):
+			calls.append({"method": "set_bone_meta", "args": [index, key,
+				skeleton.get_bone_meta(index, key)]})
+	for index in skeleton.get_bone_count():
+		var parent := skeleton.get_bone_parent(index)
+		if parent >= 0:
+			calls.append({"method": "set_bone_parent", "args": [index, parent]})
+	return calls
 
 
 # ============================================================================
@@ -740,6 +817,7 @@ func _build_chain(
 ## Attach an IK modifier to a Skeleton3D and point it at a target node. The
 ## modifier is created inactive unless active=true.
 func ik_setup(params: Dictionary) -> Dictionary:
+	var allocation := ModifierAllocation.new()
 	var undo_ready := _require_undo("ik_setup")
 	if not undo_ready.is_empty():
 		return undo_ready
@@ -750,6 +828,9 @@ func ik_setup(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"ik_setup supports Skeleton3D for now: the 2D skeleton modification stack is Experimental in Godot 4.7. Build 2D chains with rig_chain and pose them with pose_apply / pose_to_clip.")
 	var kind := str(params.get("kind", "two_bone"))
+	if kind == "jacobian":
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
+			"Jacobian IK is disabled: independent Godot 4.7.2 playback stalls 9.8 mm short on a reachable 0.9 m chain, exceeding this toolkit's 0.5% reach tolerance. Use two_bone, ccdik or fabrik for point targets. Re-enable only after native playback meets that tolerance.")
 	if not IK_3D_KINDS.has(kind):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 			"Invalid kind '%s'. Valid: %s" % [kind, ", ".join(IK_3D_KINDS.keys())])
@@ -816,18 +897,27 @@ func ik_setup(params: Dictionary) -> Dictionary:
 		pole_direction = (middle_pose.basis.inverse() * side).normalized()
 		var marker := Marker3D.new()
 		marker.name = _unique_child_name(scene_root, str(params.get("pole_name", "IKPole")), taken_names)
+		allocation.track(marker)
 		pole_entries.append({"parent": scene_root, "node": marker,
 			"setup": [{"method": "set_global_position", "args": [skeleton.global_transform * pole_position]}]})
 		pole = marker
 		pole_created = true
-	var tip := _bone_tip_3d(skeleton, end_index)
-	if tip.get("warning") != null:
-		warnings.append(str(tip.warning))
+	# An ordinary IK effector is the last bone's origin, not its child's
+	# origin/virtual tip. Generated targets start at the current authored pose.
+	var tip := {"position": skeleton.global_transform * skeleton.get_bone_global_pose(end_index).origin}
+	if kind == "two_bone" and use_virtual_end:
+		var middle_index := skeleton.find_bone(str(chain[1]))
+		var middle_pose := skeleton.get_bone_global_pose(middle_index)
+		var middle_rest := skeleton.get_bone_global_rest(middle_index)
+		var root_rest := skeleton.get_bone_global_rest(skeleton.find_bone(str(chain[0])))
+		var axis := (middle_rest.basis.inverse() * (middle_rest.origin - root_rest.origin)).normalized()
+		tip.position = skeleton.global_transform * (middle_pose.origin + middle_pose.basis * axis * float(params.get("end_bone_length", 0.1)))
 	var modifier: SkeletonModifier3D = ClassDB.instantiate(IK_3D_KINDS[kind])
 	if modifier == null:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"%s is not available in this Godot build" % IK_3D_KINDS[kind])
-	modifier.name = str(params.get("name", "IK%s" % kind.capitalize()))
+	allocation.track(modifier)
+	modifier.name = _unique_child_name(skeleton, str(params.get("name", "IK%s" % kind.capitalize())), {})
 	var active := bool(params.get("active", false))
 	var entries: Array = []
 	var target_created := false
@@ -835,6 +925,7 @@ func ik_setup(params: Dictionary) -> Dictionary:
 	if target_node == null:
 		var marker := Marker3D.new()
 		marker.name = _unique_child_name(scene_root, str(params.get("target_name", "IKTarget")), taken_names)
+		allocation.track(marker)
 		entries.append({"parent": scene_root, "node": marker,
 			"setup": [{"method": "set_global_position", "args": [tip.position]}]})
 		target_node = marker
@@ -868,6 +959,7 @@ func ik_setup(params: Dictionary) -> Dictionary:
 	entries.append_array(pole_entries)
 	entries.append({"parent": skeleton, "node": modifier, "setup": setup})
 	_commit_node_add_many("MCP: IK setup (%s)" % kind, entries)
+	if not _dry_run: allocation.transfer_to_history()
 	# Failsafe: the settings are readable once the action has run, so confirm the
 	# modifier really points at the markers it was given.
 	if not _dry_run:
@@ -881,11 +973,11 @@ func ik_setup(params: Dictionary) -> Dictionary:
 		"kind": resolved.kind,
 		"ik_kind": kind,
 		"modifier_class": IK_3D_KINDS[kind],
-		"modifier_path": ValueCodec.from_node(modifier, scene_root),
-		"target_path": ValueCodec.from_node(target_node, scene_root),
+		"modifier_path": _planned_modifier_path(modifier, skeleton, scene_root),
+		"target_path": _planned_modifier_path(target_node, scene_root, scene_root),
 		"target_created": target_created,
 		"chain": chain,
-		"pole_path": "" if pole == null else ValueCodec.from_node(pole, scene_root),
+		"pole_path": "" if pole == null else _planned_modifier_path(pole, scene_root, scene_root),
 		"pole_created": pole_created,
 		"active": active,
 		"warnings": warnings,
@@ -943,6 +1035,7 @@ static func _is_bone_parent(skeleton: Skeleton3D, parent_name: String, child_nam
 ## a path instead - the caller's `target_path`, or a straight two-point path
 ## created at the end bone so the modifier can solve straight away.
 func _ik_setup_spline(skeleton: Skeleton3D, scene_root: Node, params: Dictionary, chain: Array) -> Dictionary:
+	var allocation := ModifierAllocation.new()
 	var warnings: Array = []
 	var scale := _skeleton_scale(skeleton)
 	if not is_equal_approx(scale, 1.0):
@@ -977,6 +1070,7 @@ func _ik_setup_spline(skeleton: Skeleton3D, scene_root: Node, params: Dictionary
 		curve.add_point(Vector3.ZERO)
 		curve.add_point(skeleton.global_transform.basis.z.normalized() * span)
 		var created := Path3D.new()
+		allocation.track(created)
 		created.curve = curve
 		created.name = _unique_child_name(scene_root, str(params.get("path_name", "IKPath")), taken_names)
 		entries.append({"parent": scene_root, "node": created,
@@ -987,7 +1081,8 @@ func _ik_setup_spline(skeleton: Skeleton3D, scene_root: Node, params: Dictionary
 	var modifier: SkeletonModifier3D = ClassDB.instantiate(IK_3D_KINDS["spline"])
 	if modifier == null:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "SplineIK3D is not available in this Godot build")
-	modifier.name = str(params.get("name", "IKSpline"))
+	allocation.track(modifier)
+	modifier.name = _unique_child_name(skeleton, str(params.get("name", "IKSpline")), {})
 	var active := bool(params.get("active", false))
 	var setup: Array = [
 		{"property": "active", "value": active},
@@ -1001,6 +1096,7 @@ func _ik_setup_spline(skeleton: Skeleton3D, scene_root: Node, params: Dictionary
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, setup_error)
 	entries.append({"parent": skeleton, "node": modifier, "setup": setup})
 	_commit_node_add_many("MCP: IK setup (spline)", entries)
+	if not _dry_run: allocation.transfer_to_history()
 	# Failsafe: a spline solver needs both a path it can resolve and a curve with
 	# something in it, so confirm both instead of reporting an inert modifier.
 	if not _dry_run:
@@ -1016,8 +1112,8 @@ func _ik_setup_spline(skeleton: Skeleton3D, scene_root: Node, params: Dictionary
 		"kind": "3d",
 		"ik_kind": "spline",
 		"modifier_class": IK_3D_KINDS["spline"],
-		"modifier_path": ValueCodec.from_node(modifier, scene_root),
-		"path_path": ValueCodec.from_node(path_node, scene_root),
+		"modifier_path": _planned_modifier_path(modifier, skeleton, scene_root),
+		"path_path": _planned_modifier_path(path_node, scene_root, scene_root),
 		"path_created": path_created,
 		"target_path": "",
 		"target_created": false,
@@ -1041,6 +1137,7 @@ func _ik_setup_spline(skeleton: Skeleton3D, scene_root: Node, params: Dictionary
 ## Attach a SpringBoneSimulator3D to a Skeleton3D, one spring setting per entry
 ## in `springs`. Created inactive unless active=true.
 func spring_setup(params: Dictionary) -> Dictionary:
+	var allocation := ModifierAllocation.new()
 	var undo_ready := _require_undo("spring_setup")
 	if not undo_ready.is_empty():
 		return undo_ready
@@ -1079,6 +1176,21 @@ func spring_setup(params: Dictionary) -> Dictionary:
 		elif skeleton.find_bone(end_name) < 0:
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"springs[%d]: end bone '%s' not found" % [index, end_name])
+		var end_index := skeleton.find_bone(end_name)
+		var on_chain := end_index == root_index
+		var ancestor := skeleton.get_bone_parent(end_index)
+		while ancestor >= 0 and not on_chain:
+			if ancestor == root_index:
+				on_chain = true
+				break
+			ancestor = skeleton.get_bone_parent(ancestor)
+		if not on_chain:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"springs[%d]: end bone '%s' must be the root bone or its descendant" % [index, end_name])
+		if end_index == root_index:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"springs[%d]: root and end resolve to the same leaf bone '%s'; this toolkit requires a two-bone chain because a single-bone spring did not move in Godot 4.7.2 playback. Add a child bone and pass it as end_bone."
+					% [index, root_name])
 		if spring.has("rotation_axis"):
 			var axis := _rotation_axis(str(spring.rotation_axis))
 			if axis < 0:
@@ -1089,6 +1201,18 @@ func spring_setup(params: Dictionary) -> Dictionary:
 			if center < 0:
 				return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 					"springs[%d]: invalid center_from '%s'. Valid: world_origin, node, bone" % [index, str(spring.center_from)])
+			if center == SpringBoneSimulator3D.CENTER_FROM_NODE and not spring.has("center_node"):
+				return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM, "springs[%d]: center_from=node needs center_node" % index)
+			if center == SpringBoneSimulator3D.CENTER_FROM_BONE and not spring.has("center_bone"):
+				return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM, "springs[%d]: center_from=bone needs center_bone" % index)
+		if spring.has("center_bone") and skeleton.find_bone(str(spring.center_bone)) < 0:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "springs[%d]: center_bone '%s' not found" % [index, str(spring.center_bone)])
+		for field in ["collisions", "exclude_collisions"]:
+			if spring.has(field) and not spring[field] is Array:
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "springs[%d].%s must be an array" % [index, field])
+		if _spring_center_from(str(spring.get("center_from", "world_origin"))) != SpringBoneSimulator3D.CENTER_FROM_WORLD_ORIGIN and not (spring.get("collisions", []) as Array).is_empty():
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
+				"springs[%d]: node/bone centers with collisions are disabled: native Godot 4.7.2 contact penetrates by up to 8 cm on rotated rigs. Use center_from=world_origin for collisions, or omit collisions for relative-center simulation." % index)
 		var collisions: Array = []
 		for path in spring.get("collisions", []):
 			var collider := ValueCodec.resolve_scene_path(str(path), scene_root)
@@ -1103,17 +1227,55 @@ func spring_setup(params: Dictionary) -> Dictionary:
 				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
 					"springs[%d]: exclude collision %s" % [index, ValueCodec.format_node_error(str(path), scene_root)])
 			exclude.append({"node": excluded, "path": _spring_path_to(skeleton, excluded)})
+		var center_node: Node
+		if spring.has("center_node"):
+			center_node = ValueCodec.resolve_scene_path(str(spring.center_node), scene_root)
+			if center_node == null:
+				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
+					"springs[%d]: center node %s" % [index, ValueCodec.format_node_error(str(spring.center_node), scene_root)])
+			if not center_node is Node3D:
+				return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "springs[%d]: center_node must be a Node3D (got %s)" % [index, center_node.get_class()])
 		planned.append({
 			"spec": spring, "root": root_name, "end": end_name,
-			"collisions": collisions, "exclude": exclude,
+			"collisions": collisions, "exclude": exclude, "center_node": center_node,
 		})
+	var collider_moves: Array = []
+	var seen_colliders := {}
+	for entry: Dictionary in planned:
+		for kind_key in ["collisions", "exclude"]:
+			for collision: Dictionary in entry.get(kind_key, []):
+				var collider: Node = collision.node
+				if not collider is SpringBoneCollision3D:
+					return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "Collision '%s' must be a SpringBoneCollision3D" % collider.name)
+				var ancestor: Node = collider
+				while ancestor != null and ancestor != scene_root:
+					if not ancestor.scene_file_path.is_empty():
+						return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+							"Collision '%s' lives inside an instanced scene; move it into the edited scene first" % collider.name)
+					ancestor = ancestor.get_parent()
+				if not seen_colliders.has(collider.get_instance_id()):
+					seen_colliders[collider.get_instance_id()] = true
+					collider_moves.append({"node": collider, "parent": collider.get_parent(), "transform": collider.transform})
 	var active := bool(params.get("active", false))
 	var simulator := SpringBoneSimulator3D.new()
-	simulator.name = str(params.get("name", "SpringBones"))
+	allocation.track(simulator)
+	simulator.name = _unique_child_name(skeleton, str(params.get("name", "SpringBones")), {})
+	var collision_names := {}
+	var taken_names := {}
+	for move in collider_moves:
+		move.old_name = str(move.node.name)
+		move.new_name = _unique_child_name(simulator, move.old_name, taken_names)
+		# Preserve unique engine-generated names without assigning them again:
+		# Godot sanitizes '@' on assignment, making exact Undo impossible.
+		if move.new_name != move.old_name and move.old_name.validate_node_name() != move.old_name:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"Collisions share the generated name '%s'. Give them distinct editor names before setup." % move.old_name)
+		collision_names[move.node.get_instance_id()] = move.new_name
 	var setup: Array = [{"property": "active", "value": active}]
 	setup.append({"method": "set_setting_count", "args": [planned.size()]})
 	if params.has("mutable_bone_axes"):
 		setup.append({"method": "set_mutable_bone_axes", "args": [bool(params.mutable_bone_axes)]})
+	var collision_setup: Array = []
 	for index in planned.size():
 		var entry: Dictionary = planned[index]
 		var spec: Dictionary = entry.spec
@@ -1138,53 +1300,56 @@ func spring_setup(params: Dictionary) -> Dictionary:
 		if spec.has("center_bone"):
 			setup.append({"method": "set_center_bone_name", "args": [index, str(spec.center_bone)]})
 		if spec.has("center_node"):
-			var center_node := ValueCodec.resolve_scene_path(str(spec.center_node), scene_root)
-			if center_node == null:
-				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
-					"springs[%d]: center node %s" % [index, ValueCodec.format_node_error(str(spec.center_node), scene_root)])
 			setup.append({"method": "set_center_node",
-				"args": [index, NodePath(_spring_path_to(skeleton, center_node))]})
+				"args": [index, NodePath(_spring_path_to(skeleton, entry.center_node))]})
 		if spec.has("enable_all_child_collisions"):
 			setup.append({"method": "set_enable_all_child_collisions", "args": [index, bool(spec.enable_all_child_collisions)]})
 		if not entry.collisions.is_empty():
-			setup.append({"method": "set_collision_count", "args": [index, (entry.collisions as Array).size()]})
+			collision_setup.append({"method": "set_collision_count", "args": [index, (entry.collisions as Array).size()]})
 			for collision_index in (entry.collisions as Array).size():
-				setup.append({"method": "set_collision_path",
-					"args": [index, collision_index, NodePath((entry.collisions as Array)[collision_index].path)]})
+				collision_setup.append({"method": "set_collision_path",
+					"args": [index, collision_index, NodePath(collision_names[entry.collisions[collision_index].node.get_instance_id()])]})
 		if not entry.exclude.is_empty():
-			setup.append({"method": "set_exclude_collision_count", "args": [index, (entry.exclude as Array).size()]})
+			collision_setup.append({"method": "set_exclude_collision_count", "args": [index, (entry.exclude as Array).size()]})
 			for collision_index in (entry.exclude as Array).size():
-				setup.append({"method": "set_exclude_collision_path",
-					"args": [index, collision_index, NodePath((entry.exclude as Array)[collision_index].path)]})
-	_commit_node_add("MCP: Spring bones (%d)" % planned.size(), skeleton, simulator, setup)
-	# Godot only uses a collision that is a child of the simulator, and this one
-	# was just created, so the supplied collisions are moved under it (undoably,
-	# keeping their world transform) instead of being wired as dead references.
+				collision_setup.append({"method": "set_exclude_collision_path",
+					"args": [index, collision_index, NodePath(collision_names[entry.exclude[collision_index].node.get_instance_id()])]})
+	var modifier_path := str(ValueCodec.from_node(skeleton, scene_root)).path_join(str(simulator.name))
 	var moved_collisions: Array = []
-	var undo := ToolContext.undo_redo
-	for entry: Dictionary in planned:
-		for kind_key in ["collisions", "exclude"]:
-			for collision in entry.get(kind_key, []):
-				var collider: Node = (collision as Dictionary).node
-				if collider.get_parent() == simulator:
-					continue
-				var collider_parent := collider.get_parent()
-				if collider_parent == null or not _instance_levels(collider_parent).is_empty():
-					return _undo_and_fail(ErrorCodes.INVALID_PARAMS,
-						"Collision '%s' lives inside an instanced scene, so moving it under the new SpringBoneSimulator3D would not survive the save - move it into the edited scene first"
-							% str(collider.name))
-				if _dry_run or undo == null:
-					continue
-				undo.add_do_method(collider, "reparent", simulator, true)
-				undo.add_undo_method(collider, "reparent", collider_parent, true)
-				moved_collisions.append(ValueCodec.from_node(collider, scene_root))
-	if not moved_collisions.is_empty() and undo != null and not _dry_run:
+	for move in collider_moves: moved_collisions.append(modifier_path.path_join(move.new_name))
+	if not _dry_run:
+		_create_scene_pinned_action("MCP: Spring bones (%d)" % planned.size())
+		var undo := ToolContext.undo_redo
+		for level in _instance_levels(skeleton):
+			undo.add_do_method(level.parent, "set_editable_instance", level.instance, true)
+			undo.add_undo_method(level.parent, "set_editable_instance", level.instance, false)
+		undo.add_do_method(skeleton, "add_child", simulator, true)
+		undo.add_do_property(simulator, "owner", scene_root)
+		undo.add_do_reference(simulator)
+		for call in setup:
+			if call.has("property"): undo.add_do_property(simulator, call.property, call.value)
+			else: _add_do_call(undo, simulator, call.method, call.get("args", []))
+		# Godot validates collision paths immediately. Move first, wire afterward.
+		for move in collider_moves:
+			undo.add_do_method(move.node, "reparent", simulator, true)
+			if move.new_name != move.old_name: undo.add_do_property(move.node, "name", move.new_name)
+			undo.add_undo_method(move.node, "reparent", move.parent, false)
+			undo.add_undo_property(move.node, "transform", move.transform)
+			if move.new_name != move.old_name: undo.add_undo_property(move.node, "name", move.old_name)
+		for call in collision_setup: _add_do_call(undo, simulator, call.method, call.args)
+		# Redo reuses the history-held node. Drop its old simulation momentum
+		# after reattachment/settings/colliders, relative to the current pose.
+		undo.add_do_method(simulator, "reset")
+		undo.add_undo_method(skeleton, "remove_child", simulator)
 		undo.commit_action()
+		allocation.transfer_to_history()
+		moved_collisions.clear()
+		for move in collider_moves: moved_collisions.append(ValueCodec.from_node(move.node, scene_root))
 	var data := {
 		"skeleton_path": resolved.path,
 		"kind": resolved.kind,
 		"modifier_class": "SpringBoneSimulator3D",
-		"modifier_path": ValueCodec.from_node(simulator, scene_root),
+		"modifier_path": modifier_path if _dry_run else ValueCodec.from_node(simulator, scene_root),
 		"spring_count": planned.size(),
 		"springs": planned.map(func(entry): return {"root_bone": str(entry.root), "end_bone": str(entry.end)}),
 		"collisions_moved": moved_collisions,
@@ -1205,6 +1370,7 @@ func spring_setup(params: Dictionary) -> Dictionary:
 
 ## Attach a LookAtModifier3D to a Skeleton3D so one bone tracks a target node.
 func look_at_setup(params: Dictionary) -> Dictionary:
+	var allocation := ModifierAllocation.new()
 	var undo_ready := _require_undo("look_at_setup")
 	if not undo_ready.is_empty():
 		return undo_ready
@@ -1243,6 +1409,38 @@ func look_at_setup(params: Dictionary) -> Dictionary:
 			return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
 				"The look-at target must be a Node3D (got %s)" % found.get_class())
 		target = found
+	# Validate settings that need no new nodes before allocating the modifier
+	# or generated target. The allocation scope still covers engine API refusals.
+	var origin_setup: Array = []
+	if params.has("origin_from"):
+		var origin_from := _look_at_origin_from(str(params.origin_from))
+		if origin_from < 0:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+				"Invalid origin_from '%s'. Valid: self, bone, external_node" % str(params.origin_from))
+		origin_setup.append({"method": "set_origin_from", "args": [origin_from]})
+	if params.has("origin_bone"):
+		var origin_bone := str(params.origin_bone)
+		if skeleton.find_bone(origin_bone) < 0:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"origin_bone '%s' not found on %s" % [origin_bone, resolved.path])
+		origin_setup.append({"method": "set_origin_bone_name", "args": [origin_bone]})
+	var origin_node: Node = null
+	if params.has("origin_node"):
+		origin_node = ValueCodec.resolve_scene_path(str(params.origin_node), scene_root)
+		if origin_node == null:
+			return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
+				"origin_node %s" % ValueCodec.format_node_error(str(params.origin_node), scene_root))
+		if not origin_node is Node3D:
+			return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "origin_node must be a Node3D (got %s)" % origin_node.get_class())
+	if params.has("primary_axis"):
+		var primary := _vector_axis(str(params.primary_axis))
+		if primary < 0:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+				"Invalid primary_axis '%s'. Valid: x, y, z" % str(params.primary_axis))
+		origin_setup.append({"method": "set_primary_rotation_axis", "args": [primary]})
+	var primary_spec := str(params.get("primary_axis", "y"))
+	if forward_spec.right(1) == primary_spec:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "primary_axis must differ from forward_axis so look-at can rotate toward its target")
 	var bone_pose := skeleton.get_bone_global_pose(bone_index)
 	var ahead := bone_pose.basis * _bone_axis_vector(forward) * 1.0
 	var target_created := false
@@ -1257,13 +1455,15 @@ func look_at_setup(params: Dictionary) -> Dictionary:
 		# be unique up front, like the IK markers already are.
 		var taken_names := {}
 		marker.name = _unique_child_name(scene_root, str(params.get("target_name", "LookAtTarget")), taken_names)
+		allocation.track(marker)
 		entries.append({"parent": scene_root, "node": marker,
 			"setup": [{"method": "set_global_position", "args": [skeleton.global_transform * (bone_pose.origin + ahead)]}]})
 		target_node = marker
 		target_created = true
 	var active := bool(params.get("active", false))
 	var modifier := LookAtModifier3D.new()
-	modifier.name = str(params.get("name", "LookAt"))
+	allocation.track(modifier)
+	modifier.name = _unique_child_name(skeleton, str(params.get("name", "LookAt")), {})
 	var target_rel := _modifier_target_path(skeleton, modifier, target_node, scene_root)
 	var setup: Array = [
 		{"property": "active", "value": active},
@@ -1271,24 +1471,9 @@ func look_at_setup(params: Dictionary) -> Dictionary:
 		{"method": "set_target_node", "args": [target_rel]},
 		{"method": "set_forward_axis", "args": [forward]},
 	]
-	if params.has("origin_from"):
-		var origin_from := _look_at_origin_from(str(params.origin_from))
-		if origin_from < 0:
-			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
-				"Invalid origin_from '%s'. Valid: self, bone, external_node" % str(params.origin_from))
-		setup.append({"method": "set_origin_from", "args": [origin_from]})
-	if params.has("origin_bone"):
-		var origin_bone := str(params.origin_bone)
-		if skeleton.find_bone(origin_bone) < 0:
-			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-				"origin_bone '%s' not found on %s" % [origin_bone, resolved.path])
-		setup.append({"method": "set_origin_bone_name", "args": [origin_bone]})
-	if params.has("origin_node"):
-		var origin_node := ValueCodec.resolve_scene_path(str(params.origin_node), scene_root)
-		if origin_node == null:
-			return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
-				"origin_node %s" % ValueCodec.format_node_error(str(params.origin_node), scene_root))
-		setup.append({"method": "set_origin_external_node", "args": [NodePath(str(skeleton.get_path_to(origin_node)))]})
+	setup.append_array(origin_setup)
+	if origin_node != null:
+		setup.append({"method": "set_origin_external_node", "args": [_modifier_target_path(skeleton, modifier, origin_node, scene_root)]})
 	if params.has("origin_offset"):
 		setup.append({"method": "set_origin_offset", "args": [_spec_vector3(params.origin_offset)]})
 	if params.has("origin_safe_margin"):
@@ -1304,28 +1489,29 @@ func look_at_setup(params: Dictionary) -> Dictionary:
 		if params.has("secondary_limit_angle"):
 			setup.append({"method": "set_secondary_limit_angle",
 				"args": [deg_to_rad(float(params.secondary_limit_angle))]})
-	if bool(params.get("use_secondary_rotation", false)):
-		setup.append({"method": "set_use_secondary_rotation", "args": [true]})
-	if params.has("primary_axis"):
-		var primary := _vector_axis(str(params.primary_axis))
-		if primary < 0:
-			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
-				"Invalid primary_axis '%s'. Valid: x, y, z" % str(params.primary_axis))
-		setup.append({"method": "set_primary_rotation_axis", "args": [primary]})
+	setup.append({"method": "set_use_secondary_rotation", "args": [bool(params.get("use_secondary_rotation", false))]})
 	if bool(params.get("relative", false)):
 		setup.append({"method": "set_relative", "args": [true]})
 	if params.has("duration"):
 		setup.append({"method": "set_duration", "args": [float(params.duration)]})
+	var setup_error := _setup_calls_error(modifier, setup)
+	if not setup_error.is_empty(): return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, setup_error)
 	entries.append({"parent": skeleton, "node": modifier, "setup": setup})
 	_commit_node_add_many("MCP: Look-at setup", entries)
+	if not _dry_run: allocation.transfer_to_history()
+	if not _dry_run:
+		var wiring := _verify_setting_node(modifier, "get_target_node", [], target_node)
+		if wiring.is_empty() and origin_node != null:
+			wiring = _verify_setting_node(modifier, "get_origin_external_node", [], origin_node)
+		if not wiring.is_empty(): return _undo_and_fail(ErrorCodes.INVALID_PARAMS, wiring)
 	var data := {
 		"skeleton_path": resolved.path,
 		"kind": resolved.kind,
 		"modifier_class": "LookAtModifier3D",
-		"modifier_path": ValueCodec.from_node(modifier, scene_root),
+		"modifier_path": _planned_modifier_path(modifier, skeleton, scene_root),
 		"bone": bone_name,
 		"forward_axis": forward_spec,
-		"target_path": ValueCodec.from_node(target_node, scene_root),
+		"target_path": _planned_modifier_path(target_node, scene_root, scene_root),
 		"target_created": target_created,
 		"active": active,
 		"warnings": warnings,
@@ -1351,6 +1537,7 @@ func look_at_setup(params: Dictionary) -> Dictionary:
 ## (or explicit) spine chain, and the joint amounts default to the same
 ## distribution the motion recipes use, so the modifier and the clips agree.
 func twist_setup(params: Dictionary, ctx = null) -> Dictionary:
+	var allocation := ModifierAllocation.new()
 	var undo_ready := _require_undo("twist_setup")
 	if not undo_ready.is_empty():
 		return undo_ready
@@ -1417,8 +1604,6 @@ func twist_setup(params: Dictionary, ctx = null) -> Dictionary:
 	if not twist_from_rest and not spec_dict.has("twist_from"):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"disperse.twist_from_rest=false needs disperse.twist_from: the quaternion the chain is measured against, otherwise Godot measures against identity and the disperser does nothing useful. Read one from pose_save on the reference pose, or drop twist_from_rest.")
-	var disperser := BoneTwistDisperser3D.new()
-	disperser.name = str(params.get("name", "TwistDisperser"))
 	var setup: Array = [
 		{"property": "active", "value": active},
 		{"method": "set_setting_count", "args": [1]},
@@ -1445,6 +1630,8 @@ func twist_setup(params: Dictionary, ctx = null) -> Dictionary:
 		if not (reference.ok is Quaternion):
 			return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
 				"disperse.twist_from must be a quaternion value ({kind: quaternion, x, y, z, w})")
+		if not (reference.ok as Quaternion).is_normalized():
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "disperse.twist_from must be a normalized rotation quaternion")
 		setup.append({"method": "set_twist_from_rest", "args": [0, false]})
 		setup.append({"method": "set_twist_from", "args": [0, reference.ok]})
 	# A two-bone range has no joint between the ends, so there is nothing to
@@ -1452,6 +1639,8 @@ func twist_setup(params: Dictionary, ctx = null) -> Dictionary:
 	# extend_end_bone is for. Three or more joints distribute as asked.
 	var extend_end := bool(spec_dict.get("extend_end_bone", joint_bones.size() < 3))
 	setup.append({"method": "set_extend_end_bone", "args": [0, extend_end]})
+	var reference_name := end_name if extend_end else skeleton.get_bone_name(
+		skeleton.get_bone_parent(skeleton.find_bone(end_name)))
 	var warnings: Array = []
 	if joint_bones.size() < 3:
 		warnings.append("the range %s -> %s has %d joint(s), so the twist is applied whole rather than shared; pass a longer disperse.root_bone/end_bone pair to share it"
@@ -1460,17 +1649,22 @@ func twist_setup(params: Dictionary, ctx = null) -> Dictionary:
 		setup.append({"method": "set_mutable_bone_axes", "args": [bool(params.mutable_bone_axes)]})
 	if params.has("influence"):
 		setup.append({"property": "influence", "value": clampf(float(params.influence), 0.0, 1.0)})
+	var disperser := BoneTwistDisperser3D.new()
+	allocation.track(disperser)
+	disperser.name = _unique_child_name(skeleton, str(params.get("name", "TwistDisperser")), {})
 	var setup_error := _setup_calls_error(disperser, setup)
 	if not setup_error.is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, setup_error)
 	_commit_node_add("MCP: Twist disperser", skeleton, disperser, setup)
+	if not _dry_run: allocation.transfer_to_history()
 	var data := {
 		"skeleton_path": resolved.path,
 		"kind": resolved.kind,
 		"modifier_class": "BoneTwistDisperser3D",
-		"modifier_path": ValueCodec.from_node(disperser, scene_root),
+		"modifier_path": _planned_modifier_path(disperser, skeleton, scene_root),
 		"root_bone": root_name,
 		"end_bone": end_name,
+		"reference_bone": reference_name,
 		"mode": mode_name,
 		"joint_bones": joint_bones,
 		"joint_bones_predicted": true,
@@ -1479,7 +1673,7 @@ func twist_setup(params: Dictionary, ctx = null) -> Dictionary:
 		"active": active,
 		"warnings": warnings,
 		"undoable": true,
-		"note": "the modifier disperses root -> end inclusive (%s); Godot builds the per-joint list on the frame after it enters the tree, so read the real one back with rig_get's twist_settings" % ", ".join(joint_bones),
+		"note": "the modifier disperses root -> end inclusive (%s); twist is read from reference bone '%s' (the end's parent unless extend_end_bone=true). Godot builds the joint list on the next frame; read it with rig_get's twist_settings" % [", ".join(joint_bones), reference_name],
 	}
 	if not active:
 		data["active_note"] = "inactive: an active disperser also rewrites the twist while you edit the scene - pass active=true (or enable the modifier) when it is ready"
@@ -1536,6 +1730,7 @@ func _damping_curve(amount: float) -> Curve:
 
 
 func retarget_setup(params: Dictionary) -> Dictionary:
+	var allocation := ModifierAllocation.new()
 	var undo_ready := _require_undo("retarget_setup")
 	if not undo_ready.is_empty():
 		return undo_ready
@@ -1672,7 +1867,25 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 	var modifier: RetargetModifier3D = existing_modifier if existing_modifier != null else RetargetModifier3D.new()
 	var modifier_created := existing_modifier == null
 	if modifier_created:
-		modifier.name = str(params.get("name", "Retarget"))
+		allocation.track(modifier)
+		modifier.name = _unique_child_name(source, str(params.get("name", "Retarget")), {})
+	var restore_script: Script = preload("res://addons/godot_ai_animation/utils/retarget_pose_restore.gd")
+	var pose_restore: Node = null
+	for child in modifier.get_children():
+		if child.get_script() == restore_script: pose_restore = child
+	var restore_created := pose_restore == null
+	if existing_modifier != null and restore_created:
+		for child in modifier.get_children():
+			if not child is Skeleton3D: continue
+			for bone in child.get_bone_count():
+				if not child.get_bone_pose(bone).is_equal_approx(child.get_bone_rest(bone)):
+					return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
+						"This existing native retarget has authored child poses without a persistence helper. Godot 4.7.2 resets those inputs when its original Undo scene reopens; preserving them would change the original scene. Reconfigure a toolkit-created retarget, or a native modifier whose children use their rest pose.")
+	if restore_created:
+		pose_restore = Node.new()
+		pose_restore.name = _unique_child_name(modifier, "ToolkitRetargetPoseRestore", {})
+		pose_restore.set_script(restore_script)
+		allocation.track(pose_restore)
 	var previous := {
 		"active": modifier.active,
 		"profile": modifier.profile,
@@ -1695,6 +1908,11 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 	var setup_error := _setup_calls_error(modifier, setup)
 	if not setup_error.is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, setup_error)
+	var target_pose_props := _bone_pose_history_props(target)
+	if existing_modifier != null:
+		for child in existing_modifier.get_children():
+			if child is Skeleton3D and child != target:
+				target_pose_props.append_array(_bone_pose_history_props(child))
 	if not _dry_run:
 		_create_scene_pinned_action("MCP: Retarget setup")
 		var undo := ToolContext.undo_redo
@@ -1702,6 +1920,11 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 			undo.add_do_method(source, "add_child", modifier, true)
 			undo.add_do_method(modifier, "set_owner", scene_root)
 			undo.add_do_reference(modifier)
+		if restore_created:
+			undo.add_do_method(modifier, "add_child", pose_restore, true)
+			undo.add_do_property(pose_restore, "owner", scene_root)
+			undo.add_do_reference(pose_restore)
+			undo.add_undo_method(modifier, "remove_child", pose_restore)
 		for call in setup:
 			if call.has("property"):
 				undo.add_do_property(modifier, call.property, call.value)
@@ -1714,14 +1937,28 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 					_add_undo_call(undo, modifier, call.method, call.previous_args)
 		if move_target and not already_under_modifier:
 			var old_parent := move_node.get_parent()
+			var old_index := move_node.get_index()
 			undo.add_do_method(move_node, "reparent", modifier, true)
 			# Undo methods run in registration order, so the target goes back to
 			# its old parent before the modifier (its current parent) is removed.
 			undo.add_undo_method(move_node, "reparent", old_parent, true)
+			undo.add_undo_method(old_parent, "move_child", move_node, old_index)
 			undo.add_undo_method(source, "remove_child", modifier)
 		elif modifier_created:
 			undo.add_undo_method(source, "remove_child", modifier)
+		# Retarget resets cached child poses when its profile, flags, children or
+		# tree attachment changes. Restore AFTER all structural/settings calls,
+		# then after the engine's deferred child-cache reset as well. Use the
+		# existing scene/version ticket so later authored edits still win.
+		for entry in target_pose_props:
+			undo.add_do_property(entry.object, entry.property, entry.value)
+			undo.add_undo_property(entry.object, entry.property, entry.old)
+		var history: UndoRedo = undo.get_history_undo_redo(undo.get_object_history_id(scene_root))
+		var version := history.get_version()
+		undo.add_do_method(self, "_queue_pose_restore", target_pose_props, history, scene_root.get_instance_id(), version + 1, false)
+		undo.add_undo_method(self, "_queue_pose_restore", target_pose_props, history, scene_root.get_instance_id(), version, true)
 		undo.commit_action()
+		allocation.transfer_to_history()
 	# Failsafe: the modifier is only useful if the target skeleton is a direct
 	# child of it, and a profile is only useful if its bones resolved. Check
 	# after the commit (the settings are readable then) and roll the whole thing
@@ -1738,15 +1975,17 @@ func retarget_setup(params: Dictionary) -> Dictionary:
 				and not _profile_bones_resolve(modifier.get_profile(), target):
 			return _undo_and_fail(ErrorCodes.INVALID_PARAMS,
 				"The retarget profile's bones do not resolve on the target skeleton, so the modifier would drive nothing")
+	var modifier_path := _planned_modifier_path(modifier, source, scene_root)
+	var resulting_target_path := modifier_path.path_join(str(target.name)) if _dry_run and move_target and not already_under_modifier else ValueCodec.from_node(target, scene_root)
 	var data := {
 		"skeleton_path": resolved.path,
 		"kind": resolved.kind,
 		"modifier_class": "RetargetModifier3D",
-		"modifier_path": ValueCodec.from_node(modifier, scene_root),
+		"modifier_path": modifier_path,
 		"modifier_created": modifier_created,
-		"target_path": ValueCodec.from_node(target, scene_root),
+		"target_path": resulting_target_path,
 		"moved_target": move_target and not already_under_modifier,
-		"moved_path": ValueCodec.from_node(move_node, scene_root) if move_target and not already_under_modifier else "",
+		"moved_path": resulting_target_path if move_target and not already_under_modifier else "",
 		"profile_source": str(resolved_profile.source),
 		"profile_bones": profile.get_bone_size(),
 		"mapped_bones": mapped_bones.size(),
@@ -2294,221 +2533,271 @@ static func _punch_deltas(skeleton: Skeleton3D, roles: Dictionary, punching: Str
 ## is seeked to each sample first, then the skeleton is updated so modifiers
 ## (IK, springs, retarget) run - the baked clip plays without them.
 func bake_pose_sequence(params: Dictionary) -> Dictionary:
-	var resolved := _resolve_skeleton(params)
-	if resolved.has("error"):
-		return resolved
-	if resolved.kind != "3d":
-		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-			"bake_pose_sequence needs a Skeleton3D")
-	var skeleton: Skeleton3D = resolved.node
+	for field in ["animation_name", "source_animation", "source_tree_path", "output_player_path", "root_motion_mode", "root_motion_target_path"]:
+		if params.has(field) and not params[field] is String:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s must be a string" % field)
+	for field in ["duration", "fps"]:
+		if params.has(field) and not (params[field] is int or params[field] is float):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s must be numeric" % field)
 	var length := float(params.get("duration", 1.0))
-	if length <= 0.0:
-		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "duration must be > 0")
-	var fps := maxi(1, int(params.get("fps", 30)))
+	var fps_value := float(params.get("fps", 30))
+	if not is_finite(length) or length < 0.001:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "duration must be finite and >= 0.001")
+	if not is_finite(fps_value) or fps_value < 1.0 or fps_value != floor(fps_value):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "fps must be a positive integer")
+	if not is_finite(length * fps_value) or length * fps_value > MAX_BAKE_SAMPLES - 1:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "duration x fps exceeds the 1200-pose bake budget")
+	var fps := int(fps_value)
+	var samples := int(ceil(length * fps_value)) + 1
+	if samples > MAX_BAKE_SAMPLES:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "duration x fps exceeds the %d-pose bake budget" % MAX_BAKE_SAMPLES)
+	for field in ["positions", "scales", "overwrite", "dry_run"]:
+		if params.has(field) and not params[field] is bool:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s must be a boolean" % field)
+	var resolved := _resolve_skeleton(params)
+	if resolved.has("error"): return resolved
+	if resolved.kind != "3d":
+		return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "bake_pose_sequence needs a Skeleton3D")
+	var skeleton: Skeleton3D = resolved.node
+	var player_resolved := _resolve_player(str(params.get("player_path", "")))
+	if player_resolved.has("error"): return player_resolved
+	var source_player: AnimationPlayer = player_resolved.player
+	var root_node := ValueCodec.player_root_node(source_player)
+	if root_node == null:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "The source AnimationPlayer has no resolvable root_node")
+	var source := str(params.get("source_animation", ""))
+	var source_tree: AnimationTree
+	var replay := BakeGraphReplay.new()
+	var tree_path := str(params.get("source_tree_path", ""))
+	if not tree_path.is_empty():
+		if params.has("source_animation"):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "source_tree_path and source_animation are mutually exclusive")
+		var tree_node := ValueCodec.resolve_scene_path(tree_path, EditorInterface.get_edited_scene_root())
+		if not tree_node is AnimationTree:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "source_tree_path must resolve an AnimationTree")
+		source_tree = tree_node
+		if source_tree.get_node_or_null(source_tree.anim_player) != source_player:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "source tree must link player_path")
+		var configured := replay.configure(source_tree, params, length)
+		if configured.has("error"): return configured
+	elif params.has("tree_parameters") or params.has("tree_starts") or params.has("tree_events"):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "tree controls require source_tree_path")
+	else:
+		if source.is_empty(): source = str(source_player.current_animation)
+		if source.is_empty(): source = str(source_player.assigned_animation)
+	if not source.is_empty() and not source_player.has_animation(source):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Animation '%s' not found. Available: %s" % [source, ", ".join(source_player.get_animation_list())])
+	var root_mode := str(params.get("root_motion_mode", "preserve"))
+	if root_mode not in ["preserve", "pose_only", "apply"]:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "root_motion_mode must be preserve, pose_only or apply")
+	var source_mixer: AnimationMixer = source_tree if source_tree != null else source_player
+	var motion: RefCounted
+	var motion_owner: Node3D
+	if not source_mixer.root_motion_track.is_empty():
+		var owner_path := str(params.get("root_motion_target_path", ""))
+		if root_mode != "pose_only" and owner_path.is_empty():
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "preserve/apply extraction requires root_motion_target_path")
+		if not owner_path.is_empty():
+			var owner_node := ValueCodec.resolve_scene_path(owner_path, EditorInterface.get_edited_scene_root())
+			if not owner_node is Node3D or owner_node != skeleton and not owner_node.is_ancestor_of(skeleton):
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "root_motion_target_path must be a Node3D owning the selected skeleton")
+			motion_owner = owner_node
+		motion = BakeRootMotion.new()
+		var motion_ready: Dictionary = motion.configure(source_mixer, source_player, motion_owner, source, root_mode)
+		if motion_ready.has("error"): return motion_ready
 	var loop_result := _loop_mode(params)
-	if loop_result.has("error"):
-		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, loop_result.error)
+	if loop_result.has("error"): return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, loop_result.error)
 	var include_positions := bool(params.get("positions", true))
 	var include_scales := bool(params.get("scales", false))
 	var bones_filter: Array = params.get("bones", [])
-	var player_resolved := _resolve_player(str(params.get("player_path", "")))
-	if player_resolved.has("error"):
-		return player_resolved
-	var player: AnimationPlayer = player_resolved.player
-	var library: AnimationLibrary = player_resolved.library
-	var created_library := false
-	if library == null:
-		library = AnimationLibrary.new()
-		created_library = true
-	# The source clip has to be assigned to the player before seek() can sample
-	# it - a player that was never played has no current animation, and seeking
-	# it would leave the skeleton at rest.
-	var source := str(params.get("source_animation", ""))
-	if source.is_empty():
-		source = player.current_animation
-	if source.is_empty() and not String(player.assigned_animation).is_empty():
-		source = String(player.assigned_animation)
-	if not source.is_empty() and not player.has_animation(source):
-		var names: Array = []
-		for name in library.get_animation_list():
-			names.append(str(name))
-		names.sort()
-		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-			"Animation '%s' not found on the player. Available: %s"
-			% [source, ", ".join(names) if not names.is_empty() else "(none)"])
-	var root_node := ValueCodec.player_root_node(player)
-	if root_node == null:
-		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-			"The AnimationPlayer has no resolvable root_node")
-	var track_root := str(root_node.get_path_to(skeleton))
-	if track_root.is_empty() or track_root == ".":
-		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-			"The skeleton must live under the player's root_node")
-	# Remember the current pose so the bake leaves the scene as it found it. A
-	# RetargetModifier3D writes to its target's skeleton, so the target counts as
-	# "the scene" here too - restoring only the source left the target posed.
-	var restore: Array = []
-	for index in skeleton.get_bone_count():
-		restore.append({
-			"rotation": skeleton.get_bone_pose_rotation(index),
-			"position": skeleton.get_bone_pose_position(index),
-			"scale": skeleton.get_bone_pose_scale(index),
-		})
-	var retarget_targets: Array = []
-	var retarget_restores: Array = []
-	for child in skeleton.get_children():
-		if child is RetargetModifier3D and (child as RetargetModifier3D).active:
-			for grandchild in child.get_children():
-				var found_skeleton := _skeleton_below(grandchild)
-				if found_skeleton != null and not retarget_targets.has(found_skeleton):
-					retarget_targets.append(found_skeleton)
-					retarget_restores.append({
-						"skeleton": found_skeleton,
-						"pose": _pose_snapshot(found_skeleton),
-					})
+	for name in bones_filter:
+		if not name is String or skeleton.find_bone(name) < 0:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Unknown bake bone '%s'" % str(name))
 	var indices: Array = []
 	for index in skeleton.get_bone_count():
-		var bone_name := skeleton.get_bone_name(index)
-		if not bones_filter.is_empty() and not bones_filter.has(bone_name):
-			continue
-		indices.append(index)
-	if indices.is_empty():
-		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "No bones to bake")
-	var samples := int(ceil(length * float(fps))) + 1
-	if samples > MAX_BAKE_SAMPLES:
-		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
-			"duration x fps would sample %d poses (max %d). Lower fps or shorten the clip." % [samples, MAX_BAKE_SAMPLES])
-	var step := 1.0 / float(fps)
-	var keys := {}
-	for index in indices:
-		keys[skeleton.get_bone_name(index)] = {"rotation": [], "position": [], "scale": []}
-	var was_playing := player.is_playing()
-	var was_animation := player.current_animation
-	var was_position := player.current_animation_position
-	if not source.is_empty():
-		player.play(source)
-	# Active modifiers (IK, springs, retarget) only run in the skeleton's
-	# deferred update, and their result is only readable inside
-	# modification_processed - get_bone_pose_* outside it returns the
-	# pre-modifier pose. Drive that update manually per sample and capture the
-	# final pose in the signal handler.
-	var modifiers: Array = []
-	for child in skeleton.get_children():
-		if child is SkeletonModifier3D and (child as SkeletonModifier3D).active:
-			modifiers.append(child)
-	# Stateful modifiers carry internal velocity/spring state between updates, so
-	# a second bake would start from wherever the first one ended. Reset what can
-	# be reset (SpringBoneSimulator3D.reset()) so the result only depends on fps.
-	var reset_modifiers: Array = []
-	for modifier in modifiers:
-		if (modifier as SkeletonModifier3D).has_method("reset"):
-			(modifier as SkeletonModifier3D).call("reset")
-			reset_modifiers.append((modifier as SkeletonModifier3D).get_class())
-	var sampled: Dictionary = {}
-	var capture := func() -> void:
-		sampled.clear()
-		for index in indices:
-			sampled[index] = {
-				"rotation": skeleton.get_bone_pose_rotation(index),
-				"position": skeleton.get_bone_pose_position(index),
-				"scale": skeleton.get_bone_pose_scale(index),
-			}
-	for modifier in modifiers:
-		(modifier as SkeletonModifier3D).modification_processed.connect(capture)
-	# Sample 0 is the state after one step of modifier time, so the baked clip
-	# starts where playback would put it rather than at an unresolved step.
-	var missing_capture_at := -1.0
-	for sample in samples:
-		var time := minf(sample * step, length)
-		if not source.is_empty():
-			player.seek(time, true)
-		sampled.clear()
-		if not modifiers.is_empty():
-			# advance() accumulates the delta and the deferred update consumes it,
-			# so the pair gives the modifiers exactly `step` instead of whatever
-			# the editor's frame time was - springs integrate deterministically.
-			skeleton.advance(step)
-			skeleton.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
-			# `sampled` stays empty when no modifier reported in, which would mean
-			# the clip would hold pre-modifier poses.
-			if sampled.is_empty() and missing_capture_at < 0.0:
-				missing_capture_at = time
-		for index in indices:
-			var bone_name := skeleton.get_bone_name(index)
-			var entry: Dictionary = keys[bone_name]
-			var rotation: Quaternion = skeleton.get_bone_pose_rotation(index)
-			var position: Vector3 = skeleton.get_bone_pose_position(index)
-			var bone_scale: Vector3 = skeleton.get_bone_pose_scale(index)
-			if sampled.has(index):
-				rotation = sampled[index].rotation
-				position = sampled[index].position
-				bone_scale = sampled[index].scale
-			(entry.rotation as Array).append({"time": time, "value": rotation, "transition": "linear"})
-			if include_positions:
-				(entry.position as Array).append({"time": time, "value": position, "transition": "linear"})
-			if include_scales:
-				(entry.scale as Array).append({"time": time, "value": bone_scale, "transition": "linear"})
-	for modifier in modifiers:
-		if (modifier as SkeletonModifier3D).modification_processed.is_connected(capture):
-			(modifier as SkeletonModifier3D).modification_processed.disconnect(capture)
-	if missing_capture_at >= 0.0:
-		_restore_bake_state(skeleton, restore, retarget_restores, player,
-			was_playing, was_animation, was_position)
-		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
-			"The active modifier on %s never reported modification_processed at t=%.3f, so the sampled pose would be the pre-modifier one. Nothing was written - make the modifier active, or bake with the modifiers disabled."
-				% [resolved.path, missing_capture_at])
-	_restore_bake_state(skeleton, restore, retarget_restores, player,
-		was_playing, was_animation, was_position)
+		if bones_filter.is_empty() or bones_filter.has(skeleton.get_bone_name(index)): indices.append(index)
+	if indices.is_empty(): return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "No bones to bake")
+	var scene_root := EditorInterface.get_edited_scene_root()
+	var protected_trees: Array = []
+	for tree in scene_root.find_children("*", "AnimationTree", true, false):
+		if tree.get_node_or_null(tree.anim_player) == source_player: protected_trees.append(tree)
+	var allocation := ModifierAllocation.new()
+	var player: AnimationPlayer = source_player
+	var player_created := false
+	var output_path := str(params.get("output_player_path", ""))
+	if not output_path.is_empty():
+		var destination := _resolve_player(output_path)
+		if destination.has("error"): return destination
+		player = destination.player
+		if player.active or player.is_playing():
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Explicit bake output must be inactive and stopped")
+		for tree in scene_root.find_children("*", "AnimationTree", true, false):
+			if tree.get_node_or_null(tree.anim_player) == player:
+				return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Explicit output is linked to an AnimationTree")
+	elif not protected_trees.is_empty() or motion != null:
+		player = AnimationPlayer.new()
+		allocation.track(player)
+		player_created = true
+		player.name = _unique_child_name(source_player.get_parent(), "AnimationBakeOutput", {})
+		player.root_node = source_player.root_node
+		player.active = false
+		player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+		output_path = ValueCodec.from_node(source_player.get_parent(), scene_root) + "/" + str(player.name)
+	if output_path.is_empty(): output_path = ValueCodec.from_node(player, scene_root)
+	var destination_root := root_node if player_created else ValueCodec.player_root_node(player)
+	if destination_root == null:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Output AnimationPlayer has no resolvable root_node")
+	if player.get_script() != null:
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Custom output animation processors cannot reproduce the baked result")
+	var track_root := str(destination_root.get_path_to(skeleton))
+	if track_root.is_empty() or track_root == ".":
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "The skeleton must have a valid path from the output player's root")
+	var library: AnimationLibrary = player.get_animation_library("") if player.has_animation_library("") else null
+	var created_library := library == null
+	if created_library: library = AnimationLibrary.new()
 	var anim_name := str(params.get("animation_name", "baked"))
-	var spec := ClipSpec.make(length, loop_result.ok)
+	if anim_name.is_empty() or anim_name.contains("/") or anim_name.contains(":"):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "animation_name must be a plain nonempty clip name")
+	var existing := _existing_animation(library, anim_name, bool(params.get("overwrite", false)))
+	if existing.has("error"): return existing.error
+	var reusable_carrier: Skeleton3D
+	if motion != null and root_mode == "preserve" and not player_created and not player.root_motion_track.is_empty():
+		var candidate := destination_root.get_node_or_null(NodePath(player.root_motion_track.get_concatenated_names()))
+		if candidate is Skeleton3D and candidate.get_meta("godot_ai_animation_motion_carrier", false) and candidate.get_meta("godot_ai_animation_motion_owner", "") == ValueCodec.from_node(motion_owner, scene_root) and player.root_motion_track.get_concatenated_subnames() == "motion":
+			reusable_carrier = candidate
+	var extraction_changes := motion != null and root_mode == "preserve" and reusable_carrier == null or (motion == null or root_mode != "preserve") and not player.root_motion_track.is_empty()
+	if not player_created and extraction_changes:
+		for name in player.get_animation_list():
+			if str(name) != anim_name:
+				return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Changing output extraction would invalidate another clip; choose an unused output player or a compatible toolkit carrier")
+	if not _dry_run:
+		var undo_error := _require_undo("Baking a clip")
+		if not undo_error.is_empty(): return undo_error
+	var sampler := PoseBakeSampler.new()
+	var times: Array = replay.sample_times(length, fps) if source_tree != null else []
+	if source_tree != null and not replay.sampling_problem.is_empty(): return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, replay.sampling_problem)
+	if source_tree == null:
+		for i in samples: times.append(minf(float(i) / fps, length))
+	for i in times.size() - 1:
+		if float(times[i + 1]) - float(times[i]) <= 0.00002 * maxf(1.0, absf(times[i + 1])):
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "sample spacing is below Godot's distinct-key tolerance; adjust duration, event timing or FPS")
+	if times.size() + replay.events.size() > MAX_BAKE_SAMPLES:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "samples and graph events exceed the 1200-evaluation budget")
+	samples = times.size()
+	var opened := sampler.open(scene_root, skeleton, source_player, source, source_tree, replay, motion, motion_owner)
+	if opened.has("error"): return opened
+	var keys := {}
+	for index in indices: keys[skeleton.get_bone_name(index)] = {"rotation": [], "position": [], "scale": []}
+	var step := 1.0 / fps
+	var previous := 0.0
+	var motion_keys := {"rotation": [], "position": [], "scale": []}
+	for time_value in times:
+		var time := float(time_value)
+		# Hold the infinitesimal event bridge. Native approximate key lookup
+		# can select this key just before its time; linear interpolation would
+		# then extrapolate the abrupt event backward by a large pose delta.
+		var transition: Variant = 0.0 if replay.pre_event_times.has(time_value) else "linear"
+		var sampled := sampler.sample(time - previous, time)
+		if sampled.has("error"): return sampled
+		previous = time
+		for channel in sampled.motion:
+			motion_keys[channel].append({"time": time, "value": sampled.motion[channel], "transition": transition})
+		for bone in indices:
+			var entry: Dictionary = keys[skeleton.get_bone_name(bone)]
+			var pose: Dictionary = sampled.poses[bone]
+			entry.rotation.append({"time": time, "value": pose.rotation, "transition": transition})
+			if include_positions: entry.position.append({"time": time, "value": pose.position, "transition": transition})
+			if include_scales: entry.scale.append({"time": time, "value": pose.scale, "transition": transition})
+	var modifier_classes := sampler.modifiers.duplicate()
+	var reset_classes := sampler.reset_modifiers.duplicate()
+	var exclusions := sampler.sandbox.excluded_tracks.duplicate(true)
+	var preserved_paths: Array = [resolved.path]
+	var retarget_paths: Array = []
+	for node in sampler.preserved:
+		if node != skeleton:
+			var path := ValueCodec.from_node(node, scene_root)
+			preserved_paths.append(path)
+			if skeleton.is_ancestor_of(node): retarget_paths.append(path)
+	sampler.close()
+	# AnimationPlayer clears extraction on the finishing tick. A stationary tail
+	# keeps the last moving interval readable without shifting any captured key.
+	var terminal_hold := 0.001 if motion != null and root_mode == "preserve" and int(loop_result.ok) == Animation.LOOP_NONE else 0.0
+	var spec := ClipSpec.make(length + terminal_hold, loop_result.ok)
 	for bone_name in keys:
 		var entry: Dictionary = keys[bone_name]
-		var rotation_keys: Array = entry.rotation
-		if not rotation_keys.is_empty():
-			ClipSpec.add_value_track(spec, "%s:%s" % [track_root, bone_name], rotation_keys,
-				Animation.INTERPOLATION_LINEAR, Animation.TYPE_ROTATION_3D)
-		var position_keys: Array = entry.position
-		if include_positions and not position_keys.is_empty():
-			ClipSpec.add_value_track(spec, "%s:%s" % [track_root, bone_name], position_keys,
-				Animation.INTERPOLATION_LINEAR, Animation.TYPE_POSITION_3D)
-		var scale_keys: Array = entry.scale
-		if include_scales and not scale_keys.is_empty():
-			ClipSpec.add_value_track(spec, "%s:%s" % [track_root, bone_name], scale_keys,
-				Animation.INTERPOLATION_LINEAR, Animation.TYPE_SCALE_3D)
+		for channel in ["rotation", "position", "scale"]:
+			if entry[channel].is_empty(): continue
+			var type: int = {"rotation": Animation.TYPE_ROTATION_3D, "position": Animation.TYPE_POSITION_3D, "scale": Animation.TYPE_SCALE_3D}[channel]
+			ClipSpec.add_value_track(spec, "%s:%s" % [track_root, bone_name], entry[channel], Animation.INTERPOLATION_LINEAR, type)
+	var carrier: Skeleton3D
+	var movement_track := ""
+	var node_entries: Array = []
+	var output_props := _bone_pose_history_props(skeleton)
+	if motion != null:
+		if root_mode == "preserve":
+			if reusable_carrier != null:
+				carrier = reusable_carrier
+				movement_track = str(player.root_motion_track)
+			else:
+				carrier = Skeleton3D.new()
+				allocation.track(carrier)
+				carrier.name = _unique_child_name(player, "RootMotionCarrier", {})
+				carrier.add_bone("motion")
+				carrier.set_bone_rest(0, Transform3D.IDENTITY)
+				carrier.set_bone_pose(0, Transform3D.IDENTITY)
+				carrier.set_meta("godot_ai_animation_motion_carrier", true)
+				carrier.set_meta("godot_ai_animation_motion_owner", ValueCodec.from_node(motion_owner, scene_root))
+				var player_track_path := str(destination_root.get_path_to(source_player.get_parent())) + "/" + str(player.name) if player_created else str(destination_root.get_path_to(player))
+				movement_track = player_track_path.trim_prefix("./") + "/" + str(carrier.name) + ":motion"
+				node_entries.append({"parent": player, "node": carrier})
+		elif root_mode == "apply": movement_track = str(destination_root.get_path_to(motion_owner))
+		for channel in motion_keys:
+			if motion_keys[channel].is_empty(): continue
+			var type: int = {"rotation": Animation.TYPE_ROTATION_3D, "position": Animation.TYPE_POSITION_3D, "scale": Animation.TYPE_SCALE_3D}[channel]
+			ClipSpec.add_value_track(spec, movement_track, motion_keys[channel], Animation.INTERPOLATION_LINEAR, type)
+		var extraction_path := NodePath(movement_track) if root_mode == "preserve" else NodePath()
+		if player_created:
+			player.root_motion_track = extraction_path
+			player.root_motion_local = root_mode == "preserve"
+		else:
+			output_props.append({"object": player, "property": "root_motion_track", "old": player.root_motion_track, "value": extraction_path})
+			output_props.append({"object": player, "property": "root_motion_local", "old": player.root_motion_local, "value": root_mode == "preserve"})
+	elif player != source_player and not player.root_motion_track.is_empty():
+		output_props.append({"object": player, "property": "root_motion_track", "old": player.root_motion_track, "value": NodePath()})
 	var valid := SpecBuilder.validate(spec)
-	if valid.has("error"):
-		return valid
-	var overwrite := bool(params.get("overwrite", false))
-	var existing := _existing_animation(library, anim_name, overwrite)
-	if existing.has("error"):
-		return existing.error
+	if valid.has("error"): return valid
 	var anim := SpecBuilder.to_animation(spec)
-	_commit_animation_add("MCP: Baked clip %s" % anim_name, player, library,
-		created_library, anim_name, anim, existing.old_anim)
+	if player_created:
+		player.add_animation_library("", library)
+		library.add_animation(anim_name, anim)
+		node_entries.push_front({"parent": source_player.get_parent(), "node": player})
+		_commit_node_add_many("MCP: Baked clip %s" % anim_name, node_entries)
+		if not _dry_run: allocation.transfer_to_history()
+	else:
+		_commit_animation_add("MCP: Baked clip %s" % anim_name, player, library, created_library, anim_name, anim, existing.old_anim, output_props, node_entries)
+		if not _dry_run: allocation.transfer_to_history()
 	return {"data": {
-		"player_path": str(params.get("player_path", "")),
-		"skeleton_path": resolved.path,
-		"animation_name": anim_name,
-		"length": length,
-		"fps": fps,
-		"samples": samples,
-		"bone_count": indices.size(),
-		"track_count": (spec.tracks as Array).size(),
-		"positions": include_positions,
-		"scales": include_scales,
-		"source_animation": source,
+		"player_path": output_path, "source_player_path": ValueCodec.from_node(source_player, scene_root),
+		"output_player_created": player_created, "skeleton_path": resolved.path,
+		"animation_name": anim_name, "length": length + terminal_hold, "capture_duration": length,
+		"root_motion_terminal_hold": terminal_hold, "fps": fps, "samples": samples,
+		"bone_count": indices.size(), "track_count": spec.tracks.size(),
+		"positions": include_positions, "scales": include_scales, "source_animation": source,
+		"source_tree_path": ValueCodec.from_node(source_tree, scene_root) if source_tree != null else "",
+		"graph_restart_from_zero": source_tree != null, "graph_events": replay.events.size(),
 		"loop_mode": ValueCodec.loop_mode_to_string(int(spec.loop_mode)),
-		"library_created": created_library,
-		"overwritten": existing.old_anim != null,
-		"undoable": true,
-		"modifiers": _modifier_names(modifiers),
-		"reset_modifiers": reset_modifiers,
-		"sample_delta": step,
-		"restored_skeletons": [resolved.path] + _skeleton_paths(retarget_restores,
-			EditorInterface.get_edited_scene_root()),
-		"retarget_targets": _skeleton_paths(retarget_restores,
-			EditorInterface.get_edited_scene_root()),
-		"note": "the skeleton's pose was restored after sampling; disable the source modifiers once you play the baked clip",
+		"library_created": created_library, "overwritten": existing.old_anim != null,
+		"undoable": true, "modifiers": modifier_classes, "reset_modifiers": reset_classes,
+		"reset_scope": "private_copy", "sample_delta": step,
+		"evaluation_isolated": true, "live_state_untouched": true,
+		"excluded_tracks": exclusions, "root_motion_mode": root_mode,
+		"root_motion_target_path": ValueCodec.from_node(motion_owner, scene_root) if motion_owner != null else "",
+		"root_motion_track": movement_track if root_mode == "preserve" else "",
+		"root_motion_local": motion != null and root_mode == "preserve",
+		"travel_omitted": motion != null and root_mode == "pose_only",
+		"movement_owner_count": 1 if motion != null and root_mode != "pose_only" else 0,
+		"restored_skeletons": preserved_paths, "retarget_targets": retarget_paths,
+		"note": "Sampling used a private scene. Disable source playback and source modifiers when playing the baked clip.",
 	}}
 
 
@@ -2520,21 +2809,10 @@ static func _modifier_names(modifiers: Array) -> Array:
 	return names
 
 
-## Put every skeleton the bake touched and the player back the way they were:
-## the source pose, each retarget target's pose, and the player's animation,
-## time and play state.
-func _restore_bake_state(skeleton: Skeleton3D, restore: Array, retarget_restores: Array,
-		player: AnimationPlayer, was_playing: bool, was_animation: String,
-		was_position: float) -> void:
-	# Player first: seeking it back writes the animation's pose into the bones,
-	# so the bone restore has to come after it to be the last word.
-	if was_animation.is_empty():
-		player.stop()
-	else:
-		player.play(was_animation)
-		player.seek(was_position, true)
-		if not was_playing:
-			player.pause()
+## Put every skeleton the bake touched back the way it was:
+## the source pose and each retarget target's pose. Sampling never changes the
+## author's player, so its private playback state needs no reconstruction.
+func _restore_bake_state(skeleton: Skeleton3D, restore: Array, retarget_restores: Array) -> void:
 	for entry in retarget_restores:
 		_pose_restore(entry.skeleton, entry.pose)
 	for index in skeleton.get_bone_count():
@@ -2705,71 +2983,66 @@ func _aim_entry(aim) -> Dictionary:
 
 ## Apply a pose as one undo action. `blend` lerps from the current pose.
 func _apply_pose(resolved: Dictionary, pose: Dictionary, blend: float, reset_first: bool) -> Dictionary:
-	var undo_ready := _require_undo("pose_apply")
-	if not undo_ready.is_empty():
-		return undo_ready
+	var skeleton: Node = resolved.node
+	var names := {}
+	for index in skeleton.get_bone_count():
+		var name: String = skeleton.get_bone_name(index) if skeleton is Skeleton3D else str(skeleton.get_bone(index).name)
+		names[name] = index
 	var missing: Array = []
-	var applied := 0
+	var matched := {}
+	for bone in PoseMath.bone_names(pose):
+		if names.has(bone): matched[names[bone]] = pose.bones[bone]
+		else: missing.append(bone)
+	if matched.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "The pose matches no bones on the target skeleton")
+	if _dry_run: return {"applied": matched.size(), "missing": missing}
+	var undo_ready := _require_undo("pose_apply")
+	if not undo_ready.is_empty(): return undo_ready
 	_create_scene_pinned_action("MCP: Apply pose")
 	var undo := ToolContext.undo_redo
-	var skeleton: Node = resolved.node
-	if resolved.kind == "3d":
-		var skeleton_3d := skeleton as Skeleton3D
-		if reset_first:
-			for index in skeleton_3d.get_bone_count():
-				undo.add_do_method(skeleton_3d, "reset_bone_pose", index)
-				undo.add_undo_method(skeleton_3d, "set_bone_pose_rotation", index, skeleton_3d.get_bone_pose_rotation(index))
-				undo.add_undo_method(skeleton_3d, "set_bone_pose_position", index, skeleton_3d.get_bone_pose_position(index))
-				undo.add_undo_method(skeleton_3d, "set_bone_pose_scale", index, skeleton_3d.get_bone_pose_scale(index))
-		for bone in PoseMath.bone_names(pose):
-			var index := skeleton_3d.find_bone(str(bone))
-			if index < 0:
-				missing.append(str(bone))
-				continue
-			var rest := skeleton_3d.get_bone_rest(index)
-			var delta: Dictionary = pose.bones[bone]
-			var absolute := PoseMath.delta_to_pose(delta, rest.basis.get_rotation_quaternion(), rest.origin)
-			var rotation: Quaternion = absolute.rotation
-			var position: Vector3 = absolute.position
-			var scale: Vector3 = absolute.scale
-			if blend < 1.0:
-				rotation = skeleton_3d.get_bone_pose_rotation(index).slerp(rotation, blend)
-				position = skeleton_3d.get_bone_pose_position(index).lerp(position, blend)
-				scale = skeleton_3d.get_bone_pose_scale(index).lerp(scale, blend)
-			undo.add_do_method(skeleton_3d, "set_bone_pose_rotation", index, rotation)
-			undo.add_do_method(skeleton_3d, "set_bone_pose_position", index, position)
-			undo.add_do_method(skeleton_3d, "set_bone_pose_scale", index, scale)
-			undo.add_undo_method(skeleton_3d, "set_bone_pose_rotation", index, skeleton_3d.get_bone_pose_rotation(index))
-			undo.add_undo_method(skeleton_3d, "set_bone_pose_position", index, skeleton_3d.get_bone_pose_position(index))
-			undo.add_undo_method(skeleton_3d, "set_bone_pose_scale", index, skeleton_3d.get_bone_pose_scale(index))
-			applied += 1
-	else:
-		var skeleton_2d := skeleton as Skeleton2D
-		for bone in PoseMath.bone_names(pose):
-			var target: Bone2D = null
-			for index in skeleton_2d.get_bone_count():
-				if str(skeleton_2d.get_bone(index).name) == str(bone):
-					target = skeleton_2d.get_bone(index)
-					break
-			if target == null:
-				missing.append(str(bone))
-				continue
-			var delta_2d: Dictionary = pose.bones[bone]
-			var angle := target.rest.get_rotation() + _quaternion_to_angle(delta_2d.get("rotation", Quaternion.IDENTITY))
-			var offset: Vector3 = delta_2d.get("position", Vector3.ZERO)
-			if blend < 1.0:
-				angle = lerp_angle(target.rotation, angle, blend)
-				offset = Vector3(target.position.x, target.position.y, 0.0).lerp(
-					Vector3(target.rest.get_origin().x + offset.x, target.rest.get_origin().y + offset.y, 0.0), blend)
-			else:
-				offset = Vector3(target.rest.get_origin().x + offset.x, target.rest.get_origin().y + offset.y, 0.0)
-			undo.add_do_method(target, "set_rotation", angle)
-			undo.add_do_method(target, "set_position", Vector2(offset.x, offset.y))
-			undo.add_undo_method(target, "set_rotation", target.rotation)
-			undo.add_undo_method(target, "set_position", target.position)
-			applied += 1
+	for level in _instance_levels(skeleton):
+		undo.add_do_method(level.parent, "set_editable_instance", level.instance, true)
+		undo.add_undo_method(level.parent, "set_editable_instance", level.instance, false)
+	# Resolve all final values before committing. Reset-first blends from rest;
+	# Undo restores each original pose once, including unlisted reset bones.
+	for index in skeleton.get_bone_count():
+		if not reset_first and not matched.has(index): continue
+		if skeleton is Skeleton3D:
+			var rig := skeleton as Skeleton3D
+			var rest := rig.get_bone_rest(index)
+			var old_rotation := rig.get_bone_pose_rotation(index)
+			var old_position := rig.get_bone_pose_position(index)
+			var old_scale := rig.get_bone_pose_scale(index)
+			var rotation := rest.basis.get_rotation_quaternion() if reset_first else old_rotation
+			var position := rest.origin if reset_first else old_position
+			var scale := rest.basis.get_scale() if reset_first else old_scale
+			if matched.has(index):
+				var absolute := PoseMath.delta_to_pose(matched[index], rest.basis.get_rotation_quaternion(), rest.origin)
+				rotation = rotation.slerp(absolute.rotation, blend)
+				position = position.lerp(absolute.position, blend)
+				scale = scale.lerp(absolute.scale, blend)
+			undo.add_do_method(rig, "set_bone_pose_rotation", index, rotation)
+			undo.add_do_method(rig, "set_bone_pose_position", index, position)
+			undo.add_do_method(rig, "set_bone_pose_scale", index, scale)
+			undo.add_undo_method(rig, "set_bone_pose_rotation", index, old_rotation)
+			undo.add_undo_method(rig, "set_bone_pose_position", index, old_position)
+			undo.add_undo_method(rig, "set_bone_pose_scale", index, old_scale)
+		else:
+			var bone := (skeleton as Skeleton2D).get_bone(index)
+			var before := bone.transform
+			var after := bone.rest if reset_first else before
+			if matched.has(index):
+				var delta: Dictionary = matched[index]
+				var offset: Vector3 = delta.position
+				var target_scale: Vector3 = delta.scale
+				var angle := bone.rest.get_rotation() + _quaternion_to_angle(delta.rotation)
+				after = Transform2D(lerp_angle(after.get_rotation(), angle, blend),
+					after.get_scale().lerp(Vector2(target_scale.x, target_scale.y), blend),
+					after.get_skew(), after.origin.lerp(bone.rest.origin + Vector2(offset.x, offset.y), blend))
+			undo.add_do_method(bone, "set_transform", after)
+			undo.add_undo_method(bone, "set_transform", before)
 	undo.commit_action()
-	return {"applied": applied, "missing": missing}
+	return {"applied": matched.size(), "missing": missing}
 
 
 ## Resolve a pose from `pose` (inline), `name` (pose dir) or `path`, with an
@@ -2821,11 +3094,11 @@ func _write_pose_file(path: String, pose: Dictionary, overwrite: bool) -> Dictio
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, problem)
 	# A dry run reports the path it WOULD write and leaves the disk alone. The
 	# pose still comes back in the reply, so the caller loses nothing.
-	if _dry_run:
-		return {"ok": true, "dry_run": true}
 	if not overwrite and FileAccess.file_exists(path):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"%s already exists. Pass overwrite=true to replace it." % path)
+	if _dry_run:
+		return {"ok": true, "dry_run": true}
 	var directory := path.get_base_dir()
 	if not directory.is_empty() and not DirAccess.dir_exists_absolute(directory):
 		var made := DirAccess.make_dir_recursive_absolute(directory)
@@ -2848,10 +3121,17 @@ func _read_json(path: String) -> Dictionary:
 			"Cannot read %s (%s)" % [path, error_string(FileAccess.get_open_error())])
 	var text := file.get_as_text()
 	file.close()
-	var parsed = JSON.parse_string(text)
-	if not parsed is Dictionary:
+	var json := JSON.new()
+	if json.parse(text) != OK or not json.data is Dictionary:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s is not valid JSON" % path)
-	return {"data": parsed}
+	return {"data": json.data}
+
+
+static func _pose_weight(params: Dictionary, name: String, fallback: float) -> Dictionary:
+	var value: Variant = params.get(name, fallback)
+	if not (value is int or value is float) or not is_finite(float(value)):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s must be a finite number" % name)
+	return {"value": clampf(float(value), 0.0, 1.0)}
 
 
 func _bone_rest(skeleton: Skeleton3D, bone: String) -> Dictionary:
@@ -2887,6 +3167,9 @@ func _bone_track_issues(resolved: Dictionary) -> Array:
 			bone_names[str(skeleton_2d.get_bone(index).name)] = true
 	for player in scene_root.find_children("*", "AnimationPlayer", true, false):
 		var animation_player := player as AnimationPlayer
+		var player_root := ValueCodec.player_root_node(animation_player)
+		if player_root == null:
+			continue
 		for library_name in animation_player.get_animation_library_list():
 			var library := animation_player.get_animation_library(library_name)
 			if library == null:
@@ -2896,7 +3179,7 @@ func _bone_track_issues(resolved: Dictionary) -> Array:
 				for index in anim.get_track_count():
 					var path := str(anim.track_get_path(index))
 					var node_part := ClipSpec.node_path_of(path)
-					if not node_part.ends_with(str(resolved.node.name)):
+					if player_root.get_node_or_null(NodePath(node_part)) != resolved.node:
 						continue
 					var bone := ClipSpec.property_of(path)
 					if bone.is_empty() or bone_names.has(bone):
@@ -2964,9 +3247,38 @@ static func _spec_entry(spec: Array, name: String) -> Dictionary:
 	return {}
 
 
+static func _chain_transform_error(bone: Dictionary, kind: String) -> String:
+	for field in ["position", "rotation", "scale"]:
+		if not bone.has(field): continue
+		var value: Variant = bone[field]
+		if field == "rotation" and kind == "2d" and (value is int or value is float):
+			if not is_finite(float(value)): return "rotation must be finite"
+			continue
+		var parts: Array = []
+		if value is Vector3: parts = [value.x, value.y, value.z]
+		elif value is Vector2 and kind == "2d": parts = [value.x, value.y]
+		elif value is Array and value.size() >= 2 and value.size() <= 3: parts = value
+		elif value is Dictionary:
+			for component in ["x", "y", "z"]:
+				if value.has(component): parts.append(value[component])
+		if parts.is_empty(): return "%s must contain numeric vector components" % field
+		for component in parts:
+			if not (component is int or component is float) or not is_finite(float(component)):
+				return "%s must contain finite numeric components" % field
+			if field == "scale" and is_zero_approx(float(component)): return "scale components must be nonzero"
+	for field in ["length", "skew"]:
+		if not bone.has(field): continue
+		var value: Variant = bone[field]
+		if not (value is int or value is float) or not is_finite(float(value)):
+			return "%s must be finite" % field
+		if field == "length" and float(value) <= 0.0: return "length must be positive"
+	return ""
+
+
 ## Bone rest from a spec entry: position/scale as arrays or dicts, rotation in
 ## degrees (3D: XYZ euler, 2D: about Z).
 static func _spec_rest_3d(bone: Dictionary) -> Transform3D:
+	if bone.get("_source_rest") is Transform3D: return bone._source_rest
 	var origin := _spec_vector3(bone.get("position", null))
 	var rotation := _spec_vector3(bone.get("rotation", null))
 	var scale := _spec_vector3(bone.get("scale", null), Vector3.ONE)
@@ -2974,7 +3286,8 @@ static func _spec_rest_3d(bone: Dictionary) -> Transform3D:
 
 
 static func _spec_rest_2d(bone: Dictionary) -> Transform2D:
-	return Transform2D(deg_to_rad(_spec_rotation_2d(bone)), _spec_vector2(bone.get("position", null)))
+	if bone.get("_source_rest") is Transform2D: return bone._source_rest
+	return Transform2D(deg_to_rad(_spec_rotation_2d(bone)), _spec_vector2(bone.get("scale"), Vector2.ONE), float(bone.get("skew", 0.0)), _spec_vector2(bone.get("position")))
 
 
 static func _spec_rotation_2d(bone: Dictionary) -> float:
@@ -3008,8 +3321,7 @@ static func _bone_2d_setup(bone: Dictionary) -> Array:
 	var rest := _spec_rest_2d(bone)
 	return [
 		{"property": "rest", "value": rest},
-		{"property": "position", "value": rest.get_origin()},
-		{"property": "rotation", "value": rest.get_rotation()},
+		{"property": "transform", "value": rest},
 		{"method": "set_autocalculate_length_and_angle", "args": [false]},
 		{"method": "set_length", "args": [float(bone.get("length", 32.0))]},
 	]
@@ -3050,10 +3362,14 @@ func _bone_tip_3d(skeleton: Skeleton3D, bone_index: int) -> Dictionary:
 
 # --- modifier enum helpers --------------------------------------------------
 
-## NodePath from a modifier (a child of `skeleton`) to a target node: IK and
-## look-at settings resolve their paths against the modifier. Targets created by
-## the same action are not in the tree yet, so their path is built by hand (they
-## land directly under the edited scene root).
+## Scene path of an existing node or a not-yet-parented generated node.
+static func _planned_modifier_path(node: Node, parent: Node, scene_root: Node) -> String:
+	if node.is_inside_tree(): return ValueCodec.from_node(node, scene_root)
+	return ValueCodec.from_node(parent, scene_root).path_join(str(node.name))
+
+
+## NodePath from a modifier (a child of `skeleton`) to a target node. Generated
+## targets land under target_parent; existing targets retain their scene path.
 static func _modifier_target_path(skeleton: Skeleton3D, modifier: Node, target: Node, target_parent: Node) -> NodePath:
 	if target.is_inside_tree() and modifier.is_inside_tree():
 		return modifier.get_path_to(target)
@@ -3071,7 +3387,8 @@ static func _modifier_target_path(skeleton: Skeleton3D, modifier: Node, target: 
 		relative = str(skeleton.get_path_to(target))
 	elif target_parent != null and target_parent.is_inside_tree():
 		relative = "%s/%s" % [str(skeleton.get_path_to(target_parent)), str(target.name)]
-	if relative.is_empty() or relative == ".":
+	if relative == ".": return NodePath("..")
+	if relative.is_empty():
 		return NodePath(str(target.name))
 	return NodePath("../%s" % relative)
 

@@ -252,6 +252,26 @@ static func _pose_restore(skeleton: Skeleton3D, snapshot: Array) -> void:
 		skeleton.set_bone_pose_scale(index, snapshot[index].scale)
 
 
+## A clip edit can invalidate the editor's animation caches and reset channels
+## absent from the remaining clips. Restore the authored pose after the library
+## mutation in the same action, including native Undo/Redo on later frames.
+static func _bone_pose_history_props(skeleton: Node) -> Array:
+	var props: Array = []
+	if skeleton is Skeleton3D:
+		var rig := skeleton as Skeleton3D
+		var pose := _pose_snapshot(rig)
+		for index in pose.size():
+			for field in ["rotation", "position", "scale"]:
+				props.append({"object": rig, "property": "bones/%d/%s" % [index, field],
+					"value": pose[index][field], "old": pose[index][field], "after_refresh": true})
+	elif skeleton is Skeleton2D:
+		for index in skeleton.get_bone_count():
+			var bone: Bone2D = skeleton.get_bone(index)
+			props.append({"object": bone, "property": "transform", "value": bone.transform,
+				"old": bone.transform, "after_refresh": true})
+	return props
+
+
 ## Apply a clip spec to the skeleton at `time` (rest + sampled key values), so
 ## read-only probes and spring passes can pose the skeleton without a player.
 static func _apply_spec_at(skeleton: Skeleton3D, spec: Dictionary, time: float) -> void:
@@ -367,6 +387,22 @@ func _build_procedural_animation(
 			wrote = true
 		if wrote:
 			used.append(str(bone_name))
+	var root_motion_track := ""
+	if keys.has("__root_motion__"):
+		var motion_node := _root_motion_node(root_node, skeleton)
+		if motion_node == null:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"Root motion needs a Node3D character owner under the AnimationPlayer root_node")
+		root_motion_track = "%s:position" % str(root_node.get_path_to(motion_node))
+		var motion_keys: Array = []
+		for key in (keys["__root_motion__"] as Dictionary).get("position", []):
+			motion_keys.append({
+				"time": float(key.time),
+				"value": motion_node.position + (key.delta as Vector3),
+				"transition": "linear",
+			})
+		ClipSpec.add_value_track(spec, root_motion_track, motion_keys,
+			Animation.INTERPOLATION_LINEAR, Animation.TYPE_POSITION_3D)
 	var valid := SpecBuilder.validate(spec)
 	if valid.has("error"):
 		return valid
@@ -378,7 +414,21 @@ func _build_procedural_animation(
 		"player": player,
 		"library": library,
 		"created_library": created_library,
+		"root_motion_track": root_motion_track,
 	}
+
+
+## Choose the character-owned node, never the hips bone. When the player's
+## root_node is the edited scene root, use the first child on the skeleton
+## path so root extraction cannot move the whole scene.
+func _root_motion_node(player_root: Node, skeleton: Skeleton3D) -> Node3D:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if player_root is Node3D and player_root != scene_root:
+		return player_root as Node3D
+	var candidate: Node = skeleton
+	while candidate != null and candidate.get_parent() != player_root:
+		candidate = candidate.get_parent()
+	return candidate as Node3D if candidate is Node3D else null
 
 
 ## Commit a procedurally built bone clip as one undo action (the cycle/recipe
@@ -387,20 +437,32 @@ func _build_procedural_animation(
 func _commit_procedural_clip(
 	params: Dictionary, resolved: Dictionary, anim_name: String, length: float,
 	loop_mode: int, keys: Dictionary, markers: Array = [], extra_props: Array = [],
+	preserve_root_endpoint: bool = false,
 ) -> Dictionary:
 	var built := _build_procedural_animation(params, resolved, anim_name, length, loop_mode, keys, markers)
 	if built.has("error"):
 		return built
+	var hold := 0.0
+	if preserve_root_endpoint and not str(built.root_motion_track).is_empty():
+		var extracting: bool = built.player.root_motion_track == NodePath(built.root_motion_track)
+		for entry in extra_props:
+			if entry.object == built.player and entry.property == "root_motion_track":
+				extracting = entry.value == NodePath(built.root_motion_track)
+		if extracting:
+			hold = preserve_translation_endpoint(built.spec, str(built.root_motion_track))
+			built.anim = SpecBuilder.to_animation(built.spec)
 	var existing := _existing_animation(built.library, anim_name, bool(params.get("overwrite", false)))
 	if existing.has("error"):
 		return existing.error
 	_commit_animation_add("MCP: %s" % anim_name, built.player, built.library, built.created_library,
-		anim_name, built.anim, existing.old_anim, extra_props)
+		anim_name, built.anim, existing.old_anim, extra_props + _bone_pose_history_props(resolved.node))
 	return {"data": {
 		"player_path": str(params.get("player_path", "")),
 		"skeleton_path": resolved.path,
 		"animation_name": anim_name,
-		"length": length,
+		"length": float(built.spec.length),
+		"capture_duration": length,
+		"root_motion_terminal_hold": hold,
 		"loop_mode": ValueCodec.loop_mode_to_string(int(built.spec.loop_mode)),
 		"track_count": (built.spec.tracks as Array).size(),
 		"key_count": ClipSpec.total_key_count(built.spec),
@@ -409,3 +471,19 @@ func _commit_procedural_clip(
 		"overwritten": existing.old_anim != null,
 		"undoable": true,
 	}}
+
+
+## AnimationPlayer clears extraction on its finishing tick. Hold all channels
+## for more than one 30 FPS frame, so an arbitrary motion endpoint is reached
+## before that tick at the supported 30/60/120 playback rates.
+static func preserve_translation_endpoint(spec: Dictionary, root_path: String) -> float:
+	if int(spec.loop_mode) != Animation.LOOP_NONE or root_path.is_empty() or ClipSpec.find_track_index(spec, root_path, Animation.TYPE_POSITION_3D) < 0: return 0.0
+	var original := float(spec.length)
+	var hold := 1.0 / 30.0 + 0.001
+	var native := SpecBuilder.to_animation(spec)
+	for index in (spec.tracks as Array).size():
+		var track: Dictionary = spec.tracks[index]
+		var value: Variant = native.position_track_interpolate(index, original) if int(track.type) == Animation.TYPE_POSITION_3D else native.rotation_track_interpolate(index, original) if int(track.type) == Animation.TYPE_ROTATION_3D else native.scale_track_interpolate(index, original)
+		track.keys.append({"time": original + hold, "value": value, "transition": 1.0})
+	spec.length = original + hold
+	return hold

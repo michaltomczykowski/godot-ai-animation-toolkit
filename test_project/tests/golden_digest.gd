@@ -27,13 +27,14 @@ extends RefCounted
 ## clip holds absolute local rotations - so they get separate fixtures and this
 ## class only guarantees that each source is self-consistent.
 ##
-## A missing file means "record it", so regenerating a golden is a deliberate act
-## (delete the file, run) rather than something a test quietly does to itself.
+## Missing fixtures fail normal tests. Deliberate local recording requires
+## ANIMATION_TOOLKIT_RECORD_GOLDENS=1 and is always refused in CI.
 
 const SCALE := 2048
 const TOLERANCE := 2
 const FORMAT := "godot-ai-animation-golden"
 const VERSION := 1
+const RECORD_ENV := "ANIMATION_TOOLKIT_RECORD_GOLDENS"
 
 
 ## Digest of a committed `Animation`: the 3D rotation and position tracks, keyed
@@ -157,6 +158,9 @@ static func load_or_record(path: String, digest: Dictionary) -> Dictionary:
 		if parsed is Dictionary and (parsed as Dictionary).has("tracks"):
 			return {"recorded": false, "golden": parsed}
 		return {"error": "%s does not parse as a golden" % path}
+	var ci := OS.get_environment("CI").to_lower() in ["1", "true"]
+	if OS.get_environment(RECORD_ENV) != "1" or OS.get_environment("ANIMATION_TOOLKIT_CI") == "1" or ci:
+		return {"error": "Missing golden %s; explicit local %s=1 is required for recording (CI cannot record)" % [path, RECORD_ENV]}
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
 		return {"error": "could not write %s (%s)" % [path, str(FileAccess.get_open_error())]}

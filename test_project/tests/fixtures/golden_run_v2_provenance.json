@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "fixture_epoch": "v2-responsive-run",
+  "migration_state": "fresh_normal_comparison_passed_full_regression_pending",
+  "approved_animation_source": "97f17ce579510fe5b784c1edd84a845eb164c199",
+  "delivered_checkpoint": "8030ec52cdda8d1af62377e8fff4186f235b24a7",
+  "review_revision": "run-review-r001",
+  "feedback": {
+    "verbatim": "they look okay",
+    "received_utc": "2026-10-10T19:38:24.112185+00:00",
+    "decision": "approved_presented_run_style_set",
+    "scope": "Responsive/default, Grounded, relaxed, heavy and sneaky across the four presented rigs; direct response to the five-style run review question.",
+    "individual_watched_files_enumerated": false,
+    "animation_source": "97f17ce579510fe5b784c1edd84a845eb164c199",
+    "videos": [
+      {
+        "style": "responsive",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-responsive-clean.mp4",
+        "sha256": "eabb1945ed8877f597be79bc409161136b42cc36466d5baa03055e1089815bb3"
+      },
+      {
+        "style": "responsive",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-responsive-diagnostic.mp4",
+        "sha256": "0cfbe2cfafd4e21cfd00f2113ca3772685411a26cf43ae0e4c7c07b950288c0f"
+      },
+      {
+        "style": "grounded",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-grounded-clean.mp4",
+        "sha256": "1cf64fc8cb72e68156ae69bce7b070d37aefc93b7c1873f293f97b594a4fcf20"
+      },
+      {
+        "style": "grounded",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-grounded-diagnostic.mp4",
+        "sha256": "5ccf6ba4ecc8cb31bce58c00821505964e380ce100581c068ca2a80474a780a1"
+      },
+      {
+        "style": "relaxed",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-relaxed-clean.mp4",
+        "sha256": "25840c10829f06af68b521070a563b5f3c38b173ca52ad158f453c2447e1d2ea"
+      },
+      {
+        "style": "relaxed",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-relaxed-diagnostic.mp4",
+        "sha256": "a1258f5f2aa5ab691ea14df3c292aeeb2b4cf8db6f99a4659374697e7b884eed"
+      },
+      {
+        "style": "heavy",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-heavy-clean.mp4",
+        "sha256": "d52a7f016d2664979e183299bb94924a09c2e3a500d5db834f12c26cb781990b"
+      },
+      {
+        "style": "heavy",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-heavy-diagnostic.mp4",
+        "sha256": "573c467d3db3024c2e69a32f749f1f4ba48d00bd3252e6389d1f1c508232d1a8"
+      },
+      {
+        "style": "sneaky",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-sneaky-clean.mp4",
+        "sha256": "5a3df89171aa13571d4aa4fac1fa292354e9800ba89b671ad840d3f31bd5cca3"
+      },
+      {
+        "style": "sneaky",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-sneaky-diagnostic.mp4",
+        "sha256": "435caef60e736f4e700224db282f1631781bc61c68cc1f2c28f3b838b1a5eb66"
+      }
+    ]
+  },
+  "fixture_generation_source": "ec3f1b8016a3e2508c2d84c3206375f8ebca1d15",
+  "godot": "4.7.2",
+  "core_source": "bfc264200584ea5823f18356acb164781f57796d",
+  "asset": {
+    "path": "models/human_dummy/HumanCharacterDummy_F.fbx",
+    "sha256": "d038a99efd9754e2804221f509aba8bff2168bf83982c109937ce0c749caf5bf"
+  },
+  "invocation": {
+    "op": "run_cycle",
+    "animation_name": "golden_run",
+    "loop_mode": "linear"
+  },
+  "omitted_params": [
+    "style",
+    "duration",
+    "speed",
+    "samples",
+    "overrides",
+    "root_motion"
+  ],
+  "root_motion_convention": "Default in-place; player created under the helper in-memory FBX instance",
+  "format": "godot-ai-animation-golden",
+  "version": 1,
+  "scale": 2048,
+  "tolerance": 2,
+  "fixtures": {
+    "golden_run.json": {
+      "sha256": "7b834fc54604f0bf9a0002ec83fc7de965739b1f693ac071b9fc3ecb14f2d54d"
+    },
+    "golden_run_responsive_v2.json": {
+      "sha256": "01de98d0d7a336a6c26425991b099e391bad71e6492f5f619e2c3fbeb1bb7c62",
+      "track_count": 38,
+      "key_counts": [
+        59
+      ],
+      "length_s": 0.9697
+    }
+  },
+  "recording_contract": "Explicit local recording only; fresh normal comparison and full regression required.",
+  "independent_comparison": {
+    "fresh_editor": true,
+    "recording_enabled": false,
+    "total": 61,
+    "passed": 61,
+    "failed": 0,
+    "skipped": 0,
+    "run_drift_units": 0,
+    "receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\accepted-r001-regression\\editor-normal.json"
+  }
+}

@@ -14,6 +14,8 @@ const MotionSpecs := preload("res://addons/godot_ai_animation/spec/motion_specs.
 const MotionDrivers := preload("res://addons/godot_ai_animation/spec/motion_drivers.gd")
 const SpecIO := preload("res://addons/godot_ai_animation/spec/spec_io.gd")
 const GraphBuilders := preload("res://addons/godot_ai_animation/spec/graph_builders.gd")
+const SecondarySampler := preload("res://addons/godot_ai_animation/utils/secondary_clip_sampler.gd")
+var _test_secondary_fail_at := -1 # Internal failure injection, not on the tool wire.
 
 const _CYCLE_KINDS := {
 	"walk_cycle": "walk",
@@ -27,7 +29,7 @@ const _CYCLE_KINDS := {
 	"walk_stop": "walk_stop",
 }
 
-const _GAIT_KEYS := ["stride", "knee_bend", "arm_swing", "arm_twist", "bob", "sway", "hip_yaw", "hip_roll", "chest_yaw", "lean", "foot_lift", "elbow", "elbow_swing", "lag", "stance", "crouch", "toe_roll", "twist_spread"]
+const _GAIT_KEYS := ["stride", "knee_bend", "arm_swing", "arm_twist", "bob", "sway", "hip_yaw", "hip_roll", "chest_yaw", "lean", "foot_lift", "elbow", "elbow_swing", "lag", "stance", "crouch", "toe_roll", "twist_spread", "elbow_lag", "wrist_swing", "wrist_lag", "torso_twist", "torso_flex", "torso_roll", "head_nod", "head_roll", "head_lag", "head_stabilize", "forearm_twist", "wrist_sway", "arm_variation", "variation_seed", "hand_relax"]
 
 ## Overrides that are switches rather than numbers, so they are not coerced.
 const _BOOLEAN_OVERRIDES := ["planted"]
@@ -40,6 +42,11 @@ func _scale_distances_to_rig(config: Dictionary, params: Dictionary, overrides: 
 	var explicit: Array = []
 	for key in params:
 		explicit.append(str(key))
+	# Friendly jump aliases write their canonical config keys below. Treat them
+	# as explicit too, or a caller's 0.5 m jump silently changes with rig size.
+	for alias in {"height": "jump_height", "distance": "jump_distance", "crouch": "jump_crouch"}:
+		if params.has(alias):
+			explicit.append({"height": "jump_height", "distance": "jump_distance", "crouch": "jump_crouch"}[alias])
 	for key in overrides:
 		explicit.append(str(key))
 	MotionSpecs.scale_distances_to_rig(config, ctx, explicit, MotionSpecs.REFERENCE_LEG)
@@ -59,11 +66,20 @@ const _OVERRIDE_KEYS := {
 	"turn": ["turn_angle", "arm_swing", "elbow", "foot_lift", "steps"],
 }
 
+## A single request can otherwise allocate tens of millions of keys by asking
+## for a very long clip at 120 samples/s. Check before MotionSpecs builds keys.
+const MAX_CYCLE_INTERVALS := 1200
+var _pending_setup_tree: AnimationTree
+
 
 ## Rollup entry registered with the Godot AI tool registry.
 func run(params: Dictionary, _ctx) -> Dictionary:
 	_dry_run = bool(params.get("dry_run", false))
+	_pending_setup_tree = null
 	var result := _dispatch(params)
+	if is_instance_valid(_pending_setup_tree) and not _pending_setup_tree.is_inside_tree():
+		_pending_setup_tree.free()
+	_pending_setup_tree = null
 	if _dry_run and result.has("data"):
 		result.data["dry_run"] = true
 		result.data["undoable"] = false
@@ -72,6 +88,14 @@ func run(params: Dictionary, _ctx) -> Dictionary:
 
 func _dispatch(params: Dictionary) -> Dictionary:
 	var op: String = params.get("op", "")
+	if _CYCLE_KINDS.has(op) or op == "secondary_motion":
+		if not _dry_run:
+			var context := _require_undo("animation_motion " + op)
+			if context.has("error"): return context
+		var destination := _resolve_player(str(params.get("player_path", "")))
+		if destination.has("error"): return destination
+		var available := _idle_clip_destination(destination.player)
+		if available.has("error"): return available
 	match op:
 		"walk_cycle":
 			return _run_cycle(params, "walk")
@@ -113,8 +137,11 @@ func _run_cycle(params: Dictionary, kind: String) -> Dictionary:
 		var player_resolved := _resolve_player(str(params.get("player_path", "")))
 		if not player_resolved.has("error"):
 			var root_node := ValueCodec.player_root_node(player_resolved.player)
-			if root_node != null:
-				root_motion_track = "%s:%s" % [str(root_node.get_path_to(prepared.resolved.node)), str(prepared.ctx.hips)]
+			var motion_node := _root_motion_node(root_node, prepared.resolved.node) if root_node != null else null
+			if motion_node != null:
+				root_motion_track = "%s:position" % str(root_node.get_path_to(motion_node))
+				var compatible := _extraction_change_safe(player_resolved.player, NodePath(root_motion_track), true, [prepared.anim_name])
+				if compatible.has("error"): return compatible
 				extra_props.append({
 					"object": player_resolved.player,
 					"property": "root_motion_track",
@@ -134,10 +161,13 @@ func _run_cycle(params: Dictionary, kind: String) -> Dictionary:
 						"old": false,
 					})
 	var committed := _commit_procedural_clip(params, prepared.resolved, prepared.anim_name,
-		prepared.length, prepared.loop_mode, prepared.keys, prepared.markers, extra_props)
+		prepared.length, prepared.loop_mode, prepared.keys, prepared.markers, extra_props, true)
 	if committed.has("error"):
 		return committed
 	committed.data["style"] = prepared.style
+	committed.data["resolved_style"] = MotionSpecs.resolved_style(prepared.style)
+	committed.data["applied_features"] = prepared.applied_features
+	committed.data["omitted_features"] = prepared.omitted_features
 	committed.data["samples"] = prepared.rate
 	committed.data["roles"] = prepared.ctx.roles
 	committed.data["spine_chain"] = prepared.ctx.spine_chain
@@ -165,9 +195,9 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 			"Invalid preset '%s'. Valid: walk, run, idle, jump, turn, strafe" % kind)
 	var style := str(params.get("style", "default"))
-	if style != "default" and not MotionSpecs._STYLE_MULTIPLIERS.has(style):
+	if not MotionSpecs.STYLE_NAMES.has(style):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
-			"Invalid style '%s'. Valid: %s" % [style, ", ".join(MotionSpecs._STYLE_MULTIPLIERS.keys())])
+			"Invalid style '%s'. Valid: %s" % [style, ", ".join(MotionSpecs.STYLE_NAMES)])
 	var overrides = params.get("overrides", {})
 	if not (overrides is Dictionary):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'overrides' must be an object")
@@ -176,21 +206,19 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		if not valid_keys.has(str(key)):
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"Unknown %s override '%s'. Valid: %s" % [kind, str(key), ", ".join(valid_keys)])
-	var built := _build_context(params, kind)
-	if built.has("error"):
-		return built
-	var config: Dictionary = MotionSpecs.walk_config(style, {})
-	match kind:
-		"run":
-			config = MotionSpecs.run_config(style, {})
-		"idle":
-			config = MotionSpecs.idle_config(style, {})
-		"jump":
-			config = MotionSpecs.jump_config(style, {})
-		"turn":
-			config = MotionSpecs.turn_config(style, {})
-		"strafe":
-			config = MotionSpecs.strafe_config(style, {})
+		if str(key) in _BOOLEAN_OVERRIDES:
+			if not overrides[key] is bool: return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Override '%s' must be a boolean" % key)
+		elif not (overrides[key] is int or overrides[key] is float):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Override '%s' must be a number" % key)
+	var numeric_fields := valid_keys.duplicate()
+	numeric_fields.append_array(["duration", "samples", "speed", "phase", "arm_down", "height", "distance", "crouch", "angle"])
+	for field in numeric_fields:
+		if not params.has(field): continue
+		if str(field) in _BOOLEAN_OVERRIDES:
+			if not params[field] is bool: return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'%s' must be a boolean" % field)
+		elif not (params[field] is int or params[field] is float):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'%s' must be a number" % field)
+	var config := MotionSpecs.config_for_kind(kind, style)
 	for key in overrides:
 		config[str(key)] = overrides[key]
 	for key in valid_keys:
@@ -209,11 +237,44 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		config["jump_crouch"] = float(params["crouch"])
 	if params.has("angle"):
 		config["turn_angle"] = float(params["angle"])
+	var built := _build_context(params, kind, config)
+	if built.has("error"):
+		return built
 	var length := float(built.length)
 	var rate := float(built.rate)
 	var ctx: Dictionary = built.ctx
 	ctx["config"] = config
+	for field in ["elbow_lag", "wrist_lag", "head_lag"]:
+		if config.has(field) and (float(config[field]) < 0.0 or float(config[field]) > 0.25):
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "%s must be between 0 and 0.25 cycle fractions" % field)
+	if absf(float(config.get("wrist_swing", 0.0))) > 20.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "wrist_swing must be between -20 and 20 degrees")
+	if absf(float(config.get("torso_twist", 0.0))) > 45.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "torso_twist must be between -45 and 45 degrees")
+	var articulate := false
+	for field in ["torso_flex", "torso_roll", "head_nod", "head_roll"]:
+		if absf(float(config.get(field, 0.0))) > 10.0:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "%s must be between -10 and 10 degrees" % field)
+	for field in ["torso_flex", "torso_roll", "head_nod", "head_roll", "head_lag", "head_stabilize"]:
+		articulate = articulate or config.has(field)
+	if float(config.get("head_stabilize", 0.0)) < 0.0 or float(config.get("head_stabilize", 0.0)) > 1.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "head_stabilize must be between 0 and 1")
+	for field in ["forearm_twist", "wrist_sway"]:
+		var limit := 20.0 if field == "forearm_twist" else 10.0
+		if absf(float(config.get(field, 0.0))) > limit:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "%s must be between -%s and %s degrees" % [field, limit, limit])
+	for field in ["arm_variation", "hand_relax"]:
+		var limit := 3.0 if field == "arm_variation" else 45.0
+		if float(config.get(field, 0.0)) < 0.0 or float(config.get(field, 0.0)) > limit:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "%s must be between 0 and %s degrees" % [field, limit])
+	var seed_value := float(config.get("variation_seed", 0))
+	if seed_value < 0.0 or seed_value > 2147483647.0 or seed_value != floorf(seed_value):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "variation_seed must be an integer from 0 to 2147483647")
+	var features := _optional_features(params, overrides, config, built, articulate)
+	if features.has("error"):
+		return features
 	_scale_distances_to_rig(config, params, overrides, ctx)
+	ctx["foot_lift_explicit"] = params.has("foot_lift") or overrides.has("foot_lift")
 	ctx["speed"] = maxf(float(params.get("speed", 0.0)), 0.0)
 	var direction := str(params.get("direction", "left"))
 	if direction != "left" and direction != "right":
@@ -221,6 +282,13 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 	ctx["direction"] = direction
 	ctx["phase"] = clampf(float(params.get("phase", 0.0)), 0.0, 0.999)
 	if kind == "strafe":
+		var ankle_gap := absf(((ctx.legs.l.ankle as Vector3) -
+			(ctx.legs.r.ankle as Vector3)).dot(ctx.lateral as Vector3))
+		var smaller_leg := minf(float(ctx.legs.l.upper) + float(ctx.legs.l.lower),
+			float(ctx.legs.r.upper) + float(ctx.legs.r.lower))
+		if ankle_gap <= maxf(0.001, smaller_leg * 0.02):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"Strafe needs distinct left/right rest ankle spacing along the rig's lateral axis; check foot roles and rest pose")
 		ctx["step_axis"] = (built.ctx.lateral as Vector3) * (1.0 if direction == "left" else -1.0)
 		ctx["knee_hint"] = built.ctx.forward
 	var result: Dictionary
@@ -237,6 +305,24 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 			result = MotionSpecs.transition_keys(ctx, kind == "walk_stop")
 		_:
 			result = MotionSpecs.gait_keys(ctx, kind == "run")
+	var result_meta: Dictionary = result.get("meta", {})
+	if result_meta.has("reach_error"):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, str(result_meta.reach_error))
+	if kind == "walk" and float(params.get("speed", 0.0)) > 0.0 \
+			and float(result_meta.get("speed", 0.0)) < float(params.speed) - 0.001:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Requested walk speed %.3f m/s exceeds the reachable %.3f m/s at duration %.3f s; lower speed or shorten duration" % [
+				float(params.speed), float(result_meta.get("speed", 0.0)), length])
+	if kind == "run" and float(params.get("speed", 0.0)) > 0.0 \
+			and float(result_meta.get("speed", 0.0)) < float(params.speed) - 0.001:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Requested run speed %.3f m/s exceeds the reachable %.3f m/s at duration %.3f s; lower speed or shorten duration" % [
+				float(params.speed), float(result_meta.get("speed", 0.0)), length])
+	if kind == "strafe" and float(params.get("speed", 0.0)) > 0.0 \
+			and bool((result.get("meta", {}) as Dictionary).get("lateral_capped", false)):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Requested strafe speed %.3f m/s exceeds this rig's safe lateral reach at duration %.3fs; use speed <= %.3f m/s or shorten duration" % [
+				float(params.speed), length, float((result.meta as Dictionary).lateral_speed_cap)])
 	var keys: Dictionary = result.get("keys", {})
 	if keys.is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
@@ -252,10 +338,79 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		"rate": rate,
 		"loop_mode": int(built.loop_mode),
 		"style": style,
+		"applied_features": features.applied,
+		"omitted_features": features.omitted,
 		"kind": kind,
 		"anim_name": str(params.get("animation_name", kind)),
-		"rooted": bool(built.ctx.get("root_motion", false)) and not str(built.ctx.get("hips", "")).is_empty(),
+		"rooted": bool(built.ctx.get("root_motion", false)) and keys.has("__root_motion__"),
 	}
+
+
+## Defaults may omit anatomy; explicit nonzero controls must never silently do
+## nothing. Removing keys (not just zeroing values) avoids selecting solvers
+## whose presence-based switches require geometry this rig does not have.
+func _optional_features(params: Dictionary, overrides: Dictionary, config: Dictionary, built: Dictionary, articulate: bool) -> Dictionary:
+	var ctx: Dictionary = built.ctx
+	var applied: Array = []
+	var omitted: Array = []
+	var upper := ["torso_flex", "torso_roll", "head_nod", "head_roll", "head_lag", "head_stabilize"]
+	if articulate:
+		var layout := MotionSpecs.upper_body_layout(ctx)
+		if layout.has("error"):
+			if _explicit_feature(params, overrides, upper):
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, str(layout.error))
+			for field in upper: config.erase(field)
+			omitted.append({"feature": "torso_head_articulation", "reason": str(layout.error)})
+		else:
+			ctx["upper_body_layout"] = layout
+			applied.append("torso_head_articulation")
+	var hands := ["elbow_lag", "wrist_swing", "wrist_lag", "forearm_twist", "wrist_sway", "arm_variation", "variation_seed", "hand_relax"]
+	var moving_hands := false
+	for field in ["wrist_swing", "forearm_twist", "wrist_sway", "arm_variation", "hand_relax"]:
+		moving_hands = moving_hands or not is_zero_approx(float(config.get(field, 0.0)))
+	if moving_hands:
+		var reason := ""
+		for side in ["l", "r"]:
+			if not ctx.roles.has("arm_" + side) or not ctx.roles.has("forearm_" + side) or not ctx.roles.has("hand_" + side):
+				reason = "Requested hand motion requires resolved arm, forearm and hand roles on both sides"
+				break
+			var arm := str(ctx.roles["arm_" + side])
+			var fore := str(ctx.roles["forearm_" + side])
+			var hand := str(ctx.roles["hand_" + side])
+			if not MotionSpecs.rest_ancestor(ctx, fore, arm) or not MotionSpecs.rest_ancestor(ctx, hand, fore) \
+					or (ctx.rest[hand].origin as Vector3).distance_to(ctx.rest[fore].origin as Vector3) < 0.0001:
+				reason = "Requested hand motion needs connected arm -> forearm -> hand geometry"
+				break
+		if not reason.is_empty():
+			if _explicit_feature(params, overrides, hands):
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, reason)
+			var finger_requested := float(config.get("hand_relax", 0.0)) > 0.0
+			for field in hands: config.erase(field)
+			ctx["arm_hand_follow_through"] = false
+			omitted.append({"feature": "arm_hand_follow_through", "reason": reason})
+			if finger_requested: omitted.append({"feature": "finger_relaxation", "reason": reason})
+		else:
+			ctx["arm_hand_follow_through"] = true
+			applied.append("arm_hand_follow_through")
+	if float(config.get("hand_relax", 0.0)) > 0.0:
+		var fingers := MotionSpecs.hand_layout(built.skeleton, ctx)
+		if fingers.has("error"):
+			if _explicit_feature(params, overrides, ["hand_relax"]):
+				return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, str(fingers.error))
+			config.erase("hand_relax")
+			omitted.append({"feature": "finger_relaxation", "reason": str(fingers.error)})
+		else:
+			ctx["hand_layout"] = fingers
+			applied.append("finger_relaxation")
+	return {"applied": applied, "omitted": omitted}
+
+
+static func _explicit_feature(params: Dictionary, overrides: Dictionary, fields: Array) -> bool:
+	for field in fields:
+		if params.has(field) or overrides.has(field):
+			if not is_zero_approx(float(params.get(field, overrides.get(field, 0.0)))):
+				return true
+	return false
 
 
 ## Ground speed a gaits represent, in metres per second (0 for everything else).
@@ -288,11 +443,13 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 	var player_root := ValueCodec.player_root_node(player)
 	if player_root == null:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "The AnimationPlayer has no resolvable root_node")
-	var walk_speed := maxf(float(params.get("speed", 1.4)), 0.0)
-	var run_speed := maxf(float(params.get("run_speed", 4.0)), 0.0)
-	if walk_speed <= 0.0 or run_speed <= walk_speed:
+	# An omitted speed lets the gait choose a rig-relative, reachable walk.
+	# Explicit speeds remain exact requests and fail before any scene mutation.
+	var walk_speed := float(params.get("speed", 0.0))
+	var run_speed := maxf(float(params.get("run_speed", 2.0)), 0.0)
+	if (params.has("speed") and walk_speed <= 0.0) or run_speed <= maxf(walk_speed, 0.0):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
-			"character_setup needs 0 < speed < run_speed (got speed=%.3f, run_speed=%.3f)" % [walk_speed, run_speed])
+			"character_setup needs 0 < speed < run_speed when speed is provided (got speed=%.3f, run_speed=%.3f)" % [walk_speed, run_speed])
 	var overwrite := bool(params.get("overwrite", true))
 	var root_motion := bool(params.get("root_motion", true))
 	var include_jump := bool(params.get("include_jump", false))
@@ -335,7 +492,7 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 		"roles": params.get("roles", {}),
 		"profile": params.get("profile", null),
 		"style": str(params.get("style", "default")),
-		"samples": float(params.get("samples", 24.0)),
+		"samples": float(params.get("samples", 60.0)),
 		"set_root_motion": false,
 		"dry_run": _dry_run,
 	}
@@ -378,6 +535,11 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 				_implied_speed(str(prepared.kind), prepared.config, prepared.ctx, prepared.length)))
 		clips[clip_name] = {
 			"kind": str(prepared.kind),
+			"style": prepared.style,
+			"resolved_style": MotionSpecs.resolved_style(prepared.style),
+			"applied_features": prepared.applied_features,
+			"omitted_features": prepared.omitted_features,
+			"samples": prepared.rate,
 			"length": prepared.length,
 			"loop_mode": ValueCodec.loop_mode_to_string(prepared.loop_mode),
 			"track_count": (built.spec.tracks as Array).size(),
@@ -394,7 +556,7 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 	var run_solved := float((clips.get(str(clips_by_kind.run), {}) as Dictionary).get("speed", run_speed))
 	var speed_warnings: Array = []
 	for pair in [[str(clips_by_kind.walk), walk_speed, walk_solved], [str(clips_by_kind.run), run_speed, run_solved]]:
-		if absf(float(pair[1]) - float(pair[2])) > 0.01:
+		if float(pair[1]) > 0.0 and absf(float(pair[1]) - float(pair[2])) > 0.01:
 			speed_warnings.append("%s: requested %.2f m/s, the stride cap allows %.2f m/s - the blend point uses the solved speed"
 				% [str(pair[0]), float(pair[1]), float(pair[2])])
 	var built_space := GraphBuilders.blend_space({
@@ -437,6 +599,7 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
 					"Cannot create an AnimationTree at %s: parent '%s' not found" % [tree_path, tree_path.get_base_dir()])
 			tree = AnimationTree.new()
+			_pending_setup_tree = tree
 			tree.name = tree_path.get_file()
 			tree_parent = parent
 			created_tree = true
@@ -448,41 +611,68 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 				break
 		if tree == null:
 			tree = AnimationTree.new()
+			_pending_setup_tree = tree
 			tree.name = "AnimationTree"
 			tree_parent = player.get_parent() if player.get_parent() != null else scene_root
 			created_tree = true
 	var root_motion_track := ""
-	if root_motion and not str(prepared_list[0].ctx.get("hips", "")).is_empty():
-		root_motion_track = "%s:%s" % [str(player_root.get_path_to(prepared_list[0].resolved.node)), str(prepared_list[0].ctx.hips)]
+	if root_motion:
+		var motion_node := _root_motion_node(player_root, prepared_list[0].resolved.node)
+		if motion_node == null:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"Root motion needs a Node3D character owner under the AnimationPlayer root_node")
+		root_motion_track = "%s:position" % str(player_root.get_path_to(motion_node))
 	var want_active := bool(params.get("active", false))
 	var old_root: AnimationRootNode = tree.tree_root if not created_tree else null
 	var old_anim_player := tree.anim_player
 	var old_active := tree.active
 	var old_tree_root_motion := tree.root_motion_track
 	var old_player_root_motion := player.root_motion_track
+	var old_tree_root_motion_local := tree.root_motion_local
+	var old_player_root_motion_local := player.root_motion_local
 	var wanted_player := _tree_anim_player_path(tree, player, tree_parent, created_tree)
 	if not _dry_run:
 		_create_scene_pinned_action("MCP: Character setup")
 		var undo := ToolContext.undo_redo
+		# Stop the attached mixer before either side changes its clip library.
+		undo.add_undo_property(tree, "active", false)
+		if not created_tree:
+			undo.add_do_property(tree, "active", false)
+		# Trees may be placed inside a different scene instance from the player.
+		# The clip staging below handles the player's instance permissions.
+		var tree_levels := _instance_levels(tree_parent if created_tree else tree)
+		for level in tree_levels:
+			undo.add_do_method(level.parent, "set_editable_instance", level.instance, true)
 		_stage_animation_changes(undo, player, library, created_library, removed, added)
 		if created_tree:
 			undo.add_do_method(tree_parent, "add_child", tree, true)
-			undo.add_undo_method(tree_parent, "remove_child", tree)
 			undo.add_do_method(tree, "set_owner", scene_root)
 			undo.add_do_reference(tree)
+			undo.add_do_property(tree, "active", false)
 		undo.add_do_property(tree, "tree_root", tree_root)
-		undo.add_undo_property(tree, "tree_root", old_root)
+		if not created_tree:
+			undo.add_undo_property(tree, "tree_root", old_root)
 		if tree.anim_player != wanted_player:
 			undo.add_do_property(tree, "anim_player", wanted_player)
-			undo.add_undo_property(tree, "anim_player", old_anim_player)
-		if tree.active != want_active:
-			undo.add_do_property(tree, "active", want_active)
-			undo.add_undo_property(tree, "active", old_active)
-		if not root_motion_track.is_empty():
-			undo.add_do_property(player, "root_motion_track", NodePath(root_motion_track))
-			undo.add_undo_property(player, "root_motion_track", old_player_root_motion)
-			undo.add_do_property(tree, "root_motion_track", NodePath(root_motion_track))
+			if not created_tree:
+				undo.add_undo_property(tree, "anim_player", old_anim_player)
+		# An explicit in-place setup must clear extraction left by an older graph.
+		undo.add_do_property(player, "root_motion_track", NodePath(root_motion_track))
+		undo.add_undo_property(player, "root_motion_track", old_player_root_motion)
+		undo.add_do_property(tree, "root_motion_track", NodePath(root_motion_track))
+		undo.add_do_property(player, "root_motion_local", root_motion or old_player_root_motion_local)
+		undo.add_undo_property(player, "root_motion_local", old_player_root_motion_local)
+		undo.add_do_property(tree, "root_motion_local", root_motion or old_tree_root_motion_local)
+		if not created_tree:
 			undo.add_undo_property(tree, "root_motion_track", old_tree_root_motion)
+			undo.add_undo_property(tree, "root_motion_local", old_tree_root_motion_local)
+		undo.add_do_property(tree, "active", want_active)
+		if created_tree:
+			undo.add_undo_method(tree_parent, "remove_child", tree)
+		else:
+			undo.add_undo_property(tree, "active", old_active)
+		for level in tree_levels:
+			undo.add_undo_method(level.parent, "set_editable_instance", level.instance, false)
 		undo.commit_action()
 	var tree_label := ""
 	if created_tree:
@@ -519,7 +709,7 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 		"apply_snippet": _apply_snippet(tree_label, speed_parameter, jump_request),
 		"warnings": warnings + speed_warnings,
 		"undoable": true,
-		"note": "inactive tree by default; pass active=true (or enable the tree) when the scene is ready",
+		"note": "active tree owns playback" if want_active else "inactive tree; pass active=true (or enable the tree) when the scene is ready",
 	}}
 
 
@@ -578,6 +768,10 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"Animation '%s' not found on %s" % [anim_name, player_path])
 	var anim := library.get_animation(anim_name)
+	if anim.get_script() != null: return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Scripted secondary source animations cannot be duplicated")
+	for track in anim.get_track_count():
+		if anim.track_is_enabled(track) and anim.track_get_type(track) in [Animation.TYPE_METHOD, Animation.TYPE_AUDIO, Animation.TYPE_ANIMATION]:
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Secondary source events cannot be sampled offline; use a transform-only source")
 	var unsupported := SpecIO.unsupported_tracks(anim)
 	if not unsupported.is_empty():
 		return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
@@ -589,12 +783,14 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 	if resolved.kind != "3d":
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "secondary_motion needs a Skeleton3D")
 	var skeleton: Skeleton3D = resolved.node
-	var bones: Array = params.get("bones", [])
+	var raw_bones: Variant = params.get("bones", [])
+	if not raw_bones is Array: return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'bones' must be an array")
+	var bones: Array = raw_bones
 	if bones.is_empty():
 		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM,
 			"secondary_motion needs 'bones': [\"B-hair01\", ...]")
 	var root_node := ValueCodec.player_root_node(player)
-	if root_node == null:
+	if root_node == null or not root_node.is_ancestor_of(skeleton):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "The AnimationPlayer has no resolvable root_node")
 	var track_root := str(root_node.get_path_to(skeleton))
 	if track_root.is_empty() or track_root == ".":
@@ -605,6 +801,7 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "The clip is empty (length 0)")
 	var infos := {}
 	for bone in bones:
+		if not bone is String or infos.has(bone): return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Secondary bones must be distinct names")
 		var bone_name := str(bone)
 		var index := skeleton.find_bone(bone_name)
 		if index < 0:
@@ -615,53 +812,57 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 		if ClipSpec.find_track_index(spec, "%s:%s" % [track_root, bone_name], Animation.TYPE_ROTATION_3D) >= 0:
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"'%s' already has a rotation track in '%s' - jiggle bones must be unkeyed" % [bone_name, anim_name])
-		infos[bone_name] = {
-			"index": index,
-			"parent_index": parent_index,
-			"parent_rest": skeleton.get_bone_global_rest(parent_index).basis,
-			"bone_rest": skeleton.get_bone_global_rest(index).basis,
-		}
-	var fps := clampf(float(params.get("samples", 30.0)), 4.0, 120.0)
-	var steps := maxi(2, int(round(length * fps)))
-	var dt := length / float(steps)
-	var snapshot := _pose_snapshot(skeleton)
-	var parent_globals := {}
-	for bone_name in infos:
-		parent_globals[bone_name] = []
-	var targets := {}
-	for bone_name in infos:
-		targets[bone_name] = []
-	for step in steps + 1:
-		var time := length * float(step) / float(steps)
-		_apply_spec_at(skeleton, spec, time)
-		for bone_name in infos:
-			var info: Dictionary = infos[bone_name]
-			var parent_basis := skeleton.get_bone_global_pose(int(info.parent_index)).basis
-			parent_globals[bone_name].append(parent_basis)
-			targets[bone_name].append(
-				(parent_basis * (info.parent_rest as Basis).inverse() * (info.bone_rest as Basis)).get_rotation_quaternion())
-	_pose_restore(skeleton, snapshot)
+		infos[bone_name] = true
+	for field in ["samples", "stiffness", "damping"]:
+		if params.has(field) and not (params[field] is int or params[field] is float):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'%s' must be a number" % field)
+	var fps := float(params.get("samples", 30.0))
 	var stiffness := float(params.get("stiffness", 120.0))
 	var damping := float(params.get("damping", 12.0))
-	if stiffness < 0.0 or damping < 0.0:
-		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'stiffness' and 'damping' must be >= 0")
+	if not is_finite(fps) or fps < 4.0 or fps > 120.0 or not is_finite(length) or ceili(length * fps) > MAX_CYCLE_INTERVALS:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "Secondary motion needs 4-120 samples/s and at most 1200 intervals")
+	if not is_finite(stiffness) or not is_finite(damping) or stiffness < 0.0 or damping < 0.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'stiffness' and 'damping' must be finite and >= 0")
+	if not SpecIO.compressed_tracks(anim).is_empty(): return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Compressed secondary source tracks cannot be edited")
+	var times: Array = [0.0]
+	for step in range(1, ceili(length * fps) + 1): times.append(minf(float(step) / fps, length))
+	if times.size() > 1 and length - float(times[times.size() - 2]) <= 0.00002 * maxf(1.0, length):
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Secondary endpoint is too close for native key lookup; adjust duration or sampling")
+	var sampled := SecondarySampler.capture(EditorInterface.get_edited_scene_root(), skeleton, player, anim_name, bones, times, _test_secondary_fail_at)
+	if sampled.has("error"): return sampled
+	var parent_globals: Dictionary = sampled.parents
+	var targets: Dictionary = sampled.targets
 	var substeps := 2
-	var sim_dt := dt / float(substeps)
 	for bone_name in infos:
-		var expanded: Array = []
-		for target in targets[bone_name]:
+		var states: Array = [targets[bone_name][0]]
+		var state: Quaternion = states[0]
+		var velocity := Vector3.ZERO
+		for step in range(1, times.size()):
+			var dt := (float(times[step]) - float(times[step - 1])) / substeps
 			for _sub in substeps:
-				expanded.append(target)
-		var states := MotionDrivers.follow_spring(
-			expanded, stiffness, damping, sim_dt, (targets[bone_name][0] as Quaternion))
+				# Velocity and the premultiplied step are in skeleton space.
+				# Form the error in that same frame, including rotated rests.
+				var error: Quaternion = (targets[bone_name][step] as Quaternion) * state.inverse()
+				if error.w < 0.0: error = -error
+				var vector := Vector3(error.x, error.y, error.z)
+				var angle := 2.0 * atan2(vector.length(), absf(error.w))
+				var displacement := vector.normalized() * angle if angle > 0.000001 else Vector3.ZERO
+				velocity += (displacement * stiffness - velocity * damping) * dt
+				var turn := velocity.length() * dt
+				if not velocity.is_finite() or not is_finite(turn): return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Secondary spring exceeded finite precision; lower coefficients")
+				if turn > 0.000001: state = (Quaternion(velocity.normalized(), turn) * state).normalized()
+			if not state.is_finite(): return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Secondary spring produced a nonfinite rotation; lower coefficients")
+			states.append(state)
 		var keys: Array = []
-		for step in steps + 1:
-			var time := length * float(step) / float(steps)
-			var state: Quaternion = states[mini(step * substeps, states.size() - 1)]
+		for step in times.size():
+			var time := float(times[step])
+			var sampled_state: Quaternion = states[step]
 			var parent_global: Basis = parent_globals[bone_name][step]
+			# Native pose rotation already includes its local rest orientation.
+			# Convert the followed skeleton-space rotation into the parent frame.
 			keys.append({
 				"time": time,
-				"value": (parent_global.inverse() * Basis(state)).get_rotation_quaternion().normalized(),
+				"value": (parent_global.inverse() * Basis(sampled_state)).get_rotation_quaternion().normalized(),
 				"transition": "linear",
 			})
 		ClipSpec.align_quaternions(keys)
@@ -674,7 +875,7 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 		return valid
 	var built := SpecBuilder.to_animation(spec)
 	_commit_animation_changes("MCP: Secondary motion %s" % anim_name, player, library, false,
-		{anim_name: anim}, {anim_name: built})
+		{anim_name: anim}, {anim_name: built}, _bone_pose_history_props(skeleton))
 	return {"data": {
 		"player_path": player_path,
 		"skeleton_path": resolved.path,
@@ -691,7 +892,7 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 
 # --- rig context ------------------------------------------------------------
 
-func _build_context(params: Dictionary, kind: String) -> Dictionary:
+func _build_context(params: Dictionary, kind: String, resolved_config: Dictionary = {}) -> Dictionary:
 	var resolved := _resolve_skeleton(params)
 	if resolved.has("error"):
 		return resolved
@@ -725,10 +926,32 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 			var bad := _first_non_finite(value, str(key))
 			if not bad.is_empty():
 				return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, bad)
-	var loop_result := _loop_mode(params)
+	var loop_params := params.duplicate()
+	if not loop_params.has("loop_mode"):
+		loop_params["loop_mode"] = "linear" if kind in ["walk", "run", "idle", "strafe"] else "none"
+	var loop_result := _loop_mode(loop_params)
 	if loop_result.has("error"):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, loop_result.error)
-	var rate := clampf(float(params.get("samples", 24.0)), 4.0, 120.0)
+	var rate := clampf(float(params.get("samples", 60.0)), 4.0, 120.0)
+	var intervals := MotionDrivers.sample_count(length, rate)
+	if (kind == "walk" or kind == "run") and intervals < 24:
+		# `samples` is a requested density, not permission to commit a gait that
+		# misses the knee turn and cuts its own floor. Short clips need a higher
+		# keys-per-second rate for the same number of phase samples.
+		rate = minf(120.0, maxf(24.0, 24.0 / length))
+		intervals = MotionDrivers.sample_count(length, rate)
+		if intervals < 24:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+				"A walk/run loop needs 24 sampled intervals for stable leg playback; duration %.3f s is too short at the 120 keys/s limit" % length)
+	if kind in ["jump", "turn", "walk_start", "walk_stop"] and rate < 120.0:
+		# Landing foot IK must be authored densely enough that engine
+		# interpolation stays above the floor between solved samples.
+		rate = 120.0
+		intervals = MotionDrivers.sample_count(length, rate)
+	if intervals > MAX_CYCLE_INTERVALS:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"duration × samples exceeds the %d-interval motion budget (requested %d); shorten duration or lower samples"
+				% [MAX_CYCLE_INTERVALS, intervals])
 	# The rest map, the leg map and the rig frame are the three measurements a
 	# recipe needs, and they are the same three for everyone - so they live in the
 	# spec layer, where a headless test can reach them, and the handler reads them
@@ -742,6 +965,19 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 		false, 0.85, chain_first.chain as Array)
 	if measured.has("error"):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, str(measured.error))
+	if kind == "run" and not params.has("duration"):
+		# A run's implicit speed is independent of clip length. Choose cadence
+		# from the measured leg so the reference stride stays reachable across
+		# proportions: shorter legs take quicker steps, longer legs slower ones.
+		# Explicit duration is always honoured and may return a reach error.
+		length = clampf(sqrt(MotionSpecs.measured_leg(measured) /
+			MotionSpecs.REFERENCE_LEG), 0.6, 1.5)
+		if MotionDrivers.sample_count(length, rate) < 24:
+			rate = minf(120.0, maxf(rate, 24.0 / length))
+		measured = MotionSpecs.context_from_skeleton(skeleton, roles, length, rate,
+			false, 0.85, chain_first.chain as Array)
+		if measured.has("error"):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, str(measured.error))
 	var rest: Dictionary = measured.rest
 	var legs: Dictionary = measured.legs
 	var chain: Array = measured.spine_chain
@@ -758,11 +994,21 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 	var lateral: Vector3 = frame.lateral
 	var arm_down := {}
 	var arm_amount := float(params.get("arm_down", -1.0))
-	if arm_amount < 0.0:
+	# Resolve the style first: implicit profile controls need the same measured
+	# arm geometry as the accepted explicit recipe, particularly on Z-up rigs.
+	var measured_arms := false
+	var overrides: Dictionary = params.get("overrides", {})
+	for field in ["elbow_lag", "wrist_swing", "wrist_lag", "torso_twist", "torso_flex", "torso_roll", "head_nod", "head_roll", "head_lag", "head_stabilize", "forearm_twist", "wrist_sway", "arm_variation", "variation_seed", "hand_relax"]:
+		measured_arms = measured_arms or resolved_config.has(field) or params.has(field) or overrides.has(field)
+	if not measured_arms and arm_amount < 0.0:
 		arm_amount = _default_arm_down(skeleton, roles)
 	for side in ["l", "r"]:
 		var arm := str(roles.get("arm_" + side, ""))
-		arm_down[side] = _aim_delta(skeleton, arm, Vector3.DOWN, arm_amount) if not arm.is_empty() else Quaternion.IDENTITY
+		if measured_arms:
+			arm_down[side] = MotionSpecs.arm_lower_delta(
+				MotionSpecs._rest_basis(measured, arm), measured.arm_directions.get(side, Vector3.ZERO), up, arm_amount)
+		else:
+			arm_down[side] = _aim_delta(skeleton, arm, Vector3.DOWN, arm_amount) if not arm.is_empty() else Quaternion.IDENTITY
 	return {
 		"resolved": resolved,
 		"skeleton": skeleton,
@@ -778,11 +1024,16 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 			"up": up,
 			"lateral": lateral,
 			"hips": hips,
+			"hips_parent_basis": measured.hips_parent_basis,
 			"hips_origin": rest[hips].origin if not hips.is_empty() else Vector3.ZERO,
 			"legs": legs,
 			"rest": rest,
+			"arm_directions": measured.arm_directions,
+			"measured_arms": measured_arms,
 			"arm_down": arm_down,
-			"root_motion": bool(params.get("root_motion", false)),
+			# A travelling strafe needs extracted character-root translation.
+			# Keep the in-place shuffle available when callers explicitly opt out.
+			"root_motion": bool(params.get("root_motion", kind == "strafe")),
 		},
 	}
 
@@ -813,15 +1064,15 @@ static func _first_non_finite(value: Variant, path: String) -> String:
 func _spine_chain(params: Dictionary, skeleton: Skeleton3D, roles: Dictionary) -> Dictionary:
 	return resolve_spine_chain(params, skeleton, roles)
 
+
+## Legacy profile lowering retained only until the recorded candidate is approved.
+## Candidate controls above use measured rig-up/child geometry instead.
 func _default_arm_down(skeleton: Skeleton3D, roles: Dictionary) -> float:
 	for side in ["l", "r"]:
 		var arm := str(roles.get("arm_" + side, ""))
-		if arm.is_empty():
-			continue
 		var index := skeleton.find_bone(arm)
-		if index < 0:
-			continue
+		if index < 0: continue
 		var rest_dir := (skeleton.get_bone_global_rest(index).basis * Vector3.UP).normalized()
-		if absf(rest_dir.dot(Vector3.UP)) < 0.5:
-			return 78.0
+		if absf(rest_dir.dot(Vector3.UP)) < 0.5: return 78.0
 	return 0.0
+

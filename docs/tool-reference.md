@@ -215,7 +215,7 @@ directly, or through `custom_manage(op="invoke")`.
 | `compare` | Diff two clips (same player by default): length, loop mode, added/removed tracks, changed key counts and max value delta. |
 | `stats` | Clip/track/key totals, track-type histogram, loop-mode breakdown, longest/shortest clip. |
 | `motion_report` | Per-track motion quality: key density, peak speed/acceleration, loop-seam pops, quaternion hemisphere flips and constant tracks, each with a `fix` hint. |
-| `motion_audit` | Plays the clip on a Skeleton3D (posed and restored, never saved) and **grades** it in world space: per foot the ground-contact windows and the horizontal slide while planted, plus the hips' bob and travel, each pass/fail against a budget (`max_slide` 5 cm, `max_hip_bob` 12 cm) with a `fix` hint. Contact is "within `contact_threshold` (5 mm) of the foot's rest height", and a window's slide is the foot's *net* displacement while it was down — a foot that lifts, swings and lands ahead is a step, not a slide. A clip authored in place is reported as `in_place`, because its stance foot travelling with the body is by design. |
+| `motion_audit` | Plays the clip on an isolated Skeleton3D copy and **grades** it in world space: per foot the ground-contact windows and horizontal slide while planted, plus hips bob and travel, each pass/fail against a budget (`max_slide` 5 cm, `max_hip_bob` 12 cm) with a `fix` hint. Contact is within `contact_threshold` (5 mm) of the foot's rest height; window slide is the foot's *net* displacement while down. The `support` diagnostic labels each played sample `l`, `r`, `both` or `flight` and gives the hips' forward/lateral offset from the supporting foot (or the midpoint of both feet) in the rig's world-space frame. This is hip geometry, not a centre-of-mass estimate or a pass/fail weight-transfer grade. A clip authored in place is reported as `in_place`, because its stance foot travelling with the body is by design. |
 | `rig_profile` | Understand a rig without touching it: detected roles with ranked candidates, T/A pose, limb lengths and reach, facing/lateral/up axes, capabilities (walk/run/jump/turn/strafe/blink/IK/springs), missing roles, warnings and suggested next ops. `save=true` writes `res://animation_toolkit/rig_profiles/<name>.json`; rig and motion ops accept that file (or its name) as their `profile` param, so detection is never guessed twice. |
 | `sample` | FK probe: apply the clip to the skeleton in memory and report world positions (and optional euler rotations) of requested bones at N times, plus derived foot heights and ground-contact windows. The skeleton's pose is restored afterwards. |
 | `preview` | Renders the posed character to PNGs at clip times, so a clip can be *seen* (contact, foot planting, follow-through) instead of only read. A private copy of the character subtree (`character_path`, default the skeleton's outermost ancestor) is posed in an offscreen viewport with its own lights, framed by a camera (`yaw`, `elevation`, `margin`) and freed again; the edited scene is never touched. Params: `times` or `samples`, `width`/`height`, `output_dir`, `basename`, `background`, `overwrite`. The reply is **deferred** (one editor frame per image) and needs a rendering device - headless editors get an explicit error. |
@@ -314,7 +314,7 @@ Notes:
 ## `animation_graph`
 
 Authors `AnimationTree` graphs on top of an `AnimationPlayer`. The tree is
-created next to the player (or at `tree_path`), pointed at the player, activated,
+created next to the player (or at `tree_path`), pointed at the player,
 and committed as ONE scene-pinned undo action.
 
 | op | What it builds |
@@ -322,7 +322,7 @@ and committed as ONE scene-pinned undo action.
 | `state_machine` | An `AnimationNodeStateMachine` root from `states` + `transitions` (xfade, advance/switch modes, conditions, expressions, priority). |
 | `blend_space` | A 1D or 2D `AnimationNodeBlendSpace` from clips at positions. |
 | `blend_tree` | A recursive blend tree spec: `blend2`/`blend3`/`add2`/`add3`/`one_shot`/`time_scale`/`animation`, with nested state machines and blend spaces. The spec's root is wired to the tree's `output` node (an unconnected `output` builds cleanly and then plays nothing); the reply's `output_source` names the node it wired, which is the only way to read a connection back in 4.7. |
-| `wire` | Ensures the tree exists, is active and pointed at the player; optionally sets a parameter. `create=false` turns the call into a check: a missing tree is reported instead of created. A named player is never given another player's tree — the lookup follows `anim_player` exactly, and `graph_get` lists the existing trees when it finds none. |
+| `wire` | Ensures the tree exists and points at the player; optionally sets a typed graph parameter and the active flag. `create=false` rejects a missing tree. Activating an empty graph is rejected. A named player is never given another player's tree; lookup follows `anim_player` exactly. |
 | `graph_get` | Dumps a graph: states, transitions, blend points, tree nodes, parameters, playback paths, and issues (missing clips, inactive tree, unresolved player). |
 | `locomotion` | Ready-made idle/walk/run: a speed blend space (default) or a state machine driven by `walking`/`running`. |
 | `one_shot_layer` | Layers a one-shot (jump/attack/hit) over the existing tree root, exposing `parameters/.../request`. |
@@ -330,11 +330,19 @@ and committed as ONE scene-pinned undo action.
 
 Notes:
 
+- Graphs are inactive by default. Pass `active=true` once a graph root exists
+  to let the AnimationTree own playback. Its AnimationPlayer supplies clips.
+- `wire` accepts existing `parameters/...` paths. Conditions need JSON
+  booleans; blend positions accept numbers or `{x,y}` vectors. Missing paths,
+  wrong types and invalid request enums return typed errors without changing
+  the scene or its history.
+- Saving graph changes under an instanced scene requires Editable Children;
+  the toolkit enables it in the same undo action and restores it on Undo.
 - Godot adds `Start`/`End` markers to state machines and an `output` port to
   blend trees; the ops ignore them in counts and dumps.
-- State machines have no persisted start state: the ops report a `start_hint`
-  with the playback path to call at runtime
-  (`tree.get("parameters/<name>/playback").start("idle")`).
+- State machines persist a `Start` transition to their selected initial
+  state. The reported `start_hint` gives the playback path for overriding it
+  at runtime (`tree.get("parameters/<name>/playback").start("idle")`).
 - Conditions become bool parameters: `parameters/conditions/<name>`.
 - Blend amounts / one-shot requests are parameters on the tree
   (`parameters/<node>/blend_amount`, `/request`, `/add_amount`).
@@ -433,7 +441,7 @@ both human-dummy variants.
 | op | What it does |
 | --- | --- |
 | `rig_chain` | Build bones from a spec (`bones`: name/parent/rest, rotation in degrees) or turn a Node3D/Node2D subtree into a skeleton. Creates the skeleton when `skeleton_path` is empty. A bone name containing `/` or `:` is refused before anything is committed: it would break the `Skeleton3D:<bone>:<property>` track paths built from it (dots are fine). |
-| `ik_setup` | Attach a 3D IK modifier to a Skeleton3D, wire it to a target node and (optionally) a pole. `kind=spline` is the exception: `SplineIK3D` follows a **Path3D** (`target_path`, created at the end bone when omitted) because it has no target setting anywhere in its class chain. Chains are validated: `two_bone` needs exactly three parent-ordered bones (or two with `use_virtual_end`), the chain solvers a root and an end with the end below it. Default markers come from the **rest** frame, and a second marker asking for the same name gets its own (`IKTarget2`) so both paths still resolve. |
+| `ik_setup` | Attach a 3D IK modifier to a Skeleton3D, wire it to a target node and (optionally) a pole. `kind=spline` is the exception: `SplineIK3D` follows a **Path3D** (`target_path`, created at the end bone when omitted) because it has no target setting anywhere in its class chain. Chains are validated: `two_bone` needs exactly three parent-ordered bones (or two with `use_virtual_end`), the chain solvers a root and an end with the end below it. Default point targets use the **current effector origin** to avoid a setup snap; poles retain their stable rest-based bend plane, and a second marker asking for the same name gets its own (`IKTarget2`) so both paths still resolve. |
 | `spring_setup` | Attach a `SpringBoneSimulator3D` with one spring per `springs` entry (root/end bone, stiffness, drag, gravity, radius, rotation axis, centre, collisions). `end_bone` defaults to the root's leaf. |
 | `look_at_setup` | Attach a `LookAtModifier3D` so one bone tracks a target node (created a metre in front of the bone when omitted), with origin, limits, secondary rotation and turn duration. |
 | `retarget_setup` | Attach a `RetargetModifier3D` under a source Skeleton3D so a child target skeleton follows it in model space, with an `auto` bone-name profile (built from the source), `humanoid`, or a `res://` profile. Refuses a map that matches nothing (or misses the hips/leg core the source actually has) instead of building a modifier that moves nothing, and reports `source_only_bones`, `target_only_bones` and mapped-parent mismatches. `move_target=false` **reconfigures the modifier that is already there** rather than adding an inert second one — and only for the source that modifier was built for. |
@@ -581,22 +589,35 @@ Notes:
 
 ## `animation_motion`
 
+Individual writes and dry runs require a stopped/paused player and inactive
+linked trees. Secondary motion uses private native clip evaluation, preserves
+authored rest rotations and excludes modifiers/events/scripted sources. For
+final modifier stacks use `bake_pose_sequence`. Extracted nonlooping individual
+motions and composed sequences report a 34.333 ms stationary tail in their
+actual output length, keeping the motion endpoint in `capture_duration`.
+See [history/playback repair](motion-sequence-history-validation.md) for
+composition rules, validated playback rates and remaining quality work.
+
+Sequence and secondary output is sampled: native interpolation between output
+keys approximates continuous source/spring motion. The validation report measures
+that approximation separately from saved key/playback fidelity.
+
 Procedural humanoid cycles. Unlike `animation_rig`'s sparse recipes, these build
-**densely sampled** clips from analytic curves (24 keys/s by default) with the
-legs solved by a two-bone IK, so planted feet stay planted, phase offsets give
-follow-through, and the result looks smooth at any playback rate.
+**densely sampled** clips from analytic curves (60 keys/s by default) with
+two-bone leg solving and phase-offset follow-through. Review saved playback
+at the frame rates and on the rigs your game uses.
 
 | op | Notes |
 | --- | --- |
-| `walk_cycle` | Full gait: contact/passing timing, pelvis bob (2x) + sway + yaw + roll, counter-rotating torso shared up the spine chain, arm swing with elbow and clavicle follow-through, head stabilisation, planted feet with heel-strike/toe-off roll. `speed` solves the stride from a target m/s. `stride`, `knee_bend` (a planted crouch), `arm_swing`, `bob`, `sway`, `lean`, `arm_down`, `chest_yaw`, `twist_spread`. |
-| `run_cycle` | Same engine with a flight phase, a forward lean, a wider stride, bent elbows and a bigger bob. Use a shorter `duration` (0.5-0.7 s). |
+| `walk_cycle` | Full gait: contact/passing timing, pelvis bob (2x) + sway + yaw + roll, counter-rotating torso shared up the spine chain, arm swing with elbow and clavicle follow-through, head stabilisation, planted feet with heel-strike/toe-off roll. The default config uses an 18-degree stride and 8-degree knee bend; the rig-relative speed solve may adjust the actual stride. `speed` requests an exact ground speed or returns a typed reach error. `stride`, `knee_bend`, `arm_swing`, `bob`, `sway`, `lean`, `chest_yaw`, `twist_spread`. |
+| `run_cycle` | Same engine with a flight phase, a forward lean, a wider stride, bent elbows and a bigger bob. An omitted `duration` selects a rig-relative cadence from measured leg length (0.6–1.5 s). Explicit duration and speed requests are honoured or refused with a typed reach error. |
 | `strafe_cycle` | Looping sideways gait: the leading foot steps out, the trailing foot closes, the knees still bend forward and the pelvis shifts along the travel axis. `direction` left/right, `speed`-driven like the walk. |
 | `idle_cycle` | A loopable idle with presence: a pronounced look-around (head yaw, with a second harmonic so it lingers left/right) and a torso twist shared up the spine chain over breathing, weight shift and seeded micro-noise. `look`, `twist` (the *total* twist in degrees, 22), `twist_spread`, `amplitude`, `head_amplitude`, `bob`, `sway`, `lean`. |
 | `jump` | One-shot jump: anticipation crouch, launch, air arc, descend, landing absorb and recovery. Feet are planted before takeoff and after landing; `height`, `crouch`, `distance` (forward travel). Emits `takeoff` / `apex` / `land` markers. |
 | `turn_cycle` | One-shot in-place pivot turn: anticipation, a stepping foot, stance feet held at their rest orientation, overshoot settle. `angle`, `direction`, `steps`. Emits `anticipate` / `step` / `settle` per step. |
 | `walk_start` / `walk_stop` | Short blend in/out of a gait. The gait-facing end is sampled from the cycle at `phase`, so it matches frame-for-frame and can be concatenated or cross-faded. |
 | `cycle` | Generic entry point: `preset` = `walk` / `run` / `idle`, same params as the dedicated ops. |
-| `character_setup` | One call, one undo: builds `idle` + `walk` + `run` (plus `jump`/`turn_<dir>` when `include_jump`/`include_turn`), wires a locomotion blend space on speed — a jump one-shot layer when requested — creates the `AnimationTree`, sets the root-motion track on player and tree, and returns `speed_parameter`, `speed_values`, `jump_request_parameter` and a game-side `apply_snippet`. `speed`/`run_speed` become the blend positions; `overwrite` defaults to true so a re-run refreshes the set. |
+| `character_setup` | One call, one undo: builds `idle` + `walk` + `run` (plus `jump`/`turn_<dir>` when `include_jump`/`include_turn`), wires a locomotion blend space on speed — a jump one-shot layer when requested — creates the `AnimationTree`, sets the root-motion track on player and tree, and returns `speed_parameter`, `speed_values`, `jump_request_parameter` and a game-side `apply_snippet`. Omitted walk `speed` uses a rig-relative reachable gait; an explicit unreachable walk speed returns `VALUE_OUT_OF_RANGE` before changing the scene. The actual clip speeds become blend positions; `overwrite` defaults to true so a re-run refreshes the set. |
 | `secondary_motion` | Bakes **offline spring bones** into an existing clip: each name in `bones` (hair, tail, cloth root — must be unkeyed in the clip) lags behind its animated parent with a damped angular spring (`stiffness` 1/s², `damping` 1/s, 120/12 = snappy hair), keyed as ordinary rotation tracks. Deterministic; no live modifier needed. |
 
 How motion is generated:
@@ -604,35 +625,37 @@ How motion is generated:
 - **Analytic drivers, dense samples.** Each bone channel is a sine/noise curve
   (amplitude, frequency, phase, lag) composed in world space and converted into
   the bone's rest frame — so the same numbers read the same way on any rig.
-- **Planted feet.** Per sample the hips and pelvis motion are applied, then each
-  leg is solved (law of cosines in the sagittal plane) so the ankle follows its
-  trajectory: the stance foot holds a fixed point in the clip's own space and the
-  swing foot arcs forward and up. The ankle is pitched through heel strike and
-  toe-off and the toe bone is held on the ground while the foot rolls over it.
-  Holding the stance still in clip space is what makes it planted in *either*
-  mode: without root motion the game moves the character, with it the player
-  extracts the hips track — and since extraction cancels that track from the pose
-  and hands the travel to the caller, a bone's world position works out to exactly
-  its authored position either way. A target that "slides back" is only right when
-  nothing is carrying the character, so that branch is the in-place one. A stance
-  the leg cannot reach is shortened to what it can, and the reply says so in
-  `clamped` / `clamp_shortfall_m`.
+- **Planted feet and reach.** The walk first plans a periodic pelvis path that
+  keeps both authored ankle targets within two-bone reach, then uses that path
+  for the hips track and both leg solves. Each stance foot holds its clip-space
+  target while its swing foot arcs forward. Rooted clips place travel on a
+  separate character-root position track; the hips track retains bob and sway.
+  Configure the player or tree to extract that root track and apply the returned
+  motion to the character owner. If an explicit walk speed cannot be reached at
+  the requested duration, the tool returns `VALUE_OUT_OF_RANGE` before writing
+  a clip. An implicit speed can be reduced and is reported in `speed` and
+  `warnings`. `clamp_shortfall_m` reports any remaining target shortening.
 - **Froude-scaled by default.** With no `speed` given, the gait is scaled by the
   **Froude number** `v / sqrt(g * L)` — the dimensionless speed that is the only
   one meaning the same thing on a short rig and a tall one, and the way real
   preferred walking speed scales with leg length. The stride is then solved from
   the target speed, so a 0.5 m leg and a 1.7 m leg walk at the *same* Froude
-  number (measured: 31.5° of stride on the short one, 16.4° on the long one)
+  number (with different resulting stride angles)
   instead of the long-legged rig quietly becoming a run. The target is the value
   each config's own defaults imply at the reference leg, so a run keeps its run
   value and a stroll its stroll value with no constant of its own. Leg length here
   is hip-to-ankle, which is shorter than the bone sum whenever the rest pose is
-  bent.
+  bent. For run, the implicit speed uses a fixed one-second reference stride,
+  so changing clip duration changes cadence and step travel without raising
+  the inferred ground speed. Omitted run duration is proportional to the
+  square root of measured leg length and is bounded to 0.6–1.5 s. Omitted
+  run foot lift has a small-rig floor proportional to the same square root;
+  an explicit lift remains exact.
 - **Speed-driven.** Pass `speed` (m/s) and the stride is solved from
   `speed * stance * duration / (2 * leg_length)`, overriding the Froude default —
   an explicit speed means the same absolute speed on every rig. Unreachable
-  speeds are clamped and reported in `warnings` with the duration that would
-  work. `speed`, `stride_used` and `cadence` come back in the result, and a gait
+  walk speeds return `VALUE_OUT_OF_RANGE` before a clip is written, with the
+  reachable limit at that duration. `speed`, `stride_used` and `cadence` come back in the result, and a gait
   that lands at or past the ~0.5 walk-to-run transition says so in `warnings`
   rather than being handed back under a walk's name.
 - **Phase markers.** Gaits emit `contact.L/R`, `toe_off.L/R` and `passing.L/R`;
@@ -654,16 +677,27 @@ How motion is generated:
 - **Loop closure by construction.** Integer frequencies and a final sample that
   re-evaluates phase 0 make every track close exactly; the commit pass also
   aligns quaternion hemispheres and snaps the loop seam.
-- **Styles.** `style` = `default` / `relaxed` / `heavy` / `sneaky` scales the
-  config before `overrides` (e.g. `{"stride": 18, "lag": 0.1}`), so one call can
-  produce very different characters.
-- **Root motion.** `root_motion=true` keys the hips forward at the implied speed
+- **Styles.** Omitted/`default` resolves to `responsive`; `grounded` selects
+  the separate profile. `relaxed`, `heavy` and `sneaky` decorate Responsive.
+  Profiles precede `overrides`, then explicit top-level controls/aliases.
+  Walk tables include r004 torso/head, delayed elbows, multi-axis wrists,
+  seeded periodic variation and gentle measured finger curl. Missing implicit
+  anatomy is omitted with a reason; explicit unsupported controls return typed
+  errors. Results include `resolved_style`, `applied_features`, `omitted_features`.
+  Other motions retain separate baselines pending their own review. See
+  [current default integration](walk-default-integration-validation.md).
+- **Sampling/loops.** Walk/run/idle/strafe default to linear loops; one-shots
+  default to none. Explicit loop modes remain supported. Jump/turn/start/stop
+  use at least 120 samples/s and report the effective rate; at most 1200
+  intervals may be authored per request.
+- **Root motion.** `root_motion=true` keys character-root travel at the implied speed
   and wires `AnimationPlayer.root_motion_track` in the same undo action (set
   `set_root_motion=false` to skip). Apply it in game code with
   `get_root_motion_position()` / `get_root_motion_rotation()` — and the
   `*_accumulator()` variants when the node itself rotates.
-- T-pose rigs are detected: the arms are lowered automatically so the swing has
-  a real axis (an explicit `arm_down` always wins). A-pose rigs are untouched.
+- Walking arm lowering uses measured rest directions and rig up, with twelve
+  degrees of outward clearance; an explicit `arm_down` wins. Imported bone-local
+  axes and world-Y are not assumed.
 - **Rig profiles.** Every cycle op takes `profile` (a name under
   `res://animation_toolkit/rig_profiles/` or a `res://` path); the roles saved
   by `animation_inspect rig_profile` are reused, explicit `roles` still win, and
@@ -671,7 +705,12 @@ How motion is generated:
 - **`character_setup`** returns a snippet that feeds `velocity.length()` into
   `speed_parameter` each physics frame; the tree is created **inactive** by
   default like the graph ops (`active=true` to enable it), and root motion is
-  wired on both the player and the tree.
+  wired on both the player and the tree. The default `run_speed` is 2.0 m/s.
+  A run target that exceeds measured leg reach by more than 1% returns
+  `VALUE_OUT_OF_RANGE` before committing a clip. Direct `run_cycle` with an
+  omitted `duration` chooses a rig-relative cadence; `character_setup`
+  honours its explicit `run_duration`, so on small rigs pair a shorter
+  `run_duration` with a reachable `run_speed`.
 
 ### Examples
 
@@ -682,7 +721,7 @@ How motion is generated:
 
 {"tool": "custom_animation_motion", "params": {"op": "character_setup",
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
-  "speed": 1.4, "run_speed": 4.0, "include_jump": true}}
+  "speed": 1.1, "run_speed": 2.0, "include_jump": true}}
 
 {"tool": "custom_animation_motion", "params": {"op": "run_cycle",
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",

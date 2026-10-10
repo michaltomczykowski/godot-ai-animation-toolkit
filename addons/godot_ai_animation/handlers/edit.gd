@@ -193,6 +193,11 @@ func edit_offset(params: Dictionary) -> Dictionary:
 	var wrap := bool(params.get("wrap", false))
 	if wrap and float(loaded.spec.length) <= 0.0:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "Cannot wrap an empty clip (length 0)")
+	if wrap and not is_zero_approx(delta):
+		for track in loaded.spec.tracks:
+			var conflict := _wrapped_key_collision(track, delta, float(loaded.spec.length))
+			if not conflict.is_empty():
+				return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, conflict)
 	var out := SpecModifiers.offset(loaded.spec, delta, wrap)
 	return _commit_edited(loaded, out, "MCP: Offset animation %s" % loaded.anim_name, {
 		"delta": delta,
@@ -297,9 +302,13 @@ func edit_split_at(params: Dictionary) -> Dictionary:
 	if existing.has("error"):
 		return existing.error
 	var parts := SpecModifiers.split(loaded.spec, time)
+	for part in [parts.head, parts.tail]:
+		var valid := SpecBuilder.validate(part)
+		if valid.has("error"): return valid
 	var head_anim := SpecBuilder.to_animation(parts.head)
 	var tail_anim := SpecBuilder.to_animation(parts.tail)
 	var removed := {loaded.anim_name: loaded.anim}
+	if existing.old_anim != null: removed[head_name] = existing.old_anim
 	var added := {loaded.anim_name: tail_anim, head_name: head_anim}
 	_commit_animation_changes("MCP: Split animation %s" % loaded.anim_name,
 		loaded.player, loaded.library, false, removed, added)
@@ -369,6 +378,11 @@ func edit_merge(params: Dictionary) -> Dictionary:
 			return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
 				"Animation '%s' has tracks this toolkit cannot edit: %s"
 				% [source_name, SpecIO.describe_unsupported(source_anim)])
+		var compressed := SpecIO.compressed_tracks(source_anim)
+		if not compressed.is_empty():
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"Animation '%s' has compressed tracks (%s). Compressed clips cannot be edited losslessly."
+				% [source_name, ", ".join(compressed)])
 		specs.append(SpecIO.from_animation(source_anim))
 		source_names.append(source_name)
 	var anim_name := str(params.get("animation_name", ""))
@@ -384,6 +398,8 @@ func edit_merge(params: Dictionary) -> Dictionary:
 		return existing.error
 	var gap := maxf(0.0, float(params.get("gap", 0.0)))
 	var merged := SpecModifiers.merge(specs, gap)
+	var valid := SpecBuilder.validate(merged)
+	if valid.has("error"): return valid
 	var merged_anim := SpecBuilder.to_animation(merged)
 	var removed := {}
 	if existing.old_anim != null:
@@ -632,6 +648,15 @@ func edit_overlap(params: Dictionary) -> Dictionary:
 	if is_zero_approx(delay):
 		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM, "overlap needs 'delay' (seconds, non-zero)")
 	var wrap := bool(params.get("wrap", false))
+	if wrap and float(loaded.spec.length) <= 0.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "Cannot wrap an empty clip (length 0)")
+	if wrap:
+		for track in loaded.spec.tracks:
+			if not QualityModifiers._matches(track, track_path):
+				continue
+			var conflict := _wrapped_key_collision(track, delay, float(loaded.spec.length))
+			if not conflict.is_empty():
+				return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, conflict)
 	var result := QualityModifiers.overlap(loaded.spec, track_path, delay, wrap)
 	if int(result.changed) == 0:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
@@ -681,6 +706,11 @@ func edit_layer(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
 			"Source animation '%s' has tracks this toolkit cannot layer: %s"
 			% [source_name, SpecIO.describe_unsupported(overlay_anim)])
+	var compressed := SpecIO.compressed_tracks(overlay_anim)
+	if not compressed.is_empty():
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"Source animation '%s' has compressed tracks (%s). Compressed clips cannot be edited losslessly."
+			% [source_name, ", ".join(compressed)])
 	var result := QualityModifiers.layer(
 		loaded.spec, SpecIO.from_animation(overlay_anim), weight, layer_mode, remap_node)
 	if int(result.changed) == 0:
@@ -789,6 +819,22 @@ func _track_list(spec: Dictionary) -> String:
 	for track in spec.get("tracks", []):
 		parts.append(ClipSpec.track_label(track))
 	return "; ".join(parts) if not parts.is_empty() else "(no tracks)"
+
+
+## Modulo timing can put the first and final key at one time. The spec passes
+## dedupe that time, so distinct endpoint values would silently erase motion.
+## Refuse that edit until phase rotation can preserve a discontinuous seam.
+func _wrapped_key_collision(track: Dictionary, shift: float, length: float) -> String:
+	var seen: Array = []
+	for key in track.get("keys", []):
+		var wrapped_time := fposmod(float(key.get("time", 0.0)) + shift, length)
+		for prior in seen:
+			if is_equal_approx(float(prior.time), wrapped_time) \
+					and not ClipSpec.values_equal(prior.value, key.get("value"), 0.00001):
+				return "Wrapping track '%s' merges different key values at %.6f s; use wrap=false or repair the clip seam" \
+					% [str(track.get("path", "")), wrapped_time]
+		seen.append({"time": wrapped_time, "value": key.get("value")})
+	return ""
 
 
 func _resolve_track_index(loaded: Dictionary, params: Dictionary) -> int:
