@@ -148,5 +148,7 @@ applicable evidence/approval, clean installs pass, PR merged and 2.0.0 published
   goldens preserve historical fixtures; normal/CI recording is refused. Fresh
   local public motion 59/59, full editor 384/384 in 32 suites and headless 14/14
   pass; both ten-family/103-operation reload probes pass. See the validation
-  note and review JSON. Windows/Linux source CI is the remaining R1 exit gate.
-- R2-R5: pending preceding exit gates. No release action yet.
+  note and review JSON. Final source `8f7b6e7` passes Windows/Linux Actions
+  `38057817851`; R1 is complete.
+- R2: run baseline/prototypes measured; implementing distinct ordinary profiles.
+- R3-R5: pending preceding exit gates. No release action yet.

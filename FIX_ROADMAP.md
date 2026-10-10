@@ -2,6 +2,16 @@
 
 ## Current closure (2026-10-10)
 
+R1 closed on `8f7b6e7`: Actions `38057817851` passes all 32 required source
+jobs and two advisory main jobs. Four editor jobs: 382/384, two explicit private
+X Bot skips, zero failures/engine/route/discovery errors; locally 384/384.
+Both live MCP jobs: 118 pass markers, zero fail markers. Merge tree
+`d16d599...` matches the source. Final receipts are in accepted-r005-regression.
+Current state: `approved_walk_styles_regression_complete`. R2 run is active;
+its own visual approval and all later release gates remain pending. Older
+pending-CI notes below describe earlier checkpoints.
+
+
 The user approved implementation of `docs/release-wrap-up-plan.md`: finish the
 full repair, then publish stable 2.0.0 after manual candidate review. Responsive
 is the default; Grounded optional; relaxed/heavy/sneaky are retuned. Godot 4.7.2,

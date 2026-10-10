@@ -1,6 +1,9 @@
 extends "res://tools/render_character_quality.gd"
 
 ## Both sides load their original saved clips. No animation generation here.
+func _comparison_title(_candidate: Dictionary, row: Dictionary, angle_name: String) -> String:
+	return "WALK UPPER BODY REVIEW | %s | %s | Godot 4.7.2" % [row.label, angle_name]
+
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
 	if args.size() < 4:
@@ -32,7 +35,7 @@ func _run() -> void:
 		assert(not reference.is_empty(), "Baseline rig must be present")
 		for angle in 2:
 			var angle_name := "FRONT" if angle == 0 else "SIDE"
-			title.text = "WALK UPPER BODY REVIEW | %s | %s | Godot 4.7.2" % [row.label, angle_name]
+			title.text = _comparison_title(candidate, row, angle_name)
 			views = [_setup(reference, ports[0], angle), _setup(row, ports[1], angle)]
 			await process_frame
 			for frame in count:

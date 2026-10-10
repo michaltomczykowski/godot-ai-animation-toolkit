@@ -164,3 +164,20 @@ R2 authors/reviews them separately rather than copying walk controls into them.
 
 Recovery root:
 `F:\GODOTAITESTING\toolkit_repair_snapshot_2026-09-30\release_r1_20261010`.
+
+## R1 final closure — 2026-10-10
+
+Final standard-CI guard source `8f7b6e78b25204b8298bbdd135a725524b104f0c`
+passes [Actions 38057817851](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/38057817851):
+32 required source jobs and two advisory core-main jobs. Four editor jobs each
+record 382/384 passing tests, the same two private-X-Bot skips, zero failures
+and engine/route/discovery errors. Both live MCP jobs record 118 passing
+markers and zero failing markers. Tag-only jobs skip. Released core is
+`bfc264200584ea5823f18356acb164781f57796d`; advisory main is
+`b82b5c519b1b17228f70d8effce1626f391bd1dd`. Synthetic merge
+`d16d5999120399ba9e54ad568635abe82c364c09` has the same tracked tree.
+
+Raw logs, parsed editor results and `ci-8f7b6e7-receipt.json` are archived in
+accepted-r005-regression. State is `approved_walk_styles_regression_complete`.
+R1 is complete; R2 run and subsequent release gates remain open. Historical
+pending/failure paragraphs above describe the preserved earlier checkpoints.

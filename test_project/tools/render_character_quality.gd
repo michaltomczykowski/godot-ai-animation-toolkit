@@ -194,6 +194,9 @@ func _update(v: Dictionary) -> void:
 	var here: Vector3 = v.body.global_position
 	var start: Vector3 = v.initial_body
 	_line(v.diag.root_travel, Vector3(start.x, 0.015, start.z), Vector3(here.x, 0.015, here.z))
+func _baseline_title(manifest: Dictionary, row: Dictionary) -> String:
+	return "WALK BASELINE r001 | %s | current tuning | Godot 4.7.2 | %s" % [row.label, str(manifest.source_head).left(7)]
+
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
 	if args.size() < 3:
@@ -218,7 +221,7 @@ func _run() -> void:
 	var frames := 0
 	var rows: Array = []
 	for row: Dictionary in manifest.cases:
-		title.text = "WALK BASELINE r001 | %s | current tuning | Godot 4.7.2 | %s" % [row.label, str(manifest.source_head).left(7)]
+		title.text = _baseline_title(manifest, row)
 		views = [_setup(row, ports[0], 0), _setup(row, ports[1], 1)]
 		await process_frame
 		for frame in preview_frames:
