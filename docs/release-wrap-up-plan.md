@@ -1,154 +1,143 @@
-# Repair closure and GitHub release plan
+# Repair closure and v2.0.0 release
 
-Proposed 2026-10-09 after the user accepted r004 and asked how to finish the
-repairs, merge into main and publish a release. Work alone on Godot 4.7.2.
-This adds release preparation to the earlier unreleased repair scope. The
-publishing checkpoint follows a concrete reviewed candidate and completed gates.
+Approved for implementation on 2026-10-10. Work alone on
+`repair/toolkit-quality`, using Godot 4.7.2 and Godot AI's public custom-tools
+API. This replaces the 2026-10-09 proposal. The release request expands the
+original unreleased scope; private review footage and X Bot assets stay local.
 
-## Verified repository state
+## Locked decisions and checkpoints
 
-- Toolkit remote main: `5e13a6c0099b1a0f9255d661f5c5ac17fc9c9082`.
-- Repair checkpoint: `890f3a08304eedba08da08383f5b691362f7933a`, pushed on
-  `repair/toolkit-quality`, 112 commits ahead of remote main at this checkpoint.
-- One toolkit PR: [#1](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/pull/1),
-  draft, mergeable. Its long description contains outdated milestone counts.
-  The checkpoint's headless/editor checks pass; its two full MCP jobs were
-  running when inspected. Exact animation source `68e06aa` already passes all
-  34 Windows/Linux validation jobs.
-- Latest toolkit release: v1.13.0 (2026-09-26). The addon still declares 1.13.0.
-- Godot AI is a separate upstream repository. The local core is 4.1.0; CI
-  pins v4.2.1 and also exercises upstream main. The released core v4.3.0 needs
-  an explicit packaged-install check. No core PR must be merged to use the
-  toolkit's public custom-tools API.
-- The local toolkit `main` has an extra old demo commit compared with
-  `origin/main`. Use the verified remote main as the release base; preserve
-  that local commit in history and avoid pushing local main wholesale.
+- Complete the full repair closure before publishing stable **2.0.0**.
+- Require Godot AI **4.2.1 or newer**. Test released v4.2.1 and v4.3.0
+  explicitly; core main is advisory. Older cores receive a dependency diagnostic.
+- **Responsive** is the default. Grounded is optional. Retune relaxed, heavy
+  and sneaky on Responsive. Existing clips remain intact; regeneration changes
+  are documented as a major-version migration.
+- Level surfaces, four rigs, no new families. Work alone.
+- Pause for continuous-video feedback after each operation and final candidate
+  review. Silence, plain continue, crashes and usage resets are not approval.
+- Record changes, source commit, tests, failures, feedback and next action in
+  FIX_ROADMAP.md and review state. Commit/push checkpoints, verify remote SHAs,
+  and refresh the persistent recovery archive.
 
-## R0 — record walk acceptance and choose its release profile
+Starting source: `1185f38bb446381c4f6266cd729335ca605c10b5`, already pushed.
+Canonical draft toolkit [PR #1](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/pull/1).
+r004 was accepted, but its recipe remains opt-in. All 103 audit rows are
+partial; reconcile annotations with completed history/bake receipts. Local main
+has an unrelated extra commit: do not push it wholesale.
 
-The user's exact feedback is: “yeah it's okay, what can we do next then to
-wrap up the fixes and push it as release on GitHub? because we have prs open
-and nothing pushed to the main”. Record acceptance of r004 and playback, while
-keeping the reviewed profile/rig coverage explicit. An optional profile question
-asks which comparison was reviewed. Grounded is the proposed natural default;
-responsive remains optional once its own review is confirmed.
+## R1 — ordinary calls generate the accepted walk
 
-Preserve all earlier recipes, scenes, videos, source archives and feedback.
-The accepted clips are override recipes; they are not yet the API defaults.
+One resolver serves dedicated motions, cycle aliases, transitions and setup.
+Style choices: default, responsive, grounded, relaxed, heavy, sneaky. Omitted
+or default resolves to Responsive; named variants decorate its motion-specific
+table. The profile parameter continues to mean rig mapping.
 
-## R1 — make accepted motion reachable with normal Godot AI calls
+Precedence: per-motion defaults -> style -> overrides -> canonical top-level
+controls -> existing friendly aliases. Apply only consumed fields. Preserve
+explicit timing, speed, distance, height, phase and operation-specific root
+contracts. Use exact r004 walk JSON coefficients; tune other motions separately
+in R2 instead of copying walk settings into them.
 
-1. Add one quality-profile resolver shared by dedicated motion operations,
-   `cycle` aliases, start/stop and `character_setup`. Promote only the selected,
-   reviewed coefficients. Preserve explicit duration, speed, distance, height,
-   phase and per-call overrides. Define migration behavior for existing styles.
-2. Make optional hand features capability-aware on rigs without validated
-   fingers. Report which optional features were applied. Explicit requests for
-   unavailable hand geometry must retain their typed refusal. Default promotion
-   must not accidentally make previously supported basic rigs unusable.
-3. Generate default calls through actual Godot AI, save/reopen and compare played
-   output with the accepted recipe on all four reference rigs. Verify both
-   aliases and setup outputs, Undo/Redo, dry run, contact thresholds and ownership.
-4. Capture default playback for the manual checkpoint. Update goldens and
-   operation evidence only after the promoted output matches accepted output.
+Resolve configuration before rig context/arm axes. Implicit upper-body and hand
+features require validated geometry; omit/report unavailable optional features.
+Explicit unsupported requests retain typed errors before writes. Invalid
+essential roles/rest transforms and ambiguous bindings remain errors. Never
+inject defaults into caller overrides: rig scaling must preserve provenance.
 
-**Exit:** A normal walk request generates the accepted profile without a long
-override dictionary, with documented capabilities and unchanged explicit inputs.
+Return requested style, resolved_style, applied_features and omitted_features
+(with reasons), including individual setup clips. Keep deterministic periodic
+seeded variation and one translation owner. Default sampling is 60/s; retain
+explicit requests, safety increases and the 1200-interval budget. Report actual
+effective sampling, including denser transition/turn generation.
 
-## R2 — finish the remaining character and family visual gates
+Through actual Godot AI: dry/write/undo/redo/save/reopen; compare played Responsive
+defaults with the exact r004 explicit recipe on all four rigs. Check alias/setup
+parity, in-place/extracted playback, precedence, optional anatomy and Z-up axes.
+Record default, Grounded and all three retuned variants; pause before approving
+promotion. No approved golden/ledger replacement before this review gate.
 
-Preserve the operation order: run, idle, start, stop, turn, strafe, jump, then
-character setup and idle/start/walk/stop sequence. Use baseline/candidate
-continuous videos on dummy, X Bot, short and tall Z-up rigs, actual 30/60/120
-FPS checks, and PC Explorer delivery. Pause for each operation's review. Review
-left/right turns and strafes, in-place/forward jumps, and transition contact
-phases. Keep the existing saved-history, active-tree and modifier-bake gates.
+## R2 — character and other-family review
 
-Record representative effect/playback from every other family: presets, FX/UI,
-graphs, clip edits, rig poses/recipes, modifiers, library and inspector previews.
-Use chaptered review videos with explicit per-operation evidence. File/read-only
-operations need their actual effect contract rather than an invented animation
-quality criterion. The diagnostic flykick demo is not a substitute for these
-tool contracts.
+Order: walk/styles, run, idle, start, stop, left/right and two-step 180-degree
+turn, both strafes, stationary/forward jump, then setup and idle/start/walk/stop
+sequence. Each motion covers Responsive, Grounded and retuned styles on dummy,
+local X Bot, short and tall Z-up rigs. Check both walking contact phases.
 
-**Exit:** Reviewed supported behavior for the release. Repair a failed contract
-or hide its unsupported operation/variant with a typed unavailable reason.
-Do not extend this closure to terrain, arbitrary rigs or new features.
+Native saved playback at actual 30/60/120 FPS: stance slide <= min(2% leg length,
+3 cm), penetration <= 1% leg length, no knee flips/nonfinite output/default reach
+clamps, correct contact timing and single-owner root travel. Keep stricter
+existing seam/root tolerances. One-shots require continuity/recovery, not false
+loop closure. Ankle-plane/hip-support diagnostics do not prove sole collision/COM.
 
-## R3 — close the evidence ledger and agent integration
+Generate through MCP, save/reopen, validate; capture matched clean/diagnostic
+front/side 1080p60 MP4s. Loops show >=6 continuous seconds/view; one-shots play
+anticipation/action/recovery twice. Archive source, parameters, scenes, hashes
+and receipts; commit/push; open PC Explorer with videos selected; **stop for
+explicit feedback**. Contact sheets supplement videos. Changes to approved
+output invalidate its approval.
 
-At planning time all 103 rows remain partial. Current annotations include 18
-pending Undo/Redo checks, 14 pending dry runs, 13 pending playback checks, four
-pending save/reopen checks, 29 pending track checks, and 49 pending/partial error
-checks. Many later history/playback matrices already provide relevant evidence;
-these counts measure missing annotations, not 103 demonstrated failures.
+Review recorded effects from presets, UI/FX, graphs, edits, rig operations,
+modifiers, library and inspection. Every animation-producing operation needs
+effect footage; file/read-only operations receive appropriate effect evidence.
+Finish a public-route sequence with clips/saved poses, blends/contact markers
+and one character-owned player. Existing flykick is optional evidence after
+toolkit validation, not a separate demo-rebuilding phase.
 
-1. Reconcile each row with exact existing suite, matrix, source and CI receipts.
-   Run targeted checks only for genuine missing coverage. Normalize pass,
-   failure, pending and justified not-applicable statuses. The current exporter
-   requires literal `pass` for every check on verified rows; repair its treatment
-   of justified read/file/structural cases before claiming ledger completion.
-2. Bind visual evidence to reviewed clips/variants. A technical bake preview or
-   static contact sheet cannot grant authored character quality approval.
-3. Add a release audit gate that fails for an advertised operation with a real
-   missing or failed required contract. Read-only and file operations must keep
-   accurate Undo semantics. Unsupported variants stay clearly unavailable.
-4. Test fresh projects on Godot 4.7.2 with the documented minimum Godot AI core
-   and released v4.3.0, including toolkit-suite selection, discovery of all ten
-   families, eight promoted tools, actual invocations and core reload. Verify
-   remaining real-project combinations in dedicated fixture scenes.
-5. Complete representative agent tasks through Godot AI: create locomotion,
-   compose an action, edit a clip, set up a modifier, and animate UI/FX. Record
-   tool discovery, selected operation, errors/retries and saved result. No manual
-   scene scripting should be required to compensate for missing tools.
+## R3 — truthful availability, audit and integration
 
-**Exit:** Release-supported operations have complete, accurately scoped evidence;
-the public tool-suite path works for real agent tasks and documented core versions.
+Retain all 103 inventory rows, including unavailable entries. Reconcile exact
+existing matrix/source/CI receipts first; target real gaps. Registry status
+controls schema/docs/dispatch: supported choices advertised; stale unsupported
+calls return OPERATION_UNAVAILABLE plus reason before writes. Missing annotations
+alone do not justify hiding a working operation.
 
-## R4 — prepare and test the installable release candidate
+Migrate checks to pass/fail/pending/not_applicable with evidence and required N/A
+reasons. Verification requires applicable passes, both platforms and required
+visual approval. Keep accurate scene-undo/file-write semantics. Blocking release
+audit rejects incomplete/stale rows, unsupported advertising, unjustified N/A
+and unreviewed required output. New tooling uses required job names, not a
+hard-coded 34; preserve historical source receipts.
 
-Proposed version: **1.14.0**; finalize after reviewing compatibility/migration
-changes. Align addon version, metadata, both READMEs, generated op docs,
-compatibility table, limitations and changelog. Fix the stale nine-tool plugin
-description to match ten families/eight promoted. Label historical demo media.
+Blocking editor/full MCP/packaged-install matrix: Godot 4.7.2, Windows/Linux,
+core v4.2.1/v4.3.0 recorded commits. Core main remains advisory. Test registration,
+toolkit-suite selection, ten families/eight promoted tools, custom_manage,
+enable order, disable/re-enable, stale calls and reload. Missing families fail
+even when direct handlers pass. Retain typed batch registration and compatible
+single-registration fallback. Leave user core checkouts intact. Complete actual
+agent tasks for locomotion, sequencing, editing, modifiers and UI/FX; record
+discovery, calls, errors and saved results.
 
-Build the addon-only ZIP from the committed candidate, including LICENSE.
-Install that ZIP in a clean project with the public Godot AI addon; verify enable
-order, public tool access, generation, save/reopen, playback, Undo/Redo and reload.
-This check must use packaged files rather than development junctions. Ensure
-tests, local rigs, review snapshots and private media are excluded. Record ZIP
-contents, checksum, source commit and the tested compatibility combinations.
+## R4 — installable candidate and final review
 
-Update PR #1 with the final release scope and evidence, resolve review feedback,
-and make it ready for review. Keep one canonical toolkit repair PR. Prepare
-release notes locally with remaining supported limitations. Full exact-candidate
-Windows/Linux headless, editor, registration and MCP jobs must pass.
+Bump 2.0.0; align metadata, READMEs, references, compatibility, limitations,
+migration and curated notes. Correct family counts/unsupported claims. Build
+addon-only ZIP from a committed candidate with LICENSE, excluding tests/models,
+recovery and private footage. Install ZIP files into clean projects without
+junctions; verify discovery, creation, save/reopen, playback, Undo/Redo and reload
+across the supported matrix. Verify rendered previews in a visible editor and
+typed refusal where rendering is absent.
 
-**Exit:** A concrete installable candidate, current PR and release notes ready
-for final review. Report the exact version/commit and completed/open gates.
+Exact candidate passes full headless/editor/registration/MCP/history/audit/package
+gates. Unexpected engine errors fail; known core exceptions are narrow/documented.
+Update PR #1, resolve feedback and mark ready. Present exact commit, checksum,
+audit, compatibility and limitations. **Pause for final candidate approval.**
 
-## R5 — merge and publish from main
+## R5 — merge, tag and verify publication
 
-After final candidate review and publishing authorization:
+After approval recheck head/base/checks, merge PR #1 with a merge commit preserving
+history, compare merged addon contents with tested candidate, wait for required
+main CI. Tag that verified commit v2.0.0. Tag workflow requires audit/package
+gates before publishing ZIP/checksum/curated notes. Verify tag/source/version and
+asset contents. ZIP bytes may differ after merge; compare entry contents and
+publish the main ZIP's own checksum.
 
-1. Confirm PR head, latest remote main and green required checks; merge PR #1.
-   Preserve the detailed repair history in the canonical branch/PR.
-2. Wait for main's CI and verify the merged source is the tested candidate.
-3. Tag the verified main commit with the version matching `plugin.cfg`.
-4. Let the existing tag workflow run its version, headless, editor and MCP gates
-   and create the GitHub release with the addon ZIP. Verify the published tag,
-   source commit, release notes, asset contents and checksum. The workflow
-   currently auto-publishes a normal release after successful tag CI; use a
-   prerelease flag/workflow change if the user chooses a preview instead.
+Changed source needs a new validated candidate. Never move published tags;
+later fixes use a new patch version. Completion: every advertised operation has
+applicable evidence/approval, clean installs pass, PR merged and 2.0.0 published.
 
-The previous exclusion of public media uploads stays in effect. Publishing the
-addon ZIP and release notes does not authorize uploading local X Bot assets or
-private review videos.
+## Execution state
 
-## Recommended next implementation phase
-
-Start **R1: approved walk defaults/profile integration**. Finish the focused
-plan before source edits, preserve the r004 references, and avoid reopening
-completed history matrices without a concrete regression. Then follow R2–R5.
-If an earlier release is desired, choose an explicitly scoped prerelease rather
-than declaring the full repair roadmap complete.
+- R0: decisions recorded; checkpoint pending.
+- R1: configuration/context and capability integration next.
+- R2-R5: pending preceding exit gates. No release action yet.

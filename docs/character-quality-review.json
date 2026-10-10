@@ -3,7 +3,7 @@
   "phase": "character_quality",
   "operation": "walk_cycle",
   "revision": "walk-review-r004",
-  "state": "walk_revision_accepted_release_planning",
+  "state": "release_r1_default_integration_in_progress",
   "baseline_source": "1389c6655e6a1fcda34ed9249b9f715f1e8e85cd",
   "required_rigs": [
     "dummy",
@@ -20,9 +20,9 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Follow docs/release-wrap-up-plan.md. Plan selected approved walk defaults/profile integration (R1), preserving r004 references. Resolve reviewed profile scope from optional user answer, then remaining visual/evidence/install gates before reviewed merge and release.",
+  "next_action": "R1: shared style/config resolver before rig context; capability-aware optional features; actual public-route parity/history/native checks, then continuous promoted walk/style videos and explicit feedback pause. No R2 or release before required review.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
-  "updated_utc": "2026-10-09T20:26:50.352596+00:00",
+  "updated_utc": "2026-10-10T08:33:37.812839+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-baseline-r001",
   "route": {
     "run_id": "9ad66ecc6b294f62823069b6a4050fc2",
@@ -2198,5 +2198,17 @@
     "decision": "User accepts r004 and requests release closure planning. Exact reviewed profile/rig coverage was not specified; optional profile question pending.",
     "profile_scope": "not specified",
     "revision": "walk-review-r004"
+  },
+  "release_decisions": {
+    "date": "2026-10-10",
+    "version": "2.0.0",
+    "release_goal": "complete stable repair",
+    "default_style": "responsive",
+    "optional_style": "grounded",
+    "existing_styles": "retune relaxed/heavy/sneaky on responsive",
+    "godot": "4.7.2",
+    "minimum_godot_ai": "4.2.1",
+    "manual_review_required": true,
+    "reviewed_rig_coverage": "r004 feedback did not enumerate rigs; promoted default/style review remains required"
   }
 }

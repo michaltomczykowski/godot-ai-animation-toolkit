@@ -1,5 +1,15 @@
 # Animation Toolkit repair roadmap
 
+## Current closure (2026-10-10)
+
+The user approved implementation of `docs/release-wrap-up-plan.md`: finish the
+full repair, then publish stable 2.0.0 after manual candidate review. Responsive
+is the default; Grounded optional; relaxed/heavy/sneaky are retuned. Godot 4.7.2,
+Godot AI >=4.2.1, work alone. Earlier unreleased-only exclusions and Grounded
+default proposals are superseded. Private review media and X Bot stay local.
+Next is R1 normal-call default integration, preserving r004 sources and
+completed history/bake gates. Stop for the next continuous-video review.
+
 Started 2026-09-28. This is the working repair plan and phase log for the
 unreleased `repair/toolkit-quality` branch. `ROADMAP.md` records the older
 feature/release history; it is not evidence that a feature works today.

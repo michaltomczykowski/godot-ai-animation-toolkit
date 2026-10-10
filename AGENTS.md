@@ -1,5 +1,16 @@
 # Agent notes
 
+## Current instruction (2026-10-10)
+
+The approved closure is `docs/release-wrap-up-plan.md`: stable v2.0.0,
+Responsive default, Grounded optional, retuned relaxed/heavy/sneaky, Godot
+4.7.2 and core >=4.2.1. Work alone. r004 acceptance and the new default choice
+supersede old wait/default-selection notes below. Start R1, then pause for
+continuous default/style video review before R2. Historical media-upload and
+unreleased-only checklists below are superseded: private media/assets stay local;
+merge/tag/release follow completed gates and final candidate review. Keep phase
+notes, review state, pushed source SHAs and recovery snapshots current.
+
 What to repair lives in `FIX_ROADMAP.md` (phase plan and evidence). `ROADMAP.md`
 records older feature/release history and `docs/` has the tool reference and
 generated op index. This file is the *how*: workflow details that
