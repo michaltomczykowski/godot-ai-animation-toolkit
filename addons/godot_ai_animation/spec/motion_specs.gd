@@ -18,8 +18,7 @@ const RigAnalysis := preload("res://addons/godot_ai_animation/spec/rig_analysis.
 
 const STYLE_NAMES := ["default", "responsive", "grounded", "relaxed", "heavy", "sneaky"]
 
-## Exact accepted r004 walk recipes. Other motions retain their own baselines
-## until their separate recorded review; never inherit walking articulation.
+## Exact accepted r004 walk recipes. Each motion has a separate profile table.
 const _WALK_PROFILES := {
 	"responsive": {
 		"arm_swing": 20.0, "elbow": 7.0, "elbow_swing": 22.0, "lag": 0.025,
@@ -39,6 +38,40 @@ const _WALK_PROFILES := {
 		"forearm_twist": 5.5, "wrist_sway": 2.5, "arm_variation": 0.9,
 		"variation_seed": 241, "hand_relax": 20.0,
 	},
+}
+
+## Running keeps its bent elbows, flight and cadence. These angular controls
+## use measured rig geometry; distance defaults below still scale with the rig.
+## R2 candidate: continuous human review is required before fixture promotion.
+const _RUN_PROFILES := {
+	"responsive": {
+		"arm_swing": 28.0, "elbow": 55.0, "elbow_swing": 16.0, "lag": 0.025,
+		"elbow_lag": 0.03, "wrist_swing": 4.5, "wrist_lag": 0.055,
+		"torso_twist": 12.0, "torso_flex": 2.2, "torso_roll": 0.8,
+		"head_nod": 1.8, "head_roll": 0.3, "head_lag": 0.025, "head_stabilize": 0.65,
+		"forearm_twist": 5.0, "wrist_sway": 1.8, "arm_variation": 0.7,
+		"variation_seed": 241, "hand_relax": 26.0,
+	},
+	"grounded": {
+		"arm_swing": 24.0, "elbow": 58.0, "elbow_swing": 14.0, "lag": 0.04,
+		"elbow_lag": 0.045, "wrist_swing": 3.0, "wrist_lag": 0.065,
+		"torso_twist": 10.0, "torso_flex": 1.7, "torso_roll": 0.9,
+		"head_nod": 1.4, "head_roll": 0.25, "head_lag": 0.025, "head_stabilize": 0.7,
+		"forearm_twist": 4.0, "wrist_sway": 1.2, "arm_variation": 0.5,
+		"variation_seed": 241, "hand_relax": 24.0,
+	},
+}
+
+## Overlay run variants without mutating the shared walk/other-motion table.
+const _RUN_STYLE_MULTIPLIERS := {
+	"relaxed": {"elbow": 1.0, "elbow_swing": 0.9, "torso_twist": 0.85,
+		"torso_flex": 0.9, "head_nod": 0.9, "wrist_swing": 1.1, "hand_relax": 0.95},
+	"heavy": {"elbow": 1.05, "elbow_swing": 0.8, "torso_twist": 0.9,
+		"torso_flex": 0.8, "head_nod": 0.8, "forearm_twist": 0.8,
+		"wrist_swing": 0.8, "hand_relax": 1.05},
+	"sneaky": {"elbow": 1.15, "elbow_swing": 0.8, "torso_twist": 0.7,
+		"torso_flex": 0.65, "head_nod": 0.65, "forearm_twist": 0.8,
+		"wrist_swing": 0.7, "wrist_sway": 0.75, "hand_relax": 0.9},
 }
 
 
@@ -114,7 +147,7 @@ static func run_config(style: String, overrides: Dictionary = {}) -> Dictionary:
 		"lag": 0.08,
 		"stance": 0.36,
 		"crouch": 0.04,
-	}, style, overrides)
+	}, style, overrides, "run")
 
 
 static func idle_config(style: String, overrides: Dictionary = {}) -> Dictionary:
@@ -141,7 +174,11 @@ static func _resolve_config(base: Dictionary, style: String, overrides: Dictiona
 	var profile := "grounded" if style == "grounded" else "responsive"
 	if kind == "walk":
 		config.merge(_WALK_PROFILES[profile], true)
-	var multipliers: Dictionary = _STYLE_MULTIPLIERS.get(style, {})
+	elif kind == "run":
+		config.merge(_RUN_PROFILES[profile], true)
+	var multipliers: Dictionary = _STYLE_MULTIPLIERS.get(style, {}).duplicate(true)
+	if kind == "run":
+		multipliers.merge(_RUN_STYLE_MULTIPLIERS.get(style, {}), true)
 	for key in multipliers:
 		var value := float(multipliers[key])
 		if key == "crouch_add":

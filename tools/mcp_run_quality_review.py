@@ -61,6 +61,10 @@ async def run(args: argparse.Namespace) -> int:
                 for rig_id, label, fixture, scene_root, rig_path, player_path, synthetic in RIGS:
                     target = scene_folder / f"{style}_{root_mode}_{rig_id}.tscn"
                     copy_scene(args.project_root / fixture, target)
+                    if args.phase == "candidate":
+                        with target.open("a", encoding="utf-8", newline="\n") as stream:
+                            stream.write('\n[node name="PublicRunHistory" type="Node" parent="."]\n'
+                                         f'metadata/player_path = NodePath("{player_path}")\n')
                     scene = "res://" + target.relative_to(args.project_root).as_posix()
                     player = f"/{scene_root}/{player_path}"
                     params = {"op": "run_cycle", "player_path": player,
@@ -99,6 +103,16 @@ async def run(args: argparse.Namespace) -> int:
                     row["after"] = await inspect(client, params["animation_name"], player)
                     await stage("pose_after", "custom_animation_rig", {
                         "op": "pose_save", "skeleton_path": params["skeleton_path"]})
+                    if args.phase == "candidate":
+                        history = await stage("history", "test_run", {
+                            "suite": "animation_motion",
+                            "test_name": "test_run_undo_redo_restores_written_run", "verbose": True})
+                        if (history.get("passed") != 1 or history.get("failed") != 0
+                                or history.get("skipped") != 0):
+                            raise RuntimeError(f"Public run Undo/Redo failed: {history}")
+                        row["after_history"] = await inspect(client, params["animation_name"], player)
+                        if row["after_history"] != row["after"]:
+                            raise RuntimeError("Public run Undo/Redo changed inspected clip")
                     await stage("save", "scene_save", {})
                     await stage("reopen", "scene_open", {"path": scene, "force_reload": True})
                     row["persisted"] = await inspect(client, params["animation_name"], player)

@@ -77,6 +77,90 @@ func test_motion_sample_budget_rejects_before_building_keys() -> void:
 
 # --- helpers ---------------------------------------------------------------
 
+func test_run_default_aliases_grounded_and_setup_share_profiles() -> void:
+	for fixture in [DUMMY, "res://repair_synthetic_short.tscn", "res://repair_synthetic_zup_tall.tscn"]:
+		var rig := _rig("RunProfiles", fixture)
+		if rig.has("error"):
+			skip(rig.error)
+			continue
+		var params := {"op": "run_cycle", "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "root_motion": true, "animation_name": "implicit_run"}
+		var made := _handler.run(params, null)
+		assert_true(made.has("data"), "ordinary run builds: " + str(made))
+		if not made.has("data"):
+			_teardown(rig)
+			continue
+		assert_eq(made.data.resolved_style, "responsive", "ordinary run resolves Responsive")
+		assert_eq(float(made.data.samples), 60.0, "ordinary run reports 60 keys/s")
+		var digest := GoldenDigest.from_animation(rig.player.get_animation("implicit_run"))
+		for style in ["default", "responsive"]:
+			var alias := params.duplicate(true)
+			alias.merge({"op": "cycle", "preset": "run", "style": style,
+				"animation_name": "alias_run_" + style}, true)
+			assert_true(_handler.run(alias, null).has("data"), "run alias builds")
+			var compared := GoldenDigest.compare(GoldenDigest.from_animation(
+				rig.player.get_animation(alias.animation_name)), digest)
+			assert_eq(str(compared.shape), "", "run alias structure")
+			assert_eq(int(compared.worst), 0, "run alias exact values")
+		var grounded := params.duplicate(true)
+		grounded.merge({"style": "grounded", "animation_name": "grounded_run"}, true)
+		assert_true(_handler.run(grounded, null).has("data"), "Grounded run builds")
+		var distinct := GoldenDigest.compare(GoldenDigest.from_animation(
+			rig.player.get_animation("grounded_run")), digest)
+		assert_gt(int(distinct.worst), 0, "Grounded run is measurably distinct")
+		# Setup declares its own timing/speed. Match those inputs explicitly.
+		var matched := params.duplicate(true)
+		matched.merge({"duration": 0.6, "speed": 1.1, "animation_name": "matched_run"}, true)
+		assert_true(_handler.run(matched, null).has("data"), "matched run builds")
+		var setup := _handler.run({"op": "character_setup", "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "root_motion": true, "run_speed": 1.1}, null)
+		assert_true(setup.has("data"), "setup reuses run profile: " + str(setup))
+		if setup.has("data"):
+			var compared := GoldenDigest.compare(GoldenDigest.from_animation(rig.player.get_animation("run")),
+				GoldenDigest.from_animation(rig.player.get_animation("matched_run")))
+			assert_eq(str(compared.shape), "", "setup run matched structure")
+			assert_eq(int(compared.worst), 0, "setup run matched values")
+		_teardown(rig)
+
+
+func test_run_undo_redo_restores_written_run() -> void:
+	var scene := EditorInterface.get_edited_scene_root()
+	var marker := scene.get_node_or_null("PublicRunHistory") if scene != null else null
+	var rig := {}
+	var player: AnimationPlayer
+	var name := "quality_run"
+	if marker != null:
+		# The external client already wrote this clip through public custom_manage.
+		# This branch tests that actual editor history, with no handler mutation.
+		player = scene.get_node_or_null(marker.get_meta("player_path")) as AnimationPlayer
+	else:
+		rig = _rig("RunHistory")
+		if rig.has("error"):
+			skip(rig.error)
+			return
+		player = rig.player
+		assert_true(_handler.run({"op": "run_cycle", "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "animation_name": name,
+			"root_motion": true}, null).has("data"), "run history fixture builds")
+	assert_true(player != null and player.has_animation(name), "written run exists before Undo")
+	if player == null or not player.has_animation(name):
+		_teardown(rig)
+		return
+	var digest := GoldenDigest.from_animation(player.get_animation(name))
+	var root_track := player.root_motion_track
+	var markers := player.get_animation(name).get_marker_names()
+	assert_true(editor_undo(_undo_redo), "actual run Undo succeeds")
+	assert_false(player.has_animation(name), "Undo removes written run")
+	assert_true(editor_redo(_undo_redo), "actual run Redo succeeds")
+	assert_true(player.has_animation(name), "Redo restores written run")
+	if player.has_animation(name):
+		var compared := GoldenDigest.compare(GoldenDigest.from_animation(player.get_animation(name)), digest)
+		assert_eq(str(compared.shape), "", "Redo restores run structure")
+		assert_eq(int(compared.worst), 0, "Redo restores run values")
+		assert_eq(player.root_motion_track, root_track, "Redo restores extraction binding")
+		assert_eq(player.get_animation(name).get_marker_names(), markers, "Redo restores contacts")
+	_teardown(rig)
+
 func test_responsive_default_aliases_and_setup_use_identical_walks() -> void:
 	for fixture in [DUMMY, XBOT, "res://repair_synthetic_short.tscn", "res://repair_synthetic_zup_tall.tscn"]:
 		var rig := _rig("ResponsiveDefault", fixture)
@@ -121,57 +205,57 @@ func test_responsive_default_aliases_and_setup_use_identical_walks() -> void:
 
 
 func test_default_finger_omission_preserves_explicit_refusal() -> void:
-	var rig := _rig("OptionalFingers")
-	if rig.has("error"):
-		skip(rig.error)
-		return
-	var finger: int = rig.skeleton.find_bone("B-indexFinger01.L")
-	rig.skeleton.set_bone_name(finger, "unidentified_finger")
-	var params := {"op": "walk_cycle", "player_path": rig.player_path,
-		"skeleton_path": rig.skeleton_path, "animation_name": "without_fingers"}
-	var result := _handler.run(params, null)
-	assert_true(result.has("data"), "default works without named fingers: " + str(result))
-	if result.has("data"):
-		assert_false(result.data.applied_features.has("finger_relaxation"), "no false finger claim")
-		assert_eq(result.data.omitted_features.size(), 1, "only fingers omitted")
-		assert_eq(result.data.omitted_features[0].feature, "finger_relaxation", "omission named")
-		assert_true(not str(result.data.omitted_features[0].reason).is_empty(), "omission reason supplied")
-	params.merge({"animation_name": "explicit_fingers", "overrides": {"hand_relax": 18.0}}, true)
-	assert_is_error(_handler.run(params, null), ErrorCodes.OPERATION_UNAVAILABLE)
-	assert_false(rig.player.has_animation("explicit_fingers"), "explicit anatomy error makes no clip")
-	rig.skeleton.set_bone_name(finger, "B-indexFinger01.L")
-	_teardown(rig)
-
-
-func test_default_optional_head_and_hands_omit_only_missing_features() -> void:
-	for missing in ["head", "hand"]:
-		var rig := _rig("OptionalAnatomy")
+	for op in ["walk_cycle", "run_cycle"]:
+		var rig := _rig("OptionalFingers")
 		if rig.has("error"):
 			skip(rig.error)
 			return
-		var renamed := {}
-		var skeleton: Skeleton3D = rig.skeleton
-		for index in skeleton.get_bone_count():
-			var name := skeleton.get_bone_name(index)
-			if (missing == "head" and name.to_lower().contains("head")) \
-					or (missing == "hand" and name.to_lower().contains("hand") and name.ends_with(".L")):
-				renamed[index] = name
-				skeleton.set_bone_name(index, "unidentified_joint_" + str(index))
-		var params := {"op": "walk_cycle", "player_path": rig.player_path,
-			"skeleton_path": rig.skeleton_path, "animation_name": "optional"}
+		var finger: int = rig.skeleton.find_bone("B-indexFinger01.L")
+		rig.skeleton.set_bone_name(finger, "unidentified_finger")
+		var params := {"op": op, "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "animation_name": "without_fingers"}
 		var result := _handler.run(params, null)
-		assert_true(result.has("data"), "optional %s missing: %s" % [missing, str(result)])
+		assert_true(result.has("data"), "default works without named fingers: " + str(result))
 		if result.has("data"):
-			var feature := "torso_head_articulation" if missing == "head" else "arm_hand_follow_through"
-			assert_false(result.data.applied_features.has(feature), "omitted feature not claimed")
-			assert_true(not result.data.omitted_features.is_empty(), "missing geometry reported")
-		params.animation_name = "explicit"
-		params.overrides = {"head_nod": 2.4} if missing == "head" else {"wrist_swing": 7.0}
-		assert_is_error(_handler.run(params, null), ErrorCodes.INVALID_PARAMS)
-		assert_false(rig.player.has_animation("explicit"), "explicit invalid geometry makes no clip")
-		for index in renamed: skeleton.set_bone_name(index, renamed[index])
+			assert_false(result.data.applied_features.has("finger_relaxation"), "no false finger claim")
+			assert_eq(result.data.omitted_features.size(), 1, "only fingers omitted")
+			assert_eq(result.data.omitted_features[0].feature, "finger_relaxation", "omission named")
+			assert_true(not str(result.data.omitted_features[0].reason).is_empty(), "omission reason supplied")
+		params.merge({"animation_name": "explicit_fingers", "overrides": {"hand_relax": 18.0}}, true)
+		assert_is_error(_handler.run(params, null), ErrorCodes.OPERATION_UNAVAILABLE)
+		assert_false(rig.player.has_animation("explicit_fingers"), "explicit anatomy error makes no clip")
+		rig.skeleton.set_bone_name(finger, "B-indexFinger01.L")
 		_teardown(rig)
 
+func test_default_optional_head_and_hands_omit_only_missing_features() -> void:
+	for op in ["walk_cycle", "run_cycle"]:
+		for missing in ["head", "hand"]:
+			var rig := _rig("OptionalAnatomy")
+			if rig.has("error"):
+				skip(rig.error)
+				return
+			var renamed := {}
+			var skeleton: Skeleton3D = rig.skeleton
+			for index in skeleton.get_bone_count():
+				var name := skeleton.get_bone_name(index)
+				if (missing == "head" and name.to_lower().contains("head")) \
+						or (missing == "hand" and name.to_lower().contains("hand") and name.ends_with(".L")):
+					renamed[index] = name
+					skeleton.set_bone_name(index, "unidentified_joint_" + str(index))
+			var params := {"op": op, "player_path": rig.player_path,
+				"skeleton_path": rig.skeleton_path, "animation_name": "optional"}
+			var result := _handler.run(params, null)
+			assert_true(result.has("data"), "optional %s missing: %s" % [missing, str(result)])
+			if result.has("data"):
+				var feature := "torso_head_articulation" if missing == "head" else "arm_hand_follow_through"
+				assert_false(result.data.applied_features.has(feature), "omitted feature not claimed")
+				assert_true(not result.data.omitted_features.is_empty(), "missing geometry reported")
+			params.animation_name = "explicit"
+			params.overrides = {"head_nod": 2.4} if missing == "head" else {"wrist_swing": 7.0}
+			assert_is_error(_handler.run(params, null), ErrorCodes.INVALID_PARAMS)
+			assert_false(rig.player.has_animation("explicit"), "explicit invalid geometry makes no clip")
+			for index in renamed: skeleton.set_bone_name(index, renamed[index])
+			_teardown(rig)
 
 func test_style_precedence_preserves_metres_and_effective_sampling() -> void:
 	var rig := _rig("StylePrecedence", "res://repair_synthetic_short.tscn")
@@ -187,6 +271,14 @@ func test_style_precedence_preserves_metres_and_effective_sampling() -> void:
 		assert_eq(float(prepared.config.bob), 0.012, "top-level metres beat override and stay unscaled")
 		assert_eq(float(prepared.config.arm_swing), 13.0, "top-level control beats profile/override")
 		assert_eq(float(prepared.config.forearm_twist), 5.5, "untouched grounded control retained")
+	var run_params := params.duplicate(true)
+	run_params.merge({"duration": 0.6, "speed": 1.1}, true)
+	var run_prepared := _handler._prepare_cycle(run_params, "run")
+	assert_true(not run_prepared.has("error"), "explicit run controls prepare: " + str(run_prepared.get("error", "")))
+	if not run_prepared.has("error"):
+		assert_eq(float(run_prepared.config.bob), 0.012, "run top-level metres stay unscaled")
+		assert_eq(float(run_prepared.config.arm_swing), 13.0, "run caller overrides win")
+		assert_eq(float(run_prepared.config.forearm_twist), 4.0, "Grounded run own control retained")
 	for kind in ["walk_start", "walk_stop", "turn", "jump"]:
 		var one_shot := _handler._prepare_cycle({"player_path": rig.player_path,
 			"skeleton_path": rig.skeleton_path, "duration": 1.0, "samples": 30}, kind)

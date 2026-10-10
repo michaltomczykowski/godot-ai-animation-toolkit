@@ -5,6 +5,12 @@ extends SceneTree
 const Native := preload("res://tools/character_quality_native.gd")
 var logger := Native.CaptureErrors.new()
 
+func _reference_label() -> String:
+	return "accepted r004"
+
+func _report_label() -> String:
+	return "WALK_DEFAULT_PARITY"
+
 func _initialize() -> void:
 	OS.add_logger(logger)
 	_run.call_deferred()
@@ -51,7 +57,7 @@ func _run() -> void:
 			rows.append({"rig": row.id, "fps": fps, "frames": 6 * fps + 1,
 				"max_position_error": position_error, "max_rotation_error": rotation_error,
 				"max_root_error": root_error, "passed": passed})
-			if not passed: failures.append("%s/%s differs from accepted r004" % [row.id, fps])
+			if not passed: failures.append("%s/%s differs from %s" % [row.id, fps, _reference_label()])
 			a.scene.free()
 			b.scene.free()
 	var report := {"rows": rows, "failures": failures, "engine_errors": logger.errors,
@@ -59,5 +65,5 @@ func _run() -> void:
 		"reference_source": reference.source_head, "candidate_source": candidate.source_head}
 	FileAccess.open(args[2], FileAccess.WRITE).store_string(JSON.stringify(report))
 	OS.remove_logger(logger)
-	print("WALK_DEFAULT_PARITY " + JSON.stringify(report))
+	print(_report_label() + " " + JSON.stringify(report))
 	quit(0 if report.passed else 1)

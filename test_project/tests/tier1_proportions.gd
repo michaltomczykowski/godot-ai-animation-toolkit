@@ -58,6 +58,7 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	_check_run_profiles_do_not_mutate_other_motion_styles()
 	_check_the_matrix_holds_every_proportion()
 	_check_pelvis_sway_tracks_the_stance_leg()
 	_check_the_synthetic_walk_matches_its_golden()
@@ -66,6 +67,23 @@ func _run() -> void:
 	else:
 		print("TIER1 FAIL (%d/%d checks failed)" % [_failures, _checks])
 	quit(0 if _failures == 0 else 1)
+
+func _check_run_profiles_do_not_mutate_other_motion_styles() -> void:
+	var before := {}
+	for kind in ["walk", "idle", "jump", "turn", "strafe"]:
+		for style in MotionSpecs.STYLE_NAMES:
+			before[kind + "/" + style] = MotionSpecs.config_for_kind(kind, style)
+	for style in MotionSpecs.STYLE_NAMES:
+		var run := MotionSpecs.run_config(style)
+		_expect(run.has("wrist_swing") and run.has("head_nod"), "run enables rig-aware articulation")
+		var overridden := MotionSpecs.run_config(style, {"elbow": 31.0, "bob": 0.013})
+		_expect(float(overridden.elbow) == 31.0 and float(overridden.bob) == 0.013,
+			"explicit run controls override profile and style")
+	for key in before:
+		_expect(before[key] == MotionSpecs.config_for_kind(key.get_slice("/", 0), key.get_slice("/", 1)),
+			"run leaves %s configuration unchanged" % key)
+	_expect(MotionSpecs.run_config("default") == MotionSpecs.run_config("responsive"), "run default alias")
+	_expect(MotionSpecs.run_config("grounded") != MotionSpecs.run_config("responsive"), "run profiles distinct")
 
 
 ## The same golden discipline as the editor suite, on a rig that is not the

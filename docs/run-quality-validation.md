@@ -41,6 +41,27 @@ track. Native checks preserve the planned tolerances and fail numeric violations
 
 ## Remaining run gate
 
+## Ordinary profile implementation checkpoint
+
+Separate Responsive/Grounded run tables and run-only variant overlays now
+enable measured arm axes, bent running elbows, torso/head follow-through,
+periodic seeded wrists/forearms and relaxed fingers. Lower-body formulas and
+walk tables are unchanged. A pure config-isolation check and accepted synthetic
+walk golden pass (103 checks, zero walk drift).
+
+Fresh public motion suite initially passes 59/61. One failure is the deliberately
+preserved run golden (38 new tracks versus 20 legacy tracks). The other was a
+new precedence test requesting an unreachable 1s run on the short fixture;
+use reachable explicit 0.6s / 1.1 m/s inputs to test precedence without bypassing
+reach refusal. The corrected focused test passes 17 assertions. Record a fresh
+full candidate result after restart; do not count this corrected subset as it.
+
+Optional anatomy tests now exercise both walk and run. New alias/setup checks
+cover three public rigs. A history witness tests the actual external MCP run
+write when a plain scene marker is present; otherwise it creates a local unit
+fixture. It requires removal on Undo and exact clip/contacts/root binding on
+Redo. Final ordinary route capture must invoke this witness for every clip.
+
 Implement separate ordinary run profiles without changing walk coefficients,
 verify public-route Undo/Redo/reload and the 240-run native matrix, archive and
 deliver ten continuous final comparison MP4s. Pause for explicit run feedback.
