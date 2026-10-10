@@ -19,7 +19,7 @@ async def run(args: argparse.Namespace) -> int:
             section = {"phase": phase, "connection": connection, "rows": rows}
             report["phases"].append(section)
             save()
-            for profile in ("grounded", "responsive"):
+            for profile in args.profiles:
                 route = json.loads((args.output / profile / "route.json").read_text())
                 for row in route["cases"]:
                     opened = await call(client, "scene_open", {"path": row["scene"], "force_reload": True})
@@ -33,11 +33,11 @@ async def run(args: argparse.Namespace) -> int:
                     rows.append({"profile": profile, "id": row["id"], "params": params,
                         "open": opened, "dry": dry, "before": before, "after": after, "passed": ok})
                     save()
-            print(f"{phase}: {sum(row['passed'] for row in rows)}/8 candidate routes", flush=True)
+            print(f"{phase}: {sum(row['passed'] for row in rows)}/{4 * len(args.profiles)} candidate routes", flush=True)
             if phase == "before_reload":
                 report["reload"] = await call(client, "editor_reload_plugin", {})
                 save()
-    report["passed"] = not report["reload"].get("error") and all(len(phase["rows"]) == 8 and all(row["passed"] for row in phase["rows"]) for phase in report["phases"])
+    report["passed"] = not report["reload"].get("error") and all(len(phase["rows"]) == 4 * len(args.profiles) and all(row["passed"] for row in phase["rows"]) for phase in report["phases"])
     save()
     print(json.dumps({"passed": report["passed"], "record": str(record)}))
     return 0 if report["passed"] else 1
@@ -49,4 +49,6 @@ if __name__ == "__main__":
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--port", type=int, default=18131)
     p.add_argument("--ws-port", type=int, default=18132)
+    p.add_argument("--profiles", nargs="+", default=["grounded", "responsive"],
+                   choices=("grounded", "responsive", "relaxed", "heavy", "sneaky"))
     raise SystemExit(asyncio.run(run(p.parse_args())))

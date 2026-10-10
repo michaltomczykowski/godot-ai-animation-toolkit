@@ -603,7 +603,7 @@ keys approximates continuous source/spring motion. The validation report measure
 that approximation separately from saved key/playback fidelity.
 
 Procedural humanoid cycles. Unlike `animation_rig`'s sparse recipes, these build
-**densely sampled** clips from analytic curves (24 keys/s by default) with
+**densely sampled** clips from analytic curves (60 keys/s by default) with
 two-bone leg solving and phase-offset follow-through. Review saved playback
 at the frame rates and on the rigs your game uses.
 
@@ -677,16 +677,27 @@ How motion is generated:
 - **Loop closure by construction.** Integer frequencies and a final sample that
   re-evaluates phase 0 make every track close exactly; the commit pass also
   aligns quaternion hemispheres and snaps the loop seam.
-- **Styles.** `style` = `default` / `relaxed` / `heavy` / `sneaky` scales the
-  config before `overrides` (e.g. `{"stride": 18, "lag": 0.1}`), so one call can
-  produce very different characters.
-- **Root motion.** `root_motion=true` keys the hips forward at the implied speed
+- **Styles.** Omitted/`default` resolves to `responsive`; `grounded` selects
+  the separate profile. `relaxed`, `heavy` and `sneaky` decorate Responsive.
+  Profiles precede `overrides`, then explicit top-level controls/aliases.
+  Walk tables include r004 torso/head, delayed elbows, multi-axis wrists,
+  seeded periodic variation and gentle measured finger curl. Missing implicit
+  anatomy is omitted with a reason; explicit unsupported controls return typed
+  errors. Results include `resolved_style`, `applied_features`, `omitted_features`.
+  Other motions retain separate baselines pending their own review. See
+  [current default integration](walk-default-integration-validation.md).
+- **Sampling/loops.** Walk/run/idle/strafe default to linear loops; one-shots
+  default to none. Explicit loop modes remain supported. Jump/turn/start/stop
+  use at least 120 samples/s and report the effective rate; at most 1200
+  intervals may be authored per request.
+- **Root motion.** `root_motion=true` keys character-root travel at the implied speed
   and wires `AnimationPlayer.root_motion_track` in the same undo action (set
   `set_root_motion=false` to skip). Apply it in game code with
   `get_root_motion_position()` / `get_root_motion_rotation()` — and the
   `*_accumulator()` variants when the node itself rotates.
-- T-pose rigs are detected: the arms are lowered automatically so the swing has
-  a real axis (an explicit `arm_down` always wins). A-pose rigs are untouched.
+- Walking arm lowering uses measured rest directions and rig up, with twelve
+  degrees of outward clearance; an explicit `arm_down` wins. Imported bone-local
+  axes and world-Y are not assumed.
 - **Rig profiles.** Every cycle op takes `profile` (a name under
   `res://animation_toolkit/rig_profiles/` or a `res://` path); the roles saved
   by `animation_inspect rig_profile` are reused, explicit `roles` still win, and

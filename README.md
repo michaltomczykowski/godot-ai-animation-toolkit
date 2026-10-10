@@ -302,8 +302,9 @@ smooth clips from analytic drivers instead of a handful of hand-tuned keys.
 Legs are solved per sample by a two-bone IK so the stance foot stays planted and
 rolls heel-to-toe; the pelvis bobs/sways/yaws/rolls, the chest counter-rotates
 and the arms swing about a sagittal hinge with elbow and clavicle
-follow-through. Pass `speed` (m/s) and the stride is solved for you; `style`
-(`relaxed` / `heavy` / `sneaky`) and `overrides` tune everything; gaits emit
+follow-through. Pass `speed` (m/s) and the stride is solved for you; omitted
+or `default` style selects `responsive`, with optional `grounded` and retuned
+`relaxed` / `heavy` / `sneaky`. `overrides` and explicit controls win; gaits emit
 `contact`/`toe_off`/`passing` phase markers for footsteps and blends;
 `root_motion` keys forward travel and wires `AnimationPlayer.root_motion_track`
 in the same undo action; `secondary_motion` bakes offline spring bones (hair,

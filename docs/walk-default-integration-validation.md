@@ -42,6 +42,19 @@ restored before teardown; the fresh second run has no engine errors.
 - Capture clean/diagnostic front/side continuous videos, decode/hash/archive.
 - Open PC Explorer and pause for explicit default/Grounded/variant feedback.
 
+Saved public routes now pass for **20 normal style clips** plus eight matched-
+input clips. Sixty four-rig contact/loop runs pass at 30/60/120 FPS. Twenty-four
+native matched-input comparisons pass against the original saved r004 output
+(position/root <=10 micrometres, rotation <=0.0001 rad). Forty style dry calls
+before/after core reload preserve inspected clips. All ten families remain
+registered on the released core. The fresh headless check is **13/14 suites**;
+only the preserved pre-v2 proportions golden differs. A docs-root failure in
+the isolated fixture was corrected by running that filesystem-specific suite
+from the canonical test project, where it passes 2012 checks.
+
+Animation source `056cc8d19d9821086346816345e1c4feab0041dd` is pushed. Recording
+is in progress; inspect recording-progress.json before resuming after interruption.
+
 These are candidate defaults on the review branch, not a release or approval of
 other motions. Non-walk profile tables still have their own previous baselines;
 R2 authors/reviews them separately rather than copying walk controls into them.

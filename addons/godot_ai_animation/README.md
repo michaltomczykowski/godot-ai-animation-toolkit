@@ -206,9 +206,16 @@ through `custom_manage(op="list")` and invoke it through `custom_manage` with
 | `character_setup` | The whole locomotion set in one undo: idle + walk + run (+ optional jump/turn), the AnimationTree wired, the root-motion track set; returns the speed parameter and a game-side snippet. |
 | `secondary_motion` | Bake offline spring bones (hair/tail/cloth) into an existing clip, deterministically. |
 
-Styles (`default` / `relaxed` / `heavy` / `sneaky`) scale a config before
-`overrides`; `root_motion` keys forward travel at the implied `speed`; T-pose
-rigs get their arms lowered automatically. `spine_chain` overrides the detected
+Omitted/`default` style resolves to `responsive`; `grounded` is optional.
+`relaxed` / `heavy` / `sneaky` decorate Responsive before `overrides`.
+Default walks include torso/head articulation and delayed arm/hand motion;
+implicit features without validated anatomy are omitted and reported, while
+explicit unsupported requests fail. Existing saved clips do not change, but
+regenerating styles changes their output. Default sampling is 60/s; one-shots
+use the reported 120/s minimum. Character-root travel is keyed at the implied
+`speed`; walk arm lowering uses measured rig axes. These are review-branch
+defaults pending the R1 video gate, not a published v2 release.
+`spine_chain` overrides the detected
 torso chain and `twist_spread` (0-1) moves a twist between the hips alone and
 the whole chain, so twist/lean parameters mean the same total on any rig. Pure
 curve/IK/spring math lives in `spec/motion_drivers.gd`, cycle definitions in
