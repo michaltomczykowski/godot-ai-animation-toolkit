@@ -3,7 +3,7 @@
   "phase": "character_quality",
   "operation": "walk_cycle",
   "revision": "walk-default-styles-r005",
-  "state": "approved_walk_styles_pending_regression",
+  "state": "approved_walk_styles_pending_ci",
   "release_r1_execution": {
     "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -13,24 +13,52 @@
     "r004_playback_parity_runs": 24,
     "reload_dry_calls": 40,
     "editor_motion_tests": {
-      "passed": 57,
-      "total": 58,
+      "passed": 59,
+      "total": 59,
       "skipped": 0
     },
     "headless_suites": {
-      "passed": 13,
+      "passed": 14,
       "total": 14
     },
-    "preserved_golden_failures": [
-      "test_the_walk_matches_its_golden",
-      "tier1_proportions"
-    ],
+    "preserved_golden_failures": [],
     "recording_progress": "Inspect recording-progress.json in the R1 recovery folder.",
     "release_ready": false,
-    "next_gate": "Versioned golden migration and full green R1 regression; then plan/review run in R2.",
-    "state": "approved_walk_styles_pending_regression",
+    "next_gate": "Green exact-candidate Windows/Linux source CI, then R2 run review.",
+    "state": "approved_walk_styles_pending_ci",
     "recording_complete": true,
-    "media_videos": 10
+    "media_videos": 10,
+    "initial_pre_review_regression": {
+      "editor_motion_tests": {
+        "passed": 57,
+        "total": 58,
+        "skipped": 0
+      },
+      "headless_suites": {
+        "passed": 13,
+        "total": 14
+      },
+      "preserved_golden_failures": [
+        "test_the_walk_matches_its_golden",
+        "tier1_proportions"
+      ]
+    },
+    "full_editor_tests": {
+      "passed": 384,
+      "total": 384,
+      "skipped": 0,
+      "suite_count": 32,
+      "engine_errors": [],
+      "discovery_errors": [],
+      "tool_route_errors": []
+    },
+    "registration_checks": {
+      "families": 10,
+      "operations": 103,
+      "before_and_after_reload": true
+    },
+    "golden_epoch": "v2-responsive",
+    "regression_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\accepted-r005-regression"
   },
   "baseline_source": "1389c6655e6a1fcda34ed9249b9f715f1e8e85cd",
   "required_rigs": [
@@ -48,9 +76,9 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Preserve the old walk goldens; create explicit v2 Responsive fixtures, verify full regression and push R1 closure. Then plan and implement the run review phase. No release before R2-R5 and final candidate approval.",
+  "next_action": "Verify the pushed fixture candidate in Windows/Linux source CI. Then implement the separately planned R2 run review and pause on continuous videos. No release before R2-R5 and final candidate approval.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
-  "updated_utc": "2026-10-10T13:27:22.372356+00:00",
+  "updated_utc": "2026-10-10T13:40:33.095528+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
   "route": {
     "run_id": "9ad66ecc6b294f62823069b6a4050fc2",
@@ -2455,16 +2483,15 @@
     "playback_scope": "r004 feedback received; individual video/profile coverage not specified"
   },
   "active_review_field": "promoted_walk_review",
-  "baseline_fields_note": "Top-level route/numeric/videos/chapters/observed_concerns preserve the original r001 baseline. Current R1 source, evidence, media and pending approvals are in promoted_walk_review.",
+  "baseline_fields_note": "Top-level route/numeric/videos/chapters preserve r001 history. Current walk evidence and approvals are in promoted_walk_review; current regression is in release_r1_execution.",
   "promoted_walk_review": {
-    "state": "approved_walk_styles_pending_regression",
+    "state": "approved_walk_styles_pending_ci",
     "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
     "technical_review_delivery_complete": true,
     "release_ready": false,
     "pending_gates": [
-      "versioned historical golden migration",
-      "full green Windows/Linux regression",
-      "R2-R5 closure"
+      "exact-candidate Windows/Linux source CI",
+      "R2-R5 closure and final candidate review"
     ],
     "videos": [
       {

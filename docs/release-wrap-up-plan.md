@@ -144,9 +144,9 @@ applicable evidence/approval, clean installs pass, PR merged and 2.0.0 published
   style clips plus eight matched clips, 60 contact runs, 24 r004 playback parity
   runs and 40 before/after reload dry calls pass. All ten continuous comparison
   videos are decoded/hashed/archived under recovery's `release_r1_20261010`.
-  PC Explorer is open with Responsive clean selected. Stop for explicit
-  default/Grounded/relaxed/heavy/sneaky feedback covering all four rigs. See
-  `docs/walk-default-integration-validation.md` and review JSON. Historical walk
-  and proportions goldens remain explicit failures pending visual approval;
-  their migration and full green regression are still R1 exit gates.
+  The user approved the presented set (“they look very good”). Separate v2
+  goldens preserve historical fixtures; normal/CI recording is refused. Fresh
+  local public motion 59/59, full editor 384/384 in 32 suites and headless 14/14
+  pass; both ten-family/103-operation reload probes pass. See the validation
+  note and review JSON. Windows/Linux source CI is the remaining R1 exit gate.
 - R2-R5: pending preceding exit gates. No release action yet.

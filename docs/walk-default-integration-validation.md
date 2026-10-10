@@ -1,4 +1,4 @@
-# R1: accepted walk default integration (video review pending)
+# R1: accepted walk default integration
 
 2026-10-10. Responsive/default use the exact r004 recipe through one resolver.
 Grounded uses its separate recipe; relaxed/heavy/sneaky now decorate Responsive.
@@ -12,6 +12,10 @@ as documented (previously the inherited bone handler chose none and appended a
 terminal hold to a normal rooted walk). Explicit loop/root flags remain honored.
 
 ## Fresh supported-core checks
+
+The counts below preserve the initial pre-review run. Post-approval fixture and
+regression results are recorded in the closing section; the initial failures
+were not hidden or replaced.
 
 Separate released Godot AI v4.2.1 checkout:
 `bfc264200584ea5823f18356acb164781f57796d`, original custom 4.1.0 untouched.
@@ -85,14 +89,48 @@ PC File Explorer is open to `review-videos` with
 `walk-default-responsive-r005-clean.mp4` selected; the folder and selection were
 verified through Windows Shell. `START-HERE.txt` describes the chapters and review
 checklist. Playback by the user has **not** been inferred from opening Explorer.
-Review state is `awaiting_promoted_walk_styles_feedback`, with all five new
-approval fields null. Top-level baseline fields are preserved history; current
+At delivery, state was `awaiting_promoted_walk_styles_feedback` and five approval
+fields were null. Top-level baseline fields preserve history; current walk
 source/evidence/media are in `promoted_walk_review`.
 
-**Pause here for explicit Responsive/default, Grounded, relaxed, heavy and sneaky
-feedback covering all four rigs.** Then migrate the two historical goldens and
-run full green regression as the remaining R1 exit gate. R2-R5 and release remain
-pending. Numerical success and completed media do not grant visual approval.
+On 2026-10-10 the user replied, **“they look very good.”** This approves the
+presented five-style/four-rig walk set against source `056cc8d` and the archived
+video hashes. Individual files watched were not enumerated. No other motion or
+release is approved by this feedback.
+
+## Post-approval fixture migration and local regression
+
+Separate `golden_walk_responsive_v2.json` (38 tracks, 61 keys) and
+`golden_spec_walk_responsive_v2.json` (ten tracks, 13 keys) guard the approved
+default. The original four walk/spec/run/idle fixtures are unchanged. Scale 2048
+and tolerance 2 are unchanged. The editor fixture omits style/sampling overrides;
+the synthetic arithmetic fixture retains 12/s. Fixture provenance and hashes
+are in `test_project/tests/fixtures/golden_walk_v2_provenance.json`.
+
+Missing goldens now fail normal tests. Deliberate local recording requires
+`ANIMATION_TOOLKIT_RECORD_GOLDENS=1`; CI refuses recording even with that flag.
+A regression test verifies both refusals and absence of writes. The recording
+run is preserved separately from comparison evidence.
+
+Fresh Godot 4.7.2 on released core v4.2.1, with recording unset:
+
+- Focused suite through authenticated public MCP: **59/59**, zero skips.
+- All **14/14** pure headless suites pass.
+- Full editor CI harness: **384/384** across **32** suites, zero skips,
+  discovery errors, engine errors or route errors.
+- Registration/operation probes before and after reload: **ten families and
+  103 operation dry routes** each. These probes are discovery/refusal coverage,
+  not visual approval of all 103 operations.
+
+The full harness records one expected invalid-NaN fixture warning and four
+existing Bone2D child-length warnings. After the successful result, shutdown
+records three ObjectDB leaks and a backend keepalive disconnect; neither is
+counted as a new animation assertion failure. The visible editor is restored
+without recording/CI flags (PID 28336 at this checkpoint).
+
+Logs/reports are under `release_r1_20261010/accepted-r005-regression`.
+State is `approved_walk_styles_pending_ci`. Windows/Linux source CI remains the
+R1 exit gate. R2-R5 and final release review remain pending.
 
 These are candidate defaults on the review branch, not a release or approval of
 other motions. Non-walk profile tables still have their own previous baselines;

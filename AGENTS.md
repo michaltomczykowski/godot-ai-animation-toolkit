@@ -12,16 +12,19 @@ merge/tag/release follow completed gates and final candidate review. Keep phase
 notes, review state, pushed source SHAs and recovery snapshots current.
 
 R1 animation source is `056cc8d`; released-core public routes, 60 native contact
-runs, 24 original-r004 playback comparisons and 40 reload calls pass. The fresh
-suite remains 57/58 and headless 13/14 because two historical pre-v2 walk goldens
-are intentionally preserved until visual review. All ten style videos are
+runs, 24 original-r004 playback comparisons and 40 reload calls pass. Initial
+57/58 editor and 13/14 headless results are preserved as historical evidence.
+After review, separate v2 walk fixtures pass: focused public MCP 59/59, full
+editor 384/384 across 32 suites, all 14 headless suites, and both ten-family/
+103-operation reload probes. No skips or engine errors in the full local suite.
+All ten style videos are
 complete, independently decoded/hashed and strictly archived under recovery's
 `release_r1_20261010`. PC Explorer's review folder and Responsive clean selection
 are verified. The user approved the presented set on 2026-10-10 (“they look very
 good”); all five approvals and exact hashes are recorded. Current state is
-`approved_walk_styles_pending_regression`. Follow
-`docs/walk-default-golden-migration-plan.md`: preserve old fixtures, add v2
-baselines, require explicit recording, then verify full Windows/Linux regression.
+`approved_walk_styles_pending_ci`. Versioned fixtures preserve old files and
+normal/CI runs cannot record missing expectations. The remaining R1 exit gate
+is green Windows/Linux source CI; see the migration plan and validation note.
 Do not rerun `tools/archive_walk_styles_review.py` after this approval; it refuses
 feedback reset. Preserve the delivered archives and write new closing evidence
 under `accepted-r005-regression`. R2 follows green R1 regression and still needs

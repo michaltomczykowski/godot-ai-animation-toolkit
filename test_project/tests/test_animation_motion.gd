@@ -2400,7 +2400,23 @@ func test_chain_bones_outside_the_roles_use_their_own_rest_pose() -> void:
 
 
 func test_the_walk_matches_its_golden() -> void:
-	_check_golden("walk_cycle", "golden_walk", "golden_walk.json")
+	_check_golden("walk_cycle", "golden_walk", "golden_walk_responsive_v2.json")
+
+
+func test_missing_golden_cannot_create_its_own_expected_result() -> void:
+	var path := "user://missing_walk_golden_%d.json" % Time.get_ticks_usec()
+	var saved_record := OS.get_environment(GoldenDigest.RECORD_ENV)
+	var saved_ci := OS.get_environment("ANIMATION_TOOLKIT_CI")
+	OS.set_environment(GoldenDigest.RECORD_ENV, "")
+	var normal := GoldenDigest.load_or_record(path, {})
+	OS.set_environment(GoldenDigest.RECORD_ENV, "1")
+	OS.set_environment("ANIMATION_TOOLKIT_CI", "1")
+	var ci := GoldenDigest.load_or_record(path, {})
+	OS.set_environment(GoldenDigest.RECORD_ENV, saved_record)
+	OS.set_environment("ANIMATION_TOOLKIT_CI", saved_ci)
+	assert_true(normal.has("error"), "normal tests fail for a missing golden")
+	assert_true(ci.has("error"), "CI cannot record even when local recording was requested")
+	assert_true(not FileAccess.file_exists(path), "neither rejection writes an expected result")
 
 
 func test_the_run_matches_its_golden() -> void:
@@ -2420,11 +2436,16 @@ func _check_golden(op: String, animation_name: String, fixture: String) -> void:
 	if rig.has("error"):
 		skip(rig.error)
 		return
-	var built := _handler.run({
+	var params := {
 		"op": op, "skeleton_path": rig.skeleton_path,
 		"player_path": rig.player_path, "animation_name": animation_name,
-		"duration": 1.0, "loop_mode": "linear", "samples": 8.0,
-	}, null)
+		"duration": 1.0, "loop_mode": "linear",
+	}
+	# The reviewed v2 walk guards ordinary default density. Preserve the older
+	# run/idle fixture requests until those operations receive their own review.
+	if op != "walk_cycle":
+		params["samples"] = 8.0
+	var built := _handler.run(params, null)
 	assert_true(built.has("data"), "the %s builds (%s)" % [op, str(built.get("error", built))])
 	var anim: Animation = rig.player.get_animation(animation_name)
 	assert_true(anim != null and anim.get_track_count() > 0, "the %s clip has tracks" % op)

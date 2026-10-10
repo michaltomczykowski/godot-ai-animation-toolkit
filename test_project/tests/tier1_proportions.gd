@@ -85,7 +85,7 @@ func _check_the_synthetic_walk_matches_its_golden() -> void:
 		return
 	var built: Dictionary = result.built
 	var digest: Dictionary = GoldenDigest.from_keys(built.keys, float(result.ctx.length))
-	var path := "res://tests/fixtures/golden_spec_walk.json"
+	var path := "res://tests/fixtures/golden_spec_walk_responsive_v2.json"
 	var loaded: Dictionary = GoldenDigest.load_or_record(path, digest)
 	_expect(not loaded.has("error"), "the spec golden is usable (%s)" % str(loaded.get("error", "")))
 	if loaded.has("error"):

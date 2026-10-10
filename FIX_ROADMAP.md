@@ -9,7 +9,7 @@ Godot AI >=4.2.1, work alone. Earlier unreleased-only exclusions and Grounded
 default proposals are superseded. Private review media and X Bot stay local.
 R1 normal-call default integration is implemented, preserving r004 sources and
 completed history/bake gates. The user approved its new style videos;
-historical golden migration and full green regression remain R1 exit gates.
+versioned goldens and local regression pass. Windows/Linux CI remains the R1 exit gate.
 
 ### R0/R1 checkpoint
 
@@ -36,9 +36,15 @@ historical golden migration and full green regression remain R1 exit gates.
 - PC Explorer's review folder and Responsive clean selection are verified.
   On 2026-10-10 the user said “they look very good”; approval of the presented
   five-style/four-rig walk set is recorded against exact source/video hashes.
-  State: `approved_walk_styles_pending_regression`. Follow
-  `docs/walk-default-golden-migration-plan.md` to preserve historical fixtures,
-  add explicit v2 goldens and verify full regression before R2. No release yet.
+  Separate v2 fixtures now guard the ordinary 60/s Responsive default and the
+  independent synthetic spec. Old walk/run/idle fixtures remain byte-for-byte
+  intact. Missing expectations fail normal/CI runs; recording is explicit/local.
+- After approval: fresh public MCP motion suite **59/59**, full editor **384/384**
+  in 32 suites, **14/14** headless suites, and ten families/103 operations before
+  and after reload pass locally. Full suite has no skips, engine errors, discovery
+  errors or route errors. Historical initial failures remain documented.
+  State: `approved_walk_styles_pending_ci`. Push the fixture candidate and verify
+  Windows/Linux source CI before R2. No release yet.
 
 Started 2026-09-28. This is the working repair plan and phase log for the
 unreleased `repair/toolkit-quality` branch. `ROADMAP.md` records the older
