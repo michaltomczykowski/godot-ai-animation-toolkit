@@ -1,4 +1,4 @@
-# R1: accepted walk default integration (in progress)
+# R1: accepted walk default integration (video review pending)
 
 2026-10-10. Responsive/default use the exact r004 recipe through one resolver.
 Grounded uses its separate recipe; relaxed/heavy/sneaky now decorate Responsive.
@@ -46,8 +46,9 @@ only the preserved pre-v2 proportions golden differs. A docs-root failure in
 the isolated fixture was corrected by running that filesystem-specific suite
 from the canonical test project, where it passes 2012 checks.
 
-Animation source `056cc8d19d9821086346816345e1c4feab0041dd` is pushed. Recording
-is in progress; inspect recording-progress.json before resuming after interruption.
+Animation source `056cc8d19d9821086346816345e1c4feab0041dd` is pushed. Later
+checkpoints change documentation and review tooling; addon animation code is
+unchanged from that exact source. All ten captures are complete.
 
 Across each style's twelve native runs, the measured maxima are:
 
@@ -63,10 +64,35 @@ These are independent played world-space ankle measurements with declared contac
 markers. They do not establish skinned sole collision or a center of mass, and
 do not grant visual approval.
 
-## Remaining before feedback pause
+## Continuous review delivery
 
-- Finish ten clean/diagnostic front/side continuous videos; decode/hash/archive.
-- Open PC Explorer and pause for explicit default/Grounded/variant feedback.
+All five styles have clean and diagnostic **48s 1080p60 H.264 MP4s**, independently
+decoded to 2,880 frames each. All ten render error logs are empty. Each video has
+six continuous seconds front and six side for dummy, X Bot, short and tall Z-up.
+The original accepted r004 Responsive clip is on the left (r004 Grounded for
+Grounded); the actual normal-call candidate is on the right. Style-selected
+implicit speeds differ, so captions report ground travel rather than claiming
+matched speeds. The default candidate uses no style, recipe or sampling override.
+
+The strict R1 archive checks all public/native/reload/media receipts, original
+r004 comparison provenance, scene hashes and single-owner travel. It preserves
+28 new scenes plus eight reference scenes, local rig assets, animation source,
+current documentation/tooling, ten review copies and SHA256 receipts. Private
+media/assets remain local. Rerunning the archive retains previous delivery
+history and Explorer metadata; recorded feedback cannot be reset by rerunning it.
+
+PC File Explorer is open to `review-videos` with
+`walk-default-responsive-r005-clean.mp4` selected; the folder and selection were
+verified through Windows Shell. `START-HERE.txt` describes the chapters and review
+checklist. Playback by the user has **not** been inferred from opening Explorer.
+Review state is `awaiting_promoted_walk_styles_feedback`, with all five new
+approval fields null. Top-level baseline fields are preserved history; current
+source/evidence/media are in `promoted_walk_review`.
+
+**Pause here for explicit Responsive/default, Grounded, relaxed, heavy and sneaky
+feedback covering all four rigs.** Then migrate the two historical goldens and
+run full green regression as the remaining R1 exit gate. R2-R5 and release remain
+pending. Numerical success and completed media do not grant visual approval.
 
 These are candidate defaults on the review branch, not a release or approval of
 other motions. Non-walk profile tables still have their own previous baselines;

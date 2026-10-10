@@ -2,8 +2,8 @@
   "schema_version": 1,
   "phase": "character_quality",
   "operation": "walk_cycle",
-  "revision": "walk-review-r004",
-  "state": "release_r1_default_integration_in_progress",
+  "revision": "walk-default-styles-r005",
+  "state": "awaiting_promoted_walk_styles_feedback",
   "release_r1_execution": {
     "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -12,12 +12,25 @@
     "native_contact_runs": 60,
     "r004_playback_parity_runs": 24,
     "reload_dry_calls": 40,
-    "editor_motion_tests": {"passed": 57, "total": 58, "skipped": 0},
-    "headless_suites": {"passed": 13, "total": 14},
-    "preserved_golden_failures": ["test_the_walk_matches_its_golden", "tier1_proportions"],
+    "editor_motion_tests": {
+      "passed": 57,
+      "total": 58,
+      "skipped": 0
+    },
+    "headless_suites": {
+      "passed": 13,
+      "total": 14
+    },
+    "preserved_golden_failures": [
+      "test_the_walk_matches_its_golden",
+      "tier1_proportions"
+    ],
     "recording_progress": "Inspect recording-progress.json in the R1 recovery folder.",
     "release_ready": false,
-    "next_gate": "Complete all ten continuous videos and the recovery archive, open File Explorer, then pause for five-style feedback on all four rigs."
+    "next_gate": "Explicit five-style feedback on all four rigs, then historical golden migration and full green regression.",
+    "state": "awaiting_promoted_walk_styles_feedback",
+    "recording_complete": true,
+    "media_videos": 10
   },
   "baseline_source": "1389c6655e6a1fcda34ed9249b9f715f1e8e85cd",
   "required_rigs": [
@@ -35,10 +48,10 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "R1: shared style/config resolver before rig context; capability-aware optional features; actual public-route parity/history/native checks, then continuous promoted walk/style videos and explicit feedback pause. No R2 or release before required review.",
+  "next_action": "Stop for explicit Responsive/default, Grounded, relaxed, heavy and sneaky feedback covering all four rigs. Preserve goldens until feedback; do not start run/R2 or release.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
-  "updated_utc": "2026-10-10T08:33:37.812839+00:00",
-  "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261008\\walk-baseline-r001",
+  "updated_utc": "2026-10-10T09:55:21.381372+00:00",
+  "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
   "route": {
     "run_id": "9ad66ecc6b294f62823069b6a4050fc2",
     "passed": true,
@@ -2159,6 +2172,127 @@
     "method": "PC File Explorer, user views remotely",
     "files": [
       {
+        "style": "responsive",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\review-videos\\walk-default-responsive-r005-clean.mp4",
+        "sha256": "257d4ec84fa87d76867b35d5e40d4dfe8aca46ec1851cd89aa0c1ed7f7d5b1ca",
+        "bytes": 29655720,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "responsive",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\review-videos\\walk-default-responsive-r005-diagnostic.mp4",
+        "sha256": "f9626809da989afd9a65dd3e64e25e4bece3f9c514f982fe3352d62616a52ad2",
+        "bytes": 30495048,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "grounded",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\review-videos\\walk-default-grounded-r005-clean.mp4",
+        "sha256": "f3fd2b5ae37731444e4b336d32a447ac4b5bc616ad9024848040d72572f14bd4",
+        "bytes": 29272419,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "grounded",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\review-videos\\walk-default-grounded-r005-diagnostic.mp4",
+        "sha256": "57d6070eff1091d458950db3ee08135d0aa7cc7c55558039756fa6e791002f1b",
+        "bytes": 30120574,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "relaxed",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\review-videos\\walk-default-relaxed-r005-clean.mp4",
+        "sha256": "cc74f6ca587aace0186d6280c3f0b0fd1e71edf166d44378db5e2dd21329624c",
+        "bytes": 31711372,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "relaxed",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\review-videos\\walk-default-relaxed-r005-diagnostic.mp4",
+        "sha256": "e3e5d0f4d018b8c59c04c6765c22a921a1879aee32c277bd430c05bb49481477",
+        "bytes": 32688719,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "heavy",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\review-videos\\walk-default-heavy-r005-clean.mp4",
+        "sha256": "58d9a8aa228e3ef180bc6d28b39e419579b23c82b850327ec1a812f0e802defd",
+        "bytes": 31597316,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "heavy",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\review-videos\\walk-default-heavy-r005-diagnostic.mp4",
+        "sha256": "5c4551bf65af9bb1ac9b0738d808c71bd4f8a9deb2a361f62e38ab5d8b81e614",
+        "bytes": 32479543,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "sneaky",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\review-videos\\walk-default-sneaky-r005-clean.mp4",
+        "sha256": "d7ee4f32abfadc4b9b17c2aaa26e6f1807b47eb7ec9466dbede709f7b27dd1ab",
+        "bytes": 31271833,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "sneaky",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\review-videos\\walk-default-sneaky-r005-diagnostic.mp4",
+        "sha256": "8bb1d4cb60eb9f8add3c2e37ef217a334778e630e1065619496cafff902bdcc3",
+        "bytes": 32090010,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      }
+    ],
+    "playback_confirmed_by_user": false,
+    "explorer_open_requested": true,
+    "explorer_window_verified": true,
+    "explorer_selection_verified": true,
+    "explorer_window_handle": 8849586,
+    "selected_file": "F:/GODOTAITESTING/toolkit_repair_snapshot_2026-09-30/release_r1_20261010/review-videos/walk-default-responsive-r005-clean.mp4",
+    "explorer_verified_utc": "2026-10-10T09:57:47.520773+00:00"
+  },
+  "revision_acceptance": {
+    "received_date": "2026-10-09",
+    "verbatim": "yeah it's okay, what can we do next then to wrap up the fixes and push it as release on GitHub? because we have prs open and nothing pushed to the main",
+    "decision": "User accepts r004 and requests release closure planning. Exact reviewed profile/rig coverage was not specified; optional profile question pending.",
+    "profile_scope": "not specified",
+    "revision": "walk-review-r004"
+  },
+  "release_decisions": {
+    "date": "2026-10-10",
+    "version": "2.0.0",
+    "release_goal": "complete stable repair",
+    "default_style": "responsive",
+    "optional_style": "grounded",
+    "existing_styles": "retune relaxed/heavy/sneaky on responsive",
+    "godot": "4.7.2",
+    "minimum_godot_ai": "4.2.1",
+    "manual_review_required": true,
+    "reviewed_rig_coverage": "r004 feedback did not enumerate rigs; promoted default/style review remains required"
+  },
+  "previous_candidate_delivery": {
+    "method": "PC File Explorer, user views remotely",
+    "files": [
+      {
         "profile": "grounded",
         "mode": "clean",
         "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\character_quality_20261009\\walk-review-r004\\review-videos\\walk-grounded-r004-clean.mp4",
@@ -2207,23 +2341,122 @@
     "updated_utc": "2026-10-09T20:12:32.534790+00:00",
     "playback_scope": "r004 feedback received; individual video/profile coverage not specified"
   },
-  "revision_acceptance": {
-    "received_date": "2026-10-09",
-    "verbatim": "yeah it's okay, what can we do next then to wrap up the fixes and push it as release on GitHub? because we have prs open and nothing pushed to the main",
-    "decision": "User accepts r004 and requests release closure planning. Exact reviewed profile/rig coverage was not specified; optional profile question pending.",
-    "profile_scope": "not specified",
-    "revision": "walk-review-r004"
-  },
-  "release_decisions": {
-    "date": "2026-10-10",
-    "version": "2.0.0",
-    "release_goal": "complete stable repair",
-    "default_style": "responsive",
-    "optional_style": "grounded",
-    "existing_styles": "retune relaxed/heavy/sneaky on responsive",
-    "godot": "4.7.2",
-    "minimum_godot_ai": "4.2.1",
-    "manual_review_required": true,
-    "reviewed_rig_coverage": "r004 feedback did not enumerate rigs; promoted default/style review remains required"
+  "active_review_field": "promoted_walk_review",
+  "baseline_fields_note": "Top-level route/numeric/videos/chapters/observed_concerns preserve the original r001 baseline. Current R1 source, evidence, media and pending approvals are in promoted_walk_review.",
+  "promoted_walk_review": {
+    "state": "awaiting_promoted_walk_styles_feedback",
+    "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
+    "technical_review_delivery_complete": true,
+    "release_ready": false,
+    "pending_gates": [
+      "human default/optional-style review",
+      "historical golden migration after review",
+      "full green Windows/Linux regression",
+      "R2-R5 closure"
+    ],
+    "videos": [
+      {
+        "style": "responsive",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\review-videos\\walk-default-responsive-r005-clean.mp4",
+        "sha256": "257d4ec84fa87d76867b35d5e40d4dfe8aca46ec1851cd89aa0c1ed7f7d5b1ca",
+        "bytes": 29655720,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "responsive",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\review-videos\\walk-default-responsive-r005-diagnostic.mp4",
+        "sha256": "f9626809da989afd9a65dd3e64e25e4bece3f9c514f982fe3352d62616a52ad2",
+        "bytes": 30495048,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "grounded",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\review-videos\\walk-default-grounded-r005-clean.mp4",
+        "sha256": "f3fd2b5ae37731444e4b336d32a447ac4b5bc616ad9024848040d72572f14bd4",
+        "bytes": 29272419,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "grounded",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\review-videos\\walk-default-grounded-r005-diagnostic.mp4",
+        "sha256": "57d6070eff1091d458950db3ee08135d0aa7cc7c55558039756fa6e791002f1b",
+        "bytes": 30120574,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "relaxed",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\review-videos\\walk-default-relaxed-r005-clean.mp4",
+        "sha256": "cc74f6ca587aace0186d6280c3f0b0fd1e71edf166d44378db5e2dd21329624c",
+        "bytes": 31711372,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "relaxed",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\review-videos\\walk-default-relaxed-r005-diagnostic.mp4",
+        "sha256": "e3e5d0f4d018b8c59c04c6765c22a921a1879aee32c277bd430c05bb49481477",
+        "bytes": 32688719,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "heavy",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\review-videos\\walk-default-heavy-r005-clean.mp4",
+        "sha256": "58d9a8aa228e3ef180bc6d28b39e419579b23c82b850327ec1a812f0e802defd",
+        "bytes": 31597316,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "heavy",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\review-videos\\walk-default-heavy-r005-diagnostic.mp4",
+        "sha256": "5c4551bf65af9bb1ac9b0738d808c71bd4f8a9deb2a361f62e38ab5d8b81e614",
+        "bytes": 32479543,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "sneaky",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\review-videos\\walk-default-sneaky-r005-clean.mp4",
+        "sha256": "d7ee4f32abfadc4b9b17c2aaa26e6f1807b47eb7ec9466dbede709f7b27dd1ab",
+        "bytes": 31271833,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "sneaky",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010\\review-videos\\walk-default-sneaky-r005-diagnostic.mp4",
+        "sha256": "8bb1d4cb60eb9f8add3c2e37ef217a334778e630e1065619496cafff902bdcc3",
+        "bytes": 32090010,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      }
+    ],
+    "public_clips": 28,
+    "contact_runs": 60,
+    "r004_parity_runs": 24,
+    "reload_dry_calls": 40,
+    "created_utc": "2026-10-10T09:55:21.381372+00:00",
+    "approvals": {
+      "responsive": null,
+      "grounded": null,
+      "relaxed": null,
+      "heavy": null,
+      "sneaky": null
+    }
   }
 }

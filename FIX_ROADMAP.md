@@ -7,8 +7,9 @@ full repair, then publish stable 2.0.0 after manual candidate review. Responsive
 is the default; Grounded optional; relaxed/heavy/sneaky are retuned. Godot 4.7.2,
 Godot AI >=4.2.1, work alone. Earlier unreleased-only exclusions and Grounded
 default proposals are superseded. Private review media and X Bot stay local.
-Next is R1 normal-call default integration, preserving r004 sources and
-completed history/bake gates. Stop for the next continuous-video review.
+R1 normal-call default integration is implemented, preserving r004 sources and
+completed history/bake gates. Its new style videos await explicit review;
+historical golden migration and full green regression remain R1 exit gates.
 
 ### R0/R1 checkpoint
 
@@ -21,7 +22,21 @@ completed history/bake gates. Stop for the next continuous-video review.
   families/eight promoted. Fresh motion suite 57/58, zero skips, no engine errors.
 - Preserved historical pre-v2 walk goldens currently fail their old default
   expectation. Record that openly; do not overwrite/hide before profile review.
-  New native saved r004 parity and full style videos are next. R1 is in progress.
+  R1 is in progress; migrate those goldens only after the new review gate.
+- Animation source `056cc8d` is pushed. The public released-core route saves and
+  reopens 20 ordinary style clips and eight matched-input clips. Sixty contact/
+  loop runs and 24 played comparisons with original r004 pass at 30/60/120 FPS;
+  forty style dry calls pass before/after core reload. Headless result is 13/14,
+  with only the preserved pre-v2 proportions golden failing.
+- All ten 48s 1080p60 continuous comparison videos are captured, independently
+  decoded and hashed. Strict archive validation passed: 28 new/eight reference
+  scenes, exact animation source, local rigs, media and current tooling/docs.
+  All evidence lives in recovery's `release_r1_20261010`; source/tooling
+  checkpoints include `056cc8d` and `13cf743`.
+- PC Explorer's review folder and Responsive clean selection are verified.
+  Review state is `awaiting_promoted_walk_styles_feedback`; five new approvals
+  remain null. **Stop for feedback covering all four rigs.** Historical golden
+  migration/full green regression then close R1; no R2 or release before review.
 
 Started 2026-09-28. This is the working repair plan and phase log for the
 unreleased `repair/toolkit-quality` branch. `ROADMAP.md` records the older

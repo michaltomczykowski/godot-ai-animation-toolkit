@@ -127,6 +127,7 @@ def main() -> None:
         "Default speeds are chosen by each style; captions report travel, not a false same-speed claim.\n"
         "Each video is 48 seconds: dummy 00-12, X Bot 12-24, short 24-36, tall Z-up 36-48.\n"
         "Each rig has six continuous seconds front and six side.\n"
+        "Review foot plants and weight transfer, pelvis/torso/head movement, and arm/forearm/wrist/hand motion through the loops.\n"
         "Please approve/revise the default and each optional style; all four rigs need coverage.\n"
         "Historical golden updates and final green CI remain pending feedback. No release has been made.\n", encoding="utf-8")
     receipt = {"state": "awaiting_promoted_walk_styles_feedback", "animation_source": source,
@@ -152,7 +153,12 @@ def main() -> None:
     next_action = ("Stop for explicit Responsive/default, Grounded, relaxed, heavy and sneaky feedback covering all four rigs."
                    if delivery.get("explorer_open_requested") else
                    "Open PC Explorer with r005 review videos, then stop for explicit Responsive/default, Grounded, relaxed, heavy and sneaky feedback covering all four rigs.")
+    state.setdefault("release_r1_execution", {}).update(
+        state=receipt["state"], recording_complete=True, media_videos=len(videos),
+        next_gate="Explicit five-style feedback on all four rigs, then historical golden migration and full green regression.")
     state.update(revision="walk-default-styles-r005", state=receipt["state"],
+                 active_review_field="promoted_walk_review",
+                 baseline_fields_note="Top-level route/numeric/videos/chapters/observed_concerns preserve the original r001 baseline. Current R1 source, evidence, media and pending approvals are in promoted_walk_review.",
                  recovery_folder=str(args.folder), updated_utc=receipt["created_utc"],
                  next_action=next_action + " Preserve goldens until feedback; do not start run/R2 or release.",
                  promoted_walk_review={**receipt, "approvals": {style: approvals.get(style) for style in STYLES}},
@@ -160,9 +166,11 @@ def main() -> None:
                                      "playback_confirmed_by_user": delivery.get("playback_confirmed_by_user", False),
                                      "explorer_open_requested": delivery.get("explorer_open_requested", False)})
     write(state_path, state)
-    tooling = ("tools/record_walk_styles.ps1", "tools/archive_walk_styles_review.py", "tools/mcp_walk_default_suite.py",
+    tooling = ("README.md", "addons/godot_ai_animation/README.md", "docs/tool-reference.md", "docs/op-index.md",
+               "tools/record_walk_styles.ps1", "tools/archive_walk_styles_review.py", "tools/mcp_walk_default_suite.py",
                "tools/mcp_walk_revision_reload.py", "tools/mcp_character_quality_baseline.py", "tools/compose_character_quality.py",
-               "test_project/tools/check_walk_default_parity.gd", "test_project/tools/character_quality_native.gd",
+               "test_project/tools/check_walk_default_parity.gd", "test_project/tools/check_walk_default_parity.gd.uid",
+               "test_project/tools/character_quality_native.gd",
                "test_project/tools/check_character_quality.gd", "test_project/tools/render_walk_comparison.gd",
                "docs/character-quality-review.json", "docs/walk-default-integration-validation.md",
                "docs/release-wrap-up-plan.md", "FIX_ROADMAP.md", "AGENTS.md")

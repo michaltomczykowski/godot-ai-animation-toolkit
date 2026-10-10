@@ -11,6 +11,19 @@ unreleased-only checklists below are superseded: private media/assets stay local
 merge/tag/release follow completed gates and final candidate review. Keep phase
 notes, review state, pushed source SHAs and recovery snapshots current.
 
+R1 animation source is `056cc8d`; released-core public routes, 60 native contact
+runs, 24 original-r004 playback comparisons and 40 reload calls pass. The fresh
+suite remains 57/58 and headless 13/14 because two historical pre-v2 walk goldens
+are intentionally preserved until visual review. All ten style videos are
+complete, independently decoded/hashed and strictly archived under recovery's
+`release_r1_20261010`. PC Explorer's review folder and Responsive clean selection
+are verified. Review state is `awaiting_promoted_walk_styles_feedback`; all five
+new approvals remain null. **Stop for default/Grounded/relaxed/heavy/sneaky
+feedback covering all four rigs.** Use `tools/archive_walk_styles_review.py`
+only to refresh this delivery; it preserves history and refuses feedback reset.
+No R2, golden migration or release before that gate. Exact receipts and limitations are in
+`docs/walk-default-integration-validation.md`.
+
 What to repair lives in `FIX_ROADMAP.md` (phase plan and evidence). `ROADMAP.md`
 records older feature/release history and `docs/` has the tool reference and
 generated op index. This file is the *how*: workflow details that

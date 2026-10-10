@@ -138,6 +138,15 @@ applicable evidence/approval, clean installs pass, PR merged and 2.0.0 published
 
 ## Execution state
 
-- R0: decisions recorded; checkpoint pending.
-- R1: configuration/context and capability integration next.
+- R0: locked decisions pushed as `917ec02`.
+- R1: animation source `056cc8d` pushed; configuration/context, optional anatomy,
+  sampling/loop defaults and public-route parity are implemented. Twenty normal
+  style clips plus eight matched clips, 60 contact runs, 24 r004 playback parity
+  runs and 40 before/after reload dry calls pass. All ten continuous comparison
+  videos are decoded/hashed/archived under recovery's `release_r1_20261010`.
+  PC Explorer is open with Responsive clean selected. Stop for explicit
+  default/Grounded/relaxed/heavy/sneaky feedback covering all four rigs. See
+  `docs/walk-default-integration-validation.md` and review JSON. Historical walk
+  and proportions goldens remain explicit failures pending visual approval;
+  their migration and full green regression are still R1 exit gates.
 - R2-R5: pending preceding exit gates. No release action yet.
