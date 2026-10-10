@@ -16,6 +16,45 @@ const SpineTwist := preload("res://addons/godot_ai_animation/spec/spine_twist.gd
 const ValueCodec := preload("res://addons/godot_ai_animation/utils/value_codec.gd")
 const RigAnalysis := preload("res://addons/godot_ai_animation/spec/rig_analysis.gd")
 
+const STYLE_NAMES := ["default", "responsive", "grounded", "relaxed", "heavy", "sneaky"]
+
+## Exact accepted r004 walk recipes. Other motions retain their own baselines
+## until their separate recorded review; never inherit walking articulation.
+const _WALK_PROFILES := {
+	"responsive": {
+		"arm_swing": 20.0, "elbow": 7.0, "elbow_swing": 22.0, "lag": 0.025,
+		"elbow_lag": 0.06, "wrist_swing": 7.0, "wrist_lag": 0.085,
+		"hip_yaw": 7.0, "hip_roll": 2.8, "torso_twist": 9.0,
+		"torso_flex": 2.6, "torso_roll": 0.8, "head_nod": 2.4,
+		"head_roll": 0.45, "head_lag": 0.035, "head_stabilize": 0.6,
+		"forearm_twist": 6.5, "wrist_sway": 3.0, "arm_variation": 1.2,
+		"variation_seed": 241, "hand_relax": 18.0,
+	},
+	"grounded": {
+		"arm_swing": 17.0, "elbow": 8.0, "elbow_swing": 18.0, "lag": 0.04,
+		"elbow_lag": 0.075, "wrist_swing": 6.0, "wrist_lag": 0.1,
+		"hip_yaw": 8.0, "hip_roll": 3.2, "torso_twist": 8.0,
+		"torso_flex": 1.8, "torso_roll": 1.2, "head_nod": 2.0,
+		"head_roll": 0.35, "head_lag": 0.025, "head_stabilize": 0.55,
+		"forearm_twist": 5.5, "wrist_sway": 2.5, "arm_variation": 0.9,
+		"variation_seed": 241, "hand_relax": 20.0,
+	},
+}
+
+
+static func resolved_style(style: String) -> String:
+	return "responsive" if style == "default" else style
+
+
+static func config_for_kind(kind: String, style: String, overrides: Dictionary = {}) -> Dictionary:
+	match kind:
+		"run": return run_config(style, overrides)
+		"idle": return idle_config(style, overrides)
+		"jump": return jump_config(style, overrides)
+		"turn": return turn_config(style, overrides)
+		"strafe": return strafe_config(style, overrides)
+		_: return walk_config(style, overrides)
+
 ## Style presets are multipliers over the base config, applied before
 ## `overrides` so callers can still tune individual values.
 const _STYLE_MULTIPLIERS := {
@@ -55,7 +94,7 @@ static func walk_config(style: String, overrides: Dictionary = {}) -> Dictionary
 		"lag": 0.06,
 		"stance": 0.62,
 		"crouch": 0.0,
-	}, style, overrides)
+	}, style, overrides, "walk")
 
 
 static func run_config(style: String, overrides: Dictionary = {}) -> Dictionary:
@@ -97,13 +136,19 @@ static func idle_config(style: String, overrides: Dictionary = {}) -> Dictionary
 	}, style, overrides)
 
 
-static func _resolve_config(base: Dictionary, style: String, overrides: Dictionary) -> Dictionary:
+static func _resolve_config(base: Dictionary, style: String, overrides: Dictionary, kind: String = "") -> Dictionary:
 	var config := base.duplicate(true)
+	var profile := "grounded" if style == "grounded" else "responsive"
+	if kind == "walk":
+		config.merge(_WALK_PROFILES[profile], true)
 	var multipliers: Dictionary = _STYLE_MULTIPLIERS.get(style, {})
 	for key in multipliers:
 		var value := float(multipliers[key])
 		if key == "crouch_add":
-			config["crouch"] = float(config.get("crouch", 0.0)) + value
+			if config.has("crouch"):
+				config["crouch"] = float(config.crouch) + value
+			elif config.has("jump_crouch"):
+				config["jump_crouch"] = float(config.jump_crouch) + value
 		elif config.has(key):
 			config[key] = float(config[key]) * value
 	for key in overrides:
@@ -512,7 +557,7 @@ static func _solve_arms(ctx: Dictionary, keys: Dictionary, time: float, t: float
 	var phase := cos(TAU * (t - lag))
 	var elbow_phase := cos(TAU * (t - lag - float(config.get("elbow_lag", 0.0))))
 	var wrist_phase := sin(TAU * (t - lag - float(config.get("wrist_lag", 0.0))))
-	var coordinated := bool(ctx.get("measured_arms", false))
+	var coordinated := bool(ctx.get("arm_hand_follow_through", ctx.get("measured_arms", false)))
 	for side in ["l", "r"]:
 		var sign := -1.0 if side == "l" else 1.0
 		# `_solve_arm_chain`'s hinge is positive-forward by construction, so the
@@ -587,6 +632,8 @@ static func _solve_arm_chain(
 	var forearm := str(roles.get("forearm_" + side, ""))
 	if forearm.is_empty():
 		return
+	if not rest_ancestor(ctx, forearm, arm):
+		return # An unconnected optional joint remains at rest.
 	var arm_animated := Basis(arm_world) * g_arm
 	if coordinate_parents:
 		# Include the incoming torso and clavicle animation. Flex about the hinge

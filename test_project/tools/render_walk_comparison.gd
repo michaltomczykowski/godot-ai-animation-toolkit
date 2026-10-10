@@ -40,7 +40,7 @@ func _run() -> void:
 					for v: Dictionary in views:
 						Native.advance(v, 1.0 / 60.0)
 						_update(v)
-				status.text = "%s | time %05.2f s | baseline %.2f m / candidate %.2f m | same ground speed" % ["DIAGNOSTIC" if diagnostic else "CLEAN", float(frame) / 60.0, views[0].body.global_position.distance_to(views[0].initial_body), views[1].body.global_position.distance_to(views[1].initial_body)]
+				status.text = "%s | time %05.2f s | baseline %.2f m / candidate %.2f m | native ground travel" % ["DIAGNOSTIC" if diagnostic else "CLEAN", float(frame) / 60.0, views[0].body.global_position.distance_to(views[0].initial_body), views[1].body.global_position.distance_to(views[1].initial_body)]
 				await process_frame
 				await RenderingServer.frame_post_draw
 				if root.get_texture().get_image().save_png(output.path_join("%06d.png" % frames)) != OK:

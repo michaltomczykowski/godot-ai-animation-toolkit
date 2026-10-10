@@ -631,9 +631,9 @@ Handler: `res://addons/godot_ai_animation/handlers/motion.gd`
 | `skeleton_path` | string | Scene path to the Skeleton3D (default: the first one). |
 | `animation_name` | string | Clip name (default: the cycle name). |
 | `duration` | number | Clip length in seconds; one gait cycle fits in it. When omitted, run_cycle and cycle preset=run choose a rig-relative cadence (0.6-1.5 s); other motion defaults remain 1 s. |
-| `style` | string: default \| relaxed \| heavy \| sneaky | Motion style preset, applied before overrides. |
+| `style` | string: default \| responsive \| grounded \| relaxed \| heavy \| sneaky | default = responsive; grounded optional; relaxed/heavy/sneaky retune responsive. Overrides win. Results report applied/omitted anatomy features. |
 | `overrides` | object | Gait: stride,knee_bend,arm_swing,arm_twist,bob,sway,hip_yaw,hip_roll,chest_yaw,twist_spread,lean,foot_lift,elbow,elbow_swing,lag,stance,crouch. Opt-in: elbow_lag/wrist_lag/head_lag (0..0.25 cycles); wrist_swing/forearm_twist (+/-20 deg), wrist_sway (+/-10), arm_variation (0..3), variation_seed (integer 0..2147483647), hand_relax (0..45, validated fingers/palm); torso_twist (+/-45), torso_flex/torso_roll/head_nod/head_roll (+/-10), head_stabilize (0..1). Missing geometry is refused. Idle: amplitude,head_amplitude,look,twist,bob,sway,shift,noise,lean,arm_sway,elbow,arm_twist,twist_spread. |
-| `samples` | number | Requested keys per second (default 24; 4-120). Walk/run automatically use at least 24 intervals per loop, or return a typed error if duration is too short. |
+| `samples` | number | Keys/s (60; 4-120). Walk/run need >=24 intervals; jump/turn/start/stop use >=120/s. At most 1200 intervals; results report effective density. |
 | `root_motion` | boolean | Key character-root translation at the cycle's implied speed (on by default for strafe_cycle, off for other operations); wires player.root_motion_track unless set_root_motion=false. Set false for an in-place strafe shuffle. |
 | `set_root_motion` | boolean | root_motion: also set AnimationPlayer.root_motion_track in the same action (on). |
 | `speed` | number | Gait: target ground speed in m/s. Walk rejects unreachable explicit speeds with VALUE_OUT_OF_RANGE; omit for a rig-relative default. Other gaits report any cap. |
@@ -644,13 +644,13 @@ Handler: `res://addons/godot_ai_animation/handlers/motion.gd`
 | `crouch` | number | jump: anticipation/landing crouch depth in metres (0.24). |
 | `distance` | number | jump: forward travel in metres over the clip (0 = in place). |
 | `phase` | number | walk_start/walk_stop: gait phase (0-1) the transition meets, e.g. 0 = left contact (0). |
-| `stride` | number | Gait: leg swing, degrees (walk 24, run 34). |
+| `stride` | number | Gait: leg swing, degrees (walk 18, run 25). |
 | `knee_bend` | number | Gait: planted crouch control, degrees (walk 8, run 36). |
-| `arm_swing` | number | Gait: arm counter-swing, degrees (walk 20, run 34). |
+| `arm_swing` | number | Gait: arm counter-swing, degrees (responsive walk 20, run 28). |
 | `arm_down` | number | Lower the arms this many degrees from the rest pose (T-pose rigs). |
 | `bob` | number | Pelvis bob, metres peak-to-peak (walk 0.05; idle 0.006). |
 | `sway` | number | Pelvis lateral sway, metres (walk 0.02; idle 0.012). |
-| `lean` | number | Forward lean, degrees (walk 3, run 9; idle slouch 1.5). |
+| `lean` | number | Forward lean, degrees (walk 3, run 15; idle 1.5). |
 | `amplitude` | number | idle_cycle: breathing chest rotation, degrees (1.6). |
 | `head_amplitude` | number | idle_cycle: head nod/drift, degrees (0.8). |
 | `spine_chain` | array | Torso chain for twist/lean, hips first (auto-detected; must be one parent chain). |

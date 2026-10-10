@@ -10,6 +10,19 @@ default proposals are superseded. Private review media and X Bot stay local.
 Next is R1 normal-call default integration, preserving r004 sources and
 completed history/bake gates. Stop for the next continuous-video review.
 
+### R0/R1 checkpoint
+
+- Locked decisions pushed as `917ec02`; R1 validation is recorded in
+  `docs/walk-default-integration-validation.md`.
+- Resolved styles before rig geometry, exact r004 walking tables, typed explicit
+  anatomy refusals plus implicit omission metadata, alias/setup parity, 60/s
+  default, truthful one-shot density/budget and documented cycle loop default.
+- Separate released core v4.2.1 and fresh Godot 4.7.2; actual MCP finds ten
+  families/eight promoted. Fresh motion suite 57/58, zero skips, no engine errors.
+- Preserved historical pre-v2 walk goldens currently fail their old default
+  expectation. Record that openly; do not overwrite/hide before profile review.
+  New native saved r004 parity and full style videos are next. R1 is in progress.
+
 Started 2026-09-28. This is the working repair plan and phase log for the
 unreleased `repair/toolkit-quality` branch. `ROADMAP.md` records the older
 feature/release history; it is not evidence that a feature works today.

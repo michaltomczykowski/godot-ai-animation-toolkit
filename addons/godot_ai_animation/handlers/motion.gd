@@ -165,6 +165,9 @@ func _run_cycle(params: Dictionary, kind: String) -> Dictionary:
 	if committed.has("error"):
 		return committed
 	committed.data["style"] = prepared.style
+	committed.data["resolved_style"] = MotionSpecs.resolved_style(prepared.style)
+	committed.data["applied_features"] = prepared.applied_features
+	committed.data["omitted_features"] = prepared.omitted_features
 	committed.data["samples"] = prepared.rate
 	committed.data["roles"] = prepared.ctx.roles
 	committed.data["spine_chain"] = prepared.ctx.spine_chain
@@ -192,9 +195,9 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 			"Invalid preset '%s'. Valid: walk, run, idle, jump, turn, strafe" % kind)
 	var style := str(params.get("style", "default"))
-	if style != "default" and not MotionSpecs._STYLE_MULTIPLIERS.has(style):
+	if not MotionSpecs.STYLE_NAMES.has(style):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
-			"Invalid style '%s'. Valid: %s" % [style, ", ".join(MotionSpecs._STYLE_MULTIPLIERS.keys())])
+			"Invalid style '%s'. Valid: %s" % [style, ", ".join(MotionSpecs.STYLE_NAMES)])
 	var overrides = params.get("overrides", {})
 	if not (overrides is Dictionary):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'overrides' must be an object")
@@ -215,21 +218,7 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 			if not params[field] is bool: return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'%s' must be a boolean" % field)
 		elif not (params[field] is int or params[field] is float):
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'%s' must be a number" % field)
-	var built := _build_context(params, kind)
-	if built.has("error"):
-		return built
-	var config: Dictionary = MotionSpecs.walk_config(style, {})
-	match kind:
-		"run":
-			config = MotionSpecs.run_config(style, {})
-		"idle":
-			config = MotionSpecs.idle_config(style, {})
-		"jump":
-			config = MotionSpecs.jump_config(style, {})
-		"turn":
-			config = MotionSpecs.turn_config(style, {})
-		"strafe":
-			config = MotionSpecs.strafe_config(style, {})
+	var config := MotionSpecs.config_for_kind(kind, style)
 	for key in overrides:
 		config[str(key)] = overrides[key]
 	for key in valid_keys:
@@ -248,6 +237,9 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		config["jump_crouch"] = float(params["crouch"])
 	if params.has("angle"):
 		config["turn_angle"] = float(params["angle"])
+	var built := _build_context(params, kind, config)
+	if built.has("error"):
+		return built
 	var length := float(built.length)
 	var rate := float(built.rate)
 	var ctx: Dictionary = built.ctx
@@ -267,11 +259,6 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		articulate = articulate or config.has(field)
 	if float(config.get("head_stabilize", 0.0)) < 0.0 or float(config.get("head_stabilize", 0.0)) > 1.0:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "head_stabilize must be between 0 and 1")
-	if articulate:
-		var layout := MotionSpecs.upper_body_layout(ctx)
-		if layout.has("error"):
-			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, str(layout.error))
-		ctx["upper_body_layout"] = layout
 	for field in ["forearm_twist", "wrist_sway"]:
 		var limit := 20.0 if field == "forearm_twist" else 10.0
 		if absf(float(config.get(field, 0.0))) > limit:
@@ -283,24 +270,9 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 	var seed_value := float(config.get("variation_seed", 0))
 	if seed_value < 0.0 or seed_value > 2147483647.0 or seed_value != floorf(seed_value):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "variation_seed must be an integer from 0 to 2147483647")
-	var moving_hands := false
-	for field in ["wrist_swing", "forearm_twist", "wrist_sway", "arm_variation", "hand_relax"]:
-		moving_hands = moving_hands or not is_zero_approx(float(config.get(field, 0.0)))
-	if moving_hands:
-		for side in ["l", "r"]:
-			if not ctx.roles.has("arm_" + side) or not ctx.roles.has("hand_" + side) or not ctx.roles.has("forearm_" + side):
-				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Requested hand motion requires resolved arm, forearm and hand roles on both sides")
-			var arm := str(ctx.roles["arm_" + side])
-			var fore := str(ctx.roles["forearm_" + side])
-			var hand := str(ctx.roles["hand_" + side])
-			if not MotionSpecs.rest_ancestor(ctx, fore, arm) or not MotionSpecs.rest_ancestor(ctx, hand, fore) \
-					or (ctx.rest[hand].origin as Vector3).distance_to(ctx.rest[fore].origin as Vector3) < 0.0001:
-				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Requested hand motion needs connected arm -> forearm -> hand geometry")
-	if float(config.get("hand_relax", 0.0)) > 0.0:
-		var fingers := MotionSpecs.hand_layout(built.skeleton, ctx)
-		if fingers.has("error"):
-			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, str(fingers.error))
-		ctx["hand_layout"] = fingers
+	var features := _optional_features(params, overrides, config, built, articulate)
+	if features.has("error"):
+		return features
 	_scale_distances_to_rig(config, params, overrides, ctx)
 	ctx["foot_lift_explicit"] = params.has("foot_lift") or overrides.has("foot_lift")
 	ctx["speed"] = maxf(float(params.get("speed", 0.0)), 0.0)
@@ -366,10 +338,79 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		"rate": rate,
 		"loop_mode": int(built.loop_mode),
 		"style": style,
+		"applied_features": features.applied,
+		"omitted_features": features.omitted,
 		"kind": kind,
 		"anim_name": str(params.get("animation_name", kind)),
 		"rooted": bool(built.ctx.get("root_motion", false)) and keys.has("__root_motion__"),
 	}
+
+
+## Defaults may omit anatomy; explicit nonzero controls must never silently do
+## nothing. Removing keys (not just zeroing values) avoids selecting solvers
+## whose presence-based switches require geometry this rig does not have.
+func _optional_features(params: Dictionary, overrides: Dictionary, config: Dictionary, built: Dictionary, articulate: bool) -> Dictionary:
+	var ctx: Dictionary = built.ctx
+	var applied: Array = []
+	var omitted: Array = []
+	var upper := ["torso_flex", "torso_roll", "head_nod", "head_roll", "head_lag", "head_stabilize"]
+	if articulate:
+		var layout := MotionSpecs.upper_body_layout(ctx)
+		if layout.has("error"):
+			if _explicit_feature(params, overrides, upper):
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, str(layout.error))
+			for field in upper: config.erase(field)
+			omitted.append({"feature": "torso_head_articulation", "reason": str(layout.error)})
+		else:
+			ctx["upper_body_layout"] = layout
+			applied.append("torso_head_articulation")
+	var hands := ["elbow_lag", "wrist_swing", "wrist_lag", "forearm_twist", "wrist_sway", "arm_variation", "variation_seed", "hand_relax"]
+	var moving_hands := false
+	for field in ["wrist_swing", "forearm_twist", "wrist_sway", "arm_variation", "hand_relax"]:
+		moving_hands = moving_hands or not is_zero_approx(float(config.get(field, 0.0)))
+	if moving_hands:
+		var reason := ""
+		for side in ["l", "r"]:
+			if not ctx.roles.has("arm_" + side) or not ctx.roles.has("forearm_" + side) or not ctx.roles.has("hand_" + side):
+				reason = "Requested hand motion requires resolved arm, forearm and hand roles on both sides"
+				break
+			var arm := str(ctx.roles["arm_" + side])
+			var fore := str(ctx.roles["forearm_" + side])
+			var hand := str(ctx.roles["hand_" + side])
+			if not MotionSpecs.rest_ancestor(ctx, fore, arm) or not MotionSpecs.rest_ancestor(ctx, hand, fore) \
+					or (ctx.rest[hand].origin as Vector3).distance_to(ctx.rest[fore].origin as Vector3) < 0.0001:
+				reason = "Requested hand motion needs connected arm -> forearm -> hand geometry"
+				break
+		if not reason.is_empty():
+			if _explicit_feature(params, overrides, hands):
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, reason)
+			var finger_requested := float(config.get("hand_relax", 0.0)) > 0.0
+			for field in hands: config.erase(field)
+			ctx["arm_hand_follow_through"] = false
+			omitted.append({"feature": "arm_hand_follow_through", "reason": reason})
+			if finger_requested: omitted.append({"feature": "finger_relaxation", "reason": reason})
+		else:
+			ctx["arm_hand_follow_through"] = true
+			applied.append("arm_hand_follow_through")
+	if float(config.get("hand_relax", 0.0)) > 0.0:
+		var fingers := MotionSpecs.hand_layout(built.skeleton, ctx)
+		if fingers.has("error"):
+			if _explicit_feature(params, overrides, ["hand_relax"]):
+				return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, str(fingers.error))
+			config.erase("hand_relax")
+			omitted.append({"feature": "finger_relaxation", "reason": str(fingers.error)})
+		else:
+			ctx["hand_layout"] = fingers
+			applied.append("finger_relaxation")
+	return {"applied": applied, "omitted": omitted}
+
+
+static func _explicit_feature(params: Dictionary, overrides: Dictionary, fields: Array) -> bool:
+	for field in fields:
+		if params.has(field) or overrides.has(field):
+			if not is_zero_approx(float(params.get(field, overrides.get(field, 0.0)))):
+				return true
+	return false
 
 
 ## Ground speed a gaits represent, in metres per second (0 for everything else).
@@ -451,7 +492,7 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 		"roles": params.get("roles", {}),
 		"profile": params.get("profile", null),
 		"style": str(params.get("style", "default")),
-		"samples": float(params.get("samples", 24.0)),
+		"samples": float(params.get("samples", 60.0)),
 		"set_root_motion": false,
 		"dry_run": _dry_run,
 	}
@@ -494,6 +535,11 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 				_implied_speed(str(prepared.kind), prepared.config, prepared.ctx, prepared.length)))
 		clips[clip_name] = {
 			"kind": str(prepared.kind),
+			"style": prepared.style,
+			"resolved_style": MotionSpecs.resolved_style(prepared.style),
+			"applied_features": prepared.applied_features,
+			"omitted_features": prepared.omitted_features,
+			"samples": prepared.rate,
 			"length": prepared.length,
 			"loop_mode": ValueCodec.loop_mode_to_string(prepared.loop_mode),
 			"track_count": (built.spec.tracks as Array).size(),
@@ -846,7 +892,7 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 
 # --- rig context ------------------------------------------------------------
 
-func _build_context(params: Dictionary, kind: String) -> Dictionary:
+func _build_context(params: Dictionary, kind: String, resolved_config: Dictionary = {}) -> Dictionary:
 	var resolved := _resolve_skeleton(params)
 	if resolved.has("error"):
 		return resolved
@@ -880,10 +926,13 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 			var bad := _first_non_finite(value, str(key))
 			if not bad.is_empty():
 				return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, bad)
-	var loop_result := _loop_mode(params)
+	var loop_params := params.duplicate()
+	if not loop_params.has("loop_mode"):
+		loop_params["loop_mode"] = "linear" if kind in ["walk", "run", "idle", "strafe"] else "none"
+	var loop_result := _loop_mode(loop_params)
 	if loop_result.has("error"):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, loop_result.error)
-	var rate := clampf(float(params.get("samples", 24.0)), 4.0, 120.0)
+	var rate := clampf(float(params.get("samples", 60.0)), 4.0, 120.0)
 	var intervals := MotionDrivers.sample_count(length, rate)
 	if (kind == "walk" or kind == "run") and intervals < 24:
 		# `samples` is a requested density, not permission to commit a gait that
@@ -894,7 +943,7 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 		if intervals < 24:
 			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 				"A walk/run loop needs 24 sampled intervals for stable leg playback; duration %.3f s is too short at the 120 keys/s limit" % length)
-	if kind == "jump" and rate < 120.0:
+	if kind in ["jump", "turn", "walk_start", "walk_stop"] and rate < 120.0:
 		# Landing foot IK must be authored densely enough that engine
 		# interpolation stays above the floor between solved samples.
 		rate = 120.0
@@ -945,12 +994,12 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 	var lateral: Vector3 = frame.lateral
 	var arm_down := {}
 	var arm_amount := float(params.get("arm_down", -1.0))
-	# Stage the revised arm geometry through explicit follow-through controls.
-	# Existing profile/default references are retained until human video approval.
+	# Resolve the style first: implicit profile controls need the same measured
+	# arm geometry as the accepted explicit recipe, particularly on Z-up rigs.
 	var measured_arms := false
 	var overrides: Dictionary = params.get("overrides", {})
 	for field in ["elbow_lag", "wrist_swing", "wrist_lag", "torso_twist", "torso_flex", "torso_roll", "head_nod", "head_roll", "head_lag", "head_stabilize", "forearm_twist", "wrist_sway", "arm_variation", "variation_seed", "hand_relax"]:
-		measured_arms = measured_arms or params.has(field) or overrides.has(field)
+		measured_arms = measured_arms or resolved_config.has(field) or params.has(field) or overrides.has(field)
 	if not measured_arms and arm_amount < 0.0:
 		arm_amount = _default_arm_down(skeleton, roles)
 	for side in ["l", "r"]:

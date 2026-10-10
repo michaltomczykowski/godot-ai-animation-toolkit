@@ -53,6 +53,8 @@ async def run(args: argparse.Namespace) -> int:
                       "skeleton_path": f"/{scene_root}/{rig_path}",
                       "animation_name": "quality_baseline_walk", "root_motion": True,
                       "loop_mode": "linear"}
+            if args.style is not None:
+                params["style"] = args.style
             if overrides:
                 params["animation_name"] = "quality_candidate_walk"
                 params["overrides"] = overrides
@@ -103,6 +105,8 @@ if __name__ == "__main__":
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--revision", default="walk-baseline-r001")
     p.add_argument("--profile", default="current default")
+    p.add_argument("--style", choices=("default", "responsive", "grounded", "relaxed", "heavy", "sneaky"),
+                   help="Use a public style, without injecting an override recipe")
     p.add_argument("--overrides", type=Path)
     p.add_argument("--baseline", type=Path, help="Hold the recorded baseline speed per rig for comparisons")
     raise SystemExit(asyncio.run(run(p.parse_args())))

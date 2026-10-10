@@ -1869,8 +1869,8 @@ static func _motion_schema() -> Dictionary:
 			},
 			"style": {
 				"type": "string",
-				"enum": ["default", "relaxed", "heavy", "sneaky"],
-				"description": "Motion style preset, applied before overrides.",
+				"enum": ["default", "responsive", "grounded", "relaxed", "heavy", "sneaky"],
+				"description": "default = responsive; grounded optional; relaxed/heavy/sneaky retune responsive. Overrides win. Results report applied/omitted anatomy features.",
 			},
 			"overrides": {
 				"type": "object",
@@ -1878,7 +1878,7 @@ static func _motion_schema() -> Dictionary:
 			},
 			"samples": {
 				"type": "number",
-				"description": "Requested keys per second (default 24; 4-120). Walk/run automatically use at least 24 intervals per loop, or return a typed error if duration is too short.",
+				"description": "Keys/s (60; 4-120). Walk/run need >=24 intervals; jump/turn/start/stop use >=120/s. At most 1200 intervals; results report effective density.",
 			},
 			"root_motion": {
 				"type": "boolean",
@@ -1923,7 +1923,7 @@ static func _motion_schema() -> Dictionary:
 			},
 			"stride": {
 				"type": "number",
-				"description": "Gait: leg swing, degrees (walk 24, run 34).",
+				"description": "Gait: leg swing, degrees (walk 18, run 25).",
 			},
 			"knee_bend": {
 				"type": "number",
@@ -1931,7 +1931,7 @@ static func _motion_schema() -> Dictionary:
 			},
 			"arm_swing": {
 				"type": "number",
-				"description": "Gait: arm counter-swing, degrees (walk 20, run 34).",
+				"description": "Gait: arm counter-swing, degrees (responsive walk 20, run 28).",
 			},
 			"arm_down": {
 				"type": "number",
@@ -1947,7 +1947,7 @@ static func _motion_schema() -> Dictionary:
 			},
 			"lean": {
 				"type": "number",
-				"description": "Forward lean, degrees (walk 3, run 9; idle slouch 1.5).",
+				"description": "Forward lean, degrees (walk 3, run 15; idle 1.5).",
 			},
 			"amplitude": {
 				"type": "number",
