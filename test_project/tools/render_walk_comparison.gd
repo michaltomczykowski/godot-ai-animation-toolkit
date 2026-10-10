@@ -4,6 +4,12 @@ extends "res://tools/render_character_quality.gd"
 func _comparison_title(_candidate: Dictionary, row: Dictionary, angle_name: String) -> String:
 	return "WALK UPPER BODY REVIEW | %s | %s | Godot 4.7.2" % [row.label, angle_name]
 
+func _comparison_status(frame: int, _reference: Dictionary, _row: Dictionary) -> String:
+	return "%s | time %05.2f s | baseline %.2f m / candidate %.2f m | native ground travel" % ["DIAGNOSTIC" if diagnostic else "CLEAN", float(frame) / 60.0, views[0].body.global_position.distance_to(views[0].initial_body), views[1].body.global_position.distance_to(views[1].initial_body)]
+
+func _comparison_footer() -> String:
+	return "Green: declared contact | Magenta: hip projection (not COM) | Blue: root travel" if diagnostic else "Original saved clips | matched cameras | actual 60 FPS playback | candidate awaiting human approval"
+
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
 	if args.size() < 4:
@@ -24,7 +30,7 @@ func _run() -> void:
 	status = _label("", Vector2(24, 50), 23)
 	_label("PREVIOUS | " + str(baseline.revision), Vector2(24, 92), 23)
 	_label(str(candidate.profile).to_upper() + " | " + str(candidate.revision), Vector2(984, 92), 23)
-	_label("Green: declared contact | Magenta: hip projection (not COM) | Blue: root travel" if diagnostic else "Original saved clips | matched cameras | actual 60 FPS playback | candidate awaiting human approval", Vector2(24, 1035), 21)
+	_label(_comparison_footer(), Vector2(24, 1035), 21)
 	var ports := [_viewport(0), _viewport(1)]
 	var frames := 0
 	var rows: Array = []
@@ -43,7 +49,7 @@ func _run() -> void:
 					for v: Dictionary in views:
 						Native.advance(v, 1.0 / 60.0)
 						_update(v)
-				status.text = "%s | time %05.2f s | baseline %.2f m / candidate %.2f m | native ground travel" % ["DIAGNOSTIC" if diagnostic else "CLEAN", float(frame) / 60.0, views[0].body.global_position.distance_to(views[0].initial_body), views[1].body.global_position.distance_to(views[1].initial_body)]
+				status.text = _comparison_status(frame, reference, row)
 				await process_frame
 				await RenderingServer.frame_post_draw
 				if root.get_texture().get_image().save_png(output.path_join("%06d.png" % frames)) != OK:
