@@ -108,11 +108,34 @@ checkout SHAs, raw logs and `ci-97f17ce-review-receipt.json` are archived locall
 
 ## Remaining review gate
 
-Archive and deliver ten continuous final comparison MP4s. Pause for explicit
-run feedback. Captures use same-style ordinary legacy output left and candidate
+All ten continuous final comparison MP4s finished on 2026-10-10. Each has 48
+seconds of 1080p60 H.264 playback and 2,880 independently decoded frames. The
+recorder exits successfully and its progress state is complete. Five styles
+each have clean and diagnostic copies, with eight six-second chapters: front
+and side for dummy, X Bot, short synthetic and tall Z-up synthetic, in that order.
+Supplementary framing/caption inspection shows both characters within the
+frame, including the final Sneaky overview and tall Z-up side view. This is
+delivery QA, not approval of motion quality.
+
+Strict archival verifies saved scene, video and native sample hashes, ordinary
+public inputs, history, the full matrix, reload and the named source CI receipt.
+Deliver the verified copies through PC Explorer, with Responsive clean selected,
+then pause for explicit run feedback. Captures use same-style ordinary legacy output left and candidate
 right; declared flight/contact, speed, loop duration and travel are captioned.
 Media/measurement limitations remain the rest ankle plane and hip projection,
 not skin collision or center of mass. Numerical passes do not approve aesthetics.
+
+The strict archive passed: 80 saved scenes plus both local rig assets, exact
+animation source `97f17ce`, ten verified video copies and current review
+tooling/docs. Receipts are `candidate/review-delivery.json` and
+`candidate/pc-review-delivery.json`; videos are in `candidate/review-videos`.
+PC Explorer's folder and Responsive clean selection were observed at
+2026-10-10 19:31:28 UTC. Playback has not been confirmed by the user. The review
+state is `awaiting_run_styles_feedback`, with all five run approvals pending;
+the existing walk approval is preserved. Do not reset feedback or regenerate
+historical archives when resuming. No fixture migration or idle phase before
+explicit run feedback and the subsequent independent regression gate.
+
 Documentation debt for R4: generator/test comments currently label the relative
 speed `v/sqrt(gL)` as Froude number. The conventional locomotion definition is
 `v²/(gL)`; these are different quantities ([primary research](https://pmc.ncbi.nlm.nih.gov/articles/PMC3639764/)).

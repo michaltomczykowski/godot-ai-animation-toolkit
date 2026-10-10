@@ -11,14 +11,22 @@ pass. Motion 60/61 has only the deliberately preserved legacy run golden failing
 two private-X-Bot skips, zero engine/route/discovery errors. Animation source is
 unchanged by later renderer/checker tooling commits. Validation:
 `docs/run-quality-validation.md`. Recovery: `release_r2_run_20261010`.
-Read `candidate/recording-progress.json` before resuming captures with
-`tools/record_run_review.ps1`; never reset or overwrite earlier archives.
+All ten continuous 48s/1080p60 run MP4s are recorded and independently decoded
+(2,880 frames each); `candidate/recording-progress.json` is complete. Do not
+restart the recorder or overwrite earlier archives. Archive/delivery completion
+is recorded in `candidate/review-delivery.json` and `pc-review-delivery.json`.
+Strict archive passed: 80 saved scenes, exact animation source and local rigs,
+ten verified videos. PC Explorer's review folder and Responsive clean selection
+are observed. State is `awaiting_run_styles_feedback`; all five run approvals
+are null. Do not rerun the archive after feedback or reset approved records.
 `check_run_review.py` requires 240 native and 60 prototype comparisons;
 `archive_run_review.py` requires all ten continuous MP4s and public history.
 In-place world contacts use an unanimated gameplay parent outside the visual
 mixer subtree, explicitly identified in receipts. Two failed checker attempts
 are preserved; final matrix has zero engine errors. Do not change run goldens
 before explicit run video feedback. Deliver through PC Explorer and pause.
+The latest request to continue is not run approval. Preserve the prior walk
+approval; run has its own five-style/four-rig feedback gate.
 
 R1 closed on `8f7b6e7`: Actions `38057817851` passes all 32 required source
 jobs and two advisory main jobs. Four editor jobs: 382/384, two explicit private

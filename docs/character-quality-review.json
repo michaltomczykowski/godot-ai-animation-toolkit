@@ -3,7 +3,7 @@
   "phase": "character_quality",
   "operation": "walk_cycle",
   "revision": "walk-default-styles-r005",
-  "state": "approved_walk_styles_regression_complete",
+  "state": "awaiting_run_styles_feedback",
   "release_r1_execution": {
     "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -333,7 +333,7 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Full Windows/Linux CI for the standard-CI recording guard follow-up. Run baselines may be measured; generator changes wait for R1 closure. Then implement the separately planned R2 run revision and pause on continuous videos.",
+  "next_action": "PC Explorer run videos are delivered and Responsive clean is selected. Stop for explicit five-style/four-rig run feedback; do not migrate the run golden yet.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
   "updated_utc": "2026-10-10T13:40:33.095528+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -2739,7 +2739,7 @@
     "updated_utc": "2026-10-09T20:12:32.534790+00:00",
     "playback_scope": "r004 feedback received; individual video/profile coverage not specified"
   },
-  "active_review_field": "promoted_walk_review",
+  "active_review_field": "run_review",
   "baseline_fields_note": "Top-level route/numeric/videos/chapters preserve r001 history. Current walk evidence and approvals are in promoted_walk_review; current regression is in release_r1_execution.",
   "promoted_walk_review": {
     "state": "approved_walk_styles_regression_complete",
@@ -2897,6 +2897,674 @@
         "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
         "style": "sneaky"
       }
+    }
+  },
+  "run_review": {
+    "state": "awaiting_run_styles_feedback",
+    "animation_source": "97f17ce579510fe5b784c1edd84a845eb164c199",
+    "core_source": "bfc264200584ea5823f18356acb164781f57796d",
+    "technical_review_delivery_complete": true,
+    "release_ready": false,
+    "public_clips": 40,
+    "native_runs": 240,
+    "prototype_parity_runs": 60,
+    "reload_dry_calls": 40,
+    "focused_editor": {
+      "total": 61,
+      "passed": 60,
+      "failed": 1,
+      "skipped": 0,
+      "preserved_failure": "test_the_run_matches_its_golden"
+    },
+    "headless_suites": 14,
+    "videos": [
+      {
+        "style": "responsive",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-responsive-clean.mp4",
+        "sha256": "eabb1945ed8877f597be79bc409161136b42cc36466d5baa03055e1089815bb3",
+        "bytes": 35341202,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "responsive",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-responsive-diagnostic.mp4",
+        "sha256": "0cfbe2cfafd4e21cfd00f2113ca3772685411a26cf43ae0e4c7c07b950288c0f",
+        "bytes": 36069222,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "grounded",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-grounded-clean.mp4",
+        "sha256": "1cf64fc8cb72e68156ae69bce7b070d37aefc93b7c1873f293f97b594a4fcf20",
+        "bytes": 35184620,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "grounded",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-grounded-diagnostic.mp4",
+        "sha256": "5ccf6ba4ecc8cb31bce58c00821505964e380ce100581c068ca2a80474a780a1",
+        "bytes": 35928144,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "relaxed",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-relaxed-clean.mp4",
+        "sha256": "25840c10829f06af68b521070a563b5f3c38b173ca52ad158f453c2447e1d2ea",
+        "bytes": 31253444,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "relaxed",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-relaxed-diagnostic.mp4",
+        "sha256": "a1258f5f2aa5ab691ea14df3c292aeeb2b4cf8db6f99a4659374697e7b884eed",
+        "bytes": 32025383,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "heavy",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-heavy-clean.mp4",
+        "sha256": "d52a7f016d2664979e183299bb94924a09c2e3a500d5db834f12c26cb781990b",
+        "bytes": 33664656,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "heavy",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-heavy-diagnostic.mp4",
+        "sha256": "573c467d3db3024c2e69a32f749f1f4ba48d00bd3252e6389d1f1c508232d1a8",
+        "bytes": 34410548,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "sneaky",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-sneaky-clean.mp4",
+        "sha256": "5a3df89171aa13571d4aa4fac1fa292354e9800ba89b671ad840d3f31bd5cca3",
+        "bytes": 32486546,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "sneaky",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-sneaky-diagnostic.mp4",
+        "sha256": "435caef60e736f4e700224db282f1631781bc61c68cc1f2c28f3b838b1a5eb66",
+        "bytes": 33083726,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      }
+    ],
+    "saved_scene_files": [
+      {
+        "path": "repair_run_quality/904e00f9aeeb4b7f8038374470167000/responsive_extracted_dummy.tscn",
+        "sha256": "968396f9831e0d8928e7c8c2de6621e051d3f947f2af7d006dd2e9931aa23b25"
+      },
+      {
+        "path": "repair_run_quality/904e00f9aeeb4b7f8038374470167000/responsive_extracted_xbot.tscn",
+        "sha256": "c5faa93152a5faaff889352a79597c6048a3a579b5b783dfb791662c941e0581"
+      },
+      {
+        "path": "repair_run_quality/904e00f9aeeb4b7f8038374470167000/responsive_extracted_short.tscn",
+        "sha256": "4fbd82fb30a8ab536cae3602e0f3eac68fd0d550330faa9877d3156a506b33b9"
+      },
+      {
+        "path": "repair_run_quality/904e00f9aeeb4b7f8038374470167000/responsive_extracted_zup_tall.tscn",
+        "sha256": "b82f6a59836bccef96b1519a00d322b58a394f2e88ccffb6b4c57545c5aab884"
+      },
+      {
+        "path": "repair_run_quality/6c1bf50ae49246f4804710d0ea2fe01c/responsive_extracted_dummy.tscn",
+        "sha256": "c4a35cf5a1154a0307fdd6a9d3ff6bb72bf0b88be8fbc2ed18886db110a4ad17"
+      },
+      {
+        "path": "repair_run_quality/6c1bf50ae49246f4804710d0ea2fe01c/responsive_extracted_xbot.tscn",
+        "sha256": "2f978710251714db500cfbbfd1106b105b4cccb970687e031e044c397d44de49"
+      },
+      {
+        "path": "repair_run_quality/6c1bf50ae49246f4804710d0ea2fe01c/responsive_extracted_short.tscn",
+        "sha256": "101a67748da450d6b70e6dfd8bd4c83d714438fa403443a0a4063d3c0b4041d0"
+      },
+      {
+        "path": "repair_run_quality/6c1bf50ae49246f4804710d0ea2fe01c/responsive_extracted_zup_tall.tscn",
+        "sha256": "43c36bf1c9c6a3ac2cd8c7facb5287512c42071b288205a05c825d8d6ad3ba85"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/responsive_extracted_dummy.tscn",
+        "sha256": "b1f78e31ed698141c17c29a2834d1d3ebcd863afc94c3ded19a3c9f2175f2e45"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/responsive_extracted_xbot.tscn",
+        "sha256": "563c2a3d21ffcc3a2fb8fcda4138a25193e0a4a6c05242cdb1d5de6feda5b4b6"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/responsive_extracted_short.tscn",
+        "sha256": "618970d3b0ad1f769a122babfb4ca1c39c7b71648df30ef609f04ea6288d638b"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/responsive_extracted_zup_tall.tscn",
+        "sha256": "d7dcb94fc58b3fa716e76708a658805b7788211251d061850af2c3fb581cbeb2"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/responsive_in_place_dummy.tscn",
+        "sha256": "77c8555c3fa0fbb2385ee6d9743060be4110217baceec5b4befcabe41d332d58"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/responsive_in_place_xbot.tscn",
+        "sha256": "dfb4c43af70e7c40eb151cecaa44549703e7975f9de9fdad4e8c67486c84907c"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/responsive_in_place_short.tscn",
+        "sha256": "f3445ede5e34da076faa07b5054dd4b5f9a7b4df8584c867e91edbadec9a45e2"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/responsive_in_place_zup_tall.tscn",
+        "sha256": "d5172a50cdcb143513b7387562f594f9d86eb45f510054205fa81615c1e97b57"
+      },
+      {
+        "path": "repair_run_quality/904e00f9aeeb4b7f8038374470167000/grounded_extracted_dummy.tscn",
+        "sha256": "beb47922503f24f4e49119dafa74068d6c7ebd42b1713c6a44d08c3991fbf95f"
+      },
+      {
+        "path": "repair_run_quality/904e00f9aeeb4b7f8038374470167000/grounded_extracted_xbot.tscn",
+        "sha256": "65d04d59c1f4926712e7ce9db8c4b48f32692928eb1c2b0b30a2625f42927076"
+      },
+      {
+        "path": "repair_run_quality/904e00f9aeeb4b7f8038374470167000/grounded_extracted_short.tscn",
+        "sha256": "d5eabe04a69e483bc8d1e243170f6bf566edf1b0b3e90596e001b1e5bcc2b3f4"
+      },
+      {
+        "path": "repair_run_quality/904e00f9aeeb4b7f8038374470167000/grounded_extracted_zup_tall.tscn",
+        "sha256": "4f5b45266e690c25adc9370081db239bf0ce5428493022fdf34fa43a1b2dbbce"
+      },
+      {
+        "path": "repair_run_quality/6c1bf50ae49246f4804710d0ea2fe01c/grounded_extracted_dummy.tscn",
+        "sha256": "5e2d85dd4b7ed64b27c003205f4b6ab5d7db98067430f4aea61b4e1b1bf1ed42"
+      },
+      {
+        "path": "repair_run_quality/6c1bf50ae49246f4804710d0ea2fe01c/grounded_extracted_xbot.tscn",
+        "sha256": "8fbeebbfa36e47f004996c54cdd9f787b948dfcba425d7434646c03da4398f56"
+      },
+      {
+        "path": "repair_run_quality/6c1bf50ae49246f4804710d0ea2fe01c/grounded_extracted_short.tscn",
+        "sha256": "ad9691d00208ee2ebb0b1f158f92047f2b7777f06a8225c0f4a910c5f75860fe"
+      },
+      {
+        "path": "repair_run_quality/6c1bf50ae49246f4804710d0ea2fe01c/grounded_extracted_zup_tall.tscn",
+        "sha256": "06b3239ae1f40ef4bb2c0239535a84b63c8174089245dbf466c20fb279cd702a"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/grounded_extracted_dummy.tscn",
+        "sha256": "197933ff31c0b6aad6145d1d7e3d0e0cd269fedb2a7361563f256d0b7dac6655"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/grounded_extracted_xbot.tscn",
+        "sha256": "d9349e1f78c0d3e94c542679d0c390bf1159e0a7ce443238b1a37ec5503dac35"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/grounded_extracted_short.tscn",
+        "sha256": "7f07d55687ed0e56f3249c37fae29d3ce10c782bc8043fbc6f061b9d6b87091c"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/grounded_extracted_zup_tall.tscn",
+        "sha256": "a4154521b51fd5c610599eec072e8bf86b3254c3c82a61af77f9ea0b5bde14fe"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/grounded_in_place_dummy.tscn",
+        "sha256": "0b8f64706273a44954152d11face3edec1bfdf3d5a2db49731119550b19b8a78"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/grounded_in_place_xbot.tscn",
+        "sha256": "d6444ebc201b3da9015654a9bd41f15e935a090d3ff96c0511acf8317898e130"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/grounded_in_place_short.tscn",
+        "sha256": "91eb20a8f5c9d975e76224dbc829028d382fc4fe3c451ac5e0a6c0bfc60c96ba"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/grounded_in_place_zup_tall.tscn",
+        "sha256": "94b4276606b7f447594f066350c25c5ee9c55aa6847691836e334bd58ad37665"
+      },
+      {
+        "path": "repair_run_quality/904e00f9aeeb4b7f8038374470167000/relaxed_extracted_dummy.tscn",
+        "sha256": "ca1705f55c2a5d0e025eecc23e8c0f6893df7da84161c613c2e3aab2510e4d1b"
+      },
+      {
+        "path": "repair_run_quality/904e00f9aeeb4b7f8038374470167000/relaxed_extracted_xbot.tscn",
+        "sha256": "163c1c307cfee3b89e99dd0acb97514499fffeb00b0c44d736cc3f43131414e5"
+      },
+      {
+        "path": "repair_run_quality/904e00f9aeeb4b7f8038374470167000/relaxed_extracted_short.tscn",
+        "sha256": "511cb24dc167bfbb3000e3b5d50bfae62b418484decd67cc43cc50d49cb743ff"
+      },
+      {
+        "path": "repair_run_quality/904e00f9aeeb4b7f8038374470167000/relaxed_extracted_zup_tall.tscn",
+        "sha256": "f8d00ee3282d2bbfe14eaee00222f91a9341e7b20673bb1d8fb71c5083bb03ad"
+      },
+      {
+        "path": "repair_run_quality/6c1bf50ae49246f4804710d0ea2fe01c/relaxed_extracted_dummy.tscn",
+        "sha256": "0c0eeb15b8f81c8a44f6b34465f27a40b8aefcb59416a84054cc6874badc27a7"
+      },
+      {
+        "path": "repair_run_quality/6c1bf50ae49246f4804710d0ea2fe01c/relaxed_extracted_xbot.tscn",
+        "sha256": "7c77d5ef7aff80e9e29a3b17199a8a974b25454c03d618026141e576d1fe80c0"
+      },
+      {
+        "path": "repair_run_quality/6c1bf50ae49246f4804710d0ea2fe01c/relaxed_extracted_short.tscn",
+        "sha256": "c3dcd5c0cbc93105825ccb447aa48310c54ec6243a30f2a724688f62a99776ca"
+      },
+      {
+        "path": "repair_run_quality/6c1bf50ae49246f4804710d0ea2fe01c/relaxed_extracted_zup_tall.tscn",
+        "sha256": "af9ae2e49f46e6cdeba3732aca9cdb938b6096d554e5f120bf575dda84d72461"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/relaxed_extracted_dummy.tscn",
+        "sha256": "b2ab4ca46a5e6651958ad607c4922cb0406ed8134fdc6b9b340afd0c5f641350"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/relaxed_extracted_xbot.tscn",
+        "sha256": "b69e4e6f3c97ec55e663e40bebd08ed3e0ecb48b0ceeb0cc81c62a1f2ab2f67f"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/relaxed_extracted_short.tscn",
+        "sha256": "087e25ae09c1fb50875bfffdb618ff8afca5cfbee73eb87bbc5fe8de52620266"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/relaxed_extracted_zup_tall.tscn",
+        "sha256": "5babfefbda988174fcba2a95a187e6f92c1d1cd9c56e2d53b6e3f62257eca3b1"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/relaxed_in_place_dummy.tscn",
+        "sha256": "5004125e5dfb7d1dd66f31c3e4009e1b69e071a319dc85477b3eeeca95eb28eb"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/relaxed_in_place_xbot.tscn",
+        "sha256": "50bfd54070d84e1ef409736b2dbf7e971ee011ad2007ea8dd334f7056ad27c71"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/relaxed_in_place_short.tscn",
+        "sha256": "74ffd14c6f23de05eaf231f1b0f12100b0bf454d3b00a8040cbb7521ae427435"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/relaxed_in_place_zup_tall.tscn",
+        "sha256": "8f4bdabb5eca2289b8ad749aa6832ef7c88f07660d891d5108d6859f2bc5d1ef"
+      },
+      {
+        "path": "repair_run_quality/904e00f9aeeb4b7f8038374470167000/heavy_extracted_dummy.tscn",
+        "sha256": "5cdc81dc663dde3ddf824947914a85f534545ae3d1e27d14c335e26b66919dae"
+      },
+      {
+        "path": "repair_run_quality/904e00f9aeeb4b7f8038374470167000/heavy_extracted_xbot.tscn",
+        "sha256": "6b2c3d32ea070ca8773294ed0cd1f19903af1476fbe4fd4854dd757f2129ec4a"
+      },
+      {
+        "path": "repair_run_quality/904e00f9aeeb4b7f8038374470167000/heavy_extracted_short.tscn",
+        "sha256": "ede6ae4b6f18bdf1f3d18ce309efffee9f7fb2a4d4de61500a89cb54263104bc"
+      },
+      {
+        "path": "repair_run_quality/904e00f9aeeb4b7f8038374470167000/heavy_extracted_zup_tall.tscn",
+        "sha256": "75b8a0d512a5690e0b116a7526d5a16daad987f9f868b699b37b16982561b4b8"
+      },
+      {
+        "path": "repair_run_quality/6c1bf50ae49246f4804710d0ea2fe01c/heavy_extracted_dummy.tscn",
+        "sha256": "35961bb6ecc90816952249183e2fb060dbcffdf65c56f226444ea51cbe962a67"
+      },
+      {
+        "path": "repair_run_quality/6c1bf50ae49246f4804710d0ea2fe01c/heavy_extracted_xbot.tscn",
+        "sha256": "347576bcd9bc22a733c36bd95f273394d432f31865ebc0d55b6e516c9e71c47b"
+      },
+      {
+        "path": "repair_run_quality/6c1bf50ae49246f4804710d0ea2fe01c/heavy_extracted_short.tscn",
+        "sha256": "507c32aa858bdb79854f3162e0acfba834b1861b6f327f70402de644c6e1287e"
+      },
+      {
+        "path": "repair_run_quality/6c1bf50ae49246f4804710d0ea2fe01c/heavy_extracted_zup_tall.tscn",
+        "sha256": "844cf702353f9616df2ee3068e336a66abac0f421211f85ebb54c856a532d2bc"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/heavy_extracted_dummy.tscn",
+        "sha256": "2575aa1d9ef402a32efe0ae127de1e93cc0bee71533f090f12d5085d1a265589"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/heavy_extracted_xbot.tscn",
+        "sha256": "997dfbac8032c6623bdf60786c55b8b48057e0623dbd98c93b8d4c5a721ed28b"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/heavy_extracted_short.tscn",
+        "sha256": "763daa33a4acdaa100aebbd374230e6418ecce72e5667a9bc5900576afbbe10e"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/heavy_extracted_zup_tall.tscn",
+        "sha256": "1c9b3a173cca85ecb1536a5afaa6d224b6bfceaf0e9ee2f81fcb81a87c54e459"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/heavy_in_place_dummy.tscn",
+        "sha256": "3d33344254dc8c1edf4b99890119cfb33c24b028924aff6d39679faf63cc3794"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/heavy_in_place_xbot.tscn",
+        "sha256": "4a8acaddced3f9d8e9903d4eef2ae1bd4560d585a0d1a96e6980279d8eb1ef95"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/heavy_in_place_short.tscn",
+        "sha256": "d6dffcf880d9bad00483dddba3ad59b0cef1617370dc69b5b4e15821fa7bf1e5"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/heavy_in_place_zup_tall.tscn",
+        "sha256": "d6ee6d9db96e53b06c4004d57566cc7fb86afaa3904a6d5d9b04ce6ed7305228"
+      },
+      {
+        "path": "repair_run_quality/904e00f9aeeb4b7f8038374470167000/sneaky_extracted_dummy.tscn",
+        "sha256": "6e6329cba65bc54c6b4d18449901018096a4fb31750322e9d23f3b174692b337"
+      },
+      {
+        "path": "repair_run_quality/904e00f9aeeb4b7f8038374470167000/sneaky_extracted_xbot.tscn",
+        "sha256": "a2bdb356a5560f381676e8ea25147b3268cfebc4f1847599b38a7730f7d4b849"
+      },
+      {
+        "path": "repair_run_quality/904e00f9aeeb4b7f8038374470167000/sneaky_extracted_short.tscn",
+        "sha256": "d100062665873ea7d88946c0c085585bf128f61d38b2937d64206a0f7650865a"
+      },
+      {
+        "path": "repair_run_quality/904e00f9aeeb4b7f8038374470167000/sneaky_extracted_zup_tall.tscn",
+        "sha256": "fd414fca018c9fca6edbb076650b0fc7a05560c526d677812a325be879db328d"
+      },
+      {
+        "path": "repair_run_quality/6c1bf50ae49246f4804710d0ea2fe01c/sneaky_extracted_dummy.tscn",
+        "sha256": "1ed46d6a6a32bdf6f5d8229ef5b9bf8a1ab6439a3e18262afc762af77b046d37"
+      },
+      {
+        "path": "repair_run_quality/6c1bf50ae49246f4804710d0ea2fe01c/sneaky_extracted_xbot.tscn",
+        "sha256": "22f258fb38496ffe10cf9f759b82e1082174e166263fe63afd04f0b11ec5d306"
+      },
+      {
+        "path": "repair_run_quality/6c1bf50ae49246f4804710d0ea2fe01c/sneaky_extracted_short.tscn",
+        "sha256": "4c033ce566e59fa8fb99427ccc5ba42ac9607859336199eeb51e83bbb45b7580"
+      },
+      {
+        "path": "repair_run_quality/6c1bf50ae49246f4804710d0ea2fe01c/sneaky_extracted_zup_tall.tscn",
+        "sha256": "1d2b168265f2a8054febf39380f71c971389eb88779da04167476fbf4c42eff7"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/sneaky_extracted_dummy.tscn",
+        "sha256": "d2e53860090ee3ad9b9c83b291e4aa764a90625a2fef4e2efc978050bb580193"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/sneaky_extracted_xbot.tscn",
+        "sha256": "2e495f7fe5b4c4a87f1b009db6e90afafc4c29693adc9eae7e8769fae2c592cd"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/sneaky_extracted_short.tscn",
+        "sha256": "6fe93a9a38e7d47f66249a779bccc1c90a8eb6be8c04ea791933e751b6a78965"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/sneaky_extracted_zup_tall.tscn",
+        "sha256": "3c9362f91bd323fa3c3f6e35e3ce10175b452cf8c44299d5e5186f27d44cd6ee"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/sneaky_in_place_dummy.tscn",
+        "sha256": "04d0dccd8859122755780ffd0dcff9c62c36fdf5b97c675375e248b227f64386"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/sneaky_in_place_xbot.tscn",
+        "sha256": "970c45279c611e85857540b8d79441d873e7e310003e3ab03b6a5c1b4131c6e4"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/sneaky_in_place_short.tscn",
+        "sha256": "4ee749f94589722ee9ecf726722c67631aab47ed42a44cc213571044689dc914"
+      },
+      {
+        "path": "repair_run_quality/6bcece032a55484297d9d5b113f6af8d/sneaky_in_place_zup_tall.tscn",
+        "sha256": "c933c99b555b5fd0d22f8fbcf71ba4549f525349b3ff2df66b8db6f0b58c37dc"
+      },
+      {
+        "path": "models/human_dummy/HumanCharacterDummy_F.fbx",
+        "sha256": "d038a99efd9754e2804221f509aba8bff2168bf83982c109937ce0c749caf5bf"
+      },
+      {
+        "path": "models/x_bot/X Bot.fbx",
+        "sha256": "20bd780863454c4bfb9c4dd8383d50d6d5ba2787b97aae622d06b9ea85103ed4"
+      }
+    ],
+    "ci_review_receipt": {
+      "source_head": "97f17ce579510fe5b784c1edd84a845eb164c199",
+      "url": "https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/38060543584",
+      "conclusion": "failure",
+      "expected_legacy_run_golden_only": true,
+      "all_other_source_jobs_pass": true,
+      "editor": [
+        {
+          "job": "Editor suite / windows-latest / core v4.2.1",
+          "total": 386,
+          "passed": 383,
+          "failed": 1,
+          "skipped": 2,
+          "failures": [
+            {
+              "assertion_count": 4,
+              "duration_ms": 60,
+              "message": "the run_cycle still has the golden's shape (38 tracks vs the golden's 20)",
+              "passed": false,
+              "suite": "animation_motion",
+              "test": "test_the_run_matches_its_golden"
+            }
+          ],
+          "checkout_shas": [
+            "7a35174d4f9dbdf9f33d767322f06da0346ce261",
+            "bfc264200584ea5823f18356acb164781f57796d"
+          ]
+        },
+        {
+          "job": "Editor suite / windows-latest / core main",
+          "total": 386,
+          "passed": 383,
+          "failed": 1,
+          "skipped": 2,
+          "failures": [
+            {
+              "assertion_count": 4,
+              "duration_ms": 55,
+              "message": "the run_cycle still has the golden's shape (38 tracks vs the golden's 20)",
+              "passed": false,
+              "suite": "animation_motion",
+              "test": "test_the_run_matches_its_golden"
+            }
+          ],
+          "checkout_shas": [
+            "7a35174d4f9dbdf9f33d767322f06da0346ce261",
+            "b82b5c519b1b17228f70d8effce1626f391bd1dd"
+          ]
+        },
+        {
+          "job": "Editor suite / ubuntu-latest / core main",
+          "total": 386,
+          "passed": 383,
+          "failed": 1,
+          "skipped": 2,
+          "failures": [
+            {
+              "assertion_count": 4,
+              "duration_ms": 44,
+              "message": "the run_cycle still has the golden's shape (38 tracks vs the golden's 20)",
+              "passed": false,
+              "suite": "animation_motion",
+              "test": "test_the_run_matches_its_golden"
+            }
+          ],
+          "checkout_shas": [
+            "7a35174d4f9dbdf9f33d767322f06da0346ce261",
+            "b82b5c519b1b17228f70d8effce1626f391bd1dd"
+          ]
+        },
+        {
+          "job": "Editor suite / ubuntu-latest / core v4.2.1",
+          "total": 386,
+          "passed": 383,
+          "failed": 1,
+          "skipped": 2,
+          "failures": [
+            {
+              "assertion_count": 4,
+              "duration_ms": 48,
+              "message": "the run_cycle still has the golden's shape (38 tracks vs the golden's 20)",
+              "passed": false,
+              "suite": "animation_motion",
+              "test": "test_the_run_matches_its_golden"
+            }
+          ],
+          "checkout_shas": [
+            "7a35174d4f9dbdf9f33d767322f06da0346ce261",
+            "bfc264200584ea5823f18356acb164781f57796d"
+          ]
+        }
+      ],
+      "live": [
+        {
+          "job_id": 114237741707,
+          "pass_markers": 118,
+          "fail_markers": 0
+        },
+        {
+          "job_id": 114237741815,
+          "pass_markers": 118,
+          "fail_markers": 0
+        }
+      ],
+      "release_ready": false,
+      "note": "Four editor jobs fail only preserved run golden; all other source jobs succeed. Full green regression follows explicit video approval."
+    },
+    "animation_source_zip_sha256": "e587a0eb5f7a9d8bb94e435a3adb73fd767134a95a13fb92501ef7be2fcab25e",
+    "scene_archive_sha256": "422aa1abae503a53c502e3aba3b0b1a586dac4cc82a1405ef30db4784588d80e",
+    "pending_gates": [
+      "explicit five-style/four-rig run feedback",
+      "separate run golden after approval",
+      "full green Windows/Linux regression",
+      "remaining R2-R5 and final candidate review"
+    ],
+    "approvals": {
+      "responsive": null,
+      "grounded": null,
+      "relaxed": null,
+      "heavy": null,
+      "sneaky": null
+    },
+    "created_utc": "2026-10-10T19:30:48.455235+00:00",
+    "pc_delivery": {
+      "method": "PC File Explorer",
+      "folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos",
+      "selected_video": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-responsive-clean.mp4",
+      "explorer_folder_verified": true,
+      "explorer_selection_verified": true,
+      "observed_utc": "2026-10-10T19:31:28.0393056Z",
+      "playback_confirmed_by_user": false,
+      "human_run_approval": null,
+      "video_count": 10,
+      "videos": [
+        {
+          "style": "responsive",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-responsive-clean.mp4",
+          "sha256": "eabb1945ed8877f597be79bc409161136b42cc36466d5baa03055e1089815bb3",
+          "bytes": 35341202,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0
+        },
+        {
+          "style": "responsive",
+          "mode": "diagnostic",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-responsive-diagnostic.mp4",
+          "sha256": "0cfbe2cfafd4e21cfd00f2113ca3772685411a26cf43ae0e4c7c07b950288c0f",
+          "bytes": 36069222,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0
+        },
+        {
+          "style": "grounded",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-grounded-clean.mp4",
+          "sha256": "1cf64fc8cb72e68156ae69bce7b070d37aefc93b7c1873f293f97b594a4fcf20",
+          "bytes": 35184620,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0
+        },
+        {
+          "style": "grounded",
+          "mode": "diagnostic",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-grounded-diagnostic.mp4",
+          "sha256": "5ccf6ba4ecc8cb31bce58c00821505964e380ce100581c068ca2a80474a780a1",
+          "bytes": 35928144,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0
+        },
+        {
+          "style": "relaxed",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-relaxed-clean.mp4",
+          "sha256": "25840c10829f06af68b521070a563b5f3c38b173ca52ad158f453c2447e1d2ea",
+          "bytes": 31253444,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0
+        },
+        {
+          "style": "relaxed",
+          "mode": "diagnostic",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-relaxed-diagnostic.mp4",
+          "sha256": "a1258f5f2aa5ab691ea14df3c292aeeb2b4cf8db6f99a4659374697e7b884eed",
+          "bytes": 32025383,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0
+        },
+        {
+          "style": "heavy",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-heavy-clean.mp4",
+          "sha256": "d52a7f016d2664979e183299bb94924a09c2e3a500d5db834f12c26cb781990b",
+          "bytes": 33664656,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0
+        },
+        {
+          "style": "heavy",
+          "mode": "diagnostic",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-heavy-diagnostic.mp4",
+          "sha256": "573c467d3db3024c2e69a32f749f1f4ba48d00bd3252e6389d1f1c508232d1a8",
+          "bytes": 34410548,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0
+        },
+        {
+          "style": "sneaky",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-sneaky-clean.mp4",
+          "sha256": "5a3df89171aa13571d4aa4fac1fa292354e9800ba89b671ad840d3f31bd5cca3",
+          "bytes": 32486546,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0
+        },
+        {
+          "style": "sneaky",
+          "mode": "diagnostic",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-sneaky-diagnostic.mp4",
+          "sha256": "435caef60e736f4e700224db282f1631781bc61c68cc1f2c28f3b838b1a5eb66",
+          "bytes": 33083726,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0
+        }
+      ],
+      "observation_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\explorer-observation.json"
     }
   }
 }

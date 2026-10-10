@@ -150,5 +150,9 @@ applicable evidence/approval, clean installs pass, PR merged and 2.0.0 published
   pass; both ten-family/103-operation reload probes pass. See the validation
   note and review JSON. Final source `8f7b6e7` passes Windows/Linux Actions
   `38057817851`; R1 is complete.
-- R2: run baseline/prototypes measured; implementing distinct ordinary profiles.
+- R2: distinct ordinary run profiles are pushed as `97f17ce`. Forty public
+  clips/history checks, 240 native runs, 60 prototype comparisons and 40 reload
+  calls pass. Ten continuous comparison videos are complete; deliver/archive
+  through PC Explorer and pause for explicit run feedback. The preserved legacy
+  run golden remains the sole expected editor/CI failure until that approval.
 - R3-R5: pending preceding exit gates. No release action yet.

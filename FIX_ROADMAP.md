@@ -38,10 +38,16 @@ versioned goldens and local regression pass. Windows/Linux CI remains the R1 exi
 - First in-place checker attempts are preserved and explained in the validation
   note. Final caller translation belongs to an unanimated gameplay parent;
   the complete corrected matrix passes without removing baseline tracks.
-- Ten continuous MP4s are being recorded under `release_r2_run_20261010/candidate`.
-  Read its recording progress before resuming. Archive/open Explorer, then pause
+- Ten continuous 48s/1080p60 MP4s are complete under
+  `release_r2_run_20261010/candidate`, each with 2,880 independently decoded
+  frames. Archive/open Explorer, then pause
   for explicit run feedback; only then migrate the run golden and require green
   regression before idle. Details: `docs/run-quality-validation.md`.
+- Strict archive is complete: 80 saved scenes, exact source/local rigs, ten
+  verified review copies and current tooling/docs. PC Explorer folder and
+  Responsive clean selection are observed. State is
+  `awaiting_run_styles_feedback`; all five run approvals remain pending. Do not
+  treat the latest continuation request as approval or replace historical goldens.
 
 ### Preserved R0/R1 checkpoints
 
