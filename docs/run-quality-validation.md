@@ -113,5 +113,11 @@ run feedback. Captures use same-style ordinary legacy output left and candidate
 right; declared flight/contact, speed, loop duration and travel are captioned.
 Media/measurement limitations remain the rest ankle plane and hip projection,
 not skin collision or center of mass. Numerical passes do not approve aesthetics.
+Documentation debt for R4: generator/test comments currently label the relative
+speed `v/sqrt(gL)` as Froude number. The conventional locomotion definition is
+`v²/(gL)`; these are different quantities ([primary research](https://pmc.ncbi.nlm.nih.gov/articles/PMC3639764/)).
+Correct labels, physical-band claims and citations without silently changing
+reviewed authoring coefficients. No physiological validity is established by
+the current arithmetic proportion checks or video approval.
 The historical `golden_run.json` remains immutable until that approval; intended
 default-output mismatch must remain openly recorded. No release approval yet.
