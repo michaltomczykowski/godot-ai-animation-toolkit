@@ -39,8 +39,6 @@ driver; the clip itself must have zero extraction/translation. A retained player
 binding for another clip is permitted when the current clip contains no matching
 track. Native checks preserve the planned tolerances and fail numeric violations.
 
-## Remaining run gate
-
 ## Ordinary profile implementation checkpoint
 
 Separate Responsive/Grounded run tables and run-only variant overlays now
@@ -62,8 +60,48 @@ write when a plain scene marker is present; otherwise it creates a local unit
 fixture. It requires removal on Undo and exact clip/contacts/root binding on
 Redo. Final ordinary route capture must invoke this witness for every clip.
 
-Implement separate ordinary run profiles without changing walk coefficients,
-verify public-route Undo/Redo/reload and the 240-run native matrix, archive and
-deliver ten continuous final comparison MP4s. Pause for explicit run feedback.
+## Ordinary route and native matrix
+
+Animation source `97f17ce579510fe5b784c1edd84a845eb164c199` is pushed. Actual
+MCP writes **40/40** ordinary clips (five styles/four rigs/two root modes), each
+with successful Undo/Redo of that same public write, dry nonmutation, pose
+preservation, save/reopen and inspection. UUID:
+`6bcece032a55484297d9d5b113f6af8d`. Responsive omits style and all recipes omit
+duration/speed/sampling/loop/overrides. **40/40** dry calls preserve inspection
+before/after a core reload; ten families/eight promoted tools and a new ready
+session are verified in both phases.
+
+The complete **240/240** native matrix passes, as do **60/60** played comparisons
+between ordinary defaults and explicit angular prototypes. Fresh public motion
+suite is **60/61**, zero skips: only the preserved legacy run golden fails.
+All **14/14** local headless suites pass. Four Windows/Linux editor CI jobs on
+the animation candidate each record **383/386**, two private-X-Bot skips and
+one legacy run-golden failure, zero engine/route/discovery errors. Those CI
+failures remain visible; they are not a release-ready result.
+
+### Playback-checker failures and ownership correction
+
+The first in-place attempt failed because the old native helper resolved an
+empty extraction path as a child node. The next attempt exposed both a Godot
+empty-NodePath accessor error and X Bot's tree resetting the driver placed on
+its animated visual child. Both failed attempts are preserved locally. Empty
+paths are now checked before access and missing actors return a failed result.
+Checker subprocesses have a timeout so a script error cannot hang indefinitely.
+
+For in-place clips, the explicit gameplay driver is an unanimated parent outside
+the visual mixer's subtree. This keeps one translation owner and leaves the
+original animation library/bindings intact. The linked tree stays deterministic;
+no baseline tracks are removed to make the check pass. This follows the engine's
+[missing-track/reset blending contract](https://docs.godotengine.org/en/4.7/classes/class_animationmixer.html#class-animationmixer-property-deterministic).
+The corrected matrix has zero engine errors. These are checker corrections;
+they do not change the accepted walk or the candidate run animation source.
+
+## Remaining review gate
+
+Archive and deliver ten continuous final comparison MP4s. Pause for explicit
+run feedback. Captures use same-style ordinary legacy output left and candidate
+right; declared flight/contact, speed, loop duration and travel are captioned.
+Media/measurement limitations remain the rest ankle plane and hip projection,
+not skin collision or center of mass. Numerical passes do not approve aesthetics.
 The historical `golden_run.json` remains immutable until that approval; intended
 default-output mismatch must remain openly recorded. No release approval yet.

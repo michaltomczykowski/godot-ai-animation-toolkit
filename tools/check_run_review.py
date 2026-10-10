@@ -39,7 +39,7 @@ def main() -> None:
                        "--script", "res://tools/check_run_quality.gd", "--",
                        str(folder / "route.json"), str(folder / "native-check.json")]
             with (folder / "native-check.log").open("w", encoding="utf-8") as log:
-                subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, check=True)
+                subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=90)
             native = read(folder / "native-check.json")
             if (not native["passed"] or native["source_head"] != route["source_head"]
                     or len(native["runs"]) != 24
@@ -54,7 +54,7 @@ def main() -> None:
                            str(args.prototype / style / "route.json"), str(folder / "route.json"),
                            str(folder / "prototype-parity.json")]
                 with (folder / "prototype-parity.log").open("w", encoding="utf-8") as log:
-                    subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, check=True)
+                    subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=90)
                 parity = read(folder / "prototype-parity.json")
                 if not parity["passed"] or len(parity["rows"]) != 12:
                     raise ValueError("Ordinary run differs from measured prototype: " + style)

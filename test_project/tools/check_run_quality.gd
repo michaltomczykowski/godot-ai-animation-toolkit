@@ -38,12 +38,27 @@ func _tree(view: Dictionary, name: String) -> AnimationMixer:
 
 func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 	var v := Native.load_case(row, root)
+	if v.has("error"):
+		return {"thresholds_pass": false, "failures": [v.error]}
 	v.animation_name = row.params.animation_name
 	var reference := Native.load_case(row, root)
+	if reference.has("error"):
+		v.scene.free()
+		return {"thresholds_pass": false, "failures": [reference.error]}
 	var mixer := _tree(v, mode)
 	var clip: Animation = v.clip
 	var errors: Array[String] = []
 	var extracted := bool(row.params.root_motion)
+	var driver: Node3D = null
+	if not extracted:
+		# Gameplay translation belongs to a parent outside the visual player's
+		# animated subtree. A linked tree can reset cached visual transforms
+		# from other clips even when this in-place clip has no actor track.
+		driver = Node3D.new()
+		root.add_child(driver)
+		v.scene.reparent(driver, true)
+		v.body = driver
+		v.initial_body = driver.global_position
 	var leg: float = v.leg
 	var speed: float = row.write.speed
 	var max_reference := Vector2.ZERO
@@ -197,6 +212,7 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 			"max_declared_contact_height_m": f.contact_height, "knee_pole_flips": f.flips,
 			"declared_contact_frames": f.declared_frames, "observed_contact_band_frames": f.observed_frames, "contact_windows": f.contacts}
 	var result := {"id": row.id, "fps": fps, "mixer": mode, "root_mode": "extracted" if extracted else "in_place_actor_driver",
+		"actor_translation_owner": "extracted track target" if extracted else "unanimated gameplay parent outside the visual mixer subtree",
 		"frames": 6 * fps + 1, "dt": dt, "leg_length_m": leg, "period_s": clip.length,
 		"slide_limit_m": slide_limit, "penetration_limit_m": 0.01 * leg,
 		"root_distance_m": travel.length(), "expected_root_distance_m": speed * 6.0, "root_error_m": root_error,
@@ -210,6 +226,7 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 	for side in arms: arms[side].erase("wrist_initial")
 	result["arms"] = arms
 	v.scene.free()
+	if driver != null: driver.free()
 	reference.scene.free()
 	return result
 
@@ -230,7 +247,7 @@ func _run() -> void:
 			for mode: String in modes:
 				var result := _check(row, fps, mode)
 				results.append(result)
-				if not result.thresholds_pass: failures.append("%s/%s/%s: %s" % [row.id, fps, mode, str(result.failures)])
+				if not result.get("thresholds_pass", false): failures.append("%s/%s/%s: %s" % [row.id, fps, mode, str(result.get("failures", ["Invalid check result"]))])
 	var expected := 4 * 3 * modes.size()
 	var report := {"source_head": manifest.source_head, "revision": manifest.revision,
 		"runs": results, "failures": failures, "engine_errors": logger.errors,

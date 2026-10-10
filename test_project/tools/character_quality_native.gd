@@ -39,7 +39,14 @@ static func load_case(row: Dictionary, parent: Node) -> Dictionary:
 		leg += rest(rig, roles, "thigh_" + side).distance_to(rest(rig, roles, "shin_" + side)) + rest(rig, roles, "shin_" + side).distance_to(rest(rig, roles, "foot_" + side))
 	leg *= 0.5
 	var ground := minf(rest(rig, roles, "foot_l").dot(up), rest(rig, roles, "foot_r").dot(up))
-	var body := player.get_node(player.root_node).get_node(NodePath(str(player.root_motion_track).get_slice(":", 0))) as Node3D
+	var animation_root := player.get_node(player.root_node)
+	var actor_path := NodePath() if player.root_motion_track.is_empty() else NodePath(player.root_motion_track.get_concatenated_names())
+	# An ordinary in-place clip has no extraction binding. Its caller owns the
+	# scene actor; do not resolve an empty NodePath as a child node.
+	var body := animation_root as Node3D if actor_path.is_empty() else animation_root.get_node_or_null(actor_path) as Node3D
+	if body == null:
+		scene.free()
+		return {"error": "Native actor/root-motion path does not resolve to Node3D"}
 	var clip := player.get_animation(row.params.animation_name)
 	player.stop()
 	player.speed_scale = 1.0
