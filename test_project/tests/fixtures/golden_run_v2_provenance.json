@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "fixture_epoch": "v2-responsive-run",
-  "migration_state": "selector_committed_fixture_not_recorded",
+  "migration_state": "fresh_normal_comparison_passed_full_regression_pending",
   "approved_animation_source": "97f17ce579510fe5b784c1edd84a845eb164c199",
   "delivered_checkpoint": "8030ec52cdda8d1af62377e8fff4186f235b24a7",
   "review_revision": "run-review-r001",
@@ -75,7 +75,7 @@
       }
     ]
   },
-  "fixture_generation_source": null,
+  "fixture_generation_source": "ec3f1b8016a3e2508c2d84c3206375f8ebca1d15",
   "godot": "4.7.2",
   "core_source": "bfc264200584ea5823f18356acb164781f57796d",
   "asset": {
@@ -104,7 +104,24 @@
     "golden_run.json": {
       "sha256": "7b834fc54604f0bf9a0002ec83fc7de965739b1f693ac071b9fc3ecb14f2d54d"
     },
-    "golden_run_responsive_v2.json": null
+    "golden_run_responsive_v2.json": {
+      "sha256": "01de98d0d7a336a6c26425991b099e391bad71e6492f5f619e2c3fbeb1bb7c62",
+      "track_count": 38,
+      "key_counts": [
+        59
+      ],
+      "length_s": 0.9697
+    }
   },
-  "recording_contract": "Explicit local recording only; fresh normal comparison and full regression required."
+  "recording_contract": "Explicit local recording only; fresh normal comparison and full regression required.",
+  "independent_comparison": {
+    "fresh_editor": true,
+    "recording_enabled": false,
+    "total": 61,
+    "passed": 61,
+    "failed": 0,
+    "skipped": 0,
+    "run_drift_units": 0,
+    "receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\accepted-r001-regression\\editor-normal.json"
+  }
 }

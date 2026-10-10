@@ -1,9 +1,11 @@
 # Run fixture epochs
 
 `golden_run.json` preserves the pre-v2 baseline byte-for-byte. The approved run
-will use `golden_run_responsive_v2.json`, with digest format version 1,
-quantization 2048 and tolerance 2. The new fixture is not yet recorded in this
-selector checkpoint: normal tests must fail its absence without creating it.
+uses `golden_run_responsive_v2.json`, with digest format version 1,
+quantization 2048 and tolerance 2: 38 tracks, 59 keys each, length 0.9697s.
+The earlier selector checkpoint proved that normal tests fail its absence
+without creating it. Explicit local recording on `ec3f1b8` was followed by
+a fresh normal editor comparison: 61/61 motion tests pass with zero run drift.
 
 The fixture request uses the real run handler and bundled dummy. Style,
 duration, speed, sampling and overrides are omitted; the rig-relative cadence

@@ -12,6 +12,14 @@ Windows/Linux CI before closing run/starting idle. Closing evidence belongs in
 `release_r2_run_20261010/accepted-r001-regression`. Notes below preserve delivery
 and earlier expected-failure checkpoints.
 
+Run v2 fixture recorded explicitly after the missing-expectation refusal passed;
+fresh normal Godot 4.7.2 public MCP motion passes 61/61, zero skips/errors, run
+drift zero. Fixture: 38 tracks/59 keys, 0.9697s. Historical fixtures are unchanged.
+Full local and source CI are pending. On every editor restart set APPDATA to
+`release_r1_20261010/appdata`, and clear recording/CI flags for normal runs:
+the default PC profile targets occupied old-core port 18131. That failed startup
+attempt is preserved; correct profile adopts the isolated 8000/9500 backend.
+
 R2 run animation source is `97f17ce`; candidate UUID
 `6bcece032a55484297d9d5b113f6af8d`. Forty public ordinary writes each pass actual
 Undo/Redo, dry/pose preservation and save/reopen. The complete 240 native runs,

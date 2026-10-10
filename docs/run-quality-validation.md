@@ -16,6 +16,20 @@ Current state: `approved_run_styles_pending_regression`. Follow
 before a fresh independent comparison and complete green source regression.
 New closing evidence is in recovery's `accepted-r001-regression` directory.
 
+Selector/provenance source `ec3f1b8` committed the new fixture path without an
+expectation. A fresh normal public MCP test fails only the missing expectation
+and creates no file. Explicit one-test local recording then creates
+`golden_run_responsive_v2.json`: 38 tracks/59 keys, rig-relative 0.9697s,
+format 1/quantization 2048/tolerance 2. Restarting with recording cleared gives
+**61/61** public motion tests, zero skips/load errors, run/walk/idle drift zero.
+All historical fixtures are unchanged. Full local and source CI remain pending.
+
+The first new editor startup used the PC's default profile and was blocked by
+occupied old-core port 18131; no test ran in that attempt. It is preserved.
+Restarting with the isolated APPDATA used for review restores the authenticated
+8000/9500 connection. Every subsequent missing/record/normal phase uses that
+profile and a fresh visible Godot 4.7.2 editor.
+
 ## Preserved baseline and measured prototypes
 
 Baseline source `8f7b6e7` retains animation source `056cc8d`. Twenty ordinary
