@@ -3,7 +3,7 @@
   "phase": "character_quality",
   "operation": "walk_cycle",
   "revision": "walk-default-styles-r005",
-  "state": "awaiting_run_styles_feedback",
+  "state": "approved_run_styles_pending_regression",
   "release_r1_execution": {
     "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -333,7 +333,7 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "PC Explorer run videos are delivered and Responsive clean is selected. Stop for explicit five-style/four-rig run feedback; do not migrate the run golden yet.",
+  "next_action": "Record a separate Responsive v2 run golden after proving missing expectations fail; restart without recording and require green local/Windows/Linux regression before idle.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
   "updated_utc": "2026-10-10T13:40:33.095528+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -2900,7 +2900,7 @@
     }
   },
   "run_review": {
-    "state": "awaiting_run_styles_feedback",
+    "state": "approved_run_styles_pending_regression",
     "animation_source": "97f17ce579510fe5b784c1edd84a845eb164c199",
     "core_source": "bfc264200584ea5823f18356acb164781f57796d",
     "technical_review_delivery_complete": true,
@@ -3449,17 +3449,91 @@
     "animation_source_zip_sha256": "e587a0eb5f7a9d8bb94e435a3adb73fd767134a95a13fb92501ef7be2fcab25e",
     "scene_archive_sha256": "422aa1abae503a53c502e3aba3b0b1a586dac4cc82a1405ef30db4784588d80e",
     "pending_gates": [
-      "explicit five-style/four-rig run feedback",
-      "separate run golden after approval",
+      "separate run golden and fresh independent comparison",
       "full green Windows/Linux regression",
       "remaining R2-R5 and final candidate review"
     ],
     "approvals": {
-      "responsive": null,
-      "grounded": null,
-      "relaxed": null,
-      "heavy": null,
-      "sneaky": null
+      "responsive": {
+        "verbatim": "they look okay",
+        "received_utc": "2026-10-10T19:38:24.112185+00:00",
+        "decision": "approved_as_presented_set",
+        "rigs": [
+          "dummy",
+          "xbot",
+          "short",
+          "zup_tall"
+        ],
+        "video_sha256": {
+          "clean": "eabb1945ed8877f597be79bc409161136b42cc36466d5baa03055e1089815bb3",
+          "diagnostic": "0cfbe2cfafd4e21cfd00f2113ca3772685411a26cf43ae0e4c7c07b950288c0f"
+        },
+        "individual_watched_files_enumerated": false
+      },
+      "grounded": {
+        "verbatim": "they look okay",
+        "received_utc": "2026-10-10T19:38:24.112185+00:00",
+        "decision": "approved_as_presented_set",
+        "rigs": [
+          "dummy",
+          "xbot",
+          "short",
+          "zup_tall"
+        ],
+        "video_sha256": {
+          "clean": "1cf64fc8cb72e68156ae69bce7b070d37aefc93b7c1873f293f97b594a4fcf20",
+          "diagnostic": "5ccf6ba4ecc8cb31bce58c00821505964e380ce100581c068ca2a80474a780a1"
+        },
+        "individual_watched_files_enumerated": false
+      },
+      "relaxed": {
+        "verbatim": "they look okay",
+        "received_utc": "2026-10-10T19:38:24.112185+00:00",
+        "decision": "approved_as_presented_set",
+        "rigs": [
+          "dummy",
+          "xbot",
+          "short",
+          "zup_tall"
+        ],
+        "video_sha256": {
+          "clean": "25840c10829f06af68b521070a563b5f3c38b173ca52ad158f453c2447e1d2ea",
+          "diagnostic": "a1258f5f2aa5ab691ea14df3c292aeeb2b4cf8db6f99a4659374697e7b884eed"
+        },
+        "individual_watched_files_enumerated": false
+      },
+      "heavy": {
+        "verbatim": "they look okay",
+        "received_utc": "2026-10-10T19:38:24.112185+00:00",
+        "decision": "approved_as_presented_set",
+        "rigs": [
+          "dummy",
+          "xbot",
+          "short",
+          "zup_tall"
+        ],
+        "video_sha256": {
+          "clean": "d52a7f016d2664979e183299bb94924a09c2e3a500d5db834f12c26cb781990b",
+          "diagnostic": "573c467d3db3024c2e69a32f749f1f4ba48d00bd3252e6389d1f1c508232d1a8"
+        },
+        "individual_watched_files_enumerated": false
+      },
+      "sneaky": {
+        "verbatim": "they look okay",
+        "received_utc": "2026-10-10T19:38:24.112185+00:00",
+        "decision": "approved_as_presented_set",
+        "rigs": [
+          "dummy",
+          "xbot",
+          "short",
+          "zup_tall"
+        ],
+        "video_sha256": {
+          "clean": "5a3df89171aa13571d4aa4fac1fa292354e9800ba89b671ad840d3f31bd5cca3",
+          "diagnostic": "435caef60e736f4e700224db282f1631781bc61c68cc1f2c28f3b838b1a5eb66"
+        },
+        "individual_watched_files_enumerated": false
+      }
     },
     "created_utc": "2026-10-10T19:30:48.455235+00:00",
     "pc_delivery": {
@@ -3565,6 +3639,76 @@
         }
       ],
       "observation_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\explorer-observation.json"
+    },
+    "visual_feedback": {
+      "verbatim": "they look okay",
+      "received_utc": "2026-10-10T19:38:24.112185+00:00",
+      "decision": "approved_presented_run_style_set",
+      "scope": "Responsive/default, Grounded, relaxed, heavy and sneaky across the four presented rigs; direct response to the five-style run review question.",
+      "individual_watched_files_enumerated": false,
+      "animation_source": "97f17ce579510fe5b784c1edd84a845eb164c199",
+      "videos": [
+        {
+          "style": "responsive",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-responsive-clean.mp4",
+          "sha256": "eabb1945ed8877f597be79bc409161136b42cc36466d5baa03055e1089815bb3"
+        },
+        {
+          "style": "responsive",
+          "mode": "diagnostic",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-responsive-diagnostic.mp4",
+          "sha256": "0cfbe2cfafd4e21cfd00f2113ca3772685411a26cf43ae0e4c7c07b950288c0f"
+        },
+        {
+          "style": "grounded",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-grounded-clean.mp4",
+          "sha256": "1cf64fc8cb72e68156ae69bce7b070d37aefc93b7c1873f293f97b594a4fcf20"
+        },
+        {
+          "style": "grounded",
+          "mode": "diagnostic",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-grounded-diagnostic.mp4",
+          "sha256": "5ccf6ba4ecc8cb31bce58c00821505964e380ce100581c068ca2a80474a780a1"
+        },
+        {
+          "style": "relaxed",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-relaxed-clean.mp4",
+          "sha256": "25840c10829f06af68b521070a563b5f3c38b173ca52ad158f453c2447e1d2ea"
+        },
+        {
+          "style": "relaxed",
+          "mode": "diagnostic",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-relaxed-diagnostic.mp4",
+          "sha256": "a1258f5f2aa5ab691ea14df3c292aeeb2b4cf8db6f99a4659374697e7b884eed"
+        },
+        {
+          "style": "heavy",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-heavy-clean.mp4",
+          "sha256": "d52a7f016d2664979e183299bb94924a09c2e3a500d5db834f12c26cb781990b"
+        },
+        {
+          "style": "heavy",
+          "mode": "diagnostic",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-heavy-diagnostic.mp4",
+          "sha256": "573c467d3db3024c2e69a32f749f1f4ba48d00bd3252e6389d1f1c508232d1a8"
+        },
+        {
+          "style": "sneaky",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-sneaky-clean.mp4",
+          "sha256": "5a3df89171aa13571d4aa4fac1fa292354e9800ba89b671ad840d3f31bd5cca3"
+        },
+        {
+          "style": "sneaky",
+          "mode": "diagnostic",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\candidate\\review-videos\\run-review-r001-sneaky-diagnostic.mp4",
+          "sha256": "435caef60e736f4e700224db282f1631781bc61c68cc1f2c28f3b838b1a5eb66"
+        }
+      ]
     }
   }
 }

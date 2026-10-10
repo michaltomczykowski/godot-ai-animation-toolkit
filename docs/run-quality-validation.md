@@ -5,6 +5,17 @@
 Recovery: `F:\GODOTAITESTING\toolkit_repair_snapshot_2026-09-30\release_r2_run_20261010`.
 Plan: [run-quality-review-plan.md](run-quality-review-plan.md).
 
+## Approved set — regression migration in progress
+
+The user replied “they look okay” to the five-style run review question on
+2026-10-10. Approval of the presented four-rig set is recorded against animation
+source `97f17ce` and all ten unchanged video hashes; individual watched files
+were not enumerated. The historical delivery/CI receipts below are preserved.
+Current state: `approved_run_styles_pending_regression`. Follow
+[run-golden-migration-plan.md](run-golden-migration-plan.md); do not close run
+before a fresh independent comparison and complete green source regression.
+New closing evidence is in recovery's `accepted-r001-regression` directory.
+
 ## Preserved baseline and measured prototypes
 
 Baseline source `8f7b6e7` retains animation source `056cc8d`. Twenty ordinary

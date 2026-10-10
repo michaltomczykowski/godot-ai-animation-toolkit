@@ -23,6 +23,11 @@ versioned goldens and local regression pass. Windows/Linux CI remains the R1 exi
 
 ### R2 run checkpoint
 
+- The user approved the presented run set (“they look okay”). Exact source and
+  all ten media hashes are recorded; watched filenames were not enumerated.
+  State is `approved_run_styles_pending_regression`. Separate v2 run fixture
+  migration/fresh comparison and full green Windows/Linux CI are the remaining
+  run exit gates, before idle. Historical archive and run fixture stay intact.
 - Run-specific Responsive/Grounded profiles and isolated style overlays are
   pushed as `97f17ce`; approved walk coefficients/goldens remain unchanged.
 - Actual public MCP: 40 ordinary clips, each with dry nonmutation, pose

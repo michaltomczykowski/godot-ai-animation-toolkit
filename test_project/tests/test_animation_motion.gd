@@ -2518,7 +2518,7 @@ func test_missing_golden_cannot_create_its_own_expected_result() -> void:
 
 
 func test_the_run_matches_its_golden() -> void:
-	_check_golden("run_cycle", "golden_run", "golden_run.json")
+	_check_golden("run_cycle", "golden_run", "golden_run_responsive_v2.json")
 
 
 func test_the_idle_matches_its_golden() -> void:
@@ -2539,9 +2539,11 @@ func _check_golden(op: String, animation_name: String, fixture: String) -> void:
 		"player_path": rig.player_path, "animation_name": animation_name,
 		"duration": 1.0, "loop_mode": "linear",
 	}
-	# The reviewed v2 walk guards ordinary default density. Preserve the older
-	# run/idle fixture requests until those operations receive their own review.
-	if op != "walk_cycle":
+	# Reviewed run guards ordinary timing, style and density. Walk keeps its
+	# approved one-second request; idle keeps its historical request until review.
+	if op == "run_cycle":
+		params.erase("duration")
+	if op == "idle_cycle":
 		params["samples"] = 8.0
 	var built := _handler.run(params, null)
 	assert_true(built.has("data"), "the %s builds (%s)" % [op, str(built.get("error", built))])

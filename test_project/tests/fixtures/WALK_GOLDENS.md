@@ -2,7 +2,8 @@
 
 `golden_walk.json` and `golden_spec_walk.json` preserve the pre-v2 baseline.
 They are historical evidence, not the expected output of new Responsive defaults.
-Run and idle still use their original fixtures until separate motion review.
+Run now has separate approved v2 provenance in `RUN_GOLDENS.md`; its historical
+fixture is preserved too. Idle still uses its original fixture until review.
 
 The approved r005 walk is guarded by:
 

@@ -2,6 +2,16 @@
 
 ## Current instruction (2026-10-10)
 
+The user approved the presented run set with “they look okay.” The five style
+approvals and exact ten video hashes are recorded; individual watched files were
+not enumerated. State: `approved_run_styles_pending_regression`. Never reset
+that feedback or rerun the delivery archive. Follow
+`docs/run-golden-migration-plan.md`: separate v2 fixture, prove missing-fixture
+failure, explicit local recording, fresh normal comparison, full local and
+Windows/Linux CI before closing run/starting idle. Closing evidence belongs in
+`release_r2_run_20261010/accepted-r001-regression`. Notes below preserve delivery
+and earlier expected-failure checkpoints.
+
 R2 run animation source is `97f17ce`; candidate UUID
 `6bcece032a55484297d9d5b113f6af8d`. Forty public ordinary writes each pass actual
 Undo/Redo, dry/pose preservation and save/reopen. The complete 240 native runs,
