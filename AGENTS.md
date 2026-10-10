@@ -17,11 +17,16 @@ suite remains 57/58 and headless 13/14 because two historical pre-v2 walk golden
 are intentionally preserved until visual review. All ten style videos are
 complete, independently decoded/hashed and strictly archived under recovery's
 `release_r1_20261010`. PC Explorer's review folder and Responsive clean selection
-are verified. Review state is `awaiting_promoted_walk_styles_feedback`; all five
-new approvals remain null. **Stop for default/Grounded/relaxed/heavy/sneaky
-feedback covering all four rigs.** Use `tools/archive_walk_styles_review.py`
-only to refresh this delivery; it preserves history and refuses feedback reset.
-No R2, golden migration or release before that gate. Exact receipts and limitations are in
+are verified. The user approved the presented set on 2026-10-10 (“they look very
+good”); all five approvals and exact hashes are recorded. Current state is
+`approved_walk_styles_pending_regression`. Follow
+`docs/walk-default-golden-migration-plan.md`: preserve old fixtures, add v2
+baselines, require explicit recording, then verify full Windows/Linux regression.
+Do not rerun `tools/archive_walk_styles_review.py` after this approval; it refuses
+feedback reset. Preserve the delivered archives and write new closing evidence
+under `accepted-r005-regression`. R2 follows green R1 regression and still needs
+its own continuous-video feedback. No release before R2-R5 and final candidate
+review. Exact receipts and limitations are in
 `docs/walk-default-integration-validation.md`.
 
 What to repair lives in `FIX_ROADMAP.md` (phase plan and evidence). `ROADMAP.md`

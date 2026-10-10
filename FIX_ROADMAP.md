@@ -8,7 +8,7 @@ is the default; Grounded optional; relaxed/heavy/sneaky are retuned. Godot 4.7.2
 Godot AI >=4.2.1, work alone. Earlier unreleased-only exclusions and Grounded
 default proposals are superseded. Private review media and X Bot stay local.
 R1 normal-call default integration is implemented, preserving r004 sources and
-completed history/bake gates. Its new style videos await explicit review;
+completed history/bake gates. The user approved its new style videos;
 historical golden migration and full green regression remain R1 exit gates.
 
 ### R0/R1 checkpoint
@@ -34,9 +34,11 @@ historical golden migration and full green regression remain R1 exit gates.
   All evidence lives in recovery's `release_r1_20261010`; source/tooling
   checkpoints include `056cc8d` and `13cf743`.
 - PC Explorer's review folder and Responsive clean selection are verified.
-  Review state is `awaiting_promoted_walk_styles_feedback`; five new approvals
-  remain null. **Stop for feedback covering all four rigs.** Historical golden
-  migration/full green regression then close R1; no R2 or release before review.
+  On 2026-10-10 the user said “they look very good”; approval of the presented
+  five-style/four-rig walk set is recorded against exact source/video hashes.
+  State: `approved_walk_styles_pending_regression`. Follow
+  `docs/walk-default-golden-migration-plan.md` to preserve historical fixtures,
+  add explicit v2 goldens and verify full regression before R2. No release yet.
 
 Started 2026-09-28. This is the working repair plan and phase log for the
 unreleased `repair/toolkit-quality` branch. `ROADMAP.md` records the older
