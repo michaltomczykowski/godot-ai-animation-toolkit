@@ -39,6 +39,7 @@ def main() -> None:
     p.add_argument("--repo", type=Path, required=True)
     p.add_argument("--project-root", type=Path, required=True)
     p.add_argument("--core-root", type=Path, required=True)
+    p.add_argument("--ci-receipt", type=Path, required=True)
     args = p.parse_args()
     records, videos, heads = [], [], set()
     expected = {(rig, fps, mixer) for rig in RIGS for fps in (30, 60, 120) for mixer in ("player", "tree")}
@@ -116,6 +117,9 @@ def main() -> None:
             "Unexpected focused editor failure")
     tiers = read(root / "tier1-summary.json")
     require(len(tiers["rows"]) == 14 and all(x["passed"] for x in tiers["rows"]), "Headless suite failure")
+    ci = read(args.ci_receipt)
+    require(ci["source_head"] == source and ci["expected_legacy_run_golden_only"]
+            and ci["all_other_source_jobs_pass"], "Unexpected candidate CI result")
     state_path = args.repo / "docs/character-quality-review.json"
     state = read(state_path)
     previous = state.get("run_review", {})
@@ -162,6 +166,7 @@ def main() -> None:
                "focused_editor": {"total": 61, "passed": 60, "failed": 1, "skipped": 0,
                                   "preserved_failure": "test_the_run_matches_its_golden"},
                "headless_suites": 14, "videos": videos, "saved_scene_files": scene_files,
+               "ci_review_receipt": ci,
                "animation_source_zip_sha256": digest(source_zip),
                "scene_archive_sha256": digest(args.folder / "native-scenes-and-local-rigs.zip"),
                "pending_gates": ["explicit five-style/four-rig run feedback", "separate run golden after approval",

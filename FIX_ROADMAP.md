@@ -21,8 +21,6 @@ R1 normal-call default integration is implemented, preserving r004 sources and
 completed history/bake gates. The user approved its new style videos;
 versioned goldens and local regression pass. Windows/Linux CI remains the R1 exit gate.
 
-### R0/R1 checkpoint
-
 ### R2 run checkpoint
 
 - Run-specific Responsive/Grounded profiles and isolated style overlays are

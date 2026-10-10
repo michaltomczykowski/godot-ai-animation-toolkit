@@ -95,6 +95,16 @@ no baseline tracks are removed to make the check pass. This follows the engine's
 [missing-track/reset blending contract](https://docs.godotengine.org/en/4.7/classes/class_animationmixer.html#class-animationmixer-property-deterministic).
 The corrected matrix has zero engine errors. These are checker corrections;
 they do not change the accepted walk or the candidate run animation source.
+The 240-run aggregate includes maximum stance slide 15.416 mm (caller-driven
+in-place cases included), ankle-plane penetration 0.283 mm, root travel error
+0.089 mm, zero knee flips/default clamps and zero fractional repeat-pose error.
+Both in-place extraction and clip-owned actor translation measure zero.
+
+[Actions 38060543584](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/38060543584)
+is complete: all non-editor source jobs pass, including both full live MCP
+jobs with 118 pass markers and zero fail markers each. The four editor jobs
+fail only the preserved run golden; tag-only jobs skip. Exact source, core
+checkout SHAs, raw logs and `ci-97f17ce-review-receipt.json` are archived locally.
 
 ## Remaining review gate
 
