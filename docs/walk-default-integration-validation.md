@@ -34,13 +34,7 @@ First attempts are archived: a missing test-local type annotation, old sample
 expectation and test anatomy aliases were corrected. Test-renamed skin bones are
 restored before teardown; the fresh second run has no engine errors.
 
-## Remaining before feedback pause
-
-- Save/reopen normal calls for all five styles on four rigs through public MCP.
-- Compare matched-input default playback with original r004 at 30/60/120 FPS.
-- Contact-check all styles at actual 30/60/120 FPS; core reload discovery/calls.
-- Capture clean/diagnostic front/side continuous videos, decode/hash/archive.
-- Open PC Explorer and pause for explicit default/Grounded/variant feedback.
+## Public routes and native playback
 
 Saved public routes now pass for **20 normal style clips** plus eight matched-
 input clips. Sixty four-rig contact/loop runs pass at 30/60/120 FPS. Twenty-four
@@ -54,6 +48,25 @@ from the canonical test project, where it passes 2012 checks.
 
 Animation source `056cc8d19d9821086346816345e1c4feab0041dd` is pushed. Recording
 is in progress; inspect recording-progress.json before resuming after interruption.
+
+Across each style's twelve native runs, the measured maxima are:
+
+| Style | Declared stance slide (mm) | Rest ankle plane penetration (mm) | Knee flips | Generation reach clamps |
+| --- | ---: | ---: | ---: | ---: |
+| Responsive/default | 0.115 | 0.689 | 0 | 0 |
+| Grounded | 0.115 | 0.599 | 0 | 0 |
+| Relaxed | 0.080 | 0.393 | 0 | 0 |
+| Heavy | 0.107 | 0.513 | 0 | 0 |
+| Sneaky | 0.057 | 0.191 | 0 | 0 |
+
+These are independent played world-space ankle measurements with declared contact
+markers. They do not establish skinned sole collision or a center of mass, and
+do not grant visual approval.
+
+## Remaining before feedback pause
+
+- Finish ten clean/diagnostic front/side continuous videos; decode/hash/archive.
+- Open PC Explorer and pause for explicit default/Grounded/variant feedback.
 
 These are candidate defaults on the review branch, not a release or approval of
 other motions. Non-walk profile tables still have their own previous baselines;

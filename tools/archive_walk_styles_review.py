@@ -135,16 +135,30 @@ def main() -> None:
                                  "full green Windows/Linux regression", "R2-R5 closure"],
                "videos": videos, "public_clips": 28, "contact_runs": 60, "r004_parity_runs": 24,
                "reload_dry_calls": 40, "created_utc": datetime.now(timezone.utc).isoformat()}
-    write(args.folder / "review-delivery.json", receipt)
     state_path = args.repo / "docs/character-quality-review.json"
     state = read(state_path)
-    state["previous_candidate_delivery"] = state.get("candidate_delivery")
+    same_delivery = (state.get("revision") == "walk-default-styles-r005"
+                     and state.get("promoted_walk_review", {}).get("animation_source") == source)
+    if not same_delivery:
+        state["previous_candidate_delivery"] = state.get("candidate_delivery")
+    approvals = (state.get("promoted_walk_review", {}).get("approvals", {})
+                 if same_delivery else {})
+    delivery = state.get("candidate_delivery", {}) if same_delivery else {}
+    if same_delivery:
+        if state.get("state") != receipt["state"] or any(value is not None for value in approvals.values()):
+            raise ValueError("Feedback is already recorded; do not reset the review gate")
+        receipt["created_utc"] = state["promoted_walk_review"]["created_utc"]
+    write(args.folder / "review-delivery.json", receipt)
+    next_action = ("Stop for explicit Responsive/default, Grounded, relaxed, heavy and sneaky feedback covering all four rigs."
+                   if delivery.get("explorer_open_requested") else
+                   "Open PC Explorer with r005 review videos, then stop for explicit Responsive/default, Grounded, relaxed, heavy and sneaky feedback covering all four rigs.")
     state.update(revision="walk-default-styles-r005", state=receipt["state"],
                  recovery_folder=str(args.folder), updated_utc=receipt["created_utc"],
-                 next_action="Open PC Explorer with r005 review videos, then stop for explicit Responsive/default, Grounded, relaxed, heavy and sneaky feedback covering all four rigs. Preserve goldens until feedback; do not start run/R2 or release.",
-                 promoted_walk_review={**receipt, "approvals": {style: None for style in STYLES}},
-                 candidate_delivery={"method": "PC File Explorer, user views remotely", "files": videos,
-                                     "playback_confirmed_by_user": False, "explorer_open_requested": False})
+                 next_action=next_action + " Preserve goldens until feedback; do not start run/R2 or release.",
+                 promoted_walk_review={**receipt, "approvals": {style: approvals.get(style) for style in STYLES}},
+                 candidate_delivery={**delivery, "method": "PC File Explorer, user views remotely", "files": videos,
+                                     "playback_confirmed_by_user": delivery.get("playback_confirmed_by_user", False),
+                                     "explorer_open_requested": delivery.get("explorer_open_requested", False)})
     write(state_path, state)
     tooling = ("tools/record_walk_styles.ps1", "tools/archive_walk_styles_review.py", "tools/mcp_walk_default_suite.py",
                "tools/mcp_walk_revision_reload.py", "tools/mcp_character_quality_baseline.py", "tools/compose_character_quality.py",

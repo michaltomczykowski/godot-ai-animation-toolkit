@@ -4,6 +4,21 @@
   "operation": "walk_cycle",
   "revision": "walk-review-r004",
   "state": "release_r1_default_integration_in_progress",
+  "release_r1_execution": {
+    "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
+    "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
+    "public_style_clips": 20,
+    "matched_input_clips": 8,
+    "native_contact_runs": 60,
+    "r004_playback_parity_runs": 24,
+    "reload_dry_calls": 40,
+    "editor_motion_tests": {"passed": 57, "total": 58, "skipped": 0},
+    "headless_suites": {"passed": 13, "total": 14},
+    "preserved_golden_failures": ["test_the_walk_matches_its_golden", "tier1_proportions"],
+    "recording_progress": "Inspect recording-progress.json in the R1 recovery folder.",
+    "release_ready": false,
+    "next_gate": "Complete all ten continuous videos and the recovery archive, open File Explorer, then pause for five-style feedback on all four rigs."
+  },
   "baseline_source": "1389c6655e6a1fcda34ed9249b9f715f1e8e85cd",
   "required_rigs": [
     "dummy",
