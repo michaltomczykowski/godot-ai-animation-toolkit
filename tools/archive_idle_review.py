@@ -177,6 +177,11 @@ def main() -> None:
         for path in sorted(args.folder.parent.rglob("*")):
             if path.is_file() and path.suffix in (".json", ".log"):
                 archive.write(path, "receipts/" + path.relative_to(args.folder.parent).as_posix())
+        if args.baseline_kind == "reviewed":
+            for label, reference_root in (("previous-review", args.baseline), ("original-prototypes", args.prototype)):
+                for path in sorted(reference_root.rglob("*")):
+                    if path.is_file() and path.suffix in (".json", ".log"):
+                        archive.write(path, "reference-receipts/" + label + "/" + path.relative_to(reference_root).as_posix())
     receipt["tooling_zip_sha256"] = digest(args.folder / "tooling-and-phase-receipts.zip")
     previous.update(state=receipt["state"], animation_source=source, public_clips=40, native_runs=240,
                     candidate_uuid=route["run_id"], comparison_baseline_folder=str(args.baseline),

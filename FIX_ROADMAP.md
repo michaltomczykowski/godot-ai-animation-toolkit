@@ -2,6 +2,17 @@
 
 ## Current closure (2026-10-11)
 
+Idle r001 feedback requests slightly more motion and looking around. Revision
+plan: `docs/idle-look-r002-plan.md`; source `9188ffa` (addon change `1b79378`).
+New ordinary public idle writes pass 40/40, native Player/Tree checks 240/240,
+and before/after-core-reload dry routes 40/40. Sixty played range comparisons
+confirm increased head/torso/pelvis motion; 120 fresh protected walk/run
+comparisons remain exactly identical. Continuous r001/r002 videos are recording
+under `release_r2_idle_20261011/idle-look-r002`; keep r001 delivery intact.
+No idle fixture approval or release yet; pause again after revised video delivery.
+
+### Preserved r001 delivery
+
 Idle candidate review delivery is complete: ten continuous 48s/1080p60 videos,
 each independently decoded at 2,880 frames. Exact animation source `8665980`,
 68 idle scenes/local rigs and complete tooling/receipts are archived; protected

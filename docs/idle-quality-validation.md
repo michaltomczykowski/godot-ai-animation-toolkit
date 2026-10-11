@@ -1,5 +1,41 @@
 # R2 idle: baseline and repair evidence
 
+## r002 feedback revision (2026-10-11)
+
+The user described r001 as very nice and requested a little more motion and
+looking around. Preserve that feedback without claiming individual style/rig
+approval. The complete r001 review record is in `idle_revision_history`;
+all r001 media and archives remain intact. Plan: `idle-look-r002-plan.md`.
+
+Animation change `1b79378`, capture source `9188ffa`, public UUID
+`12f39e415f3b4ee19128d7b7737e0eba`. Godot 4.7.2 was launched visibly in the
+isolated released-core project with the correct authenticated backend profile.
+Only the two idle-specific profile tables changed; existing planted reach
+planning, loop timing, seeded hand motion and caller controls are retained.
+
+- **40/40** ordinary public idle writes pass actual Undo/Redo, dry/edited-pose
+  preservation, save/force-reopen and track inspection. No recipe/timing override.
+- **240/240** native Player/Tree checks pass on four rigs, both requested root
+  policies and 30/60/120 FPS. Forty before/after-core-reload dry calls and complete
+  ten-family/eight-promoted-tool discovery also pass.
+- **60/60** independent played range comparisons show increased head yaw, chest
+  yaw and pelvis sway versus r001. At 60 FPS Responsive dummy head sweep grows
+  from 17.26 to 23.79 degrees; torso sweep 5.59 to 6.98 degrees; lateral pelvis
+  sweep 11.28 to 14.10 mm. These are measured world-space ranges, not raw control
+  amplitudes. X Bot, short and tall Z-up measurements pass at all three FPS.
+- **120/120** fresh ordinary walk/run comparisons remain exactly identical to
+  approved saved clips; 80 reference/candidate scenes are archived separately.
+- Focused public motion remains **63/64**, with only preserved legacy idle golden
+  failing; approved walk/run fixture drift is zero. Headless **14/14**, no engine
+  errors. Full local/source CI and continuous video delivery are pending.
+
+Recovery: `release_r2_idle_20261011/idle-look-r002`. Videos compare r001 left /
+r002 right, rather than comparing with the older defective legacy idle. Decode,
+archive, push and deliver all ten continuous MP4s, then pause again. The existing
+idle golden cannot migrate until the revised footage is explicitly approved.
+
+## Preserved r001 evidence
+
 2026-10-11. Follow [idle-quality-review-plan.md](idle-quality-review-plan.md).
 Run is closed; idle has not been tuned or approved. Work alone, Godot 4.7.2,
 released separate Godot AI v4.2.1 (`bfc264200584ea5823f18356acb164781f57796d`).
