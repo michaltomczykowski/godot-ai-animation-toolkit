@@ -60,6 +60,24 @@ actual public Undo/Redo, aliases/setup/optional-anatomy/config-isolation tests.
 
 ## Next gate
 
+## C — additive control checkpoint (verification pending)
+
+Idle now evaluates opt-in `elbow_swing`, `elbow_lag`, `wrist_swing`,
+`wrist_lag`, `forearm_twist`, `wrist_sway`, `arm_variation`, `variation_seed`
+and `hand_relax`. They use measured rig geometry/coordinated parents, the same
+typed hand/finger anatomy validation as gait, and bounded periodic baked curves.
+The original default config is unchanged. Reach metadata now carries actual
+solve clamps/shortfall, clamped leg-sample count, `reach_evaluated`, and truthful
+bilateral versus caller-authored support. No gait generation function changed.
+
+Fresh editor/public verification is still required: ordinary saved baseline
+parity, actual controls in played clips, old idle golden and approved walk/run
+goldens. The added test covers played motion, seeds, typed refusals, dry-run
+nonmutation, explicit zero elbow swing and `planted: false`. Do not promote a
+profile until this additive checkpoint passes.
+
+### Next measurement
+
 Supported prototype inputs are saved in `idle-supported-prototypes.json`:
 quieter existing breath/look/twist/weight-shift controls and explicit 3.0 s
 duration, matching setup's existing idle timing. These are hypotheses to measure,

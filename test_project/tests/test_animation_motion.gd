@@ -1718,6 +1718,98 @@ func test_walk_head_torso_native_articulation_and_history() -> void:
 		skeleton.set_bone_name(head_index, head_name)
 		_teardown(rig)
 
+func test_idle_opt_in_hands_play_and_report_reach_without_changing_defaults() -> void:
+	for fixture in [DUMMY, "res://repair_synthetic_short.tscn", "res://repair_synthetic_zup_tall.tscn"]:
+		var rig := _rig("IdleHands", fixture)
+		if rig.has("error"):
+			skip(rig.error)
+			continue
+		var ordinary := {"op": "idle_cycle", "skeleton_path": rig.skeleton_path,
+			"player_path": rig.player_path, "animation_name": "ordinary_idle"}
+		var plain := _handler.run(ordinary, null)
+		assert_true(plain.has("data"), "ordinary idle builds: " + str(plain))
+		if not plain.has("data"):
+			_teardown(rig)
+			continue
+		assert_true(plain.data.reach_evaluated, "standing idle reports evaluated reach")
+		assert_true(plain.data.has("clamped") and plain.data.has("clamp_shortfall_m"), "clamp report is present")
+		assert_eq(plain.data.support_mode, "bilateral_rest_ankles", "standing support is explicit")
+		var digest := GoldenDigest.from_animation(rig.player.get_animation("ordinary_idle"))
+		var explicit_zero := ordinary.duplicate(true)
+		explicit_zero.animation_name = "zero_idle"
+		# No opt-in key: this must retain the ordinary legacy solver at this
+		# additive checkpoint. Played saved baseline parity is checked externally.
+		explicit_zero.overrides = {"elbow_swing": 0.0}
+		assert_true(_handler.run(explicit_zero, null).has("data"), "zero elbow swing builds")
+		var compared := GoldenDigest.compare(GoldenDigest.from_animation(rig.player.get_animation("zero_idle")), digest)
+		assert_eq(str(compared.shape), "", "zero elbow swing keeps structure")
+		assert_eq(int(compared.worst), 0, "zero elbow swing keeps values")
+		var controls := {"elbow_swing": 2.0, "elbow_lag": 0.06, "wrist_swing": 2.5,
+			"wrist_lag": 0.1, "forearm_twist": 2.0, "wrist_sway": 1.0,
+			"arm_variation": 0.4, "variation_seed": 241, "hand_relax": 18.0}
+		var moving := ordinary.duplicate(true)
+		moving.merge({"animation_name": "idle_hands", "duration": 3.0, "overrides": controls}, true)
+		var dry := moving.duplicate(true)
+		dry.dry_run = true
+		assert_true(_handler.run(dry, null).has("data"), "hand dry run builds")
+		assert_false(rig.player.has_animation("idle_hands"), "dry run does not write")
+		var made := _handler.run(moving, null)
+		assert_true(made.has("data"), "idle hands build: " + str(made))
+		if not made.has("data"):
+			_teardown(rig)
+			continue
+		assert_contains(made.data.applied_features, "arm_hand_follow_through", "idle evaluates hand feature")
+		assert_contains(made.data.applied_features, "finger_relaxation", "idle evaluates finger feature")
+		var player: AnimationPlayer = rig.player
+		var skeleton: Skeleton3D = rig.skeleton
+		var hand := skeleton.find_bone(str(made.data.roles.hand_l))
+		var forearm := skeleton.find_bone(str(made.data.roles.forearm_l))
+		player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+		player.playback_auto_capture = false
+		player.play("idle_hands", 0.0)
+		player.advance(0.0)
+		var first_hand := skeleton.get_bone_pose_rotation(hand)
+		var first_forearm := skeleton.get_bone_pose_rotation(forearm)
+		var excursions := Vector2.ZERO
+		for tick in 180:
+			player.advance(1.0 / 60.0)
+			excursions.x = maxf(excursions.x, first_hand.angle_to(skeleton.get_bone_pose_rotation(hand)))
+			excursions.y = maxf(excursions.y, first_forearm.angle_to(skeleton.get_bone_pose_rotation(forearm)))
+		assert_gt(excursions.x, deg_to_rad(2.0), "played wrist moves")
+		assert_gt(excursions.y, deg_to_rad(2.0), "played forearm moves")
+		assert_true(first_hand.angle_to(skeleton.get_bone_pose_rotation(hand)) < 0.0001, "played wrist repeats")
+		player.stop()
+		var copy := moving.duplicate(true)
+		copy.animation_name = "idle_same_seed"
+		assert_true(_handler.run(copy, null).has("data"), "same seed builds")
+		var original := GoldenDigest.from_animation(player.get_animation("idle_hands"))
+		compared = GoldenDigest.compare(GoldenDigest.from_animation(player.get_animation(copy.animation_name)), original)
+		assert_eq(int(compared.worst), 0, "same seed gives exact baked values")
+		copy.animation_name = "idle_other_seed"
+		copy.overrides.variation_seed = 242
+		assert_true(_handler.run(copy, null).has("data"), "other seed builds")
+		compared = GoldenDigest.compare(GoldenDigest.from_animation(player.get_animation(copy.animation_name)), original)
+		assert_gt(int(compared.worst), 0, "other seed changes baked motion")
+		for bad_controls in [{"wrist_swing": 21.0}, {"elbow_lag": 0.3}, {"variation_seed": 1.5}, {"hand_relax": 46.0}, {"wrist_sway": "bad"}]:
+			var bad := moving.duplicate(true)
+			bad.animation_name = "refused_idle"
+			bad.overrides = bad_controls
+			assert_true(_handler.run(bad, null).has("error"), "invalid idle controls return a typed error")
+			assert_false(player.has_animation("refused_idle"), "invalid controls do not write")
+		var unavailable := moving.duplicate(true)
+		unavailable.roles = made.data.roles.duplicate()
+		unavailable.roles.hand_l = "missing_idle_hand"
+		assert_is_error(_handler.run(unavailable, null), ErrorCodes.INVALID_PARAMS)
+		var external := ordinary.duplicate(true)
+		external.merge({"animation_name": "external_feet", "planted": false}, true)
+		var unplanted := _handler.run(external, null)
+		assert_true(unplanted.has("data"), "explicit external feet remains supported")
+		if unplanted.has("data"):
+			assert_false(unplanted.data.reach_evaluated, "unplanted does not claim solved reach")
+			assert_eq(unplanted.data.support_mode, "caller_authored_feet", "unplanted support is truthful")
+		_teardown(rig)
+
+
 func test_idle_twist_is_shared_over_the_spine_chain() -> void:
 	var rig := _rig("MotionTwist")
 	if rig.has("error"):

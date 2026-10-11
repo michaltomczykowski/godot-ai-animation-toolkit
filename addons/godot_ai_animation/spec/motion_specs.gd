@@ -1832,6 +1832,9 @@ static func idle_keys(ctx: Dictionary) -> Dictionary:
 	var planted := bool(config.get("planted", true))
 	var hips_origin: Vector3 = ctx.get("hips_origin", Vector3.ZERO)
 	var hips_rest := _rest_basis(ctx, hips)
+	var clamped := false
+	var clamp_shortfall := 0.0
+	var clamped_samples := 0
 
 	for index in times.size():
 		var t := float(index) / float(steps)
@@ -1855,8 +1858,12 @@ static func idle_keys(ctx: Dictionary) -> Dictionary:
 			if planted:
 				var hips_animated := Basis(world) * hips_rest
 				for side in ["l", "r"]:
-					_solve_idle_leg(ctx, keys, str(side), time, hips_offset, world,
+					var solved := _solve_idle_leg(ctx, keys, str(side), time, hips_offset, world,
 						hips_animated, hips_origin)
+					if bool(solved.clamped):
+						clamped = true
+						clamped_samples += 1
+					clamp_shortfall = maxf(clamp_shortfall, float(solved.shortfall))
 		# Every chain bone above the hips takes its share of the twist; the chest
 		# keeps the breathing under-layer and the head keeps its look-around.
 		for slot in chain:
@@ -1878,7 +1885,11 @@ static func idle_keys(ctx: Dictionary) -> Dictionary:
 			pose = pose * Quaternion(lateral, deg_to_rad(lean_share))
 			_append_rotation(keys, bone, time, MotionDrivers.rotation_delta(_rest_basis(ctx, bone), pose))
 		_solve_idle_arms(ctx, keys, time, t)
-	return {"keys": keys, "markers": [], "meta": {}}
+	return {"keys": keys, "markers": [], "meta": {
+		"clamped": clamped, "clamp_shortfall_m": clamp_shortfall,
+		"clamped_leg_samples": clamped_samples, "reach_evaluated": planted,
+		"support_mode": "bilateral_rest_ankles" if planted else "caller_authored_feet",
+	}}
 
 
 ## One leg of a standing idle, solved so the ankle stays on its rest world
@@ -1888,7 +1899,7 @@ static func _solve_idle_leg(
 	ctx: Dictionary, keys: Dictionary, side: String, time: float,
 	hips_offset: Vector3, pelvis_world: Quaternion, hips_animated: Basis,
 	hips_origin: Vector3,
-) -> void:
+) -> Dictionary:
 	var leg: Dictionary = ctx.legs[side]
 	var knee_hint: Vector3 = ctx.get("knee_hint", ctx.forward)
 	var hip_pos: Vector3 = hips_origin + hips_offset + Basis(pelvis_world) * (leg.hip - hips_origin)
@@ -1910,12 +1921,13 @@ static func _solve_idle_leg(
 	_append_rotation(keys, leg.shin, time, shin_solve.delta)
 	var foot_bone := str(leg.get("foot", ""))
 	if foot_bone.is_empty():
-		return
+		return solved
 	# A planted foot keeps its rest orientation in the world, so it stays flat on
 	# the floor while the shin moves under it.
 	var foot_rest := _rest_basis(ctx, foot_bone)
 	_append_rotation(keys, foot_bone, time,
 		MotionDrivers.hold_global_delta(shin_solve.global, shin_rest, foot_rest, foot_rest))
+	return solved
 
 
 ## Idle arms: the static arm-down offset (so T-pose rests hang naturally) plus a
@@ -1925,11 +1937,26 @@ static func _solve_idle_arms(ctx: Dictionary, keys: Dictionary, time: float, t: 
 	var config: Dictionary = ctx.config
 	var arm_sway := float(config.arm_sway)
 	var elbow := float(config.elbow)
+	var coordinated := bool(ctx.get("arm_hand_follow_through", ctx.get("measured_arms", false)))
 	for side in ["l", "r"]:
 		var sign := -1.0 if side == "l" else 1.0
 		var sway := MotionDrivers.channel_value(
 			_channel(ctx.lateral, sign * arm_sway, 1.0, 0.0, 0.1, "sine"), t)
-		_solve_arm_chain(ctx, keys, side, time, sway, elbow)
+		var bend := elbow + float(config.get("elbow_swing", 0.0)) * sin(TAU * (t - float(config.get("elbow_lag", 0.0))))
+		var wrist_phase := t - float(config.get("wrist_lag", 0.0))
+		var wrist := sign * float(config.get("wrist_swing", 0.0)) * sin(TAU * wrist_phase)
+		var twist := sign * float(config.get("forearm_twist", 0.0)) * sin(TAU * (t - 0.04))
+		var wrist_side := sign * float(config.get("wrist_sway", 0.0)) * cos(TAU * wrist_phase)
+		var variation := float(config.get("arm_variation", 0.0))
+		var seed_value := int(config.get("variation_seed", 0)) + (101 if side == "r" else 0)
+		if variation > 0.0:
+			bend += 0.6 * variation * MotionDrivers.periodic_noise(t, seed_value, 2)
+			wrist += variation * MotionDrivers.periodic_noise(t, seed_value + 23, 2)
+			twist += 0.6 * variation * MotionDrivers.periodic_noise(t, seed_value + 47, 2)
+			wrist_side += 0.4 * variation * MotionDrivers.periodic_noise(t, seed_value + 71, 2)
+		_solve_arm_chain(ctx, keys, side, time, sway, bend, "", wrist, coordinated, twist, wrist_side)
+		if ctx.has("hand_layout"):
+			_relax_fingers(ctx, keys, side, time, t)
 
 
 # --- helpers ----------------------------------------------------------------
