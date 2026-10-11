@@ -193,3 +193,31 @@ Linux live route timed out in the unrelated graph-history subprocess after
 120 seconds. Fresh local graph history passes 8/8 and all 28 saved playback
 cases; regenerate the audit and inspect the next source CI before closure.
 
+
+## Timing and composition follow-up
+
+The first timing attempt preserves 16 public clips /96 native passes for a
+0.35 s transfer at phase 0.137. A 1.4 s transfer at the same phase exposes a
+typed reach refusal on the short rig; the old capture harness incorrectly
+attempted history on a nonexistent refused output. Preserve `timing-r001`;
+the revised harness records supported clips and typed, nonmutating refusals
+separately, rather than claiming every explicit timing is reachable.
+
+Independent native composition control reproduces three simultaneous cues
+becoming one overwritten cue (`sequence-cues-red.json`). The sequence repair
+groups simultaneous cue names with `+` after assigning repeated-name suffixes,
+so source cues and contact annotations survive native storage. The green
+control preserves all three. Public composition/history and fresh native
+playback are pending; this is not quality approval. Continuous review source
+clips remain exactly `4137cc5`.
+
+The first 2,880-frame recording completed with no engine errors, but Windows
+PowerShell exposed a null process exit code after waiting. That failure receipt
+is retained as `recording-first-null-exit.json`. The recorder now caches the
+process handle and only recovers an existing capture after validating its
+complete native report, all frames, source scenes, and encoded/decoded MP4.
+
+Current in-place audit consumes the numeric actor schedule on the identity
+fixture actor parents; rest-axis variants are included. Arbitrary rotated or
+scaled actor wrappers need the explicit actor-node/local-to-world contract and
+additional R3 coverage. Do not claim that broader transform coverage here.

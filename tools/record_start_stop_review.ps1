@@ -59,7 +59,17 @@ try {
                     }
                 }
                 $transitionFrames = Join-Path $transitionFolder ($transitionMode+'_frames')
-                if (Test-Path -LiteralPath $transitionFrames) { throw "Inspect preserved incomplete capture: $transitionFrames" }
+                if (Test-Path -LiteralPath $transitionFrames) {
+                    $transitionRenderPath = Join-Path $transitionFrames 'render.json'
+                    if (-not (Test-Path -LiteralPath $transitionRenderPath)) { throw "Inspect preserved incomplete capture: $transitionFrames" }
+                    $transitionRender = Get-Content -LiteralPath $transitionRenderPath -Raw | ConvertFrom-Json
+                    if ($transitionRender.frames -ne 2880 -or $transitionRender.errors.Count -or $transitionRender.source_head -ne $transitionRoute.source_head `
+                            -or $transitionRender.mode -ne $transitionMode -or $transitionRender.cases.Count -ne 8) { throw 'Incomplete preserved native report' }
+                    & $Python (Join-Path $PSScriptRoot 'compose_character_quality.py') $transitionFolder --ffmpeg $Ffmpeg --mode $transitionMode
+                    if ($LASTEXITCODE -ne 0) { throw 'Preserved frame encode/decode check failed' }
+                    $transitionProgress.completed += "$transitionOp/$transitionStyle/$transitionMode (complete native report recovered)"
+                    continue
+                }
                 $transitionArgs = @('--path',('"'+$ProjectRoot+'"'),'--rendering-method','gl_compatibility',
                     '--resolution','1920x1080','--disable-vsync','--script','res://tools/render_start_stop_comparison.gd',
                     '--',('"'+$transitionReference+'"'),('"'+$transitionRoutePath+'"'),('"'+$transitionFrames+'"'),$transitionMode)
@@ -67,6 +77,9 @@ try {
                     -RedirectStandardOutput (Join-Path $ReviewRoot "$transitionOp-$transitionStyle-$transitionMode-render.log") `
                     -RedirectStandardError (Join-Path $ReviewRoot "$transitionOp-$transitionStyle-$transitionMode-errors.log")
                 $transitionProgress.pid = $transitionProcess.Id
+                # Cache the handle before the process exits. Windows PowerShell
+                # otherwise can expose a null ExitCode after WaitForExit.
+                $null = $transitionProcess.Handle
                 $transitionProgress | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $transitionProgressPath -Encoding UTF8
                 $transitionProcess.WaitForExit()
                 if ($transitionProcess.ExitCode -ne 0) { throw "Native capture failed: $transitionOp/$transitionStyle/$transitionMode" }

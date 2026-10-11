@@ -153,6 +153,7 @@ static func compose(segments: Array, length: float, fps: int, root_motion_path: 
 			ClipSpec.add_value_track(out, info.path, keys,
 				Animation.INTERPOLATION_LINEAR, int(info.type))
 	var used_names := {}
+	var grouped: Array = []
 	for marker in markers:
 		if str(marker.name).is_empty():
 			continue
@@ -163,8 +164,17 @@ static func compose(segments: Array, length: float, fps: int, root_motion_path: 
 			count += 1
 			candidate = "%s_%d" % [marker_name, count]
 		used_names[candidate] = true
-		ClipSpec.add_marker(out, candidate,
-			float(marker.time), marker.color)
+		# Animation.add_marker replaces a marker at an occupied timestamp.
+		# Preserve all simultaneous source/annotation cues in one native name.
+		var group := -1
+		for index in grouped.size():
+			if float(grouped[index].time) == float(marker.time): group = index
+		if group >= 0:
+			grouped[group].name = str(grouped[group].name) + "+" + candidate
+		else:
+			grouped.append({"name": candidate, "time": float(marker.time), "color": marker.color})
+	for marker: Dictionary in grouped:
+		ClipSpec.add_marker(out, marker.name, marker.time, marker.color)
 	return {"spec": out, "sample_count": unique_times.size()}
 
 

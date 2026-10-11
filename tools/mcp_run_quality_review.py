@@ -30,6 +30,8 @@ def save(path: Path, report: dict) -> None:
 async def run(args: argparse.Namespace) -> int:
     motion = args.operation.removesuffix("_cycle")
     transition = args.operation in ("walk_start", "walk_stop")
+    if args.allow_reach_refusals and (not transition or args.phase != "prototype"):
+        raise ValueError("Reach refusal receipts are only valid for explicit transition prototypes")
     if motion == "walk" and args.phase == "candidate":
         raise ValueError("Walk support here is for protected baseline regression, not a new review candidate")
     source = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=args.repo, text=True).strip()
@@ -109,6 +111,8 @@ async def run(args: argparse.Namespace) -> int:
 
                     await stage("open", "scene_open", {"path": scene, "force_reload": True})
                     row["before"] = await inspect(client, params["animation_name"], player)
+                    if args.allow_reach_refusals:
+                        row["binding_before"] = await call(client, "node_get_properties", {"path": player, "fields": ["root_motion_track"]})
                     row["pose_before"] = await stage("pose_before", "custom_animation_rig", {
                         "op": "pose_save", "skeleton_path": params["skeleton_path"]})
                     await stage("dry", "custom_manage", {"op": "invoke", "params": {
@@ -121,6 +125,17 @@ async def run(args: argparse.Namespace) -> int:
                     row["after"] = await inspect(client, params["animation_name"], player)
                     await stage("pose_after", "custom_animation_rig", {
                         "op": "pose_save", "skeleton_path": params["skeleton_path"]})
+                    if args.allow_reach_refusals and row["write"].get("error"):
+                        row["binding_after"] = await call(client, "node_get_properties", {"path": player, "fields": ["root_motion_track"]})
+                        row["refused"] = True
+                        row["passed"] = (str(row["dry"].get("error", "")).startswith("VALUE_OUT_OF_RANGE:")
+                            and row["dry"] == row["write"] and row["before"] == row["after_dry"] == row["after"]
+                            and row["pose_before"] == row["pose_after_dry"] == row["pose_after"]
+                            and row["binding_before"] == row["binding_after"] and not row["binding_before"].get("error"))
+                        if not row["passed"]: report["failures"].append(f"{rig_id}: untyped or mutating refusal")
+                        save(record, report)
+                        print(f"Refused {style}/{root_mode}/{rig_id}: {'PASS' if row['passed'] else 'FAIL'}", flush=True)
+                        continue
                     if args.phase == "candidate" or transition:
                         history = await stage("history", "test_run", {
                             "suite": "animation_motion",
@@ -180,6 +195,7 @@ if __name__ == "__main__":
     p.add_argument("--recipes", type=Path, help="Explicit prototype recipes; final candidates use ordinary defaults")
     p.add_argument("--duration", type=float, help="Explicit prototype period; ordinary calls omit duration")
     p.add_argument("--samples", type=float, help="Explicit prototype authoring density; ordinary calls omit samples")
+    p.add_argument("--allow-reach-refusals", action="store_true", help="Verify typed nonmutation for unsupported explicit transition prototypes")
     p.add_argument("--gait-phase", type=float, help="Explicit prototype transition phase; ordinary calls omit phase")
     p.add_argument("--gait-duration", type=float, help="Prototype period of the independent walk reference")
     p.add_argument("--gait-samples", type=float, help="Prototype sample rate of the independent walk reference")

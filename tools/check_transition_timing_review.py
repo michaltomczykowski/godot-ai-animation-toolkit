@@ -30,6 +30,7 @@ def main():
     recipe.write_text('{"responsive": {}}\n', encoding="utf-8")
     receipt = a.output / "timing-matrix.json"
     report = {"passed": False, "state": "running", "groups": [], "public_clips": 0, "native_runs": 0}
+    report.update(public_requests=0, typed_nonmutating_refusals=0)
     def save(): receipt.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     def capture(folder, operation, options):
         command = [sys.executable, str(repo / "tools/mcp_run_quality_review.py"),
@@ -46,16 +47,26 @@ def main():
         for number, (duration, phase, period, samples) in enumerate(GROUPS):
             for operation in ("walk_start", "walk_stop"):
                 folder = a.output / f"{number}-{operation}"
-                capture(folder, operation, ["--duration", str(duration), "--gait-phase", str(phase),
+                capture(folder, operation, ["--allow-reach-refusals", "--duration", str(duration), "--gait-phase", str(phase),
                     "--gait-duration", str(period), "--gait-samples", str(samples)])
                 for root_mode in ("responsive", "responsive-in-place"):
-                    paths = [folder / root_mode / "route.json", folder / "responsive/route.json",
+                    original_path = folder / root_mode / "route.json"
+                    original = read(original_path)
+                    assert original['passed'] and len(original['cases']) == 4
+                    accepted = dict(original)
+                    accepted['cases'] = [row for row in original['cases'] if not row.get('refused')]
+                    refused = [row['id'] for row in original['cases'] if row.get('refused')]
+                    accepted['expected_case_count'] = len(accepted['cases'])
+                    accepted_path = folder / (root_mode + '-accepted.json')
+                    accepted_path.write_text(json.dumps(accepted, indent=2) + '\n', encoding='utf-8')
+                    paths = [accepted_path, folder / "responsive/route.json",
                         (custom if period == .7 else a.walk_reference) / root_mode / "route.json",
                         a.idle_reference / root_mode / "route.json"]
                     for path in paths:
                         route = read(path)
-                        assert route["passed"] and len(route["cases"]) == 4
+                        assert route["passed"]
                         for row in route["cases"]:
+                            if row.get('refused'): continue
                             scene = a.project_root / row["scene"].removeprefix("res://")
                             assert hashlib.sha256(scene.read_bytes()).hexdigest() == row["scene_sha256"]
                     output = folder / (root_mode + "-native.json")
@@ -64,15 +75,18 @@ def main():
                     with output.with_suffix(".log").open("w", encoding="utf-8") as log:
                         result = subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT, timeout=120)
                     native = read(output)
-                    expected = {(r, f, m) for r in ("dummy", "xbot", "short", "zup_tall")
+                    expected = {(r['id'], f, m) for r in accepted['cases']
                         for f in (30, 60, 120) for m in ("player", "tree")}
-                    complete = {(r['id'], r['fps'], r['mixer']) for r in native['runs']} == expected and len(native['runs']) == 24
+                    complete = {(r['id'], r['fps'], r['mixer']) for r in native['runs']} == expected and len(native['runs']) == len(expected)
                     row = {"operation": operation, "duration": duration, "phase": phase,
                         "gait_period": period, "gait_samples": samples, "root_mode": root_mode,
                         "report": str(output), "passed": native['passed'] and complete and result.returncode == 0,
+                        "accepted_ids": [r['id'] for r in accepted['cases']], "refused_ids": refused,
                         "failures": native['failures'], "engine_errors": native['engine_errors'],
                         "input_sha256": {str(path): hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}}
-                    report['groups'].append(row); report['public_clips'] += 4; report['native_runs'] += 24; save()
+                    report['groups'].append(row); report['public_requests'] += 4
+                    report['public_clips'] += len(accepted['cases']); report['native_runs'] += len(expected)
+                    report['typed_nonmutating_refusals'] += len(refused); save()
                     print(f"Timing {number}/{operation}/{root_mode}: pass={row['passed']}", flush=True)
         report.update(state="complete", passed=len(report['groups']) == 24 and all(r['passed'] for r in report['groups']))
     except Exception as error:

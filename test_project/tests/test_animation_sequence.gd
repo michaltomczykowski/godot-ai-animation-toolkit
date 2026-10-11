@@ -7,6 +7,8 @@ const PoseMath := preload("res://addons/godot_ai_animation/spec/pose_math.gd")
 const SequenceSpecs := preload("res://addons/godot_ai_animation/spec/sequence_specs.gd")
 const ClipSpec := preload("res://addons/godot_ai_animation/spec/clip_spec.gd")
 const SpecModifiers := preload("res://addons/godot_ai_animation/spec/spec_modifiers.gd")
+const SpecBuilder := preload("res://addons/godot_ai_animation/spec/spec_builder.gd")
+const GoldenDigest := preload("res://tests/golden_digest.gd")
 
 var _undo_redo: EditorUndoRedoManager
 
@@ -68,6 +70,10 @@ func test_compose_playback_contact_dry_run_and_undo() -> void:
 	var root := EditorInterface.get_edited_scene_root()
 	if root == null:
 		skip("No edited scene")
+		return
+	var public_marker := root.get_node_or_null("PublicSequenceHistory")
+	if public_marker != null:
+		_public_history(root.get_node(public_marker.get_meta("player_path")) as AnimationPlayer)
 		return
 	var holder := Node3D.new()
 	holder.name = "SequenceFixture"
@@ -195,3 +201,51 @@ func test_compose_playback_contact_dry_run_and_undo() -> void:
 			"a timeline gap holds the last authored pose")
 	holder.get_parent().remove_child(holder)
 	holder.queue_free()
+
+
+func _public_history(player: AnimationPlayer) -> void:
+	# Observe the public client's one write; do not create another transaction.
+	var name := "quality_locomotion"
+	assert_true(player != null and player.has_animation(name), "public sequence is present")
+	if player == null or not player.has_animation(name): return
+	var digest := GoldenDigest.from_animation(player.get_animation(name))
+	var root_track := player.root_motion_track
+	var markers := player.get_animation(name).get_marker_names()
+	var times := {}
+	for label in markers: times[label] = player.get_animation(name).get_marker_time(label)
+	assert_true(editor_undo(_undo_redo), "actual public sequence Undo succeeds")
+	assert_false(player.has_animation(name), "Undo removes exactly the composed clip")
+	for source in ["idle_cycle", "walk_start", "walk_cycle", "walk_stop"]: assert_true(player.has_animation(source), "Undo preserves source " + source)
+	assert_true(editor_redo(_undo_redo), "actual public sequence Redo succeeds")
+	assert_true(player.has_animation(name), "Redo restores composed output")
+	if not player.has_animation(name): return
+	var compared := GoldenDigest.compare(GoldenDigest.from_animation(player.get_animation(name)), digest)
+	assert_eq(str(compared.shape), "", "Redo restores all track structure")
+	assert_eq(int(compared.worst), 0, "Redo restores all authored values")
+	assert_eq(player.root_motion_track, root_track, "Redo preserves extraction binding")
+	assert_eq(player.get_animation(name).get_marker_names(), markers, "Redo preserves native cues")
+	for label in markers: assert_eq(player.get_animation(name).get_marker_time(label), times[label], "Redo preserves cue time")
+
+
+func test_simultaneous_sequence_cues_survive_native_marker_storage() -> void:
+	var source := ClipSpec.make(1.0)
+	ClipSpec.add_value_track(source, "Skeleton:Root", [
+		{"time": 0.0, "value": Quaternion.IDENTITY, "transition": 1.0},
+		{"time": 1.0, "value": Quaternion(Vector3.RIGHT, 0.3), "transition": 1.0},
+	], Animation.INTERPOLATION_LINEAR, Animation.TYPE_ROTATION_3D)
+	ClipSpec.add_marker(source, "contact.L", 0.2, Color.GREEN)
+	ClipSpec.add_marker(source, "contact.R", 0.2, Color.GREEN)
+	var built := SequenceSpecs.compose([
+		{"start": 0.0, "duration": 1.0, "source_start": 0.0, "source_end": 1.0, "spec": source,
+			"contacts": [{"time": 0.2, "name": "impact"}]},
+		{"start": 1.0, "duration": 1.0, "source_start": 0.0, "source_end": 1.0, "spec": source},
+	], 2.0, 60)
+	assert_false(built.has("error"), "simultaneous native cues compose")
+	if built.has("error"): return
+	var animation := SpecBuilder.to_animation(built.spec)
+	assert_eq(animation.get_marker_names().size(), 2, "one native marker preserves each simultaneous cue group")
+	assert_eq(built.spec.markers.size(), animation.get_marker_names().size(), "report reflects actual native marker storage")
+	assert_true(animation.has_marker("contact.L+contact.R+contact_impact"), "both source cues and annotation survive")
+	assert_true(animation.has_marker("contact.L_1+contact.R_1"), "repeated cues remain distinguishable at the later time")
+	assert_true(absf(animation.get_marker_time("contact.L+contact.R+contact_impact") - 0.2) < 0.00001, "first cue time is exact")
+	assert_true(absf(animation.get_marker_time("contact.L_1+contact.R_1") - 1.2) < 0.00001, "later cue time is exact")

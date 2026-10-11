@@ -157,6 +157,7 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 	var mixer := _tree(v, mode)
 	var errors: Array[String] = []
 	errors.append_array(actor_errors)
+	if not baseline and (not row.write.has("declared_contacts") or (row.write.declared_contacts as Array).is_empty()): errors.append("Candidate must declare intended support")
 	var key_count := 0
 	var path_errors: Array[String] = []
 	var active_mixers := 0
@@ -358,8 +359,9 @@ func _run() -> void:
 				var result := _check(row, _find(inputs[1], row.id), _find(inputs[2], row.id), _find(inputs[3], row.id), fps, mode, inputs[0].phase == "baseline")
 				results.append(result)
 				if not result.thresholds_pass: failures.append("%s/%s/%s: %s" % [row.id, fps, mode, str(result.failures)])
+	var expected_cases := int(inputs[0].get("expected_case_count", 4)) if inputs[0].phase == "prototype" else 4
 	var report := {"source_head": inputs[0].source_head, "revision": inputs[0].revision, "runs": results,
-		"failures": failures, "engine_errors": logger.errors, "passed": results.size() == 24 and failures.is_empty() and logger.errors.is_empty(),
+		"failures": failures, "engine_errors": logger.errors, "passed": inputs[0].cases.size() == expected_cases and results.size() == expected_cases * 6 and failures.is_empty() and logger.errors.is_empty(),
 		"measurement_contract": "Independent played reference endpoint and same-interval continuation errors; raw boundary curvature retained. Declared stance slide/height and observed ankle-band motion are distinct; ankle band is not sole collision. Root uses reported in-place schedule; paired track only for old baseline. Numerical checks do not approve visual quality."}
 	FileAccess.open(args[4], FileAccess.WRITE).store_string(JSON.stringify(report))
 	OS.remove_logger(logger)
