@@ -2,6 +2,17 @@
 
 ## Current instruction (2026-10-11)
 
+Idle ordinary candidate is active on source `8665980`, UUID
+`111fa689c5184c1ca20c41b0ef52141f`; recovery release_r2_idle_20261011/candidate.
+40/40 public writes pass actual external history, dry/pose preservation and
+save/reopen. Current visible editor PID 26536, isolated released-core profile.
+Focused final source 63/64: only preserved legacy idle golden fails; walk/run
+drift zero. Headless 14/14. Full native 240 and core-reload calls are in progress;
+do not restart an active capture/matrix blindly. Actions 38124952893 pending.
+Prototype source57's 48 checks and 48s clean comparison complete; baseline has
+two 24s videos. No idle approval. Final gate: five clean/diagnostic ordinary idle
+videos, strict archive, PC Explorer, then stop for explicit user feedback.
+
 Idle is active, public baseline source `f44f236`, UUID
 `f853d458c87f4ce78c9a1c81850579ee`, recovery `release_r2_idle_20261011`.
 20/20 ordinary public clips and 60/60 standing Player measurements pass.

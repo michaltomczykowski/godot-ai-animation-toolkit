@@ -168,6 +168,15 @@ tests pass; approved walk/run golden drift remains zero. Final ordinary public
 standing renderer, gated recorder and exact ten verified outputs; archives and
 manual review remain pending. No phase is approved by prototype footage.
 
+Candidate source `8665980`, UUID `111fa689c5184c1ca20c41b0ef52141f`: **40/40**
+ordinary public clips across all five styles/four rigs/two requested root modes
+pass actual external Undo/Redo, dry nonmutation, pose preservation, save/reopen
+and track inspection. Responsive omits style; all omit timing/sampling/recipe
+overrides. Stationary idle reports `root_motion: false` even when translation
+was requested, because the clip owns no actor track. The native 240 matrix and
+forty reload dry calls are running; source Actions `38124952893` is pending.
+Do not infer completion from the previous 48 explicit prototype checks.
+
 ### Next measurement
 
 Supported prototype inputs are saved in `idle-supported-prototypes.json`:
