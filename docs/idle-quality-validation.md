@@ -8,8 +8,17 @@ are recorded without claiming individual watched files. Approved animation
 source is `9188ffa`, delivered checkpoint `2a0db64`, UUID `12f39e415f3b4ee19128d7b7737e0eba`.
 Immutable delivery receipts remain unchanged; approval and historical fixture
 hashes are preserved in `idle-look-r002/accepted-r002-regression/approval.json`.
-State is `approved_idle_styles_pending_regression`. Follow the versioned
-migration plan; independent green gates are pending. No new motion generation,
+State is `approved_idle_styles_pending_regression`. Selector/approval checkpoint
+`99f0a3a` is pushed and remote verified. A fresh normal public one-test call
+fails for the missing `golden_idle_responsive_v2.json` and writes no fixture.
+A separate visible editor with explicit local recording writes the ordinary
+three-second expectation: 36 tracks, 179/181 keys, unchanged digest contract.
+After normal quit/restart with recording cleared, all **64/64** focused public
+motion tests pass with zero idle/walk/run drift and no skips or engine errors.
+Every pre-migration fixture hash is unchanged. Headless **14/14** passes.
+Full local editor passes **389/389** in 32 suites, zero skips, engine, discovery
+or route errors; both full 103-operation/10-family registration probes pass.
+Idle/walk/run drift stays zero. Exact green Windows/Linux source CI is pending. No new motion generation,
 recapture, release or start/stop tuning is part of this fixture migration.
 
 ## r002 feedback revision (2026-10-11)

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "fixture_epoch": "v2-responsive-idle",
-  "migration_state": "approved_pending_recording",
+  "migration_state": "local_regression_passed_source_ci_pending",
   "approved_animation_source": "9188ffa22e756213ae48e88d359b5918c0b2c384",
   "delivered_checkpoint": "2a0db641a257371bb9f67de90e75882420e7a7d8",
   "review_revision": "idle-review-r002",
@@ -109,7 +109,7 @@
       }
     ]
   },
-  "fixture_generation_source": null,
+  "fixture_generation_source": "99f0a3a61882189b6265ce84d5a24e02a93806a5",
   "godot": "4.7.2",
   "core_source": "bfc264200584ea5823f18356acb164781f57796d",
   "asset": {
@@ -167,8 +167,47 @@
   "fixtures": {
     "golden_idle.json": {
       "sha256": "cf78066dcf236600428896b0db25711ac0ed63c62fa1068da333fa79d67375e8"
+    },
+    "golden_idle_responsive_v2.json": {
+      "sha256": "180ea3577816b61b3f75c16f7c75d8e40df4eed2f4ecd7e275814d76259ef218",
+      "length_s": 3.0,
+      "track_count": 36,
+      "key_counts": [
+        179,
+        181
+      ]
     }
   },
   "recording_contract": "Explicit local recording only through public Godot AI test_run; fresh normal comparison and full regression required. Normal and CI flags cannot write expectations.",
-  "recovery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression"
+  "recovery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression",
+  "missing_guard_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression\\missing-guard.json",
+  "explicit_recording_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression\\editor-record.json",
+  "independent_comparison": {
+    "fresh_editor": true,
+    "recording_enabled": false,
+    "total": 64,
+    "passed": 64,
+    "failed": 0,
+    "skipped": 0,
+    "idle_drift_units": 0,
+    "walk_drift_units": 0,
+    "run_drift_units": 0,
+    "receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression\\editor-normal.json"
+  },
+  "local_full_editor": {
+    "total": 389,
+    "passed": 389,
+    "failed": 0,
+    "skipped": 0,
+    "suites": 32,
+    "engine_errors": 0,
+    "discovery_errors": 0,
+    "route_errors": 0,
+    "route_pass_markers": 2,
+    "idle_drift_units": 0,
+    "walk_drift_units": 0,
+    "run_drift_units": 0,
+    "receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression\\editor-full-results.json"
+  },
+  "local_headless_suites": 14
 }

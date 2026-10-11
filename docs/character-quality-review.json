@@ -4025,7 +4025,41 @@
       ]
     },
     "accepted_regression_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression",
-    "approval_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression\\approval.json"
+    "approval_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression\\approval.json",
+    "regression": {
+      "source_head": null,
+      "selector_source": "99f0a3a61882189b6265ce84d5a24e02a93806a5",
+      "missing_expectation_refused": true,
+      "explicit_local_recording_complete": true,
+      "independent_comparison": {
+        "total": 64,
+        "passed": 64,
+        "failed": 0,
+        "skipped": 0,
+        "idle_drift_units": 0,
+        "walk_drift_units": 0,
+        "run_drift_units": 0
+      },
+      "local_headless_suites": 14,
+      "historical_fixtures_unchanged": true,
+      "animation_unchanged_from_review": true,
+      "complete": false,
+      "full_local_editor": {
+        "total": 389,
+        "passed": 389,
+        "failed": 0,
+        "skipped": 0,
+        "suites": 32,
+        "engine_errors": 0,
+        "discovery_errors": 0,
+        "route_errors": 0,
+        "route_pass_markers": 2,
+        "idle_drift_units": 0,
+        "walk_drift_units": 0,
+        "run_drift_units": 0,
+        "receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression\\editor-full-results.json"
+      }
+    }
   },
   "idle_revision_history": [
     {
