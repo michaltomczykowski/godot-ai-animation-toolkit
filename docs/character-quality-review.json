@@ -4591,6 +4591,15 @@
       "engine_errors": 0,
       "fixture_drift": 0,
       "visual_approval": null
+    },
+    "recording_integrity_checkpoint": {
+      "completed_start_movies": 10,
+      "completed_frame_crc_videos": 9,
+      "completed_frame_crc_frames": 25920,
+      "corrupt_png_control_passed": true,
+      "source_ci_passed": "38172191292",
+      "source_ci_receipt": "source-ci-80cfb59/ci-receipt.json",
+      "visual_approval": null
     }
   }
 }

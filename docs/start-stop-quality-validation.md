@@ -274,3 +274,21 @@ A concurrent read observed a truncated in-progress receipt. New Python/PowerShel
 receipt writers replace complete files atomically. Python interruption/recovery
 and Windows PowerShell replacement controls pass; active older recorders retain
 their original loaded scripts. Their status files must still be read with retry.
+
+### Recording integrity checkpoint
+
+All ten start movies are complete; stop capture is active and sequence capture
+is queued behind it. Each video contains complete reset-separated played takes,
+not isolated frames. Completed movies are independently decoded and hashed.
+Nine completed captures additionally pass CRC checks on all 25,920 original
+PNG frames (`completed-frame-crc-checkpoint.json`). Both compositors now verify
+every PNG checksum before encoding; a deliberately corrupt IDAT chunk is
+rejected while its valid control passes (`png-crc-control.json`). This changes
+artifact validation only; the recorded motion and sequence sources are intact.
+
+Exact-source CI `38172191292` on `80cfb59` is green and archived with all six
+job receipts, 28 headless suites, four Windows/Linux editors (395/397 with only
+the two named private-rig skips), both live MCP jobs (118 pass each), zero
+engine/route/discovery errors and zero approved gait fixture drift. A newer
+checkpoint CI is running. Final archive and PC video delivery still require
+all 22 movies. Keep approval null and pause for human feedback after delivery.

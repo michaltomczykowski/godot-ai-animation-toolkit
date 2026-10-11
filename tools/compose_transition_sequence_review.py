@@ -23,7 +23,9 @@ def main():
     frames = sorted(frames_dir.glob('[0-9]*.png'))
     assert [f.name for f in frames] == [f'{i:06d}.png' for i in range(count)]
     for frame in frames:
-        with Image.open(frame) as img: assert img.size == (1920,1080)
+        with Image.open(frame) as img:
+            assert img.size == (1920,1080)
+            img.verify()
     movie = a.folder / (render['revision'] + '-' + a.mode + '.mp4')
     subprocess.run([str(a.ffmpeg),'-hide_banner','-loglevel','error','-y','-framerate','60','-i',str(frames_dir/'%06d.png'),
         '-frames:v',str(count),'-an','-c:v','libx264','-threads','2','-preset','medium','-crf','18','-pix_fmt','yuv420p','-movflags','+faststart',str(movie)],check=True)

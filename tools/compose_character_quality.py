@@ -30,6 +30,7 @@ def compose(folder: Path, mode: str, ffmpeg: Path) -> dict:
     for frame in frames:
         with Image.open(frame) as img:
             if img.size != (1920, 1080): raise ValueError("Incorrect native frame size")
+            img.verify()
     revision = render["revision"]
     video = folder / f"{revision}-{mode}.mp4"
     command = [str(ffmpeg), "-hide_banner", "-loglevel", "error", "-y", "-framerate", "60",
