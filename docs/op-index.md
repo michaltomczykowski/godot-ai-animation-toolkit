@@ -778,7 +778,7 @@ Handler: `res://addons/godot_ai_animation/handlers/sequence.gd`
 | `player_path` | string | AnimationPlayer receiving the clip. |
 | `skeleton_path` | string | Skeleton3D animated by the clips and poses. |
 | `animation_name` | string | Output clip name (sequence). |
-| `duration` | number | Authored timeline seconds. Extracted outputs append a reported 34.333 ms stationary tail for complete travel at 30/60/120 FPS. |
+| `duration` | number | Authored timeline seconds. Extracted outputs append a reported 67.667 ms stationary tail for complete Player/Tree travel at 30/60/120 FPS. |
 | `segments` | array | Ordered timeline segments: {start, duration, source_animation or pose_name or inline pose, source_start?, source_end?, fade_in?, contacts?: [{name,time}]}. The first starts at 0; gaps hold the previous pose. A saved pose comes from animation_rig pose_save. |
 | `samples` | integer | Output samples per second (30, max 1200 keys per track). |
 | `overwrite` | boolean | Replace an existing output clip (false). |

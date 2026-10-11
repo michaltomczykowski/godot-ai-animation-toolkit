@@ -1116,6 +1116,67 @@ func test_walk_start_and_stop_root_travel_forward() -> void:
 	_teardown(rig)
 
 
+func test_transition_root_extraction_reaches_and_holds_at_frame_rates() -> void:
+	var rig := _rig("TransitionExtraction")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var player: AnimationPlayer = rig.player
+	player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	for operation in ["walk_start", "walk_stop"]:
+		for duration in [1.0, 0.53]:
+			player.stop()
+			var name: String = operation + str(duration).replace(".", "_")
+			var made := _handler.run({"op": operation, "skeleton_path": rig.skeleton_path,
+				"player_path": rig.player_path, "animation_name": name, "root_motion": true,
+				"duration": duration}, null)
+			assert_has_key(made, "data", "rooted transition builds")
+			if not made.has("data"): continue
+			var clip := player.get_animation(name)
+			var track := clip.find_track(player.root_motion_track, Animation.TYPE_POSITION_3D)
+			var expected := clip.position_track_interpolate(track, clip.length) - clip.position_track_interpolate(track, 0.0)
+			for fps in [30, 60, 120]:
+				for tree_driven in [false, true]:
+					# Repeat with a fresh controller to check replay as well as finishing.
+					for take in 2:
+						player.active = true
+						player.stop()
+						player.playback_auto_capture = false
+						player.play(name, 0.0, 1.0)
+						player.advance(0.0)
+						var tree: AnimationTree = null
+						var mixer: AnimationMixer = player
+						if tree_driven:
+							player.active = false
+							tree = AnimationTree.new()
+							player.get_parent().add_child(tree)
+							tree.anim_player = tree.get_path_to(player)
+							tree.root_node = tree.get_path_to(player.get_node(player.root_node))
+							tree.root_motion_track = player.root_motion_track
+							tree.root_motion_local = player.root_motion_local
+							tree.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+							var node := AnimationNodeAnimation.new()
+							node.animation = name
+							tree.tree_root = node
+							tree.active = true
+							tree.advance(0.0)
+							mixer = tree
+						var extracted := Vector3.ZERO
+						var late_delta := 0.0
+						for frame in ceili((clip.length + 0.5) * fps):
+							mixer.advance(1.0 / fps)
+							var delta := mixer.get_root_motion_position()
+							extracted += delta
+							if float(frame) / fps >= duration + 1.0 / fps: late_delta = maxf(late_delta, delta.length())
+						var label := "%s duration=%s fps=%d tree=%s take=%d" % [operation, duration, fps, tree_driven, take]
+						assert_true(extracted.distance_to(expected) < 0.00001, label + " complete extraction: " + str(extracted.distance_to(expected)))
+						assert_true(late_delta < 0.000001, label + " stationary terminal hold: " + str(late_delta))
+						if tree != null: tree.free()
+	player.active = true
+	player.stop()
+	_teardown(rig)
+
+
 func test_root_motion_engine_playback_keeps_world_stance_at_frame_rates() -> void:
 	var rig := _rig("MotionFrameRates")
 	if rig.has("error"):

@@ -473,13 +473,13 @@ func _commit_procedural_clip(
 	}}
 
 
-## AnimationPlayer clears extraction on its finishing tick. Hold all channels
-## for more than one 30 FPS frame, so an arbitrary motion endpoint is reached
-## before that tick at the supported 30/60/120 playback rates.
+## AnimationPlayer clears extraction on its finishing tick. AnimationTree's
+## end-crossing interval may cover two frames. Hold all channels for more than
+## two 30 FPS frames so both controllers finish inside the stationary tail.
 static func preserve_translation_endpoint(spec: Dictionary, root_path: String) -> float:
 	if int(spec.loop_mode) != Animation.LOOP_NONE or root_path.is_empty() or ClipSpec.find_track_index(spec, root_path, Animation.TYPE_POSITION_3D) < 0: return 0.0
 	var original := float(spec.length)
-	var hold := 1.0 / 30.0 + 0.001
+	var hold := 2.0 / 30.0 + 0.001
 	var native := SpecBuilder.to_animation(spec)
 	for index in (spec.tracks as Array).size():
 		var track: Dictionary = spec.tracks[index]
