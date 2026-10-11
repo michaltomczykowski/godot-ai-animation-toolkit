@@ -2,6 +2,26 @@
 
 ## Current instruction (2026-10-11)
 
+Idle review delivery is complete on animation source `8665980`, UUID
+`111fa689c5184c1ca20c41b0ef52141f`. All ten continuous 48s/1080p60 MP4s are
+independently decoded (2,880 frames each) and archived with 68 idle scenes,
+private local rigs, exact source/tooling and receipts. Protected walk/run adds
+80 saved scenes and 120 exact played comparisons. Forty actual public history
+writes, 240 native idle runs and forty reload dry calls pass. Source CI's only
+failure is the preserved legacy idle golden; all 28 headless and both live MCP
+jobs pass. Local full 388/389, no skips/errors. The requested root flag is an
+echo; empty new root track and actual zero travel establish stationary output.
+
+PC Explorer's idle candidate/review-videos folder and Responsive clean selection
+are observed. All five idle approvals remain null. State:
+`awaiting_idle_styles_feedback`. **Pause for explicit idle video feedback now.**
+Do not restart captures or rerun the completed archive/reset feedback. After
+approval follow docs/idle-golden-migration-plan.md, require green regression,
+then use the prepared start-stop-quality-review-plan.md. No release yet.
+Recovery: release_r2_idle_20261011; review-delivery.json and pc-review-delivery.json.
+
+### Historical idle checkpoints
+
 Idle ordinary candidate is active on source `8665980`, UUID
 `111fa689c5184c1ca20c41b0ef52141f`; recovery release_r2_idle_20261011/candidate.
 40/40 public writes pass actual external history, dry/pose preservation and

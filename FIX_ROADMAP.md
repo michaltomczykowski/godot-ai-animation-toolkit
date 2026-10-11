@@ -2,6 +2,18 @@
 
 ## Current closure (2026-10-11)
 
+Idle candidate review delivery is complete: ten continuous 48s/1080p60 videos,
+each independently decoded at 2,880 frames. Exact animation source `8665980`,
+68 idle scenes/local rigs and complete tooling/receipts are archived; protected
+gait proof preserves another 80 scenes and 120 exactly matching playback runs.
+All 40 public history writes, 240 native idle checks and 40 reload calls pass.
+PC Explorer's review folder and Responsive clean selection are observed.
+State: `awaiting_idle_styles_feedback`; five style approvals remain null.
+Pause for explicit video feedback, then versioned idle fixture and green source
+regression before start/stop. Plans are saved. No release action yet.
+
+The earlier pending-recording checkpoints below retain their original evidence.
+
 Idle ordinary candidate source `8665980`: 40 public Godot AI writes, each with
 actual Undo/Redo, dry/pose preservation and save/reopen; 240/240 native Player/
 Tree checks at 30/60/120 FPS, zero default clamps or knee flips. Forty reload

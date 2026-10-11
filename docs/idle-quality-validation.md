@@ -238,6 +238,32 @@ failed preflight in `candidate-gates/archive-first-failure.json`. Correct the
 reference and archive to require the echoed request, empty new track and existing
 native ownership/travel checks; no addon, saved clip or media changes are needed.
 
+### E — complete media, archive and PC review delivery
+
+All ten final ordinary comparisons are complete: five clean/diagnostic pairs,
+48 continuous seconds each, 1080p60 H.264, **2,880 independently decoded frames**
+per video. Every rig has six seconds front and six side, covering two new idle
+periods per view. Original legacy left/new ordinary candidate right, matching
+fixed cameras and actual period/support/drift labels; no recipe/timing/sampling
+overrides were used for candidate generation. Render errors are zero.
+
+Strict archive passes after the requested/owned-root contract correction. It
+requires all public/history/native/prototype/reload/local/source-CI/media gates
+and exact protected gait regression. Source remains byte-identical to `8665980`.
+Archive: **68 idle scenes**, both local FBX rigs, exact animation source, current
+tooling/docs and phase receipts; protected gait proof adds **80 saved scenes**.
+All ten review copies match their original video hashes. Receipt:
+`candidate/review-delivery.json`; source/scene/tooling ZIP hashes are recorded.
+
+PC File Explorer is observed on `candidate/review-videos`, with all ten MP4s
+plus START-HERE and **idle-review-r001-responsive-clean.mp4 selected**. Delivery
+observation is saved in `candidate/pc-review-delivery.json`. This is delivery,
+not human motion approval. State: `awaiting_idle_styles_feedback`, all five idle
+approvals null. Pause here for explicit five-style/four-rig idle video feedback.
+Historical idle fixture is unchanged. `idle-golden-migration-plan.md` is the
+next regression step; `start-stop-quality-review-plan.md` is prepared for
+execution only after idle approval and independent green closure.
+
 ### Historical next measurement (before prototypes)
 
 Supported prototype inputs are saved in `idle-supported-prototypes.json`:
