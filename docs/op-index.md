@@ -618,8 +618,8 @@ Handler: `res://addons/godot_ai_animation/handlers/motion.gd`
 | `jump` | Build a one-shot jump: anticipation crouch, launch, air arc, landing absorb and recovery; feet planted before takeoff and after landing, and the lean is spread up `spine_chain`. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `height`, `crouch`, `distance`, `style`, `overrides`, `samples`, `roles`, `profile`, `spine_chain`, `loop_mode`, `overwrite`, `dry_run` |
 | `turn_cycle` | Build an in-place pivot turn with anticipation, a stepping foot and a settle; one-shot, direction left/right. `steps` splits a big turn into that many pivot steps (opposite foot each) so a 180-degree turn reads as weight shifts, not a spin; the torso lead is bounded per step and spread over `spine_chain`, so a long spine cannot corkscrew; re-base the root yaw between steps in your driver. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `angle`, `direction`, `steps`, `style`, `overrides`, `samples`, `roles`, `profile`, `spine_chain`, `loop_mode`, `overwrite`, `dry_run` |
 | `strafe_cycle` | Build a looping sideways step with the leading foot out, trailing foot closing and one extracted character-root translation track; root_motion defaults on. Set root_motion=false for an in-place shuffle. Requested speed is bounded by leg reach. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `direction`, `speed`, `stride`, `style`, `overrides`, `samples`, `root_motion`, `set_root_motion`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
-| `walk_start` | Build a short blend into a gait: rest -> the walk pose at `phase`, so it matches the cycle frame-for-frame. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `phase`, `style`, `overrides`, `samples`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
-| `walk_stop` | Build a short blend out of a gait: the walk pose at `phase` -> rest with a settle. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `phase`, `style`, `overrides`, `samples`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
+| `walk_start` | Build a one-shot from accepted idle to the walk at phase; gait_duration/gait_samples describe the separate reference. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `phase`, `gait_duration`, `gait_samples`, `speed`, `root_motion`, `set_root_motion`, `style`, `overrides`, `samples`, `roles`, `profile`, `spine_chain`, `loop_mode`, `overwrite`, `dry_run` |
+| `walk_stop` | Build a one-shot from the walk at phase to accepted idle; gait_duration/gait_samples describe the separate reference. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `phase`, `gait_duration`, `gait_samples`, `speed`, `root_motion`, `set_root_motion`, `style`, `overrides`, `samples`, `roles`, `profile`, `spine_chain`, `loop_mode`, `overwrite`, `dry_run` |
 
 ### `animation_motion` parameters
 
@@ -644,6 +644,8 @@ Handler: `res://addons/godot_ai_animation/handlers/motion.gd`
 | `crouch` | number | jump: anticipation/landing crouch depth in metres (0.24). |
 | `distance` | number | jump: forward travel in metres over the clip (0 = in place). |
 | `phase` | number | walk_start/walk_stop: gait phase (0-1) the transition meets, e.g. 0 = left contact (0). |
+| `gait_duration` | number | walk_start/walk_stop: period of the walk being joined, seconds (1.0), independent of transition duration. |
+| `gait_samples` | number | walk_start/walk_stop: walk reference samples per second (60, clamped 4-120 and raised to at least 24 intervals), independent of transition density. |
 | `stride` | number | Gait: leg swing, degrees (walk 18, run 25). |
 | `knee_bend` | number | Gait: planted crouch control, degrees (walk 8, run 36). |
 | `arm_swing` | number | Gait: arm counter-swing, degrees (responsive walk 20, run 28). |

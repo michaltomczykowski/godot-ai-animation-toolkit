@@ -971,12 +971,13 @@ func test_walk_transition_meets_the_cycle_mid_phase() -> void:
 		"op": "walk_start", "skeleton_path": rig.skeleton_path,
 		"player_path": rig.player_path, "animation_name": "start",
 		"duration": 0.4, "phase": 0.5, "samples": sparse,
+		"gait_duration": 0.4, "gait_samples": sparse,
 	}, null)
 	assert_true(cycle.has("data") and start.has("data"),
 		"the sparse cycle and its transition build (%s)" % str([cycle, start]))
 	var cycle_anim: Animation = rig.player.get_animation("cycle")
 	var start_anim: Animation = rig.player.get_animation("start")
-	# A transition at phase p samples the cycle at p * its own length.
+	# The explicitly separate gait period/sampling matches this saved cycle.
 	var target := 0.5 * 0.4
 	for bone in ["B-foot.L", "B-thigh.R", "B-spine"]:
 		var expected := _pose_of(rig, cycle_anim, target, bone)
@@ -986,6 +987,84 @@ func test_walk_transition_meets_the_cycle_mid_phase() -> void:
 		assert_true(reached.origin.distance_to(expected.origin) < maxf(0.02, wanted_distance * 0.25),
 			"walk_start lands on the cycle at %s (%.3f m from it, wanted %.3f)"
 			% [bone, reached.origin.distance_to(expected.origin), wanted_distance])
+	_teardown(rig)
+
+
+func _transition_played_pose(rig: Dictionary, name: String, time: float) -> Array[Transform3D]:
+	var player: AnimationPlayer = rig.player
+	player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	player.stop()
+	player.play(name, 0.0, 1.0)
+	player.seek(time, true)
+	player.advance(0.0)
+	var result: Array[Transform3D] = []
+	for index in rig.skeleton.get_bone_count(): result.append(rig.skeleton.get_bone_global_pose(index))
+	player.stop()
+	return result
+
+
+func _expect_transition_pose(actual: Array[Transform3D], expected: Array[Transform3D], label: String) -> void:
+	var position_error := 0.0
+	var rotation_error := 0.0
+	for index in expected.size():
+		position_error = maxf(position_error, actual[index].origin.distance_to(expected[index].origin))
+		var q := expected[index].basis.get_rotation_quaternion().inverse() * actual[index].basis.get_rotation_quaternion()
+		rotation_error = maxf(rotation_error, 2.0 * atan2(Vector3(q.x, q.y, q.z).length(), absf(q.w)))
+	assert_true(position_error < 0.00001, label + " position error: " + str(position_error))
+	assert_true(rotation_error < 0.0001, label + " rotation error: " + str(rotation_error))
+
+
+func test_transition_endpoints_use_independent_full_body_references() -> void:
+	var rig := _rig("IndependentTransition")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var common := {"skeleton_path": rig.skeleton_path, "player_path": rig.player_path}
+	var idle_params := common.merged({"op": "idle_cycle", "animation_name": "reference_idle"})
+	assert_true(_handler.run(idle_params, null).has("data"), "ordinary independent idle builds")
+	var idle_pose := _transition_played_pose(rig, "reference_idle", 0.0)
+	var case_number := 0
+	for reference in [{"duration": 1.0, "samples": 60.0}, {"duration": 0.7, "samples": 40.0}]:
+		for extracted in [false, true]:
+			var walk_params := common.merged(reference).merged({"op": "walk_cycle", "animation_name": "reference_walk", "overwrite": true, "root_motion": extracted})
+			var walk := _handler.run(walk_params, null)
+			assert_true(walk.has("data"), "separately timed walk builds")
+			for duration in [0.35, 1.4]:
+				for phase in [0.137, 0.537]:
+					var gait_pose := _transition_played_pose(rig, "reference_walk", phase * float(reference.duration))
+					for operation in ["walk_start", "walk_stop"]:
+						case_number += 1
+						var params := common.merged({"op": operation, "animation_name": "transition_%d" % case_number,
+							"duration": duration, "phase": phase, "root_motion": extracted, "samples": 4.0,
+							"gait_duration": reference.duration, "gait_samples": reference.samples})
+						var written := _handler.run(params, null)
+						assert_true(written.has("data"), "reference transition builds: " + str(written.get("error", "")))
+						if not written.has("data"): continue
+						assert_eq(float(written.data.gait_reference_period_s), float(reference.duration), "reference cadence ignores transfer duration")
+						assert_eq(float(written.data.gait_reference_samples), float(walk.data.samples), "reference sampling ignores transfer density")
+						var gait_edge: float = 0.0 if operation == "walk_stop" else duration
+						var idle_edge: float = duration if operation == "walk_stop" else 0.0
+						_expect_transition_pose(_transition_played_pose(rig, params.animation_name, gait_edge), gait_pose, "gait %d" % case_number)
+						_expect_transition_pose(_transition_played_pose(rig, params.animation_name, idle_edge), idle_pose, "idle %d" % case_number)
+	rig.player.stop()
+	_teardown(rig)
+
+
+func test_transition_reference_validation_is_nonmutating() -> void:
+	var rig := _rig("BadReference")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var before := _clip_names(rig.player)
+	var version := _undo_version()
+	for invalid in [{"gait_duration": "fast"}, {"gait_samples": true}, {"gait_duration": 0.0}, {"gait_duration": -1.0}, {"gait_duration": 21.0}, {"gait_duration": 0.01}]:
+		var params := {"op": "walk_start", "player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
+			"animation_name": "invalid_reference"}
+		params.merge(invalid)
+		var result := _handler.run(params, null)
+		assert_true(result.has("error"), "invalid reference is refused: " + str(invalid))
+		assert_eq(_clip_names(rig.player), before, "reference refusal preserves clips")
+		assert_eq(_undo_version(), version, "reference refusal preserves history")
 	_teardown(rig)
 
 

@@ -1921,6 +1921,14 @@ static func _motion_schema() -> Dictionary:
 				"type": "number",
 				"description": "walk_start/walk_stop: gait phase (0-1) the transition meets, e.g. 0 = left contact (0).",
 			},
+			"gait_duration": {
+				"type": "number",
+				"description": "walk_start/walk_stop: period of the walk being joined, seconds (1.0), independent of transition duration.",
+			},
+			"gait_samples": {
+				"type": "number",
+				"description": "walk_start/walk_stop: walk reference samples per second (60, clamped 4-120 and raised to at least 24 intervals), independent of transition density.",
+			},
 			"stride": {
 				"type": "number",
 				"description": "Gait: leg swing, degrees (walk 18, run 25).",
@@ -2116,14 +2124,14 @@ static func _motion_ops() -> Array:
 		},
 		{
 			"name": "walk_start",
-			"summary": "Build a short blend into a gait: rest -> the walk pose at `phase`, so it matches the cycle frame-for-frame.",
-			"params": ["player_path", "skeleton_path", "animation_name", "duration", "phase", "style", "overrides", "samples", "roles", "profile", "loop_mode", "overwrite"],
+			"summary": "Build a one-shot from accepted idle to the walk at phase; gait_duration/gait_samples describe the separate reference.",
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "phase", "gait_duration", "gait_samples", "speed", "root_motion", "set_root_motion", "style", "overrides", "samples", "roles", "profile", "spine_chain", "loop_mode", "overwrite"],
 			"example": {"op": "walk_start", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "walk_start", "duration": 0.35, "phase": 0.0},
 		},
 		{
 			"name": "walk_stop",
-			"summary": "Build a short blend out of a gait: the walk pose at `phase` -> rest with a settle.",
-			"params": ["player_path", "skeleton_path", "animation_name", "duration", "phase", "style", "overrides", "samples", "roles", "profile", "loop_mode", "overwrite"],
+			"summary": "Build a one-shot from the walk at phase to accepted idle; gait_duration/gait_samples describe the separate reference.",
+			"params": ["player_path", "skeleton_path", "animation_name", "duration", "phase", "gait_duration", "gait_samples", "speed", "root_motion", "set_root_motion", "style", "overrides", "samples", "roles", "profile", "spine_chain", "loop_mode", "overwrite"],
 			"example": {"op": "walk_stop", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "walk_stop", "duration": 0.35, "phase": 0.5},
 		},
 	])

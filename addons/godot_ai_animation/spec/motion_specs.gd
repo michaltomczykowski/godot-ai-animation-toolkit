@@ -1540,17 +1540,18 @@ static func turn_keys(ctx: Dictionary) -> Dictionary:
 
 # --- gait transitions -------------------------------------------------------
 
-## Blend into (`walk_start`) or out of (`walk_stop`) a gait. The gait-facing end
-## is sampled from `gait_keys` at `phase`, so the transition matches the cycle
-## frame-for-frame and can be cross-faded or concatenated.
-static func transition_keys(ctx: Dictionary, stopping: bool) -> Dictionary:
+## References are prepared at their own timing; transition density/duration must
+## not change the gait or the accepted standing pose they join.
+static func transition_keys(ctx: Dictionary, stopping: bool, gait: Dictionary, idle: Dictionary) -> Dictionary:
 	var length := maxf(float(ctx.length), 0.01)
 	var phase := clampf(float(ctx.get("phase", 0.0)), 0.0, 0.999)
-	var gait := gait_keys(ctx, false)
 	if (gait.keys as Dictionary).is_empty():
 		return gait
 	var gait_keys_dict: Dictionary = gait.keys
-	var target_time := phase * float(ctx.length)
+	var idle_keys_dict: Dictionary = idle.keys
+	var reference_length := float(gait.length)
+	var target_time := phase * reference_length
+	ctx["foot_lift_scaled"] = float((gait.ctx as Dictionary).get("foot_lift_scaled", 0.05))
 	var keys := {}
 	var hips := str(ctx.get("hips", ""))
 	var hips_origin: Vector3 = ctx.get("hips_origin", Vector3.ZERO)
@@ -1562,15 +1563,15 @@ static func transition_keys(ctx: Dictionary, stopping: bool) -> Dictionary:
 	var target_offset: Vector3 = (ctx.get("hips_parent_basis", Basis.IDENTITY) as Basis) * target_offset_local
 	var target_world_basis := hips_rest * Basis(target_hips) * hips_rest.inverse()
 	var target_world := target_world_basis.get_rotation_quaternion().normalized()
-	# The imported X Bot and many artist rigs rest in a T pose. Begin and end
-	# locomotion transitions with the same relaxed arm pose the gait solver uses.
-	var resting_arms := {}
-	for side in ["l", "r"]:
-		_solve_arm_chain(ctx, resting_arms, side, 0.0, 0.0,
-			float((ctx.config as Dictionary).get("elbow", 12.0)))
+	var idle_hips := _delta_at((idle_keys_dict.get(hips, {}) as Dictionary).get("rotation", []), 0.0)
+	var idle_offset: Vector3 = (ctx.get("hips_parent_basis", Basis.IDENTITY) as Basis) * _vec_at(
+		(idle_keys_dict.get(hips, {}) as Dictionary).get("position", []), 0.0)
+	var idle_world := (hips_rest * Basis(idle_hips) * hips_rest.inverse()).get_rotation_quaternion().normalized()
+	var all_bones: Dictionary = idle_keys_dict.duplicate()
+	all_bones.merge(gait_keys_dict, true)
 	var stance := clampf(float((ctx.config as Dictionary).get("stance", 0.6)), 0.2, 0.8)
 	var speed := float((gait.meta as Dictionary).get("speed", 0.0))
-	var span := speed * stance * length
+	var span := speed * stance * reference_length
 	var clamped := bool((gait.meta as Dictionary).get("clamped", false))
 	var clamp_shortfall := float((gait.meta as Dictionary).get("clamp_shortfall_m", 0.0))
 	var clamped_samples := 0
@@ -1582,7 +1583,7 @@ static func transition_keys(ctx: Dictionary, stopping: bool) -> Dictionary:
 	for side in ["l", "r"]:
 		var leg: Dictionary = ctx.legs[side]
 		var p := fposmod(phase + (0.0 if side == "l" else 0.5), 1.0)
-		var foot := _foot_trajectory(p, stance, span, speed, length, rooted,
+		var foot := _foot_trajectory(p, stance, span, speed, reference_length, rooted,
 			0.0 if side == "l" else 0.5)
 		var forward_distance := float(foot.forward)
 		foot_targets[side] = (leg.ankle as Vector3) \
@@ -1607,8 +1608,8 @@ static func transition_keys(ctx: Dictionary, stopping: bool) -> Dictionary:
 			weight = 1.0 - weight
 			root_at = root_end * MotionDrivers.smoothstep(
 				clampf((t - 0.35) / 0.55, 0.0, 1.0))
-		var offset := target_offset * weight
-		var world := Quaternion.IDENTITY.slerp(target_world, weight).normalized()
+		var offset := idle_offset.lerp(target_offset, weight)
+		var world := idle_world.slerp(target_world, weight).normalized()
 		var hips_animated := Basis(world) * hips_rest
 		if not hips.is_empty():
 			_append_rotation(keys, hips, time,
@@ -1617,7 +1618,7 @@ static func transition_keys(ctx: Dictionary, stopping: bool) -> Dictionary:
 			_append_hips_position(ctx, keys, hips, time, offset)
 		if rooted:
 			_append_position(keys, "__root_motion__", time, root_at)
-		for bone in gait_keys_dict:
+		for bone in all_bones:
 			if bone == hips or bone == "__root_motion__":
 				continue
 			var is_leg := false
@@ -1628,18 +1629,16 @@ static func transition_keys(ctx: Dictionary, stopping: bool) -> Dictionary:
 					break
 			if is_leg:
 				continue
-			var source: Dictionary = gait_keys_dict[bone]
-			if source.has("rotation"):
-				var target_rotation: Quaternion = _delta_at(source.rotation, target_time)
-				var resting_rotation := Quaternion.IDENTITY
-				if resting_arms.has(bone):
-					resting_rotation = _delta_at(
-						(resting_arms[bone] as Dictionary).get("rotation", []), 0.0)
+			var source: Dictionary = gait_keys_dict.get(bone, {})
+			var standing: Dictionary = idle_keys_dict.get(bone, {})
+			if source.has("rotation") or standing.has("rotation"):
+				var target_rotation := _delta_at(source.get("rotation", []), target_time)
+				var resting_rotation := _delta_at(standing.get("rotation", []), 0.0)
 				_append_rotation(keys, str(bone), time,
 					resting_rotation.slerp(target_rotation, weight).normalized())
-			if source.has("position"):
+			if source.has("position") or standing.has("position"):
 				_append_position(keys, str(bone), time,
-					_vec_at(source.position, target_time) * weight)
+					_vec_at(standing.get("position", []), 0.0).lerp(_vec_at(source.get("position", []), target_time), weight))
 		for side in ["l", "r"]:
 			var leg: Dictionary = ctx.legs[side]
 			var hip_pos: Vector3 = hips_origin + offset + Basis(world) * (leg.hip - hips_origin)
@@ -1702,25 +1701,17 @@ static func transition_keys(ctx: Dictionary, stopping: bool) -> Dictionary:
 				_append_rotation(keys, foot_bone, time, flat.slerp(target_foot, weight))
 	# The gait-facing endpoint must be identical to the played gait pose,
 	# including sparse samples at an arbitrary requested phase.
-	for bone in gait_keys_dict:
+	for bone in all_bones:
 		if bone == "__root_motion__" or not keys.has(bone):
 			continue
-		var source: Dictionary = gait_keys_dict[bone]
-		if source.has("rotation") and (keys[bone] as Dictionary).has("rotation"):
-			var rotation_index := 0 if stopping else -1
-			((keys[bone] as Dictionary).rotation as Array)[rotation_index].delta = _delta_at(source.rotation, target_time)
-		if source.has("position") and (keys[bone] as Dictionary).has("position"):
-			var position_index := 0 if stopping else -1
-			((keys[bone] as Dictionary).position as Array)[position_index].delta = _vec_at(source.position, target_time)
-	if stopping:
-		# The geometric solver may finish with a bent knee even when its ankle
-		# target has reached rest. The neutral endpoint is the rig's actual rest
-		# pose, which must join idle without a last-frame foot correction.
-		for side in ["l", "r"]:
-			var leg: Dictionary = ctx.legs[side]
-			for bone in [str(leg.thigh), str(leg.shin), str(leg.get("foot", ""))]:
-				if keys.has(bone) and (keys[bone] as Dictionary).has("rotation"):
-					((keys[bone] as Dictionary).rotation as Array)[-1].delta = Quaternion.IDENTITY
+		var source: Dictionary = gait_keys_dict.get(bone, {})
+		var standing: Dictionary = idle_keys_dict.get(bone, {})
+		for channel in ["rotation", "position"]:
+			if not (keys[bone] as Dictionary).has(channel): continue
+			var gait_value: Variant = _sample_delta(source.get(channel, []), target_time, channel == "rotation")
+			var idle_value: Variant = _sample_delta(standing.get(channel, []), 0.0, channel == "rotation")
+			((keys[bone] as Dictionary)[channel] as Array)[0 if stopping else -1].delta = gait_value
+			((keys[bone] as Dictionary)[channel] as Array)[-1 if stopping else 0].delta = idle_value
 	# A transition lands on (or starts from) a gait pose, so it is a one-shot
 	# too: loop-closing it would overwrite the pose the next clip continues from.
 	_mark_one_shot(keys)
@@ -1731,7 +1722,8 @@ static func transition_keys(ctx: Dictionary, stopping: bool) -> Dictionary:
 			"clamp_shortfall_m": clamp_shortfall, "clamped_leg_samples": clamped_samples,
 			"evaluated_leg_samples": evaluated_samples, "reach_evaluated": evaluated_samples > 0,
 			"gait_reference_clamped": bool((gait.meta as Dictionary).get("clamped", false)),
-			"gait_reference_period_s": float(ctx.length), "gait_reference_samples": float(ctx.samples),
+			"gait_reference_period_s": reference_length, "gait_reference_samples": float(gait.rate),
+			"idle_reference_period_s": float(idle.length), "idle_reference_samples": float(idle.rate),
 			"step_lift_used_m": float((ctx.config as Dictionary).get("foot_lift", 0.05)),
 			"gait_foot_lift_used_m": float(ctx.get("foot_lift_scaled", 0.05))},
 	}

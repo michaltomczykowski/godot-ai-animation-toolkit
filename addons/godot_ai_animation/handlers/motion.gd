@@ -211,7 +211,7 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		elif not (overrides[key] is int or overrides[key] is float):
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Override '%s' must be a number" % key)
 	var numeric_fields := valid_keys.duplicate()
-	numeric_fields.append_array(["duration", "samples", "speed", "phase", "arm_down", "height", "distance", "crouch", "angle"])
+	numeric_fields.append_array(["duration", "samples", "gait_duration", "gait_samples", "speed", "phase", "arm_down", "height", "distance", "crouch", "angle"])
 	for field in numeric_fields:
 		if not params.has(field): continue
 		if str(field) in _BOOLEAN_OVERRIDES:
@@ -302,7 +302,20 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		"strafe":
 			result = MotionSpecs.strafe_keys(ctx, direction)
 		"walk_start", "walk_stop":
-			result = MotionSpecs.transition_keys(ctx, kind == "walk_stop")
+			# A transition's duration/density describes the transfer, not the walk
+			# it joins. Prepare both references without committing another clip.
+			var gait_params := params.duplicate(true)
+			gait_params["duration"] = params.get("gait_duration", 1.0)
+			gait_params["samples"] = params.get("gait_samples", 60.0)
+			gait_params["loop_mode"] = "linear"
+			var gait_reference := _prepare_cycle(gait_params, "walk")
+			if gait_reference.has("error"): return gait_reference
+			var idle_params := {"duration": 3.0, "samples": 60.0, "loop_mode": "linear", "root_motion": false}
+			for field in ["player_path", "skeleton_path", "roles", "profile", "spine_chain", "style", "arm_down"]:
+				if params.has(field): idle_params[field] = params[field]
+			var idle_reference := _prepare_cycle(idle_params, "idle")
+			if idle_reference.has("error"): return idle_reference
+			result = MotionSpecs.transition_keys(ctx, kind == "walk_stop", gait_reference, idle_reference)
 		_:
 			result = MotionSpecs.gait_keys(ctx, kind == "run")
 	var result_meta: Dictionary = result.get("meta", {})
