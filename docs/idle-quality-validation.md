@@ -152,6 +152,14 @@ missing connected chain geometry and refuse explicit impossible requests.
 New profile and public-history tests are implemented; next restart the isolated
 editor before using their results. Historical idle fixture remains unchanged.
 
+First integration check on `aa08459`: headless 14/14; focused 62/64. The preserved
+idle golden fails as expected. The older breathing test also assumed pronounced
+default head/torso sweeps; retain its numerical thresholds and give it explicit
+look=18/twist=22 inputs so it tests the authored controls. Ordinary quieter
+profiles have separate alias/setup and native motion coverage. Preserve this
+first report in `candidate-gates/motion-suite.json`; rerun with a fresh editor
+into a distinct final-source report. No old fixtures were rewritten.
+
 ### Next measurement
 
 Supported prototype inputs are saved in `idle-supported-prototypes.json`:

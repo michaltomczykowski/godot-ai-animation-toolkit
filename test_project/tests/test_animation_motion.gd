@@ -2891,6 +2891,9 @@ func test_idle_cycle_breathing_shift_and_loop() -> void:
 		"op": "idle_cycle", "skeleton_path": rig.skeleton_path,
 		"player_path": rig.player_path, "animation_name": "idle",
 		"duration": 3.0, "loop_mode": "linear",
+		# Exercise the pronounced authored look/twist contract explicitly;
+		# ordinary idle now uses the separately tested quieter profiles.
+		"overrides": {"look": 18.0, "twist": 22.0},
 	}, null)
 	assert_true(result.has("data"), "expected data, got: %s" % str(result))
 	var anim: Animation = rig.player.get_animation("idle")
