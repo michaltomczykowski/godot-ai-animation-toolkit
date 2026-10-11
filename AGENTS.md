@@ -2,6 +2,12 @@
 
 ## Current instruction (2026-10-11)
 
+The user reviewed idle r001 and requested a little more motion and looking
+around. This supersedes the pause below for revision work only. Follow
+docs/idle-look-r002-plan.md, use a new idle-look-r002 recovery folder, preserve
+all r001 videos/receipts and feedback, and pause again after continuous r002
+video delivery. No idle golden migration or release approval yet.
+
 Idle review delivery is complete on animation source `8665980`, UUID
 `111fa689c5184c1ca20c41b0ef52141f`. All ten continuous 48s/1080p60 MP4s are
 independently decoded (2,880 frames each) and archived with 68 idle scenes,

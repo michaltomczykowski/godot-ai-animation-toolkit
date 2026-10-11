@@ -3,7 +3,7 @@
   "phase": "character_quality",
   "operation": "walk_cycle",
   "revision": "walk-default-styles-r005",
-  "state": "awaiting_idle_styles_feedback",
+  "state": "idle_look_r002_in_progress",
   "release_r1_execution": {
     "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -333,7 +333,7 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Explicit five-style/four-rig idle video feedback; preserve historical golden until approval",
+  "next_action": "Implement idle-look-r002 plan and pause after new continuous videos",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
   "updated_utc": "2026-10-10T13:40:33.095528+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -3763,7 +3763,7 @@
     }
   },
   "idle_review": {
-    "state": "awaiting_idle_styles_feedback",
+    "state": "idle_look_r002_in_progress",
     "plan": "docs/idle-quality-review-plan.md",
     "validation": "docs/idle-quality-validation.md",
     "baseline_source": "f44f23685e839a4da21400a549fc91c65d1015dc",
@@ -3914,6 +3914,169 @@
     "decoded_frames_per_video": 2880,
     "protected_gait_scene_count": 80,
     "idle_archived_scenes": 68,
-    "start_stop_plan": "docs/start-stop-quality-review-plan.md"
-  }
+    "start_stop_plan": "docs/start-stop-quality-review-plan.md",
+    "revision_plan": "docs/idle-look-r002-plan.md"
+  },
+  "idle_revision_history": [
+    {
+      "state": "changes_requested",
+      "plan": "docs/idle-quality-review-plan.md",
+      "validation": "docs/idle-quality-validation.md",
+      "baseline_source": "f44f23685e839a4da21400a549fc91c65d1015dc",
+      "baseline_uuid": "f853d458c87f4ce78c9a1c81850579ee",
+      "public_clips": 40,
+      "native_baseline_runs": 60,
+      "native_baseline_passed": 60,
+      "clamp_metadata": "unavailable; not counted as zero",
+      "negative_measurement_runs": 12,
+      "negative_measurement_exit": 1,
+      "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011",
+      "profile_approvals": {
+        "responsive": null,
+        "grounded": null,
+        "relaxed": null,
+        "heavy": null,
+        "sneaky": null
+      },
+      "release_ready": false,
+      "next_gate": "Explicit five-style/four-rig idle video feedback; preserve historical golden until approval",
+      "animation_source": "866598067c31017125d91890cfb37368d7c08a64",
+      "candidate_uuid": "111fa689c5184c1ca20c41b0ef52141f",
+      "public_candidate_clips": 40,
+      "public_candidate_history_passed": 40,
+      "reachable_prototype_runs": 48,
+      "reachable_prototype_source": "57eb3769ac7e57134dcd8bd0e34d5956e3c038ce",
+      "prototype_continuous_video_frames": 2880,
+      "focused_motion": {
+        "total": 64,
+        "passed": 63,
+        "failed": 1,
+        "skipped": 0,
+        "preserved_failure": "test_the_idle_matches_its_golden"
+      },
+      "headless_suites": 14,
+      "candidate_ci_run": 38124952893,
+      "native_runs": 240,
+      "native_passed": 240,
+      "reload_dry_calls": 40,
+      "protected_gait_runs": 120,
+      "protected_gait_exact": true,
+      "local_full_editor": {
+        "total": 389,
+        "passed": 388,
+        "failed": 1,
+        "skipped": 0,
+        "engine_errors": 0,
+        "preserved_failure": "test_the_idle_matches_its_golden"
+      },
+      "candidate_ci_state": "complete_expected_legacy_idle_golden_failure_only",
+      "candidate_ci_other_source_jobs_pass": true,
+      "golden_migration_plan": "docs/idle-golden-migration-plan.md",
+      "videos": [
+        {
+          "style": "responsive",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\candidate\\review-videos\\idle-review-r001-responsive-clean.mp4",
+          "sha256": "67c149ad8bbd1fe286a1d1b25e79c2d50465ea263524b22aac7a5781292d7c87",
+          "bytes": 7833949,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0
+        },
+        {
+          "style": "responsive",
+          "mode": "diagnostic",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\candidate\\review-videos\\idle-review-r001-responsive-diagnostic.mp4",
+          "sha256": "214e9801687336cff192b51f431af3ff1e0cb40c5d2422372afc39a364294c70",
+          "bytes": 8217195,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0
+        },
+        {
+          "style": "grounded",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\candidate\\review-videos\\idle-review-r001-grounded-clean.mp4",
+          "sha256": "f1fee307e24e8fd715516721d06fb6d2937efb8cb65e5b72ba5ca1401032096f",
+          "bytes": 8103100,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0
+        },
+        {
+          "style": "grounded",
+          "mode": "diagnostic",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\candidate\\review-videos\\idle-review-r001-grounded-diagnostic.mp4",
+          "sha256": "1f71c6e244e70e04c0add12def0af08d64b944da78d284c52185ac829682e166",
+          "bytes": 8499757,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0
+        },
+        {
+          "style": "relaxed",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\candidate\\review-videos\\idle-review-r001-relaxed-clean.mp4",
+          "sha256": "d7cc0fb3a54667bf68f4dfebfd62649b7412cb11991648929d7b9537ce5b7ab3",
+          "bytes": 7787266,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0
+        },
+        {
+          "style": "relaxed",
+          "mode": "diagnostic",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\candidate\\review-videos\\idle-review-r001-relaxed-diagnostic.mp4",
+          "sha256": "576bf7faad6d8166593be41f357d6b135083edb9b78b0cad4026da88bcac1c0f",
+          "bytes": 8200622,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0
+        },
+        {
+          "style": "heavy",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\candidate\\review-videos\\idle-review-r001-heavy-clean.mp4",
+          "sha256": "99aff14399e309c924a5045b3901f6f081120119c3c728cfbaa89f0c2607c9a7",
+          "bytes": 7911705,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0
+        },
+        {
+          "style": "heavy",
+          "mode": "diagnostic",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\candidate\\review-videos\\idle-review-r001-heavy-diagnostic.mp4",
+          "sha256": "91eccd7ab90b517e57d61ce3f05d436ef5ab30039ede46cab95ceb68d829a969",
+          "bytes": 8318441,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0
+        },
+        {
+          "style": "sneaky",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\candidate\\review-videos\\idle-review-r001-sneaky-clean.mp4",
+          "sha256": "ab6ace2f56e9f16f991dbca5bc6721d4d87b4ecced651b05343fa62764d869c1",
+          "bytes": 7439164,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0
+        },
+        {
+          "style": "sneaky",
+          "mode": "diagnostic",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\candidate\\review-videos\\idle-review-r001-sneaky-diagnostic.mp4",
+          "sha256": "74578aa731beb2b6ba58d50b772beb4840fc4f4d77db8ce459952bcc3d71380d",
+          "bytes": 7742921,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0
+        }
+      ],
+      "review_delivery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\candidate\\review-delivery.json",
+      "pc_review_delivery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\candidate\\pc-review-delivery.json",
+      "continuous_videos": 10,
+      "decoded_frames_per_video": 2880,
+      "protected_gait_scene_count": 80,
+      "idle_archived_scenes": 68,
+      "start_stop_plan": "docs/start-stop-quality-review-plan.md",
+      "human_feedback": {
+        "quote": "it is very nice, but I think you can add a little bit more motion and looking around",
+        "date": "2026-10-11",
+        "watched_profiles_and_rigs": "not individually enumerated",
+        "approved": false
+      }
+    }
+  ]
 }

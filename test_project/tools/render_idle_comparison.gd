@@ -5,7 +5,7 @@ func _contact(view: Dictionary, side: String) -> bool:
 	return absf((Native.point(view, "foot_" + side) - target).dot(view.up)) <= 0.01 * float(view.leg)
 
 func _comparison_title(candidate: Dictionary, row: Dictionary, angle_name: String) -> String:
-	return "IDLE %s | %s | %s | Godot 4.7.2" % [str(candidate.phase).to_upper(), row.label, angle_name]
+	return "IDLE %s | %s | %s | Godot 4.7.2" % [str(candidate.revision).to_upper(), row.label, angle_name]
 
 func _support(view: Dictionary) -> String:
 	return ("L" if _contact(view, "l") else "-") + ("R" if _contact(view, "r") else "-")
