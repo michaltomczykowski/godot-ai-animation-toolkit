@@ -805,3 +805,13 @@ their requested units. This repair covers level-surface authored motion.
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
   "animation_name": "walk_start", "duration": 0.35, "phase": 0.0}}
 ```
+
+### Simultaneous sequence cues
+
+Godot stores one animation marker per timestamp. `animation_sequence` preserves
+simultaneous source/contact cues as `+`-separated names; repeated source names
+receive numeric suffixes first. Inspect each token when resolving a cue.
+`contact_markers` reports the actual number of saved native markers. Crop
+transition segments at returned `capture_duration`, excluding their stationary
+root extraction tail. Explicit transition timing can return a typed reach
+refusal before mutation; shorten duration or reduce reference speed.

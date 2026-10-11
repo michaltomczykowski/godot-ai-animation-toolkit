@@ -221,3 +221,23 @@ Current in-place audit consumes the numeric actor schedule on the identity
 fixture actor parents; rest-axis variants are included. Arbitrary rotated or
 scaled actor wrappers need the explicit actor-node/local-to-world contract and
 additional R3 coverage. Do not claim that broader transform coverage here.
+
+### Timing checkpoint and pending delivery
+
+Source `bb7395c` passes all 96 explicit four-rig timing requests: 91 saved
+clips /546 native Player/Tree/FPS checks pass; five unsupported long/fast
+requests return matching typed reach errors on dry/write and preserve clip,
+pose and extraction binding. Both between-key phases 0.137/0.537, 0.35/1.4 s
+ordinary-reference transfers and 0.9 s transfers with separately saved 0.7 s
+/40 Hz walks are covered. Receipt: `timing-r002/timing-matrix.json`.
+Public motion was 71/71; current headless remains 14/14, zero accepted golden
+drift. Sequence cues' red/green native controls and the revised timing harness
+are committed. Active visible editor PID 1756 is source `bb7395c`.
+
+Continuous transition recorder is running in `candidate-r001`; inspect
+`recording-progress.json` and its actual PID before resuming. Do not duplicate
+active recordings or overwrite historical attempts. Animation source is exactly
+`4137cc5`; composition has a separate cue repair. Next: public four-rig
+composition/history, 24 saved sequence runs, 160 reload dry calls, fresh full
+local/source CI, then all 22 movies/archive/Explorer and explicit human pause.
+No start/stop approval, merge, tag or release.

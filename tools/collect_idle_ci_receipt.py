@@ -21,6 +21,10 @@ def main() -> None:
     parser.add_argument("--repo", type=Path, required=True)
     parser.add_argument("--approved-regression", action="store_true",
                         help="Require green comparison of the reviewed v2 idle fixture")
+    parser.add_argument("--expected-total", type=int, default=389,
+                        help="Exact editor coverage after additional repair tests")
+    parser.add_argument("--protected-gaits", action="store_true",
+                        help="Also require zero approved walk/run digest drift")
     args = parser.parse_args()
     run = json.loads(gh("run", "view", str(args.run_id), "--json", "status,conclusion,headSha,url,jobs"))
     require(run["headSha"] == args.source and run["status"] == "completed", "Wrong or incomplete source CI")
@@ -48,7 +52,7 @@ def main() -> None:
             skips = [r for r in result["results"] if r.get("skipped")]
             expected_failures = [] if args.approved_regression else ["test_the_idle_matches_its_golden"]
             require(job["conclusion"] == ("success" if args.approved_regression else "failure")
-                    and result["total"] == 389 and result["passed"] == (387 if args.approved_regression else 386)
+                    and result["total"] == args.expected_total and result["passed"] == args.expected_total - (2 if args.approved_regression else 3)
                     and result["failed"] == len(expected_failures) and result["skipped"] == 2
                     and [r["test"] for r in failures] == expected_failures
                     and {r["test"] for r in skips} == {"test_responsive_default_aliases_and_setup_use_identical_walks",
@@ -61,6 +65,13 @@ def main() -> None:
                 require(len(drift) == 1 and int(drift[0]) <= 2,
                         "Missing approved idle comparison within digest tolerance: " + name)
                 item["idle_golden_drift_units"] = int(drift[0])
+            if args.protected_gaits:
+                item['protected_golden_drift_units'] = {}
+                for operation in ('walk_cycle', 'run_cycle', 'idle_cycle'):
+                    protected = re.findall(r'golden ' + operation + r': worst drift (\d+) unit\(s\)', raw)
+                    require(len(protected) == 1 and int(protected[0]) == 0,
+                            'Missing zero protected motion drift: ' + name + '/' + operation)
+                    item['protected_golden_drift_units'][operation] = int(protected[0])
             item.update(total=result["total"], passed=result["passed"], failed=result["failed"], skipped=2,
                         failures=failures, skips=skips, engine_errors=0, route_pass_markers=2)
             write(path.with_suffix(".json"), result)
@@ -96,6 +107,7 @@ def main() -> None:
                "all_required_source_jobs_pass": args.approved_regression,
                "all_advisory_jobs_pass": args.approved_regression,
                "headless_jobs": 28, "editor_jobs": editors, "live_mcp_jobs": live,
+               "expected_editor_total": args.expected_total, "protected_gaits_checked": args.protected_gaits,
                "release_ready": False, "archived_utc": datetime.now(timezone.utc).isoformat()}
     write(args.folder / "ci-receipt.json", receipt)
     print("IDLE_SOURCE_CI=28 headless and 2 live pass; " + (

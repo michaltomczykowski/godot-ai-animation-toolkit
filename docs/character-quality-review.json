@@ -4565,6 +4565,16 @@
       "actor_drift_controls_passed": 48,
       "continuation_positive_controls_passed": 288,
       "shifted_endpoint_controls_detected": 288
+    },
+    "timing_checkpoint": {
+      "source": "bb7395c",
+      "public_requests": 96,
+      "saved_clips": 91,
+      "native_runs": 546,
+      "typed_nonmutating_refusals": 5,
+      "passed": true,
+      "receipt": "timing-r002/timing-matrix.json",
+      "visual_approval": null
     }
   }
 }
