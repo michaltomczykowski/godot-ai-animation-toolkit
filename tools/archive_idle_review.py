@@ -14,6 +14,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("folder", type=Path)
     parser.add_argument("--baseline", type=Path, required=True)
+    parser.add_argument("--baseline-kind", choices=("legacy", "reviewed"), default="legacy")
     parser.add_argument("--prototype", type=Path, required=True)
     parser.add_argument("--gates", type=Path, required=True)
     parser.add_argument("--repo", type=Path, required=True)
@@ -25,11 +26,19 @@ def main() -> None:
     matrix = read(args.folder / "native-matrix.json")
     require(matrix["passed"] and matrix["native_runs"] == 240 and len(matrix["rows"]) == 10, "Incomplete idle matrix")
     source = matrix["source_head"]
+    if args.baseline_kind == "reviewed":
+        ranges = read(args.folder / "revision-native-ranges.json")
+        require(ranges["passed"] and ranges["native_runs"] == 60 and ranges["source_head"] == source,
+                "Missing increased played-motion proof for revised idle")
+        for row in ranges["rows"]:
+            require(digest(Path(row["report"])) == row["sha256"], "Changed revision range report")
     records, videos = [], []
     expected = {(rig, fps, mixer) for rig in RIGS for fps in (30, 60, 120) for mixer in ("player", "tree")}
     for style in STYLES:
         baseline = read(args.baseline / (style + "-in-place") / "route.json")
         require(baseline["passed"] and baseline["operation"] == "idle_cycle", "Missing ordinary idle baseline")
+        require(baseline["phase"] == ("candidate" if args.baseline_kind == "reviewed" else "baseline"),
+                "Wrong comparison baseline kind")
         records.append(baseline)
         for root_mode in ("extracted", "in_place"):
             folder = args.folder / (style if root_mode == "extracted" else style + "-in-place")
@@ -134,14 +143,17 @@ def main() -> None:
         if not target.exists(): shutil.copy2(video["path"], target)
         require(digest(target) == video["sha256"], "Changed PC review copy")
         video["path"] = str(target)
+    responsive = next(v for v in videos if v["style"] == "responsive" and v["mode"] == "clean")
+    baseline_label = "previously reviewed r001 idle" if args.baseline_kind == "reviewed" else "ordinary legacy idle"
     (destination / "START-HERE.txt").write_text(
-        "Start with idle-review-r001-responsive-clean.mp4, then grounded, relaxed, heavy and sneaky.\n"
-        "LEFT: preserved ordinary legacy idle. RIGHT: new ordinary idle, no recipe/timing/sampling overrides.\n"
+        f"Start with {Path(responsive['path']).name}, then grounded, relaxed, heavy and sneaky.\n"
+        f"LEFT: preserved {baseline_label}. RIGHT: new ordinary idle, no recipe/timing/sampling overrides.\n"
         "48 continuous seconds, 1080p60. Each rig: six seconds FRONT, six SIDE (two new idle periods per view).\n"
         "00-12 dummy; 12-24 X Bot; 24-36 short; 36-48 tall Z-up. Diagnostic green is measured ankle contact band.\n"
         "Review quiet breathing/head motion, relaxed arms/wrists/fingers, weight shifts and standing foot plants.\n"
         "Approve or request changes for each of the five styles across the four rigs. No release yet.\n", encoding="utf-8")
     receipt = {"state": "awaiting_idle_styles_feedback", "animation_source": source,
+               "baseline_kind": args.baseline_kind, "baseline_folder": str(args.baseline),
                "core_source": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=args.core_root, text=True).strip(),
                "created_utc": datetime.now(timezone.utc).isoformat(), "public_clips": 40, "native_runs": 240,
                "reload_dry_calls": 40, "prototype_runs": 48, "release_ready": False,
@@ -167,6 +179,8 @@ def main() -> None:
                 archive.write(path, "receipts/" + path.relative_to(args.folder.parent).as_posix())
     receipt["tooling_zip_sha256"] = digest(args.folder / "tooling-and-phase-receipts.zip")
     previous.update(state=receipt["state"], animation_source=source, public_clips=40, native_runs=240,
+                    candidate_uuid=route["run_id"], comparison_baseline_folder=str(args.baseline),
+                    comparison_baseline_kind=args.baseline_kind,
                     videos=videos, profile_approvals={style: None for style in STYLES}, release_ready=False,
                     review_delivery=str(args.folder / "review-delivery.json"))
     state.update(state=receipt["state"], active_review_field="idle_review", idle_review=previous,
