@@ -1116,6 +1116,28 @@ func test_walk_start_and_stop_root_travel_forward() -> void:
 	_teardown(rig)
 
 
+func test_transition_reports_real_reach_work() -> void:
+	var rig := _rig("TransitionReachReport")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	for operation in ["walk_start", "walk_stop"]:
+		var made := _handler.run({"op": operation, "skeleton_path": rig.skeleton_path,
+			"player_path": rig.player_path, "animation_name": operation, "root_motion": true}, null)
+		assert_has_key(made, "data", "transition builds")
+		if not made.has("data"): continue
+		var data: Dictionary = made.data
+		for field in ["clamped", "clamp_shortfall_m", "clamped_leg_samples", "evaluated_leg_samples", "reach_evaluated", "gait_reference_clamped"]:
+			assert_has_key(data, field, "transition exposes " + field)
+		assert_true(bool(data.get("reach_evaluated", false)) and int(data.get("evaluated_leg_samples", 0)) > 0, "both leg solves were evaluated")
+		var count := int(data.get("clamped_leg_samples", -1))
+		assert_true(count >= 0 and count <= int(data.get("evaluated_leg_samples", 0)), "real clamp count is bounded by solve work")
+		assert_eq(bool(data.get("clamped", false)), count > 0 or bool(data.get("gait_reference_clamped", false)), "aggregate distinguishes transition and gait clamps")
+		assert_true(float(data.get("clamp_shortfall_m", -1)) >= 0.0, "reach shortfall is measured")
+		assert_true(float(data.get("speed", 0)) > 0.0, "transition reports its actual gait speed")
+	_teardown(rig)
+
+
 func test_transition_root_extraction_reaches_and_holds_at_frame_rates() -> void:
 	var rig := _rig("TransitionExtraction")
 	if rig.has("error"):

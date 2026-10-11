@@ -1571,6 +1571,10 @@ static func transition_keys(ctx: Dictionary, stopping: bool) -> Dictionary:
 	var stance := clampf(float((ctx.config as Dictionary).get("stance", 0.6)), 0.2, 0.8)
 	var speed := float((gait.meta as Dictionary).get("speed", 0.0))
 	var span := speed * stance * length
+	var clamped := bool((gait.meta as Dictionary).get("clamped", false))
+	var clamp_shortfall := float((gait.meta as Dictionary).get("clamp_shortfall_m", 0.0))
+	var clamped_samples := 0
+	var evaluated_samples := 0
 	var rooted := bool(ctx.get("root_motion", false))
 	var foot_targets := {}
 	var support := "r"
@@ -1674,6 +1678,11 @@ static func transition_keys(ctx: Dictionary, stopping: bool) -> Dictionary:
 			var ankle_target := world_ankle - root_at
 			var solved := MotionDrivers.solve_leg(hip_pos, ankle_target,
 				float(leg.upper), float(leg.lower), _rest_bend(ctx, leg, ctx.forward))
+			evaluated_samples += 1
+			if bool(solved.clamped):
+				clamped = true
+				clamped_samples += 1
+				clamp_shortfall = maxf(clamp_shortfall, float(solved.shortfall))
 			var thigh_rest := _rest_basis(ctx, leg.thigh)
 			var shin_rest := _rest_basis(ctx, leg.shin)
 			var thigh_solve := MotionDrivers.aim_delta(hips_animated, hips_rest, thigh_rest,
@@ -1718,7 +1727,13 @@ static func transition_keys(ctx: Dictionary, stopping: bool) -> Dictionary:
 	return {
 		"keys": keys,
 		"markers": [{"name": "settled", "time": length}],
-		"meta": {"phase": phase},
+		"meta": {"phase": phase, "speed": speed, "clamped": clamped,
+			"clamp_shortfall_m": clamp_shortfall, "clamped_leg_samples": clamped_samples,
+			"evaluated_leg_samples": evaluated_samples, "reach_evaluated": evaluated_samples > 0,
+			"gait_reference_clamped": bool((gait.meta as Dictionary).get("clamped", false)),
+			"gait_reference_period_s": float(ctx.length), "gait_reference_samples": float(ctx.samples),
+			"step_lift_used_m": float((ctx.config as Dictionary).get("foot_lift", 0.05)),
+			"gait_foot_lift_used_m": float(ctx.get("foot_lift_scaled", 0.05))},
 	}
 
 
