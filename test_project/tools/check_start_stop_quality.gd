@@ -108,6 +108,8 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 	var driver: Node3D = null
 	var paired: Dictionary = {}
 	var paired_track := -1
+	var actor_animation: Animation = null
+	var actor_errors: Array[String] = []
 	var actor_schedule_known: bool = row.write.has("actor_translation_keys")
 	if not extracted:
 		driver = Node3D.new()
@@ -115,12 +117,31 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 		v.scene.reparent(driver, true)
 		v.body = driver
 		v.initial_body = driver.global_position
-		# Baseline diagnostics explicitly use the paired extracted clip's engine
-		# track. This assumption is NOT caller documentation or an acceptance.
-		paired = Native.load_case(pair, root)
-		paired_track = paired.clip.find_track(paired.player.root_motion_track, Animation.TYPE_POSITION_3D)
+		if actor_schedule_known:
+			actor_animation = Animation.new()
+			actor_animation.length = action_duration
+			actor_animation.add_track(Animation.TYPE_POSITION_3D)
+			var previous_time := -1.0
+			var schedule: Array = row.write.actor_translation_keys
+			if schedule.size() < 2: actor_errors.append("Actor schedule must contain at least two keys")
+			for key: Dictionary in schedule:
+				var offset: Array = key.get("offset", [])
+				var time := float(key.get("time", -1.0))
+				if offset.size() != 3 or not is_finite(time) or time <= previous_time:
+					actor_errors.append("Invalid actor schedule key")
+					continue
+				var value := Vector3(float(offset[0]), float(offset[1]), float(offset[2]))
+				if not value.is_finite(): actor_errors.append("Nonfinite actor schedule")
+				actor_animation.track_insert_key(0, time, value)
+				previous_time = time
+			if previous_time < action_duration - 0.000001: actor_errors.append("Actor schedule ends before action")
+		elif baseline:
+			# Only old baseline diagnostics use the paired extracted saved track.
+			paired = Native.load_case(pair, root)
+			paired_track = paired.clip.find_track(paired.player.root_motion_track, Animation.TYPE_POSITION_3D)
 	var mixer := _tree(v, mode)
 	var errors: Array[String] = []
+	errors.append_array(actor_errors)
 	var key_count := 0
 	var path_errors: Array[String] = []
 	var active_mixers := 0
@@ -146,9 +167,12 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 	var expected_root := Vector3.ZERO
 	if root_track >= 0: expected_root = clip.position_track_interpolate(root_track, clip.length) - clip.position_track_interpolate(root_track, 0.0)
 	if not extracted and paired_track >= 0: expected_root = paired.clip.position_track_interpolate(paired_track, paired.clip.length) - paired.clip.position_track_interpolate(paired_track, 0.0)
+	if not extracted and actor_animation != null and actor_animation.track_get_key_count(0) >= 2:
+		expected_root = actor_animation.position_track_interpolate(0, action_duration) - actor_animation.position_track_interpolate(0, 0.0)
 	var feet := {}
 	for side in ["l", "r"]:
 		feet[side] = {"active": false, "anchor": Vector3.ZERO, "slide": 0.0, "penetration": 0.0,
+			"declared_active": -1, "declared_anchor": Vector3.ZERO, "declared_slide": 0.0, "declared_height": 0.0, "declared_frames": 0,
 			"normal": Vector3.ZERO, "flips": 0, "frames": 0, "windows": 0}
 	var previous := _poses(v.rig)
 	var terminal: Array[Transform3D] = []
@@ -170,7 +194,9 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 			if extracted: v.body.position += v.body.quaternion * delta
 			else:
 				in_place_root = maxf(in_place_root, delta.length())
-				if paired_track >= 0:
+				if actor_animation != null and actor_animation.track_get_key_count(0) >= 2:
+					v.body.global_position = v.initial_body + actor_animation.position_track_interpolate(0, minf(float(frame) / fps, action_duration))
+				elif paired_track >= 0:
 					var at := minf(float(frame) / fps, clip.length)
 					var before := minf(float(frame - 1) / fps, clip.length)
 					v.body.global_position += paired.clip.position_track_interpolate(paired_track, at) - paired.clip.position_track_interpolate(paired_track, before)
@@ -195,6 +221,16 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 			var foot := Native.point(v, "foot_" + side)
 			var height: float = foot.dot(v.up) - v.ground
 			var f: Dictionary = feet[side]
+			var declared := -1
+			var contacts: Array = row.write.get("declared_contacts", [])
+			for i in contacts.size():
+				if contacts[i].side == side and v.time >= float(contacts[i].start) - 0.000001 and v.time <= float(contacts[i].end) + 0.000001: declared = i
+			if declared >= 0:
+				if declared != int(f.declared_active): f.declared_anchor = foot
+				f.declared_slide = maxf(float(f.declared_slide), Native.flat(foot - f.declared_anchor, v.up).length())
+				f.declared_height = maxf(float(f.declared_height), absf(height))
+				f.declared_frames += 1
+			f.declared_active = declared
 			var on := absf(height) <= 0.01 * leg
 			if on and not f.active:
 				f.anchor = foot
@@ -212,7 +248,7 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 				var normal := pole.normalized()
 				if (f.normal as Vector3).length_squared() > 0.5 and normal.dot(f.normal) < 0.0: f.flips += 1
 				f.normal = normal
-			sample.feet[side] = {"p": Native.values(foot), "height_from_rest_ankle_plane": height, "observed_contact_band": on}
+			sample.feet[side] = {"p": Native.values(foot), "height_from_rest_ankle_plane": height, "observed_contact_band": on, "declared_contact_index": declared}
 		for i in poses.size():
 			if not poses[i].origin.is_finite() or not poses[i].basis.is_finite(): nonfinite += 1
 			var step := _difference([poses[i]], [previous[i]])
@@ -242,13 +278,15 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 	for side: String in feet:
 		var f: Dictionary = feet[side]
 		if f.slide > minf(0.02 * leg, 0.03) or f.penetration > 0.01 * leg or f.flips > 0 or f.frames == 0: errors.append(side + " contact/slide/penetration/knee failure")
+		if row.write.has("declared_contacts") and (f.declared_slide > minf(0.02 * leg, 0.03) or f.declared_height > 0.01 * leg or f.declared_frames == 0): errors.append(side + " declared support failure")
 		metrics[side] = {"max_observed_contact_slide_m": f.slide, "max_rest_ankle_plane_penetration_m": f.penetration,
+			"max_declared_contact_slide_m": f.declared_slide, "max_declared_contact_height_m": f.declared_height, "declared_contact_frames": f.declared_frames,
 			"knee_pole_flips": f.flips, "observed_contact_frames": f.frames, "observed_contact_windows": f.windows}
 	var result := {"id": row.id, "fps": fps, "mixer": mode, "frames": frames + 1, "duration_s": clip.length,
 		"action_duration_s": action_duration, "reported_terminal_hold_s": row.write.get("root_motion_terminal_hold", null),
 		"root_mode": "extracted" if extracted else "in_place", "phase": phase, "leg_length_m": leg,
 		"generation_clamp_metadata_known": clamp_known, "generation_reach_clamped": row.write.get("clamped", null),
-		"actor_schedule_known": actor_schedule_known, "actor_schedule_source": "extracted root track" if extracted else "paired extracted saved clip: diagnostic assumption",
+		"actor_schedule_known": actor_schedule_known, "actor_schedule_source": "extracted root track" if extracted else ("reported actor translation schedule" if actor_schedule_known else "paired extracted saved clip: diagnostic assumption"),
 		"active_mixers": active_mixers, "root_distance_m": travel.length(), "expected_root_distance_m": expected_root.length(),
 		"root_error_m": root_error, "root_hold_error_m": root_hold_error, "backward_root_step_m": backward,
 		"max_in_place_root_delta_m": in_place_root, "max_reference_position_error_m": max_reference.x,

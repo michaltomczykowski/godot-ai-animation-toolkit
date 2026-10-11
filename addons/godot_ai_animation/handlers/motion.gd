@@ -11,6 +11,7 @@ extends "res://addons/godot_ai_animation/handlers/bone_animation.gd"
 
 const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
 const MotionSpecs := preload("res://addons/godot_ai_animation/spec/motion_specs.gd")
+const MotionTransitions := preload("res://addons/godot_ai_animation/spec/motion_transitions.gd")
 const MotionDrivers := preload("res://addons/godot_ai_animation/spec/motion_drivers.gd")
 const SpecIO := preload("res://addons/godot_ai_animation/spec/spec_io.gd")
 const GraphBuilders := preload("res://addons/godot_ai_animation/spec/graph_builders.gd")
@@ -315,7 +316,7 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 				if params.has(field): idle_params[field] = params[field]
 			var idle_reference := _prepare_cycle(idle_params, "idle")
 			if idle_reference.has("error"): return idle_reference
-			result = MotionSpecs.transition_keys(ctx, kind == "walk_stop", gait_reference, idle_reference)
+			result = MotionTransitions.build(ctx, kind == "walk_stop", gait_reference, idle_reference)
 		_:
 			result = MotionSpecs.gait_keys(ctx, kind == "run")
 	var result_meta: Dictionary = result.get("meta", {})
