@@ -200,6 +200,23 @@ The helper's walk mode is restricted to baseline regression; it cannot create
 a new walk review candidate. Preserve sources/scenes/receipts in protected-gaits.
 Final continuous idle recording and source Actions `38124952893` are pending.
 
+Protected gait regression completed on `adca5c9`: **40/40** new ordinary public
+save/reopens, then **120/120** independent native comparisons with exactly zero
+world-space bone position/rotation or actor-root differences. All five styles,
+four rigs and 30/60/120 FPS included. Reference walk source `056cc8d` and run
+`97f17ce`; current addon is byte-identical to idle candidate `8665980`.
+Receipt: `protected-gaits/parity-summary.json`; 80 saved reference/candidate
+scenes are preserved in `protected-gaits/protected-scenes.zip`. Ordinary calls
+omit timing/sampling/overrides; these gait clips are regression evidence.
+
+Four source CI editor jobs are complete: **386/389**, one legacy idle golden
+failure and exactly two named private-X-Bot skips, no engine/discovery/route
+errors. Each performs both ten-family/103-operation route probes. The synthetic
+merge `361d11d994a6a7a6e063a3ad285eada08988facd` has the same tracked tree as
+candidate source `8665980`. Pinned core is `bfc2642`, engine 4.7.2. All completed
+Tier-1 jobs and Linux live MCP pass; Windows live MCP remains pending. Preserve
+the raw logs and parsed receipts in candidate-gates; do not call this CI green.
+
 ### Historical next measurement (before prototypes)
 
 Supported prototype inputs are saved in `idle-supported-prototypes.json`:

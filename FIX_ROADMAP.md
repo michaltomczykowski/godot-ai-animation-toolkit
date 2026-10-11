@@ -2,6 +2,24 @@
 
 ## Current closure (2026-10-11)
 
+Idle ordinary candidate source `8665980`: 40 public Godot AI writes, each with
+actual Undo/Redo, dry/pose preservation and save/reopen; 240/240 native Player/
+Tree checks at 30/60/120 FPS, zero default clamps or knee flips. Forty reload
+dry calls and both complete ten-family catalog checks pass. Full local editor
+388/389 and headless 14/14; only the preserved old idle golden fails. Four
+Windows/Linux editor jobs show that same failure, two named private-rig skips
+and no engine/route errors; the live Windows route remains pending.
+
+Approved walk/run saved playback is protected: 40 fresh ordinary public clips
+and 120 native comparisons on source `adca5c9`, exactly zero bone/root drift.
+All five styles/four rigs included; 80 reference/candidate scenes archived.
+Ten final continuous idle videos are recording. Preserve the old idle fixture,
+complete source CI/media/archive delivery, open PC Explorer, then pause for
+explicit idle feedback. Recovery: `release_r2_idle_20261011`; detailed proof:
+`docs/idle-quality-validation.md`. No idle approval or release yet.
+
+Earlier checkpoints below retain their original evidence and pending wording.
+
 Idle baseline is preserved on public source `f44f236`, UUID `f853d458...`:
 20/20 ordinary Godot AI writes/save-reopens; 60/60 independent standing Player
 measurements. Missing clamp metadata is explicitly unknown, and candidates
