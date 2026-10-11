@@ -12,8 +12,19 @@ errors. New idle checker never requires gait markers. Z-up arms are almost
 horizontal; wrists have zero local motion. Preserve representative continuous
 baseline before tuning. Current visible editor PID 364 uses the correct isolated
 APPDATA/8000/9500; old PID 9132 is the user's separate editor. No idle generation
-changes or idle approval yet. Follow idle plan/validation and pause for final
+defaults promoted or idle approval yet. Follow idle plan/validation and pause for final
 continuous idle video review; keep approved walk/run bytes and feedback.
+
+Additive idle controls source `e181dd8`: fresh public motion 62/62, headless
+14/14; unchanged legacy idle and approved walk/run goldens. Fresh 20 ordinary
+save/reopens UUID `903351fb...` compare with original baseline in 60/60 played
+runs with exactly zero differences. All 20 now report real clamps, maximum
+6.447 mm shortfall; defaults still need reach planning. Recovery additive-controls.
+Both baseline continuous MP4s complete/decode-verified, each 24s/1,440 frames;
+source/20-scenes/video hashes preserved. Current visible editor PID 17180.
+Supported three-second prototypes UUID `702240...`: eight public clips and
+24 native checks pass but clamp metadata is legacy unknown. Next evaluated
+hand prototypes use `docs/idle-hand-prototypes.json`; do not skip native checks.
 
 R2 run is closed on fixture source `7638f22`: local public motion 61/61,
 full editor 386/386 in 32 suites, no skips/errors; all 14 canonical headless

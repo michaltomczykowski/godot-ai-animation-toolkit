@@ -58,9 +58,7 @@ projection is not center of mass. The current baseline covers Player/in-place;
 the final candidate still requires 240 Player/Tree/root-policy checks and
 actual public Undo/Redo, aliases/setup/optional-anatomy/config-isolation tests.
 
-## Next gate
-
-## C — additive control checkpoint (verification pending)
+## C — additive control checkpoint
 
 Idle now evaluates opt-in `elbow_swing`, `elbow_lag`, `wrist_swing`,
 `wrist_lag`, `forearm_twist`, `wrist_sway`, `arm_variation`, `variation_seed`
@@ -70,11 +68,30 @@ The original default config is unchanged. Reach metadata now carries actual
 solve clamps/shortfall, clamped leg-sample count, `reach_evaluated`, and truthful
 bilateral versus caller-authored support. No gait generation function changed.
 
-Fresh editor/public verification is still required: ordinary saved baseline
-parity, actual controls in played clips, old idle golden and approved walk/run
-goldens. The added test covers played motion, seeds, typed refusals, dry-run
-nonmutation, explicit zero elbow swing and `planted: false`. Do not promote a
-profile until this additive checkpoint passes.
+Source `e181dd8`: fresh visible editor PID 17180, public motion suite **62/62**,
+no skips/errors; all **14/14** canonical headless suites pass. Existing idle and
+approved walk/run golden drift remains zero. The added test covers played hand
+motion, seeds, typed refusals, dry-run nonmutation, explicit zero elbow swing
+and `planted: false`.
+
+Twenty fresh ordinary public clips (UUID `903351fb38f842808e94066dcec06ecb`)
+pass save/reopen; **60/60** independent played baseline comparisons have exactly
+zero pose/root differences. Receipts are in `additive-controls/ordinary-parity`.
+All twenty now truthfully report clamping; maximum shortfall is 6.447 mm.
+The original numerical baseline allowed up to 1% leg-length contact-band height;
+that included small ankle lift from clamping. This explains why low planar slide
+and penetration did not detect unreachable targets. Default candidate clamps
+must be fixed; these ordinary clips are preserved diagnostic output.
+
+Both representative baseline MP4s are complete: 24 s/1080p60, 1,440 independently
+decoded frames each, no render errors. `baseline/preserved-baseline/manifest.json`
+hashes the exact baseline source ZIP, twenty scene copies and both videos. The
+full candidate/private-rig archive is a later gate. Still no idle approval.
+
+`idle-hand-prototypes.json` adds modest evaluated hand controls to the supported
+three-second recipes. Compare their actual public saved playback before choosing
+profiles. A reach-planned pelvis path is needed separately to remove clamping;
+the additive checkpoint deliberately retained baseline animation bytes.
 
 ### Next measurement
 
