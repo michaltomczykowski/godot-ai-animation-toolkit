@@ -7,7 +7,9 @@ plan: `docs/idle-look-r002-plan.md`; source `9188ffa` (addon change `1b79378`).
 New ordinary public idle writes pass 40/40, native Player/Tree checks 240/240,
 and before/after-core-reload dry routes 40/40. Sixty played range comparisons
 confirm increased head/torso/pelvis motion; 120 fresh protected walk/run
-comparisons remain exactly identical. Continuous r001/r002 videos are recording
+comparisons remain exactly identical. Full local editor 388/389 and source CI
+38141249398 have only the preserved old idle fixture failure; no engine/route
+errors, all 28 headless and both live MCP jobs pass. Continuous r001/r002 videos are recording
 under `release_r2_idle_20261011/idle-look-r002`; keep r001 delivery intact.
 No idle fixture approval or release yet; pause again after revised video delivery.
 

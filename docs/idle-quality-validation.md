@@ -27,7 +27,20 @@ planning, loop timing, seeded hand motion and caller controls are retained.
   approved saved clips; 80 reference/candidate scenes are archived separately.
 - Focused public motion remains **63/64**, with only preserved legacy idle golden
   failing; approved walk/run fixture drift is zero. Headless **14/14**, no engine
-  errors. Full local/source CI and continuous video delivery are pending.
+  errors. Full local editor passes **388/389** in 32 suites, zero skips,
+  engine/discovery/route errors, both 103-operation registration probes pass.
+- Source Actions **38141249398** checks the exact `9188ffa` tracked tree through
+  merge `1ea717e`. All 28 Windows/Linux headless jobs and both live MCP jobs pass
+  (118 pass / zero fail markers each). Four editor jobs have only the preserved
+  old idle expectation and the two explicitly named private-X-Bot skips.
+  This remains expected-failing pre-review CI, not green release approval.
+- All 240 native runs have zero reach clamps, knee flips and actor/extracted
+  root travel. Worst rigid ankle slide is **0.000879 mm**, height/penetration
+  **0.001133 mm**. These are ankle-bone/rest-plane checks, not sole collision.
+
+Full checks are complete; continuous video delivery is pending. The isolated
+visible editor quit normally through public `editor_manage(op="quit")` after
+all saved-scene and reload work. Native recording continues from saved clips.
 
 Recovery: `release_r2_idle_20261011/idle-look-r002`. Videos compare r001 left /
 r002 right, rather than comparing with the older defective legacy idle. Decode,
