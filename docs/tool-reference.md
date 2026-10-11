@@ -697,9 +697,11 @@ How motion is generated:
   `set_root_motion=false` to skip). Apply it in game code with
   `get_root_motion_position()` / `get_root_motion_rotation()` — and the
   `*_accumulator()` variants when the node itself rotates.
-  Stationary idle creates no character-root travel track and reports
-  `root_motion: false` even if requested. An extraction binding retained for
-  another clip does not make the active idle clip own translation.
+  `root_motion` in the reply echoes the requested mode; it does not certify
+  that the clip contains translation. Stationary idle creates no character-root
+  travel track and returns an empty `root_motion_track`, including when the mode
+  is requested. An extraction binding retained for another clip does not make
+  the active idle clip own translation.
 - Walking arm lowering uses measured rest directions and rig up, with twelve
   degrees of outward clearance; an explicit `arm_down` wins. Imported bone-local
   axes and world-Y are not assumed.

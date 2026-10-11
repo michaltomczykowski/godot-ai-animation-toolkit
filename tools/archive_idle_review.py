@@ -42,7 +42,9 @@ def main() -> None:
                 params, history = row["params"], row["history"]
                 require(not any(key in params for key in ("overrides", "duration", "samples", "speed", "loop_mode")), "Review call overrides defaults")
                 require(("style" not in params) if style == "responsive" else params["style"] == style, "Wrong review style")
-                require(params["root_motion"] == (root_mode == "extracted") and row["write"]["root_motion"] is False, "Wrong idle root policy")
+                require(params["root_motion"] == (root_mode == "extracted")
+                        and row["write"]["root_motion"] == params["root_motion"]
+                        and row["write"]["root_motion_track"] == "", "Wrong requested/owned idle root policy")
                 require(history["total"] == history["passed"] == 1 and history["failed"] == history["skipped"] == 0
                         and row["before"] == row["after_dry"] and row["pose_before"] == row["pose_after"]
                         and row["after"] == row["after_history"] == row["persisted"], "Failed actual public history/dry/save gate")

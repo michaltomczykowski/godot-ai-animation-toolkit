@@ -172,8 +172,9 @@ Candidate source `8665980`, UUID `111fa689c5184c1ca20c41b0ef52141f`: **40/40**
 ordinary public clips across all five styles/four rigs/two requested root modes
 pass actual external Undo/Redo, dry nonmutation, pose preservation, save/reopen
 and track inspection. Responsive omits style; all omit timing/sampling/recipe
-overrides. Stationary idle reports `root_motion: false` even when translation
-was requested, because the clip owns no actor track. The native 240 matrix and
+overrides. The reply's `root_motion` echoes the requested mode; its empty
+`root_motion_track` reports no newly owned actor track. Native playback confirms
+zero actor/extracted translation under both requests. The native 240 matrix and
 forty reload dry calls are running; source Actions `38124952893` is pending.
 Do not infer completion from the previous 48 explicit prototype checks.
 
@@ -226,6 +227,16 @@ named private-rig skips are preserved in `candidate-gates/ci-8665980-receipt.jso
 This is an expected pre-review failure, not green release CI. The future
 `idle-golden-migration-plan.md` preserves the manual gate and separate fixture;
 no selector or expectation has changed during recording.
+
+Final archive preflight caught an incorrect documentation/archiver assumption:
+the reply's `root_motion` is the requested context flag, not an actual-travel
+boolean (`handlers/motion.gd` assigns it from the prepared context). All twenty
+true requests echo true with an empty `root_motion_track`; twenty false requests
+echo false with the same empty track. The 240 native runs independently require
+no active root position track and zero actor/extracted travel. Preserve this
+failed preflight in `candidate-gates/archive-first-failure.json`. Correct the
+reference and archive to require the echoed request, empty new track and existing
+native ownership/travel checks; no addon, saved clip or media changes are needed.
 
 ### Historical next measurement (before prototypes)
 
