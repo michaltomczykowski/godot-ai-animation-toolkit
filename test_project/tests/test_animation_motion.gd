@@ -161,6 +161,41 @@ func test_run_undo_redo_restores_written_run() -> void:
 		assert_eq(player.get_animation(name).get_marker_names(), markers, "Redo restores contacts")
 	_teardown(rig)
 
+func test_idle_undo_redo_restores_written_idle() -> void:
+	var scene := EditorInterface.get_edited_scene_root()
+	var marker := scene.get_node_or_null("PublicIdleHistory") if scene != null else null
+	var rig := {}
+	var player: AnimationPlayer
+	var name := "quality_idle"
+	if marker != null:
+		# Observe the external public write, without creating another animation.
+		player = scene.get_node_or_null(marker.get_meta("player_path")) as AnimationPlayer
+	else:
+		rig = _rig("IdleHistory")
+		if rig.has("error"):
+			skip(rig.error)
+			return
+		player = rig.player
+		assert_true(_handler.run({"op": "idle_cycle", "player_path": rig.player_path,
+			"animation_name": name, "skeleton_path": rig.skeleton_path}, null).has("data"), "idle history fixture builds")
+	assert_true(player != null and player.has_animation(name), "written idle exists before Undo")
+	if player == null or not player.has_animation(name):
+		_teardown(rig)
+		return
+	var digest := GoldenDigest.from_animation(player.get_animation(name))
+	var root_track := player.root_motion_track
+	assert_true(editor_undo(_undo_redo), "actual idle Undo succeeds")
+	assert_false(player.has_animation(name), "Undo removes the public idle")
+	assert_true(editor_redo(_undo_redo), "actual idle Redo succeeds")
+	assert_true(player.has_animation(name), "Redo restores idle")
+	if player.has_animation(name):
+		var compared := GoldenDigest.compare(GoldenDigest.from_animation(player.get_animation(name)), digest)
+		assert_eq(str(compared.shape), "", "Redo restores idle structure")
+		assert_eq(int(compared.worst), 0, "Redo restores idle values")
+		assert_eq(player.root_motion_track, root_track, "Redo preserves the player's other extraction binding")
+	_teardown(rig)
+
+
 func test_responsive_default_aliases_and_setup_use_identical_walks() -> void:
 	for fixture in [DUMMY, XBOT, "res://repair_synthetic_short.tscn", "res://repair_synthetic_zup_tall.tscn"]:
 		var rig := _rig("ResponsiveDefault", fixture)

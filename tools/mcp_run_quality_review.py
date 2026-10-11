@@ -29,8 +29,6 @@ def save(path: Path, report: dict) -> None:
 
 async def run(args: argparse.Namespace) -> int:
     motion = "idle" if args.operation == "idle_cycle" else "run"
-    if motion == "idle" and args.phase == "candidate":
-        raise ValueError("Idle candidate capture requires its own public history witness; baseline/prototypes only for now")
     source = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=args.repo, text=True).strip()
     recipes = json.loads(args.recipes.read_text(encoding="utf-8")) if args.recipes else None
     if (args.phase == "prototype") != bool(recipes):
@@ -68,7 +66,7 @@ async def run(args: argparse.Namespace) -> int:
                     copy_scene(args.project_root / fixture, target)
                     if args.phase == "candidate":
                         with target.open("a", encoding="utf-8", newline="\n") as stream:
-                            stream.write('\n[node name="PublicRunHistory" type="Node" parent="."]\n'
+                            stream.write(f'\n[node name="Public{motion.title()}History" type="Node" parent="."]\n'
                                          f'metadata/player_path = NodePath("{player_path}")\n')
                     scene = "res://" + target.relative_to(args.project_root).as_posix()
                     player = f"/{scene_root}/{player_path}"
@@ -113,13 +111,13 @@ async def run(args: argparse.Namespace) -> int:
                     if args.phase == "candidate":
                         history = await stage("history", "test_run", {
                             "suite": "animation_motion",
-                            "test_name": "test_run_undo_redo_restores_written_run", "verbose": True})
+                            "test_name": f"test_{motion}_undo_redo_restores_written_{motion}", "verbose": True})
                         if (history.get("passed") != 1 or history.get("failed") != 0
                                 or history.get("skipped") != 0):
-                            raise RuntimeError(f"Public run Undo/Redo failed: {history}")
+                            raise RuntimeError(f"Public {motion} Undo/Redo failed: {history}")
                         row["after_history"] = await inspect(client, params["animation_name"], player)
                         if row["after_history"] != row["after"]:
-                            raise RuntimeError("Public run Undo/Redo changed inspected clip")
+                            raise RuntimeError(f"Public {motion} Undo/Redo changed inspected clip")
                     await stage("save", "scene_save", {})
                     await stage("reopen", "scene_open", {"path": scene, "force_reload": True})
                     row["persisted"] = await inspect(client, params["animation_name"], player)

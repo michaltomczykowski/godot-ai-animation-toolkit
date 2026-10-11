@@ -112,6 +112,37 @@ remain a failing expectation until idle video approval/versioned migration.
 Walk/run generation is untouched. First measure the two explicit three-second
 hand prototypes and a reach-planned rerun; then decide implicit profiles/timing.
 
+Source `57eb376`: eight public saved/reopened prototypes, **48/48** Player/Tree
+runs at 30/60/120 FPS pass. Zero clamps, shortfall, knee flips, root drift or
+engine errors. Maximum slide 0.000848 mm, ankle height/penetration 0.000924 mm;
+fractional repeat error 0.000339 mm/0.000000578 rad. Planned stance drop is
+3.61–6.81 mm across these prototypes. These very small numbers describe rigid
+bone ankle positions; they still do not certify skinned sole collision.
+Receipt: `reach-plan/reach-plan-summary.json`. Headless **14/14**; fresh focused
+motion **61/62**, only `test_the_idle_matches_its_golden` fails (162 units).
+Approved walk/run goldens still match, no load/engine errors or skips.
+
+Responsive's 48 s continuous legacy/prototype comparison is recording under
+`reach-plan/prototype-3s/responsive-in-place`; inspect progress before restarting.
+
+### C3 — profile/default integration to implement after prototype capture
+
+Use the measured three-second quiet and grounded recipes as separate idle-only
+tables. Default/Responsive aliases match; Grounded differs. Keep duration=3 s
+for all five implicit styles so each six-second review chapter covers two
+periods. Preserve explicit timing and 60/s density; setup's matched three-second
+idle must have identical tracks. Distances in implicit profiles scale to the
+rig; the exploratory recipe's explicit meter values remain recorded inputs.
+
+Retune variants with idle-only multipliers; leave walk/run/shared multipliers
+unchanged. Handle missing head/breathing chains explicitly (implicit omissions
+with reason, nonzero explicit impossible controls refused). Hand/finger anatomy
+uses the tested omission/refusal path and measured axes even after omission.
+Require deterministic variation, alias/setup/precedence/config isolation tests,
+actual public idle Undo/Redo witnesses, saved playback and complete 240 matrix
+before final continuous review media. A history marker only observes the public
+write; it never authors another animation in that branch.
+
 ### Next measurement
 
 Supported prototype inputs are saved in `idle-supported-prototypes.json`:

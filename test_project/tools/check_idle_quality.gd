@@ -130,6 +130,7 @@ func _check(row: Dictionary, fps: int, mode: String, baseline: bool, negative: b
 	var clamp_known: bool = row.write.has("clamped")
 	if clamp_known and bool(row.write.clamped): errors.append("Generation reach clamp")
 	if not baseline and not clamp_known: errors.append("Generation clamp metadata unavailable")
+	if not baseline and not bool(row.write.get("reach_evaluated", false)): errors.append("Standing reach was not evaluated")
 	var seam_probe := _seam_probe(reference)
 	if not seam_probe.failures.is_empty(): errors.append("Played loop velocity discontinuity")
 	var feet := {}
