@@ -1,4 +1,4 @@
-"""Verify ordinary saved run routes and all families before/after core reload."""
+"""Verify ordinary saved run/idle routes and all families before/after core reload."""
 from __future__ import annotations
 import argparse
 import asyncio
@@ -33,6 +33,9 @@ async def run(args: argparse.Namespace) -> int:
                 raise RuntimeError("A toolkit family disappeared from the public route")
             for style in ("responsive", "grounded", "relaxed", "heavy", "sneaky"):
                 route = json.loads((args.output / style / "route.json").read_text(encoding="utf-8"))
+                if (not route["passed"] or route.get("operation") != args.operation
+                        or route["invocation_kind"] != "ordinary call"):
+                    raise ValueError("Reload requires valid ordinary routes for " + args.operation)
                 for row in route["cases"]:
                     opened = await call(client, "scene_open", {"path": row["scene"], "force_reload": True})
                     params = {**row["params"], "overwrite": True, "dry_run": True}
@@ -47,7 +50,7 @@ async def run(args: argparse.Namespace) -> int:
                                  "open": opened, "before": before, "dry": dry,
                                  "after": after, "passed": passed})
                     save()
-            print(f"{phase}: {sum(x['passed'] for x in rows)}/20 run routes, 10 families", flush=True)
+            print(f"{phase}: {sum(x['passed'] for x in rows)}/20 {args.operation} routes, 10 families", flush=True)
             if phase == "before_reload":
                 old_session = connection["session_id"]
                 report["reload"] = await call(client, "editor_reload_plugin", {})
@@ -64,6 +67,7 @@ if __name__ == "__main__":
     p.add_argument("--core-root", type=Path, required=True)
     p.add_argument("--project-root", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
+    p.add_argument("--operation", choices=("run_cycle", "idle_cycle"), default="run_cycle")
     p.add_argument("--port", type=int, default=8000)
     p.add_argument("--ws-port", type=int, default=9500)
     raise SystemExit(asyncio.run(run(p.parse_args())))

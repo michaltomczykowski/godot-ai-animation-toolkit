@@ -160,6 +160,14 @@ profiles have separate alias/setup and native motion coverage. Preserve this
 first report in `candidate-gates/motion-suite.json`; rerun with a fresh editor
 into a distinct final-source report. No old fixtures were rewritten.
 
+Source `757dd26`, fresh visible editor PID 26536: focused **63/64**, no skips/load
+errors, only preserved `test_the_idle_matches_its_golden` fails. New idle profiles,
+head/hand omissions/refusals, aliases, setup parity, seeded playback and history
+tests pass; approved walk/run golden drift remains zero. Final ordinary public
+40-clip capture and 240-run matrix are next. Candidate videos use a separate
+standing renderer, gated recorder and exact ten verified outputs; archives and
+manual review remain pending. No phase is approved by prototype footage.
+
 ### Next measurement
 
 Supported prototype inputs are saved in `idle-supported-prototypes.json`:

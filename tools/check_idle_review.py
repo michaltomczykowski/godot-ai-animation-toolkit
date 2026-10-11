@@ -27,6 +27,9 @@ def main() -> None:
     parser.add_argument("--phase", choices=("baseline", "candidate"), default="baseline")
     args = parser.parse_args()
     baseline = args.phase == "baseline"
+    final_matrix = args.folder / "native-matrix.json"
+    if not baseline and final_matrix.exists():
+        raise FileExistsError("Preserve the completed candidate matrix before a new attempt")
     attempt = args.folder / ("native-" + uuid.uuid4().hex)
     attempt.mkdir()
     summary = {"passed": False, "phase": args.phase, "attempt": str(attempt), "rows": [],
@@ -84,6 +87,16 @@ def main() -> None:
     finally:
         write(path, summary)
     print(f"IDLE_MATRIX_RESULT={summary['native_runs']} runs; passed={summary['passed']}; report={path}", flush=True)
+    if summary["passed"] and not baseline:
+        # Promote only a fully successful, exact-coverage attempt. Failed
+        # attempts remain immutable and never become a recorder input.
+        for row in summary["rows"]:
+            folder = args.folder / (row["style"] + "-in-place" if row["root_mode"] == "in_place" else row["style"])
+            destination = folder / "native-check.json"
+            if destination.exists():
+                raise FileExistsError("Preserve prior native report: " + str(destination))
+            destination.write_bytes(Path(row["report"]).read_bytes())
+        write(final_matrix, summary)
     raise SystemExit(0 if summary["passed"] else 1)
 
 
