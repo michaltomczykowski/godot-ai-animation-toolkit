@@ -122,10 +122,13 @@ Receipt: `reach-plan/reach-plan-summary.json`. Headless **14/14**; fresh focused
 motion **61/62**, only `test_the_idle_matches_its_golden` fails (162 units).
 Approved walk/run goldens still match, no load/engine errors or skips.
 
-Responsive's 48 s continuous legacy/prototype comparison is recording under
-`reach-plan/prototype-3s/responsive-in-place`; inspect progress before restarting.
+Responsive's continuous legacy/prototype comparison is complete under
+`reach-plan/prototype-3s/responsive-in-place`: 48 s/1080p60, 2,880 independently
+decoded frames, no render errors. The saved source comparison shows the Z-up
+arm correction and relaxed fingers. This is an internal prototype, not an
+ordinary five-style candidate or user approval; preserve its media receipt.
 
-### C3 — profile/default integration to implement after prototype capture
+### C3 — profile/default integration (fresh verification pending)
 
 Use the measured three-second quiet and grounded recipes as separate idle-only
 tables. Default/Responsive aliases match; Grounded differs. Keep duration=3 s
@@ -142,6 +145,12 @@ Require deterministic variation, alias/setup/precedence/config isolation tests,
 actual public idle Undo/Redo witnesses, saved playback and complete 240 matrix
 before final continuous review media. A history marker only observes the public
 write; it never authors another animation in that branch.
+
+The tables and three-second implicit period are implemented, with existing
+explicit timing/sampling precedence. Idle head/breath controls now report
+missing connected chain geometry and refuse explicit impossible requests.
+New profile and public-history tests are implemented; next restart the isolated
+editor before using their results. Historical idle fixture remains unchanged.
 
 ### Next measurement
 

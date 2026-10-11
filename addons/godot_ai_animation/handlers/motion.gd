@@ -270,7 +270,7 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 	var seed_value := float(config.get("variation_seed", 0))
 	if seed_value < 0.0 or seed_value > 2147483647.0 or seed_value != floorf(seed_value):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "variation_seed must be an integer from 0 to 2147483647")
-	var features := _optional_features(params, overrides, config, built, articulate)
+	var features := _optional_features(params, overrides, config, built, articulate, kind == "idle")
 	if features.has("error"):
 		return features
 	_scale_distances_to_rig(config, params, overrides, ctx)
@@ -349,10 +349,25 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 ## Defaults may omit anatomy; explicit nonzero controls must never silently do
 ## nothing. Removing keys (not just zeroing values) avoids selecting solvers
 ## whose presence-based switches require geometry this rig does not have.
-func _optional_features(params: Dictionary, overrides: Dictionary, config: Dictionary, built: Dictionary, articulate: bool) -> Dictionary:
+func _optional_features(params: Dictionary, overrides: Dictionary, config: Dictionary, built: Dictionary, articulate: bool, idle: bool = false) -> Dictionary:
 	var ctx: Dictionary = built.ctx
 	var applied: Array = []
 	var omitted: Array = []
+	if idle:
+		for item in [{"feature": "idle_head_motion", "role": "head", "fields": ["look", "head_amplitude"]},
+				{"feature": "idle_breathing", "role": "chest", "fields": ["amplitude"]}]:
+			var requested := false
+			for field in item.fields: requested = requested or not is_zero_approx(float(config.get(field, 0.0)))
+			if not requested: continue
+			var bone := str(ctx.roles.get(item.role, ""))
+			if bone.is_empty() or not (ctx.spine_chain as Array).has(bone) or not MotionSpecs.rest_ancestor(ctx, bone, str(ctx.hips)):
+				var reason := "Idle %s needs its resolved %s joint in the connected animated spine chain" % [item.feature, item.role]
+				if _explicit_feature(params, overrides, item.fields):
+					return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, reason)
+				for field in item.fields: config.erase(field)
+				omitted.append({"feature": item.feature, "reason": reason})
+			else:
+				applied.append(item.feature)
 	var upper := ["torso_flex", "torso_roll", "head_nod", "head_roll", "head_lag", "head_stabilize"]
 	if articulate:
 		var layout := MotionSpecs.upper_body_layout(ctx)
@@ -912,7 +927,7 @@ func _build_context(params: Dictionary, kind: String, resolved_config: Dictionar
 	if not missing.is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"Cannot find bones for: %s. Pass 'roles' to name them explicitly (e.g. {\"thigh_l\": \"B-thigh.L\"})." % ", ".join(missing))
-	var length := float(params.get("duration", 1.0))
+	var length := float(params.get("duration", 3.0 if kind == "idle" else 1.0))
 	if not is_finite(length) or length <= 0.0:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "duration must be a finite number > 0")
 	# Every numeric recipe parameter reaches the clip as a key value, so a NaN or

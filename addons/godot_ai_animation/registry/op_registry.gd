@@ -1865,7 +1865,7 @@ static func _motion_schema() -> Dictionary:
 			},
 			"duration": {
 				"type": "number",
-				"description": "Clip length in seconds; one gait cycle fits in it. When omitted, run_cycle and cycle preset=run choose a rig-relative cadence (0.6-1.5 s); other motion defaults remain 1 s.",
+				"description": "Seconds per cycle. Omitted: idle_cycle/cycle preset=idle use 3 s; run chooses rig-relative cadence (0.6-1.5 s); other motion defaults remain 1 s. Explicit duration wins.",
 			},
 			"style": {
 				"type": "string",

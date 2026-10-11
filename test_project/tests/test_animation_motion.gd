@@ -263,7 +263,7 @@ func test_default_finger_omission_preserves_explicit_refusal() -> void:
 		_teardown(rig)
 
 func test_default_optional_head_and_hands_omit_only_missing_features() -> void:
-	for op in ["walk_cycle", "run_cycle"]:
+	for op in ["walk_cycle", "run_cycle", "idle_cycle"]:
 		for missing in ["head", "hand"]:
 			var rig := _rig("OptionalAnatomy")
 			if rig.has("error"):
@@ -282,11 +282,11 @@ func test_default_optional_head_and_hands_omit_only_missing_features() -> void:
 			var result := _handler.run(params, null)
 			assert_true(result.has("data"), "optional %s missing: %s" % [missing, str(result)])
 			if result.has("data"):
-				var feature := "torso_head_articulation" if missing == "head" else "arm_hand_follow_through"
+				var feature := ("idle_head_motion" if op == "idle_cycle" else "torso_head_articulation") if missing == "head" else "arm_hand_follow_through"
 				assert_false(result.data.applied_features.has(feature), "omitted feature not claimed")
 				assert_true(not result.data.omitted_features.is_empty(), "missing geometry reported")
 			params.animation_name = "explicit"
-			params.overrides = {"head_nod": 2.4} if missing == "head" else {"wrist_swing": 7.0}
+			params.overrides = ({"look": 4.0} if op == "idle_cycle" else {"head_nod": 2.4}) if missing == "head" else {"wrist_swing": 7.0}
 			assert_is_error(_handler.run(params, null), ErrorCodes.INVALID_PARAMS)
 			assert_false(rig.player.has_animation("explicit"), "explicit invalid geometry makes no clip")
 			for index in renamed: skeleton.set_bone_name(index, renamed[index])
@@ -1753,7 +1753,65 @@ func test_walk_head_torso_native_articulation_and_history() -> void:
 		skeleton.set_bone_name(head_index, head_name)
 		_teardown(rig)
 
-func test_idle_opt_in_hands_play_and_report_reach_without_changing_defaults() -> void:
+func test_idle_profiles_aliases_setup_and_explicit_precedence() -> void:
+	var protected := {}
+	for kind in ["walk", "run"]:
+		for style in MotionSpecs.STYLE_NAMES:
+			protected[kind + "/" + style] = MotionSpecs.config_for_kind(kind, style).duplicate(true)
+	for fixture in [DUMMY, "res://repair_synthetic_short.tscn", "res://repair_synthetic_zup_tall.tscn"]:
+		var rig := _rig("IdleProfiles", fixture)
+		if rig.has("error"):
+			skip(rig.error)
+			continue
+		var params := {"op": "idle_cycle", "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "animation_name": "ordinary_idle"}
+		var made := _handler.run(params, null)
+		assert_true(made.has("data"), "ordinary idle builds: " + str(made))
+		if not made.has("data"):
+			_teardown(rig)
+			continue
+		assert_eq(float(made.data.length), 3.0, "ordinary idle uses measured three-second timing")
+		assert_eq(float(made.data.samples), 60.0, "ordinary idle uses 60 keys/s")
+		assert_eq(made.data.resolved_style, "responsive", "ordinary idle selects Responsive")
+		assert_false(made.data.clamped, "ordinary idle is reachable")
+		var digest := GoldenDigest.from_animation(rig.player.get_animation("ordinary_idle"))
+		for style in ["default", "responsive"]:
+			var alias := params.duplicate(true)
+			alias.merge({"op": "cycle", "preset": "idle", "style": style, "animation_name": "alias_idle_" + style}, true)
+			assert_true(_handler.run(alias, null).has("data"), "idle alias builds")
+			var compared := GoldenDigest.compare(GoldenDigest.from_animation(rig.player.get_animation(alias.animation_name)), digest)
+			assert_eq(str(compared.shape), "", "idle alias shape")
+			assert_eq(int(compared.worst), 0, "idle alias values")
+		var grounded := params.duplicate(true)
+		grounded.merge({"style": "grounded", "animation_name": "grounded_idle"}, true)
+		assert_true(_handler.run(grounded, null).has("data"), "Grounded idle builds")
+		var distinct := GoldenDigest.compare(GoldenDigest.from_animation(rig.player.get_animation("grounded_idle")), digest)
+		assert_gt(int(distinct.worst), 0, "Grounded idle is distinct")
+		var setup := _handler.run({"op": "character_setup", "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "root_motion": true, "run_speed": 1.1}, null)
+		assert_true(setup.has("data"), "setup shares the idle profile: " + str(setup))
+		if setup.has("data"):
+			var compared := GoldenDigest.compare(GoldenDigest.from_animation(rig.player.get_animation("idle")), digest)
+			assert_eq(str(compared.shape), "", "matched setup idle shape")
+			assert_eq(int(compared.worst), 0, "matched setup idle values")
+		var explicit := params.duplicate(true)
+		explicit.merge({"style": "grounded", "duration": 2.0, "samples": 30.0,
+			"bob": 0.004, "wrist_swing": 1.2, "overrides": {"bob": 0.006, "wrist_swing": 1.8}}, true)
+		var prepared := _handler._prepare_cycle(explicit, "idle")
+		assert_true(not prepared.has("error"), "explicit idle controls prepare")
+		if not prepared.has("error"):
+			assert_eq(float(prepared.length), 2.0, "explicit idle timing wins")
+			assert_eq(float(prepared.rate), 30.0, "explicit idle density stays requested")
+			assert_eq(float(prepared.config.bob), 0.004, "top-level meters win and stay unscaled")
+			assert_eq(float(prepared.config.wrist_swing), 1.2, "top-level hand control wins")
+			assert_eq(float(prepared.config.elbow), 18.0, "untouched Grounded value retained")
+		_teardown(rig)
+	for kind in ["walk", "run"]:
+		for style in MotionSpecs.STYLE_NAMES:
+			assert_eq(MotionSpecs.config_for_kind(kind, style), protected[kind + "/" + style], "idle calls cannot mutate approved gait config")
+
+
+func test_idle_hands_play_and_report_reach_and_refusals() -> void:
 	for fixture in [DUMMY, "res://repair_synthetic_short.tscn", "res://repair_synthetic_zup_tall.tscn"]:
 		var rig := _rig("IdleHands", fixture)
 		if rig.has("error"):
@@ -1774,13 +1832,13 @@ func test_idle_opt_in_hands_play_and_report_reach_without_changing_defaults() ->
 		var digest := GoldenDigest.from_animation(rig.player.get_animation("ordinary_idle"))
 		var explicit_zero := ordinary.duplicate(true)
 		explicit_zero.animation_name = "zero_idle"
-		# No opt-in key: this must retain the ordinary legacy solver at this
-		# additive checkpoint. Played saved baseline parity is checked externally.
+		# Explicit zero removes the profile's elbow swing. Historical baseline
+		# parity was proved separately at the additive extension checkpoint.
 		explicit_zero.overrides = {"elbow_swing": 0.0}
 		assert_true(_handler.run(explicit_zero, null).has("data"), "zero elbow swing builds")
 		var compared := GoldenDigest.compare(GoldenDigest.from_animation(rig.player.get_animation("zero_idle")), digest)
 		assert_eq(str(compared.shape), "", "zero elbow swing keeps structure")
-		assert_eq(int(compared.worst), 0, "zero elbow swing keeps values")
+		assert_gt(int(compared.worst), 0, "zero elbow swing overrides the nonzero profile")
 		var controls := {"elbow_swing": 2.0, "elbow_lag": 0.06, "wrist_swing": 2.5,
 			"wrist_lag": 0.1, "forearm_twist": 2.0, "wrist_sway": 1.0,
 			"arm_variation": 0.4, "variation_seed": 241, "hand_relax": 18.0}

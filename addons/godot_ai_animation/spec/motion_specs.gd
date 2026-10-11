@@ -75,6 +75,34 @@ const _RUN_STYLE_MULTIPLIERS := {
 }
 
 
+## Standing profiles measured through public three-second playback prototypes.
+## These tables never replace walking/running or their shared style values.
+const _IDLE_PROFILES := {
+	"responsive": {
+		"amplitude": 1.2, "head_amplitude": 0.6, "look": 4.0, "twist": 4.0,
+		"bob": 0.004, "sway": 0.006, "shift": 0.7, "noise": 0.15, "lean": 0.6,
+		"arm_sway": 0.8, "elbow": 15.0, "elbow_swing": 1.4, "elbow_lag": 0.06,
+		"wrist_swing": 2.0, "wrist_lag": 0.1, "forearm_twist": 1.8, "wrist_sway": 0.7,
+		"arm_variation": 0.3, "variation_seed": 241, "hand_relax": 18.0,
+	},
+	"grounded": {
+		"amplitude": 1.6, "head_amplitude": 0.8, "look": 6.0, "twist": 6.0,
+		"bob": 0.006, "sway": 0.009, "shift": 1.1, "noise": 0.2, "lean": 0.9,
+		"arm_sway": 1.1, "elbow": 18.0, "elbow_swing": 1.8, "elbow_lag": 0.06,
+		"wrist_swing": 2.5, "wrist_lag": 0.1, "forearm_twist": 2.2, "wrist_sway": 0.9,
+		"arm_variation": 0.3, "variation_seed": 241, "hand_relax": 20.0,
+	},
+}
+const _IDLE_STYLE_MULTIPLIERS := {
+	"relaxed": {"amplitude": 0.85, "look": 0.85, "twist": 0.8, "sway": 1.1,
+		"shift": 1.1, "elbow": 1.0, "wrist_swing": 1.1, "arm_variation": 1.15},
+	"heavy": {"amplitude": 1.15, "bob": 0.8, "sway": 0.85, "shift": 1.2,
+		"lean": 1.1, "elbow": 1.2, "wrist_swing": 0.8, "arm_variation": 0.8, "hand_relax": 1.05},
+	"sneaky": {"amplitude": 0.75, "look": 0.7, "twist": 0.6, "arm_sway": 0.65,
+		"elbow": 1.35, "wrist_swing": 0.7, "forearm_twist": 0.75, "arm_variation": 0.6},
+}
+
+
 static func resolved_style(style: String) -> String:
 	return "responsive" if style == "default" else style
 
@@ -166,7 +194,7 @@ static func idle_config(style: String, overrides: Dictionary = {}) -> Dictionary
 		"lean": 1.5,
 		"arm_sway": 1.4,
 		"elbow": 14.0,
-	}, style, overrides)
+	}, style, overrides, "idle")
 
 
 static func _resolve_config(base: Dictionary, style: String, overrides: Dictionary, kind: String = "") -> Dictionary:
@@ -176,9 +204,13 @@ static func _resolve_config(base: Dictionary, style: String, overrides: Dictiona
 		config.merge(_WALK_PROFILES[profile], true)
 	elif kind == "run":
 		config.merge(_RUN_PROFILES[profile], true)
+	elif kind == "idle":
+		config.merge(_IDLE_PROFILES[profile], true)
 	var multipliers: Dictionary = _STYLE_MULTIPLIERS.get(style, {}).duplicate(true)
 	if kind == "run":
 		multipliers.merge(_RUN_STYLE_MULTIPLIERS.get(style, {}), true)
+	elif kind == "idle":
+		multipliers.merge(_IDLE_STYLE_MULTIPLIERS.get(style, {}), true)
 	for key in multipliers:
 		var value := float(multipliers[key])
 		if key == "crouch_add":
@@ -1781,21 +1813,21 @@ static func idle_keys(ctx: Dictionary) -> Dictionary:
 	var hips := str(ctx.get("hips", ""))
 	var signs := _axis_signs(ctx)
 	var scale := float(signs.lean)
-	var look := float(config.look)
+	var look := float(config.get("look", 0.0))
 	var twist := float(config.twist)
 	# Breathing is the under-layer; the visible motion is the look-around and
 	# the torso twist. Every channel is integer-frequency, so the loop closes.
 	# The twist is distributed over the chain instead of each bone taking its own
 	# multiplier, so `twist` means the same total degrees on any rig.
 	var twist_channels := _twist_channels(ctx, config, twist, up, [], _spread(config))
-	var breath := [_channel(lateral, -float(config.amplitude) * scale, 1.0, 0.0, 0.0, "sine")]
+	var breath := [_channel(lateral, -float(config.get("amplitude", 0.0)) * scale, 1.0, 0.0, 0.0, "sine")]
 	# A quarter of the twist rides along as a weight shift on the hips, which is
 	# what made the old per-bone roll channels look like a ribcage rotating.
 	var hips_shift := [_channel(lateral, 0.25 * twist * scale, 1.0, 0.25, 0.05, "sine")]
 	var head_motion := [
 		_channel(up, look, 1.0, 0.25, 0.02, "sine"),
 		_channel(up, 0.3 * look, 2.0, 0.62, 0.02, "sine"),
-		_channel(lateral, -0.35 * float(config.head_amplitude), 1.0, 0.0, 0.06, "sine"),
+		_channel(lateral, -0.35 * float(config.get("head_amplitude", 0.0)), 1.0, 0.0, 0.06, "sine"),
 		_channel(forward, 0.12 * look, 1.0, 0.25, 0.05, "sine"),
 	]
 	# Seeded micro-motion, per chain bone: the torso breathes unevenly and the

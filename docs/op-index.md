@@ -630,7 +630,7 @@ Handler: `res://addons/godot_ai_animation/handlers/motion.gd`
 | `player_path` | string | Scene path to the AnimationPlayer that receives the clip. |
 | `skeleton_path` | string | Scene path to the Skeleton3D (default: the first one). |
 | `animation_name` | string | Clip name (default: the cycle name). |
-| `duration` | number | Clip length in seconds; one gait cycle fits in it. When omitted, run_cycle and cycle preset=run choose a rig-relative cadence (0.6-1.5 s); other motion defaults remain 1 s. |
+| `duration` | number | Seconds per cycle. Omitted: idle_cycle/cycle preset=idle use 3 s; run chooses rig-relative cadence (0.6-1.5 s); other motion defaults remain 1 s. Explicit duration wins. |
 | `style` | string: default \| responsive \| grounded \| relaxed \| heavy \| sneaky | default = responsive; grounded optional; relaxed/heavy/sneaky retune responsive. Overrides win. Results report applied/omitted anatomy features. |
 | `overrides` | object | Gait: stride,knee_bend,arm_swing,arm_twist,bob,sway,hip_yaw,hip_roll,chest_yaw,twist_spread,lean,foot_lift,elbow,elbow_swing,lag,stance,crouch. Gait/idle hands: elbow_swing,elbow_lag/wrist_lag (0..0.25 cycles), wrist_swing/forearm_twist (+/-20 deg), wrist_sway (+/-10), arm_variation (0..3), variation_seed (integer 0..2147483647), hand_relax (0..45; validated fingers/palm). Gait upper body: torso_twist (+/-45), torso_flex/torso_roll/head_nod/head_roll (+/-10), head_lag (0..0.25), head_stabilize (0..1). Idle: amplitude,head_amplitude,look,twist,bob,sway,shift,noise,lean,arm_sway,elbow,arm_twist,twist_spread,planted. |
 | `samples` | number | Keys/s (60; 4-120). Walk/run need >=24 intervals; jump/turn/start/stop use >=120/s. At most 1200 intervals; results report effective density. |
