@@ -129,3 +129,43 @@ receipts: `reference-motion-suite.json`, `reference-endpoints` and
 `reference-native-90c49c66795747ea8cef4d2d8ce2b31c/summary.json`. The visible editor
 quit through the public route after this capture. Next is checkpoint 2 in the
 continuation plan: moving references, root speed and actual support transfer.
+
+## Support prototype and audit controls
+
+Prototype `bbeb75d` retains moving walk/idle reference windows, monotonic root
+acceleration/deceleration, explicit two-step support and the exact external
+in-place actor schedule. Generation FK samples real Animation interpolation;
+the checker only plays saved scenes. Sixteen ordinary Responsive public writes
+pass history/dry/save/reopen. Their 96 native runs retain exact reference
+endpoints and root travel/hold, no default clamps or knee flips. Intended stance
+slide is <=0.097 mm and ankle-plane height error <=0.542 mm. This prototype
+still fails marker and audit checks and is not approved. Its immutable receipt
+is `support-native-341ac296b867419684bb7cb431fdbdcb/summary.json`.
+
+The test for a 1.4 s transfer into a 0.7 s faster walk exposes real reach
+refusals. Ordinary four-rig dry requests are reachable; several explicit
+long/fast requests exceed the bounded pelvis envelope. Supported reference
+endpoint tests now use 0.35/0.9 s for the faster gait, retaining 0.35/1.4 s for
+ordinary gait. A separate refusal test requires typed errors and unchanged
+clips/scene/pose/history for the measured long/fast request and sub-0.2 s timing.
+
+Two audit issues are measured before candidate promotion:
+
+- Godot has one marker at a given timestamp. Simultaneous foot cues overwrite
+  each other or `settled` if inserted independently. Merge simultaneous cue
+  names and omit a terminal toe-off when support continues. Require reported
+  marker count to match the saved resource. Reference: [4.7.2 Animation marker
+  implementation](https://raw.githubusercontent.com/godotengine/godot/4.7.2-stable/scene/resources/animation.cpp).
+- A curved reference has different incoming/outgoing finite steps naturally.
+  Preserve raw boundary step change, and gate the transition step against the
+  independently played reference step over that same interval. Keep the 5 mm
+  and existing angular limits. The checker self-control passes **144/144**
+  exact-reference cases and detects all 144 deliberately shifted endpoints,
+  across four rigs, three phases/FPS and both continuation directions.
+
+Declared stance uses the existing 2% leg/3 cm slide and 1% leg height limits;
+all penetration, pole and finite checks remain. The observed 1% ankle-height
+band is reported separately: it includes low swing and is not sole collision
+or a stance classifier. Do not hide its measured motion or infer contact from
+velocity. Candidate checks require complete declared support and negative
+actor-drift controls before approval. Visual review remains mandatory.

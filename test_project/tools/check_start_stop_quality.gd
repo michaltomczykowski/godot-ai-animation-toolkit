@@ -54,6 +54,10 @@ func _join(v: Dictionary, other_row: Dictionary, edge: float, phase: float, ente
 	var at: float = phase * reference.clip.length
 	reference.player.seek(at, true)
 	var center := _poses(reference.rig)
+	reference.player.seek(fposmod(at - dt, reference.clip.length), true)
+	var reference_before := _poses(reference.rig)
+	reference.player.seek(fposmod(at + dt, reference.clip.length), true)
+	var reference_after := _poses(reference.rig)
 	v.player.seek(edge, true)
 	var here := _poses(v.rig)
 	var endpoint := _difference(here, center)
@@ -70,20 +74,31 @@ func _join(v: Dictionary, other_row: Dictionary, edge: float, phase: float, ente
 		reference.player.seek(fposmod(at + dt, reference.clip.length), true)
 		after = _poses(reference.rig)
 	var worst := Vector2.ZERO
+	var continuation := Vector2.ZERO
 	var bones: Array = []
 	for i in here.size():
 		var incoming := here[i].origin - before[i].origin
 		var outgoing := after[i].origin - here[i].origin
 		var position_jump := incoming.distance_to(outgoing)
 		var angular_jump := _rotation(before[i], here[i]).distance_to(_rotation(here[i], after[i]))
+		var actual_step := outgoing if entering else incoming
+		var reference_step := reference_after[i].origin - center[i].origin if entering else center[i].origin - reference_before[i].origin
+		var actual_rotation := _rotation(here[i], after[i]) if entering else _rotation(before[i], here[i])
+		var reference_rotation := _rotation(center[i], reference_after[i]) if entering else _rotation(reference_before[i], center[i])
+		continuation.x = maxf(continuation.x, actual_step.distance_to(reference_step))
+		continuation.y = maxf(continuation.y, actual_rotation.distance_to(reference_rotation))
 		worst.x = maxf(worst.x, position_jump)
 		worst.y = maxf(worst.y, angular_jump)
 		bones.append({"bone": v.rig.get_bone_name(i), "position_step_jump_m": position_jump,
+			"continuation_position_step_error_m": actual_step.distance_to(reference_step),
+			"continuation_rotation_step_error_rad": actual_rotation.distance_to(reference_rotation),
 			"rotation_step_jump_rad": angular_jump, "position_velocity_jump_m_s": position_jump / dt,
 			"rotation_velocity_jump_rad_s": angular_jump / dt})
 	reference.scene.free()
 	return {"reference_scene": other_row.scene, "reference_scene_sha256": other_row.scene_sha256,
 		"reference_phase": phase, "reference_time_s": at, "endpoint_position_error_m": endpoint.x,
+		"max_continuation_position_step_error_m": continuation.x,
+		"max_continuation_rotation_step_error_rad": continuation.y,
 		"endpoint_rotation_error_rad": endpoint.y, "max_position_step_jump_m": worst.x,
 		"max_rotation_step_jump_rad": worst.y, "spacing_s": dt, "bones": bones}
 
@@ -158,6 +173,7 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 		key_count += clip.track_get_key_count(track)
 	if not path_errors.is_empty(): errors.append("Invalid track paths/types")
 	if key_count != int(row.write.key_count) or clip.get_track_count() != int(row.write.track_count): errors.append("Reported track/key counts differ")
+	if clip.get_marker_names().size() != int(row.write.markers): errors.append("Reported marker count differs")
 	if clip.loop_mode != Animation.LOOP_NONE: errors.append("Transition must preserve one-shot endpoints")
 	if absf(clip.length - float(row.write.length)) > 0.000001: errors.append("Reported duration differs")
 	if not clip.has_marker("settled") or absf(clip.get_marker_time("settled") - action_duration) > 0.000001: errors.append("Reported action boundary differs from settled marker")
@@ -273,11 +289,11 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 	if not baseline and not extracted and not actor_schedule_known: errors.append("In-place actor schedule unavailable")
 	for join: Dictionary in [gait_join, idle_join]:
 		if join.endpoint_position_error_m > 0.00001 or join.endpoint_rotation_error_rad > 0.0001: errors.append("Accepted pose endpoint differs")
-		if join.max_position_step_jump_m > 0.005 or join.max_rotation_step_jump_rad > 0.75 * max_step.y + 0.002: errors.append("Played join velocity discontinuity")
+		if join.max_continuation_position_step_error_m > 0.005 or join.max_continuation_rotation_step_error_rad > 0.75 * max_step.y + 0.002: errors.append("Played reference continuation differs")
 	var metrics := {}
 	for side: String in feet:
 		var f: Dictionary = feet[side]
-		if f.slide > minf(0.02 * leg, 0.03) or f.penetration > 0.01 * leg or f.flips > 0 or f.frames == 0: errors.append(side + " contact/slide/penetration/knee failure")
+		if (not row.write.has("declared_contacts") and f.slide > minf(0.02 * leg, 0.03)) or f.penetration > 0.01 * leg or f.flips > 0 or f.frames == 0: errors.append(side + " contact/slide/penetration/knee failure")
 		if row.write.has("declared_contacts") and (f.declared_slide > minf(0.02 * leg, 0.03) or f.declared_height > 0.01 * leg or f.declared_frames == 0): errors.append(side + " declared support failure")
 		metrics[side] = {"max_observed_contact_slide_m": f.slide, "max_rest_ankle_plane_penetration_m": f.penetration,
 			"max_declared_contact_slide_m": f.declared_slide, "max_declared_contact_height_m": f.declared_height, "declared_contact_frames": f.declared_frames,
@@ -303,6 +319,32 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
+	if args.size() == 4 and args[0] == "--self-check":
+		var controls: Array = []
+		for path in [args[1], args[2]]:
+			var manifest: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(path))
+			for row: Dictionary in manifest.cases:
+				var v := Native.load_case(row, root)
+				for fps in [30, 60, 120]:
+					for phase in [0.0, 0.137, 0.537]:
+						for entering in [false, true]:
+							var check := _join(v, row, phase * v.clip.length, phase, entering, 1.0 / fps)
+							var mismatch := _join(v, row, fposmod(phase + 0.2, 1.0) * v.clip.length, phase, entering, 1.0 / fps)
+							controls.append({"rig": row.id, "reference": manifest.operation, "fps": fps, "phase": phase, "entering": entering,
+								"positive_position_error_m": check.max_continuation_position_step_error_m,
+								"positive_rotation_error_rad": check.max_continuation_rotation_step_error_rad,
+								"negative_endpoint_position_error_m": mismatch.endpoint_position_error_m,
+								"negative_endpoint_rotation_error_rad": mismatch.endpoint_rotation_error_rad,
+								"passed": check.max_continuation_position_step_error_m < 0.00001 and check.max_continuation_rotation_step_error_rad < 0.0001 and (mismatch.endpoint_position_error_m > 0.00001 or mismatch.endpoint_rotation_error_rad > 0.0001)})
+				v.scene.free()
+		var passed := controls.size() == 144 and logger.errors.is_empty()
+		for control: Dictionary in controls:
+			if not control.passed: passed = false
+		FileAccess.open(args[3], FileAccess.WRITE).store_string(JSON.stringify({"rows": controls, "passed": passed, "engine_errors": logger.errors}))
+		OS.remove_logger(logger)
+		print("CONTINUATION_SELF_CHECK=" + JSON.stringify({"rows": controls.size(), "passed": passed}))
+		quit(0 if passed else 1)
+		return
 	if args.size() != 5:
 		quit(1)
 		return
@@ -318,7 +360,7 @@ func _run() -> void:
 				if not result.thresholds_pass: failures.append("%s/%s/%s: %s" % [row.id, fps, mode, str(result.failures)])
 	var report := {"source_head": inputs[0].source_head, "revision": inputs[0].revision, "runs": results,
 		"failures": failures, "engine_errors": logger.errors, "passed": results.size() == 24 and failures.is_empty() and logger.errors.is_empty(),
-		"measurement_contract": "Played world-space rest-ankle contact band, not sole collision; independent saved accepted gait/idle joins; one-shot terminal hold; paired in-place driver is baseline diagnostic assumption. Numerical checks do not approve visual quality."}
+		"measurement_contract": "Independent played reference endpoint and same-interval continuation errors; raw boundary curvature retained. Declared stance slide/height and observed ankle-band motion are distinct; ankle band is not sole collision. Root uses reported in-place schedule; paired track only for old baseline. Numerical checks do not approve visual quality."}
 	FileAccess.open(args[4], FileAccess.WRITE).store_string(JSON.stringify(report))
 	OS.remove_logger(logger)
 	print("START_STOP_QUALITY_CHECK=" + JSON.stringify({"runs": results.size(), "passed": report.passed, "failures": failures, "engine_errors": logger.errors}))

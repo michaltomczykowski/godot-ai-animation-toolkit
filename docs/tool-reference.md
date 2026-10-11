@@ -661,6 +661,17 @@ How motion is generated:
 - **Phase markers.** Gaits emit `contact.L/R`, `toe_off.L/R` and `passing.L/R`;
   jump and turn emit their phase cues. Hook footstep audio or gameplay events on
   them, or use them to phase-sync blends.
+- **Start/stop references and ownership.** Transfer duration is at least 0.2 s;
+  `gait_duration` (1 s) / `gait_samples` (60/s) describe the walk being joined.
+  The standing endpoint is the selected style's ordinary idle at phase zero.
+  Boundary windows continue the reference motion. `actor_translation_keys`
+  reports `{time, offset: [x,y,z]}` in `root_motion_node_local` space. For an
+  in-place clip, one gameplay parent supplies that trajectory through linear
+  interpolation; extracted clips use one root-motion consumer instead.
+  `declared_contacts` reports intended support intervals. Simultaneous marker
+  cues share a `+`-joined name, preserving `settled` at `capture_duration`.
+  Long or fast transfers that exceed reachable support geometry return
+  `VALUE_OUT_OF_RANGE` before writing. Transition visual review is pending.
 - **Multi-step pivots.** `turn_cycle steps: 2` splits a 180-degree turn into two
   pivots — each with its own anticipation, settle and the *opposite* foot lifting
   — so it reads as two weight shifts instead of one spin. The clip only carries

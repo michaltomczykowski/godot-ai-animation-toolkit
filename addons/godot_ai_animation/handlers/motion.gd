@@ -981,6 +981,9 @@ func _build_context(params: Dictionary, kind: String, resolved_config: Dictionar
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 			"duration × samples exceeds the %d-interval motion budget (requested %d); shorten duration or lower samples"
 				% [MAX_CYCLE_INTERVALS, intervals])
+	if kind in ["walk_start", "walk_stop"] and length < 0.2:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Start/stop needs duration >= 0.2 s for support transfer and a complete 30 FPS reference neighbourhood")
 	# The rest map, the leg map and the rig frame are the three measurements a
 	# recipe needs, and they are the same three for everyone - so they live in the
 	# spec layer, where a headless test can reach them, and the handler reads them

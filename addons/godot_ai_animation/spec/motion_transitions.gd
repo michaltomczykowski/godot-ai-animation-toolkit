@@ -87,6 +87,26 @@ static func _contacts(phase: float, length: float, window: float, period: float,
 		result.append_array(merged)
 	return result
 
+static func _markers(contacts: Array, length: float) -> Array:
+	var markers: Array = [{"name": "settled", "time": length}]
+	var counts := {"l": 0, "r": 0}
+	for contact: Dictionary in contacts:
+		var side := str(contact.side)
+		var suffix := "%s.%d" % [side.to_upper(), counts[side]]
+		counts[side] += 1
+		var events: Array = [{"name": "contact." + suffix, "time": float(contact.start)}]
+		# Terminal support continues into idle/gait. Ending the action is not a
+		# toe-off, and Godot stores only one marker at an exact time.
+		if float(contact.end) < length - 0.000001:
+			events.append({"name": "toe_off." + suffix, "time": float(contact.end)})
+		for event: Dictionary in events:
+			var existing := -1
+			for i in markers.size():
+				if absf(float(markers[i].time) - float(event.time)) < 0.000001: existing = i
+			if existing >= 0: markers[existing].name += "+" + str(event.name)
+			else: markers.append(event)
+	return markers
+
 static func build(ctx: Dictionary, stopping: bool, gait: Dictionary, idle: Dictionary) -> Dictionary:
 	var length := float(ctx.length)
 	var period := float(gait.length)
@@ -203,17 +223,10 @@ static func build(ctx: Dictionary, stopping: bool, gait: Dictionary, idle: Dicti
 		if bool(ctx.root_motion): Specs._append_position(keys, "__root_motion__", time, sample.root)
 		var at: Vector3 = sample.root
 		actor_keys.append({"time": time, "offset": [at.x, at.y, at.z]})
+	if clamped: return _refusal("Transition leg solve exceeded reachable geometry by %.6f m; shorten duration or lower reference speed" % shortfall)
 	Specs._mark_one_shot(keys)
 	var contacts := _contacts(phase, length, window, period, stance, stopping, plans, support)
-	var markers: Array = [{"name": "settled", "time": length}]
-	var counts := {"l": 0, "r": 0}
-	for contact: Dictionary in contacts:
-		var side := str(contact.side)
-		var suffix := "%s.%d" % [side.to_upper(), counts[side]]
-		counts[side] += 1
-		markers.append({"name": "contact." + suffix, "time": float(contact.start)})
-		markers.append({"name": "toe_off." + suffix, "time": float(contact.end)})
-	return {"keys": keys, "markers": markers, "meta": {
+	return {"keys": keys, "markers": _markers(contacts, length), "meta": {
 		"phase": phase, "speed": speed, "clamped": clamped, "clamp_shortfall_m": shortfall,
 		"clamped_leg_samples": clamps, "evaluated_leg_samples": evaluated, "reach_evaluated": evaluated > 0,
 		"gait_reference_clamped": bool(gait.meta.get("clamped", false)), "idle_reference_clamped": bool(idle.meta.get("clamped", false)),

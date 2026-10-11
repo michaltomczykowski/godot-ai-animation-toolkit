@@ -1029,7 +1029,7 @@ func test_transition_endpoints_use_independent_full_body_references() -> void:
 			var walk_params := common.merged(reference).merged({"op": "walk_cycle", "animation_name": "reference_walk", "overwrite": true, "root_motion": extracted})
 			var walk := _handler.run(walk_params, null)
 			assert_true(walk.has("data"), "separately timed walk builds")
-			for duration in [0.35, 1.4]:
+			for duration in ([0.35, 1.4] if float(reference.duration) == 1.0 else [0.35, 0.9]):
 				for phase in [0.137, 0.537]:
 					var gait_pose := _transition_played_pose(rig, "reference_walk", phase * float(reference.duration))
 					for operation in ["walk_start", "walk_stop"]:
@@ -1065,6 +1065,33 @@ func test_transition_reference_validation_is_nonmutating() -> void:
 		assert_true(result.has("error"), "invalid reference is refused: " + str(invalid))
 		assert_eq(_clip_names(rig.player), before, "reference refusal preserves clips")
 		assert_eq(_undo_version(), version, "reference refusal preserves history")
+	_teardown(rig)
+
+
+func test_transition_unreachable_transfer_refuses_without_mutation() -> void:
+	var rig := _rig("UnreachableTransfer")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var before := _clip_names(rig.player)
+	var nodes := _node_paths(EditorInterface.get_edited_scene_root())
+	var version := _undo_version()
+	var pose: Array[Transform3D] = []
+	for i in rig.skeleton.get_bone_count(): pose.append(rig.skeleton.get_bone_global_pose(i))
+	for operation in ["walk_start", "walk_stop"]:
+		for dry in [false, true]:
+			for timing in [{"duration": 0.19}, {"duration": 1.4, "gait_duration": 0.7, "gait_samples": 40.0, "phase": 0.537}]:
+				var params := {"op": operation, "player_path": rig.player_path, "skeleton_path": rig.skeleton_path,
+					"animation_name": "unreachable_transfer", "root_motion": true, "dry_run": dry}
+				params.merge(timing)
+				var result := _handler.run(params, null)
+				assert_is_error(result, ErrorCodes.VALUE_OUT_OF_RANGE)
+				assert_eq(_clip_names(rig.player), before, "support refusal preserves clips")
+				assert_eq(_node_paths(EditorInterface.get_edited_scene_root()), nodes, "support refusal preserves scene")
+				assert_eq(_undo_version(), version, "support refusal preserves history")
+				var after: Array[Transform3D] = []
+				for i in rig.skeleton.get_bone_count(): after.append(rig.skeleton.get_bone_global_pose(i))
+				_expect_transition_pose(after, pose, "support refusal preserves authored pose")
 	_teardown(rig)
 
 
