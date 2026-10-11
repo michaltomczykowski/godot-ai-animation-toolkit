@@ -35,6 +35,8 @@ async def run(args: argparse.Namespace) -> int:
     recipes = json.loads(args.recipes.read_text(encoding="utf-8")) if args.recipes else None
     if (args.phase == "prototype") != bool(recipes):
         raise ValueError("Explicit recipes are required only for prototype measurement")
+    if args.duration is not None and args.phase != "prototype":
+        raise ValueError("Explicit duration is a prototype input; ordinary review calls omit timing")
     if subprocess.run(["git", "diff", "--quiet", "HEAD", "--", "addons/godot_ai_animation"], cwd=args.repo).returncode:
         raise RuntimeError("Commit the animation source before creating exact-source review scenes")
     run_id = uuid4().hex
@@ -80,6 +82,8 @@ async def run(args: argparse.Namespace) -> int:
                     if recipes:
                         params["overrides"] = recipes[style]
                         report["recipe_sha256"] = hashlib.sha256(args.recipes.read_bytes()).hexdigest()
+                    if args.duration is not None:
+                        params["duration"] = args.duration
                     row = {"id": rig_id, "label": label, "scene": scene,
                            "skeleton": rig_path, "player": player_path,
                            "synthetic": synthetic, "params": params,
@@ -161,6 +165,7 @@ if __name__ == "__main__":
     p.add_argument("--phase", choices=("baseline", "prototype", "candidate"), default="baseline")
     p.add_argument("--operation", choices=("run_cycle", "idle_cycle"), default="run_cycle")
     p.add_argument("--recipes", type=Path, help="Explicit prototype recipes; final candidates use ordinary defaults")
+    p.add_argument("--duration", type=float, help="Explicit prototype period; ordinary calls omit duration")
     p.add_argument("--revision", default="run-baseline-r001")
     p.add_argument("--styles", choices=STYLES, nargs="+", default=list(STYLES))
     p.add_argument("--root-modes", choices=("extracted", "in_place"), nargs="+", default=["extracted"])

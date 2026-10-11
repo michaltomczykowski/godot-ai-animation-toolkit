@@ -60,6 +60,15 @@ actual public Undo/Redo, aliases/setup/optional-anatomy/config-isolation tests.
 
 ## Next gate
 
+Supported prototype inputs are saved in `idle-supported-prototypes.json`:
+quieter existing breath/look/twist/weight-shift controls and explicit 3.0 s
+duration, matching setup's existing idle timing. These are hypotheses to measure,
+not promoted profiles. No wrist/finger control is claimed by these recipes.
+The route helper accepts explicit prototype duration and refuses it for an
+ordinary baseline/candidate call. Native baseline capture uses the preserved
+public clips and a standing-specific renderer; walk/run renderer defaults are
+unchanged behind virtual contact/status/footer hooks.
+
 Capture and independently decode representative continuous baseline video,
 then compare supported explicit timing/recipe prototypes through Godot AI.
 New idle controls require actual evaluation and typed validation before use.
