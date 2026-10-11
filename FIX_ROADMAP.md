@@ -1,5 +1,19 @@
 # Animation Toolkit repair roadmap
 
+### Final source CI archived
+
+Source `037dae4`, Actions `38174953452`: 28 headless jobs, four editor jobs
+(395/397 with only the two named private-X-Bot skips), and both live MCP jobs
+(118 pass/zero fail each) pass on Windows/Linux. All required and advisory jobs
+pass, the tested merge tree matches source, and all approved gait digest drift
+is zero. Exact core checkouts, six raw job logs and hashes are archived in
+`source-ci-037dae4/ci-receipt.json`. Prearchive integrity verifies all 575 saved
+scenes and all eleven protected fixtures. Animation source remains `4137cc5`;
+sequence source is `80cfb59`; subsequent code only hardens recording receipts
+and PNG validation. Transition recording continues, with sequence capture
+queued behind it. Remaining gates: all 22 movies/archive/Explorer and explicit
+human feedback. No visual approval or release.
+
 ### Recording integrity checkpoint
 
 All ten start movies are complete; stop capture is active and sequence capture

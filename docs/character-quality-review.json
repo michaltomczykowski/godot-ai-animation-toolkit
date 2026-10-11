@@ -4514,7 +4514,6 @@
     "candidate_quality_approved": false,
     "release_ready": false,
     "remaining_gates": [
-      "Windows/Linux final source CI receipt",
       "22 continuous movies/archive/PC delivery",
       "explicit human feedback"
     ],
@@ -4590,7 +4589,12 @@
       "advertised_operations": 103,
       "engine_errors": 0,
       "fixture_drift": 0,
-      "visual_approval": null
+      "visual_approval": null,
+      "ci_source": "037dae4f477eca927fd8f1250f272cebae9caed7",
+      "ci_run": 38174953452,
+      "ci_receipt": "source-ci-037dae4/ci-receipt.json",
+      "ci_passed": true,
+      "saved_scene_hashes_checked": 575
     },
     "recording_integrity_checkpoint": {
       "completed_start_movies": 10,
