@@ -2,6 +2,20 @@
 
 ## Current instruction (2026-10-11)
 
+Start/stop is active; user authorized "then do it" after idle closure. Baseline
+80 public clips / 480 native runs is preserved, zero engine errors but 0/480
+quality pass. Two baseline 24s/1080p60 videos are complete. Root-hold repair
+`d3057b0` passes 48 engine controller/FPS/duration/replay cases. Reach checkpoint
+`524415e`: 16 public clips, 96 native root/metadata checks, exact authored pose
+keys; held playback rounding <=0.495 micrometres /0.649 microradians. Actual
+clamps remain and output is unapproved. Public motion 68/68, full local editor
+393/393, headless 14/14, zero skips/errors and accepted golden drift. Recovery:
+release_r2_start_stop_20261011; reach-check-7090c7663d40477b866a42aa987eff07.
+Next follow docs/start-stop-continuation-repair-plan.md checkpoint 1, then
+moving reference/contact repair, final matrix/videos and explicit human pause.
+Do not rerun preserved idle closure or baseline. Work alone; preserve approved
+walk/run/idle. No release yet. Idle closure below remains valid.
+
 Idle r002 is approved ("looks fine") and regression is complete on fixture
 source `b935cff`, Actions `38157142049`. Public motion 64/64, full local editor
 389/389 in 32 suites, headless 14/14; no local skips or engine/discovery/route

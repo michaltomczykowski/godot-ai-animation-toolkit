@@ -75,3 +75,31 @@ joins; it is retained but superseded by the action-boundary measurement.
 No start/stop output is approved, and release remains pending. An initial syntax
 failure while adding the extraction regression is preserved separately from the
 subsequent native failing test; it is not used as fault evidence.
+
+## Root hold and truthful reach checkpoint
+
+Source `d3057b0` extends the extracted one-shot stationary tail to 67.667 ms.
+The fresh public root regression passes all 48 controller/FPS/duration/replay
+cases. Source `524415e` reports the actual transition solves and reference
+timing without changing any authored pose value. Sixteen ordinary Responsive
+public clips pass external history/dry/save/reopen. The checkpoint's 96 native
+runs have complete reach metadata and pass root travel/hold; they still fail
+character quality, as expected before pose repair. Five of sixteen clips report
+real clamps, maximum shortfall 0.355 mm, including the X Bot on both operations.
+
+All sixteen scenes preserve authored track paths/types, values, transitions and
+action-key times exactly against baseline. Moving only the duplicate terminal
+hold key produces a bounded played difference of 0.495 micrometres / 0.649
+microradians on extracted clips; root differences are zero. In-place playback
+is exactly unchanged. This explicitly measured rounding bound applies only to
+the hold checkpoint; accepted looping walk/run/idle exact-parity gates remain.
+The first verifier required exact held playback and failed; preserve its receipt
+alongside the corrected authored-exact/played-bounded attempt. Neither is a
+candidate character-quality approval.
+
+Fresh public motion **68/68**, headless **14/14**, full local editor **393/393**
+in 32 suites, zero skips/engine/discovery/route errors. Approved walk/run/idle
+golden drift remains zero. Detailed receipts: `terminal-hold-green.json`,
+`reach-report-motion-suite.json`, `editor-checkpoint-full.log` and
+`reach-check-7090c7663d40477b866a42aa987eff07/summary.json` in recovery.
+Next: [the measured continuation repair plan](start-stop-continuation-repair-plan.md).

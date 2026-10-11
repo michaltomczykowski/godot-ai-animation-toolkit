@@ -1,6 +1,20 @@
 # Animation Toolkit repair roadmap
 
-## Current closure (2026-10-11)
+## Current start/stop work (2026-10-11)
+
+Start/stop baseline is preserved: 80 public clips, 480 native runs, no engine
+errors, 0/480 quality pass. Baseline videos/source/160 saved reference scenes
+are archived. Shared one-shot extraction hold is fixed (`d3057b0`, 48 replay/
+FPS/controller cases); transition reach reporting is truthful (`524415e`).
+Sixteen new public clips and 96 root/metadata checks pass, authored poses exact;
+actual clamps/contact/join failures remain. Fresh public 68/68, full local
+393/393 and headless 14/14 pass, accepted gait/idle golden drift zero.
+State: `start_stop_reference_repair_active`; human review is pending.
+Next: docs/start-stop-continuation-repair-plan.md, independent walk/idle timing
+and complete endpoints, then support/root continuation and full video gates.
+Recovery: release_r2_start_stop_20261011. No merge, tag or release yet.
+
+### Preserved idle closure
 
 Idle r002 is approved ("looks fine") and closed on fixture source `b935cff`,
 Actions `38157142049`. Fresh public motion 64/64, full local editor 389/389,

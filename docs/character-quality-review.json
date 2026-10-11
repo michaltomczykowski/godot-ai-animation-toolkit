@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "phase": "character_quality",
-  "operation": "idle_cycle",
-  "revision": "idle-review-r002",
-  "state": "approved_idle_styles_regression_complete",
+  "operation": "walk_start/walk_stop",
+  "revision": "start-stop-repair-r001",
+  "state": "start_stop_reference_repair_active",
   "release_r1_execution": {
     "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -333,9 +333,9 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Idle is approved and green. Follow docs/start-stop-quality-review-plan.md: preserve the ordinary public baseline, measure independent played continuation, then repair and deliver continuous videos for the next human review.",
+  "next_action": "Follow start-stop-continuation-repair-plan.md: independent walk/idle timing and complete endpoints, then support/root repair and final video/manual gates.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
-  "updated_utc": "2026-10-10T13:40:33.095528+00:00",
+  "updated_utc": "2026-10-11T19:15:07.420807+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
   "route": {
     "run_id": "9ad66ecc6b294f62823069b6a4050fc2",
@@ -2739,7 +2739,7 @@
     "updated_utc": "2026-10-09T20:12:32.534790+00:00",
     "playback_scope": "r004 feedback received; individual video/profile coverage not specified"
   },
-  "active_review_field": "idle_review",
+  "active_review_field": "start_stop_review",
   "baseline_fields_note": "Top-level route/numeric/videos/chapters preserve r001 history. Current walk evidence and approvals are in promoted_walk_review; current regression is in release_r1_execution.",
   "promoted_walk_review": {
     "state": "approved_walk_styles_regression_complete",
@@ -4388,5 +4388,141 @@
         "approved": false
       }
     }
-  ]
+  ],
+  "start_stop_review": {
+    "state": "start_stop_reference_repair_active",
+    "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_20261011",
+    "baseline_generation_source": "96db7c4c9ee0cce49816fa77a9271f9f6cf2db3e",
+    "baseline_public_clips": 80,
+    "baseline_native_runs": 480,
+    "baseline_native_quality_pass": 0,
+    "baseline_engine_errors": 0,
+    "baseline_videos": 2,
+    "baseline_video_seconds_each": 24,
+    "baseline_saved_scene_archive_count": 160,
+    "root_hold_source": "d3057b0",
+    "root_hold_public_regression_cases": 48,
+    "reach_reporting_source": "524415e9b052f4451d4bb9189785506b6f3438fa",
+    "reach_checkpoint": {
+      "checkpoint_passed": true,
+      "candidate_quality_approved": false,
+      "rows": [
+        {
+          "operation": "walk_start",
+          "root_mode": "extracted",
+          "source_head": "524415e9b052f4451d4bb9189785506b6f3438fa",
+          "public_clips": 4,
+          "native_runs": 24,
+          "root_and_metadata_pass": true,
+          "native_quality_pass": false,
+          "exact_authored_key_clips": 4,
+          "bounded_played_parity_runs": 12,
+          "max_played_position_difference_m": 4.95113340548414e-07,
+          "max_played_rotation_difference_rad": 6.48157708837948e-07,
+          "max_played_root_difference_m": 0.0,
+          "clamped_clips": 1,
+          "max_shortfall_m": 0.000354779720306397,
+          "native_report_sha256": "15d5a0d6c84d96cdb5c8423b7c31b895e42f836d2f131b53d97b4d6a5e715c22",
+          "authored_report_sha256": "522a13388d3cd3a18c32dda7b3d7fef61bf8b60b8c395004342e11a42c8d890f",
+          "played_report_sha256": "2753b4139e07907b9893f6ca13774cb05d4f365a2187d73b5c843dce53ae147b"
+        },
+        {
+          "operation": "walk_start",
+          "root_mode": "in_place",
+          "source_head": "524415e9b052f4451d4bb9189785506b6f3438fa",
+          "public_clips": 4,
+          "native_runs": 24,
+          "root_and_metadata_pass": true,
+          "native_quality_pass": false,
+          "exact_authored_key_clips": 4,
+          "bounded_played_parity_runs": 12,
+          "max_played_position_difference_m": 0.0,
+          "max_played_rotation_difference_rad": 0.0,
+          "max_played_root_difference_m": 0.0,
+          "clamped_clips": 2,
+          "max_shortfall_m": 0.000354779720306397,
+          "native_report_sha256": "fbb75f215eac5518a6b94cd527d868d93a9d2c3f8a994dbe3b4eeee7c227a577",
+          "authored_report_sha256": "804256ed205cba1c3c36d0775e22a0ba1c95c2ed321997ad716f7cb8d70c2a08",
+          "played_report_sha256": "f209d87c78fdc2cba7d8e3bc0098bb179fbcec14265abdffd8507583042598c7"
+        },
+        {
+          "operation": "walk_stop",
+          "root_mode": "extracted",
+          "source_head": "524415e9b052f4451d4bb9189785506b6f3438fa",
+          "public_clips": 4,
+          "native_runs": 24,
+          "root_and_metadata_pass": true,
+          "native_quality_pass": false,
+          "exact_authored_key_clips": 4,
+          "bounded_played_parity_runs": 12,
+          "max_played_position_difference_m": 3.62560911071341e-07,
+          "max_played_rotation_difference_rad": 5.661491737584e-07,
+          "max_played_root_difference_m": 0.0,
+          "clamped_clips": 1,
+          "max_shortfall_m": 0.000354779720306397,
+          "native_report_sha256": "d5779de7264331880a91e9f55cd86666e8929f6ac65d77a2c4825c59b619a390",
+          "authored_report_sha256": "522a13388d3cd3a18c32dda7b3d7fef61bf8b60b8c395004342e11a42c8d890f",
+          "played_report_sha256": "3f0ca65dd03772d093a9654ac1a229b07910aac74f019b132fd377d68caf9449"
+        },
+        {
+          "operation": "walk_stop",
+          "root_mode": "in_place",
+          "source_head": "524415e9b052f4451d4bb9189785506b6f3438fa",
+          "public_clips": 4,
+          "native_runs": 24,
+          "root_and_metadata_pass": true,
+          "native_quality_pass": false,
+          "exact_authored_key_clips": 4,
+          "bounded_played_parity_runs": 12,
+          "max_played_position_difference_m": 0.0,
+          "max_played_rotation_difference_rad": 0.0,
+          "max_played_root_difference_m": 0.0,
+          "clamped_clips": 1,
+          "max_shortfall_m": 0.000354779720306397,
+          "native_report_sha256": "96bb5b2e16bb20a9b2def347cc7da8ed67b89fba139700b578d27c1c5e1f91e9",
+          "authored_report_sha256": "804256ed205cba1c3c36d0775e22a0ba1c95c2ed321997ad716f7cb8d70c2a08",
+          "played_report_sha256": "f209d87c78fdc2cba7d8e3bc0098bb179fbcec14265abdffd8507583042598c7"
+        }
+      ],
+      "public_clips": 16,
+      "root_and_metadata_native_runs": 96,
+      "exact_authored_key_clips": 16,
+      "bounded_played_parity_runs": 48,
+      "position_tolerance_m": 1e-06,
+      "rotation_tolerance_rad": 2e-06,
+      "protected_looping_exact_parity_unchanged": true
+    },
+    "public_motion": {
+      "passed": 68,
+      "total": 68,
+      "skipped": 0
+    },
+    "full_local_editor": {
+      "passed": 393,
+      "total": 393,
+      "skipped": 0,
+      "suite_count": 32,
+      "report_sha256": "baf09d4a37f63b46e7881e87383da81d853f463fbbd5e6b46f8c5c74b0097574"
+    },
+    "headless_suites": {
+      "passed": 14,
+      "total": 14
+    },
+    "protected_golden_drift": 0,
+    "accepted_walk_run_idle_unchanged": true,
+    "visual_approval": null,
+    "candidate_quality_approved": false,
+    "release_ready": false,
+    "remaining_gates": [
+      "reference endpoints and timing",
+      "moving references/root/support/contact",
+      "targeted phase/duration matrix",
+      "final ordinary 80 public / 480 native matrix",
+      "one-player saved sequence continuation",
+      "core reload/discovery and regressions",
+      "Windows/Linux source CI",
+      "continuous comparison videos/archive/PC delivery",
+      "explicit human feedback"
+    ]
+  }
 }
