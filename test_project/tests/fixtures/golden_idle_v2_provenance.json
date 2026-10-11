@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "fixture_epoch": "v2-responsive-idle",
+  "migration_state": "approved_pending_recording",
+  "approved_animation_source": "9188ffa22e756213ae48e88d359b5918c0b2c384",
+  "delivered_checkpoint": "2a0db641a257371bb9f67de90e75882420e7a7d8",
+  "review_revision": "idle-review-r002",
+  "candidate_uuid": "12f39e415f3b4ee19128d7b7737e0eba",
+  "feedback": {
+    "verbatim": "looks fine",
+    "recorded_utc": "2026-10-11T16:41:24.237321+00:00",
+    "decision": "approved_presented_idle_style_set",
+    "scope": "Responsive/default, Grounded, relaxed, heavy and sneaky across the four presented rigs; response to the revised idle r002 video review.",
+    "individual_watched_files_enumerated": false,
+    "animation_source": "9188ffa22e756213ae48e88d359b5918c0b2c384",
+    "revision": "idle-review-r002",
+    "candidate_uuid": "12f39e415f3b4ee19128d7b7737e0eba",
+    "delivered_checkpoint": "2a0db641a257371bb9f67de90e75882420e7a7d8",
+    "videos": [
+      {
+        "style": "responsive",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\candidate\\review-videos\\idle-review-r002-responsive-clean.mp4",
+        "sha256": "421effa3a55bba45d1f872e1f5b334551a910b4b23c20b0d4e4fa64dff6357b4",
+        "bytes": 6111623,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "responsive",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\candidate\\review-videos\\idle-review-r002-responsive-diagnostic.mp4",
+        "sha256": "6cacdc31fedc17551901830a37cf3b92b9ecb81963a658734475e78a14f4490b",
+        "bytes": 6353261,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "grounded",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\candidate\\review-videos\\idle-review-r002-grounded-clean.mp4",
+        "sha256": "8d4762b5f37de94ffdb331b50312fa3548acd602d329071f9f6eda2ed21fea13",
+        "bytes": 6642737,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "grounded",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\candidate\\review-videos\\idle-review-r002-grounded-diagnostic.mp4",
+        "sha256": "1660d14542430ed0c59a0582fea90c792e83db05e5342dbb18bf72c6a0c2bfa5",
+        "bytes": 6904453,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "relaxed",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\candidate\\review-videos\\idle-review-r002-relaxed-clean.mp4",
+        "sha256": "7108a75d461cbbc4c0e54f8b019924bd25ecda125fb85232051d5271c903aa24",
+        "bytes": 5974470,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "relaxed",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\candidate\\review-videos\\idle-review-r002-relaxed-diagnostic.mp4",
+        "sha256": "20f499e1f754aa6a7886ce6977259a7bd8ed2a65bbc73f7eb95c30e2b7c30b09",
+        "bytes": 6235744,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "heavy",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\candidate\\review-videos\\idle-review-r002-heavy-clean.mp4",
+        "sha256": "d442a0e04b05d2056ef181df63f0b750160e3b23df23893e90b0fa4be68de753",
+        "bytes": 6010475,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "heavy",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\candidate\\review-videos\\idle-review-r002-heavy-diagnostic.mp4",
+        "sha256": "b4e8d9732ea442149aede64cc67e52981d6b9e3ad09f66596aa53a49bee08a92",
+        "bytes": 6272487,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "sneaky",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\candidate\\review-videos\\idle-review-r002-sneaky-clean.mp4",
+        "sha256": "6d8499f33662f69ac45f10c81568ddbb65fb037de94d528573cb30913efcf20d",
+        "bytes": 5588302,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      },
+      {
+        "style": "sneaky",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\candidate\\review-videos\\idle-review-r002-sneaky-diagnostic.mp4",
+        "sha256": "e5fb6234402a856d20dd46dfd98425a0291ffd1dfd85f1edfd23bf84d94017b7",
+        "bytes": 5813449,
+        "decoded_frames": 2880,
+        "decoded_duration_s": 48.0
+      }
+    ]
+  },
+  "fixture_generation_source": null,
+  "godot": "4.7.2",
+  "core_source": "bfc264200584ea5823f18356acb164781f57796d",
+  "asset": {
+    "path": "models/human_dummy/HumanCharacterDummy_F.fbx",
+    "sha256": "d038a99efd9754e2804221f509aba8bff2168bf83982c109937ce0c749caf5bf"
+  },
+  "invocation": {
+    "op": "idle_cycle",
+    "animation_name": "golden_idle"
+  },
+  "omitted_params": [
+    "style",
+    "duration",
+    "speed",
+    "samples",
+    "overrides",
+    "loop_mode",
+    "root_motion"
+  ],
+  "binding_contract": "Golden helper passes dynamically resolved skeleton_path/player_path under its in-memory MotionGolden FBX instance. Saved-scene bindings, public custom-tools invocation and external Undo/Redo are independently covered by the approved 40-route/240-native delivery receipts.",
+  "root_motion_convention": "Default in-place, ordinary idle is stationary under either requested root policy",
+  "format": "godot-ai-animation-golden",
+  "version": 1,
+  "scale": 2048,
+  "tolerance": 2,
+  "preserved_fixture_hashes": {
+    "golden_idle.json": {
+      "sha256": "cf78066dcf236600428896b0db25711ac0ed63c62fa1068da333fa79d67375e8"
+    },
+    "golden_run.json": {
+      "sha256": "7b834fc54604f0bf9a0002ec83fc7de965739b1f693ac071b9fc3ecb14f2d54d"
+    },
+    "golden_run_responsive_v2.json": {
+      "sha256": "01de98d0d7a336a6c26425991b099e391bad71e6492f5f619e2c3fbeb1bb7c62"
+    },
+    "golden_run_v2_provenance.json": {
+      "sha256": "f96ea09c52d6e1a246348e64b8b6d7cc3a0858505040d8d574ab8a10ad9da980"
+    },
+    "golden_spec_walk.json": {
+      "sha256": "556ebad5a6c9def1d17b364d55b1b860e38200b002b7718d9198fda090fe8f53"
+    },
+    "golden_spec_walk_responsive_v2.json": {
+      "sha256": "25ba740313886e61636691665ed33290e04845d5021b82b4c93456c91e47af12"
+    },
+    "golden_walk.json": {
+      "sha256": "644553ded7f9ede761cb418c76aab44539c0d5ddeb619decfe030c32b22c21a1"
+    },
+    "golden_walk_responsive_v2.json": {
+      "sha256": "0d5a9fa7158fe2a0ab2895fcb40f43a19395757ae2c65075d43a5f068b48749a"
+    },
+    "golden_walk_v2_provenance.json": {
+      "sha256": "475a451932ec4aa02a4b1baecb9fd257418d85308a0923672e5561735c50ce20"
+    }
+  },
+  "fixtures": {
+    "golden_idle.json": {
+      "sha256": "cf78066dcf236600428896b0db25711ac0ed63c62fa1068da333fa79d67375e8"
+    }
+  },
+  "recording_contract": "Explicit local recording only through public Godot AI test_run; fresh normal comparison and full regression required. Normal and CI flags cannot write expectations.",
+  "recovery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression"
+}

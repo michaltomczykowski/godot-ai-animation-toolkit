@@ -2713,7 +2713,7 @@ func test_the_run_matches_its_golden() -> void:
 
 
 func test_the_idle_matches_its_golden() -> void:
-	_check_golden("idle_cycle", "golden_idle", "golden_idle.json")
+	_check_golden("idle_cycle", "golden_idle", "golden_idle_responsive_v2.json")
 
 
 ## Builds one clip through the real op and compares a quantized digest of it with a
@@ -2730,12 +2730,13 @@ func _check_golden(op: String, animation_name: String, fixture: String) -> void:
 		"player_path": rig.player_path, "animation_name": animation_name,
 		"duration": 1.0, "loop_mode": "linear",
 	}
-	# Reviewed run guards ordinary timing, style and density. Walk keeps its
-	# approved one-second request; idle keeps its historical request until review.
+	# Reviewed run/idle guard ordinary timing, style and density. Walk keeps
+	# its approved one-second request; idle also uses its ordinary loop policy.
 	if op == "run_cycle":
 		params.erase("duration")
 	if op == "idle_cycle":
-		params["samples"] = 8.0
+		params.erase("duration")
+		params.erase("loop_mode")
 	var built := _handler.run(params, null)
 	assert_true(built.has("data"), "the %s builds (%s)" % [op, str(built.get("error", built))])
 	var anim: Animation = rig.player.get_animation(animation_name)

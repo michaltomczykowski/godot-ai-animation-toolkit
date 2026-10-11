@@ -1,5 +1,17 @@
 # R2 idle: baseline and repair evidence
 
+## r002 approval and fixture migration (2026-10-11)
+
+The user approved the presented revised idle set with "looks fine". All five
+style approvals are true; the four-rig presented scope and ten video hashes
+are recorded without claiming individual watched files. Approved animation
+source is `9188ffa`, delivered checkpoint `2a0db64`, UUID `12f39e415f3b4ee19128d7b7737e0eba`.
+Immutable delivery receipts remain unchanged; approval and historical fixture
+hashes are preserved in `idle-look-r002/accepted-r002-regression/approval.json`.
+State is `approved_idle_styles_pending_regression`. Follow the versioned
+migration plan; independent green gates are pending. No new motion generation,
+recapture, release or start/stop tuning is part of this fixture migration.
+
 ## r002 feedback revision (2026-10-11)
 
 The user described r001 as very nice and requested a little more motion and

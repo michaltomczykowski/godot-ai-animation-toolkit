@@ -2,6 +2,18 @@
 
 ## Current closure (2026-10-11)
 
+Idle r002 received explicit approval: "looks fine", covering the presented
+five-style/four-rig set; individual watched files were not enumerated. Ten video
+hashes bind the approval to animation source `9188ffa` and checkpoint `2a0db64`.
+State: `approved_idle_styles_pending_regression`. The planned separate idle v2
+fixture migration starts now; preserve legacy goldens and approved walk/run.
+Require missing-expectation refusal, deliberate recording, fresh public/local
+comparisons and green Windows/Linux source CI before start/stop. Recovery:
+release_r2_idle_20261011/idle-look-r002/accepted-r002-regression.
+No merge, tag or release at this phase.
+
+### Preserved r002 delivery checkpoint
+
 Idle r001 feedback requests slightly more motion and looking around. Revision
 plan: `docs/idle-look-r002-plan.md`; source `9188ffa` (addon change `1b79378`).
 New ordinary public idle writes pass 40/40, native Player/Tree checks 240/240,

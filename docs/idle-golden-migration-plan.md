@@ -1,12 +1,15 @@
 # Idle golden migration — only after video approval
 
-Prepared 2026-10-11 while final idle videos record. This is a plan. No idle
-fixture or test selector has changed, and idle has no human approval yet.
+Prepared 2026-10-11 while idle videos recorded. Execution is now authorized:
+the user approved revised r002 with "looks fine". The presented five-style/
+four-rig scope is recorded; individually watched files were not enumerated.
+Bind this migration to approved r002 source `9188ffa`, checkpoint `2a0db64`
+and its ten exact video hashes. Independent regression remains pending.
 
 ## Review gate
 
 Deliver all ten continuous five-style/four-rig videos through PC Explorer.
-Preserve source `8665980`, route/history/native/reload evidence, source CI and
+Preserve source `9188ffa`, route/history/native/reload evidence, source CI and
 video hashes. Pause for the user's explicit feedback. Record their words and
 actual review scope; continuation or a usage reset does not approve motion.
 Revisions need new saved scenes, media, regression and another review.
@@ -50,8 +53,8 @@ Revisions need new saved scenes, media, regression and another review.
    Verify approved walk/run digests and historical fixture hashes unchanged.
 4. Commit/push source plus fixture and verify the remote SHA. Archive source,
    provenance, all local receipts and exact fixture bytes under
-   `release_r2_idle_20261011/accepted-r001-regression`, preserving the delivered
-   candidate archive. Confirm addon bytes still match approved source `8665980`.
+   `release_r2_idle_20261011/idle-look-r002/accepted-r002-regression`, preserving the delivered
+   candidate archive. Confirm addon bytes still match approved source `9188ffa`.
 5. Require complete Windows/Linux source CI against that tracked tree: pinned
    core v4.2.1 required jobs selected by name; core-main advisory results kept
    separate. All required jobs must pass. Preserve only the two named missing
