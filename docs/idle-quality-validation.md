@@ -199,6 +199,7 @@ six-second native comparisons at 30/60/120 FPS, exactly zero bone/root drift.
 The helper's walk mode is restricted to baseline regression; it cannot create
 a new walk review candidate. Preserve sources/scenes/receipts in protected-gaits.
 Final continuous idle recording and source Actions `38124952893` are pending.
+The following closing checkpoint supersedes that pending source-CI wording.
 
 Protected gait regression completed on `adca5c9`: **40/40** new ordinary public
 save/reopens, then **120/120** independent native comparisons with exactly zero
@@ -216,6 +217,15 @@ merge `361d11d994a6a7a6e063a3ad285eada08988facd` has the same tracked tree as
 candidate source `8665980`. Pinned core is `bfc2642`, engine 4.7.2. All completed
 Tier-1 jobs and Linux live MCP pass; Windows live MCP remains pending. Preserve
 the raw logs and parsed receipts in candidate-gates; do not call this CI green.
+
+Source Actions `38124952893` is now complete: all **28** Windows/Linux headless
+jobs and **both** live MCP jobs pass, each live route has **118 pass / zero fail**
+markers. All four editor jobs fail solely the old idle golden as detailed above.
+Tag-only version/release jobs are skipped. Exact source/tree/log hashes and
+named private-rig skips are preserved in `candidate-gates/ci-8665980-receipt.json`.
+This is an expected pre-review failure, not green release CI. The future
+`idle-golden-migration-plan.md` preserves the manual gate and separate fixture;
+no selector or expectation has changed during recording.
 
 ### Historical next measurement (before prototypes)
 

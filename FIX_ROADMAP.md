@@ -8,7 +8,9 @@ Tree checks at 30/60/120 FPS, zero default clamps or knee flips. Forty reload
 dry calls and both complete ten-family catalog checks pass. Full local editor
 388/389 and headless 14/14; only the preserved old idle golden fails. Four
 Windows/Linux editor jobs show that same failure, two named private-rig skips
-and no engine/route errors; the live Windows route remains pending.
+and no engine/route errors. All 28 headless source jobs and both live MCP jobs
+pass (118 pass/zero fail markers each); exact receipts are archived. Source CI
+remains expected-failing until explicitly approved idle's separate v2 fixture.
 
 Approved walk/run saved playback is protected: 40 fresh ordinary public clips
 and 120 native comparisons on source `adca5c9`, exactly zero bone/root drift.

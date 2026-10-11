@@ -3,7 +3,7 @@
   "phase": "character_quality",
   "operation": "walk_cycle",
   "revision": "walk-default-styles-r005",
-  "state": "ordinary_candidate_public_passed_pending_native",
+  "state": "ordinary_candidate_verified_recording",
   "release_r1_execution": {
     "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -333,7 +333,7 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Finish native 240/reload/full editor/source CI; record, archive and deliver ten idle videos, then pause for feedback.",
+  "next_action": "Complete ten continuous videos and strict archive, then PC Explorer and explicit idle feedback",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
   "updated_utc": "2026-10-10T13:40:33.095528+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -3763,7 +3763,7 @@
     }
   },
   "idle_review": {
-    "state": "ordinary_candidate_public_passed_pending_native",
+    "state": "ordinary_candidate_verified_recording",
     "plan": "docs/idle-quality-review-plan.md",
     "validation": "docs/idle-quality-validation.md",
     "baseline_source": "f44f23685e839a4da21400a549fc91c65d1015dc",
@@ -3783,7 +3783,7 @@
       "sneaky": null
     },
     "release_ready": false,
-    "next_gate": "Continuous baseline playback and supported public prototypes before idle-only tuning",
+    "next_gate": "Complete ten continuous videos and strict archive, then PC Explorer and explicit idle feedback",
     "animation_source": "866598067c31017125d91890cfb37368d7c08a64",
     "candidate_uuid": "111fa689c5184c1ca20c41b0ef52141f",
     "public_candidate_clips": 40,
@@ -3799,6 +3799,22 @@
       "preserved_failure": "test_the_idle_matches_its_golden"
     },
     "headless_suites": 14,
-    "candidate_ci_run": 38124952893
+    "candidate_ci_run": 38124952893,
+    "native_runs": 240,
+    "native_passed": 240,
+    "reload_dry_calls": 40,
+    "protected_gait_runs": 120,
+    "protected_gait_exact": true,
+    "local_full_editor": {
+      "total": 389,
+      "passed": 388,
+      "failed": 1,
+      "skipped": 0,
+      "engine_errors": 0,
+      "preserved_failure": "test_the_idle_matches_its_golden"
+    },
+    "candidate_ci_state": "complete_expected_legacy_idle_golden_failure_only",
+    "candidate_ci_other_source_jobs_pass": true,
+    "golden_migration_plan": "docs/idle-golden-migration-plan.md"
   }
 }

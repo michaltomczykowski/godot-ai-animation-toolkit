@@ -10,13 +10,16 @@ Focused final source 63/64: only preserved legacy idle golden fails; walk/run
 drift zero. Headless 14/14. Native 240/240 and all 40 core-reload dry calls pass.
 Full local editor 388/389: only the preserved legacy idle golden fails, no
 skips/errors. Final ten-video recorder is active: inspect recording-progress
-before resuming; do not restart an active capture. Actions 38124952893 pending.
+before resuming; do not restart an active capture. Actions 38124952893 complete:
+only preserved idle golden fails; 28 headless and both live MCP jobs pass.
 Protected ordinary walk/run: 40 fresh public save/reopens, source `adca5c9`,
 120/120 native comparisons exactly zero bone/root differences at all three FPS.
 Proof plus 80 reference/candidate saved scenes are in protected-gaits. Archive
 gate requires it. Four Windows/Linux source editor jobs have only the legacy
 idle golden failure and the two named private-X-Bot skips, no engine/route
-errors. Live Windows source route remains pending; source CI is not green yet.
+errors. Both live source routes: 118 pass/zero fail markers each. Source CI is
+not green until reviewed idle's versioned fixture migration; future plan:
+docs/idle-golden-migration-plan.md. No fixture/selector changes before approval.
 Prototype source57's 48 checks and 48s clean comparison complete; baseline has
 two 24s videos. No idle approval. Final gate: five clean/diagnostic ordinary idle
 videos, strict archive, PC Explorer, then stop for explicit user feedback.
