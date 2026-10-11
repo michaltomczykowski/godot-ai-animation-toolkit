@@ -93,10 +93,13 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 	var clip: Animation = v.clip
 	var leg: float = v.leg
 	var dt := 1.0 / fps
+	# The existing commit path appends a stationary extraction tail. Joins use
+	# the authored action boundary, not the later storage/finishing boundary.
+	var action_duration := float(row.write.get("capture_duration", clip.length))
 	var stopping: bool = row.params.op == "walk_stop"
 	var phase := float(row.write.get("phase", row.params.get("phase", 0.0)))
-	var gait_join := _join(v, walk, 0.0 if stopping else clip.length, phase, stopping, dt)
-	var idle_join := _join(v, idle, clip.length if stopping else 0.0, 0.0, not stopping, dt)
+	var gait_join := _join(v, walk, 0.0 if stopping else action_duration, phase, stopping, dt)
+	var idle_join := _join(v, idle, action_duration if stopping else 0.0, 0.0, not stopping, dt)
 	v.player.stop()
 	v.player.play(v.animation_name, 0.0, 1.0)
 	v.player.advance(0.0)
@@ -136,6 +139,7 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 	if key_count != int(row.write.key_count) or clip.get_track_count() != int(row.write.track_count): errors.append("Reported track/key counts differ")
 	if clip.loop_mode != Animation.LOOP_NONE: errors.append("Transition must preserve one-shot endpoints")
 	if absf(clip.length - float(row.write.length)) > 0.000001: errors.append("Reported duration differs")
+	if not clip.has_marker("settled") or absf(clip.get_marker_time("settled") - action_duration) > 0.000001: errors.append("Reported action boundary differs from settled marker")
 	var root_track := clip.find_track(mixer.root_motion_track, Animation.TYPE_POSITION_3D)
 	if extracted and root_track < 0: errors.append("Extracted root track missing")
 	if not extracted and root_track >= 0: errors.append("In-place clip owns extracted translation")
@@ -241,6 +245,7 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 		metrics[side] = {"max_observed_contact_slide_m": f.slide, "max_rest_ankle_plane_penetration_m": f.penetration,
 			"knee_pole_flips": f.flips, "observed_contact_frames": f.frames, "observed_contact_windows": f.windows}
 	var result := {"id": row.id, "fps": fps, "mixer": mode, "frames": frames + 1, "duration_s": clip.length,
+		"action_duration_s": action_duration, "reported_terminal_hold_s": row.write.get("root_motion_terminal_hold", null),
 		"root_mode": "extracted" if extracted else "in_place", "phase": phase, "leg_length_m": leg,
 		"generation_clamp_metadata_known": clamp_known, "generation_reach_clamped": row.write.get("clamped", null),
 		"actor_schedule_known": actor_schedule_known, "actor_schedule_source": "extracted root track" if extracted else "paired extracted saved clip: diagnostic assumption",
