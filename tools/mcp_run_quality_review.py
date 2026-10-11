@@ -1,4 +1,4 @@
-"""Preserve ordinary four-rig gait/idle clips through authenticated public Godot AI.
+"""Preserve ordinary four-rig gait/idle/transition clips through public Godot AI.
 
 No pose or animation is authored here. Each scene mutation happens once; a new
 attempt gets a new UUID. Partial receipts survive failure or interruption.
@@ -29,6 +29,7 @@ def save(path: Path, report: dict) -> None:
 
 async def run(args: argparse.Namespace) -> int:
     motion = args.operation.removesuffix("_cycle")
+    transition = args.operation in ("walk_start", "walk_stop")
     if motion == "walk" and args.phase != "baseline":
         raise ValueError("Walk support here is for protected baseline regression, not a new review candidate")
     source = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=args.repo, text=True).strip()
@@ -66,10 +67,13 @@ async def run(args: argparse.Namespace) -> int:
                 for rig_id, label, fixture, scene_root, rig_path, player_path, synthetic in RIGS:
                     target = scene_folder / f"{style}_{root_mode}_{rig_id}.tscn"
                     copy_scene(args.project_root / fixture, target)
-                    if args.phase == "candidate":
+                    if args.phase == "candidate" or transition:
                         with target.open("a", encoding="utf-8", newline="\n") as stream:
-                            stream.write(f'\n[node name="Public{motion.title()}History" type="Node" parent="."]\n'
+                            marker = "PublicTransitionHistory" if transition else f"Public{motion.title()}History"
+                            stream.write(f'\n[node name="{marker}" type="Node" parent="."]\n'
                                          f'metadata/player_path = NodePath("{player_path}")\n')
+                            if transition:
+                                stream.write(f'metadata/operation = "{args.operation}"\n')
                     scene = "res://" + target.relative_to(args.project_root).as_posix()
                     player = f"/{scene_root}/{player_path}"
                     params = {"op": args.operation, "player_path": player,
@@ -105,12 +109,14 @@ async def run(args: argparse.Namespace) -> int:
                     await stage("dry", "custom_manage", {"op": "invoke", "params": {
                         "tool_name": "animation_motion", "params": {**params, "dry_run": True}}})
                     row["after_dry"] = await inspect(client, params["animation_name"], player)
+                    await stage("pose_after_dry", "custom_animation_rig", {
+                        "op": "pose_save", "skeleton_path": params["skeleton_path"]})
                     await stage("write", "custom_manage", {"op": "invoke", "params": {
                         "tool_name": "animation_motion", "params": params}})
                     row["after"] = await inspect(client, params["animation_name"], player)
                     await stage("pose_after", "custom_animation_rig", {
                         "op": "pose_save", "skeleton_path": params["skeleton_path"]})
-                    if args.phase == "candidate":
+                    if args.phase == "candidate" or transition:
                         history = await stage("history", "test_run", {
                             "suite": "animation_motion",
                             "test_name": f"test_{motion}_undo_redo_restores_written_{motion}", "verbose": True})
@@ -126,10 +132,12 @@ async def run(args: argparse.Namespace) -> int:
                     row["scene_sha256"] = hashlib.sha256(target.read_bytes()).hexdigest()
                     row["roles"] = row["write"].get("roles", {})
                     problems = [f"{rig_id}/{key}: {row[key]['error']}" for key in
-                                ("open", "pose_before", "dry", "write", "pose_after", "save", "reopen")
+                                ("open", "pose_before", "dry", "pose_after_dry", "write", "pose_after", "save", "reopen")
                                 if row[key].get("error")]
                     if row["before"] != row["after_dry"]:
                         problems.append(f"{rig_id}: dry run changed clip")
+                    if row["pose_before"] != row["pose_after_dry"]:
+                        problems.append(f"{rig_id}: dry run changed the edited pose")
                     if row["pose_before"] != row["pose_after"]:
                         problems.append(f"{rig_id}: generation changed the edited pose")
                     if row["after"] != row["persisted"]:
@@ -163,7 +171,7 @@ if __name__ == "__main__":
     p.add_argument("--ws-port", type=int, default=9500)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--phase", choices=("baseline", "prototype", "candidate"), default="baseline")
-    p.add_argument("--operation", choices=("walk_cycle", "run_cycle", "idle_cycle"), default="run_cycle")
+    p.add_argument("--operation", choices=("walk_cycle", "run_cycle", "idle_cycle", "walk_start", "walk_stop"), default="run_cycle")
     p.add_argument("--recipes", type=Path, help="Explicit prototype recipes; final candidates use ordinary defaults")
     p.add_argument("--duration", type=float, help="Explicit prototype period; ordinary calls omit duration")
     p.add_argument("--revision", default="run-baseline-r001")

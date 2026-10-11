@@ -196,6 +196,60 @@ func test_idle_undo_redo_restores_written_idle() -> void:
 	_teardown(rig)
 
 
+func test_walk_start_undo_redo_restores_written_walk_start() -> void:
+	_transition_history("walk_start")
+
+
+func test_walk_stop_undo_redo_restores_written_walk_stop() -> void:
+	_transition_history("walk_stop")
+
+
+func _transition_history(operation: String) -> void:
+	var scene := EditorInterface.get_edited_scene_root()
+	var marker := scene.get_node_or_null("PublicTransitionHistory") if scene != null else null
+	var rig := {}
+	var player: AnimationPlayer
+	var name := "quality_" + operation
+	if marker != null:
+		# The public client already made exactly one write. Observe that history;
+		# generating a second animation here would test a different transaction.
+		assert_eq(str(marker.get_meta("operation", "")), operation, "external witness operation matches")
+		player = scene.get_node_or_null(marker.get_meta("player_path")) as AnimationPlayer
+	else:
+		rig = _rig(operation + "History")
+		if rig.has("error"):
+			skip(rig.error)
+			return
+		player = rig.player
+		assert_true(_handler.run({"op": operation, "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "animation_name": name,
+			"root_motion": true}, null).has("data"), "transition history fixture builds")
+	assert_true(player != null and player.has_animation(name), "written transition exists before Undo")
+	if player == null or not player.has_animation(name):
+		_teardown(rig)
+		return
+	var clip := player.get_animation(name)
+	var digest := GoldenDigest.from_animation(clip)
+	var root_track := player.root_motion_track
+	var markers := clip.get_marker_names()
+	var marker_times := {}
+	for label in markers: marker_times[label] = clip.get_marker_time(label)
+	assert_eq(clip.loop_mode, Animation.LOOP_NONE, "ordinary transition is a one-shot")
+	assert_true(editor_undo(_undo_redo), "actual transition Undo succeeds")
+	assert_false(player.has_animation(name), "Undo removes the public transition")
+	assert_true(editor_redo(_undo_redo), "actual transition Redo succeeds")
+	assert_true(player.has_animation(name), "Redo restores the transition")
+	if player.has_animation(name):
+		clip = player.get_animation(name)
+		var compared := GoldenDigest.compare(GoldenDigest.from_animation(clip), digest)
+		assert_eq(str(compared.shape), "", "Redo restores transition structure")
+		assert_eq(int(compared.worst), 0, "Redo restores transition values")
+		assert_eq(player.root_motion_track, root_track, "Redo restores extraction binding")
+		assert_eq(clip.get_marker_names(), markers, "Redo restores transition markers")
+		for label in markers: assert_eq(clip.get_marker_time(label), marker_times[label], "Redo restores marker time")
+	_teardown(rig)
+
+
 func test_responsive_default_aliases_and_setup_use_identical_walks() -> void:
 	for fixture in [DUMMY, XBOT, "res://repair_synthetic_short.tscn", "res://repair_synthetic_zup_tall.tscn"]:
 		var rig := _rig("ResponsiveDefault", fixture)
