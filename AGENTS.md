@@ -2,29 +2,30 @@
 
 ## Current instruction (2026-10-11)
 
-The user reviewed idle r001 and requested a little more motion and looking
-around. This supersedes the pause below for revision work only. Follow
-docs/idle-look-r002-plan.md, use a new idle-look-r002 recovery folder, preserve
-all r001 videos/receipts and feedback, and pause again after continuous r002
-video delivery. No idle golden migration or release approval yet.
+Idle r002 delivery is complete on capture source `9188ffa` (addon change
+`1b79378`), UUID `12f39e415f3b4ee19128d7b7737e0eba`. The user requested a
+little more motion and looking around after r001. Only idle profiles changed.
+All ten continuous 48s/1080p60 MP4s are independently decoded (2,880 frames
+each), hashed and archived with 68 idle scenes, local rigs, exact source/tooling
+and receipts. Source/scene/tooling ZIP CRCs and hashes independently pass.
+Forty actual public history writes, 240 native idle checks, sixty played motion
+range comparisons and forty reload dry calls pass. Protected walk/run adds
+80 saved scenes and 120 exactly identical playback comparisons. Full local
+388/389, headless 14/14. Actions 38141249398 has only the preserved old idle
+golden failure and the two named private-rig skips; all 28 headless and both
+live MCP jobs pass. No engine/route errors. The visible repair editor quit
+normally after public work; all recording is complete and stopped.
 
-Idle review delivery is complete on animation source `8665980`, UUID
-`111fa689c5184c1ca20c41b0ef52141f`. All ten continuous 48s/1080p60 MP4s are
-independently decoded (2,880 frames each) and archived with 68 idle scenes,
-private local rigs, exact source/tooling and receipts. Protected walk/run adds
-80 saved scenes and 120 exact played comparisons. Forty actual public history
-writes, 240 native idle runs and forty reload dry calls pass. Source CI's only
-failure is the preserved legacy idle golden; all 28 headless and both live MCP
-jobs pass. Local full 388/389, no skips/errors. The requested root flag is an
-echo; empty new root track and actual zero travel establish stationary output.
-
-PC Explorer's idle candidate/review-videos folder and Responsive clean selection
-are observed. All five idle approvals remain null. State:
+PC Explorer is observed on idle-look-r002/candidate/review-videos with revised
+Responsive clean selected. All five r002 approvals remain null. State:
 `awaiting_idle_styles_feedback`. **Pause for explicit idle video feedback now.**
-Do not restart captures or rerun the completed archive/reset feedback. After
+Do not restart captures or rerun the completed archive/reset feedback. r001
+archives and requested-change feedback remain intact in idle_revision_history.
+Plan/validation: docs/idle-look-r002-plan.md and idle-quality-validation.md. After
 approval follow docs/idle-golden-migration-plan.md, require green regression,
 then use the prepared start-stop-quality-review-plan.md. No release yet.
-Recovery: release_r2_idle_20261011; review-delivery.json and pc-review-delivery.json.
+Recovery: release_r2_idle_20261011/idle-look-r002; candidate/review-delivery.json
+and pc-review-delivery.json. Current golden is still preserved unchanged.
 
 ### Historical idle checkpoints
 

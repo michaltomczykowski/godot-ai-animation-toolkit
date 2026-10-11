@@ -87,6 +87,11 @@ def main() -> None:
         route, native = read(folder / "route.json"), read(folder / "native-check.json")
         require(route["passed"] and route["phase"] == "prototype" and native["passed"] and len(native["runs"]) == 24, "Missing reachable prototype")
         records.append(route)
+    current_routes = [r for r in records if r["phase"] == "candidate" and r["source_head"] == source]
+    candidate_ids = {r["run_id"] for r in current_routes}
+    revisions = {r["revision"].removesuffix("-" + r["profile"]) for r in current_routes}
+    require(len(current_routes) == 10 and len(candidate_ids) == len(revisions) == 1,
+            "Mixed ordinary candidate attempts/revisions")
     require(subprocess.run(["git", "diff", "--quiet", source, "HEAD", "--", "addons/godot_ai_animation"], cwd=args.repo).returncode == 0
             and subprocess.run(["git", "diff", "--quiet", "HEAD", "--", "addons/godot_ai_animation"], cwd=args.repo).returncode == 0, "Animation changed after review capture")
     reload = read(args.folder / "core-reload.json")
@@ -154,6 +159,10 @@ def main() -> None:
         "Approve or request changes for each of the five styles across the four rigs. No release yet.\n", encoding="utf-8")
     receipt = {"state": "awaiting_idle_styles_feedback", "animation_source": source,
                "baseline_kind": args.baseline_kind, "baseline_folder": str(args.baseline),
+               "candidate_uuid": next(iter(candidate_ids)),
+               "revision": next(iter(revisions)),
+               "prototype_sources": sorted({r["source_head"] for r in records if r["phase"] == "prototype"}),
+               "revision_played_range_runs": 60 if args.baseline_kind == "reviewed" else 0,
                "core_source": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=args.core_root, text=True).strip(),
                "created_utc": datetime.now(timezone.utc).isoformat(), "public_clips": 40, "native_runs": 240,
                "reload_dry_calls": 40, "prototype_runs": 48, "release_ready": False,
@@ -184,11 +193,15 @@ def main() -> None:
                         archive.write(path, "reference-receipts/" + label + "/" + path.relative_to(reference_root).as_posix())
     receipt["tooling_zip_sha256"] = digest(args.folder / "tooling-and-phase-receipts.zip")
     previous.update(state=receipt["state"], animation_source=source, public_clips=40, native_runs=240,
-                    candidate_uuid=route["run_id"], comparison_baseline_folder=str(args.baseline),
+                    candidate_uuid=next(iter(candidate_ids)), comparison_baseline_folder=str(args.baseline),
                     comparison_baseline_kind=args.baseline_kind,
+                    revision=receipt["revision"], recovery_folder=str(args.folder.parent),
+                    candidate_ci_run=ci["run_id"], candidate_ci_receipt=str(args.ci_receipt),
+                    revision_played_range_runs=receipt["revision_played_range_runs"], pc_review_delivery=None,
                     videos=videos, profile_approvals={style: None for style in STYLES}, release_ready=False,
                     review_delivery=str(args.folder / "review-delivery.json"))
-    state.update(state=receipt["state"], active_review_field="idle_review", idle_review=previous,
+    state.update(state=receipt["state"], operation="idle_cycle", revision=receipt["revision"],
+                 active_review_field="idle_review", idle_review=previous,
                  next_action="Open PC Explorer on idle Responsive clean; pause for explicit five-style/four-rig idle feedback.")
     write(args.folder / "review-delivery.json", receipt)
     write(state_path, state)

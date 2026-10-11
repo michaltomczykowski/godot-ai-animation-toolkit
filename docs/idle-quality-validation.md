@@ -38,14 +38,26 @@ planning, loop timing, seeded hand motion and caller controls are retained.
   root travel. Worst rigid ankle slide is **0.000879 mm**, height/penetration
   **0.001133 mm**. These are ankle-bone/rest-plane checks, not sole collision.
 
-Full checks are complete; continuous video delivery is pending. The isolated
+Full checks are complete. The isolated
 visible editor quit normally through public `editor_manage(op="quit")` after
 all saved-scene and reload work. Native recording continues from saved clips.
 
-Recovery: `release_r2_idle_20261011/idle-look-r002`. Videos compare r001 left /
-r002 right, rather than comparing with the older defective legacy idle. Decode,
-archive, push and deliver all ten continuous MP4s, then pause again. The existing
-idle golden cannot migrate until the revised footage is explicitly approved.
+Recovery: `release_r2_idle_20261011/idle-look-r002`. All ten continuous MP4s are
+complete and independently decoded: 48s/1080p60, 2,880 frames each. Videos compare
+r001 left / r002 right, with six seconds front and side per rig. Strict archive
+passes: exact source, 68 saved idle scenes, local/private rigs, current tooling,
+source CI/local/native/history receipts and preserved reference receipts. All
+three archive SHA-256/ZIP CRC checks and ten copied-video hashes independently
+pass. The earlier 48 prototype runs are retained from their original source,
+explicitly identified in the receipt; r002's 60 played range checks are separate.
+
+PC Explorer is observed on the new `candidate/review-videos` with r002 Responsive
+clean selected. Receipt: `candidate/pc-review-delivery.json`. r001 feedback and
+delivery remain intact; r002 has five null approvals and awaits video feedback.
+**Pause now.** The existing idle golden cannot migrate until revised footage is
+explicitly approved; no start/stop phase or release action is authorized by the
+numerical checks. Updated closure notes/state will be pushed as the final
+delivery checkpoint, preserving the exact animation source separately.
 
 ## Preserved r001 evidence
 

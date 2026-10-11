@@ -9,9 +9,14 @@ and before/after-core-reload dry routes 40/40. Sixty played range comparisons
 confirm increased head/torso/pelvis motion; 120 fresh protected walk/run
 comparisons remain exactly identical. Full local editor 388/389 and source CI
 38141249398 have only the preserved old idle fixture failure; no engine/route
-errors, all 28 headless and both live MCP jobs pass. Continuous r001/r002 videos are recording
-under `release_r2_idle_20261011/idle-look-r002`; keep r001 delivery intact.
-No idle fixture approval or release yet; pause again after revised video delivery.
+errors, all 28 headless and both live MCP jobs pass. All ten r001/r002 comparisons
+are complete and independently decoded (48s/1080p60, 2,880 frames each). Exact
+source, 68 idle scenes/local rigs, tooling/receipts and all video hashes are
+archived and independently verified under `release_r2_idle_20261011/idle-look-r002`.
+PC Explorer is observed with r002 Responsive clean selected. Keep r001 delivery
+and requested-change feedback intact. State: `awaiting_idle_styles_feedback`;
+five r002 approvals null. **Pause for revised idle video feedback now.**
+No idle fixture approval or release yet.
 
 ### Preserved r001 delivery
 
