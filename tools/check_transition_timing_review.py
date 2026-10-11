@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 import sys
 from uuid import uuid4
+from review_receipts import write_json
 
 GROUPS = ((.35, .137, 1.0, 60), (1.4, .137, 1.0, 60),
           (.35, .537, 1.0, 60), (1.4, .537, 1.0, 60),
@@ -31,7 +32,7 @@ def main():
     receipt = a.output / "timing-matrix.json"
     report = {"passed": False, "state": "running", "groups": [], "public_clips": 0, "native_runs": 0}
     report.update(public_requests=0, typed_nonmutating_refusals=0)
-    def save(): receipt.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    def save(): write_json(receipt, report)
     def capture(folder, operation, options):
         command = [sys.executable, str(repo / "tools/mcp_run_quality_review.py"),
             "--repo", str(repo), "--core-root", str(a.core_root), "--project-root", str(a.project_root),

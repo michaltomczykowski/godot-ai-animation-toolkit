@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import zipfile
+from review_receipts import write_json
 
 STYLES = ("responsive", "grounded", "relaxed", "heavy", "sneaky")
 RIGS = ("dummy", "xbot", "short", "zup_tall")
@@ -23,7 +24,7 @@ def digest(path: Path) -> str:
 
 
 def write(path: Path, value: dict) -> None:
-    path.write_bytes((json.dumps(value, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
+    write_json(path, value)
 
 
 def require(condition: bool, message: str) -> None:

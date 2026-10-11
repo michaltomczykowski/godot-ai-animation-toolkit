@@ -12,6 +12,7 @@ from mcp_character_quality_baseline import RIGS
 from mcp_motion_remaining_cycles import inspect
 from mcp_presets_audit import call
 from mcp_rig_modifier_ui_history import connected_editor
+from review_receipts import write_json
 
 
 async def run(a):
@@ -22,7 +23,7 @@ async def run(a):
     report = {'passed': False, 'operation': 'animation_sequence', 'profile': 'responsive',
         'revision': 'start-stop-sequence-r001', 'source_head': source, 'cases': [], 'failures': []}
     receipt = a.output / 'route.json'
-    def save(): receipt.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
+    def save(): write_json(receipt, report)
     async with connected_editor(a) as (client, connection):
         report['connection'] = connection; save()
         async def invoke(tool, params):

@@ -19,12 +19,13 @@ from mcp_character_quality_baseline import RIGS
 from mcp_motion_remaining_cycles import inspect
 from mcp_presets_audit import call
 from mcp_rig_modifier_ui_history import connected_editor
+from review_receipts import write_json
 
 STYLES = ("responsive", "grounded", "relaxed", "heavy", "sneaky")
 
 
 def save(path: Path, report: dict) -> None:
-    path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    write_json(path, report)
 
 
 async def run(args: argparse.Namespace) -> int:

@@ -241,3 +241,36 @@ active recordings or overwrite historical attempts. Animation source is exactly
 composition/history, 24 saved sequence runs, 160 reload dry calls, fresh full
 local/source CI, then all 22 movies/archive/Explorer and explicit human pause.
 No start/stop approval, merge, tag or release.
+
+### Automated start/stop gates complete; recording remains active
+
+Motion source `4137cc5`, sequence/tooling checkpoint `80cfb59`: fresh public
+motion 71/71 and sequence 3/3 pass. Full local Godot 4.7.2 editor **397/397**
+in 32 suites, zero skips/engine/discovery/tool-route errors; both 10-family
+/103-operation probes pass. Headless **14/14**. All 11 historical/accepted
+fixture hashes are unchanged; walk/run/idle golden drift is zero.
+The full blocking suite delayed the released core's WebSocket heartbeat during
+shutdown; the transport timeout/reprobe is preserved in the raw log. External
+public routes and both registration probes passed. No test error is suppressed.
+
+Four public saved idle/start/two-walks/stop/idle sequences pass actual external
+Undo/Redo, dry/pose/save/reopen and all 24 independent Player/Tree/FPS playback
+checks. Cropped action durations, timed standing blends and native contact cues
+are retained; one mixer owns each character. Both core-reload phases pass
+80/80 dry calls with complete saved-file hashes and poses unchanged; all ten
+families/103 operations stay enabled. Final stricter ordinary matrix passes
+480/480 again: `candidate-r001/native-050702ce7b69420489825fb125bb4c46/matrix.json`.
+Receipts: `gates.json`, `sequence-r001/native-check.json`, `reload-r001/core-reload.json`.
+Visible editor quit normally through the public API before the full runner,
+which also completed. No public generation/editor test remains active.
+
+The only ongoing work is continuous media capture (20 transition movies then
+two sequence movies), source CI collection, strict archive/Explorer delivery.
+Inspect both recording-progress files and actual PIDs before resuming. The
+sequence recorder is queued behind transitions; do not run another GPU capture.
+Human approval remains null. Do not release or advance the next motion set.
+
+A concurrent read observed a truncated in-progress receipt. New Python/PowerShell
+receipt writers replace complete files atomically. Python interruption/recovery
+and Windows PowerShell replacement controls pass; active older recorders retain
+their original loaded scripts. Their status files must still be read with retry.

@@ -3,7 +3,7 @@
   "phase": "character_quality",
   "operation": "walk_start/walk_stop",
   "revision": "start-stop-repair-r001",
-  "state": "start_stop_candidate_validation_active",
+  "state": "start_stop_video_capture_active",
   "release_r1_execution": {
     "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -4390,7 +4390,7 @@
     }
   ],
   "start_stop_review": {
-    "state": "start_stop_candidate_validation_active",
+    "state": "start_stop_video_capture_active",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_20261011",
     "baseline_generation_source": "96db7c4c9ee0cce49816fa77a9271f9f6cf2db3e",
     "baseline_public_clips": 80,
@@ -4514,11 +4514,8 @@
     "candidate_quality_approved": false,
     "release_ready": false,
     "remaining_gates": [
-      "targeted phase/duration matrix",
-      "one-player saved sequence continuation",
-      "core reload/discovery and full local regressions",
-      "Windows/Linux source CI",
-      "continuous comparison videos/archive/PC delivery",
+      "Windows/Linux final source CI receipt",
+      "22 continuous movies/archive/PC delivery",
       "explicit human feedback"
     ],
     "reference_endpoint_checkpoint": {
@@ -4574,6 +4571,25 @@
       "typed_nonmutating_refusals": 5,
       "passed": true,
       "receipt": "timing-r002/timing-matrix.json",
+      "visual_approval": null
+    },
+    "automated_gates": {
+      "source": "80cfb59",
+      "local_gates_receipt": "gates.json",
+      "public_motion": 71,
+      "public_sequence": 3,
+      "full_editor": 397,
+      "headless_suites": 14,
+      "ordinary_native": 480,
+      "timing_requests": 96,
+      "timing_native": 546,
+      "typed_refusals": 5,
+      "sequence_native": 24,
+      "reload_dry_calls": 160,
+      "enabled_families": 10,
+      "advertised_operations": 103,
+      "engine_errors": 0,
+      "fixture_drift": 0,
       "visual_approval": null
     }
   }

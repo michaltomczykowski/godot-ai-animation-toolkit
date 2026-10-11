@@ -8,6 +8,7 @@ param(
     [Parameter(Mandatory=$true)][string]$Ffmpeg
 )
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'review_receipts.ps1')
 $transitionMatrix = Get-Content -LiteralPath $Matrix -Raw | ConvertFrom-Json
 if (-not $transitionMatrix.passed -or $transitionMatrix.native_runs -ne 480 -or $transitionMatrix.rows.Count -ne 20) {
     throw 'Complete 480-run transition matrix required'
@@ -46,7 +47,7 @@ try {
             }
             foreach ($transitionMode in @('clean','diagnostic')) {
                 $transitionProgress.current = "$transitionOp/$transitionStyle/$transitionMode"
-                $transitionProgress | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $transitionProgressPath -Encoding UTF8
+                Save-ReviewReceipt $transitionProgressPath $transitionProgress
                 $transitionMediaPath = Join-Path $transitionFolder 'media.json'
                 if (Test-Path -LiteralPath $transitionMediaPath) {
                     $transitionMedia = Get-Content -LiteralPath $transitionMediaPath -Raw | ConvertFrom-Json
@@ -80,7 +81,7 @@ try {
                 # Cache the handle before the process exits. Windows PowerShell
                 # otherwise can expose a null ExitCode after WaitForExit.
                 $null = $transitionProcess.Handle
-                $transitionProgress | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $transitionProgressPath -Encoding UTF8
+                Save-ReviewReceipt $transitionProgressPath $transitionProgress
                 $transitionProcess.WaitForExit()
                 if ($transitionProcess.ExitCode -ne 0) { throw "Native capture failed: $transitionOp/$transitionStyle/$transitionMode" }
                 & $Python (Join-Path $PSScriptRoot 'compose_character_quality.py') $transitionFolder --ffmpeg $Ffmpeg --mode $transitionMode
@@ -97,5 +98,5 @@ try {
     $transitionProgress.error = $_.ToString()
     throw
 } finally {
-    $transitionProgress | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $transitionProgressPath -Encoding UTF8
+    Save-ReviewReceipt $transitionProgressPath $transitionProgress
 }

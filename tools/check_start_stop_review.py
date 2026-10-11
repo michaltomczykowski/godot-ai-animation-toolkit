@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import subprocess
 from uuid import uuid4
+from review_receipts import write_json
 
 STYLES = ("responsive", "grounded", "relaxed", "heavy", "sneaky")
 RIGS = ("dummy", "xbot", "short", "zup_tall")
@@ -16,7 +17,7 @@ def read(path: Path) -> dict:
 
 
 def write(path: Path, value: dict) -> None:
-    path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
+    write_json(path, value)
 
 
 def main() -> None:

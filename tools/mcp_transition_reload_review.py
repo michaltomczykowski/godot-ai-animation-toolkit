@@ -11,6 +11,7 @@ from mcp_motion_remaining_cycles import inspect
 from mcp_presets_audit import call
 from mcp_probe import EXPECTED_CATALOG, EXPECTED_PROMOTED
 from mcp_rig_modifier_ui_history import connected_editor
+from review_receipts import write_json
 
 def digest(path): return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -19,7 +20,7 @@ async def run(a):
     receipt = a.output / 'core-reload.json'; folder = a.project_root / 'repair_transition_reload' / uuid4().hex
     folder.mkdir(parents=True)
     report = {'passed': False, 'phases': [], 'candidate_root': str(a.candidate)}
-    def save(): receipt.write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+    def save(): write_json(receipt, report)
     old_session = ''
     for phase in ('before_reload', 'after_reload'):
         async with connected_editor(a, old_session) as (client, connection):
