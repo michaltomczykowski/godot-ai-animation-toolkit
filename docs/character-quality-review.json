@@ -3,7 +3,7 @@
   "phase": "character_quality",
   "operation": "walk_start/walk_stop",
   "revision": "start-stop-repair-r001",
-  "state": "start_stop_reference_repair_active",
+  "state": "start_stop_candidate_validation_active",
   "release_r1_execution": {
     "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -4390,7 +4390,7 @@
     }
   ],
   "start_stop_review": {
-    "state": "start_stop_reference_repair_active",
+    "state": "start_stop_candidate_validation_active",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_20261011",
     "baseline_generation_source": "96db7c4c9ee0cce49816fa77a9271f9f6cf2db3e",
     "baseline_public_clips": 80,
@@ -4514,12 +4514,9 @@
     "candidate_quality_approved": false,
     "release_ready": false,
     "remaining_gates": [
-      "moving reference pose and velocity continuity",
-      "moving references/root/support/contact",
       "targeted phase/duration matrix",
-      "final ordinary 80 public / 480 native matrix",
       "one-player saved sequence continuation",
-      "core reload/discovery and regressions",
+      "core reload/discovery and full local regressions",
       "Windows/Linux source CI",
       "continuous comparison videos/archive/PC delivery",
       "explicit human feedback"
@@ -4544,6 +4541,30 @@
       "max_endpoint_rotation_error_rad": 9.53674884840439e-07,
       "candidate_quality_approved": false,
       "receipt": "reference-native-90c49c66795747ea8cef4d2d8ce2b31c/summary.json"
+    },
+    "support_candidate_checkpoint": {
+      "animation_source": "4137cc5dce8647abac2fffa8b3256696061ae532",
+      "public_clips": 80,
+      "native_runs": 480,
+      "native_passed": 480,
+      "native_matrix": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_20261011\\candidate-r001\\native-344517a33c844f88bfb8060314323180\\matrix.json",
+      "native_matrix_sha256": "f1d68594088c4bd1270885209d62b34b58d6aa58eb0fe9131bf79e21c8bb2667",
+      "public_motion": {
+        "passed": 71,
+        "total": 71,
+        "skipped": 0
+      },
+      "headless_suites": {
+        "passed": 14,
+        "total": 14
+      },
+      "generation_clamped_runs": 0,
+      "max_root_error_m": 0.0,
+      "visual_approval": null,
+      "candidate_quality_approved": false,
+      "actor_drift_controls_passed": 48,
+      "continuation_positive_controls_passed": 288,
+      "shifted_endpoint_controls_detected": 288
     }
   }
 }

@@ -2,6 +2,29 @@
 
 ## Current instruction (2026-10-11)
 
+## Support candidate checkpoint (2026-10-11)
+
+Animation source `4137cc5`: all **80 ordinary public clips** pass dry run, actual
+external Undo/Redo, pose preservation, save and forced reopen. All **480 native
+checks** pass (two operations, five styles, four rigs, two root policies, three
+FPS and Player/Tree). Default solves report zero reach clamps; root travel,
+strict complete reference endpoints/continuation, intended support, penetration,
+poles and one active mixer pass. Public motion **71/71**, headless **14/14**;
+accepted walk/run/idle golden drift remains zero. Two root policies' audit
+controls pass 288 reference continuations and detect 288 shifted endpoints.
+All 48 deliberate external-actor drift cases fail the intended support limit.
+
+Receipt: `candidate-r001/native-344517a33c844f88bfb8060314323180/matrix.json`.
+The previous prototype failures are preserved. No human start/stop approval.
+Next: targeted phase/duration, saved public composition, reload/full regression,
+Windows/Linux source CI, continuous comparisons/archive and manual feedback.
+
+Earlier CI `38168034564` completed its editor cases (393/395 with only the two
+private-X-Bot skips) but failed stale generated operation descriptions. Its
+Linux live route timed out in the unrelated graph-history subprocess after
+120 seconds. Fresh local graph history passes 8/8 and all 28 saved playback
+cases; regenerate the audit and inspect the next source CI before closure.
+
 Start/stop is active; user authorized "then do it" after idle closure. Baseline
 80 public clips / 480 native runs is preserved, zero engine errors but 0/480
 quality pass. Two baseline 24s/1080p60 videos are complete. Root-hold repair

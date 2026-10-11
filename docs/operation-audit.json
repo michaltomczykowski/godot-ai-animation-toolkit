@@ -4092,7 +4092,7 @@
         "valid_effect": "pass_played_bones",
         "visual_review": "partial_xbot"
       },
-      "claimed_effect": "Build a short blend into a gait: rest -> the walk pose at `phase`, so it matches the cycle frame-for-frame.",
+      "claimed_effect": "Build a one-shot from accepted idle to the walk at phase; gait_duration/gait_samples describe the separate reference.",
       "evidence": [
         "2026-09-30: live Godot AI MCP on imported dummy, mcp_motion_remaining_first.log run 20260930_170226. Dry run left no clip; write/save/forced reopen retained resolved bone tracks; missing skeleton returned typed NODE_NOT_FOUND. Godot 4.7.2 check_motion_remaining_runtime.gd played the saved clip and matched every sampled bone track at an authored key. Contact, loop seam, independent rigs, editor undo, visual review and Linux remain.",
         "2026-10-01: live Godot AI motion_audit on saved scene failed contact at 30/60/120 FPS: 88.4/142.3 mm stance slide and 34.2/29.8 mm penetration at 120 FPS. See mcp_motion_saved_audit_details.log. Authored-key playback success does not approve this clip; quality repair is required.",
@@ -4143,7 +4143,7 @@
         "valid_effect": "pass_played_bones",
         "visual_review": "partial_xbot"
       },
-      "claimed_effect": "Build a short blend out of a gait: the walk pose at `phase` -> rest with a settle.",
+      "claimed_effect": "Build a one-shot from the walk at phase to accepted idle; gait_duration/gait_samples describe the separate reference.",
       "evidence": [
         "2026-09-30: live Godot AI MCP on imported dummy, mcp_motion_remaining_first.log run 20260930_170226. Dry run left no clip; write/save/forced reopen retained resolved bone tracks; missing skeleton returned typed NODE_NOT_FOUND. Godot 4.7.2 check_motion_remaining_runtime.gd played the saved clip and matched every sampled bone track at an authored key. Contact, loop seam, independent rigs, editor undo, visual review and Linux remain.",
         "2026-10-01: live Godot AI motion_audit on saved scene failed contact at 30/60/120 FPS: 25.3/19.5 mm penetration at 120 FPS. See mcp_motion_saved_audit_details.log. Authored-key playback success does not approve this clip; quality repair is required.",
