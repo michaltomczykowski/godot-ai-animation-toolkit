@@ -105,7 +105,8 @@ def main() -> None:
     state_path = args.repo / "docs/character-quality-review.json"
     state = read(state_path)
     previous = state.get("idle_review", {})
-    require(not any(previous.get("profile_approvals", {}).values()), "Idle feedback already recorded; do not reset")
+    require(all(value is None for value in previous.get("profile_approvals", {}).values()),
+            "Idle feedback already recorded; do not reset approval or rejection")
     scene_files = []
     with zipfile.ZipFile(args.folder / "native-scenes-and-local-rigs.zip", "w", zipfile.ZIP_DEFLATED) as archive:
         seen = set()
