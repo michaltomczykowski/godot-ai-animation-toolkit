@@ -155,6 +155,8 @@ def main() -> None:
                 if path.suffix in (".py", ".ps1", ".gd", ".uid"):
                     archive.write(path, "repo/" + path.relative_to(args.repo).as_posix())
         for path in [args.repo / "AGENTS.md", args.repo / "FIX_ROADMAP.md", state_path,
+                     args.repo / "docs/tool-reference.md", args.repo / "docs/release-wrap-up-plan.md",
+                     args.repo / "docs/start-stop-quality-review-plan.md",
                      *sorted((args.repo / "docs").glob("idle-*"))]:
             archive.write(path, "repo/" + path.relative_to(args.repo).as_posix())
         for path in sorted(args.folder.parent.rglob("*")):

@@ -612,7 +612,7 @@ at the frame rates and on the rigs your game uses.
 | `walk_cycle` | Full gait: contact/passing timing, pelvis bob (2x) + sway + yaw + roll, counter-rotating torso shared up the spine chain, arm swing with elbow and clavicle follow-through, head stabilisation, planted feet with heel-strike/toe-off roll. The default config uses an 18-degree stride and 8-degree knee bend; the rig-relative speed solve may adjust the actual stride. `speed` requests an exact ground speed or returns a typed reach error. `stride`, `knee_bend`, `arm_swing`, `bob`, `sway`, `lean`, `chest_yaw`, `twist_spread`. |
 | `run_cycle` | Same engine with a flight phase, a forward lean, a wider stride, bent elbows and a bigger bob. An omitted `duration` selects a rig-relative cadence from measured leg length (0.6–1.5 s). Explicit duration and speed requests are honoured or refused with a typed reach error. |
 | `strafe_cycle` | Looping sideways gait: the leading foot steps out, the trailing foot closes, the knees still bend forward and the pelvis shifts along the travel axis. `direction` left/right, `speed`-driven like the walk. |
-| `idle_cycle` | A loopable idle with presence: a pronounced look-around (head yaw, with a second harmonic so it lingers left/right) and a torso twist shared up the spine chain over breathing, weight shift and seeded micro-noise. `look`, `twist` (the *total* twist in degrees, 22), `twist_spread`, `amplitude`, `head_amplitude`, `bob`, `sway`, `lean`. |
+| `idle_cycle` | Stationary three-second loop by default: quiet breathing, head follow-through, distributed torso twist, reachable bilateral foot plants and relaxed elbows/wrists/fingers. Responsive and Grounded have separate idle profiles; explicit timing and controls remain supported. See the idle controls below and the pending [idle review](idle-quality-validation.md). |
 | `jump` | One-shot jump: anticipation crouch, launch, air arc, descend, landing absorb and recovery. Feet are planted before takeoff and after landing; `height`, `crouch`, `distance` (forward travel). Emits `takeoff` / `apex` / `land` markers. |
 | `turn_cycle` | One-shot in-place pivot turn: anticipation, a stepping foot, stance feet held at their rest orientation, overshoot settle. `angle`, `direction`, `steps`. Emits `anticipate` / `step` / `settle` per step. |
 | `walk_start` / `walk_stop` | Short blend in/out of a gait. The gait-facing end is sampled from the cycle at `phase`, so it matches frame-for-frame and can be concatenated or cross-faded. |
@@ -684,7 +684,9 @@ How motion is generated:
   seeded periodic variation and gentle measured finger curl. Missing implicit
   anatomy is omitted with a reason; explicit unsupported controls return typed
   errors. Results include `resolved_style`, `applied_features`, `omitted_features`.
-  Other motions retain separate baselines pending their own review. See
+  Walk/run profiles have completed review and regression. Idle's new profiles
+  are pending their own continuous-video approval; later motions retain separate
+  baselines. See
   [current default integration](walk-default-integration-validation.md).
 - **Sampling/loops.** Walk/run/idle/strafe default to linear loops; one-shots
   default to none. Explicit loop modes remain supported. Jump/turn/start/stop
@@ -695,6 +697,9 @@ How motion is generated:
   `set_root_motion=false` to skip). Apply it in game code with
   `get_root_motion_position()` / `get_root_motion_rotation()` — and the
   `*_accumulator()` variants when the node itself rotates.
+  Stationary idle creates no character-root travel track and reports
+  `root_motion: false` even if requested. An extraction binding retained for
+  another clip does not make the active idle clip own translation.
 - Walking arm lowering uses measured rest directions and rig up, with twelve
   degrees of outward clearance; an explicit `arm_down` wins. Imported bone-local
   axes and world-Y are not assumed.
@@ -711,6 +716,43 @@ How motion is generated:
   omitted `duration` chooses a rig-relative cadence; `character_setup`
   honours its explicit `run_duration`, so on small rigs pair a shorter
   `run_duration` with a reachable `run_speed`.
+
+### Idle controls on the repair branch
+
+These idle profiles are awaiting continuous-video review before release. An
+ordinary call omits style, timing, sampling and overrides; it selects Responsive,
+a three-second period and 60 samples/s. `cycle` with `preset: "idle"` uses the
+same behavior. Explicit duration/sampling and the existing look, breathing,
+twist, weight-shift and arm controls remain available.
+
+Additional `overrides` evaluated by idle:
+
+| Control | Meaning |
+|---|---|
+| `elbow_swing` | Elbow bend variation, degrees. |
+| `elbow_lag` | Elbow delay as a fraction of the period, 0–0.25. |
+| `wrist_swing` | Wrist flexion variation, -20–20 degrees. |
+| `wrist_lag` | Wrist delay as a fraction of the period, 0–0.25. |
+| `forearm_twist` | Forearm rotation variation, -20–20 degrees. |
+| `wrist_sway` | Wrist deviation variation, -10–10 degrees. |
+| `arm_variation` | Bounded periodic arm variation, 0–3 degrees. |
+| `variation_seed` | Deterministic integer seed, 0–2147483647. |
+| `hand_relax` | Gentle measured finger curl, 0–45 degrees. |
+
+Variation is sampled into the saved clip and repeats deterministically; playback
+does not use live random values. Arm evaluation carries the incoming torso and
+clavicle transforms into measured forearm/wrist geometry. Missing implicit head,
+breathing, wrist or finger anatomy is omitted with a reason; explicit nonzero
+unsupported feature requests return a typed error before changing the scene.
+
+Default `planted: true` uses both rest ankles as targets and plans a constant
+pelvis stance drop that keeps them reachable throughout the period. Replies
+report `reach_evaluated`, `clamped`, `clamp_shortfall_m`, `clamped_leg_samples`,
+`pelvis_rest_drop_m` and `support_mode`. An impossible stance plan is refused.
+Explicit `overrides.planted: false` retains caller-authored feet and reports
+unevaluated planted reach; it does not claim the planted-contact quality gate.
+Implicit distance controls scale to the rig, while explicit meter values retain
+their requested units. This repair covers level-surface authored motion.
 
 ### Examples
 
