@@ -5,8 +5,8 @@ in revision `idle-review-r002` (animation source `9188ffa`). The public test
 runner builds it with only the operation, clip name and resolved in-memory
 rig/player paths. Style, duration, density, overrides, loop mode and root policy
 are omitted: the three-second default and its normal sampling are part of
-the expectation. The 36 tracks contain 179 or 181 keys, according to the
-engine's loop-key handling.
+the expectation. The 36 tracks contain 179 or 181 keys; these counts are part of the
+committed expectation.
 
 Digest format v1 retains quantization 2048 and tolerance 2. The legacy
 `golden_idle.json`, every historical fixture and the approved walk/run fixtures

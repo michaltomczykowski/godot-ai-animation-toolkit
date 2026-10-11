@@ -2,20 +2,23 @@
 
 ## Current instruction (2026-10-11)
 
-The user approved the presented idle r002 set: "looks fine". All five style
-approvals are true; individual watched filenames/rigs were not enumerated.
-Exact animation source `9188ffa`, delivered checkpoint `2a0db64`, UUID
-`12f39e415f3b4ee19128d7b7737e0eba`, ten approved video hashes and immutable
-review delivery receipts are preserved. State: `approved_idle_styles_pending_regression`.
-Follow docs/idle-golden-migration-plan.md; only the idle selector/request and a
-separate v2 fixture change. Preserve every historical and approved walk/run
-fixture and approved addon bytes. Prove missing expectation refusal before
-explicit local recording, then fresh public 64/64, local 389/389, headless
-14/14 and complete green source CI. All recording/candidate archives are
-complete; do not restart them or reset feedback. Recovery:
-release_r2_idle_20261011/idle-look-r002/accepted-r002-regression.
-After green idle closure follow start-stop-quality-review-plan.md, with another
-continuous video/manual review gate. No release yet.
+Idle r002 is approved ("looks fine") and regression is complete on fixture
+source `b935cff`, Actions `38157142049`. Public motion 64/64, full local editor
+389/389 in 32 suites, headless 14/14; no local skips or engine/discovery/route
+errors. Both complete ten-family/103-operation registration probes pass. All
+Windows/Linux source jobs and both advisory main editors pass. Four CI editors
+have 387/389 with only the two named private-X-Bot skips; zero failures and idle
+fixture drift. Both live MCP jobs have 118 pass/zero fail markers. Exact merge
+and core SHAs are in accepted-r002-regression/ci-receipt.json.
+Approved addon remains `9188ffa`; all historical/accepted fixtures are unchanged.
+State: `approved_idle_styles_regression_complete`. Do not re-record the fixture,
+restart completed captures, rerun the delivery archive or reset feedback.
+Recovery: release_r2_idle_20261011/idle-look-r002/accepted-r002-regression.
+Next: follow docs/start-stop-quality-review-plan.md in its documented order.
+Work alone, visible Godot 4.7.2, released separate core and public custom-tools
+API. Preserve accepted walk/run/idle. The next continuous start/stop and
+composition videos require human review before closing their quality gate.
+Remaining R2-R5/final candidate gates still apply; no release yet.
 
 ### Preserved r002 delivery checkpoint
 

@@ -6,6 +6,33 @@ execution only after idle video approval, versioned-fixture comparison and
 green source regression close idle. Preserve every accepted walk/run/idle
 source, saved scene, fixture and media hash.
 
+## Execution order after idle closure
+
+The user approved revised idle r002 with "looks fine". Its animation source is
+`9188ffa`; the separate ordinary idle fixture is on `b935cff`. Bind continuation
+references to that approved idle and the accepted walk (`056cc8d`) and run
+(`97f17ce`). Begin baseline execution after the idle source CI receipt is green.
+
+1. Add transition support to the existing public review capture workflow and
+   an external history witness that undoes/redoes the clip just written. Keep
+   ordinary calls free of timing/recipe overrides. Commit the tooling first,
+   restart the visible editor, and preserve partial receipts for every stage.
+2. Capture the complete 80-clip baseline, retaining unknown reach metadata as
+   unknown. Play the saved scenes with an engine-only one-shot checker. Reuse
+   the existing saved-scene/mixer/root infrastructure; loop repeat checks are
+   unsuitable for these transitions. Record failures before choosing a repair.
+3. Join each transition to its independent accepted saved walk/idle reference
+   by style, rig and root policy. Measure full-pose and neighbouring-frame
+   continuity, phase alignment, root travel and planted contacts. Include short
+   and long explicit durations and between-key phases as targeted diagnostics.
+4. Choose transition-local fixes from those measurements. Separate timing,
+   reach metadata and body/hand continuation into documented checkpoints;
+   protect all three accepted generators and fixtures at each checkpoint.
+5. Verify the repaired defaults and one-player composed continuation, then run
+   the phase gates below. Deliver continuous before/after videos through PC
+   Explorer and stop for the next human review. Approval of idle covers idle;
+   start/stop and the composed continuation need their own review.
+
 ## Contract to establish
 
 `walk_start` must move from a credible standing pose into the actual saved

@@ -6,6 +6,13 @@ four-rig scope is recorded; individually watched files were not enumerated.
 Bind this migration to approved r002 source `9188ffa`, checkpoint `2a0db64`
 and its ten exact video hashes. Independent regression remains pending.
 
+Execution completed 2026-10-11 on fixture source `b935cff`. The selector
+`99f0a3a` proves missing-expectation refusal before explicit recording. Fresh
+public 64/64, local editor 389/389, headless 14/14 and Actions `38157142049`
+pass. Approved r002 addon and every historical fixture remain unchanged.
+Exact closing proof is in idle-quality-validation.md and accepted-r002-regression.
+The original procedure is retained below.
+
 ## Review gate
 
 Deliver all ten continuous five-style/four-rig videos through PC Explorer.

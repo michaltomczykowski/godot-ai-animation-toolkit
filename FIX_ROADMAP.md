@@ -2,15 +2,20 @@
 
 ## Current closure (2026-10-11)
 
-Idle r002 received explicit approval: "looks fine", covering the presented
-five-style/four-rig set; individual watched files were not enumerated. Ten video
-hashes bind the approval to animation source `9188ffa` and checkpoint `2a0db64`.
-State: `approved_idle_styles_pending_regression`. The planned separate idle v2
-fixture migration starts now; preserve legacy goldens and approved walk/run.
-Require missing-expectation refusal, deliberate recording, fresh public/local
-comparisons and green Windows/Linux source CI before start/stop. Recovery:
+Idle r002 is approved ("looks fine") and closed on fixture source `b935cff`,
+Actions `38157142049`. Fresh public motion 64/64, full local editor 389/389,
+headless 14/14 and both complete ten-family registration probes pass with no
+local skips/errors. All Windows/Linux required source jobs and advisory main
+editors pass; CI editors have only the two named private-X-Bot skips. Both live
+Godot AI routes retain 118 pass/zero fail markers. Approved animation remains
+`9188ffa`; historical and accepted walk/run fixtures are unchanged. State:
+`approved_idle_styles_regression_complete`. Exact source/fixture/provenance,
+approval/video hashes and local/CI receipts are preserved in recovery's
 release_r2_idle_20261011/idle-look-r002/accepted-r002-regression.
-No merge, tag or release at this phase.
+Next: ordinary start/stop baseline and independent played continuation audit
+under docs/start-stop-quality-review-plan.md, then focused repair and continuous
+video/manual review. Later motion/family, operation audit and release gates
+remain open. No merge, tag or release at this phase.
 
 ### Preserved r002 delivery checkpoint
 

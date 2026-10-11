@@ -1,5 +1,29 @@
 # R2 idle: baseline and repair evidence
 
+## Closed idle gate (2026-10-11)
+
+The approved r002 animation (`9188ffa`) remains unchanged. Fixture source
+`b935cff` passes fresh public motion **64/64**, full local editor **389/389** in
+32 suites and canonical headless **14/14**, with zero local skips, engine,
+discovery or route errors. Idle/walk/run golden drift is zero. Both ten-family/
+103-operation registration probes pass around reload.
+
+[Actions 38157142049](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/38157142049) passes all required Windows/Linux source
+jobs and both advisory core-main editors. Four CI editor runs pass **387/389**,
+zero failures/errors and zero idle drift, with only the two named private-X-Bot
+skips; local tests include that rig. Both live Godot AI MCP jobs have **118**
+pass/zero fail markers. Raw/parsed logs and exact core SHAs are archived.
+Tested merge `1e14e0ff8150ba5d1f5db2d32b1284c360e9b121` has the same tracked tree as the fixture
+source. All historical/accepted fixture hashes remain unchanged. Approval is
+bound to the ten delivered r002 video hashes; watched filenames were not enumerated.
+
+State: `approved_idle_styles_regression_complete`. Recovery:
+`idle-look-r002/accepted-r002-regression`. Canonical source ZIP CRC and exact
+recorded/tracked/archived v2 fixture bytes are verified. The original r001/r002
+media and delivery receipts are intact. Follow the prepared start/stop plan;
+remaining R2-R5/final candidate gates are separate. Older pending notes below
+are preserved checkpoints.
+
 ## r002 approval and fixture migration (2026-10-11)
 
 The user approved the presented revised idle set with "looks fine". All five

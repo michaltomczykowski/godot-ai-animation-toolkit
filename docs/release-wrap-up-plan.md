@@ -154,6 +154,12 @@ applicable evidence/approval, clean installs pass, PR merged and 2.0.0 published
   forty public clips/history checks, 240 native runs, 60 prototype comparisons
   and 40 reload calls pass. Ten videos approved (“they look okay”); independent
   public motion 61/61, full local editor 386/386, headless 14/14 and Windows/Linux
-  Actions `38081008300` pass. Historical run fixture is preserved. Start idle
-  using `idle-quality-review-plan.md`; all later R2 motion/family gates remain.
+  Actions `38081008300` pass. Historical run fixture is preserved.
+  Idle r002 is also approved ("looks fine") and closed: animation `9188ffa`,
+  fixture source `b935cff`, Actions `38157142049`. Forty public history writes,
+  240 native checks, sixty played range comparisons and forty reload dry calls
+  pass; protected walk/run has 120 exactly matching played comparisons. Ten
+  continuous idle videos are approved. Fresh public 64/64, local editor 389/389,
+  headless 14/14 and all Windows/Linux source gates pass. Start/stop is next
+  using `start-stop-quality-review-plan.md`; later R2 motion/family gates remain.
 - R3-R5: pending preceding exit gates. No release action yet.

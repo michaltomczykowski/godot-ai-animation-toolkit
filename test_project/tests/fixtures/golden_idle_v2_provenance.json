@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "fixture_epoch": "v2-responsive-idle",
-  "migration_state": "local_regression_passed_source_ci_pending",
+  "migration_state": "regression_complete",
   "approved_animation_source": "9188ffa22e756213ae48e88d359b5918c0b2c384",
   "delivered_checkpoint": "2a0db641a257371bb9f67de90e75882420e7a7d8",
   "review_revision": "idle-review-r002",
@@ -209,5 +209,205 @@
     "run_drift_units": 0,
     "receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression\\editor-full-results.json"
   },
-  "local_headless_suites": 14
+  "local_headless_suites": 14,
+  "validated_fixture_source": "b935cffd127311a528c36e53875cf3e10f8efcfb",
+  "regression": {
+    "source_head": "b935cffd127311a528c36e53875cf3e10f8efcfb",
+    "selector_source": "99f0a3a61882189b6265ce84d5a24e02a93806a5",
+    "missing_expectation_refused": true,
+    "explicit_local_recording_complete": true,
+    "focused_public_motion": {
+      "total": 64,
+      "passed": 64,
+      "failed": 0,
+      "skipped": 0,
+      "idle_drift_units": 0,
+      "walk_drift_units": 0,
+      "run_drift_units": 0
+    },
+    "full_local_editor": {
+      "total": 389,
+      "passed": 389,
+      "failed": 0,
+      "skipped": 0,
+      "suites": 32,
+      "engine_errors": 0,
+      "discovery_errors": 0,
+      "route_errors": 0,
+      "route_pass_markers": 2,
+      "idle_drift_units": 0,
+      "walk_drift_units": 0,
+      "run_drift_units": 0,
+      "receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression\\editor-full-results.json"
+    },
+    "local_headless_suites": 14,
+    "ci_run_id": 38157142049,
+    "ci_url": "https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/38157142049",
+    "ci_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression\\ci-receipt.json",
+    "tested_merge": "1e14e0ff8150ba5d1f5db2d32b1284c360e9b121",
+    "tracked_tree_matches_source": true,
+    "all_required_source_jobs_pass": true,
+    "all_advisory_jobs_pass": true,
+    "ci_editor_jobs": [
+      {
+        "name": "Editor suite / ubuntu-latest / core v4.2.1",
+        "log": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression\\ci-job-114522347101.log",
+        "sha256": "ffb7eeae2bde35de3bb8edcacf7e07ff27af27b9d831298e7af3b8f9324ab517",
+        "core_source": "bfc264200584ea5823f18356acb164781f57796d",
+        "idle_golden_drift_units": 0,
+        "total": 389,
+        "passed": 387,
+        "failed": 0,
+        "skipped": 2,
+        "failures": [],
+        "skips": [
+          {
+            "assertion_count": 0,
+            "duration_ms": 2312,
+            "message": "the rig asset is missing: res://models/x_bot/X Bot.fbx",
+            "passed": true,
+            "skipped": true,
+            "suite": "animation_motion",
+            "test": "test_responsive_default_aliases_and_setup_use_identical_walks"
+          },
+          {
+            "assertion_count": 0,
+            "duration_ms": 0,
+            "message": "X Bot review asset is not installed at res://models/x_bot/X Bot.fbx",
+            "passed": true,
+            "skipped": true,
+            "suite": "animation_motion",
+            "test": "test_xbot_rooted_walk_and_run_play_with_contact"
+          }
+        ],
+        "engine_errors": 0,
+        "route_pass_markers": 2
+      },
+      {
+        "name": "Editor suite / windows-latest / core v4.2.1",
+        "log": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression\\ci-job-114522347202.log",
+        "sha256": "65da94f96e691d509da7e69163d57f07c969862db4e8880314e1ab9b9483feda",
+        "core_source": "bfc264200584ea5823f18356acb164781f57796d",
+        "idle_golden_drift_units": 0,
+        "total": 389,
+        "passed": 387,
+        "failed": 0,
+        "skipped": 2,
+        "failures": [],
+        "skips": [
+          {
+            "assertion_count": 0,
+            "duration_ms": 2818,
+            "message": "the rig asset is missing: res://models/x_bot/X Bot.fbx",
+            "passed": true,
+            "skipped": true,
+            "suite": "animation_motion",
+            "test": "test_responsive_default_aliases_and_setup_use_identical_walks"
+          },
+          {
+            "assertion_count": 0,
+            "duration_ms": 0,
+            "message": "X Bot review asset is not installed at res://models/x_bot/X Bot.fbx",
+            "passed": true,
+            "skipped": true,
+            "suite": "animation_motion",
+            "test": "test_xbot_rooted_walk_and_run_play_with_contact"
+          }
+        ],
+        "engine_errors": 0,
+        "route_pass_markers": 2
+      },
+      {
+        "name": "Editor suite / ubuntu-latest / core main",
+        "log": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression\\ci-job-114522347204.log",
+        "sha256": "c2c0b46c517618f4afd47ceaad9b6ccf24c66b5364f7b4398ce1b635466b23e9",
+        "core_source": "b82b5c519b1b17228f70d8effce1626f391bd1dd",
+        "idle_golden_drift_units": 0,
+        "total": 389,
+        "passed": 387,
+        "failed": 0,
+        "skipped": 2,
+        "failures": [],
+        "skips": [
+          {
+            "assertion_count": 0,
+            "duration_ms": 2327,
+            "message": "the rig asset is missing: res://models/x_bot/X Bot.fbx",
+            "passed": true,
+            "skipped": true,
+            "suite": "animation_motion",
+            "test": "test_responsive_default_aliases_and_setup_use_identical_walks"
+          },
+          {
+            "assertion_count": 0,
+            "duration_ms": 1,
+            "message": "X Bot review asset is not installed at res://models/x_bot/X Bot.fbx",
+            "passed": true,
+            "skipped": true,
+            "suite": "animation_motion",
+            "test": "test_xbot_rooted_walk_and_run_play_with_contact"
+          }
+        ],
+        "engine_errors": 0,
+        "route_pass_markers": 2
+      },
+      {
+        "name": "Editor suite / windows-latest / core main",
+        "log": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression\\ci-job-114522347225.log",
+        "sha256": "11084bb5f56c75d63d89ca146a87734f055154e419a16f76b98e92f81e6c85ba",
+        "core_source": "b82b5c519b1b17228f70d8effce1626f391bd1dd",
+        "idle_golden_drift_units": 0,
+        "total": 389,
+        "passed": 387,
+        "failed": 0,
+        "skipped": 2,
+        "failures": [],
+        "skips": [
+          {
+            "assertion_count": 0,
+            "duration_ms": 2023,
+            "message": "the rig asset is missing: res://models/x_bot/X Bot.fbx",
+            "passed": true,
+            "skipped": true,
+            "suite": "animation_motion",
+            "test": "test_responsive_default_aliases_and_setup_use_identical_walks"
+          },
+          {
+            "assertion_count": 0,
+            "duration_ms": 1,
+            "message": "X Bot review asset is not installed at res://models/x_bot/X Bot.fbx",
+            "passed": true,
+            "skipped": true,
+            "suite": "animation_motion",
+            "test": "test_xbot_rooted_walk_and_run_play_with_contact"
+          }
+        ],
+        "engine_errors": 0,
+        "route_pass_markers": 2
+      }
+    ],
+    "ci_live_mcp_jobs": [
+      {
+        "name": "Live MCP route / ubuntu-latest",
+        "log": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression\\ci-job-114522347086.log",
+        "sha256": "e41c1b657694de83c03b58a24d281e1c5c56cacdd23435f360b1662e2183c0a5",
+        "core_source": "bfc264200584ea5823f18356acb164781f57796d",
+        "pass_markers": 118,
+        "fail_markers": 0
+      },
+      {
+        "name": "Live MCP route / windows-latest",
+        "log": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression\\ci-job-114522347210.log",
+        "sha256": "30322407ecbf74209b21bed1464052af3ca6e46ad47bd81a3ee23bac989b0449",
+        "core_source": "bfc264200584ea5823f18356acb164781f57796d",
+        "pass_markers": 118,
+        "fail_markers": 0
+      }
+    ],
+    "historical_fixtures_unchanged": true,
+    "animation_unchanged_from_review": true,
+    "complete": true,
+    "recovery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011\\idle-look-r002\\accepted-r002-regression",
+    "closed_utc": "2026-10-11T17:14:01.012276+00:00"
+  }
 }
