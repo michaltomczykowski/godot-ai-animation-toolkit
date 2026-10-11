@@ -77,7 +77,8 @@ and `planted: false`.
 Twenty fresh ordinary public clips (UUID `903351fb38f842808e94066dcec06ecb`)
 pass save/reopen; **60/60** independent played baseline comparisons have exactly
 zero pose/root differences. Receipts are in `additive-controls/ordinary-parity`.
-All twenty now truthfully report clamping; maximum shortfall is 6.447 mm.
+All twenty now truthfully report clamping; maximum shortfall is 8.769 mm
+(heavy/tall Z-up). Maximum played ankle height error is 8.763 mm.
 The original numerical baseline allowed up to 1% leg-length contact-band height;
 that included small ankle lift from clamping. This explains why low planar slide
 and penetration did not detect unreachable targets. Default candidate clamps
@@ -92,6 +93,24 @@ full candidate/private-rig archive is a later gate. Still no idle approval.
 three-second recipes. Compare their actual public saved playback before choosing
 profiles. A reach-planned pelvis path is needed separately to remove clamping;
 the additive checkpoint deliberately retained baseline animation bytes.
+
+### C2 — reach planning before profile selection
+
+The baseline foot lift is consistent with solver shortfall, not hidden actor
+drift: the standing contact band accepted it, while generation had not reported
+it. Preserve the failing output. For planted idle, precompute the complete
+authored pelvis rotation/offset path; find one shared constant downward stance
+offset that keeps both rest ankle targets reachable throughout. This preserves
+smooth periodic breathing/weight shifts, rather than adding per-frame corrective
+dips. Use measured lengths and a margin beyond the two-bone solver's 1 mm limit.
+Refuse malformed leg hierarchies, degenerate geometry or a correction over 8%
+of measured leg length before mutation. Check the minimum reach as well.
+Unplanted idle retains its documented caller-owned feet and unsolved metadata.
+
+This intentionally changes planted idle output and its historical golden must
+remain a failing expectation until idle video approval/versioned migration.
+Walk/run generation is untouched. First measure the two explicit three-second
+hand prototypes and a reach-planned rerun; then decide implicit profiles/timing.
 
 ### Next measurement
 

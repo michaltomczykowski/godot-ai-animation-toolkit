@@ -1835,25 +1835,32 @@ static func idle_keys(ctx: Dictionary) -> Dictionary:
 	var clamped := false
 	var clamp_shortfall := 0.0
 	var clamped_samples := 0
+	var pelvis_world: Array[Quaternion] = []
+	var base_offsets: Array[Vector3] = []
+	for index in times.size():
+		var phase := float(index) / float(steps)
+		var hips_motion: Array = hips_shift.duplicate()
+		hips_motion.append_array((twist_channels.get(hips, []) as Array))
+		pelvis_world.append(
+			Quaternion(lateral, deg_to_rad(-lean * 0.35 * scale))
+			* Quaternion(forward, deg_to_rad(MotionDrivers.channel_value(roll_channel, phase)))
+			* MotionDrivers.compose_rotation(hips_motion, phase))
+		base_offsets.append(lateral * MotionDrivers.channel_value(sway_channel, phase)
+			+ up * MotionDrivers.channel_value(bob_channel, phase))
+	var stance_drop := 0.0
+	if planted:
+		var plan := _idle_stance_plan(ctx, pelvis_world, base_offsets)
+		if plan.has("error"):
+			return {"keys": {}, "meta": {"reach_error": plan.error}}
+		stance_drop = float(plan.drop)
 
 	for index in times.size():
 		var t := float(index) / float(steps)
 		var time := float(times[index])
 		if not hips.is_empty():
-			# duplicate(): append_array would otherwise grow hips_shift itself and
-			# stack the twist channels once per sample.
-			var hips_motion: Array = hips_shift.duplicate()
-			hips_motion.append_array((twist_channels.get(hips, []) as Array))
-			var world := (
-				Quaternion(lateral, deg_to_rad(-lean * 0.35 * scale))
-				* Quaternion(forward, deg_to_rad(MotionDrivers.channel_value(roll_channel, t)))
-				* MotionDrivers.compose_rotation(hips_motion, t)
-			)
+			var world: Quaternion = pelvis_world[index]
 			_append_rotation(keys, hips, time, MotionDrivers.rotation_delta(_rest_basis(ctx, hips), world))
-			var hips_offset := (
-				lateral * MotionDrivers.channel_value(sway_channel, t)
-				+ up * MotionDrivers.channel_value(bob_channel, t)
-			)
+			var hips_offset: Vector3 = base_offsets[index] - up * stance_drop
 			_append_hips_position(ctx, keys, hips, time, hips_offset)
 			if planted:
 				var hips_animated := Basis(world) * hips_rest
@@ -1889,7 +1896,48 @@ static func idle_keys(ctx: Dictionary) -> Dictionary:
 		"clamped": clamped, "clamp_shortfall_m": clamp_shortfall,
 		"clamped_leg_samples": clamped_samples, "reach_evaluated": planted,
 		"support_mode": "bilateral_rest_ankles" if planted else "caller_authored_feet",
+		"pelvis_rest_drop_m": stance_drop,
 	}}
+
+
+## One reachable standing height for the whole periodic path. A constant drop
+## preserves its smooth breathing/weight-shift curves and both ankle targets.
+static func _idle_stance_plan(ctx: Dictionary, rotations: Array[Quaternion], offsets: Array[Vector3]) -> Dictionary:
+	var up: Vector3 = ctx.up
+	var hips_origin: Vector3 = ctx.hips_origin
+	var leg_length := measured_leg(ctx)
+	var margin := maxf(0.002, 0.003 * leg_length)
+	var needed := 0.0
+	for side in ["l", "r"]:
+		var leg: Dictionary = ctx.legs[side]
+		if str(leg.foot).is_empty() or not rest_ancestor(ctx, str(leg.thigh), str(ctx.hips)) \
+				or not rest_ancestor(ctx, str(leg.shin), str(leg.thigh)) \
+				or not rest_ancestor(ctx, str(leg.foot), str(leg.shin)):
+			return {"error": "Planted idle needs connected hips -> thigh -> shin -> foot roles on both sides"}
+		if float(leg.upper) <= 0.0001 or float(leg.lower) <= 0.0001:
+			return {"error": "Planted idle needs nonzero measured thigh and shin lengths"}
+		var reach := float(leg.upper) + float(leg.lower) - margin
+		if reach <= absf(float(leg.upper) - float(leg.lower)) + margin:
+			return {"error": "Planted idle leg proportions leave no stable two-bone reach"}
+		for index in offsets.size():
+			var hip: Vector3 = hips_origin + offsets[index] + Basis(rotations[index]) * (leg.hip - hips_origin)
+			var difference: Vector3 = hip - leg.ankle
+			var vertical := difference.dot(up)
+			var planar := difference - up * vertical
+			var room_sq := reach * reach - planar.length_squared()
+			if room_sq <= 0.0 or vertical <= 0.0:
+				return {"error": "Planted idle pelvis path cannot reach its rest ankles; reduce sway/lean/twist or check rig axes"}
+			needed = maxf(needed, vertical - sqrt(room_sq))
+	if needed > 0.08 * leg_length:
+		return {"error": "Planted idle would need %.3f m pelvis lowering; limit is 8%% of leg length. Reduce bob/sway/shift/twist" % needed}
+	for side in ["l", "r"]:
+		var leg: Dictionary = ctx.legs[side]
+		var minimum := absf(float(leg.upper) - float(leg.lower)) + margin
+		for index in offsets.size():
+			var hip: Vector3 = hips_origin + offsets[index] - up * needed + Basis(rotations[index]) * (leg.hip - hips_origin)
+			if hip.distance_to(leg.ankle) < minimum:
+				return {"error": "Planted idle pelvis correction folds a leg beyond its minimum reach; reduce authored motion"}
+	return {"drop": needed}
 
 
 ## One leg of a standing idle, solved so the ankle stays on its rest world

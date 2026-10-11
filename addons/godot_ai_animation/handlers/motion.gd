@@ -903,7 +903,7 @@ func _build_context(params: Dictionary, kind: String, resolved_config: Dictionar
 	if roles.has("_error"):
 		return roles["_error"]
 	var required: Array = ["hips", "thigh_l", "thigh_r", "shin_l", "shin_r"]
-	if kind != "idle":
+	if kind != "idle" or bool(resolved_config.get("planted", true)):
 		required.append_array(["foot_l", "foot_r"])
 	var missing: Array = []
 	for role in required:

@@ -19,7 +19,7 @@ Additive idle controls source `e181dd8`: fresh public motion 62/62, headless
 14/14; unchanged legacy idle and approved walk/run goldens. Fresh 20 ordinary
 save/reopens UUID `903351fb...` compare with original baseline in 60/60 played
 runs with exactly zero differences. All 20 now report real clamps, maximum
-6.447 mm shortfall; defaults still need reach planning. Recovery additive-controls.
+8.769 mm shortfall (heavy/tall Z-up); defaults still need reach planning. Recovery additive-controls.
 Both baseline continuous MP4s complete/decode-verified, each 24s/1,440 frames;
 source/20-scenes/video hashes preserved. Current visible editor PID 17180.
 Supported three-second prototypes UUID `702240...`: eight public clips and

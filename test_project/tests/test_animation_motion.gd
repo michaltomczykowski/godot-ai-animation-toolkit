@@ -1733,6 +1733,8 @@ func test_idle_opt_in_hands_play_and_report_reach_without_changing_defaults() ->
 			continue
 		assert_true(plain.data.reach_evaluated, "standing idle reports evaluated reach")
 		assert_true(plain.data.has("clamped") and plain.data.has("clamp_shortfall_m"), "clamp report is present")
+		assert_false(plain.data.clamped, "planned ordinary stance does not clamp")
+		assert_eq(float(plain.data.clamp_shortfall_m), 0.0, "planned standing targets stay reachable")
 		assert_eq(plain.data.support_mode, "bilateral_rest_ankles", "standing support is explicit")
 		var digest := GoldenDigest.from_animation(rig.player.get_animation("ordinary_idle"))
 		var explicit_zero := ordinary.duplicate(true)
@@ -1807,6 +1809,10 @@ func test_idle_opt_in_hands_play_and_report_reach_without_changing_defaults() ->
 		if unplanted.has("data"):
 			assert_false(unplanted.data.reach_evaluated, "unplanted does not claim solved reach")
 			assert_eq(unplanted.data.support_mode, "caller_authored_feet", "unplanted support is truthful")
+		var unreachable := ordinary.duplicate(true)
+		unreachable.merge({"animation_name": "unreachable_idle", "bob": 1.0}, true)
+		assert_is_error(_handler.run(unreachable, null), ErrorCodes.VALUE_OUT_OF_RANGE)
+		assert_false(player.has_animation("unreachable_idle"), "infeasible planted motion refuses before mutation")
 		_teardown(rig)
 
 
