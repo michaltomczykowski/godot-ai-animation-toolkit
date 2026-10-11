@@ -3,7 +3,7 @@
   "phase": "character_quality",
   "operation": "walk_cycle",
   "revision": "walk-default-styles-r005",
-  "state": "approved_run_styles_regression_complete",
+  "state": "idle_baseline_measured",
   "release_r1_execution": {
     "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -333,7 +333,7 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Run is closed. Plan and preserve ordinary idle baseline, then validate/tune idle through Godot AI and pause at its own continuous-video review gate.",
+  "next_action": "Preserve continuous idle baseline, then public prototypes, idle-only repair and complete candidate gates; pause for idle video feedback.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
   "updated_utc": "2026-10-10T13:40:33.095528+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -2739,7 +2739,7 @@
     "updated_utc": "2026-10-09T20:12:32.534790+00:00",
     "playback_scope": "r004 feedback received; individual video/profile coverage not specified"
   },
-  "active_review_field": "run_review",
+  "active_review_field": "idle_review",
   "baseline_fields_note": "Top-level route/numeric/videos/chapters preserve r001 history. Current walk evidence and approvals are in promoted_walk_review; current regression is in release_r1_execution.",
   "promoted_walk_review": {
     "state": "approved_walk_styles_regression_complete",
@@ -3761,5 +3761,28 @@
       "complete": true,
       "recovery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\accepted-r001-regression"
     }
+  },
+  "idle_review": {
+    "state": "baseline_measured",
+    "plan": "docs/idle-quality-review-plan.md",
+    "validation": "docs/idle-quality-validation.md",
+    "baseline_source": "f44f23685e839a4da21400a549fc91c65d1015dc",
+    "baseline_uuid": "f853d458c87f4ce78c9a1c81850579ee",
+    "public_clips": 20,
+    "native_baseline_runs": 60,
+    "native_baseline_passed": 60,
+    "clamp_metadata": "unavailable; not counted as zero",
+    "negative_measurement_runs": 12,
+    "negative_measurement_exit": 1,
+    "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_idle_20261011",
+    "profile_approvals": {
+      "responsive": null,
+      "grounded": null,
+      "relaxed": null,
+      "heavy": null,
+      "sneaky": null
+    },
+    "release_ready": false,
+    "next_gate": "Continuous baseline playback and supported public prototypes before idle-only tuning"
   }
 }

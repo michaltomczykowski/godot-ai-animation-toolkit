@@ -2,6 +2,14 @@
 
 ## Current closure (2026-10-11)
 
+Idle baseline is preserved on public source `f44f236`, UUID `f853d458...`:
+20/20 ordinary Godot AI writes/save-reopens; 60/60 independent standing Player
+measurements. Missing clamp metadata is explicitly unknown, and candidates
+must report it. An actor-drift negative case fails all 12 measurements with
+exit 1 and no engine errors. Tall Z-up arms remain nearly horizontal, wrists
+have no motion. Capture baseline video before tuning; see
+`docs/idle-quality-validation.md`. Walk/run remain approved and unchanged.
+
 R2 run closed on 2026-10-11, fixture source `7638f22`: public motion 61/61,
 full local editor 386/386 in 32 suites, headless 14/14, no local skips/errors.
 Actions `38081008300` is green for all named required jobs and both advisory

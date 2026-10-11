@@ -185,7 +185,7 @@ func _update(v: Dictionary) -> void:
 	var supporting: Array[Vector3] = []
 	for side in ["l", "r"]:
 		var foot := Native.point(v, "foot_" + side)
-		var on := Native.contact(v, side)
+		var on := _contact(v, side)
 		v.diag[side].global_position = foot
 		v.diag[side].mesh.material.albedo_color = Color(0.2, 1, 0.4) if on else Color(1, 0.65, 0.15)
 		if on: supporting.append(Vector3(foot.x, 0.02, foot.z))
@@ -196,6 +196,16 @@ func _update(v: Dictionary) -> void:
 	_line(v.diag.root_travel, Vector3(start.x, 0.015, start.z), Vector3(here.x, 0.015, here.z))
 func _baseline_title(manifest: Dictionary, row: Dictionary) -> String:
 	return "WALK BASELINE r001 | %s | current tuning | Godot 4.7.2 | %s" % [row.label, str(manifest.source_head).left(7)]
+
+func _contact(view: Dictionary, side: String) -> bool:
+	return Native.contact(view, side)
+
+func _baseline_status(frame: int, view: Dictionary) -> String:
+	var contacts := ("L " if _contact(view, "l") else "") + ("R" if _contact(view, "r") else "")
+	return "%s | rig time %05.2f s | travel %.2f m | declared support %s" % ["DIAGNOSTIC" if diagnostic else "CLEAN", float(frame) / 60.0, view.body.global_position.distance_to(view.initial_body), contacts]
+
+func _baseline_footer() -> String:
+	return "Green: declared contact   Amber: swing   Magenta: hip projection (not COM)   Blue: root travel" if diagnostic else "Native saved-scene playback | cameras follow translation only | stationary 25 cm grid | no motion tuning changes"
 
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
@@ -216,7 +226,7 @@ func _run() -> void:
 	status = _label("", Vector2(24, 50), 23)
 	_label("FRONT", Vector2(24, 92), 23)
 	_label("SIDE", Vector2(984, 92), 23)
-	_label("Green: declared contact   Amber: swing   Magenta: hip projection (not COM)   Blue: root travel" if diagnostic else "Native saved-scene playback | cameras follow translation only | stationary 25 cm grid | no motion tuning changes", Vector2(24, 1035), 21)
+	_label(_baseline_footer(), Vector2(24, 1035), 21)
 	var ports := [_viewport(0), _viewport(1)]
 	var frames := 0
 	var rows: Array = []
@@ -230,8 +240,7 @@ func _run() -> void:
 					Native.advance(v, 1.0 / 60.0)
 					_update(v)
 			var v: Dictionary = views[0]
-			var contacts := ("L " if Native.contact(v, "l") else "") + ("R" if Native.contact(v, "r") else "")
-			status.text = "%s | rig time %05.2f s | travel %.2f m | declared support %s" % ["DIAGNOSTIC" if diagnostic else "CLEAN", float(frame) / 60.0, v.body.global_position.distance_to(v.initial_body), contacts]
+			status.text = _baseline_status(frame, v)
 			await process_frame
 			await RenderingServer.frame_post_draw
 			var error := root.get_texture().get_image().save_png(output.path_join("%06d.png" % frames))

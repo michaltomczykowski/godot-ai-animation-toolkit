@@ -2,6 +2,19 @@
 
 ## Current instruction (2026-10-11)
 
+Idle is active, public baseline source `f44f236`, UUID
+`f853d458c87f4ce78c9a1c81850579ee`, recovery `release_r2_idle_20261011`.
+20/20 ordinary public clips and 60/60 standing Player measurements pass.
+Native attempt `baseline/native-01f1d72dfe5c43ca9081169d8f7f7f0b`; missing
+clamp metadata is unknown, not zero, and prevents candidate quality approval.
+All 12 deliberate parent-drift runs numerically refuse/exit 1, zero engine
+errors. New idle checker never requires gait markers. Z-up arms are almost
+horizontal; wrists have zero local motion. Preserve representative continuous
+baseline before tuning. Current visible editor PID 364 uses the correct isolated
+APPDATA/8000/9500; old PID 9132 is the user's separate editor. No idle generation
+changes or idle approval yet. Follow idle plan/validation and pause for final
+continuous idle video review; keep approved walk/run bytes and feedback.
+
 R2 run is closed on fixture source `7638f22`: local public motion 61/61,
 full editor 386/386 in 32 suites, no skips/errors; all 14 canonical headless
 suites pass. Windows/Linux Actions `38081008300` passes every required source
