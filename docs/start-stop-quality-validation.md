@@ -103,3 +103,29 @@ golden drift remains zero. Detailed receipts: `terminal-hold-green.json`,
 `reach-report-motion-suite.json`, `editor-checkpoint-full.log` and
 `reach-check-7090c7663d40477b866a42aa987eff07/summary.json` in recovery.
 Next: [the measured continuation repair plan](start-stop-continuation-repair-plan.md).
+
+## Independent full-body references
+
+Animation source `999b615`, capture tooling/source `fd59394`: transition timing
+is independent of the walk reference (ordinary 1 s / 60 Hz). Explicit
+`gait_duration` / `gait_samples` can join a differently timed saved walk. Idle
+references use the approved ordinary 3 s / 60 Hz style, with the same rig,
+roles, arm placement and torso chain. Reference preparation adds no scene clip
+or mixer. Complete local channels now include the accepted idle hips, arms,
+wrists and fingers; stop no longer forces raw-rest leg rotations at its end.
+
+The public regression plays 32 cases / 64 full-body endpoints with separate
+saved walk/idle animations: both root policies, between-key phases 0.137/0.537,
+0.35/1.4 s transfers and 1.0/0.7 s walk references with independent sample rates.
+Fresh public motion **70/70**, zero skips or accepted walk/run/idle golden drift;
+headless **14/14**. Sixteen ordinary public Responsive scenes pass external
+history/dry/save/reopen, then **96 native runs / 192 endpoints** all match the
+separately preserved approved reference scenes. Maximum error is 0.275
+micrometres / 0.954 microradians, below unchanged endpoint limits.
+
+All 96 runs still fail velocity continuation. In-place contact and some real
+reach clamps remain; no quality approval or video delivery is implied. Detailed
+receipts: `reference-motion-suite.json`, `reference-endpoints` and
+`reference-native-90c49c66795747ea8cef4d2d8ce2b31c/summary.json`. The visible editor
+quit through the public route after this capture. Next is checkpoint 2 in the
+continuation plan: moving references, root speed and actual support transfer.

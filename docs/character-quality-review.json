@@ -333,7 +333,7 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Follow start-stop-continuation-repair-plan.md: independent walk/idle timing and complete endpoints, then support/root repair and final video/manual gates.",
+  "next_action": "Continue start-stop-continuation-repair-plan.md checkpoint 2: moving references, root speed and world-space support transfer. Preserve approved walk/run/idle and final manual gates.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
   "updated_utc": "2026-10-11T19:15:07.420807+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -4514,7 +4514,7 @@
     "candidate_quality_approved": false,
     "release_ready": false,
     "remaining_gates": [
-      "reference endpoints and timing",
+      "moving reference pose and velocity continuity",
       "moving references/root/support/contact",
       "targeted phase/duration matrix",
       "final ordinary 80 public / 480 native matrix",
@@ -4523,6 +4523,27 @@
       "Windows/Linux source CI",
       "continuous comparison videos/archive/PC delivery",
       "explicit human feedback"
-    ]
+    ],
+    "reference_endpoint_checkpoint": {
+      "animation_source": "999b615",
+      "capture_source": "fd59394",
+      "public_clips": 16,
+      "native_runs": 96,
+      "endpoint_checks": 192,
+      "endpoint_passed": 192,
+      "public_motion": {
+        "passed": 70,
+        "total": 70,
+        "skipped": 0
+      },
+      "headless_suites": {
+        "passed": 14,
+        "total": 14
+      },
+      "max_endpoint_position_error_m": 2.74763834795522e-07,
+      "max_endpoint_rotation_error_rad": 9.53674884840439e-07,
+      "candidate_quality_approved": false,
+      "receipt": "reference-native-90c49c66795747ea8cef4d2d8ce2b31c/summary.json"
+    }
   }
 }

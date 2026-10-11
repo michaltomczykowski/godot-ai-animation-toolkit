@@ -11,8 +11,13 @@ keys; held playback rounding <=0.495 micrometres /0.649 microradians. Actual
 clamps remain and output is unapproved. Public motion 68/68, full local editor
 393/393, headless 14/14, zero skips/errors and accepted golden drift. Recovery:
 release_r2_start_stop_20261011; reach-check-7090c7663d40477b866a42aa987eff07.
-Next follow docs/start-stop-continuation-repair-plan.md checkpoint 1, then
-moving reference/contact repair, final matrix/videos and explicit human pause.
+Independent references checkpoint `999b615` / capture `fd59394` is complete:
+public motion 70/70, headless 14/14, 16 ordinary public scenes and 96 native runs
+/192 complete endpoints against approved saved walk/idle pass. Endpoint maxima
+0.275 micrometres /0.954 microradians. Velocity/contact/reach failures remain;
+no visual approval. Recovery reference-native-90c49c66795747ea8cef4d2d8ce2b31c.
+Next follow docs/start-stop-continuation-repair-plan.md checkpoint 2, then final
+matrix/videos and explicit human pause. Reference editor quit normally.
 Do not rerun preserved idle closure or baseline. Work alone; preserve approved
 walk/run/idle. No release yet. Idle closure below remains valid.
 

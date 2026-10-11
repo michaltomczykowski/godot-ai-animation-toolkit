@@ -10,8 +10,11 @@ Sixteen new public clips and 96 root/metadata checks pass, authored poses exact;
 actual clamps/contact/join failures remain. Fresh public 68/68, full local
 393/393 and headless 14/14 pass, accepted gait/idle golden drift zero.
 State: `start_stop_reference_repair_active`; human review is pending.
-Next: docs/start-stop-continuation-repair-plan.md, independent walk/idle timing
-and complete endpoints, then support/root continuation and full video gates.
+Independent walk/idle timing and complete endpoints are fixed (`999b615`,
+capture `fd59394`): public motion 70/70, headless 14/14, 16 ordinary public clips
+and 96 native runs/192 full-body reference endpoints pass. Velocity/contact/reach
+failures remain. Next: docs/start-stop-continuation-repair-plan.md checkpoint 2,
+moving references/support/root continuation, then full video gates.
 Recovery: release_r2_start_stop_20261011. No merge, tag or release yet.
 
 ### Preserved idle closure
