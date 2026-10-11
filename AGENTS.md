@@ -1,5 +1,22 @@
 # Agent notes
 
+### Final delivery provenance guard
+
+Sequence delivery now explicitly requires the captured source SHA, original
+scene names and route-manifest hash, both camera views, four-rig order, exact
+chapters, 60 FPS and one root consumer. Seven controls with false source, scene,
+mode, ownership, camera, chapter and rig order are rejected. These are metadata
+controls, not visual approval (`sequence-provenance-guard-control.json`).
+The sequence encoder also replaces its complete receipt atomically.
+
+The first prearchive native-helper path comparison used nonexistent root-level
+paths, making that source-only comparison ineffective. The 575 saved-scene
+hashes and eleven protected-fixture checks were valid. Corrected comparisons
+require all four real `test_project/tools` files to exist and match the gated
+source. The strict final archive repeats these checks. No animation, renderer
+or native checker changes. Continuous recordings remain active; human approval
+is still pending.
+
 ### Final source CI archived
 
 Source `037dae4`, Actions `38174953452`: 28 headless jobs, four editor jobs

@@ -10,6 +10,18 @@ import zipfile
 from archive_run_review import digest, read, require, write, RIGS, STYLES
 
 
+def require_sequence_render(render, route, mode):
+    require(render['operation']=='animation_sequence' and render['source_head']==route['source_head']
+        and render['mode']==mode and render['fps']==60 and render['size']==[1920,1080]
+        and render['root_consumers_per_view']==1 and not render['errors'], 'Sequence recording source or ownership differs')
+    require(tuple(r['id'] for r in render['cases'])==RIGS and len(route['cases'])==4,
+        'Incomplete sequence recording rigs')
+    for index,(recorded,saved) in enumerate(zip(render['cases'],route['cases'])):
+        require(recorded['scene']==saved['scene'] and recorded['camera_views']==['FRONT','SIDE']
+            and recorded['frames']==1320 and recorded['start_s']==index*22 and recorded['duration_s']==22
+            and recorded['takes']==2 and recorded['reset_between_takes'], 'Sequence recording chapter differs')
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('repo','project-root','core-root','recovery','matrix','timing','sequence','reload','gates','ci-receipt','walk-reference','idle-reference'):
@@ -61,7 +73,9 @@ def main():
     require(sequence_route['passed'] and sequence_native['passed'] and len(sequence_native['runs'])==24 and not sequence_native['engine_errors'],'Missing saved public composition')
     records.append(sequence_route)
     for mode,v in read(a.sequence/'media.json')['videos'].items():
+        require_sequence_render(v['render'],sequence_route,mode)
         require(mode in ('clean','diagnostic') and digest(Path(v['path']))==v['sha256'] and v['decoded_frames']==5280
+            and v['route_sha256']==digest(a.sequence/'route.json')
             and abs(v['decoded_duration_s']-88)<.017 and not v['render']['errors']
             and all(r['takes']==2 and r['reset_between_takes'] for r in v['render']['cases']),'Invalid sequence movie')
         videos.append({'operation':'animation_sequence','style':'responsive',**v})
@@ -78,6 +92,13 @@ def main():
     # sequence marker repair. All transition generation dependencies are exact.
     require(subprocess.run(['git','diff','--quiet',source,ci['source_head'],'--','addons/godot_ai_animation',
         ':(exclude)addons/godot_ai_animation/spec/sequence_specs.gd'],cwd=a.repo).returncode==0,'CI transition source differs')
+    for relative in ('test_project/tools/render_start_stop_comparison.gd',
+            'test_project/tools/render_transition_sequence_review.gd',
+            'test_project/tools/check_start_stop_quality.gd',
+            'test_project/tools/check_transition_sequence_review.gd'):
+        require((a.repo/relative).is_file(), 'Playback evidence source is missing')
+        require(subprocess.run(['git','diff','--quiet',gates['source_head'],ci['source_head'],'--',relative],
+            cwd=a.repo).returncode==0, 'CI playback evidence source differs')
     for protected in read(a.recovery/'protected-fixtures-before.json'):
         require(digest(Path(protected['path']))==protected['sha256'],'Accepted or historical fixture changed')
     destination=candidate/'review-videos'; destination.mkdir(exist_ok=True)

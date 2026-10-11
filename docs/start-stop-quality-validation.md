@@ -306,3 +306,20 @@ sequence source is `80cfb59`; subsequent code only hardens recording receipts
 and PNG validation. Transition recording continues, with sequence capture
 queued behind it. Remaining gates: all 22 movies/archive/Explorer and explicit
 human feedback. No visual approval or release.
+
+### Final delivery provenance guard
+
+Sequence delivery now explicitly requires the captured source SHA, original
+scene names and route-manifest hash, both camera views, four-rig order, exact
+chapters, 60 FPS and one root consumer. Seven controls with false source, scene,
+mode, ownership, camera, chapter and rig order are rejected. These are metadata
+controls, not visual approval (`sequence-provenance-guard-control.json`).
+The sequence encoder also replaces its complete receipt atomically.
+
+The first prearchive native-helper path comparison used nonexistent root-level
+paths, making that source-only comparison ineffective. The 575 saved-scene
+hashes and eleven protected-fixture checks were valid. Corrected comparisons
+require all four real `test_project/tools` files to exist and match the gated
+source. The strict final archive repeats these checks. No animation, renderer
+or native checker changes. Continuous recordings remain active; human approval
+is still pending.

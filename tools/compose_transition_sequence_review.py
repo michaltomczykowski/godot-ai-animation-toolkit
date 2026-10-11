@@ -7,6 +7,7 @@ import re
 import subprocess
 from PIL import Image
 from compose_character_quality import digest
+from review_receipts import write_json
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
@@ -35,7 +36,7 @@ def main():
     assert abs(duration-count/60) < .017
     assert any('h264' in line and '1920x1080' in line and '60 fps' in line for line in decode.stderr.splitlines())
     path = a.folder/'media.json'; media = json.loads(path.read_text()) if path.exists() else {'videos': {}}
-    media['videos'][a.mode] = {'path':str(movie),'sha256':digest(movie),'bytes':movie.stat().st_size,'decoded_frames':count,'decoded_duration_s':duration,'render':render}
-    path.write_text(json.dumps(media,indent=2)+'\n',encoding='utf-8')
+    media['videos'][a.mode] = {'path':str(movie),'sha256':digest(movie),'bytes':movie.stat().st_size,'decoded_frames':count,'decoded_duration_s':duration,'render':render,'route_sha256':digest(a.folder/'route.json')}
+    write_json(path,media)
     print(f'Verified continuous sequence {a.mode}: {count} frames / {duration:.3f}s / 1080p60',flush=True)
 if __name__ == '__main__': main()
