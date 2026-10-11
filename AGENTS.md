@@ -5,10 +5,12 @@
 Idle ordinary candidate is active on source `8665980`, UUID
 `111fa689c5184c1ca20c41b0ef52141f`; recovery release_r2_idle_20261011/candidate.
 40/40 public writes pass actual external history, dry/pose preservation and
-save/reopen. Current visible editor PID 26536, isolated released-core profile.
+save/reopen. Visible editor PID 26536 quit normally through public Godot AI.
 Focused final source 63/64: only preserved legacy idle golden fails; walk/run
-drift zero. Headless 14/14. Full native 240 and core-reload calls are in progress;
-do not restart an active capture/matrix blindly. Actions 38124952893 pending.
+drift zero. Headless 14/14. Native 240/240 and all 40 core-reload dry calls pass.
+Full local editor 388/389: only the preserved legacy idle golden fails, no
+skips/errors. Final ten-video recorder is active: inspect recording-progress
+before resuming; do not restart an active capture. Actions 38124952893 pending.
 Prototype source57's 48 checks and 48s clean comparison complete; baseline has
 two 24s videos. No idle approval. Final gate: five clean/diagnostic ordinary idle
 videos, strict archive, PC Explorer, then stop for explicit user feedback.

@@ -177,7 +177,30 @@ was requested, because the clip owns no actor track. The native 240 matrix and
 forty reload dry calls are running; source Actions `38124952893` is pending.
 Do not infer completion from the previous 48 explicit prototype checks.
 
-### Next measurement
+### D — final native/reload and protected gait regression
+
+Ordinary candidate native matrix **240/240** passes, including Player/Tree,
+30/60/120 FPS and both requested root policies. Zero reach clamps, knee flips,
+actor travel or extracted root travel. Maximum rigid ankle slide 0.000891 mm,
+height/penetration 0.001014 mm; upper-arm up dot <= -0.97294 on every rig/style.
+These are bone-position measurements, not skinned sole collision certification.
+Receipts: `candidate/native-matrix.json`, `candidate/native-metrics-summary.json`.
+
+All **40/40** reload dry routes pass, with all ten families/eight promoted tools
+in each ready session and unchanged saved inspection. Fresh full local editor
+**388/389**, 32 suites, no skips/discovery/route/engine errors; only preserved
+legacy idle golden fails. Two complete registry-route probes pass. Results:
+`candidate/core-reload.json`, `candidate-gates/editor-full.json` and raw log.
+
+Shared-context changes additionally require exact saved walk/run regression.
+Use fresh ordinary public baseline writes for all five styles/four rigs, then
+`tools/check_idle_protected_gaits.py` against their accepted saved scenes: 120
+six-second native comparisons at 30/60/120 FPS, exactly zero bone/root drift.
+The helper's walk mode is restricted to baseline regression; it cannot create
+a new walk review candidate. Preserve sources/scenes/receipts in protected-gaits.
+Final continuous idle recording and source Actions `38124952893` are pending.
+
+### Historical next measurement (before prototypes)
 
 Supported prototype inputs are saved in `idle-supported-prototypes.json`:
 quieter existing breath/look/twist/weight-shift controls and explicit 3.0 s

@@ -91,6 +91,15 @@ def main() -> None:
             and full["skipped"] == 0 and full["engine_errors"] == 0 and full["tool_route_pass_markers"] == 2, "Unexpected full editor result")
     tiers = read(args.gates / "tier1-summary.json")
     require(tiers["suites"] == 14 and tiers["engine_errors"] == 0, "Headless failure")
+    protected_path = args.folder.parent / "protected-gaits" / "parity-summary.json"
+    protected = read(protected_path)
+    require(protected["passed"] and protected["native_runs"] == 120 and protected["scene_count"] == 80
+            and len(protected["rows"]) == 10 and all(r["exact"] for r in protected["rows"])
+            and subprocess.run(["git", "diff", "--quiet", source, protected["source_head"], "--",
+                                "addons/godot_ai_animation"], cwd=args.repo).returncode == 0,
+            "Missing exact protected walk/run playback proof")
+    protected_scenes = protected_path.parent / "protected-scenes.zip"
+    require(digest(protected_scenes) == protected["scene_zip_sha256"], "Changed protected gait archive")
     ci = read(args.ci_receipt)
     require(ci["source_head"] == source and ci["expected_legacy_idle_golden_only"] and ci["all_other_source_jobs_pass"], "Unexpected candidate source CI")
     state_path = args.repo / "docs/character-quality-review.json"
@@ -134,10 +143,13 @@ def main() -> None:
                "created_utc": datetime.now(timezone.utc).isoformat(), "public_clips": 40, "native_runs": 240,
                "reload_dry_calls": 40, "prototype_runs": 48, "release_ready": False,
                "candidate_ci_receipt": str(args.ci_receipt), "videos": videos, "scene_files": scene_files,
+               "protected_gait_receipt": str(protected_path), "protected_gait_runs": 120,
+               "protected_gait_scene_zip_sha256": protected["scene_zip_sha256"],
                "source_zip_sha256": digest(source_zip), "scene_zip_sha256": digest(args.folder / "native-scenes-and-local-rigs.zip")}
     # Snapshot current review/checker tooling separately from the immutable
     # animation-source tree. Keep raw media and private rigs in local archives.
     with zipfile.ZipFile(args.folder / "tooling-and-phase-receipts.zip", "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.write(protected_scenes, "receipts/protected-gaits/protected-scenes.zip")
         for directory in ("tools", "test_project/tools"):
             for path in sorted((args.repo / directory).iterdir()):
                 if path.suffix in (".py", ".ps1", ".gd", ".uid"):

@@ -1,4 +1,4 @@
-"""Preserve ordinary four-rig run/idle clips through authenticated public Godot AI.
+"""Preserve ordinary four-rig gait/idle clips through authenticated public Godot AI.
 
 No pose or animation is authored here. Each scene mutation happens once; a new
 attempt gets a new UUID. Partial receipts survive failure or interruption.
@@ -28,7 +28,9 @@ def save(path: Path, report: dict) -> None:
 
 
 async def run(args: argparse.Namespace) -> int:
-    motion = "idle" if args.operation == "idle_cycle" else "run"
+    motion = args.operation.removesuffix("_cycle")
+    if motion == "walk" and args.phase != "baseline":
+        raise ValueError("Walk support here is for protected baseline regression, not a new review candidate")
     source = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=args.repo, text=True).strip()
     recipes = json.loads(args.recipes.read_text(encoding="utf-8")) if args.recipes else None
     if (args.phase == "prototype") != bool(recipes):
@@ -161,7 +163,7 @@ if __name__ == "__main__":
     p.add_argument("--ws-port", type=int, default=9500)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--phase", choices=("baseline", "prototype", "candidate"), default="baseline")
-    p.add_argument("--operation", choices=("run_cycle", "idle_cycle"), default="run_cycle")
+    p.add_argument("--operation", choices=("walk_cycle", "run_cycle", "idle_cycle"), default="run_cycle")
     p.add_argument("--recipes", type=Path, help="Explicit prototype recipes; final candidates use ordinary defaults")
     p.add_argument("--duration", type=float, help="Explicit prototype period; ordinary calls omit duration")
     p.add_argument("--revision", default="run-baseline-r001")
