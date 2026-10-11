@@ -30,13 +30,13 @@ def save(path: Path, report: dict) -> None:
 async def run(args: argparse.Namespace) -> int:
     motion = args.operation.removesuffix("_cycle")
     transition = args.operation in ("walk_start", "walk_stop")
-    if motion == "walk" and args.phase != "baseline":
+    if motion == "walk" and args.phase == "candidate":
         raise ValueError("Walk support here is for protected baseline regression, not a new review candidate")
     source = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=args.repo, text=True).strip()
     recipes = json.loads(args.recipes.read_text(encoding="utf-8")) if args.recipes else None
     if (args.phase == "prototype") != bool(recipes):
         raise ValueError("Explicit recipes are required only for prototype measurement")
-    timing = {"duration": args.duration, "phase": args.gait_phase,
+    timing = {"duration": args.duration, "samples": args.samples, "phase": args.gait_phase,
               "gait_duration": args.gait_duration, "gait_samples": args.gait_samples}
     if any(value is not None for value in timing.values()) and args.phase != "prototype":
         raise ValueError("Explicit timing is a prototype input; ordinary review calls omit timing")
@@ -179,6 +179,7 @@ if __name__ == "__main__":
     p.add_argument("--operation", choices=("walk_cycle", "run_cycle", "idle_cycle", "walk_start", "walk_stop"), default="run_cycle")
     p.add_argument("--recipes", type=Path, help="Explicit prototype recipes; final candidates use ordinary defaults")
     p.add_argument("--duration", type=float, help="Explicit prototype period; ordinary calls omit duration")
+    p.add_argument("--samples", type=float, help="Explicit prototype authoring density; ordinary calls omit samples")
     p.add_argument("--gait-phase", type=float, help="Explicit prototype transition phase; ordinary calls omit phase")
     p.add_argument("--gait-duration", type=float, help="Prototype period of the independent walk reference")
     p.add_argument("--gait-samples", type=float, help="Prototype sample rate of the independent walk reference")
