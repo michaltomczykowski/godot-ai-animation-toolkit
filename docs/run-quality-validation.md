@@ -5,6 +5,31 @@
 Recovery: `F:\GODOTAITESTING\toolkit_repair_snapshot_2026-09-30\release_r2_run_20261010`.
 Plan: [run-quality-review-plan.md](run-quality-review-plan.md).
 
+## Closed run gate — 2026-10-11
+
+Fixture source `7638f22b5edc6dea0787eea754f0bb0f0fd9ca6e` passes fresh public
+motion **61/61**, full local editor **386/386** in **32** suites, and canonical
+headless **14/14**, with zero local skips, discovery/route/engine errors.
+Both ten-family/103-operation registration probes pass around registry reload.
+The first headless attempt used the nested project and missed the suite's normal
+docs-relative path; it is preserved separately. The canonical layout passes.
+
+[Actions 38081008300](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/38081008300)
+passes every named required source job and both advisory core-main jobs. Four
+editor jobs on Windows/Linux record **384/386**, zero failures/errors and zero
+run-golden drift. Their only skips are the two explicitly named private-X-Bot
+tests; the full local suite includes that asset. Both full live MCP jobs record
+**118** pass markers and zero fail markers. Tag-only jobs skip.
+
+Raw/parsed job logs, exact checkout SHAs and `ci-7638f22-receipt.json` are archived
+in `accepted-r001-regression`. Tested merge `1e4119ed3f4cd8ad294aaae35166a1d249b126f6`
+has the identical tracked tree. Pinned core is `bfc264200584ea5823f18356acb164781f57796d`;
+advisory main is `b82b5c519b1b17228f70d8effce1626f391bd1dd`. Current state:
+`approved_run_styles_regression_complete`. Reviewed animation bytes remain
+`97f17ce`; all historical fixtures are unchanged. Run is complete. Idle and
+later motion/family/release gates remain open; older pending notes below are
+historical checkpoints.
+
 ## Approved set — regression migration in progress
 
 The user replied “they look okay” to the five-style run review question on

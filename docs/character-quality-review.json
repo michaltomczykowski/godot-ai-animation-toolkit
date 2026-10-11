@@ -3,7 +3,7 @@
   "phase": "character_quality",
   "operation": "walk_cycle",
   "revision": "walk-default-styles-r005",
-  "state": "approved_run_styles_pending_regression",
+  "state": "approved_run_styles_regression_complete",
   "release_r1_execution": {
     "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -333,7 +333,7 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Record a separate Responsive v2 run golden after proving missing expectations fail; restart without recording and require green local/Windows/Linux regression before idle.",
+  "next_action": "Run is closed. Plan and preserve ordinary idle baseline, then validate/tune idle through Godot AI and pause at its own continuous-video review gate.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
   "updated_utc": "2026-10-10T13:40:33.095528+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -2900,7 +2900,7 @@
     }
   },
   "run_review": {
-    "state": "approved_run_styles_pending_regression",
+    "state": "approved_run_styles_regression_complete",
     "animation_source": "97f17ce579510fe5b784c1edd84a845eb164c199",
     "core_source": "bfc264200584ea5823f18356acb164781f57796d",
     "technical_review_delivery_complete": true,
@@ -3449,9 +3449,10 @@
     "animation_source_zip_sha256": "e587a0eb5f7a9d8bb94e435a3adb73fd767134a95a13fb92501ef7be2fcab25e",
     "scene_archive_sha256": "422aa1abae503a53c502e3aba3b0b1a586dac4cc82a1405ef30db4784588d80e",
     "pending_gates": [
-      "separate run golden and fresh independent comparison",
-      "full green Windows/Linux regression",
-      "remaining R2-R5 and final candidate review"
+      "remaining R2 motion/family reviews",
+      "R3 audit/integration",
+      "R4 packaged candidate/final approval",
+      "R5 publication"
     ],
     "approvals": {
       "responsive": {
@@ -3709,6 +3710,56 @@
           "sha256": "435caef60e736f4e700224db282f1631781bc61c68cc1f2c28f3b838b1a5eb66"
         }
       ]
+    },
+    "regression": {
+      "source_head": "7638f22b5edc6dea0787eea754f0bb0f0fd9ca6e",
+      "ci_run_id": 38081008300,
+      "ci_url": "https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/38081008300",
+      "ci_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\accepted-r001-regression\\ci-7638f22-receipt.json",
+      "focused_public_motion": {
+        "total": 61,
+        "passed": 61,
+        "failed": 0,
+        "skipped": 0,
+        "run_golden_drift_units": 0
+      },
+      "full_local_editor": {
+        "total": 386,
+        "passed": 386,
+        "failed": 0,
+        "skipped": 0,
+        "suites": 32,
+        "engine_errors": 0,
+        "discovery_errors": 0,
+        "route_errors": 0
+      },
+      "local_headless_suites": 14,
+      "all_required_source_jobs_pass": true,
+      "all_advisory_jobs_pass": true,
+      "expected_private_CI_skips": [
+        {
+          "assertion_count": 0,
+          "duration_ms": 2092,
+          "message": "the rig asset is missing: res://models/x_bot/X Bot.fbx",
+          "passed": true,
+          "skipped": true,
+          "suite": "animation_motion",
+          "test": "test_responsive_default_aliases_and_setup_use_identical_walks"
+        },
+        {
+          "assertion_count": 0,
+          "duration_ms": 0,
+          "message": "X Bot review asset is not installed at res://models/x_bot/X Bot.fbx",
+          "passed": true,
+          "skipped": true,
+          "suite": "animation_motion",
+          "test": "test_xbot_rooted_walk_and_run_play_with_contact"
+        }
+      ],
+      "historical_fixtures_unchanged": true,
+      "animation_unchanged_from_review": true,
+      "complete": true,
+      "recovery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_run_20261010\\accepted-r001-regression"
     }
   }
 }

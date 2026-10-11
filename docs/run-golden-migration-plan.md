@@ -3,6 +3,13 @@
 Prepared 2026-10-10 while run videos are recording. This is a plan; no fixture
 has been recorded or replaced. Follow the manual gate in the run review plan.
 
+Execution completed 2026-10-11. Approval “they look okay” was recorded against
+the delivered set; selector `ec3f1b8` proved missing-expectation refusal before
+explicit recording. Fixture source `7638f22` passes fresh motion 61/61, full
+local editor 386/386, headless 14/14 and Windows/Linux Actions `38081008300`.
+Historical fixtures are unchanged. This original plan is retained below; exact
+closing evidence is in `run-quality-validation.md` and recovery.
+
 ## Preconditions
 
 1. Present all ten continuous run videos through PC Explorer. Preserve their

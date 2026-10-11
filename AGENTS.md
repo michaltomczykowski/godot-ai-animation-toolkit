@@ -1,6 +1,24 @@
 # Agent notes
 
-## Current instruction (2026-10-10)
+## Current instruction (2026-10-11)
+
+R2 run is closed on fixture source `7638f22`: local public motion 61/61,
+full editor 386/386 in 32 suites, no skips/errors; all 14 canonical headless
+suites pass. Windows/Linux Actions `38081008300` passes every required source
+job and both advisory main jobs. Four CI editors: 384/386 with only the two
+named private-X-Bot skips, no failures/errors, zero run-golden drift. Both live
+MCP jobs have 118 pass/zero fail markers. Tested merge `1e4119ed...` has the same
+tracked tree as source. Receipts and closed review are in
+`release_r2_run_20261010/accepted-r001-regression`. Animation remains exactly
+the approved `97f17ce`; historical fixtures remain byte-identical. State:
+`approved_run_styles_regression_complete`. Start idle with
+`docs/idle-quality-review-plan.md`; preserve walk/run and each delivered archive.
+Older pending/failure notes below are checkpoints, not current blockers.
+
+The first nested-project pure-suite attempt missed the docs-relative layout;
+its failure is preserved. The canonical command passes all 14 suites. Local
+pure commands require canonical test_project; editor/MCP use the isolated
+released-core validation project and APPDATA as documented below.
 
 The user approved the presented run set with “they look okay.” The five style
 approvals and exact ten video hashes are recorded; individual watched files were

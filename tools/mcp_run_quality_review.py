@@ -1,4 +1,4 @@
-"""Preserve ordinary four-rig run clips through authenticated public Godot AI.
+"""Preserve ordinary four-rig run/idle clips through authenticated public Godot AI.
 
 No pose or animation is authored here. Each scene mutation happens once; a new
 attempt gets a new UUID. Partial receipts survive failure or interruption.
@@ -28,6 +28,9 @@ def save(path: Path, report: dict) -> None:
 
 
 async def run(args: argparse.Namespace) -> int:
+    motion = "idle" if args.operation == "idle_cycle" else "run"
+    if motion == "idle" and args.phase == "candidate":
+        raise ValueError("Idle candidate capture requires its own public history witness; baseline/prototypes only for now")
     source = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=args.repo, text=True).strip()
     recipes = json.loads(args.recipes.read_text(encoding="utf-8")) if args.recipes else None
     if (args.phase == "prototype") != bool(recipes):
@@ -35,7 +38,7 @@ async def run(args: argparse.Namespace) -> int:
     if subprocess.run(["git", "diff", "--quiet", "HEAD", "--", "addons/godot_ai_animation"], cwd=args.repo).returncode:
         raise RuntimeError("Commit the animation source before creating exact-source review scenes")
     run_id = uuid4().hex
-    scene_folder = args.project_root / "repair_run_quality" / run_id
+    scene_folder = args.project_root / f"repair_{motion}_quality" / run_id
     scene_folder.mkdir(parents=True)
     args.output.mkdir(parents=True, exist_ok=True)
     progress_path = args.output / f"attempt-{run_id}.json"
@@ -51,7 +54,7 @@ async def run(args: argparse.Namespace) -> int:
                 if record.exists():
                     raise FileExistsError(f"Preserve the previous attempt; choose a new output folder: {record}")
                 report = {"schema_version": 1, "revision": f"{args.revision}-{style}",
-                          "source_head": source, "operation": "run_cycle", "profile": style,
+                          "source_head": source, "operation": args.operation, "profile": style,
                           "root_mode": root_mode, "phase": args.phase, "run_id": run_id,
                           "invocation_kind": "explicit prototype" if recipes else "ordinary call",
                           "connection": connection, "created_utc": progress["created_utc"],
@@ -67,9 +70,9 @@ async def run(args: argparse.Namespace) -> int:
                                          f'metadata/player_path = NodePath("{player_path}")\n')
                     scene = "res://" + target.relative_to(args.project_root).as_posix()
                     player = f"/{scene_root}/{player_path}"
-                    params = {"op": "run_cycle", "player_path": player,
+                    params = {"op": args.operation, "player_path": player,
                               "skeleton_path": f"/{scene_root}/{rig_path}",
-                              "animation_name": "quality_run", "root_motion": root_mode == "extracted"}
+                              "animation_name": f"quality_{motion}", "root_motion": root_mode == "extracted"}
                     # Ordinary Responsive/default call. No duration, sample,
                     # speed, loop or recipe override in the reviewed default.
                     if style != "responsive":
@@ -156,6 +159,7 @@ if __name__ == "__main__":
     p.add_argument("--ws-port", type=int, default=9500)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--phase", choices=("baseline", "prototype", "candidate"), default="baseline")
+    p.add_argument("--operation", choices=("run_cycle", "idle_cycle"), default="run_cycle")
     p.add_argument("--recipes", type=Path, help="Explicit prototype recipes; final candidates use ordinary defaults")
     p.add_argument("--revision", default="run-baseline-r001")
     p.add_argument("--styles", choices=STYLES, nargs="+", default=list(STYLES))

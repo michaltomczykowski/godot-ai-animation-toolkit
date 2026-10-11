@@ -1,6 +1,17 @@
 # Animation Toolkit repair roadmap
 
-## Current closure (2026-10-10)
+## Current closure (2026-10-11)
+
+R2 run closed on 2026-10-11, fixture source `7638f22`: public motion 61/61,
+full local editor 386/386 in 32 suites, headless 14/14, no local skips/errors.
+Actions `38081008300` is green for all named required jobs and both advisory
+core-main jobs. Four CI editors have only the two private-X-Bot skips and zero
+run-golden drift; both live routes print 118 pass/zero fail markers. Tested merge
+tree matches the source. Run approval and exact hashes are recorded; motion
+source `97f17ce` and historical fixtures are unchanged. Closing recovery:
+`release_r2_run_20261010/accepted-r001-regression`. Current state:
+`approved_run_styles_regression_complete`. Idle is next, using the saved phase
+plan; remaining R2 motion/family reviews and R3-R5 are still required.
 
 R1 closed on `8f7b6e7`: Actions `38057817851` passes all 32 required source
 jobs and two advisory main jobs. Four editor jobs: 382/384, two explicit private
