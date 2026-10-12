@@ -1,5 +1,23 @@
 # Agent notes
 
+## PC reset checkpoint (2026-10-12)
+
+User asked to save work for a PC reset. Code source `4ad221e` is pushed;
+Actions `38178266487` completed successfully (collect its raw receipt on resume).
+All 20 transition MP4s plus the clean sequence MP4 are verified and preserved.
+Clean sequence: 5,280 decoded frames /88s, exact source/scene/manifest checks
+pass. Diagnostic sequence has 3,528 preserved PNGs and no final native report.
+Its task processes are gone; old renderer PID 21740 is now an unrelated
+conhost.exe. Never stop a reused PID. Original recording status is retained;
+current status is `interrupted_for_pc_reset`. Last partial frame CRC passes.
+
+Recovery: `release_r2_start_stop_20261011/reset-checkpoint-20261012.json`.
+Keep completed media and immutable scenes. Resume only diagnostic capture into
+a new attempt folder; do not overwrite partial frames or regenerate the 80
+public clips. Then collect source CI, run the strict 22-video archive, open
+Explorer and explicitly pause for feedback. No human start/stop approval yet.
+Work is paused for the user's reset.
+
 ### Final delivery provenance guard
 
 Sequence delivery now explicitly requires the captured source SHA, original
