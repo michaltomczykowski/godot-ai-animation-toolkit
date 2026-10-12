@@ -22,6 +22,13 @@ def require_sequence_render(render, route, mode):
             and recorded['takes']==2 and recorded['reset_between_takes'], 'Sequence recording chapter differs')
 
 
+def review_movie_name(video):
+    operation, style, mode = video['operation'], video['style'], video['render']['mode']
+    require(operation in ('walk_start','walk_stop','animation_sequence') and style in STYLES
+        and mode in ('clean','diagnostic'), 'Invalid review movie identity')
+    return f'{operation}-{style}-{mode}.mp4'
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('repo','project-root','core-root','recovery','matrix','timing','sequence','reload','gates','ci-receipt','walk-reference','idle-reference'):
@@ -102,8 +109,9 @@ def main():
     for protected in read(a.recovery/'protected-fixtures-before.json'):
         require(digest(Path(protected['path']))==protected['sha256'],'Accepted or historical fixture changed')
     destination=candidate/'review-videos'; destination.mkdir(exist_ok=True)
+    require(len({review_movie_name(v) for v in videos})==len(videos), 'Duplicate review movie names')
     for v in videos:
-        target=destination/Path(v['path']).name
+        target=destination/review_movie_name(v)
         if not target.exists(): shutil.copy2(v['path'],target)
         require(digest(target)==v['sha256'],'Review copy differs');v['path']=str(target)
     scenes={}
@@ -143,7 +151,7 @@ def main():
     for path in archives:
         with zipfile.ZipFile(path) as archive: require(archive.testzip() is None,'Archive CRC failed')
     (destination/'START-HERE.txt').write_text(
-        'Start with the Responsive walk_start clean, then walk_stop clean and start-stop-sequence-r001-clean.mp4.\n'
+        'Start with walk_start-responsive-clean.mp4, then walk_stop-responsive-clean.mp4 and animation_sequence-responsive-clean.mp4.\n'
         'Compare BEFORE (left) and CANDIDATE (right). Front/side cameras follow translation; the ground grid stays fixed.\n'
         'Transition videos: 48s, 1080p60; 00-12 dummy, 12-24 X Bot, 24-36 short, 36-48 tall Z-up. Two reset-separated complete takes per angle.\n'
         'Sequence videos: 88s, 1080p60; simultaneous front/side, two complete 11s takes per rig. Idle/start/two walks/stop/idle is one saved clip.\n'

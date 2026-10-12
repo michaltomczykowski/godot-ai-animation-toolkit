@@ -364,3 +364,29 @@ folder. Keep the old clean movie. After source CI and full decode pass, merge
 only the verified diagnostic media entry into `sequence-r001/media.json`, then
 run the strict 22-video archive, Explorer delivery and explicit human pause.
 No start/stop visual approval; do not advance the next motion set or release.
+
+## Complete media; final archive naming repair (2026-10-12)
+
+All 22 MP4s are complete and independently decoded: twenty 48s transition
+comparisons plus clean/diagnostic 88s sequences, all 1080p60. Recovered
+diagnostic has 5,280 frames and zero engine errors. Its verified entry is
+merged into `sequence-r001/media.json`; the old clean movie is unchanged.
+
+Flat copying caught start/stop basename collisions. The first partial copy is
+preserved in `candidate-r001/review-videos-first-copy-attempt`; the archive
+now names copies by operation/style/mode and rejects duplicate identities.
+All 22 unique copies in `candidate-r001/review-videos` pass original SHA256.
+Receipt: `all-movies-copy-checkpoint.json`. Preserve all source/failed/partial
+media; no additional animation generation or recording is needed.
+
+CI `38302503301` for renderer fix `1993218` has a Linux value-codec job failure
+during cached Godot setup: the suite never ran. Raw job log is retained as
+`ci-1993218-godot-setup-failure.log`. Four editor jobs pass; live jobs remain
+active at this checkpoint. GitHub rejected a job-only rerun while active.
+Use fresh final source CI including the archive naming repair; do not loosen
+test gates or change codec code for this infrastructure failure.
+
+Remaining: collect complete green final source CI, run strict archive with
+final 480-run matrix/timing/sequence/reload/local gates and protected hashes,
+verify ZIPs, open Explorer on all 22 movies and explicitly pause for human
+start/stop and sequence feedback. No visual approval or release yet.
