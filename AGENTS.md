@@ -1,5 +1,42 @@
 # Agent notes
 
+## Start/stop delivery complete — pause for human feedback (2026-10-12)
+
+All **22 continuous MP4s** are complete, decoded, hashed and observed in PC
+Explorer on `candidate-r001/review-videos`, with `walk_start-responsive-clean`
+selected. Review Responsive start, stop and `animation_sequence-responsive-clean`
+first, then the remaining styles. No human start/stop or sequence approval yet.
+**Pause here for explicit feedback. Do not advance the next motion set or release.**
+
+Clip source `4137cc5`, sequence source `80cfb59`, final renderer/delivery source
+`ef7bd2b`. Actions **38304402244** is green: 28 headless jobs, four editors
+395/397 with only two named private-rig skips, both live routes 118/118; all
+required/advisory jobs pass and protected walk/run/idle drift is zero. Source
+checkout/core/merge identities and six raw logs are in `source-ci-ef7bd2b`.
+The earlier `1993218` run's cached Godot setup failure is retained; no codec
+test failed and no gate was loosened. Local 397/397, 14/14 headless, 80 public
+clips /480 native plays, 96 timing requests (91 clips /546 native plays, five
+typed nonmutating refusals), four public sequences /24 native plays, and 160
+core-reload dry checks remain complete. Eight renderer initialization controls
+pass with identical bone poses/root/camera and correct first-frame contacts.
+
+Strict delivery and independent checks pass: 22 movie hashes, four ZIP CRCs
+and hashes, 575 saved-scene entries, local private rig assets, and all eleven
+protected working-file hashes. Both source ZIPs match exact Git blobs for all
+protected fixtures; two provenance JSON files have canonical Git LF endings
+while unchanged Windows working files use CRLF. Content is exactly equal.
+No animation/fixture changes during recovery. Failed/partial frame attempts
+and the first colliding copy attempt are preserved. Names are now unique by
+operation/style/mode. No recording/editor job remains active.
+
+Recovery: `release_r2_start_stop_20261011/candidate-r001/`. Receipts:
+`review-delivery.json`, `independent-delivery-integrity.json`,
+`pc-review-delivery.json`; archives include exact source/tooling, saved scenes
+and rigs, and phase receipts. Preserve this delivery and feedback; do not
+rerun the archive, reset approvals, regenerate the 80 clips or restart captures.
+After approval, plan the approval/regression closure before subsequent R2-R5
+work. Remaining roadmap and final release gates still apply.
+
 ## Complete media; final archive naming repair (2026-10-12)
 
 All 22 MP4s are complete and independently decoded: twenty 48s transition
