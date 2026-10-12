@@ -1,5 +1,28 @@
 # Animation Toolkit repair roadmap
 
+## Resumed diagnostic capture (2026-10-12)
+
+The user resumed work. All 21 completed movie hashes, four saved sequence scenes
+and eleven protected fixtures still pass. Source CI `4ad221e` is now archived
+in `source-ci-4ad221e/ci-receipt.json`. Only diagnostic recording is resumed.
+
+The first fresh attempt exposed an existing renderer initialization error:
+base setup calls the overridden contact callback before derived setup attaches
+`review_row`. Its frames/logs/status remain in `sequence-diagnostic-recovery-r001`;
+the earlier interrupted 3,528 frames also remain untouched. Base rendering
+setup now attaches the saved row before its first visual update. No animation
+or playback logic changes. Eight actual native setup controls pass: four rigs
+and two cameras, both initial idle contacts correct, zero engine errors, and
+exactly identical clean/diagnostic bone poses, root and camera transforms.
+The first control-only script parse failure is preserved separately.
+
+Receipt: `renderer-initialization-green.json`; recipe/progress:
+`sequence-diagnostic-recovery-r002`. Capture just diagnostic into this new
+folder. Keep the old clean movie. After source CI and full decode pass, merge
+only the verified diagnostic media entry into `sequence-r001/media.json`, then
+run the strict 22-video archive, Explorer delivery and explicit human pause.
+No start/stop visual approval; do not advance the next motion set or release.
+
 ## PC reset checkpoint (2026-10-12)
 
 User asked to save work for a PC reset. Code source `4ad221e` is pushed;

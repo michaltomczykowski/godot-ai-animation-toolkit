@@ -87,6 +87,8 @@ func _setup(row: Dictionary, viewport: SubViewport, index: int) -> Dictionary:
 	var group := Node3D.new()
 	world.add_child(group)
 	var v := Native.load_case(row, group)
+	# Derived contact callbacks run during this setup's first visual update.
+	v["review_row"] = row
 	# Presentation normalization rotates the entire scene, never an individual bone.
 	# Native root extraction remains inside the original rig coordinate convention.
 	group.basis = Basis(v.right, v.up, -v.forward).inverse()
