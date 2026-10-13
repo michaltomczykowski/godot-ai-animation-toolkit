@@ -57,7 +57,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('repo','project-root','core-root','recovery','matrix','timing','sequence','reload','gates','ci-receipt','walk-reference','idle-reference'):
         p.add_argument('--'+name,type=Path,required=True)
-    for name in ('candidate','baseline','actor-controls','preview-parity'):
+    for name in ('candidate','baseline','actor-controls','preview-parity','renderer-provenance'):
         p.add_argument('--'+name,type=Path)
     a=p.parse_args(); candidate=a.candidate or a.recovery/'candidate-r001'; delivery=candidate/'review-delivery.json'
     require(not delivery.exists(),'Preserve delivered feedback; do not recreate the archive')
@@ -191,6 +191,14 @@ def main():
                 blob=subprocess.check_output(['git','show',revision+':'+relative],cwd=a.repo)
                 require(archive.read(relative)==blob,'Archived protected fixture differs from exact source')
     simultaneous=all(v['render'].get('layout')=='simultaneous_front_side' for v in videos if v['operation']!='animation_sequence')
+    if simultaneous:
+        require(a.renderer_provenance is not None, 'Candidate camera layout needs its captured renderer source')
+        renderer=read(a.renderer_provenance)
+        require(renderer['unchanged_during_capture'] and len(renderer['files'])==6,'Incomplete renderer dependency proof')
+        for row in renderer['files']:
+            require((a.repo/row['path']).is_file() and digest(a.repo/row['path'])==row['working_sha256'], 'Renderer dependency changed during recording')
+            require(subprocess.run(['git','diff','--quiet',renderer['source'],ci['source_head'],'--',row['path']],cwd=a.repo).returncode==0,
+                'CI renderer source differs from captured tooling')
     transition_instructions=('Style videos show FRONT (left) and SIDE (right) simultaneously. Cameras follow translation; the ground grid stays fixed.\n'
         'Style videos: 24s, 1080p60; 00-06 dummy, 06-12 X Bot, 12-18 short, 18-24 tall Z-up. Two reset-separated complete takes per rig.\n'
         if simultaneous else 'Compare BEFORE (left) and CANDIDATE (right). Front/side cameras follow translation; the ground grid stays fixed.\n'
@@ -206,7 +214,8 @@ def main():
         'ci_source':ci['source_head'],'core_source':subprocess.check_output(['git','rev-parse','HEAD'],cwd=a.core_root,text=True).strip(),
         'created_utc':datetime.now(timezone.utc).isoformat(),'public_clips':80,'native_runs':480,'timing':timing,
         'sequence_native_runs':24,'reload_dry_calls':160,'videos':videos,'scene_files':scenes,'archives':archives,
-        'ci_receipt':str(a.ci_receipt),'gates':str(a.gates),'preview_parity':parity,'visual_approval':None,'release_ready':False}
+        'ci_receipt':str(a.ci_receipt),'gates':str(a.gates),'preview_parity':parity,
+        'renderer_provenance':str(a.renderer_provenance) if a.renderer_provenance else None,'visual_approval':None,'release_ready':False}
     write(delivery,receipt)
     previous.update(state=receipt['state'],animation_source=source,review_delivery=str(delivery),videos=videos,
         profile_approvals=previous.get('profile_approvals',{op:{style:None for style in STYLES} for op in ('walk_start','walk_stop')}),sequence_approval=previous.get('sequence_approval'),
