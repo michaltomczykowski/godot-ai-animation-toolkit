@@ -87,4 +87,8 @@ No main merge, tag, release or media upload at this gate.
 - Continuation controls: 288 positive and 288 shifted-endpoint detections pass.
   All 48 deliberate double actor-travel failures are detected, zero engine errors.
 - Twenty native style movies recording; first 24s clean movie fully decoded.
-- Timing/core reload/full regression and complete media/CI delivery: pending.
+- Timing: all 96 public requests checked, 91 accepted clips /546 native plays
+  pass, five typed nonmutating reach refusals. All 24 timing groups complete.
+- Headless: fourteen suites pass, exit zero and all fourteen pass markers.
+- Core reload is running; local full regression follows its public test closure.
+- Complete continuous media, exact-source CI receipt and PC delivery: pending.
