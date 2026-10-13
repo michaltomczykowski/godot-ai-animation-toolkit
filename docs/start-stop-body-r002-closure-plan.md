@@ -141,3 +141,13 @@ protected files remain exact. Local `gates.json` now passes all required checks.
 - PC Explorer observed with all 22 videos and the sequence clean selected.
   Scoped Responsive approval preserved; remaining-style/sequence feedback is
   pending. **Pause here for explicit human review. No release or promotion.**
+
+## Human approval and phase closure, 2026-10-13
+
+User says “they look okay, continue” in response to remaining-style and
+full-sequence review. The presented r002 set is approved, with individual
+watched files unspecified. Prior Responsive feedback remains preserved.
+All 22 delivered hashes remain exact; existing regression and exact-source
+CI pass. No animation source changed after the delivery. Approval receipt:
+`closure-r002/approved-r002-feedback.json`. Start/stop closure is complete;
+continue with `turn-quality-review-plan.md`. Release-wide gates remain.

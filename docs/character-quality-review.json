@@ -3,7 +3,7 @@
   "phase": "character_quality",
   "operation": "walk_start/walk_stop",
   "revision": "start-stop-body-r002",
-  "state": "awaiting_start_stop_feedback",
+  "state": "start_stop_approved_turn_phase_planned",
   "release_r1_execution": {
     "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -333,9 +333,9 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Pause for explicit feedback on remaining start/stop styles and the full sequence. PC Explorer is open on all 22 movies, sequence clean selected. Scoped Responsive body approval is preserved.",
+  "next_action": "Plan and measure ordinary turn left/right 90 and two-step 180; preserve all approved motion and pause at the next video gate.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
-  "updated_utc": "2026-10-11T19:15:07.420807+00:00",
+  "updated_utc": "2026-10-13T21:17:56.215797+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
   "route": {
     "run_id": "9ad66ecc6b294f62823069b6a4050fc2",
@@ -2739,7 +2739,7 @@
     "updated_utc": "2026-10-09T20:12:32.534790+00:00",
     "playback_scope": "r004 feedback received; individual video/profile coverage not specified"
   },
-  "active_review_field": "start_stop_review",
+  "active_review_field": "turn_review",
   "baseline_fields_note": "Top-level route/numeric/videos/chapters preserve r001 history. Current walk evidence and approvals are in promoted_walk_review; current regression is in release_r1_execution.",
   "promoted_walk_review": {
     "state": "approved_walk_styles_regression_complete",
@@ -4390,7 +4390,7 @@
     }
   ],
   "start_stop_review": {
-    "state": "awaiting_start_stop_feedback",
+    "state": "approved_start_stop_styles_sequence_regression_complete",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013",
     "previous_revision": "start-stop-repair-r001",
     "previous_feedback": {
@@ -4400,31 +4400,184 @@
       "scope": "start/stop body response; individual style/rig coverage not specified"
     },
     "revision_plan": "docs/start-stop-body-r002-plan.md",
-    "visual_approval": null,
-    "candidate_quality_approved": false,
+    "visual_approval": {
+      "verbatim": "they look okay, continue",
+      "recorded_utc": "2026-10-13T21:17:56.215797+00:00",
+      "decision": "approved_remaining_start_stop_styles_and_complete_sequence",
+      "scope": "Presented Grounded, Relaxed, Heavy and Sneaky start/stop styles and Responsive complete sequence; prior focused Responsive approval retained",
+      "individual_watched_files_enumerated": false,
+      "delivered_checkpoint": "eb9c81fb2f9f4bc293b9fec63b714fdd8b5ac71b",
+      "animation_source": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+      "sequence_source": "10941ba81c367fe0c753ff9086fb826d3136bbec",
+      "ci_source": "5df333a26995a16ec8418736226ec7d1e666de93",
+      "delivery_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-delivery.json",
+      "delivery_sha256": "abf7cc42dd86271ba293ac95b5fbb970678b5cb85df4fa500bea531734338777",
+      "videos": [
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_start-responsive-clean.mp4",
+          "sha256": "8a935a7760548df35592d3e5dbc7db97f50e752ecbd08304fd4d28c711cf8e63"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_start-responsive-diagnostic.mp4",
+          "sha256": "194bc4bf9c6aca5c9a60fc6b206def3308715bd5aa7bc7dc2c69721b101fe943"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_start-grounded-clean.mp4",
+          "sha256": "1f5bf10a5241c37593ae7871a050a64797e340cee3557a34b88bce2f9f3bb470"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_start-grounded-diagnostic.mp4",
+          "sha256": "3803889a7d5dbc81cb57cc3c0a2c2e50638bb9bb3e7bb42b37927a0c3b28f986"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_start-relaxed-clean.mp4",
+          "sha256": "ea5dc42e341113ca5033e936773e860e3eaf03ecb0251e1bf120e5b63dbcb14c"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_start-relaxed-diagnostic.mp4",
+          "sha256": "9f702adb22fb39e31b6f26cb3b1e217c1eaa9b47805fe663e65736fa8fded191"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_start-heavy-clean.mp4",
+          "sha256": "f8535d0497434b24bb74e529caa43de2b2a762a00d7848aab29848aac301f4f0"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_start-heavy-diagnostic.mp4",
+          "sha256": "4eb2cbc51c391bcf7800d3852cb7d7dc6592bb79634f45d93f53010d4d311a36"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_start-sneaky-clean.mp4",
+          "sha256": "1c42db54339cfae2031375453ae234f2790dd2d77f88f65a675faa465a82b0fb"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_start-sneaky-diagnostic.mp4",
+          "sha256": "c46df230835086766d6533cc71b2d7ff1de3cdb51248a9976413cc83f9572d7c"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_stop-responsive-clean.mp4",
+          "sha256": "fd4d84326d7879bf21eee82043dff3d2d7b53f6e5c2ca023606214ee1763e818"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_stop-responsive-diagnostic.mp4",
+          "sha256": "bda6730ca81443a5a5dbf079069344bdbaad30f5909ce8c7cf5ff671d8ef550a"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_stop-grounded-clean.mp4",
+          "sha256": "af227864a78e8630ba32af394487fbbd8074eae54fb5927b3b918149bf0d1657"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_stop-grounded-diagnostic.mp4",
+          "sha256": "e12fc6fad31f26421b4fce3595e58f983c04392a6e2bfe5e98ec9d3063339891"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_stop-relaxed-clean.mp4",
+          "sha256": "63eb8fac0400f18f7f3b4e422b54233bd804f9ebbeec873abcdfcd4bb93e0a0b"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_stop-relaxed-diagnostic.mp4",
+          "sha256": "9ee91eda43c0b8258559a08f35a813bc44e637d4978f82a4605b3b5d067bd5b2"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_stop-heavy-clean.mp4",
+          "sha256": "06241a590680c68f24b2ab4fb4b48f84bab01c996e6613852967d7d2929f6923"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_stop-heavy-diagnostic.mp4",
+          "sha256": "35c602d2100296f503e4f10319e104604dd5fd58a8d5f7bd5be37a69a371334a"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_stop-sneaky-clean.mp4",
+          "sha256": "0bbbc74ef75aa4b2f5fd0777eb5942b9aa011bfae04cde72dfe98f744d8c7ffe"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_stop-sneaky-diagnostic.mp4",
+          "sha256": "6111e541c69747c871e507b20e64e088c3527439b3fdc3010f515241b486b2d8"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\animation_sequence-responsive-clean.mp4",
+          "sha256": "24f587f9cd11f79bab37564a5cacc781d983c71fec65184dbddcd97cac27eb46"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\animation_sequence-responsive-diagnostic.mp4",
+          "sha256": "d02d172ba9e4c7520754019f9afd89c1461e4db019d9ac4ce7ef6bf1eb70029f"
+        }
+      ],
+      "release_ready": false
+    },
+    "candidate_quality_approved": true,
     "release_ready": false,
     "accepted_walk_run_idle_unchanged": true,
     "profile_approvals": {
       "walk_start": {
-        "responsive": null,
-        "grounded": null,
-        "relaxed": null,
-        "heavy": null,
-        "sneaky": null
+        "responsive": {
+          "approved": true,
+          "feedback_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\approved-r002-feedback.json",
+          "scope": "Presented set; individual watched files not enumerated",
+          "prior_responsive_feedback_retained": true
+        },
+        "grounded": {
+          "approved": true,
+          "feedback_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\approved-r002-feedback.json",
+          "scope": "Presented set; individual watched files not enumerated",
+          "prior_responsive_feedback_retained": false
+        },
+        "relaxed": {
+          "approved": true,
+          "feedback_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\approved-r002-feedback.json",
+          "scope": "Presented set; individual watched files not enumerated",
+          "prior_responsive_feedback_retained": false
+        },
+        "heavy": {
+          "approved": true,
+          "feedback_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\approved-r002-feedback.json",
+          "scope": "Presented set; individual watched files not enumerated",
+          "prior_responsive_feedback_retained": false
+        },
+        "sneaky": {
+          "approved": true,
+          "feedback_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\approved-r002-feedback.json",
+          "scope": "Presented set; individual watched files not enumerated",
+          "prior_responsive_feedback_retained": false
+        }
       },
       "walk_stop": {
-        "responsive": null,
-        "grounded": null,
-        "relaxed": null,
-        "heavy": null,
-        "sneaky": null
+        "responsive": {
+          "approved": true,
+          "feedback_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\approved-r002-feedback.json",
+          "scope": "Presented set; individual watched files not enumerated",
+          "prior_responsive_feedback_retained": true
+        },
+        "grounded": {
+          "approved": true,
+          "feedback_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\approved-r002-feedback.json",
+          "scope": "Presented set; individual watched files not enumerated",
+          "prior_responsive_feedback_retained": false
+        },
+        "relaxed": {
+          "approved": true,
+          "feedback_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\approved-r002-feedback.json",
+          "scope": "Presented set; individual watched files not enumerated",
+          "prior_responsive_feedback_retained": false
+        },
+        "heavy": {
+          "approved": true,
+          "feedback_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\approved-r002-feedback.json",
+          "scope": "Presented set; individual watched files not enumerated",
+          "prior_responsive_feedback_retained": false
+        },
+        "sneaky": {
+          "approved": true,
+          "feedback_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\approved-r002-feedback.json",
+          "scope": "Presented set; individual watched files not enumerated",
+          "prior_responsive_feedback_retained": false
+        }
       }
     },
-    "sequence_approval": null,
-    "remaining_gates": [
-      "explicit remaining-style and complete-sequence feedback",
-      "approval/regression closure before the remaining R2-R5 phases"
-    ],
+    "sequence_approval": {
+      "approved": true,
+      "feedback_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\approved-r002-feedback.json"
+    },
+    "remaining_gates": [],
     "focused_delivery": {
       "state": "awaiting_body_feedback",
       "scope": "Responsive focused checkpoint; no full style/sequence approval",
@@ -4956,7 +5109,7 @@
     "closure_plan": "docs/start-stop-body-r002-closure-plan.md",
     "closure_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002",
     "closure_checkpoint": {
-      "state": "delivered_awaiting_remaining_style_sequence_feedback",
+      "state": "approved_regression_complete",
       "public_clips": 80,
       "ordinary_native_runs": 480,
       "preview_parity_runs": 96,
@@ -4966,7 +5119,7 @@
       "actor_controls_detected": 48,
       "protected_fixtures": 11,
       "animation_source": "12ab9c9c128a5673447b4e6826a71741e06b6397",
-      "visual_approval": null,
+      "visual_approval": true,
       "release_ready": false,
       "timing_requests": 96,
       "timing_clips": 91,
@@ -4978,7 +5131,7 @@
       "public_motion_tests": 71,
       "public_sequence_tests": 3,
       "headless_suites": 14,
-      "remaining": "explicit remaining-style and complete-sequence feedback",
+      "remaining": "none for this start/stop revision; remaining R2-R5 gates apply",
       "movies_verified": 22,
       "archives_verified": 4,
       "saved_scene_entries": 423,
@@ -8106,7 +8259,8 @@
         },
         "route_sha256": "1e96b7aceabde750c3df09f1d6128fec48c159184c3ac57b9bea7febdb423bfe"
       }
-    ]
+    ],
+    "approval_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\approved-r002-feedback.json"
   },
   "start_stop_revision_history": [
     {
@@ -12863,5 +13017,12 @@
         }
       }
     }
-  ]
+  ],
+  "turn_review": {
+    "state": "planned",
+    "plan": "docs/turn-quality-review-plan.md",
+    "visual_approval": null,
+    "release_ready": false,
+    "next_action": "Generate public saved baseline and measure independent played contacts/heading."
+  }
 }

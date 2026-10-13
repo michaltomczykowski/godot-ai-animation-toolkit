@@ -163,3 +163,11 @@ applicable evidence/approval, clean installs pass, PR merged and 2.0.0 published
   headless 14/14 and all Windows/Linux source gates pass. Start/stop is next
   using `start-stop-quality-review-plan.md`; later R2 motion/family gates remain.
 - R3-R5: pending preceding exit gates. No release action yet.
+
+### R2 start/stop closure update, 2026-10-13
+
+R002 approved (“they look okay, continue”) for remaining styles/sequence;
+prior Responsive approval retained. 80 public clips/480 native plays,
+91 timing clips/546 plays, four sequences/24 plays, 160 reload calls,
+local editor397/397 and exact-source Windows/Linux CI5df333a pass.
+Next: `turn-quality-review-plan.md`. Remaining R2 and R3-R5 still apply.

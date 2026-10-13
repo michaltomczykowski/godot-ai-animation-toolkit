@@ -1,5 +1,17 @@
 # Agent notes
 
+## Start/stop r002 approved — turn phase begins (2026-10-13)
+
+User says “they look okay, continue” after the remaining styles/sequence
+review. Approve the presented start/stop r002 set and sequence, preserving
+prior Responsive feedback; individual watched files are unspecified. All
+automated closure gates remain green; no animation source changed.
+Receipt: `release_r2_start_stop_body_20261013/closure-r002/approved-r002-feedback.json`.
+Proceed alone with `docs/turn-quality-review-plan.md`: public turn baseline,
+played contact/heading/reach checks, turn-local fixes and continuous video
+review. Preserve approved walk/run/idle/start-stop and all eleven fixtures.
+R3-R5 remain; no release yet. Earlier manual pause is now satisfied.
+
 ## R002 full start/stop pack delivered — pause for review (2026-10-13)
 
 All **22 continuous MP4s** are complete, fully decoded and observed in PC
