@@ -90,7 +90,9 @@ No main merge, tag, release or media upload at this gate.
 - Timing: all 96 public requests checked, 91 accepted clips /546 native plays
   pass, five typed nonmutating reach refusals. All 24 timing groups complete.
 - Headless: fourteen suites pass, exit zero and all fourteen pass markers.
-- Core reload is running; local full regression follows its public test closure.
+- Actual core reload: 160/160 dry calls pass; all ten families/eight promoted
+  tools/103 choices remain available, full scene hashes and poses unchanged.
+- Public regression: motion 71/71 and sequence 3/3 pass after reload.
 - Complete continuous media, exact-source CI receipt and PC delivery: pending.
 
 ### Local editor startup guard repair
@@ -107,3 +109,13 @@ each registry probe and before suite execution, with a 60-second deadline and
 explicit failure if readiness never arrives. It does not change core readiness
 or bypass the write block. Repeat the complete suite in `editor-retry-r002`;
 the original failed route gate remains in the evidence archive.
+
+The second attempt reached that startup deadline while the historical project
+finished scanning (its final readiness was `ready`). Rather than bypassing the
+guard or increasing its deadline, create a clean isolated validation project
+linked to the same addon/core/tests/tools/models and tracked demo scenes.
+`editor-clean-r003` passes **397/397**, zero skips/test engine/discovery/route
+errors, both 10-family/103-route probes and zero walk/run/idle golden drift.
+Startup readiness took 15,590 ms; restored probe 206 ms; suite readiness 96 ms.
+The old scan/transport warnings remain in preserved raw logs. All eleven
+protected files remain exact. Local `gates.json` now passes all required checks.
