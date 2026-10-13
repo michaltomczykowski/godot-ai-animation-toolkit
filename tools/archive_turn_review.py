@@ -103,7 +103,8 @@ def main():
     with zipfile.ZipFile(receipts_zip, 'w', zipfile.ZIP_DEFLATED) as archive:
         for path in args.recovery.rglob('*'):
             if not path.is_file() or path.suffix not in ('.json', '.log', '.exit', '.py', '.ps1', '.gd'): continue
-            if 'review-videos' in path.parts or path.parent.name.endswith('_frames'): continue
+            if 'review-videos' in path.parts: continue
+            if path.parent.name.endswith('_frames') and path.name != 'render.json': continue
             archive.write(path, path.relative_to(args.recovery).as_posix())
     with zipfile.ZipFile(receipts_zip) as archive: require(archive.testzip() is None, 'Receipt ZIP CRC failed')
     archives.append({'path': str(receipts_zip), 'sha256': digest(receipts_zip), 'scope': 'Snapshot before final delivery/PC/human-feedback receipts'})
