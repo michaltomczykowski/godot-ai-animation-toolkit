@@ -227,6 +227,15 @@ func test_turn_bad_requests_refuse_without_scene_changes() -> void:
 			assert_false(rig.player.has_animation("refused_turn"), "refusal never creates a clip")
 			assert_eq(rig.player.root_motion_track, binding, "refusal leaves extraction unchanged")
 			for index in poses.size(): assert_eq(rig.skeleton.get_bone_pose(index), poses[index], "refusal leaves bone pose unchanged")
+	var player_root: Node = ValueCodec.player_root_node(rig.player)
+	rig.player.root_motion_track = NodePath(str(player_root.get_path_to(rig.skeleton)) + ":B-hips")
+	var extraction: NodePath = rig.player.root_motion_track
+	for dry in [true, false]:
+		var reply := _handler.run({"op": "turn_cycle", "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "animation_name": "refused_turn", "dry_run": dry}, null)
+		assert_is_error(reply, ErrorCodes.OPERATION_UNAVAILABLE)
+		assert_false(rig.player.has_animation("refused_turn"), "bone extraction conflict creates no clip")
+		assert_eq(rig.player.root_motion_track, extraction, "caller extraction is preserved")
 	_teardown(rig)
 
 

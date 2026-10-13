@@ -119,18 +119,22 @@ async def run(args: argparse.Namespace) -> int:
 
                     await stage("open", "scene_open", {"path": scene, "force_reload": True})
                     row["before"] = await inspect(client, params["animation_name"], player)
-                    if args.allow_reach_refusals:
+                    if args.allow_reach_refusals or turn:
                         row["binding_before"] = await call(client, "node_get_properties", {"path": player, "fields": ["root_motion_track"]})
                     row["pose_before"] = await stage("pose_before", "custom_animation_rig", {
                         "op": "pose_save", "skeleton_path": params["skeleton_path"]})
                     await stage("dry", "custom_manage", {"op": "invoke", "params": {
                         "tool_name": "animation_motion", "params": {**params, "dry_run": True}}})
                     row["after_dry"] = await inspect(client, params["animation_name"], player)
+                    if turn:
+                        await stage("binding_after_dry", "node_get_properties", {"path": player, "fields": ["root_motion_track"]})
                     await stage("pose_after_dry", "custom_animation_rig", {
                         "op": "pose_save", "skeleton_path": params["skeleton_path"]})
                     await stage("write", "custom_manage", {"op": "invoke", "params": {
                         "tool_name": "animation_motion", "params": params}})
                     row["after"] = await inspect(client, params["animation_name"], player)
+                    if turn:
+                        await stage("binding_after", "node_get_properties", {"path": player, "fields": ["root_motion_track"]})
                     await stage("pose_after", "custom_animation_rig", {
                         "op": "pose_save", "skeleton_path": params["skeleton_path"]})
                     if args.allow_reach_refusals and row["write"].get("error"):
@@ -170,6 +174,8 @@ async def run(args: argparse.Namespace) -> int:
                         problems.append(f"{rig_id}: generation changed the edited pose")
                     if row["after"] != row["persisted"]:
                         problems.append(f"{rig_id}: save/reopen changed clip")
+                    if turn and (row["binding_before"].get("error") or row["binding_before"] != row["binding_after_dry"] or row["binding_before"] != row["binding_after"]):
+                        problems.append(f"{rig_id}: turn changed caller root extraction binding")
                     clips = row["persisted"].get("clips", [])
                     if not row["roles"] or len(clips) != 1 or not clips[0].get("tracks") or not all(
                             track.get("node_resolved") for track in clips[0]["tracks"]):

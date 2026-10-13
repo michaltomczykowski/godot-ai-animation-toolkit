@@ -60,11 +60,19 @@ func _measure(row: Dictionary, fps: int, mode: String) -> Dictionary:
 		expected_feet[side] = rest_hip + Quaternion(v.up, deg_to_rad(requested * anatomical_sign)) * (Native.rest(v.rig, v.roles, "foot_" + side) - rest_hip)
 		feet[side] = {"active": false, "anchor": Vector3.ZERO, "heading": Vector3.ZERO,
 			"slide": 0.0, "penetration": 0.0, "stance_rotation": 0.0, "flips": 0,
-			"pole": Vector3.ZERO, "contact_frames": 0, "max_lift": 0.0}
+			"pole": Vector3.ZERO, "contact_frames": 0, "max_lift": 0.0, "contact_height": 0.0}
 	if clip.loop_mode != Animation.LOOP_NONE: failures.append("turn must remain a one-shot")
 	if not row.write.has("declared_contacts"): failures.append("missing declared contact windows")
 	if not bool(row.write.get("reach_evaluated", false)): failures.append("missing evaluated reach metadata")
 	if bool(row.write.get("clamped", false)): failures.append("generation reach clamp")
+	if bool(row.write.get("root_motion", true)) or str(row.write.get("heading_owner", "")) != "skeleton": failures.append("incorrect effective heading ownership report")
+	var contact_indices := {"l": 0, "r": 0}
+	for window: Dictionary in row.write.get("declared_contacts", []):
+		var side := str(window.side)
+		contact_indices[side] += 1
+		var suffix := "" if int(contact_indices[side]) == 1 else "_%d" % int(contact_indices[side])
+		for event in [{"name": "contact." + side.to_upper() + suffix, "time": window.start}, {"name": "toe_off." + side.to_upper() + suffix, "time": window.end}]:
+			if not clip.has_marker(event.name) or absf(clip.get_marker_time(event.name) - float(event.time)) > 0.000001: failures.append("saved contact marker differs from report")
 	var track_keys := 0
 	for i in clip.get_track_count():
 		var path := clip.track_get_path(i)
@@ -108,6 +116,7 @@ func _measure(row: Dictionary, fps: int, mode: String) -> Dictionary:
 				f.stance_rotation = maxf(f.stance_rotation, absf((f.heading as Vector3).signed_angle_to(heading, v.up)))
 			f.active = active
 			var height := point.dot(v.up) - float(v.ground)
+			if active: f.contact_height = maxf(f.contact_height, absf(height))
 			f.penetration = maxf(f.penetration, -height)
 			f.max_lift = maxf(f.max_lift, height)
 			var thigh := Native.point(v, "thigh_" + side)
@@ -145,10 +154,11 @@ func _measure(row: Dictionary, fps: int, mode: String) -> Dictionary:
 		var foot_heading_error := absf(expected_heading.signed_angle_to(_heading(v, "foot_" + side), v.up))
 		metrics[side] = {"stance_slide_m": f.slide, "penetration_m": f.penetration,
 			"stance_rotation_rad": f.stance_rotation, "knee_flips": f.flips,
-			"contact_frames": f.contact_frames, "max_lift_m": f.max_lift,
+			"contact_frames": f.contact_frames, "max_lift_m": f.max_lift, "max_declared_contact_height_m": f.contact_height,
 			"endpoint_position_error_m": endpoint_error, "endpoint_heading_error_rad": foot_heading_error}
 		if float(f.slide) > minf(0.02 * float(v.leg), 0.03): failures.append(side + ": stance slide")
 		if float(f.penetration) > 0.01 * float(v.leg): failures.append(side + ": penetration")
+		if float(f.contact_height) > 0.01 * float(v.leg): failures.append(side + ": declared contact is above ankle band")
 		if float(f.stance_rotation) > deg_to_rad(1.0): failures.append(side + ": planted foot rotates")
 		if int(f.flips) > 0: failures.append(side + ": knee pole flip")
 		if endpoint_error > 0.001 * float(v.leg) or foot_heading_error > 0.001: failures.append(side + ": unfinished foot recovery")

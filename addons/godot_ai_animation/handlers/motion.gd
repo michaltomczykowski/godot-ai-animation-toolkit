@@ -322,6 +322,16 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 	var result_meta: Dictionary = result.get("meta", {})
 	if result_meta.has("reach_error"):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, str(result_meta.reach_error))
+	if kind == "turn" and not str(params.get("player_path", "")).is_empty():
+		var owner := _resolve_player(str(params.player_path))
+		if not owner.has("error"):
+			var binding: NodePath = owner.player.root_motion_track
+			var animation_root: Node = ValueCodec.player_root_node(owner.player)
+			if animation_root != null and binding.get_subname_count() == 1:
+				var target: Node = animation_root.get_node_or_null(NodePath(binding.get_concatenated_names()))
+				if target == built.resolved.node and (result.keys as Dictionary).has(str(binding.get_subname(0))):
+					return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
+						"Turn owns skeletal heading, but this player extracts one of its animated bones. Clear that root_motion_track or use a separate player before generating the turn")
 	if kind == "walk" and float(params.get("speed", 0.0)) > 0.0 \
 			and float(result_meta.get("speed", 0.0)) < float(params.speed) - 0.001:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
