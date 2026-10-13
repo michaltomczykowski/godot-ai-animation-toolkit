@@ -1,5 +1,19 @@
 # Agent notes
 
+## Responsive turn repair recording — no visual approval (2026-10-14)
+
+Start/stop r002 approval is preserved. Turn animation/checker ac309b7 has
+32 public clips/192 Player/Tree/FPS passes, 74 motion tests and 24 positive
++120 detected corruption controls. All eleven fixtures remain unchanged.
+Four baseline clean videos are complete; eight candidate clean/diagnostic
+videos are recording. Read candidate-r004/recording-progress.json before
+resuming; preserve frames/receipts and do not regenerate completed clips.
+Recovery: release_r2_turn_20261013. Plan/ledger: docs/turn-quality-*.md.
+Full local editor/headless and CI8a0f9bc are pending. Latest source differs
+only in generated operation inventory. Preserve r001/r002/r003 failures.
+Finish delivery then explicitly pause for focused Responsive turn review.
+Other styles/full turn closure and R2/R3-R5 remain. No release yet.
+
 ## Start/stop r002 approved — turn phase begins (2026-10-13)
 
 User says “they look okay, continue” after the remaining styles/sequence

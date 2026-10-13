@@ -3,7 +3,7 @@
   "phase": "character_quality",
   "operation": "walk_start/walk_stop",
   "revision": "start-stop-body-r002",
-  "state": "start_stop_approved_turn_phase_planned",
+  "state": "turn_responsive_recording",
   "release_r1_execution": {
     "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -333,9 +333,9 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Plan and measure ordinary turn left/right 90 and two-step 180; preserve all approved motion and pause at the next video gate.",
+  "next_action": "Complete Responsive turn recordings and source regression/archive; open Explorer and pause for focused visual feedback.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
-  "updated_utc": "2026-10-13T21:17:56.215797+00:00",
+  "updated_utc": "2026-10-13T22:13:25.672243+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
   "route": {
     "run_id": "9ad66ecc6b294f62823069b6a4050fc2",
@@ -13019,10 +13019,32 @@
     }
   ],
   "turn_review": {
-    "state": "planned",
+    "state": "responsive_numeric_pass_recording",
     "plan": "docs/turn-quality-review-plan.md",
     "visual_approval": null,
     "release_ready": false,
-    "next_action": "Generate public saved baseline and measure independent played contacts/heading."
+    "next_action": "Complete Responsive turn recordings and source regression/archive; open Explorer and pause for focused visual feedback.",
+    "revision": "turn-candidate-r004",
+    "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013",
+    "validation": "docs/turn-quality-validation.md",
+    "animation_source": "ac309b7ab4fd49a3b719c87d7ac1240982be605e",
+    "ci_source": "8a0f9bc0e9ddfddba2d14da742ac5a68a0fbc74c",
+    "ci_state": "pending",
+    "public_clips": 32,
+    "native_runs": 192,
+    "public_motion_tests": 74,
+    "native_matrix": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\native-ce47e422f4bf4da2a5dcb1438e8e4c86\\matrix.json",
+    "control_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\controls-r004\\summary.json",
+    "positive_control_runs": 24,
+    "negative_control_runs": 120,
+    "protected_fixtures": 11,
+    "candidate_quality_approved": false,
+    "remaining_gates": [
+      "focused video feedback",
+      "other styles and full turn closure",
+      "remaining R2 motions/family reviews",
+      "R3 integration/audit",
+      "R4/R5 release"
+    ]
   }
 }

@@ -95,3 +95,13 @@ passes. Then record feedback and finish approved regression before strafe.
 - Turn source inspection: complete; baseline public generation/checks pending.
 - Turn implementation, negative controls, recordings and visual approval pending.
 - R3 operation/integration closure and R4/R5 release gates remain pending.
+
+### Focused review ordering, 2026-10-14
+
+Baseline exposed a broad repair. Complete the Responsive four-case/four-rig/
+two-requested-root focused set first (32 public clips /192 native plays),
+corruption controls, regression and eight continuous clean/diagnostic movies.
+Pause for explicit feedback on that set before the other styles and full
+160-clip/960-play closure. This follows the focused-review option in D; no
+Responsive feedback is inferred for other styles or actor-yaw controller
+integration. See `turn-quality-validation.md` for failed attempts and receipts.

@@ -54,3 +54,61 @@ Wire and measure the turn-local repair, preserve failures, validate controls,
 complete style/timing/alias/setup/reload/regression and source CI as required.
 Record continuous candidate footage and pause for explicit user feedback.
 R2 turn is not yet approved; remaining R2/R3-R5 release gates still apply.
+
+## Focused repaired candidate, 2026-10-14
+
+Animation/checker source `ac309b7`, candidate `candidate-r004`: **32/32** public
+Responsive clips and **192/192** native Player/Tree/30/60/120 plays pass. Each
+direction has 90 and two-stage 180 cases on four rigs and both requested root
+flags. Effective heading ownership is skeletal, with no extracted actor yaw.
+Original caller bindings, dry poses, actual external Undo/Redo, save/forced
+reopen and saved track/marker counts pass. Metadata now reports actual evaluated
+reach, contacts and the extra recovery footfall. Both final feet, chest/head
+heading and the intermediate 180 pivot settle correctly. Source contract docs
+and operation inventory are updated; inventory remains 103 partial rows, zero
+release-wide verified rows.
+
+Native matrix: `candidate-r004/native-ce47e422f4bf4da2a5dcb1438e8e4c86/matrix.json`.
+Controls: `controls-r004/summary.json`, **24 positive** plus **120 negative**
+plays. Missing contacts, inert output, incorrect final heading, stance slide and
+double actor yaw are each detected on every rig/FPS/mixer combination, without
+engine errors or saved-scene mutation. Public motion regression **74/74** passes
+on a fresh editor. Continuous clean/diagnostic movies are recording.
+
+### Retained failed attempts and corrections
+
+- Original baseline: 192 completed runs fail quality; four 24-second continuous
+  MP4s are complete and decode-verified before wiring the repair.
+- Candidate r001: eight left-90 public clips and 48 native plays pass the initial
+  checks; no visual approval. Later checks add saved marker/actor/torso coverage.
+- Candidate r002: 16 successful 90-degree public clips; first 180 request returns
+  a typed nonmutating reach refusal. The initial client then tried a history
+  witness on the absent clip; its failure is preserved. Client now stops on the
+  actual refusal before invoking history.
+- Reach planning now computes base correction across every pivot boundary
+  before dividing interior corrections by a phase envelope. Candidate r003 has
+  32 public passes and 192 native runs, which correctly fail for dropped markers
+  and over-fast 180 foot recovery. Its failed positive control remains preserved.
+- Godot's actual saved clip retained one marker at coincident event times, losing
+  one initial/final foot event and a coincident settle/contact event. Turn now
+  groups same-instant events, preserves phase marker names, and returns the real
+  `start_marker`/`end_marker` names on each contact window. No event time shifts.
+- Omitted turn timing now allows 0.7 seconds per pivot stage, adjusted for angle
+  and with a one-second minimum. Explicit timing is unchanged; insufficient
+  timing receives a typed refusal. Default two-stage 180 takes 1.4 seconds.
+- `aa85243` failed CI on the original multi-pivot refusal; its failed logs are
+  preserved. `ac309b7` editor tests pass on Linux, but generated operation-audit
+  text was stale after registry wording changed. `8a0f9bc` refreshes that text
+  without changing addon/checker/renderer code. Final exact-source CI is pending.
+
+### Remaining after the focused review
+
+Record and deliver eight Responsive clean/diagnostic movies; archive source,
+scenes, rig dependencies, checks and failures; finish local full editor/headless
+and exact-source Windows/Linux CI. Open Explorer and pause for focused turn
+feedback. Complete other styles, timing, alias/setup/reload and full 160-clip /
+960-play closure after that feedback. Skeletal heading does not imply an actor
+yaw consumer or guaranteed heading retention when blending into an unrelated
+idle; controller/graph ownership and actor-wrapper contracts remain explicit
+R3 integration gates. Broader same-time marker handling also needs release-wide
+audit; this turn repair does not prove every other family's marker contract.
