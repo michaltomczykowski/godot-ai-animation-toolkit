@@ -208,6 +208,48 @@ func test_turn_undo_redo_restores_written_turn() -> void:
 	_transition_history("turn_cycle", "PublicTurnHistory", "quality_turn")
 
 
+func test_turn_bad_requests_refuse_without_scene_changes() -> void:
+	var rig := _rig("TurnRefusals")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var poses: Array[Transform3D] = []
+	for index in rig.skeleton.get_bone_count(): poses.append(rig.skeleton.get_bone_pose(index))
+	var binding: NodePath = rig.player.root_motion_track
+	for invalid in [{"angle": 0.0}, {"steps": 1.5}, {"steps": 9}, {"angle": 180.0, "steps": 1}, {"foot_lift": 0.0}]:
+		var params := {"op": "turn_cycle", "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "animation_name": "refused_turn", "root_motion": true}
+		params.merge(invalid, true)
+		for dry in [true, false]:
+			params.dry_run = dry
+			var reply := _handler.run(params, null)
+			assert_is_error(reply, ErrorCodes.VALUE_OUT_OF_RANGE)
+			assert_false(rig.player.has_animation("refused_turn"), "refusal never creates a clip")
+			assert_eq(rig.player.root_motion_track, binding, "refusal leaves extraction unchanged")
+			for index in poses.size(): assert_eq(rig.skeleton.get_bone_pose(index), poses[index], "refusal leaves bone pose unchanged")
+	_teardown(rig)
+
+
+func test_turn_reports_contacts_reach_and_skeletal_heading_owner() -> void:
+	for fixture in [DUMMY, "res://repair_synthetic_short.tscn", "res://repair_synthetic_zup_tall.tscn"]:
+		var rig := _rig("TurnMetadata", fixture)
+		if rig.has("error"):
+			skip(rig.error)
+			continue
+		var reply := _handler.run({"op": "turn_cycle", "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "animation_name": "owned_turn", "root_motion": true}, null)
+		assert_true(reply.has("data"), "ordinary turn builds: " + str(reply))
+		if reply.has("data"):
+			assert_true(reply.data.reach_evaluated and int(reply.data.evaluated_leg_samples) > 0, "actual leg solves reported")
+			assert_false(reply.data.clamped, "default has no substituted ankle targets")
+			assert_eq(int(reply.data.footfalls), 2, "one pivot and one final stance recovery")
+			assert_eq(str(reply.data.heading_owner), "skeleton", "heading is skeletal")
+			assert_false(reply.data.root_motion, "no actor rotation/translation extracted")
+			assert_true(reply.data.root_motion_requested, "original request is separately reported")
+			assert_true(reply.data.declared_contacts.size() >= 4, "both feet have release/replant contacts")
+		_teardown(rig)
+
+
 func _transition_history(operation: String, witness: String = "PublicTransitionHistory", clip_name: String = "") -> void:
 	var scene := EditorInterface.get_edited_scene_root()
 	var marker := scene.get_node_or_null(witness) if scene != null else null
@@ -463,21 +505,20 @@ func _pose_of(rig: Dictionary, anim: Animation, time: float, bone: String) -> Tr
 	return skeleton.get_bone_global_pose(skeleton.find_bone(bone))
 
 
-## World yaw (radians) of a rotation track's nearest key, as a bone basis.
+## Played world heading with every parent track evaluated by the engine.
 func _yaw_of(rig: Dictionary, anim: Animation, track: int, time: float) -> float:
 	var skeleton: Skeleton3D = rig.skeleton
-	skeleton.reset_bone_poses()
-	var key := _nearest_key_index(anim, track, time)
-	if key < 0:
-		return 0.0
 	var path := str(anim.track_get_path(track))
 	var index := skeleton.find_bone(path.get_slice(":", 1))
 	if index < 0:
 		return 0.0
-	var value: Quaternion = anim.track_get_key_value(track, key)
-	skeleton.set_bone_pose_rotation(index, value)
-	skeleton.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
-	return skeleton.get_bone_global_pose(index).basis.get_euler().y
+	var player: AnimationPlayer = rig.player
+	player.playback_auto_capture = false
+	player.play(player.find_animation(anim), 0.0)
+	player.seek(time, true)
+	var delta := skeleton.get_bone_global_pose(index).basis.orthonormalized() * skeleton.get_bone_global_rest(index).basis.orthonormalized().inverse()
+	var forward := delta * Vector3.FORWARD
+	return Vector3.FORWARD.signed_angle_to(forward.slide(Vector3.UP).normalized(), Vector3.UP)
 
 
 func _nearest_key_index(anim: Animation, track: int, time: float) -> int:

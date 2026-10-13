@@ -2,6 +2,7 @@ extends SceneTree
 ## Independent saved engine playback. No generator math, IK or applied poses.
 const Native := preload("res://tools/character_quality_native.gd")
 var logger := Native.CaptureErrors.new()
+var control := ""
 
 func _initialize() -> void:
 	OS.add_logger(logger)
@@ -39,8 +40,10 @@ func _contact(row: Dictionary, v: Dictionary, side: String) -> bool:
 	return false
 
 func _measure(row: Dictionary, fps: int, mode: String) -> Dictionary:
+	row = row.duplicate(true)
 	var v := Native.load_case(row, root)
 	if v.has("error"): return {"thresholds_pass": false, "failures": [v.error]}
+	if not control.is_empty(): _inject_control(row, v)
 	var mixer := _mixer(v, mode)
 	var failures: Array[String] = []
 	var clip: Animation = v.clip
@@ -157,9 +160,58 @@ func _measure(row: Dictionary, fps: int, mode: String) -> Dictionary:
 	v.scene.free()
 	return result
 
+func _inject_control(row: Dictionary, v: Dictionary) -> void:
+	# Corrupt an isolated animation resource; never a saved scene or bone pose.
+	var clip: Animation = v.clip.duplicate(true)
+	var name: StringName = row.params.animation_name
+	var library: AnimationLibrary = v.player.get_animation_library("")
+	library.remove_animation(name)
+	library.add_animation(name, clip)
+	v.clip = clip
+	if control == "missing_contacts":
+		row.write.erase("declared_contacts")
+	elif control == "inert":
+		for track in clip.get_track_count():
+			var value: Variant = clip.track_get_key_value(track, 0)
+			for key in clip.track_get_key_count(track): clip.track_set_key_value(track, key, value)
+	elif control == "wrong_heading":
+		for track in clip.get_track_count():
+			if clip.track_get_type(track) == Animation.TYPE_ROTATION_3D and clip.track_get_path(track).get_subname(0) == str(v.roles.hips):
+				var index := clip.track_get_key_count(track) - 1
+				var rest: Basis = v.rig.get_bone_global_rest(v.indices.hips).basis.orthonormalized()
+				var delta: Quaternion = (rest.inverse() * Basis(Quaternion(v.up, deg_to_rad(35.0))) * rest).get_rotation_quaternion()
+				clip.track_set_key_value(track, index, delta * (clip.track_get_key_value(track, index) as Quaternion))
+	elif control == "stance_slide":
+		var track := clip.add_track(Animation.TYPE_POSITION_3D)
+		var skeleton_path: NodePath = v.player.get_node(v.player.root_node).get_path_to(v.rig)
+		clip.track_set_path(track, NodePath(str(skeleton_path) + ":" + str(v.roles.foot_r)))
+		var rest_position: Vector3 = v.rig.get_bone_pose_position(v.indices.foot_r)
+		clip.track_insert_key(track, 0.0, rest_position)
+		clip.track_insert_key(track, clip.length * 0.12, rest_position + Vector3.RIGHT * float(v.leg) * 0.08)
+		clip.track_insert_key(track, clip.length * 0.18, rest_position)
+		clip.track_insert_key(track, clip.length, rest_position)
+	elif control == "double_actor_yaw":
+		var track := clip.add_track(Animation.TYPE_ROTATION_3D)
+		var path: NodePath = v.player.get_node(v.player.root_node).get_path_to(v.body)
+		clip.track_set_path(track, NodePath(str(path) + ":rotation"))
+		clip.track_insert_key(track, 0.0, Quaternion.IDENTITY)
+		clip.track_insert_key(track, clip.length, Quaternion(v.up, deg_to_rad(45.0)))
+	row.write.track_count = clip.get_track_count()
+	var count := 0
+	for track in clip.get_track_count(): count += clip.track_get_key_count(track)
+	row.write.key_count = count
+	v.player.stop()
+	v.player.clear_caches()
+	v.player.play(name, 0.0, 1.0)
+	v.player.advance(0.0)
+
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
-	if args.size() != 2:
+	if args.size() < 2 or args.size() > 3:
+		quit(1)
+		return
+	control = args[2] if args.size() == 3 else ""
+	if control not in ["", "missing_contacts", "inert", "wrong_heading", "stance_slide", "double_actor_yaw"]:
 		quit(1)
 		return
 	var route: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(args[0]))
@@ -170,7 +222,7 @@ func _run() -> void:
 	var passed := runs.size() == 24 and logger.errors.is_empty()
 	for run: Dictionary in runs: passed = passed and bool(run.thresholds_pass)
 	var report := {"source_head": route.source_head, "revision": route.revision,
-		"runs": runs, "engine_errors": logger.errors, "passed": passed,
+		"runs": runs, "engine_errors": logger.errors, "passed": passed, "control": control,
 		"contract": "Saved Player/Tree world-space ankle/heading checks at actual FPS. Rest ankle plane is not sole collision; hip is not COM. Numerical pass does not approve visuals."}
 	FileAccess.open(args[1], FileAccess.WRITE).store_string(JSON.stringify(report))
 	OS.remove_logger(logger)

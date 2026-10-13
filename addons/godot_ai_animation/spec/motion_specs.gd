@@ -12,6 +12,7 @@ extends RefCounted
 ## the curve shape is in the samples.
 
 const MotionDrivers := preload("res://addons/godot_ai_animation/spec/motion_drivers.gd")
+const TurnPlan := preload("res://addons/godot_ai_animation/spec/motion_turn_plan.gd")
 const SpineTwist := preload("res://addons/godot_ai_animation/spec/spine_twist.gd")
 const ValueCodec := preload("res://addons/godot_ai_animation/utils/value_codec.gd")
 const RigAnalysis := preload("res://addons/godot_ai_animation/spec/rig_analysis.gd")
@@ -1417,125 +1418,74 @@ static func turn_config(style: String, overrides: Dictionary = {}) -> Dictionary
 ## so the driver re-bases the root yaw between steps.
 static func turn_keys(ctx: Dictionary) -> Dictionary:
 	var config: Dictionary = ctx.config
-	var length := maxf(float(ctx.length), 0.01)
-	var roles: Dictionary = ctx.roles
-	var hips := str(ctx.get("hips", ""))
-	var up: Vector3 = ctx.up
+	var hips := str(ctx.hips)
 	var signs := _axis_signs(ctx)
-	var direction := str(ctx.get("direction", "left"))
-	var direction_sign := 1.0 if direction == "left" else -1.0
-	var angle := float(config.get("turn_angle", 90.0)) * direction_sign
-	var steps := clampi(int(config.get("steps", 1.0)), 1, 8)
-	var step_angle := angle / float(steps)
-	var step_length := length / float(steps)
+	var plan := TurnPlan.build(ctx, float(signs.yaw))
+	if plan.has("error"): return {"keys": {}, "meta": {"reach_error": plan.error}}
 	var keys := {}
-	var markers: Array = []
-	var hips_origin: Vector3 = ctx.get("hips_origin", Vector3.ZERO)
+	var chain := _twist_chain(ctx, ctx.roles)
 	var hips_rest := _rest_basis(ctx, hips)
-	var phases := _dense_phases([
-		{"t": 0.0, "yaw": 0.0, "bob": 0.0, "arm": 0.0},
-		{"t": 0.14, "yaw": -0.06 * step_angle, "bob": -0.02, "arm": -0.25},
-		{"t": 0.55, "yaw": 0.72 * step_angle, "bob": -0.035, "arm": 0.55},
-		{"t": 0.8, "yaw": 1.045 * step_angle, "bob": -0.012, "arm": 0.2},
-		{"t": 1.0, "yaw": step_angle, "bob": 0.0, "arm": 0.0},
-	], step_length, maxf(float(ctx.samples), 120.0))
-	# Lead distribution over the torso above the hips: the chest leads the sweep,
-	# the head trails it, and any extra spine bone splits the difference.
-	var lead_chain := _twist_chain(ctx, roles)
-	var lead_shares := _lead_shares(lead_chain, str(roles.get("head", "")))
-	var foot_yaws := {"l": 0.0, "r": 0.0}
-	for step_index in steps:
-		var start_yaw := float(step_index) * step_angle
-		# The first step lifts the trailing foot; the next mirrors it.
-		var step_side := "r" if (direction == "left") == (step_index % 2 == 0) else "l"
-		for phase_index in phases.size():
-			# Every step but the first starts where the previous one settled, so
-			# only the first step keys the neutral start of its window.
-			if step_index > 0 and phase_index == 0:
-				continue
-			var phase: Dictionary = phases[phase_index]
-			var local := float(phase.t)
-			var time := (float(step_index) + local) * step_length
-			var yaw := start_yaw + float(phase.yaw)
-			var world := Quaternion(up, deg_to_rad(yaw * float(signs.yaw)))
-			var hips_animated := Basis(world) * hips_rest
-			# The turn's phase bobs are metres, so they scale with the rig like every
-			# other default distance.
-			var offset := up * (float(phase.bob) * float(ctx.get("distance_scale", 1.0)))
-			if not hips.is_empty():
-				_append_rotation(keys, hips, time, MotionDrivers.rotation_delta(hips_rest, world))
-				_append_hips_position(ctx, keys, hips, time, offset)
-			for side in ["l", "r"]:
-				var leg: Dictionary = ctx.legs[side]
-				var lift := 0.0
-				if side == step_side:
-					# The trailing foot lifts through the middle of the step.
-					var mid := absf(local - 0.5)
-					lift = maxf(0.0, 1.0 - mid / 0.3) * float(config.get("foot_lift", 0.05))
-				var hip_pos: Vector3 = hips_origin + offset + Basis(world) * (leg.hip - hips_origin)
-				# Keep the support foot anchored while the pelvis turns. The lifted
-				# foot travels to its new heading during swing, before it replants.
-				var foot_yaw := float(foot_yaws[side])
-				if side == step_side:
-					var swing_share := MotionDrivers.smoothstep(clampf(
-						(local - 0.2) / 0.55, 0.0, 1.0))
-					foot_yaw = lerpf(foot_yaw, start_yaw + step_angle, swing_share)
-				var foot_world := Quaternion(up, deg_to_rad(foot_yaw * float(signs.yaw)))
-				var ankle_target: Vector3 = hips_origin + Basis(foot_world) * (leg.ankle - hips_origin) + up * lift
-				var turn_solved := MotionDrivers.solve_leg(hip_pos, ankle_target,
-					float(leg.upper), float(leg.lower), _rest_bend(ctx, leg, ctx.forward))
-				var knee: Vector3 = turn_solved.knee
-				var effective: Vector3 = turn_solved.effective_ankle
-				var thigh_rest := _rest_basis(ctx, leg.thigh)
-				var shin_rest := _rest_basis(ctx, leg.shin)
-				var thigh_solve := MotionDrivers.aim_delta(hips_animated, hips_rest, thigh_rest,
-					(knee - hip_pos).normalized(), (leg.knee as Vector3) - (leg.hip as Vector3))
-				var shin_solve := MotionDrivers.aim_delta(thigh_solve.global, thigh_rest, shin_rest,
-					(effective - knee).normalized(), (leg.ankle as Vector3) - (leg.knee as Vector3))
-				_append_rotation(keys, leg.thigh, time, thigh_solve.delta, "ease_in_out")
-				_append_rotation(keys, leg.shin, time, shin_solve.delta, "ease_in_out")
-				var foot_bone := str(leg.get("foot", ""))
-				if not foot_bone.is_empty():
-					var foot_rest := _rest_basis(ctx, foot_bone)
-					# The planted foot turns with the body; the stepping one follows.
-					var foot_target := Basis(world) * foot_rest
-					var flat := MotionDrivers.hold_global_delta(shin_solve.global, shin_rest, foot_rest, foot_target)
-					_append_rotation(keys, foot_bone, time, Quaternion.IDENTITY.slerp(flat, 0.0 if lift > 0.001 else 1.0), "ease_in_out")
-			# The torso above the hips carries a bounded lead: a fraction of *this
-			# step's* angle, never of the running total, so a multi-step turn cannot
-			# compound it into a corkscrew. Distributing it over the chain means a
-			# 3-bone and a 6-bone spine both get a smooth lead instead of one
-			# chest bone taking it all.
-			var lead_fraction := 0.28 if local < 0.6 else 0.08
-			for slot in lead_chain:
-				var bone := str(slot)
-				if bone == hips or bone.is_empty():
-					continue
-				var share := lead_fraction * float(lead_shares.get(bone, 0.0)) * absf(step_angle)
-				var bone_yaw := (yaw + share) * float(signs.yaw)
-				var bone_world := Quaternion(up, deg_to_rad(bone_yaw))
-				_append_rotation(keys, bone, time,
-					MotionDrivers.rotation_delta(_rest_basis(ctx, bone), bone_world), "ease_in_out")
-			# Arms counterbalance the sweep so a T-pose rest does not stay spread.
-			var arm_swing := float(config.get("arm_swing", 12.0)) * float(phase.arm)
-			_solve_arm_chain(ctx, keys, "l", time, arm_swing, float(config.get("elbow", 12.0)) + 8.0, "ease_in_out")
-			_solve_arm_chain(ctx, keys, "r", time, arm_swing, float(config.get("elbow", 12.0)) + 8.0, "ease_in_out")
-		foot_yaws[step_side] = start_yaw + step_angle
-		var suffix := "" if step_index == 0 else "_%d" % (step_index + 1)
-		markers.append({"name": "anticipate" + suffix, "time": (float(step_index) + 0.14) * step_length})
-		markers.append({"name": "step" + suffix, "time": (float(step_index) + 0.5) * step_length})
-		markers.append({"name": "settle" + suffix, "time": (float(step_index) + 0.8) * step_length})
+	var evaluated := 0
+	var clamps := 0
+	var shortfall := 0.0
+	for sample: Dictionary in plan.samples:
+		var time := float(sample.time)
+		var world: Quaternion = (sample.hips_basis as Basis).get_rotation_quaternion()
+		var hips_animated := Basis(world) * hips_rest
+		_append_rotation(keys, hips, time, MotionDrivers.rotation_delta(hips_rest, world))
+		_append_hips_position(ctx, keys, hips, time, sample.offset)
+		for side in ["l", "r"]:
+			var leg: Dictionary = ctx.legs[side]
+			var hip: Vector3 = ctx.hips_origin + sample.offset + (sample.hips_basis as Basis) * ((leg.hip as Vector3) - (ctx.hips_origin as Vector3))
+			var pole := Basis(sample.world as Quaternion) * _rest_bend(ctx, leg, ctx.forward)
+			var solved := MotionDrivers.solve_leg(hip, sample.feet[side].ankle, float(leg.upper), float(leg.lower), pole)
+			evaluated += 1
+			if solved.clamped: clamps += 1
+			shortfall = maxf(shortfall, float(solved.shortfall))
+			var thigh_rest := _rest_basis(ctx, leg.thigh)
+			var shin_rest := _rest_basis(ctx, leg.shin)
+			var thigh := MotionDrivers.aim_delta(hips_animated, hips_rest, thigh_rest,
+				((solved.knee as Vector3) - hip).normalized(), (leg.knee as Vector3) - (leg.hip as Vector3))
+			var shin := MotionDrivers.aim_delta(thigh.global, thigh_rest, shin_rest,
+				((solved.effective_ankle as Vector3) - (solved.knee as Vector3)).normalized(), (leg.ankle as Vector3) - (leg.knee as Vector3))
+			_append_rotation(keys, leg.thigh, time, thigh.delta)
+			_append_rotation(keys, leg.shin, time, shin.delta)
+			var foot := str(leg.foot)
+			var foot_rest := _rest_basis(ctx, foot)
+			var target := Basis(sample.feet[side].yaw as Quaternion) * foot_rest
+			_append_rotation(keys, foot, time, MotionDrivers.hold_global_delta(shin.global, shin_rest, foot_rest, target))
+		# Each joint has a desired global target. Convert it against its current
+		# incoming parent, so accumulated hip yaw is not added again per joint.
+		for index in chain.size():
+			var bone := str(chain[index])
+			if bone == hips or bone.is_empty(): continue
+			var share := float(index + 1) / maxi(chain.size(), 1)
+			var look := deg_to_rad(float(sample.look) * share)
+			var flex := deg_to_rad(float(config.get("lean", 4.0)) * float(sample.pulse) * share * 0.5)
+			var desired := Basis(Quaternion(ctx.up, look)) * Basis(Quaternion(sample.lateral_axis, flex)) * Basis(sample.world as Quaternion) * _rest_basis(ctx, bone)
+			var parent := str(ctx.rest[bone].parent)
+			var incoming := _animated_basis(ctx, keys, parent, time)
+			_append_rotation(keys, bone, time, MotionDrivers.hold_global_delta(incoming, _rest_basis(ctx, parent), _rest_basis(ctx, bone), desired))
+		var reaction := float(sample.pulse)
+		var swing := float(config.get("arm_swing", 12.0)) * reaction
+		for side in ["l", "r"]:
+			var side_sign := -1.0 if side == "l" else 1.0
+			_solve_arm_chain(ctx, keys, side, time, side_sign * swing,
+				float(config.get("elbow", 12.0)) + 4.0 * absf(reaction), "",
+				side_sign * 2.0 * reaction, true, side_sign * 3.0 * reaction, side_sign * reaction)
+	if clamps > 0:
+		return {"keys": {}, "meta": {"reach_error": "Turn leg solve exceeded reachable geometry by %.6f m; reduce angle/foot lift or use more steps" % shortfall}}
 	_mark_one_shot(keys)
-	return {
-		"keys": keys,
-		"markers": markers,
-		"meta": {
-			"angle": angle,
-			"direction": direction,
-			"steps": steps,
-			"step_angle": step_angle,
-		},
-	}
+	return {"keys": keys, "markers": plan.markers, "meta": {
+		"angle": plan.angle, "direction": ctx.direction, "steps": plan.steps,
+		"step_angle": plan.step_angle, "recovery_steps": plan.recovery_steps, "footfalls": plan.footfalls,
+		"clamped": false, "clamp_shortfall_m": shortfall, "clamped_leg_samples": clamps,
+		"evaluated_leg_samples": evaluated, "reach_evaluated": evaluated > 0,
+		"declared_contacts": plan.contacts, "pelvis_base_drop_m": plan.pelvis_base_drop_m,
+		"pelvis_reach_drop_m": plan.pelvis_reach_drop_m,
+		"root_motion_requested": bool(ctx.get("root_motion", false)), "root_motion": false,
+		"heading_owner": "skeleton", "root_rotation_extracted": false,
+	}}
 
 
 # --- idle -------------------------------------------------------------------
