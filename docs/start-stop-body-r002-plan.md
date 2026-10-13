@@ -66,4 +66,7 @@ review. Only then close start/stop approval and advance the remaining roadmap.
 - The initial editor connection timed out before any clips were generated.
   Its attempt receipt is preserved; a later authenticated readiness/discovery
   probe verified Godot 4.7.2 and core/server 4.2.1 before successful generation.
-- Focused motion regression, inert-control check and continuous movies: pending.
+- Motion regression: 71/71 public editor tests pass, zero failures/skips.
+- Inert control: comparing r001 to itself is rejected on all four rigs with
+  zero engine errors; the checker cannot call unchanged output a body revision.
+- Continuous movies: recording into `preview-r002`; original r001 unchanged.
