@@ -20,7 +20,9 @@ def main():
     attempt = args.review_root / ('native-' + uuid4().hex)
     attempt.mkdir()
     summary = {'state': 'measuring', 'created_utc': datetime.now(timezone.utc).isoformat(),
-               'rows': [], 'native_runs': 0, 'failures': [], 'passed': False}
+               'rows': [], 'native_runs': 0, 'failures': [], 'passed': False,
+               'checker_sha256': hashlib.sha256((args.project_root / 'tools/check_turn_quality.gd').read_bytes()).hexdigest(),
+               'native_playback_sha256': hashlib.sha256((args.project_root / 'tools/character_quality_native.gd').read_bytes()).hexdigest()}
     sources = set()
     write_json(attempt / 'matrix.json', summary)
     for route_path in routes:

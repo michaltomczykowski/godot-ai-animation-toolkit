@@ -27,7 +27,7 @@ func _mixer(v: Dictionary, mode: String) -> AnimationMixer:
 func _heading(v: Dictionary, role: String) -> Vector3:
 	var index: int = v.indices[role]
 	var played: Basis = (v.rig.global_transform * v.rig.get_bone_global_pose(index)).basis.orthonormalized()
-	var resting: Basis = (v.rig.global_transform * v.rig.get_bone_global_rest(index)).basis.orthonormalized()
+	var resting: Basis = v.rest_world_bases[role]
 	return Native.flat(played * resting.inverse() * v.forward, v.up).normalized()
 
 func _contact(row: Dictionary, v: Dictionary, side: String) -> bool:
@@ -45,6 +45,10 @@ func _measure(row: Dictionary, fps: int, mode: String) -> Dictionary:
 	var v := Native.load_case(row, root)
 	if v.has("error"): return {"thresholds_pass": false, "failures": [v.error]}
 	if not control.is_empty(): _inject_control(row, v)
+	v.rest_world_bases = {}
+	for role: String in v.indices:
+		v.rest_world_bases[role] = (v.rig.global_transform * v.rig.get_bone_global_rest(v.indices[role])).basis.orthonormalized()
+	var initial_actor_rotation: Quaternion = v.body.global_basis.get_rotation_quaternion()
 	var mixer := _mixer(v, mode)
 	var failures: Array[String] = []
 	var clip: Animation = v.clip
@@ -147,6 +151,7 @@ func _measure(row: Dictionary, fps: int, mode: String) -> Dictionary:
 	if max_pose_step > 0.25 * float(v.leg) or max_angle_step > 0.75: failures.append("played pose discontinuity")
 	if nonfinite > 0: failures.append("nonfinite played pose")
 	if root_position.length() > 0.0001 or root_rotation.angle_to(Quaternion.IDENTITY) > 0.0001: failures.append("unexpected extracted actor motion")
+	if v.body.global_position.distance_to(v.initial_body) > 0.0001 or v.body.global_basis.get_rotation_quaternion().angle_to(initial_actor_rotation) > 0.0001: failures.append("unexpected actor transform")
 	var metrics := {}
 	for side: String in feet:
 		var f: Dictionary = feet[side]

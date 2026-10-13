@@ -96,6 +96,7 @@ static func build(ctx: Dictionary, yaw_sign: float) -> Dictionary:
 			var roll := deg_to_rad(1.5 * (primary - recovery) * (1.0 if supporting == "l" else -1.0))
 			var hips_basis := Basis(Quaternion(Basis(world) * forward, roll)) * Basis(world)
 			var envelope := _pulse(local)
+			var required_drop := 0.0
 			for side in ["l", "r"]:
 				var leg: Dictionary = ctx.legs[side]
 				var hip: Vector3 = ctx.hips_origin + offset + hips_basis * ((leg.hip as Vector3) - (ctx.hips_origin as Vector3))
@@ -104,17 +105,22 @@ static func build(ctx: Dictionary, yaw_sign: float) -> Dictionary:
 				var horizontal := diff.slide(up).length()
 				if horizontal >= reach: return {"error": "Turn target exceeds horizontal reach; use smaller angles or more steps"}
 				var needed := maxf(0.0, -diff.dot(up) - sqrt(reach * reach - horizontal * horizontal))
+				required_drop = maxf(required_drop, needed)
 				if envelope < 0.000001:
 					base_drop = maxf(base_drop, needed)
-				else:
-					extra_drop = maxf(extra_drop, maxf(0.0, needed - base_drop) / envelope)
 			samples.append({"time": (step + local) * period, "local": local, "yaw": yaw,
 				"world": world, "hips_basis": hips_basis, "offset": offset,
-				"feet": target_feet, "envelope": envelope, "leading": leading,
+				"feet": target_feet, "envelope": envelope, "required_drop": required_drop, "leading": leading,
 				"pulse": primary - recovery, "look": (per_step * 0.12 * yaw_sign) * _pulse(local / 0.72),
 				"forward_axis": Basis(world) * forward, "lateral_axis": Basis(world) * lateral})
 		feet_heading[leading] = goal
 		if last: feet_heading[supporting] = goal
+	# Every pivot boundary contributes to base reach before interior correction.
+	# Otherwise the old support heading at a later pivot made near-boundary
+	# samples divide a legitimate base correction by a tiny pulse envelope.
+	for sample: Dictionary in samples:
+		if float(sample.envelope) > 0.000001:
+			extra_drop = maxf(extra_drop, maxf(0.0, float(sample.required_drop) - base_drop) / float(sample.envelope))
 	if base_drop + extra_drop > 0.12 * leg_length:
 		return {"error": "Turn needs too much pelvis lowering; reduce angle/foot lift or use more steps"}
 	for sample: Dictionary in samples:

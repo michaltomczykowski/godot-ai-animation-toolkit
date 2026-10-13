@@ -148,6 +148,10 @@ async def run(args: argparse.Namespace) -> int:
                         save(record, report)
                         print(f"Refused {style}/{root_mode}/{rig_id}: {'PASS' if row['passed'] else 'FAIL'}", flush=True)
                         continue
+                    if turn and (row["dry"].get("error") or row["write"].get("error")):
+                        progress.update(state="failed", failures=[f"{style}/{root_mode}/{rig_id}: {row['write']}"])
+                        save(progress_path, progress)
+                        raise RuntimeError(f"Turn request refused before history witness: {row['write']}")
                     if args.phase == "candidate" or transition or turn:
                         history = await stage("history", "test_run", {
                             "suite": "animation_motion",
