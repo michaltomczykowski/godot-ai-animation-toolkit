@@ -31,6 +31,7 @@ def save(path: Path, report: dict) -> None:
 async def run(args: argparse.Namespace) -> int:
     motion = args.operation.removesuffix("_cycle")
     transition = args.operation in ("walk_start", "walk_stop")
+    turn = args.operation == "turn_cycle"
     if args.allow_reach_refusals and (not transition or args.phase != "prototype"):
         raise ValueError("Reach refusal receipts are only valid for explicit transition prototypes")
     if motion == "walk" and args.phase == "candidate":
@@ -74,12 +75,12 @@ async def run(args: argparse.Namespace) -> int:
                 for rig_id, label, fixture, scene_root, rig_path, player_path, synthetic in RIGS:
                     target = scene_folder / f"{style}_{root_mode}_{rig_id}.tscn"
                     copy_scene(args.project_root / fixture, target)
-                    if args.phase == "candidate" or transition:
+                    if args.phase == "candidate" or transition or turn:
                         with target.open("a", encoding="utf-8", newline="\n") as stream:
                             marker = "PublicTransitionHistory" if transition else f"Public{motion.title()}History"
                             stream.write(f'\n[node name="{marker}" type="Node" parent="."]\n'
                                          f'metadata/player_path = NodePath("{player_path}")\n')
-                            if transition:
+                            if transition or turn:
                                 stream.write(f'metadata/operation = "{args.operation}"\n')
                     scene = "res://" + target.relative_to(args.project_root).as_posix()
                     player = f"/{scene_root}/{player_path}"
@@ -90,6 +91,12 @@ async def run(args: argparse.Namespace) -> int:
                     # speed, loop or recipe override in the reviewed default.
                     if style != "responsive":
                         params["style"] = style
+                    for field in ("direction", "angle", "steps"):
+                        value = getattr(args, field, None)
+                        if value is not None:
+                            if not turn:
+                                raise ValueError(f"{field} is currently a turn review control")
+                            params[field] = value
                     if recipes:
                         params["overrides"] = recipes[style]
                         report["recipe_sha256"] = hashlib.sha256(args.recipes.read_bytes()).hexdigest()
@@ -137,7 +144,7 @@ async def run(args: argparse.Namespace) -> int:
                         save(record, report)
                         print(f"Refused {style}/{root_mode}/{rig_id}: {'PASS' if row['passed'] else 'FAIL'}", flush=True)
                         continue
-                    if args.phase == "candidate" or transition:
+                    if args.phase == "candidate" or transition or turn:
                         history = await stage("history", "test_run", {
                             "suite": "animation_motion",
                             "test_name": f"test_{motion}_undo_redo_restores_written_{motion}", "verbose": True})
@@ -192,7 +199,10 @@ if __name__ == "__main__":
     p.add_argument("--ws-port", type=int, default=9500)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--phase", choices=("baseline", "prototype", "candidate"), default="baseline")
-    p.add_argument("--operation", choices=("walk_cycle", "run_cycle", "idle_cycle", "walk_start", "walk_stop"), default="run_cycle")
+    p.add_argument("--operation", choices=("walk_cycle", "run_cycle", "idle_cycle", "walk_start", "walk_stop", "turn_cycle"), default="run_cycle")
+    p.add_argument("--direction", choices=("left", "right"))
+    p.add_argument("--angle", type=float, help="Requested turn angle; omit for ordinary 90 degrees")
+    p.add_argument("--steps", type=int, help="Requested turn steps; use two for a 180-degree turn")
     p.add_argument("--recipes", type=Path, help="Explicit prototype recipes; final candidates use ordinary defaults")
     p.add_argument("--duration", type=float, help="Explicit prototype period; ordinary calls omit duration")
     p.add_argument("--samples", type=float, help="Explicit prototype authoring density; ordinary calls omit samples")

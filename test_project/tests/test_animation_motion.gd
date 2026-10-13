@@ -204,12 +204,16 @@ func test_walk_stop_undo_redo_restores_written_walk_stop() -> void:
 	_transition_history("walk_stop")
 
 
-func _transition_history(operation: String) -> void:
+func test_turn_undo_redo_restores_written_turn() -> void:
+	_transition_history("turn_cycle", "PublicTurnHistory", "quality_turn")
+
+
+func _transition_history(operation: String, witness: String = "PublicTransitionHistory", clip_name: String = "") -> void:
 	var scene := EditorInterface.get_edited_scene_root()
-	var marker := scene.get_node_or_null("PublicTransitionHistory") if scene != null else null
+	var marker := scene.get_node_or_null(witness) if scene != null else null
 	var rig := {}
 	var player: AnimationPlayer
-	var name := "quality_" + operation
+	var name := "quality_" + operation if clip_name.is_empty() else clip_name
 	if marker != null:
 		# The public client already made exactly one write. Observe that history;
 		# generating a second animation here would test a different transaction.
