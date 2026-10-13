@@ -3987,7 +3987,7 @@
         "valid_effect": "pass_played_bones",
         "visual_review": "partial_xbot_sheet"
       },
-      "claimed_effect": "Build an in-place pivot turn with anticipation, a stepping foot and a settle; one-shot, direction left/right. `steps` splits a big turn into that many pivot steps (opposite foot each) so a 180-degree turn reads as weight shifts, not a spin; the torso lead is bounded per step and spread over `spine_chain`, so a long spine cannot corkscrew; re-base the root yaw between steps in your driver.",
+      "claimed_effect": "Build a one-shot skeletal turn with alternating pivot stages and a final stance-recovery footfall. Moving feet release/replant before contact resumes; contacts and reach evaluation are reported and contact markers are saved. Direction left/right, 1..8 steps, at most 100 degrees per stage. Torso/head lead uses animated parent frames. This clip owns skeletal heading and does not extract actor yaw; avoid applying that yaw a second time to the actor.",
       "evidence": [
         "2026-09-30: live Godot AI MCP on imported dummy, mcp_motion_remaining_first.log run 20260930_170226. Dry run left no clip; write/save/forced reopen retained resolved bone tracks; missing skeleton returned typed NODE_NOT_FOUND. Godot 4.7.2 check_motion_remaining_runtime.gd played the saved clip and matched every sampled bone track at an authored key. Contact, loop seam, independent rigs, editor undo, visual review and Linux remain.",
         "2026-10-01: live Godot AI motion_audit on saved scene failed contact at 30/60/120 FPS: 79.4/51.6 mm planted-foot slide and 8.9 mm left penetration at 120 FPS. See mcp_motion_saved_audit_details.log. Authored-key playback success does not approve this clip; quality repair is required.",
