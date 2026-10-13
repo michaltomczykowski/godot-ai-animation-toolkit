@@ -53,4 +53,17 @@ review. Only then close start/stop approval and advance the remaining roadmap.
 ## Execution ledger
 
 - Planning: r001 delivery remains intact; feedback stored as changes requested.
-- Implementation, played checks and continuous movies: pending.
+- Implementation: transition-only layer in `motion_transition_body.gd`, applied
+  before reach planning and the final leg solve. Accepted generators unchanged.
+- Public source `21d2eb7`: 16 ordinary Responsive clips, all dry/pose nonmutation,
+  external Undo/Redo, save and forced reopen checks pass on four rigs/both roots.
+- Native checkpoint `native-e986854401f146b19fadfec22c069f4f`: 96/96 quality
+  plays (Player/Tree, 30/60/120 FPS) and 16/16 independent played body comparisons
+  pass. Contact/actor schedules are exactly equal to r001; reference windows
+  and root travel remain within the original strict thresholds. On X Bot the
+  additional pelvis shift is about 2 cm, chest response 5.6–6.2 degrees and head
+  response 2.9–3.0 degrees. These are measurements, not visual approval.
+- The initial editor connection timed out before any clips were generated.
+  Its attempt receipt is preserved; a later authenticated readiness/discovery
+  probe verified Godot 4.7.2 and core/server 4.2.1 before successful generation.
+- Focused motion regression, inert-control check and continuous movies: pending.

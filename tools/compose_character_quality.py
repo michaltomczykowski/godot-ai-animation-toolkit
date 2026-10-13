@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import subprocess
 from PIL import Image
+from review_receipts import write_json
 
 def digest(path: Path) -> str:
     with path.open("rb") as stream:
@@ -80,7 +81,7 @@ def main() -> None:
     report = json.loads(report_path.read_text()) if report_path.exists() else {"videos": {}}
     for mode in (("clean", "diagnostic") if args.mode == "both" else (args.mode,)):
         report["videos"][mode] = compose(args.folder, mode, args.ffmpeg)
-        report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+        write_json(report_path, report)
         video = report["videos"][mode]
         print(f"Verified {mode}: 1920x1080 H.264 60 FPS, {video['decoded_frames']} decoded frames / {video['decoded_duration_s']} seconds", flush=True)
 if __name__ == "__main__": main()
