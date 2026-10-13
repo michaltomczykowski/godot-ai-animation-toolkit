@@ -216,7 +216,7 @@ func test_turn_bad_requests_refuse_without_scene_changes() -> void:
 	var poses: Array[Transform3D] = []
 	for index in rig.skeleton.get_bone_count(): poses.append(rig.skeleton.get_bone_pose(index))
 	var binding: NodePath = rig.player.root_motion_track
-	for invalid in [{"angle": 0.0}, {"steps": 1.5}, {"steps": 9}, {"angle": 180.0, "steps": 1}, {"foot_lift": 0.0}]:
+	for invalid in [{"angle": 0.0}, {"steps": 1.5}, {"steps": 9}, {"angle": 180.0, "steps": 1}, {"foot_lift": 0.0}, {"angle": 180.0, "steps": 2, "duration": 1.0}]:
 		var params := {"op": "turn_cycle", "player_path": rig.player_path,
 			"skeleton_path": rig.skeleton_path, "animation_name": "refused_turn", "root_motion": true}
 		params.merge(invalid, true)
@@ -256,6 +256,14 @@ func test_turn_reports_contacts_reach_and_skeletal_heading_owner() -> void:
 			assert_false(reply.data.root_motion, "no actor rotation/translation extracted")
 			assert_true(reply.data.root_motion_requested, "original request is separately reported")
 			assert_true(reply.data.declared_contacts.size() >= 4, "both feet have release/replant contacts")
+			var clip: Animation = rig.player.get_animation("owned_turn")
+			assert_eq(clip.get_marker_names().size(), int(reply.data.markers), "marker count reflects saved engine markers")
+			for window: Dictionary in reply.data.declared_contacts:
+				assert_true(clip.has_marker(window.start_marker) and clip.has_marker(window.end_marker), "simultaneous events refer to real saved markers")
+			var two_stage := _handler.run({"op": "turn_cycle", "player_path": rig.player_path,
+				"skeleton_path": rig.skeleton_path, "animation_name": "owned_180", "angle": 180.0, "steps": 2}, null)
+			assert_true(two_stage.has("data"), "ordinary 180 timing remains reachable")
+			if two_stage.has("data"): assert_true(float(two_stage.data.capture_duration) >= 1.4 - 0.000001, "omitted period gives each pivot enough time")
 		_teardown(rig)
 
 

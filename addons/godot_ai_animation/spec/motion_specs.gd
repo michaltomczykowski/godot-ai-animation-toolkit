@@ -1486,7 +1486,7 @@ static func turn_keys(ctx: Dictionary) -> Dictionary:
 		"step_angle": plan.step_angle, "recovery_steps": plan.recovery_steps, "footfalls": plan.footfalls,
 		"clamped": false, "clamp_shortfall_m": shortfall, "clamped_leg_samples": clamps,
 		"evaluated_leg_samples": evaluated, "reach_evaluated": evaluated > 0,
-		"declared_contacts": plan.contacts, "pelvis_base_drop_m": plan.pelvis_base_drop_m,
+		"declared_contacts": plan.contacts, "contact_marker_events": plan.marker_events, "pelvis_base_drop_m": plan.pelvis_base_drop_m,
 		"pelvis_reach_drop_m": plan.pelvis_reach_drop_m,
 		"root_motion_requested": bool(ctx.get("root_motion", false)), "root_motion": false,
 		"heading_owner": "skeleton", "root_rotation_extracted": false,

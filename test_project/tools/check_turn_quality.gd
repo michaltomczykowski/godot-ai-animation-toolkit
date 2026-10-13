@@ -70,13 +70,10 @@ func _measure(row: Dictionary, fps: int, mode: String) -> Dictionary:
 	if not bool(row.write.get("reach_evaluated", false)): failures.append("missing evaluated reach metadata")
 	if bool(row.write.get("clamped", false)): failures.append("generation reach clamp")
 	if bool(row.write.get("root_motion", true)) or str(row.write.get("heading_owner", "")) != "skeleton": failures.append("incorrect effective heading ownership report")
-	var contact_indices := {"l": 0, "r": 0}
 	for window: Dictionary in row.write.get("declared_contacts", []):
-		var side := str(window.side)
-		contact_indices[side] += 1
-		var suffix := "" if int(contact_indices[side]) == 1 else "_%d" % int(contact_indices[side])
-		for event in [{"name": "contact." + side.to_upper() + suffix, "time": window.start}, {"name": "toe_off." + side.to_upper() + suffix, "time": window.end}]:
+		for event in [{"name": str(window.get("start_marker", "")), "time": window.start}, {"name": str(window.get("end_marker", "")), "time": window.end}]:
 			if not clip.has_marker(event.name) or absf(clip.get_marker_time(event.name) - float(event.time)) > 0.000001: failures.append("saved contact marker differs from report")
+	if clip.get_marker_names().size() != int(row.write.markers): failures.append("reported saved marker count differs")
 	var track_keys := 0
 	for i in clip.get_track_count():
 		var path := clip.track_get_path(i)
@@ -147,6 +144,21 @@ func _measure(row: Dictionary, fps: int, mode: String) -> Dictionary:
 		trace.append(sample)
 	var heading_error := absf(expected_heading.signed_angle_to(_heading(v, "hips"), v.up))
 	if heading_error > 0.001: failures.append("wrong settled hip heading")
+	for role in ["chest", "head"]:
+		if v.indices.has(role) and absf(expected_heading.signed_angle_to(_heading(v, role), v.up)) > 0.001: failures.append(role + ": compounded or unfinished heading")
+	var pivot_checks: Array = []
+	var stages := int(row.params.get("steps", 1))
+	for stage in range(1, stages):
+		var boundary := action * stage / stages
+		var sample: Dictionary = trace[0]
+		for item: Dictionary in trace:
+			if float(item.t) <= boundary + 0.000001: sample = item
+		var heading_values: Array = sample.hip_heading
+		var observed := Vector3(heading_values[0], heading_values[1], heading_values[2])
+		var expected: Vector3 = Quaternion(v.up, deg_to_rad(requested * anatomical_sign * stage / stages)) * v.forward
+		var error := absf(expected.signed_angle_to(observed, v.up))
+		pivot_checks.append({"stage": stage, "boundary": boundary, "sample_time": sample.t, "heading_error_rad": error})
+		if error > 0.001: failures.append("wrong intermediate pivot heading")
 	if max_motion < 0.001 * float(v.leg): failures.append("inert playback")
 	if max_pose_step > 0.25 * float(v.leg) or max_angle_step > 0.75: failures.append("played pose discontinuity")
 	if nonfinite > 0: failures.append("nonfinite played pose")
@@ -171,7 +183,7 @@ func _measure(row: Dictionary, fps: int, mode: String) -> Dictionary:
 	var result := {"id": row.id, "fps": fps, "mode": mode, "frames": frames,
 		"leg_length_m": v.leg, "heading_error_rad": heading_error,
 		"max_pose_step_m": max_pose_step, "max_angle_step_rad": max_angle_step,
-		"nonfinite": nonfinite, "feet": metrics, "trace": trace,
+		"nonfinite": nonfinite, "feet": metrics, "trace": trace, "pivot_checks": pivot_checks,
 		"failures": failures, "thresholds_pass": failures.is_empty()}
 	v.scene.free()
 	return result

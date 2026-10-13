@@ -951,7 +951,12 @@ func _build_context(params: Dictionary, kind: String, resolved_config: Dictionar
 	if not missing.is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"Cannot find bones for: %s. Pass 'roles' to name them explicitly (e.g. {\"thigh_l\": \"B-thigh.L\"})." % ", ".join(missing))
-	var length := float(params.get("duration", 3.0 if kind == "idle" else 1.0))
+	var default_length := 3.0 if kind == "idle" else 1.0
+	if kind == "turn":
+		# A second pivot still needs release/swing/recovery time. Explicit caller
+		# duration remains untouched; only omitted timing scales with stages.
+		default_length = maxf(1.0, 0.7 * maxf(float(resolved_config.get("steps", 1.0)), absf(float(resolved_config.get("turn_angle", 90.0))) / 90.0))
+	var length := float(params.get("duration", default_length))
 	if not is_finite(length) or length <= 0.0:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "duration must be a finite number > 0")
 	# Every numeric recipe parameter reaches the clip as a key value, so a NaN or

@@ -35,6 +35,9 @@ static func build(ctx: Dictionary, yaw_sign: float) -> Dictionary:
 	if not is_finite(float(config.foot_lift)) or float(config.foot_lift) <= 0.0:
 		return {"error": "Turn foot_lift must be finite and positive so moving feet can release contact"}
 	var period := float(ctx.length) / steps
+	var minimum_period := maxf(0.35, (0.67 if steps > 1 else 0.57) * absf(per_step) / 90.0)
+	if period < minimum_period - 0.000001:
+		return {"error": "Turn duration is too short for released/replanted feet; use at least %.3f seconds for this angle and step count" % (minimum_period * steps)}
 	var intervals := maxi(ceili(period * maxf(float(ctx.samples), 120.0)), 4)
 	var up: Vector3 = ctx.up
 	var forward: Vector3 = ctx.forward
@@ -140,7 +143,26 @@ static func build(ctx: Dictionary, yaw_sign: float) -> Dictionary:
 			var suffix := "" if index == 1 else "_%d" % index
 			markers.append({"name": "contact." + side.to_upper() + suffix, "time": window.start})
 			markers.append({"name": "toe_off." + side.to_upper() + suffix, "time": window.end})
-	return {"samples": samples, "contacts": merged, "markers": markers,
+	# Godot stores one marker per instant. Preserve simultaneous foot events in
+	# one named marker and return its real name on each contact window.
+	var instants := {}
+	for event: Dictionary in markers:
+		var at := float(event.time)
+		if not instants.has(at): instants[at] = []
+		instants[at].append(str(event.name))
+	var times: Array = instants.keys()
+	times.sort()
+	var saved_markers: Array = []
+	var saved_events: Array = []
+	for at in times:
+		var names: Array = instants[at]
+		var name := str(names[0]) if not str(names[0]).begins_with("contact.") and not str(names[0]).begins_with("toe_off.") else "+".join(names)
+		saved_markers.append({"name": name, "time": at})
+		saved_events.append({"name": name, "time": at, "events": names})
+		for window: Dictionary in merged:
+			if is_equal_approx(float(window.start), float(at)): window.start_marker = name
+			if is_equal_approx(float(window.end), float(at)): window.end_marker = name
+	return {"samples": samples, "contacts": merged, "markers": saved_markers, "marker_events": saved_events,
 		"angle": requested, "steps": steps, "step_angle": per_step,
 		"pelvis_base_drop_m": base_drop, "pelvis_reach_drop_m": extra_drop,
 		"recovery_steps": 1, "footfalls": steps + 1}
