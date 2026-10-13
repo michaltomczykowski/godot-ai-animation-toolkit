@@ -4955,7 +4955,21 @@
       "full_style_or_sequence_approval": false
     },
     "closure_plan": "docs/start-stop-body-r002-closure-plan.md",
-    "closure_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002"
+    "closure_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002",
+    "closure_checkpoint": {
+      "state": "recording_and_timing_in_progress",
+      "public_clips": 80,
+      "ordinary_native_runs": 480,
+      "preview_parity_runs": 96,
+      "public_sequences": 4,
+      "sequence_native_runs": 24,
+      "continuation_controls": 288,
+      "actor_controls_detected": 48,
+      "protected_fixtures": 11,
+      "animation_source": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+      "visual_approval": null,
+      "release_ready": false
+    }
   },
   "start_stop_revision_history": [
     {

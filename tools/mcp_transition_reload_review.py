@@ -26,9 +26,14 @@ async def run(a):
         async with connected_editor(a, old_session) as (client, connection):
             catalog = await call(client,'custom_manage',{'op':'list'})
             names = {t['name'] for t in catalog.get('tools',[])}
+            choices = {t['name']: t.get('params_schema', {}).get('properties', {}).get('op', {}).get('enum', [])
+                for t in catalog.get('tools', [])}
+            if names != EXPECTED_CATALOG or sum(map(len, choices.values())) != 103 or not all(
+                    t.get('enabled') is True for t in catalog.get('tools', [])):
+                raise RuntimeError('Expected ten enabled toolkit families and 103 advertised operation choices')
             tools = {t.name for t in await client.list_tools()}
             section = {'phase':phase,'connection':connection,'catalog':catalog,
-                'promoted':sorted(tools & EXPECTED_PROMOTED),'rows':[]}
+                'promoted':sorted(tools & EXPECTED_PROMOTED),'advertised_operations':choices,'rows':[]}
             report['phases'].append(section); save()
             if EXPECTED_CATALOG - names or EXPECTED_PROMOTED - tools: raise RuntimeError('Toolkit family missing after core reload')
             for op in ('walk_start','walk_stop'):

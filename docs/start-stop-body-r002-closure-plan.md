@@ -79,4 +79,12 @@ No main merge, tag, release or media upload at this gate.
   and six raw logs archived; four editors, both live routes and 28 headless jobs.
 - New review renderer shows both cameras simultaneously with fresh resets;
   reload fixtures now strip copied root scene UIDs before engine save.
-- Full ordinary matrix, timing/sequence/reload/regression and movies: pending.
+- Full ordinary matrix: 480/480 plays pass, zero engine errors/clamps, source
+  `12ab9c9`, receipt `candidate-r002/native-bcd6c1fc0b8140d5b71aa622eeba087e`.
+- Preview parity: all 96/96 Player/Tree/FPS plays pass; all authored channels
+  exactly equal the approved preview and actor/contact/body metadata unchanged.
+- Four public saved sequences and 24/24 native sequence plays pass.
+- Continuation controls: 288 positive and 288 shifted-endpoint detections pass.
+  All 48 deliberate double actor-travel failures are detected, zero engine errors.
+- Twenty native style movies recording; first 24s clean movie fully decoded.
+- Timing/core reload/full regression and complete media/CI delivery: pending.

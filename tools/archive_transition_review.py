@@ -182,6 +182,14 @@ def main():
     archives={str(path):digest(path) for path in (scene_zip,source_zip,sequence_zip,receipts_zip)}
     for path in archives:
         with zipfile.ZipFile(path) as archive: require(archive.testzip() is None,'Archive CRC failed')
+    # Windows working provenance files may have CRLF; source ZIPs must contain
+    # their exact canonical Git blobs, without rewriting accepted fixtures.
+    for path,revision in ((source_zip,source),(sequence_zip,ci['source_head'])):
+        with zipfile.ZipFile(path) as archive:
+            for protected in read(a.recovery/'protected-fixtures-before.json'):
+                relative=Path(protected['path']).relative_to(a.repo).as_posix()
+                blob=subprocess.check_output(['git','show',revision+':'+relative],cwd=a.repo)
+                require(archive.read(relative)==blob,'Archived protected fixture differs from exact source')
     simultaneous=all(v['render'].get('layout')=='simultaneous_front_side' for v in videos if v['operation']!='animation_sequence')
     transition_instructions=('Style videos show FRONT (left) and SIDE (right) simultaneously. Cameras follow translation; the ground grid stays fixed.\n'
         'Style videos: 24s, 1080p60; 00-06 dummy, 06-12 X Bot, 12-18 short, 18-24 tall Z-up. Two reset-separated complete takes per rig.\n'
