@@ -3,7 +3,7 @@
   "phase": "character_quality",
   "operation": "walk_start/walk_stop",
   "revision": "start-stop-body-r002",
-  "state": "implementing_start_stop_body_revision",
+  "state": "awaiting_start_stop_body_feedback",
   "release_r1_execution": {
     "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -333,7 +333,7 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Implement transition-local whole-body reaction, measure Responsive saved playback and deliver continuous comparisons; then explicitly pause for feedback.",
+  "next_action": "Pause for explicit human feedback on the two continuous Responsive body-response comparisons open in PC Explorer. Full style/sequence regression follows feedback.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
   "updated_utc": "2026-10-11T19:15:07.420807+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -4390,7 +4390,7 @@
     }
   ],
   "start_stop_review": {
-    "state": "implementing_start_stop_body_revision",
+    "state": "awaiting_start_stop_body_feedback",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013",
     "previous_revision": "start-stop-repair-r001",
     "previous_feedback": {
@@ -4422,10 +4422,528 @@
     },
     "sequence_approval": null,
     "remaining_gates": [
-      "focused played/body checks and two continuous comparisons",
-      "human body-response feedback",
-      "full style/timing/sequence/reload/regression closure after feedback"
-    ]
+      "explicit human body-response feedback",
+      "full five-style/timing/sequence/reload/regression and exact-source CI closure after feedback"
+    ],
+    "focused_delivery": {
+      "state": "awaiting_body_feedback",
+      "scope": "Responsive focused checkpoint; no full style/sequence approval",
+      "created_utc": "2026-10-13T09:03:14.499967+00:00",
+      "animation_source": "21d2eb7bbddcb63975e8a3b173372372b2481b5f",
+      "tooling_source": "d773c07d3b7c9e076bf21d965c555f52a00fdcb4",
+      "public_clips": 16,
+      "native_runs": 96,
+      "body_runs": 16,
+      "motion_regression": 71,
+      "inert_control_rigs": 4,
+      "scene_files": {
+        "repair_walk_start_quality/529c82c06aee4b4eb38422158136af35/responsive_extracted_dummy.tscn": "f43eea23a903ce69af26d53746004e7e9761ef94522b8bd618851391afc0ecb8",
+        "repair_walk_start_quality/529c82c06aee4b4eb38422158136af35/responsive_extracted_xbot.tscn": "a8eb44b4521ab4688c13b7ff15f082603722db569410a1a4c4c1e41b4c9e8002",
+        "repair_walk_start_quality/529c82c06aee4b4eb38422158136af35/responsive_extracted_short.tscn": "3e14387255e23dd2ba30451dc51d90419303be1b9802b267e1e98d35289d63d0",
+        "repair_walk_start_quality/529c82c06aee4b4eb38422158136af35/responsive_extracted_zup_tall.tscn": "9c892dc8cdfe1d672df32b0bd157192e8307bec91b0d7d79dfdee8ec34663fc3",
+        "repair_walk_quality/95f43a6eb93e42eaa73440b6411d239a/responsive_extracted_dummy.tscn": "769c02c337510d5503cec7ec9a963bb0bed2a8559e97d15d510327cb19b4ed9f",
+        "repair_walk_quality/95f43a6eb93e42eaa73440b6411d239a/responsive_extracted_xbot.tscn": "b10211035e21d1a39fcd22624f176bbdcb9d7cbb4994089254589b49133673c9",
+        "repair_walk_quality/95f43a6eb93e42eaa73440b6411d239a/responsive_extracted_short.tscn": "cacfb5bd022d6e4fec58bfc3f2b659e4ea1cae85b32851bb36cd19e427bfeb40",
+        "repair_walk_quality/95f43a6eb93e42eaa73440b6411d239a/responsive_extracted_zup_tall.tscn": "93013f6ee01940ba8dbb7c9910a147a8a764c2abaebde482cf6e4d58457094d9",
+        "repair_idle_quality/12f39e415f3b4ee19128d7b7737e0eba/responsive_extracted_dummy.tscn": "8b8b79fcc805f79d91f50f1ff1aae2021634391b0e95c51bfda3efb7ee2db304",
+        "repair_idle_quality/12f39e415f3b4ee19128d7b7737e0eba/responsive_extracted_xbot.tscn": "2c78a62cf43560e4395b6887c7253442b1c82c3bc467eb50634f9a91e927780f",
+        "repair_idle_quality/12f39e415f3b4ee19128d7b7737e0eba/responsive_extracted_short.tscn": "3da277b362792dd1e6d31fdd0f385f53f410d692c3bdb145f80c4778cee85a52",
+        "repair_idle_quality/12f39e415f3b4ee19128d7b7737e0eba/responsive_extracted_zup_tall.tscn": "de46bde344a4ce5633b68537507ab90589077a51f2f67681b637b674ddba872e",
+        "repair_walk_start_quality/b0858bde14314684ba2e37eb844d1239/responsive_extracted_dummy.tscn": "1692223640c60194e67c432c668f4e7d7d13ee40f26928b60e466f8c3f4360d8",
+        "repair_walk_start_quality/b0858bde14314684ba2e37eb844d1239/responsive_extracted_xbot.tscn": "ef06d3581c7784135610fbc5d4517826625b25d312983c231ca2d7ff3727ebe7",
+        "repair_walk_start_quality/b0858bde14314684ba2e37eb844d1239/responsive_extracted_short.tscn": "f29591c08ccbf1ca1dda9ca78bdfa865177a9abf4487bb4747565ed847459dd8",
+        "repair_walk_start_quality/b0858bde14314684ba2e37eb844d1239/responsive_extracted_zup_tall.tscn": "f0de4af903101ff3c4d3ddafa2482cfce7c7084428c7449535a429b688bb808d",
+        "repair_walk_start_quality/529c82c06aee4b4eb38422158136af35/responsive_in_place_dummy.tscn": "fc833a9c86183e3f5afe91d91f8da811ee9c26ac412d56cefc84c1307640b6fc",
+        "repair_walk_start_quality/529c82c06aee4b4eb38422158136af35/responsive_in_place_xbot.tscn": "992bb99a95c065d955505977447ed95095aa8ab5d4a98e0c2720fd53dea14115",
+        "repair_walk_start_quality/529c82c06aee4b4eb38422158136af35/responsive_in_place_short.tscn": "ef2ff1d443df3f8941dc8731395508fd54304398e5c40db1e65ff179f58bcc13",
+        "repair_walk_start_quality/529c82c06aee4b4eb38422158136af35/responsive_in_place_zup_tall.tscn": "23cb45c47a0de785707097cacf6293473c914495cd81ffe920334bd4bb8ee211",
+        "repair_walk_quality/3307efcce7884147bbb5a19f05a1e6b6/responsive_in_place_dummy.tscn": "408f5b27c7df9bb1f569c158f5e7e2815e9dc5050ebd5d4316a8f45df7f6db4f",
+        "repair_walk_quality/3307efcce7884147bbb5a19f05a1e6b6/responsive_in_place_xbot.tscn": "bc8429206972ad8269de3c453d93e4179ee187f992cc3680eb74ea1317bda928",
+        "repair_walk_quality/3307efcce7884147bbb5a19f05a1e6b6/responsive_in_place_short.tscn": "fd26db253f8127610ab558cc00e165d1e242f76a43c2cef35d1972da60ef49c2",
+        "repair_walk_quality/3307efcce7884147bbb5a19f05a1e6b6/responsive_in_place_zup_tall.tscn": "57a48449c672f9a5831815bc65fc4b913b86ef8c811d98471c31b71f46af1d8c",
+        "repair_idle_quality/12f39e415f3b4ee19128d7b7737e0eba/responsive_in_place_dummy.tscn": "861ce2fdb2f575519c623f286729d7df4009fe0b556d12fba8e328ae44aa91e5",
+        "repair_idle_quality/12f39e415f3b4ee19128d7b7737e0eba/responsive_in_place_xbot.tscn": "f54f2e5a34105f035c212113304b7fd9e8c85ba84c386c11ef7f0385d04b89cc",
+        "repair_idle_quality/12f39e415f3b4ee19128d7b7737e0eba/responsive_in_place_short.tscn": "2ad5ccd95001456c3f23aa144a9b77743acfbcc9589915820b629f7938dc724f",
+        "repair_idle_quality/12f39e415f3b4ee19128d7b7737e0eba/responsive_in_place_zup_tall.tscn": "4375ba980e181893c2bf1a34ef9b10c3218c7d0d1b6e962fc1e971401b36b6cb",
+        "repair_walk_start_quality/b0858bde14314684ba2e37eb844d1239/responsive_in_place_dummy.tscn": "a6ba94e3686510982b0698f90ee73af18af54a91db788baead5141e168c42684",
+        "repair_walk_start_quality/b0858bde14314684ba2e37eb844d1239/responsive_in_place_xbot.tscn": "e84bb63f567ba479f4f1e67f0c0f7979f1929f66961f257494029996aac571b6",
+        "repair_walk_start_quality/b0858bde14314684ba2e37eb844d1239/responsive_in_place_short.tscn": "009d8ac54c42b2a2d1ee6b5959e1958f2339fc4f95817039ff45ebf069440f33",
+        "repair_walk_start_quality/b0858bde14314684ba2e37eb844d1239/responsive_in_place_zup_tall.tscn": "3ac4475c564c49676f1fb45fa3da79c34dfd3e3d8f86cbf6c6c80cb1030668e1",
+        "repair_walk_stop_quality/29c08bba54114511b32b6ffe47bda688/responsive_extracted_dummy.tscn": "aa344d03be24359d70f18821730e930cfe18b1b8510bc381a170a3b2b547fba7",
+        "repair_walk_stop_quality/29c08bba54114511b32b6ffe47bda688/responsive_extracted_xbot.tscn": "5b69b0ab26c647469463fd78c65136680419618c7229be96d75583dde7f4b94f",
+        "repair_walk_stop_quality/29c08bba54114511b32b6ffe47bda688/responsive_extracted_short.tscn": "74a900bd79c67d62b9583b5709d9de565ec5233e04bf33d062933c622400eb0a",
+        "repair_walk_stop_quality/29c08bba54114511b32b6ffe47bda688/responsive_extracted_zup_tall.tscn": "8c9994f455554e011b614ba840a9cd6fa5a59c2303f495e1dc7abf585a4ab422",
+        "repair_walk_stop_quality/f41eeed84c70416aa6bf23f2a7397a87/responsive_extracted_dummy.tscn": "15877f9cce769a2be7397fb274ea8f1b34fc0d946a6ee7009aa897d7e0ec356d",
+        "repair_walk_stop_quality/f41eeed84c70416aa6bf23f2a7397a87/responsive_extracted_xbot.tscn": "614d84e3a9460bc42f909b324bd7b3273a0da69a97863912c57ffe9b4eeb8745",
+        "repair_walk_stop_quality/f41eeed84c70416aa6bf23f2a7397a87/responsive_extracted_short.tscn": "193b0c027eb029f125b54707b77f2f73b34ecb7bc6a6abfee04a8cd57d3777d6",
+        "repair_walk_stop_quality/f41eeed84c70416aa6bf23f2a7397a87/responsive_extracted_zup_tall.tscn": "8af382efbd47863befc767377f451ec849f583dce53096a63b4fc9860a017a5d",
+        "repair_walk_stop_quality/29c08bba54114511b32b6ffe47bda688/responsive_in_place_dummy.tscn": "93a7ce996cc53c7dbd963dad730b60b4e31fee3d015249838b1270094f0df968",
+        "repair_walk_stop_quality/29c08bba54114511b32b6ffe47bda688/responsive_in_place_xbot.tscn": "bb59c825c876cdce490c3e2fb5bc3d51a9699dd7c6f706c4c6815e0551a02bf6",
+        "repair_walk_stop_quality/29c08bba54114511b32b6ffe47bda688/responsive_in_place_short.tscn": "4f633eb01aa73623f57096555a00a7e948444b4792ce1db5f9246ba1b6771073",
+        "repair_walk_stop_quality/29c08bba54114511b32b6ffe47bda688/responsive_in_place_zup_tall.tscn": "5ec8b213345ec047dffd2b363183f5baa51d830210b756fcc3747359c4ab6da5",
+        "repair_walk_stop_quality/f41eeed84c70416aa6bf23f2a7397a87/responsive_in_place_dummy.tscn": "4ea3811d2dbe817f1b35baeb4ca4d08723b812775c0d81a0e3f9558dcef7db80",
+        "repair_walk_stop_quality/f41eeed84c70416aa6bf23f2a7397a87/responsive_in_place_xbot.tscn": "a4650d90abe95d94207b89d113e547ff87474e04d99ca08b3c63796074b40b4b",
+        "repair_walk_stop_quality/f41eeed84c70416aa6bf23f2a7397a87/responsive_in_place_short.tscn": "190f5d5d179a0e39a5efb91a0efe610800774306a0178ccfe3987783dd9259ac",
+        "repair_walk_stop_quality/f41eeed84c70416aa6bf23f2a7397a87/responsive_in_place_zup_tall.tscn": "98e599bfc553545e9a5f676b72c36329d2b17566c48659f8e194ee92aaff2ea4"
+      },
+      "protected_fixtures": 11,
+      "videos": [
+        {
+          "operation": "walk_start",
+          "review_copy": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\preview-r002\\review-videos\\walk_start-body-r002-clean.mp4",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\preview-r002\\walk_start\\responsive\\start-stop-body-r002-responsive-clean.mp4",
+          "sha256": "501d71ebab244cfadd4911f0e446ce08df026a58aaf35e03b1e35388b7a5dbca",
+          "bytes": 10172459,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0,
+          "metadata": [
+            "Duration: 00:00:48.00, start: 0.000000, bitrate: 1695 kb/s",
+            "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1690 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+            "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+          ],
+          "encode_command": [
+            "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-framerate",
+            "60",
+            "-i",
+            "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\preview-r002\\walk_start\\responsive\\clean_frames\\%06d.png",
+            "-frames:v",
+            "2880",
+            "-an",
+            "-c:v",
+            "libx264",
+            "-threads",
+            "2",
+            "-preset",
+            "medium",
+            "-crf",
+            "18",
+            "-pix_fmt",
+            "yuv420p",
+            "-movflags",
+            "+faststart",
+            "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\preview-r002\\walk_start\\responsive\\start-stop-body-r002-responsive-clean.mp4"
+          ],
+          "render": {
+            "baseline_source_head": "4137cc5dce8647abac2fffa8b3256696061ae532",
+            "cases": [
+              {
+                "angle": "FRONT",
+                "baseline_scene": "res://repair_walk_start_quality/b0858bde14314684ba2e37eb844d1239/responsive_extracted_dummy.tscn",
+                "candidate_scene": "res://repair_walk_start_quality/529c82c06aee4b4eb38422158136af35/responsive_extracted_dummy.tscn",
+                "duration_s": 6.0,
+                "frames": 360,
+                "id": "dummy",
+                "reset_between_takes": true,
+                "start_s": 0.0,
+                "takes": 2
+              },
+              {
+                "angle": "SIDE",
+                "baseline_scene": "res://repair_walk_start_quality/b0858bde14314684ba2e37eb844d1239/responsive_extracted_dummy.tscn",
+                "candidate_scene": "res://repair_walk_start_quality/529c82c06aee4b4eb38422158136af35/responsive_extracted_dummy.tscn",
+                "duration_s": 6.0,
+                "frames": 360,
+                "id": "dummy",
+                "reset_between_takes": true,
+                "start_s": 6.0,
+                "takes": 2
+              },
+              {
+                "angle": "FRONT",
+                "baseline_scene": "res://repair_walk_start_quality/b0858bde14314684ba2e37eb844d1239/responsive_extracted_xbot.tscn",
+                "candidate_scene": "res://repair_walk_start_quality/529c82c06aee4b4eb38422158136af35/responsive_extracted_xbot.tscn",
+                "duration_s": 6.0,
+                "frames": 360,
+                "id": "xbot",
+                "reset_between_takes": true,
+                "start_s": 12.0,
+                "takes": 2
+              },
+              {
+                "angle": "SIDE",
+                "baseline_scene": "res://repair_walk_start_quality/b0858bde14314684ba2e37eb844d1239/responsive_extracted_xbot.tscn",
+                "candidate_scene": "res://repair_walk_start_quality/529c82c06aee4b4eb38422158136af35/responsive_extracted_xbot.tscn",
+                "duration_s": 6.0,
+                "frames": 360,
+                "id": "xbot",
+                "reset_between_takes": true,
+                "start_s": 18.0,
+                "takes": 2
+              },
+              {
+                "angle": "FRONT",
+                "baseline_scene": "res://repair_walk_start_quality/b0858bde14314684ba2e37eb844d1239/responsive_extracted_short.tscn",
+                "candidate_scene": "res://repair_walk_start_quality/529c82c06aee4b4eb38422158136af35/responsive_extracted_short.tscn",
+                "duration_s": 6.0,
+                "frames": 360,
+                "id": "short",
+                "reset_between_takes": true,
+                "start_s": 24.0,
+                "takes": 2
+              },
+              {
+                "angle": "SIDE",
+                "baseline_scene": "res://repair_walk_start_quality/b0858bde14314684ba2e37eb844d1239/responsive_extracted_short.tscn",
+                "candidate_scene": "res://repair_walk_start_quality/529c82c06aee4b4eb38422158136af35/responsive_extracted_short.tscn",
+                "duration_s": 6.0,
+                "frames": 360,
+                "id": "short",
+                "reset_between_takes": true,
+                "start_s": 30.0,
+                "takes": 2
+              },
+              {
+                "angle": "FRONT",
+                "baseline_scene": "res://repair_walk_start_quality/b0858bde14314684ba2e37eb844d1239/responsive_extracted_zup_tall.tscn",
+                "candidate_scene": "res://repair_walk_start_quality/529c82c06aee4b4eb38422158136af35/responsive_extracted_zup_tall.tscn",
+                "duration_s": 6.0,
+                "frames": 360,
+                "id": "zup_tall",
+                "reset_between_takes": true,
+                "start_s": 36.0,
+                "takes": 2
+              },
+              {
+                "angle": "SIDE",
+                "baseline_scene": "res://repair_walk_start_quality/b0858bde14314684ba2e37eb844d1239/responsive_extracted_zup_tall.tscn",
+                "candidate_scene": "res://repair_walk_start_quality/529c82c06aee4b4eb38422158136af35/responsive_extracted_zup_tall.tscn",
+                "duration_s": 6.0,
+                "frames": 360,
+                "id": "zup_tall",
+                "reset_between_takes": true,
+                "start_s": 42.0,
+                "takes": 2
+              }
+            ],
+            "comparison": true,
+            "errors": [],
+            "fps": 60,
+            "frames": 2880,
+            "mode": "clean",
+            "operation": "walk_start",
+            "profile": "responsive",
+            "revision": "start-stop-body-r002-responsive",
+            "root_consumers_per_view": 1,
+            "size": [
+              1920,
+              1080
+            ],
+            "source_head": "21d2eb7bbddcb63975e8a3b173372372b2481b5f",
+            "visual_approval": false
+          },
+          "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\preview-r002\\walk_start\\responsive\\start-stop-body-r002-responsive-clean-overview.png",
+          "qa_samples": [
+            {
+              "frame": "000030.png",
+              "sha256": "0ade8e28fa06b725d45b22532291641f20ff6d9fd7923c9599a97cde833aaa1f"
+            },
+            {
+              "frame": "000150.png",
+              "sha256": "504ee38f46ceb53c70fdcd5672465c36e94b9ff8d7af9e5add90a572977a1011"
+            },
+            {
+              "frame": "000390.png",
+              "sha256": "9e1ac45fb43209cc5391e7c67b9e4720a567719793eff5de4bf98d640fe1949d"
+            },
+            {
+              "frame": "000510.png",
+              "sha256": "7a26d26d1758b5b5ca9c9d163a1825951a9ba01ec82d892fbc96e2870052aa2a"
+            },
+            {
+              "frame": "000750.png",
+              "sha256": "7bedbac20f4992e580183d5276c197aa4a34639ce501588b10c8a4439a5633d2"
+            },
+            {
+              "frame": "000870.png",
+              "sha256": "214fceca71538301ea95317112da6b0b8c488deac681307b785011373c822806"
+            },
+            {
+              "frame": "001110.png",
+              "sha256": "f9d5da648df564295efc26879986ea3b60c2a62fabdf218ac065a22d962ac7ec"
+            },
+            {
+              "frame": "001230.png",
+              "sha256": "2dad6fb3fe34d27910fe784803e012c02fb5a031fce52dfdae498bee980f24b9"
+            },
+            {
+              "frame": "001470.png",
+              "sha256": "68bada9d0684e5b5d06a8199379cc35ccf81977496d3609c81c0dc4d30b15d17"
+            },
+            {
+              "frame": "001590.png",
+              "sha256": "a2bfe16942466cd969e97621572fdea1b30a3364a1760caaf796f29066f6a039"
+            },
+            {
+              "frame": "001830.png",
+              "sha256": "59f19601da7d39adbcbb4783b4200bd514504acf4d5f762121a3e9d0e74727a7"
+            },
+            {
+              "frame": "001950.png",
+              "sha256": "36ea8f2ff3e6dcb296b40cfb302ea0ee8a9ad32926dcbb988c20a13fb8459cca"
+            },
+            {
+              "frame": "002190.png",
+              "sha256": "713588e91a6baf7797310c34f43de981294313d1fca2b3dd8d006ab0e70a9877"
+            },
+            {
+              "frame": "002310.png",
+              "sha256": "f4759b76cb8686f4221b5d672eb835e48444164cd4c96ddd0a9d9ad017242aba"
+            },
+            {
+              "frame": "002550.png",
+              "sha256": "c00475edc1bcbad28dcafeb78e64ec3b8f16c6094f958146ffe96f81d4ebaca2"
+            },
+            {
+              "frame": "002670.png",
+              "sha256": "5e13049ecf621e8f6942273f0a9dd6779f82aaf1091e0f353e84fc788f4e6677"
+            }
+          ]
+        },
+        {
+          "operation": "walk_stop",
+          "review_copy": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\preview-r002\\review-videos\\walk_stop-body-r002-clean.mp4",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\preview-r002\\walk_stop\\responsive\\start-stop-body-r002-responsive-clean.mp4",
+          "sha256": "ffc636ff00cce5bae2bd6982457efd9458b6ed530cb897382ab2950067a3aa79",
+          "bytes": 9918525,
+          "decoded_frames": 2880,
+          "decoded_duration_s": 48.0,
+          "metadata": [
+            "Duration: 00:00:48.00, start: 0.000000, bitrate: 1653 kb/s",
+            "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1647 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+            "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+          ],
+          "encode_command": [
+            "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-framerate",
+            "60",
+            "-i",
+            "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\preview-r002\\walk_stop\\responsive\\clean_frames\\%06d.png",
+            "-frames:v",
+            "2880",
+            "-an",
+            "-c:v",
+            "libx264",
+            "-threads",
+            "2",
+            "-preset",
+            "medium",
+            "-crf",
+            "18",
+            "-pix_fmt",
+            "yuv420p",
+            "-movflags",
+            "+faststart",
+            "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\preview-r002\\walk_stop\\responsive\\start-stop-body-r002-responsive-clean.mp4"
+          ],
+          "render": {
+            "baseline_source_head": "4137cc5dce8647abac2fffa8b3256696061ae532",
+            "cases": [
+              {
+                "angle": "FRONT",
+                "baseline_scene": "res://repair_walk_stop_quality/f41eeed84c70416aa6bf23f2a7397a87/responsive_extracted_dummy.tscn",
+                "candidate_scene": "res://repair_walk_stop_quality/29c08bba54114511b32b6ffe47bda688/responsive_extracted_dummy.tscn",
+                "duration_s": 6.0,
+                "frames": 360,
+                "id": "dummy",
+                "reset_between_takes": true,
+                "start_s": 0.0,
+                "takes": 2
+              },
+              {
+                "angle": "SIDE",
+                "baseline_scene": "res://repair_walk_stop_quality/f41eeed84c70416aa6bf23f2a7397a87/responsive_extracted_dummy.tscn",
+                "candidate_scene": "res://repair_walk_stop_quality/29c08bba54114511b32b6ffe47bda688/responsive_extracted_dummy.tscn",
+                "duration_s": 6.0,
+                "frames": 360,
+                "id": "dummy",
+                "reset_between_takes": true,
+                "start_s": 6.0,
+                "takes": 2
+              },
+              {
+                "angle": "FRONT",
+                "baseline_scene": "res://repair_walk_stop_quality/f41eeed84c70416aa6bf23f2a7397a87/responsive_extracted_xbot.tscn",
+                "candidate_scene": "res://repair_walk_stop_quality/29c08bba54114511b32b6ffe47bda688/responsive_extracted_xbot.tscn",
+                "duration_s": 6.0,
+                "frames": 360,
+                "id": "xbot",
+                "reset_between_takes": true,
+                "start_s": 12.0,
+                "takes": 2
+              },
+              {
+                "angle": "SIDE",
+                "baseline_scene": "res://repair_walk_stop_quality/f41eeed84c70416aa6bf23f2a7397a87/responsive_extracted_xbot.tscn",
+                "candidate_scene": "res://repair_walk_stop_quality/29c08bba54114511b32b6ffe47bda688/responsive_extracted_xbot.tscn",
+                "duration_s": 6.0,
+                "frames": 360,
+                "id": "xbot",
+                "reset_between_takes": true,
+                "start_s": 18.0,
+                "takes": 2
+              },
+              {
+                "angle": "FRONT",
+                "baseline_scene": "res://repair_walk_stop_quality/f41eeed84c70416aa6bf23f2a7397a87/responsive_extracted_short.tscn",
+                "candidate_scene": "res://repair_walk_stop_quality/29c08bba54114511b32b6ffe47bda688/responsive_extracted_short.tscn",
+                "duration_s": 6.0,
+                "frames": 360,
+                "id": "short",
+                "reset_between_takes": true,
+                "start_s": 24.0,
+                "takes": 2
+              },
+              {
+                "angle": "SIDE",
+                "baseline_scene": "res://repair_walk_stop_quality/f41eeed84c70416aa6bf23f2a7397a87/responsive_extracted_short.tscn",
+                "candidate_scene": "res://repair_walk_stop_quality/29c08bba54114511b32b6ffe47bda688/responsive_extracted_short.tscn",
+                "duration_s": 6.0,
+                "frames": 360,
+                "id": "short",
+                "reset_between_takes": true,
+                "start_s": 30.0,
+                "takes": 2
+              },
+              {
+                "angle": "FRONT",
+                "baseline_scene": "res://repair_walk_stop_quality/f41eeed84c70416aa6bf23f2a7397a87/responsive_extracted_zup_tall.tscn",
+                "candidate_scene": "res://repair_walk_stop_quality/29c08bba54114511b32b6ffe47bda688/responsive_extracted_zup_tall.tscn",
+                "duration_s": 6.0,
+                "frames": 360,
+                "id": "zup_tall",
+                "reset_between_takes": true,
+                "start_s": 36.0,
+                "takes": 2
+              },
+              {
+                "angle": "SIDE",
+                "baseline_scene": "res://repair_walk_stop_quality/f41eeed84c70416aa6bf23f2a7397a87/responsive_extracted_zup_tall.tscn",
+                "candidate_scene": "res://repair_walk_stop_quality/29c08bba54114511b32b6ffe47bda688/responsive_extracted_zup_tall.tscn",
+                "duration_s": 6.0,
+                "frames": 360,
+                "id": "zup_tall",
+                "reset_between_takes": true,
+                "start_s": 42.0,
+                "takes": 2
+              }
+            ],
+            "comparison": true,
+            "errors": [],
+            "fps": 60,
+            "frames": 2880,
+            "mode": "clean",
+            "operation": "walk_stop",
+            "profile": "responsive",
+            "revision": "start-stop-body-r002-responsive",
+            "root_consumers_per_view": 1,
+            "size": [
+              1920,
+              1080
+            ],
+            "source_head": "21d2eb7bbddcb63975e8a3b173372372b2481b5f",
+            "visual_approval": false
+          },
+          "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\preview-r002\\walk_stop\\responsive\\start-stop-body-r002-responsive-clean-overview.png",
+          "qa_samples": [
+            {
+              "frame": "000030.png",
+              "sha256": "242daa6e479a11f431c4381af26cf5eb6611513f132a590fcb1fec278d301bda"
+            },
+            {
+              "frame": "000150.png",
+              "sha256": "6f2b060fb7a88ff64a3a288d24ad2dac0de187f2c16c513f857fe06744b53455"
+            },
+            {
+              "frame": "000390.png",
+              "sha256": "1dc61bca6d35fd521724a2b3986b496b21d29651a74e9eb214c617998af9eb99"
+            },
+            {
+              "frame": "000510.png",
+              "sha256": "ee721c14b20fa82a0dc7a840b78affca26685947d8d17516d0d661d09573a8b7"
+            },
+            {
+              "frame": "000750.png",
+              "sha256": "4c961776230cbb94a1729f73003eb56c21aa18a6f5a297b61787eba22f333219"
+            },
+            {
+              "frame": "000870.png",
+              "sha256": "a22b97585b29d1731e9b07d6d05ccafd8edba33ecd6259c38445c5ff61256d66"
+            },
+            {
+              "frame": "001110.png",
+              "sha256": "72edec7ad1b7033d03c6ef1297eb9be0cdd38b5232583269a4c53faf934598f5"
+            },
+            {
+              "frame": "001230.png",
+              "sha256": "bd6681d414e1dcd8a8c1a816c03d841ddf9dd67d68723d2c39088870bd5e354f"
+            },
+            {
+              "frame": "001470.png",
+              "sha256": "ed3bf45ea1a6640e2e528586b79b58c74fc596f625fc8154ab3fb518bdb3ee0d"
+            },
+            {
+              "frame": "001590.png",
+              "sha256": "74ab0bd88b3081b67c213bda984fb964f1e1652dff7d372c9ad0eed0d2258fdf"
+            },
+            {
+              "frame": "001830.png",
+              "sha256": "94907f8e4674a15738eccd531e50a211a65afc40f2ffcd744d25bbfe8bb95d97"
+            },
+            {
+              "frame": "001950.png",
+              "sha256": "965342a5750da28d56891c992b801bd4b22499e3e3bfb952332db65aa3d8a100"
+            },
+            {
+              "frame": "002190.png",
+              "sha256": "17f3aa905f5b2e2247298eadb08509df51ecd33787feee95f7a030f771da0fcf"
+            },
+            {
+              "frame": "002310.png",
+              "sha256": "496154326ad2583e42a045bc428433c9970b2846e6940741bac500cf1bdbc0e6"
+            },
+            {
+              "frame": "002550.png",
+              "sha256": "73e5fd4dad5f8763ecfee4cab14335d7efae38c1697cbc5cadabdc53d66f3d86"
+            },
+            {
+              "frame": "002670.png",
+              "sha256": "655eaafff31521f9b754ba3e754cc9071f36af3ec1646df5362336baff4abe41"
+            }
+          ]
+        }
+      ],
+      "archives": {
+        "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\preview-r002\\animation-source.zip": "56aa905f8efc6bc101f0e961798675ca868f498efff42d7af11b2a57059496fe",
+        "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\preview-r002\\review-tooling-source.zip": "5aae46232c59c6a74a4db87939df2e4727d56c5ef65f977073e73161b6ad4597",
+        "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\preview-r002\\saved-scenes-and-local-rigs.zip": "b5e4a9e7e424e027092ece7c03bac47432edaa8c1cee0e3956ae83828b2d01ec"
+      },
+      "visual_approval": null,
+      "release_ready": false
+    },
+    "pc_delivery": {
+      "date": "2026-10-13",
+      "state": "opened_for_manual_review",
+      "folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\preview-r002\\review-videos",
+      "app": "process:C:\\Windows\\explorer.exe",
+      "window_id": 67370,
+      "title": "review-videos - File Explorer",
+      "observed_items": 3,
+      "selected_movie": "walk_start-body-r002-clean.mp4",
+      "selection_observed_in_screenshot": true,
+      "automatic_playback": false,
+      "visual_approval": null
+    }
   },
   "start_stop_revision_history": [
     {

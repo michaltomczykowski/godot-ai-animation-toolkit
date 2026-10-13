@@ -69,4 +69,12 @@ review. Only then close start/stop approval and advance the remaining roadmap.
 - Motion regression: 71/71 public editor tests pass, zero failures/skips.
 - Inert control: comparing r001 to itself is rejected on all four rigs with
   zero engine errors; the checker cannot call unchanged output a body revision.
-- Continuous movies: recording into `preview-r002`; original r001 unchanged.
+- Continuous movies: two clean comparisons completed, 2,880 decoded frames /
+  48 seconds each, 1080p60. Exact r001/r002 saved scenes, front/side cameras,
+  two reset-separated takes on all four rigs. Both capture error logs empty.
+- Delivery: PC Explorer observed on `preview-r002/review-videos`, start selected.
+  Three source/scene ZIPs pass CRC/hash checks; 48 saved scenes and 13 local rig
+  dependencies included. Both source ZIPs match protected fixtures' exact Git
+  blobs; all eleven working fixture hashes unchanged. Tooling source `d773c07`.
+- **Manual pause:** body response awaits explicit human feedback. No full
+  five-style/sequence acceptance or release; newer CI runs remain pending.

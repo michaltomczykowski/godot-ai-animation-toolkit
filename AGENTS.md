@@ -1,5 +1,34 @@
 # Agent notes
 
+## Start/stop body r002 delivered — manual review pause (2026-10-13)
+
+Two continuous Responsive r001/r002 clean MP4s are complete, fully decoded and
+observed in PC Explorer, with `walk_start-body-r002-clean` selected. Each is
+48s /2,880 frames /1080p60, front/side and two reset-separated takes on all four
+rigs. LEFT is r001; RIGHT is the transition-local pelvis/torso/head/arm revision.
+**Pause for explicit body-response feedback. No approval or release yet.**
+
+Source `21d2eb7`: 16 ordinary public clips pass dry/pose/Undo/Redo/save/reopen;
+96/96 Player/Tree quality plays at 30/60/120 FPS and 16/16 independent played
+body comparisons pass. Motion regression 71/71. Unchanged r001 output is rejected
+by the body checker on four rigs, with zero engine errors. Contact and actor
+schedules remain exact; all eleven accepted/historical fixtures unchanged.
+Code archives and 48 saved scenes plus 13 local rig dependencies pass ZIP CRCs,
+hashes and exact Git fixture-blob comparisons. All r001 media/evidence preserved.
+
+Recovery: `release_r2_start_stop_body_20261013/preview-r002/`. Main receipts:
+`review-delivery.json`, `pc-review-delivery.json`; native matrix is
+`native-e986854401f146b19fadfec22c069f4f/matrix.json`. Source/tooling archives
+are `animation-source.zip` / `review-tooling-source.zip` (tooling `d773c07`).
+Recorder completed; Godot 4.7.2 editor remains open. Initial connection timeout
+occurred before generation and is preserved separately; authenticated retry
+confirmed core/server 4.2.1. This is a focused Responsive feedback checkpoint.
+Full five-style/timing/sequence/reload/regression and exact-source Windows/Linux
+CI closure still follow feedback; newer CI runs are pending, not claimed green.
+Plan/ledger: `docs/start-stop-body-r002-plan.md`. Do not promote fixtures, redo
+accepted walk/run/idle or advance another motion set before feedback.
+
+
 ## Start/stop body feedback — r002 focused revision (2026-10-13)
 
 User says r001 is too stiff and the body needs to react, not only the legs.

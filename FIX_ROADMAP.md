@@ -1,5 +1,21 @@
 # Animation Toolkit repair roadmap
 
+## Start/stop body r002 delivered — manual review pause (2026-10-13)
+
+Two Responsive r001/r002 continuous comparisons are open in PC Explorer. The
+revision adds coordinated pelvis transfer, torso/head reaction and arm/wrist
+follow-through inside the transition, before reachable-foot planning/solving.
+16 ordinary public clips, 96 quality plays, 16 independent played body
+comparisons and 71 motion regression tests pass. Four inert controls reject
+unchanged output. Source/scenes/rigs/media are archived; all eleven protected
+fixtures unchanged. R001 feedback and delivery remain preserved.
+
+**Pause for explicit human body-response feedback.** Full five-style/timing/
+sequence/reload/regression, exact-source Windows/Linux CI and complete review
+pack still follow feedback. Newer CI is pending; no full start/stop approval
+or release. Plan and ledger: `docs/start-stop-body-r002-plan.md`.
+
+
 ## Start/stop body feedback — r002 focused revision (2026-10-13)
 
 User requests more body reaction in start/stop; r001 is not approved.
