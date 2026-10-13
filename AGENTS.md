@@ -1,5 +1,18 @@
 # Agent notes
 
+## R002 body feedback accepted — full closure resumed (2026-10-13)
+
+User says “yeah it's better, continue”. Approve the focused Responsive body
+revision with individual rig coverage unspecified; this does not approve other
+styles or sequence. Plan: `docs/start-stop-body-r002-closure-plan.md`. Complete
+80 ordinary public clips/480 native plays, timing, composition, core reload,
+controls and regression. Carry scoped approval forward only after fresh
+Responsive output matches the preview. Record 20 simultaneous front/side style
+movies (24s) plus two full sequence movies (88s), open Explorer and pause again.
+Preserve all earlier media/feedback and accepted walk/run/idle. No release.
+Preview CI a003d24 / Actions 38373939709 is green; collect its exact receipt.
+
+
 ## Start/stop body r002 delivered — manual review pause (2026-10-13)
 
 Two continuous Responsive r001/r002 clean MP4s are complete, fully decoded and

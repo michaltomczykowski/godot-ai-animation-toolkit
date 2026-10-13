@@ -1,5 +1,14 @@
 # Animation Toolkit repair roadmap
 
+## R002 focused body revision accepted — closure resumed (2026-10-13)
+
+User feedback: “yeah it's better, continue”. Remaining start/stop closure is
+planned in `docs/start-stop-body-r002-closure-plan.md`: all five styles, timing,
+sequence, core reload, regression/CI and the complete continuous review pack.
+Keep focused Responsive approval scoped and preserve earlier evidence. Pause
+for remaining-style/sequence feedback after PC video delivery; no release yet.
+
+
 ## Start/stop body r002 delivered — manual review pause (2026-10-13)
 
 Two Responsive r001/r002 continuous comparisons are open in PC Explorer. The

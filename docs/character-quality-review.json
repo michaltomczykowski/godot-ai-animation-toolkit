@@ -3,7 +3,7 @@
   "phase": "character_quality",
   "operation": "walk_start/walk_stop",
   "revision": "start-stop-body-r002",
-  "state": "awaiting_start_stop_body_feedback",
+  "state": "completing_start_stop_body_closure",
   "release_r1_execution": {
     "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -333,7 +333,7 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Pause for explicit human feedback on the two continuous Responsive body-response comparisons open in PC Explorer. Full style/sequence regression follows feedback.",
+  "next_action": "Complete the documented r002 closure, preserve scoped Responsive approval, then open full continuous movies and pause for feedback.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
   "updated_utc": "2026-10-11T19:15:07.420807+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -4390,7 +4390,7 @@
     }
   ],
   "start_stop_review": {
-    "state": "awaiting_start_stop_body_feedback",
+    "state": "completing_start_stop_body_closure",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013",
     "previous_revision": "start-stop-repair-r001",
     "previous_feedback": {
@@ -4422,8 +4422,10 @@
     },
     "sequence_approval": null,
     "remaining_gates": [
-      "explicit human body-response feedback",
-      "full five-style/timing/sequence/reload/regression and exact-source CI closure after feedback"
+      "five-style ordinary/playback/timing and preview parity",
+      "sequence/core reload/regression/CI",
+      "complete continuous movies",
+      "explicit remaining-style/sequence feedback"
     ],
     "focused_delivery": {
       "state": "awaiting_body_feedback",
@@ -4943,7 +4945,17 @@
       "selection_observed_in_screenshot": true,
       "automatic_playback": false,
       "visual_approval": null
-    }
+    },
+    "focused_human_feedback": {
+      "date": "2026-10-13",
+      "text": "yeah it's better, continue",
+      "decision": "approved_focused_body_revision",
+      "scope": "Responsive start/stop body-response preview; individual clip/rig coverage not specified",
+      "source": "21d2eb7bbddcb63975e8a3b173372372b2481b5f",
+      "full_style_or_sequence_approval": false
+    },
+    "closure_plan": "docs/start-stop-body-r002-closure-plan.md",
+    "closure_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002"
   },
   "start_stop_revision_history": [
     {
