@@ -92,3 +92,18 @@ No main merge, tag, release or media upload at this gate.
 - Headless: fourteen suites pass, exit zero and all fourteen pass markers.
 - Core reload is running; local full regression follows its public test closure.
 - Complete continuous media, exact-source CI receipt and PC delivery: pending.
+
+### Local editor startup guard repair
+
+The first complete local editor run passed all 397 tests with zero test engine
+or discovery errors, but correctly failed the overall gate: one registry probe
+ran while the core reported `importing`, producing ten blocked-route errors.
+The old harness stopped waiting after five seconds and proceeded without a
+readiness assertion. Raw logs/results and exit 1 are preserved in the closure
+root. The released core checkout remains clean at `bfc2642`.
+
+The CI harness now waits for three consecutive `ready` observations before
+each registry probe and before suite execution, with a 60-second deadline and
+explicit failure if readiness never arrives. It does not change core readiness
+or bypass the write block. Repeat the complete suite in `editor-retry-r002`;
+the original failed route gate remains in the evidence archive.

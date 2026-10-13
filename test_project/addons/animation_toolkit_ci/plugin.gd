@@ -41,12 +41,11 @@ func _run() -> void:
 	EditorInterface.open_scene_from_path(TEST_SCENE)
 	for _frame in 3:
 		await get_tree().process_frame
-	# The core reports "importing" while the editor finishes its first scan;
-	# writable custom tools correctly refuse dispatch during that window.
-	for _attempt in 50:
-		if McpConnection.get_readiness() != "importing":
-			break
-		await get_tree().create_timer(0.1).timeout
+	# Large preserved local fixture sets need more than the old five-second
+	# startup window. Wait for actual readiness; never dispatch through a block.
+	if not await _wait_for_ready("initial registry probe"):
+		get_tree().quit(1)
+		return
 	var route_errors := _verify_tool_routes()
 	# A core reload removes this addon's entries. The toolkit must notice the
 	# missing specs and restore every dispatcher route without an editor restart.
@@ -54,6 +53,9 @@ func _run() -> void:
 	if registry != null:
 		registry.call("unregister_source", TOOL_SOURCE)
 		await get_tree().create_timer(1.0).timeout
+		if not await _wait_for_ready("restored registry probe"):
+			get_tree().quit(1)
+			return
 		route_errors.append_array(_verify_tool_routes())
 
 	# The editor restores its last open scene after plugins enter the tree. On
@@ -69,6 +71,9 @@ func _run() -> void:
 			break
 	if not clean_scene:
 		print("CI_SUITE_FAIL: could not activate clean test scene %s" % TEST_SCENE)
+		get_tree().quit(1)
+		return
+	if not await _wait_for_ready("suite execution"):
 		get_tree().quit(1)
 		return
 
@@ -99,6 +104,22 @@ func _run() -> void:
 	else:
 		print("CI_SUITE_FAIL")
 		get_tree().quit(1)
+
+
+func _wait_for_ready(stage: String) -> bool:
+	var started := Time.get_ticks_msec()
+	var stable := 0
+	while Time.get_ticks_msec() - started < 60000:
+		if McpConnection.get_readiness() == "ready":
+			stable += 1
+			if stable >= 3:
+				print("CI_EDITOR_READY: %s after %dms" % [stage, Time.get_ticks_msec() - started])
+				return true
+		else:
+			stable = 0
+		await get_tree().create_timer(0.1).timeout
+	print("CI_SUITE_FAIL: editor was not ready for %s within 60s (%s)" % [stage, McpConnection.get_readiness()])
+	return false
 
 
 func _verify_tool_routes() -> Array:
