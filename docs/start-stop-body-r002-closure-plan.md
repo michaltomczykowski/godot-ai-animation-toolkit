@@ -119,3 +119,25 @@ errors, both 10-family/103-route probes and zero walk/run/idle golden drift.
 Startup readiness took 15,590 ms; restored probe 206 ms; suite readiness 96 ms.
 The old scan/transport warnings remain in preserved raw logs. All eleven
 protected files remain exact. Local `gates.json` now passes all required checks.
+
+## Delivery and manual pause
+
+- Twenty style movies complete: 24s /1,440 decoded frames each, simultaneous
+  front/side cameras, two complete reset-separated takes per rig, clean and
+  diagnostic modes. Four rigs and five styles on both start and stop.
+- Two full sequence movies complete: 88s /5,280 decoded frames each, 1080p60.
+  The original queue attempt stopped on a transient Windows progress-file read
+  before any sequence frames. It remains untouched. Bounded read-only retries
+  now handle a transient missing path; a permanent missing path still fails.
+  `sequence-recording-r003` holds fresh exact copies of the saved route/native
+  receipt and the completed captures; no scene/animation was regenerated.
+- Final CI `5df333a` / Actions `38415667286` green: 28 headless jobs, four
+  editor jobs 395/397 with only two named private-rig skips, both live routes
+  118/118, all required/advisory jobs pass. Exact merge/source/core identities
+  and six raw logs archived in `source-ci-5df333a`. Protected gait drift zero.
+- Four source/scene/evidence ZIPs verified, 423 saved-scene entries rehashed,
+  all 22 movie copies checked. Thirteen rig dependencies and eleven protected
+  working fixtures unchanged; both source ZIPs match their canonical Git blobs.
+- PC Explorer observed with all 22 videos and the sequence clean selected.
+  Scoped Responsive approval preserved; remaining-style/sequence feedback is
+  pending. **Pause here for explicit human review. No release or promotion.**

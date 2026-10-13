@@ -1,5 +1,51 @@
 # Agent notes
 
+## R002 full start/stop pack delivered — pause for review (2026-10-13)
+
+All **22 continuous MP4s** are complete, fully decoded and observed in PC
+Explorer on `closure-r002/candidate-r002/review-videos`; the full sequence clean
+movie is selected. Twenty style movies are 24s /1,440 frames, simultaneous
+front/side and two reset-separated complete takes per rig. Two sequence movies
+are 88s /5,280 frames. All are 1080p60, with clean/diagnostic pairs and four rigs.
+**Pause for remaining-style and complete-sequence feedback. No release yet.**
+
+User's “yeah it's better, continue” approval of the focused Responsive body
+revision is preserved, with individual rig coverage unspecified. Fresh
+Responsive authored channels and 96 played Player/Tree/FPS comparisons match
+that preview exactly. Full profile/sequence approvals remain pending.
+
+Source `12ab9c9`: 80 ordinary public clips /480 native plays pass with zero
+clamps, root error and engine errors. Timing: 96 requests, 91 accepted clips
+/546 plays, five typed nonmutating refusals. Four public sequences /24 plays,
+160 actual core-reload dry calls, 288 positive/shifted continuation controls and
+48 deliberate double-travel detections pass. Ten enabled families/eight promoted
+tools/103 choices remain accessible. Public motion 71/71, sequence 3/3, fourteen
+headless suites and full local editor 397/397 pass; protected gait drift zero.
+
+Final source CI `5df333a`, Actions **38415667286**, is green: 28 headless jobs,
+four editors 395/397 with only two named private-X-Bot skips, both live routes
+118/118, pinned core `bfc2642`, all required/advisory jobs pass. Exact tested
+merge/source trees, core identities and six raw logs are archived. Both source
+ZIPs contain exact Git blobs for eleven protected fixtures; working hashes
+unchanged. Four ZIPs pass CRC/hash checks, 423 saved scenes verified, local rig
+dependencies preserved. Independent delivery integrity passes all 22 copies.
+
+Recovery: `release_r2_start_stop_body_20261013/closure-r002/`. Receipts:
+`candidate-r002/review-delivery.json`, `independent-delivery-integrity.json`,
+`pc-review-delivery.json`, `gates.json`, `preview-parity.json`, `source-ci-5df333a`.
+Recorded sequence media is in `sequence-recording-r003` (source `10941ba`).
+Renderer dependencies match `10941ba` and final CI source. Captures are finished.
+
+Preserve failed attempts: original editor ran all 397 tests but a registry probe
+hit `importing`; second attempt timed out scanning historical fixtures. CI now
+waits for actual stable readiness and fails explicitly after 60s. Clean isolated
+project `repair_r2_clean_validation_20261013` passed every local gate. Original
+sequence queue stopped on a transient progress-file read before any frames;
+bounded read-only retries are fixed and fresh capture succeeds. No animation
+mutation/retry, gate bypass or discarded error. Plan/ledger:
+`docs/start-stop-body-r002-closure-plan.md`. Continue after explicit feedback.
+
+
 ## R002 body feedback accepted — full closure resumed (2026-10-13)
 
 User says “yeah it's better, continue”. Approve the focused Responsive body

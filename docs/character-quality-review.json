@@ -3,7 +3,7 @@
   "phase": "character_quality",
   "operation": "walk_start/walk_stop",
   "revision": "start-stop-body-r002",
-  "state": "completing_start_stop_body_closure",
+  "state": "awaiting_start_stop_feedback",
   "release_r1_execution": {
     "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -333,7 +333,7 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Complete the documented r002 closure, preserve scoped Responsive approval, then open full continuous movies and pause for feedback.",
+  "next_action": "Pause for explicit feedback on remaining start/stop styles and the full sequence. PC Explorer is open on all 22 movies, sequence clean selected. Scoped Responsive body approval is preserved.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
   "updated_utc": "2026-10-11T19:15:07.420807+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -4390,7 +4390,7 @@
     }
   ],
   "start_stop_review": {
-    "state": "completing_start_stop_body_closure",
+    "state": "awaiting_start_stop_feedback",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013",
     "previous_revision": "start-stop-repair-r001",
     "previous_feedback": {
@@ -4422,10 +4422,8 @@
     },
     "sequence_approval": null,
     "remaining_gates": [
-      "five-style ordinary/playback/timing and preview parity",
-      "sequence/core reload/regression/CI",
-      "complete continuous movies",
-      "explicit remaining-style/sequence feedback"
+      "explicit remaining-style and complete-sequence feedback",
+      "approval/regression closure before the remaining R2-R5 phases"
     ],
     "focused_delivery": {
       "state": "awaiting_body_feedback",
@@ -4936,12 +4934,13 @@
     "pc_delivery": {
       "date": "2026-10-13",
       "state": "opened_for_manual_review",
-      "folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\preview-r002\\review-videos",
+      "folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos",
       "app": "process:C:\\Windows\\explorer.exe",
       "window_id": 67370,
       "title": "review-videos - File Explorer",
-      "observed_items": 3,
-      "selected_movie": "walk_start-body-r002-clean.mp4",
+      "observed_items": 23,
+      "videos": 22,
+      "selected_movie": "animation_sequence-responsive-clean.mp4",
       "selection_observed_in_screenshot": true,
       "automatic_playback": false,
       "visual_approval": null
@@ -4957,7 +4956,7 @@
     "closure_plan": "docs/start-stop-body-r002-closure-plan.md",
     "closure_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002",
     "closure_checkpoint": {
-      "state": "recording_and_timing_in_progress",
+      "state": "delivered_awaiting_remaining_style_sequence_feedback",
       "public_clips": 80,
       "ordinary_native_runs": 480,
       "preview_parity_runs": 96,
@@ -4968,8 +4967,3146 @@
       "protected_fixtures": 11,
       "animation_source": "12ab9c9c128a5673447b4e6826a71741e06b6397",
       "visual_approval": null,
-      "release_ready": false
-    }
+      "release_ready": false,
+      "timing_requests": 96,
+      "timing_clips": 91,
+      "timing_native_runs": 546,
+      "typed_nonmutating_refusals": 5,
+      "reload_dry_calls": 160,
+      "editor_tests": 397,
+      "editor_failed": 0,
+      "public_motion_tests": 71,
+      "public_sequence_tests": 3,
+      "headless_suites": 14,
+      "remaining": "explicit remaining-style and complete-sequence feedback",
+      "movies_verified": 22,
+      "archives_verified": 4,
+      "saved_scene_entries": 423,
+      "final_ci_source": "5df333a26995a16ec8418736226ec7d1e666de93",
+      "final_ci_run": 38415667286
+    },
+    "animation_source": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+    "review_delivery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-delivery.json",
+    "videos": [
+      {
+        "operation": "walk_start",
+        "style": "responsive",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_start-responsive-clean.mp4",
+        "sha256": "8a935a7760548df35592d3e5dbc7db97f50e752ecbd08304fd4d28c711cf8e63",
+        "bytes": 5315827,
+        "decoded_frames": 1440,
+        "decoded_duration_s": 24.0,
+        "metadata": [
+          "Duration: 00:00:24.00, start: 0.000000, bitrate: 1771 kb/s",
+          "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1766 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+          "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+        ],
+        "encode_command": [
+          "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-y",
+          "-framerate",
+          "60",
+          "-i",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\responsive\\clean_frames\\%06d.png",
+          "-frames:v",
+          "1440",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-threads",
+          "2",
+          "-preset",
+          "medium",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\responsive\\start-stop-body-full-r002-responsive-clean.mp4"
+        ],
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/responsive_extracted_dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/responsive_extracted_xbot.tscn",
+              "start_s": 6.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/responsive_extracted_short.tscn",
+              "start_s": 12.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/responsive_extracted_zup_tall.tscn",
+              "start_s": 18.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 1440,
+          "layout": "simultaneous_front_side",
+          "mode": "clean",
+          "operation": "walk_start",
+          "profile": "responsive",
+          "revision": "start-stop-body-full-r002-responsive",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+          "visual_approval": false
+        },
+        "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\responsive\\start-stop-body-full-r002-responsive-clean-overview.png",
+        "qa_samples": [
+          {
+            "frame": "000030.png",
+            "sha256": "00d2d10d6730caab357ad5527896a2e81379a5528b69dc3ab311cf0d9a470561"
+          },
+          {
+            "frame": "000150.png",
+            "sha256": "25ab4d19d822f68f73e28a741e138a60bd6f76af374dd57aaae145acc42db00c"
+          },
+          {
+            "frame": "000390.png",
+            "sha256": "db27c3b5002673bbef57a41588f94e2bd39ad8106bb21b2dfa05c22157ea60dc"
+          },
+          {
+            "frame": "000510.png",
+            "sha256": "e01565f79cd19269c957cd884a1ca30dcee03bdd124e4117edb6408223dc138f"
+          },
+          {
+            "frame": "000750.png",
+            "sha256": "b24667151686d4ca7d41b822e4cc66d7de7e4fa0888ba43488fabf85b5126f9a"
+          },
+          {
+            "frame": "000870.png",
+            "sha256": "b46da012d3c67bce0e0065e96e97f551a8e1668f801f99b9bc63c28636646cb6"
+          },
+          {
+            "frame": "001110.png",
+            "sha256": "143164182c7fd74d8223863675aaedf22f4829ab3fbe89b1a5cb85902402b2ff"
+          },
+          {
+            "frame": "001230.png",
+            "sha256": "9538ca409945b4971db27e9b340678b2dc7ae43a4417437955a9273ef5cb26f9"
+          }
+        ]
+      },
+      {
+        "operation": "walk_start",
+        "style": "responsive",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_start-responsive-diagnostic.mp4",
+        "sha256": "194bc4bf9c6aca5c9a60fc6b206def3308715bd5aa7bc7dc2c69721b101fe943",
+        "bytes": 5472669,
+        "decoded_frames": 1440,
+        "decoded_duration_s": 24.0,
+        "metadata": [
+          "Duration: 00:00:24.00, start: 0.000000, bitrate: 1824 kb/s",
+          "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1818 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+          "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+        ],
+        "encode_command": [
+          "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-y",
+          "-framerate",
+          "60",
+          "-i",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\responsive\\diagnostic_frames\\%06d.png",
+          "-frames:v",
+          "1440",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-threads",
+          "2",
+          "-preset",
+          "medium",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\responsive\\start-stop-body-full-r002-responsive-diagnostic.mp4"
+        ],
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/responsive_extracted_dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/responsive_extracted_xbot.tscn",
+              "start_s": 6.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/responsive_extracted_short.tscn",
+              "start_s": 12.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/responsive_extracted_zup_tall.tscn",
+              "start_s": 18.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 1440,
+          "layout": "simultaneous_front_side",
+          "mode": "diagnostic",
+          "operation": "walk_start",
+          "profile": "responsive",
+          "revision": "start-stop-body-full-r002-responsive",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+          "visual_approval": false
+        },
+        "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\responsive\\start-stop-body-full-r002-responsive-diagnostic-overview.png",
+        "qa_samples": [
+          {
+            "frame": "000030.png",
+            "sha256": "d70091cebcc9bb519fdf40e31f66ea12e6337b076173757256e1ada750f40c98"
+          },
+          {
+            "frame": "000150.png",
+            "sha256": "5f6c8e56b0e8eb240e1d7963de5c9e6c194e6b88169121f1297d0c230a670d20"
+          },
+          {
+            "frame": "000390.png",
+            "sha256": "9fcb5dc98c215511a7ea82337be3e0079a6b60653ff090387196a6856acc8cc0"
+          },
+          {
+            "frame": "000510.png",
+            "sha256": "9988b107ef3f77244d1e6c0ea4724af18acde2065fbae146bc0c238f16fbf29b"
+          },
+          {
+            "frame": "000750.png",
+            "sha256": "db2c81f45345499b0c26aeb1fb4a18de6285ed7c4a762d32a3e5068c8ecfc9e8"
+          },
+          {
+            "frame": "000870.png",
+            "sha256": "e5688c6ec975aab73718a1710071bfc5a6bc364fe6cc563f8c2883af2f77439f"
+          },
+          {
+            "frame": "001110.png",
+            "sha256": "018345d5ee45c4d78d318ba6a255d98a2a0cf7ac65920b92d6ea2b30ef24e5ea"
+          },
+          {
+            "frame": "001230.png",
+            "sha256": "71f5d6cf86b0a80993ada9239e5fc24287bc6ce325f7cddfd72005552b3e928c"
+          }
+        ]
+      },
+      {
+        "operation": "walk_start",
+        "style": "grounded",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_start-grounded-clean.mp4",
+        "sha256": "1f5bf10a5241c37593ae7871a050a64797e340cee3557a34b88bce2f9f3bb470",
+        "bytes": 5280473,
+        "decoded_frames": 1440,
+        "decoded_duration_s": 24.0,
+        "metadata": [
+          "Duration: 00:00:24.00, start: 0.000000, bitrate: 1760 kb/s",
+          "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1754 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+          "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+        ],
+        "encode_command": [
+          "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-y",
+          "-framerate",
+          "60",
+          "-i",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\grounded\\clean_frames\\%06d.png",
+          "-frames:v",
+          "1440",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-threads",
+          "2",
+          "-preset",
+          "medium",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\grounded\\start-stop-body-full-r002-grounded-clean.mp4"
+        ],
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/grounded_extracted_dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/grounded_extracted_xbot.tscn",
+              "start_s": 6.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/grounded_extracted_short.tscn",
+              "start_s": 12.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/grounded_extracted_zup_tall.tscn",
+              "start_s": 18.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 1440,
+          "layout": "simultaneous_front_side",
+          "mode": "clean",
+          "operation": "walk_start",
+          "profile": "grounded",
+          "revision": "start-stop-body-full-r002-grounded",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+          "visual_approval": false
+        },
+        "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\grounded\\start-stop-body-full-r002-grounded-clean-overview.png",
+        "qa_samples": [
+          {
+            "frame": "000030.png",
+            "sha256": "e306bafb595f39a038cabe7034423b6db1c79ac72afb059df77531b2c7888bb1"
+          },
+          {
+            "frame": "000150.png",
+            "sha256": "f2a2b8418751205800d0e6d9df9e7959d2dc8e5b6fde5de3bf9a29d1adb9e07a"
+          },
+          {
+            "frame": "000390.png",
+            "sha256": "df63634c09cdd5bfb043c43f6b197c2bce165d6f4a94b24c2e62e05eed13c9ce"
+          },
+          {
+            "frame": "000510.png",
+            "sha256": "041c1ec71efa6820b5931907712df63042404c1fdf1630e5b55365d17e716828"
+          },
+          {
+            "frame": "000750.png",
+            "sha256": "9d1433e150686e8d24f2d52179e0b4c3b55361b027ed4cd845ad524ecc17bae3"
+          },
+          {
+            "frame": "000870.png",
+            "sha256": "3003ce7aefb1a6b620e18706696a022c4679e4150bdb412b4b667cfd65329df6"
+          },
+          {
+            "frame": "001110.png",
+            "sha256": "28600d13fb69e828dde0108155e58fd43fba13f0fef09e9b416bd4bcbc106720"
+          },
+          {
+            "frame": "001230.png",
+            "sha256": "87dcdbb46ce634dd74754e708de3f150f7467d034f0d76cec6c04eec720fc782"
+          }
+        ]
+      },
+      {
+        "operation": "walk_start",
+        "style": "grounded",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_start-grounded-diagnostic.mp4",
+        "sha256": "3803889a7d5dbc81cb57cc3c0a2c2e50638bb9bb3e7bb42b37927a0c3b28f986",
+        "bytes": 5392964,
+        "decoded_frames": 1440,
+        "decoded_duration_s": 24.0,
+        "metadata": [
+          "Duration: 00:00:24.00, start: 0.000000, bitrate: 1797 kb/s",
+          "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1792 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+          "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+        ],
+        "encode_command": [
+          "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-y",
+          "-framerate",
+          "60",
+          "-i",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\grounded\\diagnostic_frames\\%06d.png",
+          "-frames:v",
+          "1440",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-threads",
+          "2",
+          "-preset",
+          "medium",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\grounded\\start-stop-body-full-r002-grounded-diagnostic.mp4"
+        ],
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/grounded_extracted_dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/grounded_extracted_xbot.tscn",
+              "start_s": 6.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/grounded_extracted_short.tscn",
+              "start_s": 12.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/grounded_extracted_zup_tall.tscn",
+              "start_s": 18.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 1440,
+          "layout": "simultaneous_front_side",
+          "mode": "diagnostic",
+          "operation": "walk_start",
+          "profile": "grounded",
+          "revision": "start-stop-body-full-r002-grounded",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+          "visual_approval": false
+        },
+        "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\grounded\\start-stop-body-full-r002-grounded-diagnostic-overview.png",
+        "qa_samples": [
+          {
+            "frame": "000030.png",
+            "sha256": "991a72231401d8c903872e0b11cc02bfd2319afd8ddfbfbc7158dd23fa7d4ccf"
+          },
+          {
+            "frame": "000150.png",
+            "sha256": "15949ca50ce017f4ee40142969bcf2c27eb023bc0756f375ebf39d932744fc5f"
+          },
+          {
+            "frame": "000390.png",
+            "sha256": "6c5f5fe4c2ec6b2382a19199d055fe83508865c3647a8f9be3d759656eef6861"
+          },
+          {
+            "frame": "000510.png",
+            "sha256": "3ffa33b8c38889798b6e8c44d9cf598ad61c6fdcde5b189712b20f9616b26194"
+          },
+          {
+            "frame": "000750.png",
+            "sha256": "77b4156fcb5aecb8b5661acfdd2d1f0821e5f98a88bd60d7e79959abc3e960e1"
+          },
+          {
+            "frame": "000870.png",
+            "sha256": "1df84c56fdca5d08c066691eec4bdc0ad3d6f6d006fe658bb9e22fc371cb93c3"
+          },
+          {
+            "frame": "001110.png",
+            "sha256": "f3416fee925353d3416e0c3328c10fdf332515bd6083e797b127f2fb3abe49bb"
+          },
+          {
+            "frame": "001230.png",
+            "sha256": "568a51fa8fc0bfcd8ec0b18fbc7a3cd13ef6ec0768914a8c942db17741d1d75c"
+          }
+        ]
+      },
+      {
+        "operation": "walk_start",
+        "style": "relaxed",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_start-relaxed-clean.mp4",
+        "sha256": "ea5dc42e341113ca5033e936773e860e3eaf03ecb0251e1bf120e5b63dbcb14c",
+        "bytes": 5225791,
+        "decoded_frames": 1440,
+        "decoded_duration_s": 24.0,
+        "metadata": [
+          "Duration: 00:00:24.00, start: 0.000000, bitrate: 1741 kb/s",
+          "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1736 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+          "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+        ],
+        "encode_command": [
+          "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-y",
+          "-framerate",
+          "60",
+          "-i",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\relaxed\\clean_frames\\%06d.png",
+          "-frames:v",
+          "1440",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-threads",
+          "2",
+          "-preset",
+          "medium",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\relaxed\\start-stop-body-full-r002-relaxed-clean.mp4"
+        ],
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/relaxed_extracted_dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/relaxed_extracted_xbot.tscn",
+              "start_s": 6.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/relaxed_extracted_short.tscn",
+              "start_s": 12.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/relaxed_extracted_zup_tall.tscn",
+              "start_s": 18.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 1440,
+          "layout": "simultaneous_front_side",
+          "mode": "clean",
+          "operation": "walk_start",
+          "profile": "relaxed",
+          "revision": "start-stop-body-full-r002-relaxed",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+          "visual_approval": false
+        },
+        "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\relaxed\\start-stop-body-full-r002-relaxed-clean-overview.png",
+        "qa_samples": [
+          {
+            "frame": "000030.png",
+            "sha256": "197c24e19225f369d8f2b220fc5e22ba83e6f8769f26c4ed3b0918c75a960179"
+          },
+          {
+            "frame": "000150.png",
+            "sha256": "7eafba3c298a446cbe2ae914b4febe621f7e1ce668032af8836de3355df12239"
+          },
+          {
+            "frame": "000390.png",
+            "sha256": "60c47bfe576bebc256bd7273850ee145b2b5c5cacfd8c0206391765a622dd3ac"
+          },
+          {
+            "frame": "000510.png",
+            "sha256": "fb413491e696c03355545426c445d5b5c57d18aabddc3797db7ed551d65bc0af"
+          },
+          {
+            "frame": "000750.png",
+            "sha256": "60d6f0e820ef1d916fe4f1a7726810d795583329c915124067cb04a6436c5051"
+          },
+          {
+            "frame": "000870.png",
+            "sha256": "27b26c90ad2ac48ee564c286bf1255cc84167963e354b73520a76d1f9dbe735a"
+          },
+          {
+            "frame": "001110.png",
+            "sha256": "5c9b69abda330b513bbf6ea133ba157e8dccc468b5e5fbc2b5834890f07a7b11"
+          },
+          {
+            "frame": "001230.png",
+            "sha256": "4a6b091b6019de30df5157d0c468f175abf0e5ade6b91f8c0a5786801ba3b9c8"
+          }
+        ]
+      },
+      {
+        "operation": "walk_start",
+        "style": "relaxed",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_start-relaxed-diagnostic.mp4",
+        "sha256": "9f702adb22fb39e31b6f26cb3b1e217c1eaa9b47805fe663e65736fa8fded191",
+        "bytes": 5356722,
+        "decoded_frames": 1440,
+        "decoded_duration_s": 24.0,
+        "metadata": [
+          "Duration: 00:00:24.00, start: 0.000000, bitrate: 1785 kb/s",
+          "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1779 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+          "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+        ],
+        "encode_command": [
+          "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-y",
+          "-framerate",
+          "60",
+          "-i",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\relaxed\\diagnostic_frames\\%06d.png",
+          "-frames:v",
+          "1440",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-threads",
+          "2",
+          "-preset",
+          "medium",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\relaxed\\start-stop-body-full-r002-relaxed-diagnostic.mp4"
+        ],
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/relaxed_extracted_dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/relaxed_extracted_xbot.tscn",
+              "start_s": 6.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/relaxed_extracted_short.tscn",
+              "start_s": 12.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/relaxed_extracted_zup_tall.tscn",
+              "start_s": 18.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 1440,
+          "layout": "simultaneous_front_side",
+          "mode": "diagnostic",
+          "operation": "walk_start",
+          "profile": "relaxed",
+          "revision": "start-stop-body-full-r002-relaxed",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+          "visual_approval": false
+        },
+        "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\relaxed\\start-stop-body-full-r002-relaxed-diagnostic-overview.png",
+        "qa_samples": [
+          {
+            "frame": "000030.png",
+            "sha256": "0bedf48d2efb7627cd732198f0cf02eb888a480dc684ffcdd22461af25a18ad8"
+          },
+          {
+            "frame": "000150.png",
+            "sha256": "29565c95f1c6fa8efe6c92567ef7cc8dbaa35476b0093b14d025c95099e92db4"
+          },
+          {
+            "frame": "000390.png",
+            "sha256": "839760a3d4aab864f75883e40380eaefe5a8bc70e2e79bcbaa7eba748af8bcfe"
+          },
+          {
+            "frame": "000510.png",
+            "sha256": "eb7061a41fa3c8374182fff0e73022956ca7722ab42d732bd4654dee22e58eec"
+          },
+          {
+            "frame": "000750.png",
+            "sha256": "61ff3859727d2f682db302e83d57deb0165770fb5c4d40eef01b83293d706c31"
+          },
+          {
+            "frame": "000870.png",
+            "sha256": "1f82ec508f6729a46380479fd0ccf7f429061878c9e076da73b55023a870798a"
+          },
+          {
+            "frame": "001110.png",
+            "sha256": "284864e02d6aabfe9e87f2ab67d76b5c5447597b72893bc0c03024f2a0184e34"
+          },
+          {
+            "frame": "001230.png",
+            "sha256": "ff3e3a81c8dc51845cd05c3ac3ef4a49e959ab21f7f330fb3ee18ecc3318d058"
+          }
+        ]
+      },
+      {
+        "operation": "walk_start",
+        "style": "heavy",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_start-heavy-clean.mp4",
+        "sha256": "f8535d0497434b24bb74e529caa43de2b2a762a00d7848aab29848aac301f4f0",
+        "bytes": 5270295,
+        "decoded_frames": 1440,
+        "decoded_duration_s": 24.0,
+        "metadata": [
+          "Duration: 00:00:24.00, start: 0.000000, bitrate: 1756 kb/s",
+          "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1751 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+          "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+        ],
+        "encode_command": [
+          "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-y",
+          "-framerate",
+          "60",
+          "-i",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\heavy\\clean_frames\\%06d.png",
+          "-frames:v",
+          "1440",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-threads",
+          "2",
+          "-preset",
+          "medium",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\heavy\\start-stop-body-full-r002-heavy-clean.mp4"
+        ],
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/heavy_extracted_dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/heavy_extracted_xbot.tscn",
+              "start_s": 6.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/heavy_extracted_short.tscn",
+              "start_s": 12.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/heavy_extracted_zup_tall.tscn",
+              "start_s": 18.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 1440,
+          "layout": "simultaneous_front_side",
+          "mode": "clean",
+          "operation": "walk_start",
+          "profile": "heavy",
+          "revision": "start-stop-body-full-r002-heavy",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+          "visual_approval": false
+        },
+        "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\heavy\\start-stop-body-full-r002-heavy-clean-overview.png",
+        "qa_samples": [
+          {
+            "frame": "000030.png",
+            "sha256": "790a138cb0b77aec86db9fbd01697f50b2811d1209058909b3abdc27ae520177"
+          },
+          {
+            "frame": "000150.png",
+            "sha256": "3cf47ef5ed129de8a65e482d319356e0e6c432d95b6e7d34dcb0fbc4465d05d0"
+          },
+          {
+            "frame": "000390.png",
+            "sha256": "1a0d52c3b8b388d3092c5db0113147820ffcdfa04cc4c3091a051bf3399d4975"
+          },
+          {
+            "frame": "000510.png",
+            "sha256": "2f43a8caf8e947d42f21e975ab4889d7b076731f42ffa02fb376fdee6195216c"
+          },
+          {
+            "frame": "000750.png",
+            "sha256": "2036f8f5a1a13ba2bdc947fcd971960d7aac2f49c4794676d78bcae9d8405a12"
+          },
+          {
+            "frame": "000870.png",
+            "sha256": "1447d567a030e3016acc2fca3b5e41e42fed2ee38573eecf88c1ce1c4eb022aa"
+          },
+          {
+            "frame": "001110.png",
+            "sha256": "c5bbe7074e1d44c7388c802ca4d940b14f5fda0988e669c2d0f1b54cae355d1f"
+          },
+          {
+            "frame": "001230.png",
+            "sha256": "2cbfe4e5a2ffc0cb6aaa09527c47383f8072843eb8bbcdd0fe11f303e2b90ab8"
+          }
+        ]
+      },
+      {
+        "operation": "walk_start",
+        "style": "heavy",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_start-heavy-diagnostic.mp4",
+        "sha256": "4eb2cbc51c391bcf7800d3852cb7d7dc6592bb79634f45d93f53010d4d311a36",
+        "bytes": 5394960,
+        "decoded_frames": 1440,
+        "decoded_duration_s": 24.0,
+        "metadata": [
+          "Duration: 00:00:24.00, start: 0.000000, bitrate: 1798 kb/s",
+          "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1792 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+          "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+        ],
+        "encode_command": [
+          "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-y",
+          "-framerate",
+          "60",
+          "-i",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\heavy\\diagnostic_frames\\%06d.png",
+          "-frames:v",
+          "1440",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-threads",
+          "2",
+          "-preset",
+          "medium",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\heavy\\start-stop-body-full-r002-heavy-diagnostic.mp4"
+        ],
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/heavy_extracted_dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/heavy_extracted_xbot.tscn",
+              "start_s": 6.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/heavy_extracted_short.tscn",
+              "start_s": 12.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/heavy_extracted_zup_tall.tscn",
+              "start_s": 18.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 1440,
+          "layout": "simultaneous_front_side",
+          "mode": "diagnostic",
+          "operation": "walk_start",
+          "profile": "heavy",
+          "revision": "start-stop-body-full-r002-heavy",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+          "visual_approval": false
+        },
+        "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\heavy\\start-stop-body-full-r002-heavy-diagnostic-overview.png",
+        "qa_samples": [
+          {
+            "frame": "000030.png",
+            "sha256": "6f3cbdf265932c3dfdbebe8f535f284f94a8376c0e73481ec98fea2583ed1eea"
+          },
+          {
+            "frame": "000150.png",
+            "sha256": "fb7a36d505dc54133b61a985c131c44e8cbf7213e84256926e600a406f461fb3"
+          },
+          {
+            "frame": "000390.png",
+            "sha256": "0bd138b853538f934137071a5317b0e9cfe51d3bd43d266cc7ed05c524583274"
+          },
+          {
+            "frame": "000510.png",
+            "sha256": "12faeb20c7255a7f5d728e3296d40c6286274270ae4ae39f17324aca7b289e12"
+          },
+          {
+            "frame": "000750.png",
+            "sha256": "0f4d4e5eb0ae6d0022dbd8e0d22edfdd775a935a13af01e9e2a37b90fec33d46"
+          },
+          {
+            "frame": "000870.png",
+            "sha256": "55ada8ea53d3c6afa7f24050374ea97d406c76f8b826a053fc549e55428edc75"
+          },
+          {
+            "frame": "001110.png",
+            "sha256": "576a1db837a4ebeed978048105a04d1112670ee974dddeac22d7db412becb482"
+          },
+          {
+            "frame": "001230.png",
+            "sha256": "a51ab039f7393577bb3bf8c8c5e1bfeca3aaab820d7e3645c32e55f13e9ee4c9"
+          }
+        ]
+      },
+      {
+        "operation": "walk_start",
+        "style": "sneaky",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_start-sneaky-clean.mp4",
+        "sha256": "1c42db54339cfae2031375453ae234f2790dd2d77f88f65a675faa465a82b0fb",
+        "bytes": 5039098,
+        "decoded_frames": 1440,
+        "decoded_duration_s": 24.0,
+        "metadata": [
+          "Duration: 00:00:24.00, start: 0.000000, bitrate: 1679 kb/s",
+          "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1674 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+          "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+        ],
+        "encode_command": [
+          "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-y",
+          "-framerate",
+          "60",
+          "-i",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\sneaky\\clean_frames\\%06d.png",
+          "-frames:v",
+          "1440",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-threads",
+          "2",
+          "-preset",
+          "medium",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\sneaky\\start-stop-body-full-r002-sneaky-clean.mp4"
+        ],
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/sneaky_extracted_dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/sneaky_extracted_xbot.tscn",
+              "start_s": 6.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/sneaky_extracted_short.tscn",
+              "start_s": 12.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/sneaky_extracted_zup_tall.tscn",
+              "start_s": 18.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 1440,
+          "layout": "simultaneous_front_side",
+          "mode": "clean",
+          "operation": "walk_start",
+          "profile": "sneaky",
+          "revision": "start-stop-body-full-r002-sneaky",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+          "visual_approval": false
+        },
+        "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\sneaky\\start-stop-body-full-r002-sneaky-clean-overview.png",
+        "qa_samples": [
+          {
+            "frame": "000030.png",
+            "sha256": "0940e607aa27c8daad64aa4fdaca988cbe88d0e37f93785d69a5590b7bea0b79"
+          },
+          {
+            "frame": "000150.png",
+            "sha256": "26051f59a40e464ba0db28f0294ca00b0e7e5a4b900a8406e2c2b121f20bed53"
+          },
+          {
+            "frame": "000390.png",
+            "sha256": "56e7241505a4bd9f99e75fb7871c1fc82641b4e764bc0a29695fa6907121582f"
+          },
+          {
+            "frame": "000510.png",
+            "sha256": "031077ae71279bd72a1e4cc03cba6b85c0545d3a1899d5e562f79831331fcfcf"
+          },
+          {
+            "frame": "000750.png",
+            "sha256": "770c820c0348ec7f952bf7b96ae9ac441109cf391cd4cf07677dc713bfe72bcf"
+          },
+          {
+            "frame": "000870.png",
+            "sha256": "ac2adbb691237c5529b67e630fd130d65886b9385573708d4520b1c751413a9e"
+          },
+          {
+            "frame": "001110.png",
+            "sha256": "e4466ae305e15e1081accd8ed2078019f58af1e4c9d0bba28ec8472318c8f688"
+          },
+          {
+            "frame": "001230.png",
+            "sha256": "e0a0f912f304a71afb8093f468dc1f74e435143ff75ed4999352a44e558257f3"
+          }
+        ]
+      },
+      {
+        "operation": "walk_start",
+        "style": "sneaky",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_start-sneaky-diagnostic.mp4",
+        "sha256": "c46df230835086766d6533cc71b2d7ff1de3cdb51248a9976413cc83f9572d7c",
+        "bytes": 5145743,
+        "decoded_frames": 1440,
+        "decoded_duration_s": 24.0,
+        "metadata": [
+          "Duration: 00:00:24.00, start: 0.000000, bitrate: 1715 kb/s",
+          "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1709 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+          "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+        ],
+        "encode_command": [
+          "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-y",
+          "-framerate",
+          "60",
+          "-i",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\sneaky\\diagnostic_frames\\%06d.png",
+          "-frames:v",
+          "1440",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-threads",
+          "2",
+          "-preset",
+          "medium",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\sneaky\\start-stop-body-full-r002-sneaky-diagnostic.mp4"
+        ],
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/sneaky_extracted_dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/sneaky_extracted_xbot.tscn",
+              "start_s": 6.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/sneaky_extracted_short.tscn",
+              "start_s": 12.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_start_quality/afcee4eda69641c2b3fa12f6747a9e08/sneaky_extracted_zup_tall.tscn",
+              "start_s": 18.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 1440,
+          "layout": "simultaneous_front_side",
+          "mode": "diagnostic",
+          "operation": "walk_start",
+          "profile": "sneaky",
+          "revision": "start-stop-body-full-r002-sneaky",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+          "visual_approval": false
+        },
+        "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_start\\sneaky\\start-stop-body-full-r002-sneaky-diagnostic-overview.png",
+        "qa_samples": [
+          {
+            "frame": "000030.png",
+            "sha256": "1af509a769035284578bee0f47cccf3225128b0a5f50f2310d100d06446a1623"
+          },
+          {
+            "frame": "000150.png",
+            "sha256": "a8c1236a53c9e09cc4483ce9625e50f44178ad3efb41d46b1bcf2d4aa69b011e"
+          },
+          {
+            "frame": "000390.png",
+            "sha256": "5b7fcbc0ae5c913ee8e166001c837f44cba09fa3937ff3694b0e53bdaf7990f3"
+          },
+          {
+            "frame": "000510.png",
+            "sha256": "924047f67a0b00d41c567cd7dc85e91d7d74d35681248878cbe604dff73fd567"
+          },
+          {
+            "frame": "000750.png",
+            "sha256": "33eef49115da0db42187c5ab926f20a03916490d337332d1c0b2efe78f832ff6"
+          },
+          {
+            "frame": "000870.png",
+            "sha256": "fb9304a3a7df264b48273bacc4c12c6d6da011418c7a304acc0a1cfdb4c61643"
+          },
+          {
+            "frame": "001110.png",
+            "sha256": "7b3fe1dc8e3f2d7ce1c00c2d882be2d9561fc179bda0bcaff5c4a154652fe108"
+          },
+          {
+            "frame": "001230.png",
+            "sha256": "4945098c8bd82189f7d686f3a99891ac98dc28291737e46023bc363554443d63"
+          }
+        ]
+      },
+      {
+        "operation": "walk_stop",
+        "style": "responsive",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_stop-responsive-clean.mp4",
+        "sha256": "fd4d84326d7879bf21eee82043dff3d2d7b53f6e5c2ca023606214ee1763e818",
+        "bytes": 5162765,
+        "decoded_frames": 1440,
+        "decoded_duration_s": 24.0,
+        "metadata": [
+          "Duration: 00:00:24.00, start: 0.000000, bitrate: 1720 kb/s",
+          "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1715 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+          "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+        ],
+        "encode_command": [
+          "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-y",
+          "-framerate",
+          "60",
+          "-i",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\responsive\\clean_frames\\%06d.png",
+          "-frames:v",
+          "1440",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-threads",
+          "2",
+          "-preset",
+          "medium",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\responsive\\start-stop-body-full-r002-responsive-clean.mp4"
+        ],
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/responsive_extracted_dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/responsive_extracted_xbot.tscn",
+              "start_s": 6.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/responsive_extracted_short.tscn",
+              "start_s": 12.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/responsive_extracted_zup_tall.tscn",
+              "start_s": 18.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 1440,
+          "layout": "simultaneous_front_side",
+          "mode": "clean",
+          "operation": "walk_stop",
+          "profile": "responsive",
+          "revision": "start-stop-body-full-r002-responsive",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+          "visual_approval": false
+        },
+        "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\responsive\\start-stop-body-full-r002-responsive-clean-overview.png",
+        "qa_samples": [
+          {
+            "frame": "000030.png",
+            "sha256": "d7252f0ab6c5b3e8ad97c529ec6d5b560ce75db94c950f903c4d04183c527cdb"
+          },
+          {
+            "frame": "000150.png",
+            "sha256": "cd33c9da80674483b1b2c7ed343ba438436f9e603038aaa10032134474ea71dd"
+          },
+          {
+            "frame": "000390.png",
+            "sha256": "18537e05a76fb11e9db90c083d00d4071cfdf74dc52e3547ff7b2297a864dda2"
+          },
+          {
+            "frame": "000510.png",
+            "sha256": "273a27434083e36f27993f208e968ef27b4a305d5389f4ef5b127433d0f3c6a4"
+          },
+          {
+            "frame": "000750.png",
+            "sha256": "1bc2769fe44d63e86eca468539be51d862a8d3c5c75685f9d24f20400d027142"
+          },
+          {
+            "frame": "000870.png",
+            "sha256": "980ebb3b022b9b50b2a85ed1967e170f5a24f56f4db421b13322ca717857287e"
+          },
+          {
+            "frame": "001110.png",
+            "sha256": "11d513eabf5656fc5280874c656b9c9b60f8e6c8f13b1715bbedc204ac6bf0aa"
+          },
+          {
+            "frame": "001230.png",
+            "sha256": "acdca42fbabf4d680a0da90e65680372727f5ba48e5114cf769f4b619faef041"
+          }
+        ]
+      },
+      {
+        "operation": "walk_stop",
+        "style": "responsive",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_stop-responsive-diagnostic.mp4",
+        "sha256": "bda6730ca81443a5a5dbf079069344bdbaad30f5909ce8c7cf5ff671d8ef550a",
+        "bytes": 5268750,
+        "decoded_frames": 1440,
+        "decoded_duration_s": 24.0,
+        "metadata": [
+          "Duration: 00:00:24.00, start: 0.000000, bitrate: 1756 kb/s",
+          "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1750 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+          "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+        ],
+        "encode_command": [
+          "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-y",
+          "-framerate",
+          "60",
+          "-i",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\responsive\\diagnostic_frames\\%06d.png",
+          "-frames:v",
+          "1440",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-threads",
+          "2",
+          "-preset",
+          "medium",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\responsive\\start-stop-body-full-r002-responsive-diagnostic.mp4"
+        ],
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/responsive_extracted_dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/responsive_extracted_xbot.tscn",
+              "start_s": 6.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/responsive_extracted_short.tscn",
+              "start_s": 12.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/responsive_extracted_zup_tall.tscn",
+              "start_s": 18.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 1440,
+          "layout": "simultaneous_front_side",
+          "mode": "diagnostic",
+          "operation": "walk_stop",
+          "profile": "responsive",
+          "revision": "start-stop-body-full-r002-responsive",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+          "visual_approval": false
+        },
+        "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\responsive\\start-stop-body-full-r002-responsive-diagnostic-overview.png",
+        "qa_samples": [
+          {
+            "frame": "000030.png",
+            "sha256": "f6b3db952a46f1d2bee044ab55710d7aa8ff1b1de4cf2d7e93a63b751af8b3ae"
+          },
+          {
+            "frame": "000150.png",
+            "sha256": "b2ddb3fa23ff02dd2906c1c94cbaf75b3e09a327cff7a07110abfaac32d0d2f5"
+          },
+          {
+            "frame": "000390.png",
+            "sha256": "8a1e1b6299be4980c8654358bf6bc110cd67b2369d44b0cd5d3e04d033922186"
+          },
+          {
+            "frame": "000510.png",
+            "sha256": "440e75d05cf7b5642768818b9f05862df55aab32cb2653134aafbc09f0b3477a"
+          },
+          {
+            "frame": "000750.png",
+            "sha256": "e947e91ff705f5172e9383d8498a70924ec8f4ea7b8caf8f0c34d863e1f5fcbb"
+          },
+          {
+            "frame": "000870.png",
+            "sha256": "80bba7b90a5c7f41a728295499d0b22e1cecc56e7726a980fe15f010af2030be"
+          },
+          {
+            "frame": "001110.png",
+            "sha256": "984857d2b5addae1845d10c568ed448cb6e9555f876808e3dd3b6ce98c6ac353"
+          },
+          {
+            "frame": "001230.png",
+            "sha256": "9e2beb36a12a9c78e3e015f21fc3dc5826b3050bf974b51b24d653f15dd71b9d"
+          }
+        ]
+      },
+      {
+        "operation": "walk_stop",
+        "style": "grounded",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_stop-grounded-clean.mp4",
+        "sha256": "af227864a78e8630ba32af394487fbbd8074eae54fb5927b3b918149bf0d1657",
+        "bytes": 5135486,
+        "decoded_frames": 1440,
+        "decoded_duration_s": 24.0,
+        "metadata": [
+          "Duration: 00:00:24.00, start: 0.000000, bitrate: 1711 kb/s",
+          "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1706 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+          "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+        ],
+        "encode_command": [
+          "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-y",
+          "-framerate",
+          "60",
+          "-i",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\grounded\\clean_frames\\%06d.png",
+          "-frames:v",
+          "1440",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-threads",
+          "2",
+          "-preset",
+          "medium",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\grounded\\start-stop-body-full-r002-grounded-clean.mp4"
+        ],
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/grounded_extracted_dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/grounded_extracted_xbot.tscn",
+              "start_s": 6.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/grounded_extracted_short.tscn",
+              "start_s": 12.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/grounded_extracted_zup_tall.tscn",
+              "start_s": 18.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 1440,
+          "layout": "simultaneous_front_side",
+          "mode": "clean",
+          "operation": "walk_stop",
+          "profile": "grounded",
+          "revision": "start-stop-body-full-r002-grounded",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+          "visual_approval": false
+        },
+        "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\grounded\\start-stop-body-full-r002-grounded-clean-overview.png",
+        "qa_samples": [
+          {
+            "frame": "000030.png",
+            "sha256": "5be06c4091b0e9041a2b7acf47856cfb79e9131094a4a30a34dad13661560454"
+          },
+          {
+            "frame": "000150.png",
+            "sha256": "04a15cd2285965771901a633ddfcf88b22849417efcd8cf39499e5aa66ee59ee"
+          },
+          {
+            "frame": "000390.png",
+            "sha256": "1305386b7f345b7a9dbdb53034f1db87e5f8102251b0ddca8fa37c0c8fcf2194"
+          },
+          {
+            "frame": "000510.png",
+            "sha256": "125e12e26839e170d817a99eaa4c75c479017cfc8bc0de8fdc68da8f51cfb88a"
+          },
+          {
+            "frame": "000750.png",
+            "sha256": "8a97db0b3da120fc9e70ef125cf67a784fa43ee672306d5edf6239d582f1001e"
+          },
+          {
+            "frame": "000870.png",
+            "sha256": "14eb43cf5af6c7ee1862e6000ed2c5a563728cfeab8ff83ea457e90a749342f3"
+          },
+          {
+            "frame": "001110.png",
+            "sha256": "da3d1a57fe7707a9013cb4d18590daedb8364362049ec7bb41a13f75872edf9e"
+          },
+          {
+            "frame": "001230.png",
+            "sha256": "326ebb267ea48f6071313cc9c0cee0fbb603531be456bd70dc61cab9483b2e30"
+          }
+        ]
+      },
+      {
+        "operation": "walk_stop",
+        "style": "grounded",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_stop-grounded-diagnostic.mp4",
+        "sha256": "e12fc6fad31f26421b4fce3595e58f983c04392a6e2bfe5e98ec9d3063339891",
+        "bytes": 5272866,
+        "decoded_frames": 1440,
+        "decoded_duration_s": 24.0,
+        "metadata": [
+          "Duration: 00:00:24.00, start: 0.000000, bitrate: 1757 kb/s",
+          "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1752 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+          "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+        ],
+        "encode_command": [
+          "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-y",
+          "-framerate",
+          "60",
+          "-i",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\grounded\\diagnostic_frames\\%06d.png",
+          "-frames:v",
+          "1440",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-threads",
+          "2",
+          "-preset",
+          "medium",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\grounded\\start-stop-body-full-r002-grounded-diagnostic.mp4"
+        ],
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/grounded_extracted_dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/grounded_extracted_xbot.tscn",
+              "start_s": 6.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/grounded_extracted_short.tscn",
+              "start_s": 12.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/grounded_extracted_zup_tall.tscn",
+              "start_s": 18.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 1440,
+          "layout": "simultaneous_front_side",
+          "mode": "diagnostic",
+          "operation": "walk_stop",
+          "profile": "grounded",
+          "revision": "start-stop-body-full-r002-grounded",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+          "visual_approval": false
+        },
+        "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\grounded\\start-stop-body-full-r002-grounded-diagnostic-overview.png",
+        "qa_samples": [
+          {
+            "frame": "000030.png",
+            "sha256": "fcac2d259dc23668e23933513140dcbba1c0681522239602900921d7a3258d77"
+          },
+          {
+            "frame": "000150.png",
+            "sha256": "a0011f4ea3b6188228bac0a372a8b33896cb89349a05cb036f0bef12999928af"
+          },
+          {
+            "frame": "000390.png",
+            "sha256": "ba92d29b248bc5f45d5300e2e94544215cf0afec0de5e8de282a210dcd27cfd6"
+          },
+          {
+            "frame": "000510.png",
+            "sha256": "7ed1c3a39f8fbfe129b5798b2f189cd18e0ffd5910abab011ff1d8cf83cc2cdd"
+          },
+          {
+            "frame": "000750.png",
+            "sha256": "ef7b2574711dae1fc36f4cbe4b222bfe6c602e313da16a651c5c5409a08f4bd9"
+          },
+          {
+            "frame": "000870.png",
+            "sha256": "6dfed0d3e0ade3779005abe61bd44ffb763215c9b88fa0a34e20cb17584a4d98"
+          },
+          {
+            "frame": "001110.png",
+            "sha256": "afa9bdcf3a7bca2b0a8c6458e6a7bc244d60e07f9cbe7f4c3b67a08ad196a631"
+          },
+          {
+            "frame": "001230.png",
+            "sha256": "cbfae3ef3780c0557a2eac05344a53215bd8365b5736e93c04a8b94c32a12088"
+          }
+        ]
+      },
+      {
+        "operation": "walk_stop",
+        "style": "relaxed",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_stop-relaxed-clean.mp4",
+        "sha256": "63eb8fac0400f18f7f3b4e422b54233bd804f9ebbeec873abcdfcd4bb93e0a0b",
+        "bytes": 5077485,
+        "decoded_frames": 1440,
+        "decoded_duration_s": 24.0,
+        "metadata": [
+          "Duration: 00:00:24.00, start: 0.000000, bitrate: 1692 kb/s",
+          "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1686 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+          "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+        ],
+        "encode_command": [
+          "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-y",
+          "-framerate",
+          "60",
+          "-i",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\relaxed\\clean_frames\\%06d.png",
+          "-frames:v",
+          "1440",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-threads",
+          "2",
+          "-preset",
+          "medium",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\relaxed\\start-stop-body-full-r002-relaxed-clean.mp4"
+        ],
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/relaxed_extracted_dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/relaxed_extracted_xbot.tscn",
+              "start_s": 6.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/relaxed_extracted_short.tscn",
+              "start_s": 12.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/relaxed_extracted_zup_tall.tscn",
+              "start_s": 18.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 1440,
+          "layout": "simultaneous_front_side",
+          "mode": "clean",
+          "operation": "walk_stop",
+          "profile": "relaxed",
+          "revision": "start-stop-body-full-r002-relaxed",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+          "visual_approval": false
+        },
+        "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\relaxed\\start-stop-body-full-r002-relaxed-clean-overview.png",
+        "qa_samples": [
+          {
+            "frame": "000030.png",
+            "sha256": "4f3179941c971c5bffeb55889cd140ad52a52959f8d2bb79e62d4c7b8a0d7937"
+          },
+          {
+            "frame": "000150.png",
+            "sha256": "4eab313f978edb4c116b9c7603e491b060fec8a634a692b36c1edece00d42ade"
+          },
+          {
+            "frame": "000390.png",
+            "sha256": "90e33c58c81c85651a074eb26f987f5777e610c14ae9e40806a3d3b6c7ee0da7"
+          },
+          {
+            "frame": "000510.png",
+            "sha256": "366f237b5bd8557fd95efd4d45bc53a1fa2d8b0f10cd3e097510db9c99efec32"
+          },
+          {
+            "frame": "000750.png",
+            "sha256": "22c79b61b820a44dc46f1b6850de3241b0a961ce2ae89991638ef4979cc95d92"
+          },
+          {
+            "frame": "000870.png",
+            "sha256": "313deec1d63af700d9160e4fd844e6469a690dc6f370067f0237ed3f5f1ad5b4"
+          },
+          {
+            "frame": "001110.png",
+            "sha256": "47c7c7f98a3f8b525d01b065a21a2abf6d296b704302028764311287b8c68e4f"
+          },
+          {
+            "frame": "001230.png",
+            "sha256": "7fec2da13a6947df344e3cbfa63008fb766e3ae1de84a7e43ee76a365956c475"
+          }
+        ]
+      },
+      {
+        "operation": "walk_stop",
+        "style": "relaxed",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_stop-relaxed-diagnostic.mp4",
+        "sha256": "9ee91eda43c0b8258559a08f35a813bc44e637d4978f82a4605b3b5d067bd5b2",
+        "bytes": 5220555,
+        "decoded_frames": 1440,
+        "decoded_duration_s": 24.0,
+        "metadata": [
+          "Duration: 00:00:24.00, start: 0.000000, bitrate: 1740 kb/s",
+          "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1734 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+          "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+        ],
+        "encode_command": [
+          "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-y",
+          "-framerate",
+          "60",
+          "-i",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\relaxed\\diagnostic_frames\\%06d.png",
+          "-frames:v",
+          "1440",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-threads",
+          "2",
+          "-preset",
+          "medium",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\relaxed\\start-stop-body-full-r002-relaxed-diagnostic.mp4"
+        ],
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/relaxed_extracted_dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/relaxed_extracted_xbot.tscn",
+              "start_s": 6.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/relaxed_extracted_short.tscn",
+              "start_s": 12.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/relaxed_extracted_zup_tall.tscn",
+              "start_s": 18.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 1440,
+          "layout": "simultaneous_front_side",
+          "mode": "diagnostic",
+          "operation": "walk_stop",
+          "profile": "relaxed",
+          "revision": "start-stop-body-full-r002-relaxed",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+          "visual_approval": false
+        },
+        "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\relaxed\\start-stop-body-full-r002-relaxed-diagnostic-overview.png",
+        "qa_samples": [
+          {
+            "frame": "000030.png",
+            "sha256": "3e92fd20f4c6ed0d8b9f543872ab34f5d2cb8358285e7f47d7ae0c3b7f2a8918"
+          },
+          {
+            "frame": "000150.png",
+            "sha256": "5617d0e4a2712ecb0873d76703d12f7329e87032b6ae4e5d0e38eb4e3cf67cec"
+          },
+          {
+            "frame": "000390.png",
+            "sha256": "0673f2d10f70aa9da1c4436b649253e7bfa8c0641092a06af75a0382fbc4f320"
+          },
+          {
+            "frame": "000510.png",
+            "sha256": "e79a449e9ce6f13cdee663ecfc2c1483930675e36b11e4f365f7392e7dad8adb"
+          },
+          {
+            "frame": "000750.png",
+            "sha256": "eed76d04440e20fb1facbdcaa12a66bc9d69277d39e7e7a4239edf8bdb2ccb23"
+          },
+          {
+            "frame": "000870.png",
+            "sha256": "994f30cd9beef24f3b5d954b663aff8b45ac956a81df5622ca778043a1b91e04"
+          },
+          {
+            "frame": "001110.png",
+            "sha256": "608b0774e0de1ec4e38f1292e4ff7c77365fa1d91cde70c3c67e52a28c6937e8"
+          },
+          {
+            "frame": "001230.png",
+            "sha256": "16ef805abe9804bc29ada0a7e0b8ade2e81551a17213ab0fc6745962a4ec1a67"
+          }
+        ]
+      },
+      {
+        "operation": "walk_stop",
+        "style": "heavy",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_stop-heavy-clean.mp4",
+        "sha256": "06241a590680c68f24b2ab4fb4b48f84bab01c996e6613852967d7d2929f6923",
+        "bytes": 5109633,
+        "decoded_frames": 1440,
+        "decoded_duration_s": 24.0,
+        "metadata": [
+          "Duration: 00:00:24.00, start: 0.000000, bitrate: 1703 kb/s",
+          "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1697 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+          "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+        ],
+        "encode_command": [
+          "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-y",
+          "-framerate",
+          "60",
+          "-i",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\heavy\\clean_frames\\%06d.png",
+          "-frames:v",
+          "1440",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-threads",
+          "2",
+          "-preset",
+          "medium",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\heavy\\start-stop-body-full-r002-heavy-clean.mp4"
+        ],
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/heavy_extracted_dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/heavy_extracted_xbot.tscn",
+              "start_s": 6.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/heavy_extracted_short.tscn",
+              "start_s": 12.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/heavy_extracted_zup_tall.tscn",
+              "start_s": 18.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 1440,
+          "layout": "simultaneous_front_side",
+          "mode": "clean",
+          "operation": "walk_stop",
+          "profile": "heavy",
+          "revision": "start-stop-body-full-r002-heavy",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+          "visual_approval": false
+        },
+        "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\heavy\\start-stop-body-full-r002-heavy-clean-overview.png",
+        "qa_samples": [
+          {
+            "frame": "000030.png",
+            "sha256": "331f5ff97a1b8f976de4493b0328394c20812a4b95fe2effd29ea4b8fac89029"
+          },
+          {
+            "frame": "000150.png",
+            "sha256": "074437c6e599c0a69eb7c66ef7d3f7a4dcfc9ef96ca974b79356f164d3cfd09b"
+          },
+          {
+            "frame": "000390.png",
+            "sha256": "0fdfc84617e0c1cb73d3eb8f8cbc53d6eb97de203cf95cdb7400d45727da7f8a"
+          },
+          {
+            "frame": "000510.png",
+            "sha256": "15b321f55ec03979a44cdbe5e2fa9c26cf7d57e873c6f4989fdedc4559a945f1"
+          },
+          {
+            "frame": "000750.png",
+            "sha256": "fb9dccc3c8887aaee87ee5310f54d9f5ea97f56b8e23549bf2f1742fba79718c"
+          },
+          {
+            "frame": "000870.png",
+            "sha256": "9f51cf4a2dc4e85bdca0a3c61c5e70eaa91d81215bf91449e05a2029f1f2a3cb"
+          },
+          {
+            "frame": "001110.png",
+            "sha256": "0dcbfe14ed166fbade944adf003cfaebcaab5171648b364f092e9c3d4ee38604"
+          },
+          {
+            "frame": "001230.png",
+            "sha256": "cb437a325e184d03c6dd9c99f91f086616aa4230d8b81411073028e41d327109"
+          }
+        ]
+      },
+      {
+        "operation": "walk_stop",
+        "style": "heavy",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_stop-heavy-diagnostic.mp4",
+        "sha256": "35c602d2100296f503e4f10319e104604dd5fd58a8d5f7bd5be37a69a371334a",
+        "bytes": 5235378,
+        "decoded_frames": 1440,
+        "decoded_duration_s": 24.0,
+        "metadata": [
+          "Duration: 00:00:24.00, start: 0.000000, bitrate: 1745 kb/s",
+          "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1739 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+          "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+        ],
+        "encode_command": [
+          "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-y",
+          "-framerate",
+          "60",
+          "-i",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\heavy\\diagnostic_frames\\%06d.png",
+          "-frames:v",
+          "1440",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-threads",
+          "2",
+          "-preset",
+          "medium",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\heavy\\start-stop-body-full-r002-heavy-diagnostic.mp4"
+        ],
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/heavy_extracted_dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/heavy_extracted_xbot.tscn",
+              "start_s": 6.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/heavy_extracted_short.tscn",
+              "start_s": 12.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/heavy_extracted_zup_tall.tscn",
+              "start_s": 18.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 1440,
+          "layout": "simultaneous_front_side",
+          "mode": "diagnostic",
+          "operation": "walk_stop",
+          "profile": "heavy",
+          "revision": "start-stop-body-full-r002-heavy",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+          "visual_approval": false
+        },
+        "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\heavy\\start-stop-body-full-r002-heavy-diagnostic-overview.png",
+        "qa_samples": [
+          {
+            "frame": "000030.png",
+            "sha256": "033104c077e29e0582c428d577f557eabad901c38184e4454ebb37a55df1094c"
+          },
+          {
+            "frame": "000150.png",
+            "sha256": "c78e38dd248314394e42d6d8098913bddd1a963743a9943a9328ec62f2ebfca7"
+          },
+          {
+            "frame": "000390.png",
+            "sha256": "682738647ffccd7d4afd0d065549efb7e3c2d09de4d0dde523b2018b27c15730"
+          },
+          {
+            "frame": "000510.png",
+            "sha256": "7a8cd1c935fb8f989a4d95be07d6865a20c1903852ea240c669f0a433670d254"
+          },
+          {
+            "frame": "000750.png",
+            "sha256": "ad9f51a4f0e6cd82b746aa89898f724e1870cf0714d337e5dce0a45edfedab8b"
+          },
+          {
+            "frame": "000870.png",
+            "sha256": "b3a6cc235f226559f661625a390abedcff76138645c29156704a6039b2768f44"
+          },
+          {
+            "frame": "001110.png",
+            "sha256": "5e818ae95730f6e63cc3ef73318c075f4946b505e2ef9ffa3fc4dab8d337d481"
+          },
+          {
+            "frame": "001230.png",
+            "sha256": "10e8d017d086d6a67c220cf887a1cedc7b3db08a6b16ea09b4eab2e789081779"
+          }
+        ]
+      },
+      {
+        "operation": "walk_stop",
+        "style": "sneaky",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_stop-sneaky-clean.mp4",
+        "sha256": "0bbbc74ef75aa4b2f5fd0777eb5942b9aa011bfae04cde72dfe98f744d8c7ffe",
+        "bytes": 4851251,
+        "decoded_frames": 1440,
+        "decoded_duration_s": 24.0,
+        "metadata": [
+          "Duration: 00:00:24.00, start: 0.000000, bitrate: 1617 kb/s",
+          "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1611 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+          "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+        ],
+        "encode_command": [
+          "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-y",
+          "-framerate",
+          "60",
+          "-i",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\sneaky\\clean_frames\\%06d.png",
+          "-frames:v",
+          "1440",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-threads",
+          "2",
+          "-preset",
+          "medium",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\sneaky\\start-stop-body-full-r002-sneaky-clean.mp4"
+        ],
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/sneaky_extracted_dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/sneaky_extracted_xbot.tscn",
+              "start_s": 6.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/sneaky_extracted_short.tscn",
+              "start_s": 12.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/sneaky_extracted_zup_tall.tscn",
+              "start_s": 18.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 1440,
+          "layout": "simultaneous_front_side",
+          "mode": "clean",
+          "operation": "walk_stop",
+          "profile": "sneaky",
+          "revision": "start-stop-body-full-r002-sneaky",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+          "visual_approval": false
+        },
+        "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\sneaky\\start-stop-body-full-r002-sneaky-clean-overview.png",
+        "qa_samples": [
+          {
+            "frame": "000030.png",
+            "sha256": "191075f0c4757a15563ef1a755a58763270a5c03356abcaa1f9b495115eb3b9e"
+          },
+          {
+            "frame": "000150.png",
+            "sha256": "6e639b691ad7c15e320155f8048042cab97c34afeca845592055ab9212a31bbc"
+          },
+          {
+            "frame": "000390.png",
+            "sha256": "ea02472b32ca5dfe150b41da971e6a22828e1c5208a00d6992a7ca44347c7f22"
+          },
+          {
+            "frame": "000510.png",
+            "sha256": "984bc4560b47da2e499efd6cc7107856cb867f177262de4ace912c551cce4911"
+          },
+          {
+            "frame": "000750.png",
+            "sha256": "16d79512157a37314ca0710ac3ece54c113e3003ca0c5c06b7bddf5f3976a2e7"
+          },
+          {
+            "frame": "000870.png",
+            "sha256": "9c0a2a9b3e7671a8162c715989c8ee16643d98db628a50278642e1e4ae259725"
+          },
+          {
+            "frame": "001110.png",
+            "sha256": "7a761ca73359b31137857a4f3f0ecba5f6294c12d159741290f49d605a498a14"
+          },
+          {
+            "frame": "001230.png",
+            "sha256": "bcdaa41b25ba6d04b1621daed117420fccafb617ef754ceba605a940bfa556a3"
+          }
+        ]
+      },
+      {
+        "operation": "walk_stop",
+        "style": "sneaky",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\walk_stop-sneaky-diagnostic.mp4",
+        "sha256": "6111e541c69747c871e507b20e64e088c3527439b3fdc3010f515241b486b2d8",
+        "bytes": 4969180,
+        "decoded_frames": 1440,
+        "decoded_duration_s": 24.0,
+        "metadata": [
+          "Duration: 00:00:24.00, start: 0.000000, bitrate: 1656 kb/s",
+          "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, 1650 kb/s, 60 fps, 60 tbr, 15360 tbn (default)",
+          "Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, unknown/bt709/iec61966-2-1, progressive), 1920x1080, q=2-31, 200 kb/s, 60 fps, 60 tbn (default)"
+        ],
+        "encode_command": [
+          "C:\\Users\\mtomc\\AppData\\Local\\Temp\\opencode\\ffmpeg\\ffmpeg.exe",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-y",
+          "-framerate",
+          "60",
+          "-i",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\sneaky\\diagnostic_frames\\%06d.png",
+          "-frames:v",
+          "1440",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-threads",
+          "2",
+          "-preset",
+          "medium",
+          "-crf",
+          "18",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\sneaky\\start-stop-body-full-r002-sneaky-diagnostic.mp4"
+        ],
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/sneaky_extracted_dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/sneaky_extracted_xbot.tscn",
+              "start_s": 6.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/sneaky_extracted_short.tscn",
+              "start_s": 12.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 6.0,
+              "frames": 360,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_walk_stop_quality/7ad8d5ab0ac140669ea18bd989d25913/sneaky_extracted_zup_tall.tscn",
+              "start_s": 18.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 1440,
+          "layout": "simultaneous_front_side",
+          "mode": "diagnostic",
+          "operation": "walk_stop",
+          "profile": "sneaky",
+          "revision": "start-stop-body-full-r002-sneaky",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "12ab9c9c128a5673447b4e6826a71741e06b6397",
+          "visual_approval": false
+        },
+        "contact_sheet": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\walk_stop\\sneaky\\start-stop-body-full-r002-sneaky-diagnostic-overview.png",
+        "qa_samples": [
+          {
+            "frame": "000030.png",
+            "sha256": "92646fa0533137c9fc3d68e704157f51f953fb471f39a2c548f179bedf0080ac"
+          },
+          {
+            "frame": "000150.png",
+            "sha256": "0e2084b9642fd05ddb971e952a61c0bf22cf4fe67b96c540fdba3bbcb06c4a29"
+          },
+          {
+            "frame": "000390.png",
+            "sha256": "3cae6a10885f4b99dbaab2416f8109bf1b3758d9efd659f76585eb4f2f59c320"
+          },
+          {
+            "frame": "000510.png",
+            "sha256": "b0b9c4422925d9b1c46c4c8c501242676e908f86ed90bad21fb4bfd06f3cc84c"
+          },
+          {
+            "frame": "000750.png",
+            "sha256": "3ab250abd913341467cb2a1f03a6591d42d22eeff9b8f3d9834fdf87beb611f4"
+          },
+          {
+            "frame": "000870.png",
+            "sha256": "042de70b9ea230242d5e29befc5c6b42c8b8bbfd2b76fc8d8eb1538d6f5b7f10"
+          },
+          {
+            "frame": "001110.png",
+            "sha256": "5460bffd9902c204a30d47e8e3e804cf085f5b3ed0ee1cf3f80c01c74dbff007"
+          },
+          {
+            "frame": "001230.png",
+            "sha256": "dc7ff38c69daf0b5d77cb3fed7a52eabd4b9cc83049e7fc050cff4606be38583"
+          }
+        ]
+      },
+      {
+        "operation": "animation_sequence",
+        "style": "responsive",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\animation_sequence-responsive-clean.mp4",
+        "sha256": "24f587f9cd11f79bab37564a5cacc781d983c71fec65184dbddcd97cac27eb46",
+        "bytes": 25450217,
+        "decoded_frames": 5280,
+        "decoded_duration_s": 88.0,
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 22.0,
+              "frames": 1320,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_transition_sequence/1f2b266250884903841a30442228ee41/dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 22.0,
+              "frames": 1320,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_transition_sequence/1f2b266250884903841a30442228ee41/xbot.tscn",
+              "start_s": 22.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 22.0,
+              "frames": 1320,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_transition_sequence/1f2b266250884903841a30442228ee41/short.tscn",
+              "start_s": 44.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 22.0,
+              "frames": 1320,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_transition_sequence/1f2b266250884903841a30442228ee41/zup_tall.tscn",
+              "start_s": 66.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 5280,
+          "mode": "clean",
+          "operation": "animation_sequence",
+          "revision": "start-stop-body-sequence-r002",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "10941ba81c367fe0c753ff9086fb826d3136bbec",
+          "visual_approval": false
+        },
+        "route_sha256": "1e96b7aceabde750c3df09f1d6128fec48c159184c3ac57b9bea7febdb423bfe"
+      },
+      {
+        "operation": "animation_sequence",
+        "style": "responsive",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_start_stop_body_20261013\\closure-r002\\candidate-r002\\review-videos\\animation_sequence-responsive-diagnostic.mp4",
+        "sha256": "d02d172ba9e4c7520754019f9afd89c1461e4db019d9ac4ce7ef6bf1eb70029f",
+        "bytes": 26209506,
+        "decoded_frames": 5280,
+        "decoded_duration_s": 88.0,
+        "render": {
+          "cases": [
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 22.0,
+              "frames": 1320,
+              "id": "dummy",
+              "reset_between_takes": true,
+              "scene": "res://repair_transition_sequence/1f2b266250884903841a30442228ee41/dummy.tscn",
+              "start_s": 0.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 22.0,
+              "frames": 1320,
+              "id": "xbot",
+              "reset_between_takes": true,
+              "scene": "res://repair_transition_sequence/1f2b266250884903841a30442228ee41/xbot.tscn",
+              "start_s": 22.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 22.0,
+              "frames": 1320,
+              "id": "short",
+              "reset_between_takes": true,
+              "scene": "res://repair_transition_sequence/1f2b266250884903841a30442228ee41/short.tscn",
+              "start_s": 44.0,
+              "takes": 2
+            },
+            {
+              "camera_views": [
+                "FRONT",
+                "SIDE"
+              ],
+              "duration_s": 22.0,
+              "frames": 1320,
+              "id": "zup_tall",
+              "reset_between_takes": true,
+              "scene": "res://repair_transition_sequence/1f2b266250884903841a30442228ee41/zup_tall.tscn",
+              "start_s": 66.0,
+              "takes": 2
+            }
+          ],
+          "errors": [],
+          "fps": 60,
+          "frames": 5280,
+          "mode": "diagnostic",
+          "operation": "animation_sequence",
+          "revision": "start-stop-body-sequence-r002",
+          "root_consumers_per_view": 1,
+          "size": [
+            1920,
+            1080
+          ],
+          "source_head": "10941ba81c367fe0c753ff9086fb826d3136bbec",
+          "visual_approval": false
+        },
+        "route_sha256": "1e96b7aceabde750c3df09f1d6128fec48c159184c3ac57b9bea7febdb423bfe"
+      }
+    ]
   },
   "start_stop_revision_history": [
     {

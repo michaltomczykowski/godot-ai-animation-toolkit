@@ -1,5 +1,22 @@
 # Animation Toolkit repair roadmap
 
+## R002 full start/stop closure delivered — manual review gate (2026-10-13)
+
+Complete five-style ordinary/timing/sequence/reload/regression coverage and
+Windows/Linux source CI pass. All 22 continuous clean/diagnostic MP4s are open
+in PC Explorer; full sequence clean selected. Responsive body feedback is
+preserved and fresh output matches the preview exactly. **Pause for the other
+styles and full sequence.** No full visual approval, main merge or release.
+
+Evidence: 80 public clips/480 plays; 91 timing clips/546 plays plus five typed
+refusals; four sequences/24 plays; 160 reload checks; local editor397/397,
+motion71/71, sequence3/3, headless14/14. Source CI5df333a /38415667286 green.
+Four checked ZIPs, 423 saved scenes, 22 verified movie copies; protected11 exact.
+Startup/queue failures remain preserved and their harness repairs documented.
+Ledger: `docs/start-stop-body-r002-closure-plan.md`. Remaining R2 motion/family
+reviews and R3-R5 remain after this gate.
+
+
 ## R002 focused body revision accepted — closure resumed (2026-10-13)
 
 User feedback: “yeah it's better, continue”. Remaining start/stop closure is
