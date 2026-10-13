@@ -1,3 +1,16 @@
+function Read-ReviewReceipt {
+    param([string]$Path)
+    # Windows provider path resolution can briefly miss a replaced file. Retry
+    # only this read; never repeat a render, edit or scene mutation.
+    for ($receiptReadAttempt = 0; $receiptReadAttempt -lt 40; $receiptReadAttempt++) {
+        try { return ([IO.File]::ReadAllText($Path) | ConvertFrom-Json -ErrorAction Stop) }
+        catch [IO.IOException] {
+            if ($receiptReadAttempt -eq 39) { throw }
+            Start-Sleep -Milliseconds 50
+        }
+    }
+}
+
 function Save-ReviewReceipt {
     param([string]$Path, $Value)
     $receiptTemporary = $Path + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'

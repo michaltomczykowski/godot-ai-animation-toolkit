@@ -17,7 +17,7 @@ $sequenceProgress = @{state='waiting_for_transition_recordings'; orchestrator_pi
 try {
     Save-ReviewReceipt $sequenceProgressPath $sequenceProgress
     do {
-        $sequenceTransitionProgress = Get-Content -LiteralPath (Join-Path $TransitionRoot 'recording-progress.json') -Raw | ConvertFrom-Json
+        $sequenceTransitionProgress = Read-ReviewReceipt (Join-Path $TransitionRoot 'recording-progress.json')
         if ($sequenceTransitionProgress.state -eq 'failed') { throw 'Transition recording failed; preserve partial captures' }
         if ($sequenceTransitionProgress.state -ne 'complete') { Start-Sleep -Seconds 5 }
     } while ($sequenceTransitionProgress.state -ne 'complete')
