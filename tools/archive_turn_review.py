@@ -18,9 +18,12 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     for name in ('repo', 'project-root', 'recovery', 'matrix', 'ci-receipt'):
         p.add_argument('--' + name, type=Path, required=True)
+    p.add_argument('--delivery-root', type=Path, help='New delivery attempt; preserve any earlier partial archive')
     args = p.parse_args()
     candidate = args.recovery / 'candidate-r004'
-    destination = candidate / 'review-delivery.json'
+    delivery_root = args.delivery_root or candidate
+    delivery_root.mkdir(parents=True, exist_ok=True)
+    destination = delivery_root / 'review-delivery.json'
     require(not destination.exists(), 'Preserve the completed delivery and its feedback')
     matrix = read(args.matrix)
     require(matrix['passed'] and matrix['native_runs'] == 192, 'Incomplete focused native matrix')
@@ -34,7 +37,7 @@ def main():
     for entry in protected: require(digest(Path(entry['path'])) == entry['sha256'], 'Protected fixture drift')
     scenes = {}
     videos = []
-    review = candidate / 'review-videos'
+    review = delivery_root / 'review-videos'
     review.mkdir(exist_ok=True)
     source = matrix['source_head']
     for variant in ('left90', 'right90', 'left180', 'right180'):
@@ -76,9 +79,9 @@ def main():
     archives = []
     tooling_source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=args.repo, text=True).strip()
     for label, revision in (('animation-source', source), ('tested-source', ci['source_head']), ('delivery-tooling-source', tooling_source), ('baseline-tooling-source', '8dc306ab80834f940f63418603386fe5c7cdadb1')):
-        path = candidate / (label + '.zip')
+        path = delivery_root / (label + '.zip')
         require(not path.exists(), 'Preserve existing source archive')
-        subprocess.run(['git', 'archive', '--format=zip', '--output=' + str(path), revision], cwd=args.repo, check=True)
+        subprocess.run(['git', '-c', 'core.autocrlf=false', 'archive', '--format=zip', '--output=' + str(path), revision], cwd=args.repo, check=True)
         with zipfile.ZipFile(path) as archive:
             require(archive.testzip() is None, 'Source ZIP CRC failed')
             for entry in protected:
@@ -86,7 +89,7 @@ def main():
                 blob = subprocess.check_output(['git', 'show', revision + ':' + relative], cwd=args.repo)
                 require(archive.read(relative) == blob, 'Source archive fixture differs from Git blob')
         archives.append({'path': str(path), 'sha256': digest(path), 'source': revision})
-    native_zip = candidate / 'native-scenes-and-local-rigs.zip'
+    native_zip = delivery_root / 'native-scenes-and-local-rigs.zip'
     require(not native_zip.exists(), 'Preserve existing native scene archive')
     with zipfile.ZipFile(native_zip, 'w', zipfile.ZIP_DEFLATED) as archive:
         for scene, path in sorted(scenes.items()): archive.write(path, 'test_project/' + scene.removeprefix('res://'))
@@ -98,7 +101,7 @@ def main():
                     archive.write(path, 'test_project/models/' + model + '/' + path.relative_to(args.project_root / 'models' / model).as_posix())
     with zipfile.ZipFile(native_zip) as archive: require(archive.testzip() is None, 'Native ZIP CRC failed')
     archives.append({'path': str(native_zip), 'sha256': digest(native_zip), 'saved_scene_entries': len(scenes), 'private_rigs_local_only': True})
-    receipts_zip = candidate / 'phase-receipts-before-delivery.zip'
+    receipts_zip = delivery_root / 'phase-receipts-before-delivery.zip'
     require(not receipts_zip.exists(), 'Preserve original receipt snapshot')
     with zipfile.ZipFile(receipts_zip, 'w', zipfile.ZIP_DEFLATED) as archive:
         for path in args.recovery.rglob('*'):
