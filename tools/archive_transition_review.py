@@ -29,11 +29,37 @@ def review_movie_name(video):
     return f'{operation}-{style}-{mode}.mp4'
 
 
+def require_transition_render(video, route, baseline, mode):
+    render=video['render']
+    require(digest(Path(video['path']))==video['sha256'] and not render['errors']
+        and render['source_head']==route['source_head'] and render['operation']==route['operation']
+        and render['profile']==route['profile'] and render['mode']==mode and render['fps']==60
+        and render['size']==[1920,1080] and render['root_consumers_per_view']==1,
+        'Incorrect transition recording identity/source')
+    if render.get('layout')=='simultaneous_front_side':
+        require(video['decoded_frames']==1440 and abs(video['decoded_duration_s']-24)<.017
+            and tuple(r['id'] for r in render['cases'])==RIGS and len(render['cases'])==4,
+            'Incomplete simultaneous camera movie')
+        for index,(recorded,saved) in enumerate(zip(render['cases'],route['cases'])):
+            require(recorded['scene']==saved['scene'] and recorded['camera_views']==['FRONT','SIDE']
+                and recorded['takes']==2 and recorded['reset_between_takes'] and recorded['frames']==360
+                and recorded['start_s']==index*6 and recorded['duration_s']==6, 'Incorrect saved scene/camera/take chapter')
+    else:
+        expected=[(rig,angle) for rig in RIGS for angle in ('FRONT','SIDE')]
+        require(video['decoded_frames']==2880 and abs(video['decoded_duration_s']-48)<.017
+            and render['baseline_source_head']==baseline['source_head']
+            and [(r['id'],r['angle']) for r in render['cases']]==expected
+            and all(r['takes']==2 and r['reset_between_takes'] and r['frames']==360 for r in render['cases']),
+            'Incomplete continuous native comparison')
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('repo','project-root','core-root','recovery','matrix','timing','sequence','reload','gates','ci-receipt','walk-reference','idle-reference'):
         p.add_argument('--'+name,type=Path,required=True)
-    a=p.parse_args(); candidate=a.recovery/'candidate-r001'; delivery=candidate/'review-delivery.json'
+    for name in ('candidate','baseline','actor-controls','preview-parity'):
+        p.add_argument('--'+name,type=Path)
+    a=p.parse_args(); candidate=a.candidate or a.recovery/'candidate-r001'; delivery=candidate/'review-delivery.json'
     require(not delivery.exists(),'Preserve delivered feedback; do not recreate the archive')
     state_path=a.repo/'docs/character-quality-review.json'; state=read(state_path)
     previous=state['start_stop_review']
@@ -41,11 +67,21 @@ def main():
     matrix=read(a.matrix)
     require(matrix['passed'] and matrix['native_runs']==480 and len(matrix['rows'])==20,'Incomplete ordinary playback matrix')
     source=matrix['source_head']; videos=[]; records=[]
-    actor=read(candidate/'actor-controls-9dc1a5c5ad2d417ab203ea7aca8bb9a6/summary.json')
+    actor=read(a.actor_controls or candidate/'actor-controls-9dc1a5c5ad2d417ab203ea7aca8bb9a6/summary.json')
     require(actor['passed'] and actor['detected']==48 and actor['engine_errors']==0,'Missing actor drift controls')
     for name in ('continuation-self-check.json','continuation-self-check-in-place.json'):
         control=read(a.recovery/name)
         require(control['passed'] and len(control['rows'])==144 and not control['engine_errors'],'Missing independent reference audit controls')
+    parity=None
+    if a.preview_parity:
+        parity=read(a.preview_parity)
+        require(parity['passed'] and parity['native_runs']==96 and len(parity['rows'])==4,
+            'Approved Responsive preview parity failed')
+        for row in parity['rows']:
+            report=read(Path(row['report']))
+            require(report['passed'] and not report['engine_errors'] and len(report['runs'])==24
+                and all(r['passed'] and r['authored_channels_exact'] for r in report['runs']), 'Preview output changed')
+            require(digest(Path(row['report']))==row['sha256'], 'Preview parity report changed')
     for item in matrix['rows']:
         require(item['passed'] and item['complete'] and not item['engine_errors'],'Native failure')
         native=read(Path(item['report']))
@@ -53,7 +89,7 @@ def main():
         for path,sha in item['input_sha256'].items(): require(digest(Path(path))==sha,'Changed native input')
     for op in ('walk_start','walk_stop'):
         for style in STYLES:
-            baseline=read(a.recovery/'baseline'/op/style/'route.json')
+            baseline=read((a.baseline or a.recovery/'baseline')/op/style/'route.json')
             for label in (style,style+'-in-place'):
                 route=read(candidate/op/label/'route.json')
                 require(route['passed'] and route['source_head']==source and route['invocation_kind']=='ordinary call'
@@ -67,11 +103,7 @@ def main():
             media=read(candidate/op/style/'media.json')
             require(set(media['videos'])=={'clean','diagnostic'},'Both continuous review modes required')
             for mode,v in media['videos'].items():
-                render=v['render']; expected=[(rig,angle) for rig in RIGS for angle in ('FRONT','SIDE')]
-                require(v['decoded_frames']==2880 and abs(v['decoded_duration_s']-48)<.017 and digest(Path(v['path']))==v['sha256']
-                    and not render['errors'] and render['source_head']==source and render['baseline_source_head']==baseline['source_head']
-                    and render['root_consumers_per_view']==1 and [(r['id'],r['angle']) for r in render['cases']]==expected
-                    and all(r['takes']==2 and r['reset_between_takes'] and r['frames']==360 for r in render['cases']),'Invalid transition movie')
+                require_transition_render(v,read(candidate/op/style/'route.json'),baseline,mode)
                 videos.append({'operation':op,'style':style,**v})
     timing=read(a.timing/'timing-matrix.json')
     require(timing['passed'] and timing['public_requests']==96 and timing['public_clips']+timing['typed_nonmutating_refusals']==96
@@ -150,10 +182,14 @@ def main():
     archives={str(path):digest(path) for path in (scene_zip,source_zip,sequence_zip,receipts_zip)}
     for path in archives:
         with zipfile.ZipFile(path) as archive: require(archive.testzip() is None,'Archive CRC failed')
+    simultaneous=all(v['render'].get('layout')=='simultaneous_front_side' for v in videos if v['operation']!='animation_sequence')
+    transition_instructions=('Style videos show FRONT (left) and SIDE (right) simultaneously. Cameras follow translation; the ground grid stays fixed.\n'
+        'Style videos: 24s, 1080p60; 00-06 dummy, 06-12 X Bot, 12-18 short, 18-24 tall Z-up. Two reset-separated complete takes per rig.\n'
+        if simultaneous else 'Compare BEFORE (left) and CANDIDATE (right). Front/side cameras follow translation; the ground grid stays fixed.\n'
+        'Transition videos: 48s, 1080p60; 00-12 dummy, 12-24 X Bot, 24-36 short, 36-48 tall Z-up. Two reset-separated complete takes per angle.\n')
     (destination/'START-HERE.txt').write_text(
-        'Start with walk_start-responsive-clean.mp4, then walk_stop-responsive-clean.mp4 and animation_sequence-responsive-clean.mp4.\n'
-        'Compare BEFORE (left) and CANDIDATE (right). Front/side cameras follow translation; the ground grid stays fixed.\n'
-        'Transition videos: 48s, 1080p60; 00-12 dummy, 12-24 X Bot, 24-36 short, 36-48 tall Z-up. Two reset-separated complete takes per angle.\n'
+        'Start with walk_start-responsive-clean.mp4, then walk_stop-responsive-clean.mp4 and animation_sequence-responsive-clean.mp4.\n'+
+        transition_instructions+
         'Sequence videos: 88s, 1080p60; simultaneous front/side, two complete 11s takes per rig. Idle/start/two walks/stop/idle is one saved clip.\n'
         'Clean videos are for motion judgement; diagnostic videos show intended stance within the ankle band, hip projection and root travel.\n'
         'Review anticipation, stepping, weight transfer, arms/head and the joins into walking/standing. Approve or request changes for start/stop styles and sequence.\n'
@@ -162,10 +198,10 @@ def main():
         'ci_source':ci['source_head'],'core_source':subprocess.check_output(['git','rev-parse','HEAD'],cwd=a.core_root,text=True).strip(),
         'created_utc':datetime.now(timezone.utc).isoformat(),'public_clips':80,'native_runs':480,'timing':timing,
         'sequence_native_runs':24,'reload_dry_calls':160,'videos':videos,'scene_files':scenes,'archives':archives,
-        'ci_receipt':str(a.ci_receipt),'gates':str(a.gates),'visual_approval':None,'release_ready':False}
+        'ci_receipt':str(a.ci_receipt),'gates':str(a.gates),'preview_parity':parity,'visual_approval':None,'release_ready':False}
     write(delivery,receipt)
     previous.update(state=receipt['state'],animation_source=source,review_delivery=str(delivery),videos=videos,
-        profile_approvals={op:{style:None for style in STYLES} for op in ('walk_start','walk_stop')},sequence_approval=None,
+        profile_approvals=previous.get('profile_approvals',{op:{style:None for style in STYLES} for op in ('walk_start','walk_stop')}),sequence_approval=previous.get('sequence_approval'),
         candidate_quality_approved=False,visual_approval=None,release_ready=False)
     state.update(state=receipt['state'],active_review_field='start_stop_review',operation='walk_start/walk_stop',
         next_action='Open PC Explorer on the complete start/stop videos; pause for explicit motion and sequence feedback.')

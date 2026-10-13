@@ -21,7 +21,7 @@ async def run(a):
     folder.mkdir(parents=True)
     source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=Path(__file__).resolve().parents[1], text=True).strip()
     report = {'passed': False, 'operation': 'animation_sequence', 'profile': 'responsive',
-        'revision': 'start-stop-sequence-r001', 'source_head': source, 'cases': [], 'failures': []}
+        'revision': a.revision, 'source_head': source, 'cases': [], 'failures': []}
     receipt = a.output / 'route.json'
     def save(): write_json(receipt, report)
     async with connected_editor(a) as (client, connection):
@@ -90,5 +90,6 @@ async def run(a):
 if __name__ == '__main__':
     p = argparse.ArgumentParser(description=__doc__)
     for name in ('core-root', 'project-root', 'output'): p.add_argument('--' + name, type=Path, required=True)
+    p.add_argument('--revision', default='start-stop-sequence-r001')
     p.add_argument('--port', type=int, default=8000); p.add_argument('--ws-port', type=int, default=9500)
     raise SystemExit(asyncio.run(run(p.parse_args())))

@@ -69,5 +69,14 @@ No main merge, tag, release or media upload at this gate.
 
 ## Execution ledger
 
-- Planning and focused feedback preservation: in progress.
-- Ordinary matrix, timing/sequence/reload/regression and full movies: pending.
+- Planning and focused feedback preservation: complete, source `12ab9c9` pushed.
+- Ordinary public generation: 80/80 clips pass dry/pose/history/save/reopen
+  across all five styles and both root modes, source `12ab9c9`.
+- First Responsive start parity: 24/24 Player/Tree plays pass; authored channels
+  exactly match the accepted preview. The new parity helper's initial typed
+  variable parse errors were preserved, then repaired before any measurements.
+- Preview CI `a003d24` / Actions `38373939709`: complete green source receipt
+  and six raw logs archived; four editors, both live routes and 28 headless jobs.
+- New review renderer shows both cameras simultaneously with fresh resets;
+  reload fixtures now strip copied root scene UIDs before engine save.
+- Full ordinary matrix, timing/sequence/reload/regression and movies: pending.

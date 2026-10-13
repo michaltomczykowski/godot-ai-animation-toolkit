@@ -5,7 +5,7 @@ import asyncio
 import hashlib
 import json
 from pathlib import Path
-import shutil
+from fixture_copy import copy_scene
 from uuid import uuid4
 from mcp_motion_remaining_cycles import inspect
 from mcp_presets_audit import call
@@ -41,7 +41,7 @@ async def run(a):
                             original = a.project_root/source_row['scene'].removeprefix('res://')
                             assert digest(original) == source_row['scene_sha256']
                             target = folder/f'{phase}-{op}-{label}-{source_row["id"]}.tscn'
-                            shutil.copyfile(original,target)
+                            copy_scene(original,target)
                             scene = 'res://'+target.relative_to(a.project_root).as_posix()
                             params = {**source_row['params'],'overwrite':True,'dry_run':True}
                             opened = await call(client,'scene_open',{'path':scene,'force_reload':True})
