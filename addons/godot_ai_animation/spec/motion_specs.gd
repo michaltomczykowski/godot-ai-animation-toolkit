@@ -1406,6 +1406,8 @@ static func turn_config(style: String, overrides: Dictionary = {}) -> Dictionary
 		"lean": 4.0,
 		"foot_lift": 0.05,
 		"steps": 1.0,
+		"wrist_swing": 2.0, "forearm_twist": 3.0, "wrist_sway": 1.0,
+		"hand_relax": 18.0,
 	}, style, overrides)
 
 
@@ -1472,7 +1474,10 @@ static func turn_keys(ctx: Dictionary) -> Dictionary:
 			var side_sign := -1.0 if side == "l" else 1.0
 			_solve_arm_chain(ctx, keys, side, time, side_sign * swing,
 				float(config.get("elbow", 12.0)) + 4.0 * absf(reaction), "",
-				side_sign * 2.0 * reaction, true, side_sign * 3.0 * reaction, side_sign * reaction)
+				side_sign * float(config.get("wrist_swing", 0.0)) * reaction, true,
+				side_sign * float(config.get("forearm_twist", 0.0)) * reaction,
+				side_sign * float(config.get("wrist_sway", 0.0)) * reaction)
+			if ctx.has("hand_layout"): _relax_fingers(ctx, keys, side, time, float(sample.local))
 	if clamps > 0:
 		return {"keys": {}, "meta": {"reach_error": "Turn leg solve exceeded reachable geometry by %.6f m; reduce angle/foot lift or use more steps" % shortfall}}
 	_mark_one_shot(keys)

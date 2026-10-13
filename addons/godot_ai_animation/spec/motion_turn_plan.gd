@@ -119,7 +119,22 @@ static func build(ctx: Dictionary, yaw_sign: float) -> Dictionary:
 		return {"error": "Turn needs too much pelvis lowering; reduce angle/foot lift or use more steps"}
 	for sample: Dictionary in samples:
 		sample.offset -= up * (base_drop + extra_drop * float(sample.envelope))
-	return {"samples": samples, "contacts": contacts, "markers": markers,
+	var merged: Array = []
+	for side in ["l", "r"]:
+		for window: Dictionary in contacts:
+			if str(window.side) != side: continue
+			if not merged.is_empty() and str(merged[-1].side) == side and is_equal_approx(float(merged[-1].end), float(window.start)):
+				merged[-1].end = window.end
+			else:
+				merged.append(window.duplicate())
+		var index := 0
+		for window: Dictionary in merged:
+			if str(window.side) != side: continue
+			index += 1
+			var suffix := "" if index == 1 else "_%d" % index
+			markers.append({"name": "contact." + side.to_upper() + suffix, "time": window.start})
+			markers.append({"name": "toe_off." + side.to_upper() + suffix, "time": window.end})
+	return {"samples": samples, "contacts": merged, "markers": markers,
 		"angle": requested, "steps": steps, "step_angle": per_step,
 		"pelvis_base_drop_m": base_drop, "pelvis_reach_drop_m": extra_drop,
 		"recovery_steps": 1, "footfalls": steps + 1}

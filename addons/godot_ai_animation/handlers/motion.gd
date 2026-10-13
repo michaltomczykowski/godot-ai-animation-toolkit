@@ -61,10 +61,10 @@ const _OVERRIDE_KEYS := {
 	"walk_stop": _GAIT_KEYS,
 	"idle": ["amplitude", "head_amplitude", "look", "twist", "bob", "sway", "shift", "noise", "lean", "arm_sway", "elbow", "arm_twist", "twist_spread", "planted", "elbow_swing", "elbow_lag", "wrist_swing", "wrist_lag", "forearm_twist", "wrist_sway", "arm_variation", "variation_seed", "hand_relax"],
 	# Only keys a recipe actually reads are accepted. `jump` never applied
-	# `foot_lift` and `turn` never applied `lean`/`toe_roll`, so they used to be
+	# `foot_lift` and `turn` never applied `toe_roll`, so they used to be
 	# accepted, reported as success and change nothing; now they are refused.
 	"jump": ["jump_height", "jump_crouch", "jump_distance", "arm_swing", "elbow", "lean"],
-	"turn": ["turn_angle", "arm_swing", "elbow", "foot_lift", "steps"],
+	"turn": ["turn_angle", "arm_swing", "elbow", "foot_lift", "steps", "lean", "wrist_swing", "forearm_twist", "wrist_sway", "hand_relax"],
 }
 
 ## A single request can otherwise allocate tens of millions of keys by asking

@@ -34,8 +34,9 @@ func _contact(row: Dictionary, v: Dictionary, side: String) -> bool:
 	if not row.write.has("declared_contacts"):
 		# Baseline-only observation; missing declarations remain a structural failure.
 		return absf(Native.point(v, "foot_" + side).dot(v.up) - float(v.ground)) <= float(v.leg) * 0.0025
+	var at := minf(float(v.time), float(row.write.get("capture_duration", v.clip.length)))
 	for window: Dictionary in row.write.declared_contacts:
-		if str(window.side) == side and v.time >= float(window.start) - 0.000001 and v.time <= float(window.end) + 0.000001:
+		if str(window.side) == side and at >= float(window.start) - 0.000001 and at <= float(window.end) + 0.000001:
 			return true
 	return false
 

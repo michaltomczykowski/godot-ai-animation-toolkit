@@ -4,6 +4,12 @@ func _contact(v: Dictionary, side: String) -> bool:
 	var height := Native.point(v, "foot_" + side).dot(v.up) - float(v.ground)
 	return absf(height) <= 0.01 * float(v.leg) and (_declared(v, side) if v.review_row.write.has("declared_contacts") else true)
 
+func _declared(v: Dictionary, side: String) -> bool:
+	var at := minf(float(v.time), float(v.review_row.write.get("capture_duration", v.clip.length)))
+	for contact: Dictionary in v.review_row.write.get("declared_contacts", []):
+		if str(contact.side) == side and at >= float(contact.start) - 0.000001 and at <= float(contact.end) + 0.000001: return true
+	return false
+
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
 	if args.size() != 3:

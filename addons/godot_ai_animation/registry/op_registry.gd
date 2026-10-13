@@ -1874,7 +1874,7 @@ static func _motion_schema() -> Dictionary:
 			},
 			"overrides": {
 				"type": "object",
-				"description": "Gait: stride,knee_bend,arm_swing,arm_twist,bob,sway,hip_yaw,hip_roll,chest_yaw,twist_spread,lean,foot_lift,elbow,elbow_swing,lag,stance,crouch. Gait/idle hands: elbow_swing,elbow_lag/wrist_lag (0..0.25 cycles), wrist_swing/forearm_twist (+/-20 deg), wrist_sway (+/-10), arm_variation (0..3), variation_seed (integer 0..2147483647), hand_relax (0..45; validated fingers/palm). Gait upper body: torso_twist (+/-45), torso_flex/torso_roll/head_nod/head_roll (+/-10), head_lag (0..0.25), head_stabilize (0..1). Idle: amplitude,head_amplitude,look,twist,bob,sway,shift,noise,lean,arm_sway,elbow,arm_twist,twist_spread,planted.",
+				"description": "Gait: stride,knee_bend,arm_swing,arm_twist,bob,sway,hip_yaw,hip_roll,chest_yaw,twist_spread,lean,foot_lift,elbow,elbow_swing,lag,stance,crouch. Gait/idle hands (turn also consumes wrist_swing, forearm_twist, wrist_sway and hand_relax): elbow_swing,elbow_lag/wrist_lag (0..0.25 cycles), wrist_swing/forearm_twist (+/-20 deg), wrist_sway (+/-10), arm_variation (0..3), variation_seed (integer 0..2147483647), hand_relax (0..45; validated fingers/palm). Gait upper body: torso_twist (+/-45), torso_flex/torso_roll/head_nod/head_roll (+/-10), head_lag (0..0.25), head_stabilize (0..1). Idle: amplitude,head_amplitude,look,twist,bob,sway,shift,noise,lean,arm_sway,elbow,arm_twist,twist_spread,planted.",
 			},
 			"samples": {
 				"type": "number",
@@ -1903,7 +1903,7 @@ static func _motion_schema() -> Dictionary:
 			},
 			"steps": {
 				"type": "integer",
-				"description": "turn_cycle: pivot steps the turn is split into (1).",
+				"description": "turn_cycle: 1..8 dominant pivot stages (1), each at most 100 degrees; one final stance-recovery footfall is reported separately.",
 			},
 			"height": {
 				"type": "number",
@@ -2112,7 +2112,7 @@ static func _motion_ops() -> Array:
 		},
 		{
 			"name": "turn_cycle",
-			"summary": "Build an in-place pivot turn with anticipation, a stepping foot and a settle; one-shot, direction left/right. `steps` splits a big turn into that many pivot steps (opposite foot each) so a 180-degree turn reads as weight shifts, not a spin; the torso lead is bounded per step and spread over `spine_chain`, so a long spine cannot corkscrew; re-base the root yaw between steps in your driver.",
+			"summary": "Build a one-shot skeletal turn with alternating pivot stages and a final stance-recovery footfall. Moving feet release/replant before contact resumes; contacts and reach evaluation are reported and contact markers are saved. Direction left/right, 1..8 steps, at most 100 degrees per stage. Torso/head lead uses animated parent frames. This clip owns skeletal heading and does not extract actor yaw; avoid applying that yaw a second time to the actor.",
 			"params": ["player_path", "skeleton_path", "animation_name", "duration", "angle", "direction", "steps", "style", "overrides", "samples", "roles", "profile", "spine_chain", "loop_mode", "overwrite"],
 			"example": {"op": "turn_cycle", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "turn_left", "duration": 0.7, "angle": 90, "direction": "left"},
 		},
