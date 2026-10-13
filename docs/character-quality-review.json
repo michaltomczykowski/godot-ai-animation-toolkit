@@ -3,7 +3,7 @@
   "phase": "character_quality",
   "operation": "walk_start/walk_stop",
   "revision": "start-stop-body-r002",
-  "state": "turn_responsive_recording",
+  "state": "awaiting_focused_turn_feedback",
   "release_r1_execution": {
     "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -333,9 +333,9 @@
     "grounded": null,
     "responsive": null
   },
-  "next_action": "Complete Responsive turn recordings and source regression/archive; open Explorer and pause for focused visual feedback.",
+  "next_action": "Pause for explicit feedback on four Responsive clean turn movies; other styles/full turn closure and R2/R3-R5 remain.",
   "approval_rule": "Explicit profile approval covering all four rigs; continue alone is not approval.",
-  "updated_utc": "2026-10-13T22:13:25.672243+00:00",
+  "updated_utc": "2026-10-13T22:37:20.414370+00:00",
   "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
   "route": {
     "run_id": "9ad66ecc6b294f62823069b6a4050fc2",
@@ -13019,17 +13019,17 @@
     }
   ],
   "turn_review": {
-    "state": "responsive_numeric_pass_recording",
+    "state": "awaiting_focused_turn_feedback",
     "plan": "docs/turn-quality-review-plan.md",
     "visual_approval": null,
     "release_ready": false,
-    "next_action": "Complete Responsive turn recordings and source regression/archive; open Explorer and pause for focused visual feedback.",
+    "next_action": "Pause for explicit feedback on four Responsive clean turn movies; other styles/full turn closure and R2/R3-R5 remain.",
     "revision": "turn-candidate-r004",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013",
     "validation": "docs/turn-quality-validation.md",
     "animation_source": "ac309b7ab4fd49a3b719c87d7ac1240982be605e",
     "ci_source": "8a0f9bc0e9ddfddba2d14da742ac5a68a0fbc74c",
-    "ci_state": "pending",
+    "ci_state": "success",
     "public_clips": 32,
     "native_runs": 192,
     "public_motion_tests": 74,
@@ -13045,6 +13045,126 @@
       "remaining R2 motions/family reviews",
       "R3 integration/audit",
       "R4/R5 release"
-    ]
+    ],
+    "ci_run": 38475599599,
+    "ci_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\source-ci-8a0f9bc\\ci-receipt.json",
+    "local_gates": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\local-gates.json",
+    "full_editor_tests": 400,
+    "headless_suites": 14,
+    "registry_probes": 2,
+    "review_delivery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-delivery.json",
+    "independent_delivery_integrity": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\independent-delivery-integrity.json",
+    "pc_delivery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\pc-review-delivery.json",
+    "videos": [
+      {
+        "kind": "candidate-r004",
+        "variant": "left90",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-left90-responsive-clean.mp4",
+        "sha256": "a1d237c9d92f2c84bbe1c1a6bfcaef3cb3887061cee548b4f5f4b458266511f6",
+        "frames": 1440,
+        "duration_s": 24.0
+      },
+      {
+        "kind": "candidate-r004",
+        "variant": "left90",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-left90-responsive-diagnostic.mp4",
+        "sha256": "33e2260a0ca1ec7fe28fa9622276fa6ff94685c9ac6a6366ed70e040cd00d941",
+        "frames": 1440,
+        "duration_s": 24.0
+      },
+      {
+        "kind": "baseline-r001",
+        "variant": "left90",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\baseline-left90-responsive-clean.mp4",
+        "sha256": "bf501519ff026ae041aff8e5ce264d5a4fd505669de4d4d706d0bbf36bd2ae58",
+        "frames": 1440,
+        "duration_s": 24.0
+      },
+      {
+        "kind": "candidate-r004",
+        "variant": "right90",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-right90-responsive-clean.mp4",
+        "sha256": "dbc58f6663985c5eef273e611763601a2bcd17dabf04690d2735fe6bcf32dfa0",
+        "frames": 1440,
+        "duration_s": 24.0
+      },
+      {
+        "kind": "candidate-r004",
+        "variant": "right90",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-right90-responsive-diagnostic.mp4",
+        "sha256": "c1dadb660742379fb4f1ec6ff3b2ef47c1853cad44cf6f50dc9b0666cd76cdd5",
+        "frames": 1440,
+        "duration_s": 24.0
+      },
+      {
+        "kind": "baseline-r001",
+        "variant": "right90",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\baseline-right90-responsive-clean.mp4",
+        "sha256": "77e0413a1fe56be1e0460507db9b3cd6a8d0c29774d5496fd17214b5493ad2bc",
+        "frames": 1440,
+        "duration_s": 24.0
+      },
+      {
+        "kind": "candidate-r004",
+        "variant": "left180",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-left180-responsive-clean.mp4",
+        "sha256": "6f9876959826cf33024f1d823814533093c3ced0e4b108400d3a2c4ebb7afcbd",
+        "frames": 1440,
+        "duration_s": 24.0
+      },
+      {
+        "kind": "candidate-r004",
+        "variant": "left180",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-left180-responsive-diagnostic.mp4",
+        "sha256": "4515221a2f5ff21cac32c38ad5f1fec406569da2663cbde4fc637e529fed9fa5",
+        "frames": 1440,
+        "duration_s": 24.0
+      },
+      {
+        "kind": "baseline-r001",
+        "variant": "left180",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\baseline-left180-responsive-clean.mp4",
+        "sha256": "8aeefbfb777109e96f9bc83584d6bdd8d1ee3b1d39ab130ad8fb9314103b9247",
+        "frames": 1440,
+        "duration_s": 24.0
+      },
+      {
+        "kind": "candidate-r004",
+        "variant": "right180",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-right180-responsive-clean.mp4",
+        "sha256": "17fc915515a112a41f80cf6057075138a010b88d5640ad7b724227f5bd5ab9f4",
+        "frames": 1440,
+        "duration_s": 24.0
+      },
+      {
+        "kind": "candidate-r004",
+        "variant": "right180",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-right180-responsive-diagnostic.mp4",
+        "sha256": "07e14c1f95b746c49171ba53fd6e4442906d9deb874048d13dc44bedbf1b6498",
+        "frames": 1440,
+        "duration_s": 24.0
+      },
+      {
+        "kind": "baseline-r001",
+        "variant": "right180",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\baseline-right180-responsive-clean.mp4",
+        "sha256": "beb2daa3eb9ea8e747fb0b7ef6b75c03cd313eb3c4aeb6384cbf9f4a35c46cd1",
+        "frames": 1440,
+        "duration_s": 24.0
+      }
+    ],
+    "archived_scene_entries": 121
   }
 }

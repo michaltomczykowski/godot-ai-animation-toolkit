@@ -171,3 +171,11 @@ prior Responsive approval retained. 80 public clips/480 native plays,
 91 timing clips/546 plays, four sequences/24 plays, 160 reload calls,
 local editor397/397 and exact-source Windows/Linux CI5df333a pass.
 Next: `turn-quality-review-plan.md`. Remaining R2 and R3-R5 still apply.
+
+### R2 focused turn review, 2026-10-14
+
+Responsive 90 left/right and two-stage180 left/right repaired through
+public Godot AI.32 public clips/192 native plays,400 local editor tests
+and Windows/Linux CI8a0f9bc pass. Twelve continuous videos are delivered
+on PC Explorer (eight current/four baseline). Await focused feedback;
+other styles/full turn closure and remaining R2/R3-R5 still apply.

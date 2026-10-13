@@ -1,5 +1,33 @@
 # Agent notes
 
+## Responsive turn videos delivered — pause for human review (2026-10-14)
+
+Explorer is observed on candidate-r004/delivery-r002/review-videos, with
+turn-left90-responsive-clean selected. Twelve 24s continuous MP4s: eight
+candidate clean/diagnostic plus four preserved baseline clean. All are
+1080p60/1440 frames, front/side simultaneous, two reset takes on four rigs.
+**Pause for explicit feedback on the four Responsive clean turn videos.**
+Other styles/full turn closure and R2/R3-R5 remain; no release yet.
+
+Animation/checker ac309b7: 32 public history clips/192 native plays; 24
+positive and 120 detected corrupt plays; public motion74/74, local full
+editor400/400, headless14/14, two10-family/103-choice probes. CI8a0f9bc /
+38475599599 green: 28 headless jobs, four editors398/400 with only two
+named private-X-Bot skips, both live routes118/118; six raw logs archived.
+All generator/checker/renderer code equals that tested source. Eleven
+protected fixtures exact; walk/run/idle digest drift zero. Start/stop
+approval retained. Skeletal heading is owned by this clip, with actor-yaw
+controller/idle blending and wrapper contracts still R3 integration gates.
+
+Recovery release_r2_turn_20261013: six checked ZIPs, 121 attempted saved
+scenes preserved, 12 copied movie hashes verified independently. Delivery,
+integrity and PC receipts are in candidate-r004/delivery-r002. First source
+archive failed canonical Git-byte checks on Windows line endings; it stays
+preserved. Fresh delivery uses core.autocrlf=false, with all 44 protected
+Git blob comparisons passing. Other failed attempts remain documented.
+Read docs/turn-quality-review-plan.md and turn-quality-validation.md. No
+capture/editor job remains active; do not rerun archive or reset feedback.
+
 ## Responsive turn repair recording — no visual approval (2026-10-14)
 
 Start/stop r002 approval is preserved. Turn animation/checker ac309b7 has

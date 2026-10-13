@@ -112,3 +112,29 @@ yaw consumer or guaranteed heading retention when blending into an unrelated
 idle; controller/graph ownership and actor-wrapper contracts remain explicit
 R3 integration gates. Broader same-time marker handling also needs release-wide
 audit; this turn repair does not prove every other family's marker contract.
+
+## Delivery and manual pause, 2026-10-14
+
+Eight candidate and four baseline continuous 24s MP4s are complete and
+decode-verified (1080p60 /1440 frames each). PC Explorer shows all twelve
+plus START-HERE, repaired left90 clean selected. No video playback or
+visual approval is inferred. The review is focused Responsive only.
+
+Local400/400 editor,74/74 public motion,14/14 headless and both registry
+probes pass. Exact-source CI8a0f9bc /38475599599 is green: 28 headless
+jobs, four editors398/400 with only two named private-rig skips, both
+live routes118/118. Six raw logs/source identities archived; current
+generator/checker/renderer dependencies are identical. Protected eleven
+fixtures unchanged, accepted gait digest drift zero.
+
+Six ZIP CRC/hash checks,121 attempted scene entries and12 movie copies
+pass independent verification. Four source ZIPs match all44 protected
+Git blobs. The first archive attempt used Windows autocrlf exports and
+failed the exact-blob gate; preserve its partial ZIP/copies. New delivery
+is candidate-r004/delivery-r002 using canonical archive configuration.
+Collector setup initially lacked its output folder; the local receipt
+parser initially expected an equals sign instead of the actual colon
+in probe markers. Both were corrected without rerunning or weakening
+tests. First scripts/errors remain preserved. Receipt ZIP snapshots
+precede final delivery/PC/independent/human receipts, which are saved
+separately and documented on Git. Pause for focused user feedback.
