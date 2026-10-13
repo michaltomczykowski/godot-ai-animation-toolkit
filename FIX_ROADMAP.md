@@ -1,5 +1,15 @@
 # Animation Toolkit repair roadmap
 
+## Start/stop body feedback — r002 focused revision (2026-10-13)
+
+User requests more body reaction in start/stop; r001 is not approved.
+Plan and phase ledger: `docs/start-stop-body-r002-plan.md`. Preserve its complete
+delivery and the accepted walk/run/idle. First implement coordinated pelvis,
+torso, head and arm reactions, measure saved engine playback, then deliver two
+continuous Responsive comparisons and explicitly pause for feedback. Complete
+the full five-style/sequence regression and review after this focused checkpoint.
+
+
 ## Start/stop delivery complete — pause for human feedback (2026-10-12)
 
 All **22 continuous MP4s** are complete, decoded, hashed and observed in PC

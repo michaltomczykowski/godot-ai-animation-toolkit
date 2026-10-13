@@ -1,5 +1,15 @@
 # Agent notes
 
+## Start/stop body feedback — r002 focused revision (2026-10-13)
+
+User says r001 is too stiff and the body needs to react, not only the legs.
+This authorizes a transition-local whole-body revision; it is not approval.
+Plan: `docs/start-stop-body-r002-plan.md`. Preserve r001 and approved walk/run/
+idle. First produce a focused Responsive four-rig, both-root played checkpoint
+and two continuous r001/r002 clean comparisons; explicitly pause for feedback
+before the full five-style/sequence closure. No release or fixture promotion.
+
+
 ## Start/stop delivery complete — pause for human feedback (2026-10-12)
 
 All **22 continuous MP4s** are complete, decoded, hashed and observed in PC

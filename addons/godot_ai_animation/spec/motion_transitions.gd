@@ -4,6 +4,7 @@ extends RefCounted
 const Reference := preload("res://addons/godot_ai_animation/spec/motion_transition_reference.gd")
 const Specs := preload("res://addons/godot_ai_animation/spec/motion_specs.gd")
 const Drivers := preload("res://addons/godot_ai_animation/spec/motion_drivers.gd")
+const Body := preload("res://addons/godot_ai_animation/spec/motion_transition_body.gd")
 
 static func _refusal(reason: String) -> Dictionary:
 	return {"keys": {}, "meta": {"reach_error": reason}}
@@ -152,6 +153,7 @@ static func build(ctx: Dictionary, stopping: bool, gait: Dictionary, idle: Dicti
 			"ground": (ctx.legs[side].ankle as Vector3).dot(up)}
 	var samples: Array = []
 	var drop_amplitude := 0.0
+	var reaction := Body.prepare(ctx, gait, middle)
 	var times := Drivers.sample_times(length, float(ctx.samples))
 	for time_value in times:
 		var time := float(time_value)
@@ -161,6 +163,7 @@ static func build(ctx: Dictionary, stopping: bool, gait: Dictionary, idle: Dicti
 		var walk_channels := Reference.sample(walk_ref, phase * period + time - (0.0 if stopping else length))
 		var idle_channels := Reference.sample(idle_ref, time - (length if stopping else 0.0))
 		var channels := Reference.blend(idle_channels, walk_channels, weight)
+		Body.apply(ctx, rest, channels, reaction, u, stopping, support)
 		var root_at := forward * _root_distance(time, length, window, speed, stopping)
 		var globals := {}
 		var targets := {}
@@ -234,6 +237,8 @@ static func build(ctx: Dictionary, stopping: bool, gait: Dictionary, idle: Dicti
 		"idle_reference_period_s": float(idle.length), "idle_reference_samples": float(idle.rate),
 		"step_lift_used_m": clearance, "gait_foot_lift_used_m": float(gait.ctx.get("foot_lift_scaled", 0.05)),
 		"pelvis_reach_drop_m": drop_amplitude, "reference_window_s": window, "handover_support": support,
+		"body_reaction_strength": reaction.strength, "body_reaction_features": reaction.applied,
+		"body_reaction_omitted": reaction.omitted,
 		"declared_contacts": contacts,
 		"actor_translation_keys": actor_keys, "actor_translation_space": "root_motion_node_local",
 		"actor_translation_owner": "root_extraction_consumer" if bool(ctx.root_motion) else "gameplay_parent"}}
