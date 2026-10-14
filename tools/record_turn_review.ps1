@@ -27,7 +27,11 @@ if(Test-Path -LiteralPath $turnProgressPath){
         Write-Output 'Another identified recorder owns this stage; waiting for its complete receipt before verification.'
         while($turnExisting.state -eq 'recording'){
             $turnOther=Get-Process -Id ([int]$turnOwner.pid) -ErrorAction SilentlyContinue
-            if(-not $turnOther -or $turnOther.StartTime.ToUniversalTime().ToString('o') -ne $turnOwner.started_utc){throw 'Prior recorder is gone; preserve its interrupted frames'}
+            if(-not $turnOther -or $turnOther.StartTime.ToUniversalTime() -ne ([DateTime]$turnOwner.started_utc).ToUniversalTime()){
+                $turnExisting=Read-ReviewReceipt $turnProgressPath
+                if($turnExisting.state -eq 'complete'){break}
+                throw 'Prior recorder is gone; preserve its interrupted frames'
+            }
             if([DateTime]::UtcNow -ge $turnWaitDeadline){throw 'Peer recorder wait expired; preserve the in-progress capture'}
             Start-Sleep -Seconds 5
             $turnExisting=Read-ReviewReceipt $turnProgressPath
