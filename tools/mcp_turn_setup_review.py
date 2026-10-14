@@ -49,7 +49,21 @@ async def run(a):
                 route = {'passed': False, 'source_head': source, 'revision': 'turn-setup-' + label,
                          'operation': 'character_setup', 'cases': [], 'reference': str(reference_path)}
                 route_path = output / 'route.json'
+                reused = False
+                if a.reuse_complete and (a.reuse_complete / label / 'route.json').exists():
+                    previous_path = a.reuse_complete / label / 'route.json'
+                    previous = read(previous_path)
+                    assert previous['passed'] and len(previous['cases']) == 4
+                    assert subprocess.run(['git', 'diff', '--quiet', previous['source_head'], 'HEAD', '--',
+                        'addons/godot_ai_animation'], cwd=a.repo).returncode == 0
+                    route = {**previous, 'reused_from': str(previous_path), 'reused_from_sha256': digest(previous_path)}
+                    write_json(route_path, route)
+                    reused = True
                 for rig_id, rig_label, fixture, root_name, skeleton, player, synthetic in RIGS:
+                    if reused:
+                        row = next(r for r in route['cases'] if r['id'] == rig_id)
+                        assert row['passed'] and digest(a.project_root / row['scene'].removeprefix('res://')) == row['scene_sha256']
+                        continue
                     ref = next(r for r in reference['cases'] if r['id'] == rig_id)
                     assert digest(a.project_root / ref['scene'].removeprefix('res://')) == ref['scene_sha256']
                     target = folder / f'{label}-{rig_id}.tscn'
@@ -149,6 +163,7 @@ if __name__ == '__main__':
     for n in ('repo', 'core-root', 'project-root', 'output', 'references', 'godot', 'leg-matrix'):
         p.add_argument('--' + n, type=Path, required=True)
     p.add_argument('--port', type=int, default=8000); p.add_argument('--ws-port', type=int, default=9500)
+    p.add_argument('--reuse-complete', type=Path, help='Preserve successful public groups after a checker-only retry')
     a = p.parse_args()
     a.leg_lengths = {r['id']: r['leg_length_m'] for r in read(a.leg_matrix)['runs']}
     raise SystemExit(asyncio.run(run(a)))
