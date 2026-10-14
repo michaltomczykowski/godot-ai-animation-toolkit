@@ -205,7 +205,44 @@ func test_walk_stop_undo_redo_restores_written_walk_stop() -> void:
 
 
 func test_turn_undo_redo_restores_written_turn() -> void:
+	var scene := EditorInterface.get_edited_scene_root()
+	var setup_marker := scene.get_node_or_null("PublicSetupHistory") if scene != null else null
+	if setup_marker != null:
+		_public_turn_setup_history(scene, setup_marker)
+		return
 	_transition_history("turn_cycle", "PublicTurnHistory", "quality_turn")
+
+
+func _public_turn_setup_history(scene: Node, marker: Node) -> void:
+	# Observe the external public setup transaction; do not author a second one.
+	var player := scene.get_node(marker.get_meta("player_path")) as AnimationPlayer
+	var tree_path: NodePath = marker.get_meta("tree_path")
+	var tree := scene.get_node(tree_path) as AnimationTree
+	var before_root: NodePath = marker.get_meta("before_root_motion_track", NodePath())
+	var names := ["idle", "walk", "run", "turn_" + str(marker.get_meta("direction"))]
+	var digests := {}
+	for name: String in names:
+		assert_true(player.has_animation(name), "public setup contains " + name)
+		if not player.has_animation(name): return
+		digests[name] = GoldenDigest.from_animation(player.get_animation(name))
+	var root_track := player.root_motion_track
+	var tree_contract := [tree.anim_player, tree.root_motion_track, tree.root_motion_local, tree.active, tree.tree_root]
+	assert_true(editor_undo(_undo_redo), "actual public setup Undo succeeds")
+	for name: String in names: assert_false(player.has_animation(name), "one Undo removes setup " + name)
+	assert_true(scene.get_node_or_null(tree_path) == null, "one Undo removes the setup tree")
+	assert_eq(player.root_motion_track, before_root, "Undo restores prior extraction binding")
+	assert_true(editor_redo(_undo_redo), "actual public setup Redo succeeds")
+	for name: String in names:
+		assert_true(player.has_animation(name), "Redo restores setup " + name)
+		if player.has_animation(name):
+			var compared := GoldenDigest.compare(GoldenDigest.from_animation(player.get_animation(name)), digests[name])
+			assert_eq(str(compared.shape), "", "Redo restores setup clip structure")
+			assert_eq(int(compared.worst), 0, "Redo restores setup clip values")
+	tree = scene.get_node_or_null(tree_path) as AnimationTree
+	assert_true(tree != null, "Redo restores setup tree")
+	if tree != null:
+		assert_eq([tree.anim_player, tree.root_motion_track, tree.root_motion_local, tree.active, tree.tree_root], tree_contract, "Redo restores tree wiring, graph and activation")
+	assert_eq(player.root_motion_track, root_track, "Redo restores setup extraction binding")
 
 
 func test_turn_bad_requests_refuse_without_scene_changes() -> void:

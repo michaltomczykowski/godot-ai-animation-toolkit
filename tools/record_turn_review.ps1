@@ -17,6 +17,7 @@ if(-not $Baseline){
     if(-not $turnMatrix.passed){throw 'Candidate native matrix is not green'}
 }
 $turnProgressPath=Join-Path $ReviewRoot 'recording-progress.json'
+if(Test-Path -LiteralPath $turnProgressPath){throw 'Preserve the previous recording attempt and its progress receipt'}
 $turnProgress=@{state='recording';completed=@();current=$null;pid=$null;baseline=[bool]$Baseline}
 try {
     foreach($turnVariant in @('left90','right90','left180','right180')){
@@ -27,11 +28,18 @@ try {
             if(-not $turnRoute.passed -or $turnRoute.operation -ne 'turn_cycle' -or $turnRoute.cases.Count -ne 4){throw 'Invalid public turn route'}
             if($Baseline -and $turnRoute.phase -ne 'baseline'){throw 'Expected original baseline'}
             if(-not $Baseline -and $turnRoute.source_head -ne $turnMatrix.source_head){throw 'Candidate source differs from played matrix'}
+            if(-not $Baseline){
+                $turnCovered=@($turnMatrix.rows | Where-Object {$_.name -eq "$turnVariant-$turnStyle" -and $_.passed})
+                if($turnCovered.Count -ne 1){throw 'Recording route is absent from the passing native matrix'}
+                if((Get-FileHash -LiteralPath $turnCovered[0].route -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $turnRoutePath -Algorithm SHA256).Hash){throw 'Recording route differs from its measured receipt'}
+            }
             foreach($turnCase in $turnRoute.cases){
                 $turnScene=Join-Path $ProjectRoot $turnCase.scene.Substring(6)
                 if((Get-FileHash -LiteralPath $turnScene -Algorithm SHA256).Hash.ToLower() -ne $turnCase.scene_sha256){throw 'Saved turn scene changed'}
             }
             foreach($turnMode in $Modes){
+                $turnDrive=[System.IO.DriveInfo]::new([System.IO.Path]::GetPathRoot($ReviewRoot))
+                if($turnDrive.AvailableFreeSpace -lt 1.5GB){throw 'Insufficient capture space; preserve frames and use a fresh recording attempt'}
                 $turnProgress.current="$turnVariant/$turnStyle/$turnMode"
                 Save-ReviewReceipt $turnProgressPath $turnProgress
                 $turnFrames=Join-Path $turnFolder ($turnMode+'_frames')

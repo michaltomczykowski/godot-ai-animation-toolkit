@@ -87,6 +87,10 @@ async def run(args: argparse.Namespace) -> int:
                     params = {"op": args.operation, "player_path": player,
                               "skeleton_path": f"/{scene_root}/{rig_path}",
                               "animation_name": f"quality_{motion}", "root_motion": root_mode == "extracted"}
+                    if args.entry_point == "cycle":
+                        if not turn:
+                            raise ValueError("Cycle alias review is currently defined for turn only")
+                        params.update(op="cycle", preset="turn")
                     # Ordinary Responsive/default call. No duration, sample,
                     # speed, loop or recipe override in the reviewed default.
                     if style != "responsive":
@@ -210,6 +214,7 @@ if __name__ == "__main__":
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--phase", choices=("baseline", "prototype", "candidate"), default="baseline")
     p.add_argument("--operation", choices=("walk_cycle", "run_cycle", "idle_cycle", "walk_start", "walk_stop", "turn_cycle"), default="run_cycle")
+    p.add_argument("--entry-point", choices=("dedicated", "cycle"), default="dedicated")
     p.add_argument("--direction", choices=("left", "right"))
     p.add_argument("--angle", type=float, help="Requested turn angle; omit for ordinary 90 degrees")
     p.add_argument("--steps", type=int, help="Requested turn steps; use two for a 180-degree turn")
