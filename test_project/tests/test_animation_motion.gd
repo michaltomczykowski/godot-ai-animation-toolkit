@@ -113,7 +113,7 @@ func test_run_default_aliases_grounded_and_setup_share_profiles() -> void:
 		matched.merge({"duration": 0.6, "speed": 1.1, "animation_name": "matched_run"}, true)
 		assert_true(_handler.run(matched, null).has("data"), "matched run builds")
 		var setup := _handler.run({"op": "character_setup", "player_path": rig.player_path,
-			"skeleton_path": rig.skeleton_path, "root_motion": true, "run_speed": 1.1}, null)
+			"skeleton_path": rig.skeleton_path, "root_motion": true, "run_speed": 1.1, "run_duration": 0.6}, null)
 		assert_true(setup.has("data"), "setup reuses run profile: " + str(setup))
 		if setup.has("data"):
 			var compared := GoldenDigest.compare(GoldenDigest.from_animation(rig.player.get_animation("run")),
@@ -2138,7 +2138,7 @@ func test_idle_profiles_aliases_setup_and_explicit_precedence() -> void:
 		var distinct := GoldenDigest.compare(GoldenDigest.from_animation(rig.player.get_animation("grounded_idle")), digest)
 		assert_gt(int(distinct.worst), 0, "Grounded idle is distinct")
 		var setup := _handler.run({"op": "character_setup", "player_path": rig.player_path,
-			"skeleton_path": rig.skeleton_path, "root_motion": true, "run_speed": 1.1}, null)
+			"skeleton_path": rig.skeleton_path, "root_motion": true, "run_speed": 1.1, "run_duration": 0.6}, null)
 		assert_true(setup.has("data"), "setup shares the idle profile: " + str(setup))
 		if setup.has("data"):
 			var compared := GoldenDigest.compare(GoldenDigest.from_animation(rig.player.get_animation("idle")), digest)

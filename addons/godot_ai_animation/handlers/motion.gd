@@ -482,49 +482,16 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 	var player_root := ValueCodec.player_root_node(player)
 	if player_root == null:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "The AnimationPlayer has no resolvable root_node")
-	# An omitted speed lets the gait choose a rig-relative, reachable walk.
-	# Explicit speeds remain exact requests and fail before any scene mutation.
+	var planned := _setup_plans(params)
+	if planned.has("error"):
+		return planned
 	var walk_speed := float(params.get("speed", 0.0))
-	var run_speed := maxf(float(params.get("run_speed", 2.0)), 0.0)
-	if (params.has("speed") and walk_speed <= 0.0) or run_speed <= maxf(walk_speed, 0.0):
-		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
-			"character_setup needs 0 < speed < run_speed when speed is provided (got speed=%.3f, run_speed=%.3f)" % [walk_speed, run_speed])
+	var run_speed := float(params.get("run_speed", 0.0))
 	var overwrite := bool(params.get("overwrite", true))
 	var root_motion := bool(params.get("root_motion", true))
 	var include_jump := bool(params.get("include_jump", false))
 	var include_turn := bool(params.get("include_turn", false))
-	var direction := str(params.get("direction", "left"))
-	if direction != "left" and direction != "right":
-		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'direction' must be 'left' or 'right'")
-	var plans: Array = [
-		{"kind": "idle", "name": "idle", "args": {
-			"duration": float(params.get("idle_duration", 3.0)),
-			"loop_mode": "linear", "root_motion": false,
-		}},
-		{"kind": "walk", "name": "walk", "args": {
-			"duration": float(params.get("duration", 1.0)), "speed": walk_speed,
-			"loop_mode": "linear", "root_motion": root_motion,
-		}},
-		{"kind": "run", "name": "run", "args": {
-			"duration": float(params.get("run_duration", 0.6)), "speed": run_speed,
-			"loop_mode": "linear", "root_motion": root_motion,
-		}},
-	]
-	if include_jump:
-		plans.append({"kind": "jump", "name": "jump", "args": {
-			"duration": float(params.get("jump_duration", 1.2)),
-			"height": float(params.get("height", 0.5)),
-			"crouch": float(params.get("crouch", 0.24)),
-			"distance": float(params.get("distance", 0.0)),
-			"loop_mode": "none", "root_motion": false,
-		}})
-	if include_turn:
-		plans.append({"kind": "turn", "name": "turn_" + direction, "args": {
-			"duration": float(params.get("turn_duration", 0.7)),
-			"angle": float(params.get("angle", 90.0)),
-			"direction": direction,
-			"loop_mode": "none", "root_motion": false,
-		}})
+	var plans: Array = planned.plans
 	var common := {
 		"player_path": player_path,
 		"skeleton_path": str(params.get("skeleton_path", "")),
@@ -566,6 +533,10 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 			clip_name, prepared.length, prepared.loop_mode, prepared.keys, prepared.markers)
 		if built.has("error"):
 			return built
+		var terminal_hold := 0.0
+		if root_motion and not str(built.root_motion_track).is_empty():
+			terminal_hold = preserve_translation_endpoint(built.spec, str(built.root_motion_track))
+			if terminal_hold > 0.0: built.anim = SpecBuilder.to_animation(built.spec)
 		added[clip_name] = built.anim
 		var clip_warnings: Array = (prepared.meta.get("warnings", []) as Array).duplicate()
 		var speed := 0.0
@@ -579,11 +550,15 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 			"applied_features": prepared.applied_features,
 			"omitted_features": prepared.omitted_features,
 			"samples": prepared.rate,
-			"length": prepared.length,
+			"length": float(built.spec.length),
+			"capture_duration": prepared.length,
+			"root_motion_terminal_hold": terminal_hold,
 			"loop_mode": ValueCodec.loop_mode_to_string(prepared.loop_mode),
 			"track_count": (built.spec.tracks as Array).size(),
 			"key_count": ClipSpec.total_key_count(built.spec),
 			"marker_count": (prepared.markers as Array).size(),
+			"root_motion": prepared.rooted,
+			"steps": int(prepared.meta.get("steps", 0)),
 			"speed": speed,
 			"warnings": clip_warnings,
 		}
@@ -593,6 +568,9 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 	# mixer to invent one).
 	var walk_solved := float((clips.get(str(clips_by_kind.walk), {}) as Dictionary).get("speed", walk_speed))
 	var run_solved := float((clips.get(str(clips_by_kind.run), {}) as Dictionary).get("speed", run_speed))
+	if not is_finite(walk_solved) or not is_finite(run_solved) or walk_solved <= 0.0 or run_solved <= walk_solved:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"character_setup needs solved 0 < walk speed < run speed (got %.3f and %.3f m/s); adjust explicit speeds or timing" % [walk_solved, run_solved])
 	var speed_warnings: Array = []
 	for pair in [[str(clips_by_kind.walk), walk_speed, walk_solved], [str(clips_by_kind.run), run_speed, run_solved]]:
 		if float(pair[1]) > 0.0 and absf(float(pair[1]) - float(pair[2])) > 0.01:
@@ -655,12 +633,14 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 			tree_parent = player.get_parent() if player.get_parent() != null else scene_root
 			created_tree = true
 	var root_motion_track := ""
+	var root_motion_owner_path := ""
 	if root_motion:
 		var motion_node := _root_motion_node(player_root, prepared_list[0].resolved.node)
 		if motion_node == null:
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"Root motion needs a Node3D character owner under the AnimationPlayer root_node")
 		root_motion_track = "%s:position" % str(player_root.get_path_to(motion_node))
+		root_motion_owner_path = ValueCodec.from_node(motion_node, scene_root)
 	var want_active := bool(params.get("active", false))
 	var old_root: AnimationRootNode = tree.tree_root if not created_tree else null
 	var old_anim_player := tree.anim_player
@@ -745,11 +725,61 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 		"speed_values": {"idle": 0.0, "walk": walk_solved, "run": run_solved},
 		"jump_request_parameter": jump_request,
 		"parameters": parameter_paths,
-		"apply_snippet": _apply_snippet(tree_label, speed_parameter, jump_request),
+		"apply_snippet": _apply_snippet(tree_label, speed_parameter, jump_request, root_motion_owner_path),
+		"root_motion_owner_path": root_motion_owner_path,
+		"translation_owner": "controller consumes AnimationTree extraction" if root_motion else "external controller",
+		"turn_wired": false,
+		"turn_heading_owner": "skeletal clip only" if include_turn else "not_applicable",
+		"actor_yaw_extraction": false,
+		"jump_wired": include_jump,
+		"jump_translation_owner": ("AnimationTree extraction" if root_motion else "skeletal clip") if include_jump else "not_applicable",
 		"warnings": warnings + speed_warnings,
 		"undoable": true,
 		"note": "active tree owns playback" if want_active else "inactive tree; pass active=true (or enable the tree) when the scene is ready",
 	}}
+
+
+## Preserve caller provenance: omitted controls are resolved by the same motion
+## path as standalone calls. Jump keeps the documented 1.2 s wrapper duration.
+static func _setup_plans(params: Dictionary) -> Dictionary:
+	for field in ["speed", "run_speed", "duration", "run_duration", "idle_duration", "jump_duration", "turn_duration", "height", "crouch", "distance", "angle", "samples", "jump_fadein", "jump_fadeout"]:
+		if not params.has(field): continue
+		if not (params[field] is int or params[field] is float):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'%s' must be a number" % field)
+		if not is_finite(float(params[field])):
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'%s' must be finite" % field)
+	for field in ["speed", "run_speed", "duration", "run_duration", "idle_duration", "jump_duration", "turn_duration"]:
+		if params.has(field) and float(params[field]) <= 0.0:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'%s' must be > 0" % field)
+	for field in ["jump_fadein", "jump_fadeout"]:
+		if params.has(field) and float(params[field]) < 0.0:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'%s' must be >= 0" % field)
+	if params.has("speed") and params.has("run_speed") and float(params.run_speed) <= float(params.speed):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "character_setup needs speed < run_speed")
+	var direction := str(params.get("direction", "left"))
+	if direction not in ["left", "right"]:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'direction' must be 'left' or 'right'")
+	var rooted := bool(params.get("root_motion", true))
+	var plans: Array = [
+		{"kind": "idle", "name": "idle", "args": {"loop_mode": "linear", "root_motion": false}},
+		{"kind": "walk", "name": "walk", "args": {"loop_mode": "linear", "root_motion": rooted}},
+		{"kind": "run", "name": "run", "args": {"loop_mode": "linear", "root_motion": rooted}},
+	]
+	var mappings: Array = [{"idle_duration": "duration"}, {"duration": "duration", "speed": "speed"}, {"run_duration": "duration", "run_speed": "speed"}]
+	if bool(params.get("include_jump", false)):
+		plans.append({"kind": "jump", "name": "jump", "args": {"duration": 1.2, "loop_mode": "none", "root_motion": rooted}})
+		mappings.append({"jump_duration": "duration", "height": "height", "crouch": "crouch", "distance": "distance"})
+	if bool(params.get("include_turn", false)):
+		plans.append({"kind": "turn", "name": "turn_" + direction, "args": {"direction": direction, "loop_mode": "none", "root_motion": false}})
+		mappings.append({"turn_duration": "duration", "angle": "angle"})
+	for index in plans.size():
+		for source in mappings[index]:
+			if params.has(source): plans[index].args[mappings[index][source]] = params[source]
+		if plans[index].kind == "turn":
+			# Setup has no public steps control: split large angles into existing
+			# 90-degree pivots while the shared validator retains its 1..8 bound.
+			plans[index].args["steps"] = max(1, ceili(absf(float(plans[index].args.get("angle", 90.0))) / 90.0))
+	return {"plans": plans}
 
 
 ## Path from the (possibly detached) tree to the player.
@@ -771,17 +801,31 @@ static func _first_parameter(paths: Array, suffix: String, fallback: String) -> 
 	return fallback
 
 
-static func _apply_snippet(tree_label: String, speed_parameter: String, jump_request: String) -> String:
+static func _apply_snippet(tree_label: String, speed_parameter: String, jump_request: String, owner_label: String = "") -> String:
 	var lines: Array = [
-		"@onready var tree: AnimationTree = get_node(\"%s\")" % tree_label,
-		"",
-		"# each physics frame:",
-		"tree.set(\"%s\", velocity.length())" % speed_parameter,
+		"# Attach to a scene node. Set desired_ground_speed from your movement input.",
+		"@onready var tree: AnimationTree = get_tree().root.get_node(%s)" % JSON.stringify(tree_label.trim_prefix("/")),
+		"var desired_ground_speed := 0.0",
 	]
+	if not owner_label.is_empty():
+		lines.append("@onready var motion_owner: Node3D = get_tree().root.get_node(%s)" % JSON.stringify(owner_label.trim_prefix("/")))
+	lines.append("\nfunc _ready() -> void:")
+	lines.append("\ttree.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL")
+	lines.append("\ttree.active = true")
+	lines.append("\nfunc _physics_process(delta: float) -> void:")
+	lines.append("\ttree.set(%s, desired_ground_speed)" % JSON.stringify(speed_parameter))
 	if not jump_request.is_empty():
-		lines.append("")
-		lines.append("if Input.is_action_just_pressed(\"jump\"):")
-		lines.append("\ttree.set(\"%s\", AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)" % jump_request)
+		lines.append("\t# Forward jump travel is authored; start it from idle.")
+		lines.append("\tif Input.is_action_just_pressed(\"jump\"):")
+		lines.append("\t\tdesired_ground_speed = 0.0")
+		lines.append("\t\ttree.set(%s, 0.0)" % JSON.stringify(speed_parameter))
+		lines.append("\t\ttree.set(%s, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)" % JSON.stringify(jump_request))
+	lines.append("\ttree.advance(delta)")
+	if not owner_label.is_empty():
+		lines.append("\t# Exactly one translation consumer; no actor-yaw extraction.")
+		lines.append("\tmotion_owner.position += motion_owner.quaternion * tree.get_root_motion_position()")
+	else:
+		lines.append("\t# In-place setup: your controller supplies character movement.")
 	return "\n".join(lines)
 
 
