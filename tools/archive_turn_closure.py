@@ -93,7 +93,7 @@ def main():
     scenes = {}
     def keep(scene, expected=None):
         path = a.project_root / scene.removeprefix('res://')
-        if not path.is_file(): return
+        require(path.is_file(), 'Missing preserved scene: ' + scene)
         sha = digest(path)
         if expected: require(sha == expected, 'Saved scene changed: ' + scene)
         scenes[scene] = {'path': path, 'sha256': sha}
