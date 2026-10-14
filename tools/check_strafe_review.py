@@ -19,6 +19,8 @@ def main() -> int:
     receipt = {"passed": False, "rows": [], "failures": [], "clips": 0, "native_runs": 0}
     heads = set()
     checker = Path(__file__).resolve().parents[1] / "test_project/tools/check_strafe_quality.gd"
+    checker_hash = hashlib.sha256(checker.read_bytes()).hexdigest()
+    helper_hash = hashlib.sha256((checker.parent / "character_quality_native.gd").read_bytes()).hexdigest()
     expected = {(r, fps, mixer) for r in ("dummy", "xbot", "short", "zup_tall") for fps in (30, 60, 120) for mixer in ("player", "tree")}
     for direction in a.directions:
         for style in a.styles:
@@ -35,15 +37,26 @@ def main() -> int:
                     if hashlib.sha256(scene.read_bytes()).hexdigest() != row["scene_sha256"]:
                         raise ValueError("Saved scene differs from public receipt")
                 heads.add(route["source_head"])
+                route_hash = hashlib.sha256(route_path.read_bytes()).hexdigest()
                 output = folder / "native-check.json"
+                if output.exists():
+                    cached = json.loads(output.read_text(encoding="utf-8-sig"))
+                    if (cached.get("route_sha256") != route_hash or cached.get("checker_sha256") != checker_hash
+                            or cached.get("native_helper_sha256") != helper_hash):
+                        # Preserve historical checks. A changed checker/route gets
+                        # a distinct immutable output, never a relabeled pass.
+                        identity = hashlib.sha256((route_hash + checker_hash + helper_hash).encode()).hexdigest()[:16]
+                        output = folder / f"native-check-{identity}.json"
                 command = [str(a.godot), "--headless", "--path", str(a.project_root), "--script", "res://tools/check_strafe_quality.gd", "--", str(route_path), str(output)]
                 # Baseline reports are immutable once checked; verify and reuse them.
                 if not output.exists():
-                    with (folder / "native-check.log").open("w", encoding="utf-8") as stream:
+                    with output.with_suffix(".log").open("w", encoding="utf-8") as stream:
                         result = subprocess.run(command, stdout=stream, stderr=subprocess.STDOUT, timeout=120)
-                    (folder / "native-check.exit").write_text(str(result.returncode), encoding="utf-8")
+                    output.with_suffix(".exit").write_text(str(result.returncode), encoding="utf-8")
                 native = json.loads(output.read_text(encoding="utf-8-sig"))
                 passed = (native.get("passed") is True and native["source_head"] == route["source_head"] and not native["engine_errors"]
+                          and len(native["runs"]) == 24 and native.get("route_sha256") == route_hash
+                          and native.get("checker_sha256") == checker_hash and native.get("native_helper_sha256") == helper_hash
                           and {(r["id"], r["fps"], r["mixer"]) for r in native["runs"]} == expected)
                 receipt["rows"].append({"direction": direction, "style": style, "root_mode": mode, "route": str(route_path),
                     "route_sha256": hashlib.sha256(route_path.read_bytes()).hexdigest(), "native": str(output),

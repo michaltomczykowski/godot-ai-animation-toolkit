@@ -258,6 +258,9 @@ func _run() -> void:
 				if not result.get("thresholds_pass", false): failures.append("%s/%s/%s: %s" % [row.id, fps, mode, str(result.get("failures", ["Invalid check result"]))])
 	var expected := 4 * 3 * modes.size()
 	var report := {"source_head": manifest.source_head, "revision": manifest.revision,
+		"route_sha256": FileAccess.get_sha256(args[0]),
+		"checker_sha256": FileAccess.get_sha256("res://tools/check_strafe_quality.gd"),
+		"native_helper_sha256": FileAccess.get_sha256("res://tools/character_quality_native.gd"),
 		"runs": results, "failures": failures, "engine_errors": logger.errors,
 		"passed": results.size() == expected and failures.is_empty() and logger.errors.is_empty(),
 		"measurement_contract": "Independent saved engine playback, world-space ankle contact/flight and one actor translation owner. Rest ankle plane is not skinned sole collision. In-place world planting uses caller-owned constant velocity; observed contact band differs from marker timing. Numerical checks do not approve visual quality."}

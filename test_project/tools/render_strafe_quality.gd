@@ -60,8 +60,11 @@ func _run() -> void:
 		for frame in 360:
 			if frame > 0:
 				for v: Dictionary in views:
-					Native.advance(v, 1.0 / 60.0)
-					if not bool(row.params.root_motion):
+					if bool(row.params.root_motion):
+						Native.advance(v, 1.0 / 60.0)
+					else:
+						v.player.advance(1.0 / 60.0)
+						v.time += 1.0 / 60.0
 						v.body.global_position += v.travel_axis * float(row.write.speed) / 60.0
 					_update(v)
 			status.text = "Godot 4.7.2 | %.2fs | %s | actor travel %.3fm" % [float(frame) / 60.0, manifest.root_mode, views[0].body.global_position.distance_to(views[0].initial_body)]
