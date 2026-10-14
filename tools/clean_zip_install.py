@@ -72,6 +72,8 @@ def main() -> None:
     p.add_argument('--core-ref', required=True)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--godot', default='godot')
+    p.add_argument('--port', type=int, default=8000)
+    p.add_argument('--ws-port', type=int, default=9500)
     a = p.parse_args()
     repo = Path(__file__).resolve().parents[1]
     manifest = validate(repo, a.source, a.zip)
@@ -146,7 +148,7 @@ def main() -> None:
         env['GODOT_AI_ALLOW_HEADLESS'] = '1'
         subprocess.run([godot_executable(a.godot), '--headless', '--path', str(project), '--import'], check=True, env=env)
         log = a.output / (order + '-editor.log')
-        command = [sys.executable, str(repo / 'tools/ci_mcp_route.py'), '--project', str(project), '--core-root', str(a.core_root.resolve()), '--godot', a.godot, '--log', str(log), '--install-selection']
+        command = [sys.executable, str(repo / 'tools/ci_mcp_route.py'), '--project', str(project), '--core-root', str(a.core_root.resolve()), '--godot', a.godot, '--log', str(log), '--install-selection', '--port', str(a.port), '--ws-port', str(a.ws_port)]
         run = subprocess.run(command, capture_output=True, text=True, env=env)
         (a.output / (order + '-route.log')).write_text(run.stdout + run.stderr)
         if run.returncode or 'CLEAN_INSTALL_SELECTION_PASS=10/8' not in log.read_text(errors='replace'):

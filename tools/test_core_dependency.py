@@ -47,7 +47,9 @@ func unregister_source(source) -> int:
 SUITE = '''extends SceneTree
 class BatchRegistry extends RefCounted:
     var reject := false
+    var calls := 0
     func batch_register(specs: Array) -> bool:
+        calls += 1
         assert(specs.is_typed() and specs.get_typed_script() != null)
         assert(specs.size() == 10)
         return not reject
@@ -72,6 +74,8 @@ func _run() -> void:
     file.store_string("[plugin\nversion=broken")
     file.close()
     assert("could not be read" in plugin_script._core_dependency_error())
+    for i in range(12):
+        assert("could not be read" in plugin_script._core_dependency_error())
     var cfg := ConfigFile.new()
     cfg.set_value("plugin", "version", "4.2.1")
     cfg.save(cfg_path)
@@ -84,6 +88,14 @@ func _run() -> void:
     assert(plugin_script._register_specs(batch, spec_script))
     batch.reject = true
     assert(not plugin_script._register_specs(batch, spec_script))
+    for i in range(12):
+        assert(not plugin_script._register_specs(batch, spec_script))
+    assert(batch.calls == 2)
+    cfg.set_value("plugin", "version", "4.3.0")
+    cfg.save(cfg_path)
+    assert(plugin_script._core_dependency_error() == "")
+    assert(not plugin_script._register_specs(batch, spec_script))
+    assert(batch.calls == 3)
     var registry = registry_script.new()
     registry_script.instance = registry
     assert(plugin_script._register_specs(registry, spec_script) and registry.specs.size() == 10)
@@ -100,9 +112,20 @@ func _run() -> void:
     registry.specs[foreign.name] = foreign
     assert(not plugin_script._register_specs(registry, spec_script) and registry.specs.size() == 1)
     assert(registry.specs[foreign.name] == foreign)
+    registry.specs.erase(foreign.name)
+    assert(plugin_script._register_specs(registry, spec_script))
+    assert(plugin_script._spec_present(registry))
+    registry.specs[foreign.name] = foreign
+    assert(not plugin_script._spec_present(registry))
+    cfg.set_value("plugin", "version", "4.1.0")
+    cfg.save(cfg_path)
+    assert("too old" in plugin_script._core_dependency_error())
+    assert(plugin_script._instance() == null)
+    plugin_script._unregister_known(registry)
+    assert(registry.specs.size() == 1 and registry.specs[foreign.name] == foreign)
     registry_script.instance = null
     await process_frame
-    print("CORE_DEPENDENCY_PASS=metadata,typed-batch,fallback-success,rejection-rollback,foreign-collision")
+    print("CORE_DEPENDENCY_PASS=metadata-cache,typed-batch,rejection-cache,fallback-rollback,foreign-presence,invalidated-cleanup")
     quit(0)
 '''
 
@@ -125,7 +148,7 @@ def main():
         run = subprocess.run([a.godot, '--headless', '--path', str(project), '--script', 'res://suite.gd'], capture_output=True, text=True, timeout=90)
         print(run.stdout + run.stderr)
         unexpected_errors = [line for line in run.stderr.splitlines() if line.startswith('ERROR:') and not line.startswith('ERROR: ConfigFile parse error at res://addons/godot_ai/plugin.cfg:')]
-        if run.returncode or 'CORE_DEPENDENCY_PASS=' not in run.stdout or 'Parse Error' in run.stderr or 'SCRIPT ERROR:' in run.stderr or unexpected_errors:
+        if run.returncode or 'CORE_DEPENDENCY_PASS=' not in run.stdout or 'Parse Error' in run.stderr or 'SCRIPT ERROR:' in run.stderr or unexpected_errors or run.stderr.count('ERROR: ConfigFile parse error') != 1:
             raise RuntimeError('Core dependency controls failed')
 
 if __name__ == '__main__':

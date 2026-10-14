@@ -28,9 +28,14 @@ var _warned := false
 var _poll := 0.0
 var _registry: Object = null
 var _dependency_message := ""
+var _registration_diagnostic_key := ""
+static var _dependency_cache_key := ""
+static var _dependency_cache_message := ""
+static var _rejected_registration_key := ""
 
 
 func _enter_tree() -> void:
+	_rejected_registration_key = ""
 	ToolContext.undo_redo = get_undo_redo()
 	_retry_left = RETRY_WINDOW_SEC
 	set_process(true)
@@ -39,6 +44,7 @@ func _enter_tree() -> void:
 
 func _exit_tree() -> void:
 	set_process(false)
+	_unregister_known(_registry)
 	_disconnect(_registry)
 	_registry = null
 	var live = _instance()
@@ -60,13 +66,14 @@ func _process(delta: float) -> void:
 		# the old instance, so reconnect to the new one and register again - this
 		# is what used to leave every toolkit tool missing until the editor was
 		# restarted.
+		_unregister_known(_registry)
 		_disconnect(_registry)
 		_registry = live
 		_registered = false
 		_retry_left = RETRY_WINDOW_SEC
 		_warned = false
-		if live != null and not live.registry_ready.is_connected(_register):
-			live.registry_ready.connect(_register)
+		if live != null and not live.registry_ready.is_connected(_on_registry_ready):
+			live.registry_ready.connect(_on_registry_ready)
 	elif _registered and live != null and _spec_present(live):
 		return
 	elif _registered:
@@ -77,7 +84,7 @@ func _process(delta: float) -> void:
 			_warned = true
 			push_warning(
 				"Godot AI Animation Toolkit: Godot AI (>= 4.2.1) not ready - "
-				+ "no toolkit tools were registered."
+				+ "toolkit registration did not become ready."
 			)
 		return
 	_try_register()
@@ -86,6 +93,8 @@ func _process(delta: float) -> void:
 func _try_register() -> void:
 	var dependency_error := _core_dependency_error()
 	if not dependency_error.is_empty():
+		_unregister_known(_registry)
+		_registered = false
 		if dependency_error != _dependency_message:
 			push_warning("Godot AI Animation Toolkit: " + dependency_error)
 			_dependency_message = dependency_error
@@ -100,8 +109,14 @@ func _try_register() -> void:
 	if _registry != live:
 		_disconnect(_registry)
 		_registry = live
-		if not live.registry_ready.is_connected(_register):
-			live.registry_ready.connect(_register)
+		if not live.registry_ready.is_connected(_on_registry_ready):
+			live.registry_ready.connect(_on_registry_ready)
+	_register()
+
+
+func _on_registry_ready() -> void:
+	_rejected_registration_key = ""
+	_registration_diagnostic_key = ""
 	_register()
 
 
@@ -117,12 +132,29 @@ func _register() -> void:
 		return
 	_registered = _register_specs(live, spec_script)
 	if not _registered:
-		push_error("Godot AI Animation Toolkit: registration rejected; see the core/fallback diagnostic above.")
+		var diagnostic_key := _registration_key(live)
+		if diagnostic_key != _registration_diagnostic_key:
+			_registration_diagnostic_key = diagnostic_key
+			push_error("Godot AI Animation Toolkit: registration rejected; see the core/fallback diagnostic above.")
+	else:
+		_registration_diagnostic_key = ""
 
 
 ## Returns success only after every family is registered. The fallback removes
 ## this source on first rejection and verifies rollback without touching others.
+static func _registration_key(live: Object) -> String:
+	var key := str(live.get_instance_id()) + _dependency_cache_key
+	if live.has_method("get_spec"):
+		for family_name in OpRegistry.family_names():
+			var spec = live.call("get_spec", family_name)
+			key += ":" + family_name + "=" + (str(spec.source_path) if spec != null else "")
+	return key
+
+
 static func _register_specs(live: Object, spec_script: Script) -> bool:
+	var registration_key := _registration_key(live)
+	if registration_key == _rejected_registration_key:
+		return false
 	var specs: Array = []
 	for family_name in OpRegistry.family_names():
 		var info: Dictionary = OpRegistry.family(family_name)
@@ -149,13 +181,17 @@ static func _register_specs(live: Object, spec_script: Script) -> bool:
 		# typed array from the dynamically loaded script, so this addon still
 		# parses when Godot AI is not installed.
 		var typed_specs := Array(specs, TYPE_OBJECT, &"RefCounted", spec_script)
-		return bool(live.call("batch_register", typed_specs))
+		if not bool(live.call("batch_register", typed_specs)):
+			_rejected_registration_key = registration_key
+			return false
 	else:
 		if not live.has_method("register") or not live.has_method("unregister_source"):
+			_rejected_registration_key = registration_key
 			push_error("Godot AI Animation Toolkit: incompatible core registration API; rollback unavailable.")
 			return false
 		for spec in specs:
 			if not live.call("register", spec):
+				_rejected_registration_key = registration_key
 				live.call("unregister_source", SOURCE_CFG)
 				for family_name in OpRegistry.family_names():
 					var remaining = live.call("get_spec", family_name)
@@ -163,20 +199,29 @@ static func _register_specs(live: Object, spec_script: Script) -> bool:
 						push_error("Godot AI Animation Toolkit: single-registration rollback failed.")
 						return false
 				return false
+	_rejected_registration_key = ""
 	return true
 
 
 ## Every family present, so a partial registration is never treated as done.
-func _spec_present(live: Object) -> bool:
+static func _spec_present(live: Object) -> bool:
 	for family_name in OpRegistry.family_names():
-		if live.call("get_spec", family_name) == null:
+		var spec = live.call("get_spec", family_name)
+		if spec == null or spec.source_path != SOURCE_CFG:
 			return false
 	return true
 
 
 func _disconnect(registry: Object) -> void:
-	if registry != null and registry.registry_ready.is_connected(_register):
-		registry.registry_ready.disconnect(_register)
+	if is_instance_valid(registry) and registry.has_signal("registry_ready") and registry.registry_ready.is_connected(_on_registry_ready):
+		registry.registry_ready.disconnect(_on_registry_ready)
+
+
+## Retain the known registry for cleanup even when invalid metadata prevents
+## looking up its singleton. Only this addon's source may be removed.
+static func _unregister_known(registry: Object) -> void:
+	if is_instance_valid(registry) and registry.has_method("unregister_source"):
+		registry.call("unregister_source", SOURCE_CFG)
 
 
 ## The live Godot AI tool registry, or null when Godot AI isn't installed.
@@ -200,6 +245,20 @@ static func _instance():
 ## Check metadata before loading core scripts. Stable releases only; comparing
 ## numeric components avoids treating 4.10 as older than 4.2.
 static func _core_dependency_error() -> String:
+	var cfg_file := FileAccess.open(CORE_CFG, FileAccess.READ)
+	var fingerprint := "unreadable:" + str(FileAccess.get_open_error())
+	if cfg_file != null:
+		fingerprint = cfg_file.get_as_text().sha256_text()
+	var key := fingerprint + ":" + str(ResourceLoader.exists(REGISTRY_SCRIPT)) + ":" + str(ResourceLoader.exists(SPEC_SCRIPT))
+	if key != _dependency_cache_key:
+		_dependency_cache_key = key
+		_dependency_cache_message = _read_core_metadata()
+	if not _dependency_cache_message.is_empty():
+		return _dependency_cache_message
+	return _core_api_paths_error()
+
+
+static func _read_core_metadata() -> String:
 	if not FileAccess.file_exists(CORE_CFG):
 		return "Godot AI >= 4.2.1 required; addon not installed (" + CORE_CFG + ")."
 	var cfg := ConfigFile.new()
@@ -215,10 +274,10 @@ static func _core_dependency_error() -> String:
 	var minimum := [4, 2, 1]
 	for i in range(3):
 		if int(parts[i]) > minimum[i]:
-			return _core_api_paths_error()
+			return ""
 		if int(parts[i]) < minimum[i]:
 			return "Godot AI " + version + " is too old; >= 4.2.1 required."
-	return _core_api_paths_error()
+	return ""
 
 
 static func _core_api_paths_error() -> String:
