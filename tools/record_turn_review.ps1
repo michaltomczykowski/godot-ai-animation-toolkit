@@ -17,8 +17,22 @@ if(-not $Baseline){
     if(-not $turnMatrix.passed){throw 'Candidate native matrix is not green'}
 }
 $turnProgressPath=Join-Path $ReviewRoot 'recording-progress.json'
+$turnOwnerPath=Join-Path $ReviewRoot 'recording-owner.json'
 if(Test-Path -LiteralPath $turnProgressPath){
     $turnExisting=Read-ReviewReceipt $turnProgressPath
+    if($turnExisting.state -eq 'recording' -and (Test-Path -LiteralPath $turnOwnerPath)){
+        $turnOwner=Read-ReviewReceipt $turnOwnerPath
+        if([System.IO.Path]::GetFullPath($turnOwner.root) -ne [System.IO.Path]::GetFullPath($ReviewRoot) -or [int]$turnOwner.pid -eq $PID){throw 'Existing recording owner does not match this stage'}
+        $turnWaitDeadline=[DateTime]::UtcNow.AddMinutes(30)
+        Write-Output 'Another identified recorder owns this stage; waiting for its complete receipt before verification.'
+        while($turnExisting.state -eq 'recording'){
+            $turnOther=Get-Process -Id ([int]$turnOwner.pid) -ErrorAction SilentlyContinue
+            if(-not $turnOther -or $turnOther.StartTime.ToUniversalTime().ToString('o') -ne $turnOwner.started_utc){throw 'Prior recorder is gone; preserve its interrupted frames'}
+            if([DateTime]::UtcNow -ge $turnWaitDeadline){throw 'Peer recorder wait expired; preserve the in-progress capture'}
+            Start-Sleep -Seconds 5
+            $turnExisting=Read-ReviewReceipt $turnProgressPath
+        }
+    }
     if($turnExisting.state -ne 'complete' -or [bool]$turnExisting.baseline -ne [bool]$Baseline){throw 'Preserve the incomplete recording attempt and its progress receipt'}
     $turnExpected=@()
     foreach($turnVariant in @('left90','right90','left180','right180')){
@@ -52,6 +66,7 @@ if(Test-Path -LiteralPath $turnProgressPath){
     return
 }
 $turnProgress=@{state='recording';completed=@();current=$null;pid=$null;baseline=[bool]$Baseline}
+Save-ReviewReceipt $turnOwnerPath @{pid=$PID;started_utc=(Get-Process -Id $PID).StartTime.ToUniversalTime().ToString('o');root=[System.IO.Path]::GetFullPath($ReviewRoot);recorder_sha256=(Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLower()}
 try {
     foreach($turnVariant in @('left90','right90','left180','right180')){
         foreach($turnStyle in $Styles){
