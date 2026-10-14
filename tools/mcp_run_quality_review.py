@@ -32,6 +32,9 @@ async def run(args: argparse.Namespace) -> int:
     motion = args.operation.removesuffix("_cycle")
     transition = args.operation in ("walk_start", "walk_stop")
     turn = args.operation == "turn_cycle"
+    lateral = args.operation == "strafe_cycle"
+    jump = args.operation == "jump"
+    external_history = transition or turn or lateral or jump or args.phase == "candidate"
     if args.allow_reach_refusals and (not transition or args.phase != "prototype"):
         raise ValueError("Reach refusal receipts are only valid for explicit transition prototypes")
     if motion == "walk" and args.phase == "candidate":
@@ -75,12 +78,12 @@ async def run(args: argparse.Namespace) -> int:
                 for rig_id, label, fixture, scene_root, rig_path, player_path, synthetic in RIGS:
                     target = scene_folder / f"{style}_{root_mode}_{rig_id}.tscn"
                     copy_scene(args.project_root / fixture, target)
-                    if args.phase == "candidate" or transition or turn:
+                    if external_history:
                         with target.open("a", encoding="utf-8", newline="\n") as stream:
                             marker = "PublicTransitionHistory" if transition else f"Public{motion.title()}History"
                             stream.write(f'\n[node name="{marker}" type="Node" parent="."]\n'
                                          f'metadata/player_path = NodePath("{player_path}")\n')
-                            if transition or turn:
+                            if transition or turn or lateral or jump:
                                 stream.write(f'metadata/operation = "{args.operation}"\n')
                     scene = "res://" + target.relative_to(args.project_root).as_posix()
                     player = f"/{scene_root}/{player_path}"
@@ -98,9 +101,13 @@ async def run(args: argparse.Namespace) -> int:
                     for field in ("direction", "angle", "steps"):
                         value = getattr(args, field, None)
                         if value is not None:
-                            if not turn:
-                                raise ValueError(f"{field} is currently a turn review control")
+                            if not turn and not (lateral and field == "direction"):
+                                raise ValueError(f"{field} is not supported by this operation")
                             params[field] = value
+                    if args.distance is not None:
+                        if not jump:
+                            raise ValueError("distance is only a jump review control")
+                        params["distance"] = args.distance
                     if recipes:
                         params["overrides"] = recipes[style]
                         report["recipe_sha256"] = hashlib.sha256(args.recipes.read_bytes()).hexdigest()
@@ -123,21 +130,21 @@ async def run(args: argparse.Namespace) -> int:
 
                     await stage("open", "scene_open", {"path": scene, "force_reload": True})
                     row["before"] = await inspect(client, params["animation_name"], player)
-                    if args.allow_reach_refusals or turn:
+                    if args.allow_reach_refusals or turn or lateral or jump:
                         row["binding_before"] = await call(client, "node_get_properties", {"path": player, "fields": ["root_motion_track"]})
                     row["pose_before"] = await stage("pose_before", "custom_animation_rig", {
                         "op": "pose_save", "skeleton_path": params["skeleton_path"]})
                     await stage("dry", "custom_manage", {"op": "invoke", "params": {
                         "tool_name": "animation_motion", "params": {**params, "dry_run": True}}})
                     row["after_dry"] = await inspect(client, params["animation_name"], player)
-                    if turn:
+                    if turn or lateral or jump:
                         await stage("binding_after_dry", "node_get_properties", {"path": player, "fields": ["root_motion_track"]})
                     await stage("pose_after_dry", "custom_animation_rig", {
                         "op": "pose_save", "skeleton_path": params["skeleton_path"]})
                     await stage("write", "custom_manage", {"op": "invoke", "params": {
                         "tool_name": "animation_motion", "params": params}})
                     row["after"] = await inspect(client, params["animation_name"], player)
-                    if turn:
+                    if turn or lateral or jump:
                         await stage("binding_after", "node_get_properties", {"path": player, "fields": ["root_motion_track"]})
                     await stage("pose_after", "custom_animation_rig", {
                         "op": "pose_save", "skeleton_path": params["skeleton_path"]})
@@ -152,11 +159,11 @@ async def run(args: argparse.Namespace) -> int:
                         save(record, report)
                         print(f"Refused {style}/{root_mode}/{rig_id}: {'PASS' if row['passed'] else 'FAIL'}", flush=True)
                         continue
-                    if turn and (row["dry"].get("error") or row["write"].get("error")):
+                    if (turn or lateral or jump) and (row["dry"].get("error") or row["write"].get("error")):
                         progress.update(state="failed", failures=[f"{style}/{root_mode}/{rig_id}: {row['write']}"])
                         save(progress_path, progress)
-                        raise RuntimeError(f"Turn request refused before history witness: {row['write']}")
-                    if args.phase == "candidate" or transition or turn:
+                        raise RuntimeError(f"Motion request refused before history witness: {row['write']}")
+                    if external_history:
                         history = await stage("history", "test_run", {
                             "suite": "animation_motion",
                             "test_name": f"test_{motion}_undo_redo_restores_written_{motion}", "verbose": True})
@@ -213,11 +220,12 @@ if __name__ == "__main__":
     p.add_argument("--ws-port", type=int, default=9500)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--phase", choices=("baseline", "prototype", "candidate"), default="baseline")
-    p.add_argument("--operation", choices=("walk_cycle", "run_cycle", "idle_cycle", "walk_start", "walk_stop", "turn_cycle"), default="run_cycle")
+    p.add_argument("--operation", choices=("walk_cycle", "run_cycle", "idle_cycle", "walk_start", "walk_stop", "turn_cycle", "strafe_cycle", "jump"), default="run_cycle")
     p.add_argument("--entry-point", choices=("dedicated", "cycle"), default="dedicated")
     p.add_argument("--direction", choices=("left", "right"))
     p.add_argument("--angle", type=float, help="Requested turn angle; omit for ordinary 90 degrees")
     p.add_argument("--steps", type=int, help="Requested turn steps; use two for a 180-degree turn")
+    p.add_argument("--distance", type=float, help="Requested forward jump travel in metres; omit for stationary jump")
     p.add_argument("--recipes", type=Path, help="Explicit prototype recipes; final candidates use ordinary defaults")
     p.add_argument("--duration", type=float, help="Explicit prototype period; ordinary calls omit duration")
     p.add_argument("--samples", type=float, help="Explicit prototype authoring density; ordinary calls omit samples")

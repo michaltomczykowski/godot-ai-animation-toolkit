@@ -213,6 +213,14 @@ func test_turn_undo_redo_restores_written_turn() -> void:
 	_transition_history("turn_cycle", "PublicTurnHistory", "quality_turn")
 
 
+func test_strafe_undo_redo_restores_written_strafe() -> void:
+	_transition_history("strafe_cycle", "PublicStrafeHistory", "quality_strafe", Animation.LOOP_LINEAR)
+
+
+func test_jump_undo_redo_restores_written_jump() -> void:
+	_transition_history("jump", "PublicJumpHistory", "quality_jump")
+
+
 func _public_turn_setup_history(scene: Node, marker: Node) -> void:
 	# Observe the external public setup transaction; do not author a second one.
 	var player := scene.get_node(marker.get_meta("player_path")) as AnimationPlayer
@@ -304,7 +312,7 @@ func test_turn_reports_contacts_reach_and_skeletal_heading_owner() -> void:
 		_teardown(rig)
 
 
-func _transition_history(operation: String, witness: String = "PublicTransitionHistory", clip_name: String = "") -> void:
+func _transition_history(operation: String, witness: String = "PublicTransitionHistory", clip_name: String = "", expected_loop: int = Animation.LOOP_NONE) -> void:
 	var scene := EditorInterface.get_edited_scene_root()
 	var marker := scene.get_node_or_null(witness) if scene != null else null
 	var rig := {}
@@ -334,7 +342,7 @@ func _transition_history(operation: String, witness: String = "PublicTransitionH
 	var markers := clip.get_marker_names()
 	var marker_times := {}
 	for label in markers: marker_times[label] = clip.get_marker_time(label)
-	assert_eq(clip.loop_mode, Animation.LOOP_NONE, "ordinary transition is a one-shot")
+	assert_eq(clip.loop_mode, expected_loop, "ordinary motion uses its declared loop contract")
 	assert_true(editor_undo(_undo_redo), "actual transition Undo succeeds")
 	assert_false(player.has_animation(name), "Undo removes the public transition")
 	assert_true(editor_redo(_undo_redo), "actual transition Redo succeeds")
