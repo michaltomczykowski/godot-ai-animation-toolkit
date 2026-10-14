@@ -45,6 +45,9 @@ func quiesce_for_script_swap() -> Dictionary:
 
 ## Rollup entry registered with the Godot AI tool registry.
 func run(params: Dictionary, ctx) -> Dictionary:
+	var availability := OpRegistry.preflight(OpRegistry.FAMILY_INSPECT, params)
+	if not availability.is_empty():
+		return availability
 	_dry_run = bool(params.get("dry_run", false))
 	var op: String = params.get("op", "")
 	if (op == "rig_profile" and bool(params.get("save", false)) and not _dry_run) \

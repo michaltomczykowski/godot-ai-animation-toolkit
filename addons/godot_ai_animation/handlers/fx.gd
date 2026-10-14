@@ -25,6 +25,9 @@ const _MAX_WAVE_TARGETS := 64
 
 ## Rollup entry registered with the Godot AI tool registry.
 func run(params: Dictionary, _ctx) -> Dictionary:
+	var availability := OpRegistry.preflight(OpRegistry.FAMILY_FX, params)
+	if not availability.is_empty():
+		return availability
 	_dry_run = bool(params.get("dry_run", false))
 	var result := _dispatch(params)
 	if _dry_run and result.has("data"):

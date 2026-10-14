@@ -30,10 +30,12 @@ const MAX_DESCRIPTION_CHARS := 600
 ## and one bad definition drops the whole catalog - the tier-1 suite checks
 ## every schema against that stricter measurement.
 const MAX_SCHEMA_BYTES := 8192
+const OPERATION_AVAILABILITY := {} # Explicit operation disablement only; never ledger-derived.
+const AvailabilityErrors := preload("res://addons/godot_ai_animation/utils/error_codes.gd")
 
 
 static func families() -> Dictionary:
-	return {
+	var catalog := {
 		FAMILY_PRESETS: {
 			"handler": "res://addons/godot_ai_animation/handlers/generate.gd",
 			"summary": "One-call animation presets for an AnimationPlayer.",
@@ -142,6 +144,78 @@ static func families() -> Dictionary:
 			"timeout_ms": 30000,
 		},
 	}
+
+	for family_name in catalog:
+		var info: Dictionary = catalog[family_name]
+		var advertised: Array = []
+		for descriptor in info.ops:
+			descriptor["availability"] = operation_availability(family_name, descriptor.name)
+			descriptor["effect_kind"] = operation_effect_kind(family_name, descriptor.name)
+			if descriptor.availability.status == "supported":
+				advertised.append(descriptor.name)
+		info.schema.properties.op["enum"] = advertised
+		for descriptor in info.ops:
+			for limitation in descriptor.availability.limitations:
+				if limitation.has("parameter"):
+					var property: Dictionary = info.schema.properties.get(limitation.parameter, {})
+					if property.has("enum"): property.enum.erase(limitation.value)
+	return catalog
+
+
+## Inventory remains complete; schema publication excludes statically unavailable ops.
+## Evidence status is deliberately not an input to capability availability.
+static func operation_availability(_family: String, _op: String) -> Dictionary:
+	var override: Dictionary = OPERATION_AVAILABILITY.get(_family + "." + _op, {})
+	return {"status": override.get("status", "supported"), "reason": override.get("reason", ""), "limitations": capability_limitations(_family, _op)}
+
+
+static func operation_effect_kind(family_name: String, op: String) -> String:
+	if family_name == FAMILY_INSPECT: return "render" if op == "preview" else "read"
+	if family_name == FAMILY_GRAPH: return "read" if op == "graph_get" else "scene_structure"
+	if family_name == FAMILY_RIG_MODIFIERS: return "scene_structure"
+	if family_name == FAMILY_LIBRARY:
+		if op in ["template_list", "spec_import"]: return "read"
+		if op in ["template_save", "template_delete", "spec_export"]: return "file_write"
+	if family_name == FAMILY_RIG:
+		if op in ["pose_list", "rig_get"]: return "read"
+		if op in ["pose_save", "pose_blend"]: return "file_write"
+		if op in ["pose_apply", "rig_chain"]: return "scene_structure"
+	return "scene_write"
+
+
+static func capability_limitations(family_name: String, op: String) -> Array:
+	if family_name == FAMILY_RIG_MODIFIERS and op == "ik_setup":
+		return [{"id": "native_jacobian_accuracy", "parameter": "kind", "value": "jacobian",
+			"reason": "Native Godot 4.7.2 Jacobian exceeds the validated point-target accuracy tolerance.",
+			"alternative": "Use two_bone, ccdik or fabrik."}]
+	if family_name == FAMILY_RIG_MODIFIERS and op == "spring_setup":
+		return [{"id": "relative_center_collision", "contextual": true,
+			"reason": "Node/bone centers with collisions exceed native contact tolerance on rotated rigs.",
+			"alternative": "Use world_origin for collisions, or omit collisions for relative centers."}]
+	if family_name == FAMILY_RIG_MODIFIERS and op == "retarget_setup":
+		return [{"id": "retarget_original_pose_persistence", "contextual": true,
+			"reason": "Existing native retargets with non-rest child inputs and no persistence helper cannot preserve exact Undo.",
+			"alternative": "Use a toolkit-created retarget or rest child inputs."}]
+	if family_name == FAMILY_RIG and op == "bake_pose_sequence":
+		return [{"id": "isolated_bake_supported_native", "contextual": true,
+			"reason": "Custom processors/expressions, unsupported native configurations, grouped AUTO boundaries and unsafe event sample spacing are refused by the isolated sampler.",
+			"alternative": "Use supported native graphs and explicit events with safe sample spacing."}]
+	return []
+
+
+## Called at each public run entry before resolution/allocation/history/files.
+## Empty result means continue ordinary typed validation. Unknown ops retain the
+## family's existing invalid-input response rather than becoming unavailable.
+static func preflight(family_name: String, params: Dictionary) -> Dictionary:
+	var op := str(params.get("op", ""))
+	var availability := operation_availability(family_name, op)
+	if availability.status == "unavailable":
+		return AvailabilityErrors.make(AvailabilityErrors.OPERATION_UNAVAILABLE, str(availability.reason))
+	for limitation in availability.limitations:
+		if limitation.has("parameter") and params.get(limitation.parameter) == limitation.value:
+			return AvailabilityErrors.make(AvailabilityErrors.OPERATION_UNAVAILABLE,
+				str(limitation.reason) + " " + str(limitation.alternative))
+	return {}
 
 
 static func family_names() -> Array:
@@ -2023,11 +2097,11 @@ static func _motion_schema() -> Dictionary:
 			},
 			"run_duration": {
 				"type": "number",
-				"description": "character_setup: run clip length in seconds (0.6).",
+				"description": "character_setup: explicit run length; omitted uses shared rig-relative run timing.",
 			},
 			"run_speed": {
 				"type": "number",
-				"description": "character_setup: requested run speed in m/s, the blend space's max (2.0; must exceed speed and fit the rig's reachable leg targets).",
+				"description": "character_setup: explicit run speed; omitted uses shared resolver. Solved speed must exceed walk and fit rig reach.",
 			},
 			"include_jump": {
 				"type": "boolean",
@@ -2043,7 +2117,7 @@ static func _motion_schema() -> Dictionary:
 			},
 			"turn_duration": {
 				"type": "number",
-				"description": "character_setup: turn clip length in seconds (0.7).",
+				"description": "character_setup: explicit turn length; omitted uses automatic staging. Clip only, no actor-yaw controller.",
 			},
 			"dry_run": {
 				"type": "boolean",
@@ -2181,7 +2255,7 @@ static func render_markdown() -> String:
 	lines.append("")
 	lines.append("Scene-writing operations use editor undo when supported; direct file writes and read-only calls have different effects. Every operation returns the same")
 	lines.append("error codes as the core tools (`INVALID_PARAMS`, `VALUE_OUT_OF_RANGE`,")
-	lines.append("`WRONG_TYPE`, `NODE_NOT_FOUND`, `PROPERTY_NOT_ON_CLASS`, `EDITOR_NOT_READY`).")
+	lines.append("`WRONG_TYPE`, `NODE_NOT_FOUND`, `PROPERTY_NOT_ON_CLASS`, `EDITOR_NOT_READY`, `OPERATION_UNAVAILABLE`).")
 	lines.append("")
 	for family_name in family_names():
 		var info := family(family_name)
@@ -2197,9 +2271,15 @@ static func render_markdown() -> String:
 			var params: Array = []
 			for param in descriptor.get("params", []):
 				params.append("`%s`" % param)
+			var availability: Dictionary = descriptor.availability
+			var summary := str(descriptor.get("summary", ""))
+			if availability.status != "supported":
+				summary += " Unavailable: " + str(availability.reason)
+			for limitation in availability.limitations:
+				summary += " Boundary: " + str(limitation.reason) + " " + str(limitation.alternative)
 			lines.append("| `%s` | %s | %s |" % [
 				descriptor.get("name", ""),
-				descriptor.get("summary", ""),
+				summary,
 				", ".join(params),
 			])
 		lines.append("")

@@ -27,8 +27,13 @@ const _LOOP_MODES := {
 const _ORBIT_SEGMENTS := 16
 
 
+const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
+
 ## Rollup entry registered with the Godot AI tool registry.
 func run(params: Dictionary, _ctx) -> Dictionary:
+	var availability := OpRegistry.preflight(OpRegistry.FAMILY_PRESETS, params)
+	if not availability.is_empty():
+		return availability
 	_dry_run = bool(params.get("dry_run", false))
 	var result := _dispatch(params)
 	if _dry_run and result.has("data"):

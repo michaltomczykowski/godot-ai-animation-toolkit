@@ -33,6 +33,9 @@ const _KEY_ACTIONS := ["add", "set", "remove", "move"]
 
 ## Rollup entry registered with the Godot AI tool registry.
 func run(params: Dictionary, _ctx) -> Dictionary:
+	var availability := OpRegistry.preflight(OpRegistry.FAMILY_EDIT, params)
+	if not availability.is_empty():
+		return availability
 	_dry_run = bool(params.get("dry_run", false))
 	var result := _dispatch(params)
 	if _dry_run and result.has("data"):
@@ -780,6 +783,16 @@ func _commit_edited(loaded: Dictionary, spec: Dictionary, action_label: String, 
 	var valid := SpecBuilder.validate(spec)
 	if valid.has("error"):
 		return valid
+	# Valid idempotent edits are successful without allocating a replacement or
+	# recording history. Exact spec equality includes key/track metadata.
+	if spec == loaded.spec:
+		var unchanged := _base_data(loaded, spec, extra)
+		unchanged["changed"] = false
+		unchanged["affected_count"] = 0
+		unchanged["undoable"] = false
+		unchanged["overwritten"] = false
+		unchanged["reason"] = "Requested edit leaves the authored clip unchanged."
+		return {"data": unchanged}
 	var new_anim := SpecBuilder.to_animation(spec)
 	_commit_animation_changes(action_label, loaded.player, loaded.library, false,
 		{loaded.anim_name: loaded.anim}, {loaded.anim_name: new_anim})
@@ -789,6 +802,7 @@ func _commit_edited(loaded: Dictionary, spec: Dictionary, action_label: String, 
 	data["length_before"] = float(loaded.spec.length)
 	data["length_after"] = float(spec.length)
 	data["overwritten"] = true
+	data["changed"] = true
 	return {"data": data}
 
 

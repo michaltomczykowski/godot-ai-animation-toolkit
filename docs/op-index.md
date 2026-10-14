@@ -4,7 +4,7 @@ Generated from `registry/op_registry.gd` by `tools/gen_docs.ps1` — do not edit
 
 Scene-writing operations use editor undo when supported; direct file writes and read-only calls have different effects. Every operation returns the same
 error codes as the core tools (`INVALID_PARAMS`, `VALUE_OUT_OF_RANGE`,
-`WRONG_TYPE`, `NODE_NOT_FOUND`, `PROPERTY_NOT_ON_CLASS`, `EDITOR_NOT_READY`).
+`WRONG_TYPE`, `NODE_NOT_FOUND`, `PROPERTY_NOT_ON_CLASS`, `EDITOR_NOT_READY`, `OPERATION_UNAVAILABLE`).
 
 ## `animation_presets`
 
@@ -521,7 +521,7 @@ Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 | `jumping_jack` | Build a looping jumping jack: arms swing down to overhead while the legs spread apart and back together, with a small rise. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `amplitude`, `stride`, `bob`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
 | `squat` | Build a looping squat with planted feet: the hips drop, the knees bend forward and the leg chains are solved to keep the ankles in place. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `bob`, `amplitude`, `roles`, `profile`, `loop_mode`, `overwrite`, `dry_run` |
 | `punch` | Build a looping boxing combo: guard, then alternating straight punches. `amplitude` is the *total* torso twist in degrees, spread up the spine chain (most of it in the upper chest); `cycles` punches fit in the clip. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `cycles`, `amplitude`, `bob`, `roles`, `profile`, `spine_chain`, `loop_mode`, `overwrite`, `dry_run` |
-| `bake_pose_sequence` | Bake one skeleton's final weighted pose using a private clip or deterministic AnimationTree replay; live playback and solver state remain untouched. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `fps`, `bones`, `positions`, `scales`, `source_animation`, `source_tree_path`, `tree_parameters`, `tree_starts`, `tree_events`, `output_player_path`, `root_motion_mode`, `root_motion_target_path`, `loop_mode`, `overwrite`, `dry_run` |
+| `bake_pose_sequence` | Bake one skeleton's final weighted pose using a private clip or deterministic AnimationTree replay; live playback and solver state remain untouched. Boundary: Custom processors/expressions, unsupported native configurations, grouped AUTO boundaries and unsafe event sample spacing are refused by the isolated sampler. Use supported native graphs and explicit events with safe sample spacing. | `player_path`, `skeleton_path`, `animation_name`, `duration`, `fps`, `bones`, `positions`, `scales`, `source_animation`, `source_tree_path`, `tree_parameters`, `tree_starts`, `tree_events`, `output_player_path`, `root_motion_mode`, `root_motion_target_path`, `loop_mode`, `overwrite`, `dry_run` |
 
 ### `animation_rig` parameters
 
@@ -625,7 +625,7 @@ Handler: `res://addons/godot_ai_animation/handlers/motion.gd`
 
 | Param | Type | Notes |
 | --- | --- | --- |
-| `op` | string: walk_cycle \| run_cycle \| idle_cycle \| cycle \| jump \| turn_cycle \| strafe_cycle \| walk_start \| walk_stop \| character_setup \| secondary_motion | Cycle/move to build, character_setup for the whole locomotion set, or secondary_motion to bake spring bones into an existing clip. |
+| `op` | string: walk_cycle \| run_cycle \| idle_cycle \| cycle \| character_setup \| secondary_motion \| jump \| turn_cycle \| strafe_cycle \| walk_start \| walk_stop | Cycle/move to build, character_setup for the whole locomotion set, or secondary_motion to bake spring bones into an existing clip. |
 | `preset` | string: walk \| run \| idle \| turn | cycle: walk, run or idle loop, or a one-shot skeletal turn (walk). Turn uses angle/direction/steps and the same ownership contract as turn_cycle. |
 | `player_path` | string | Scene path to the AnimationPlayer that receives the clip. |
 | `skeleton_path` | string | Scene path to the Skeleton3D (default: the first one). |
@@ -668,12 +668,12 @@ Handler: `res://addons/godot_ai_animation/handlers/motion.gd`
 | `active` | boolean | character_setup: enable the AnimationTree right away (off; an active tree drives the scene while you edit). |
 | `tree_path` | string | character_setup: scene path for the AnimationTree (default: an existing tree wired to the player, else a new sibling). |
 | `idle_duration` | number | character_setup: idle clip length in seconds (3.0). |
-| `run_duration` | number | character_setup: run clip length in seconds (0.6). |
-| `run_speed` | number | character_setup: requested run speed in m/s, the blend space's max (2.0; must exceed speed and fit the rig's reachable leg targets). |
+| `run_duration` | number | character_setup: explicit run length; omitted uses shared rig-relative run timing. |
+| `run_speed` | number | character_setup: explicit run speed; omitted uses shared resolver. Solved speed must exceed walk and fit rig reach. |
 | `include_jump` | boolean | character_setup: also build a jump clip and a one-shot layer with a request parameter (off). |
 | `include_turn` | boolean | character_setup: also build a turn_<direction> clip (off). |
 | `jump_duration` | number | character_setup: jump clip length in seconds (1.2). |
-| `turn_duration` | number | character_setup: turn clip length in seconds (0.7). |
+| `turn_duration` | number | character_setup: explicit turn length; omitted uses automatic staging. Clip only, no actor-yaw controller. |
 | `dry_run` | boolean | Report without committing (off). |
 
 Required: `op`.
@@ -702,10 +702,10 @@ Handler: `res://addons/godot_ai_animation/handlers/rig.gd`
 
 | op | What it does | Params |
 | --- | --- | --- |
-| `ik_setup` | Attach a 3D IK modifier to a skeleton and wire it to a target node. kind=spline follows a Path3D (target_path) instead, because SplineIK3D solves against a path. | `skeleton_path`, `kind`, `chain`, `target_path`, `target_name`, `pole_path`, `use_virtual_end`, `end_bone_length`, `name`, `active`, `dry_run` |
-| `spring_setup` | Attach SpringBoneSimulator3D settings with a root and descendant end bone. Single leaf bones are unavailable. Collisions require world_origin center; node/bone centers with collisions fail native 4.7.2 contact checks. Redo resets the restored simulator from the current pose. | `skeleton_path`, `springs`, `name`, `active`, `mutable_bone_axes`, `dry_run` |
+| `ik_setup` | Attach a 3D IK modifier to a skeleton and wire it to a target node. kind=spline follows a Path3D (target_path) instead, because SplineIK3D solves against a path. Boundary: Native Godot 4.7.2 Jacobian exceeds the validated point-target accuracy tolerance. Use two_bone, ccdik or fabrik. | `skeleton_path`, `kind`, `chain`, `target_path`, `target_name`, `pole_path`, `use_virtual_end`, `end_bone_length`, `name`, `active`, `dry_run` |
+| `spring_setup` | Attach SpringBoneSimulator3D settings with a root and descendant end bone. Single leaf bones are unavailable. Collisions require world_origin center; node/bone centers with collisions fail native 4.7.2 contact checks. Redo resets the restored simulator from the current pose. Boundary: Node/bone centers with collisions exceed native contact tolerance on rotated rigs. Use world_origin for collisions, or omit collisions for relative centers. | `skeleton_path`, `springs`, `name`, `active`, `mutable_bone_axes`, `dry_run` |
 | `look_at_setup` | Attach a look-at modifier so one bone tracks a target node (created in front of the bone when omitted). | `skeleton_path`, `bone`, `target_path`, `target_name`, `forward_axis`, `origin_from`, `origin_bone`, `origin_node`, `origin_offset`, `origin_safe_margin`, `use_angle_limitation`, `primary_limit_angle`, `secondary_limit_angle`, `use_secondary_rotation`, `primary_axis`, `relative`, `duration`, `name`, `active`, `dry_run` |
-| `retarget_setup` | Retarget a source onto child skeletons through RetargetModifier3D and a bone-name profile. Reconfigure toolkit-created modifiers or native modifiers with rest-pose children. Existing native authored-child poses without the persistence helper cannot survive Undo/reopen on Godot 4.7.2 and are unavailable. | `skeleton_path`, `target_path`, `profile`, `position`, `rotation`, `scale`, `use_global_pose`, `move_target`, `name`, `active`, `dry_run` |
+| `retarget_setup` | Retarget a source onto child skeletons through RetargetModifier3D and a bone-name profile. Reconfigure toolkit-created modifiers or native modifiers with rest-pose children. Existing native authored-child poses without the persistence helper cannot survive Undo/reopen on Godot 4.7.2 and are unavailable. Boundary: Existing native retargets with non-rest child inputs and no persistence helper cannot preserve exact Undo. Use a toolkit-created retarget or rest child inputs. | `skeleton_path`, `target_path`, `profile`, `position`, `rotation`, `scale`, `use_global_pose`, `move_target`, `name`, `active`, `dry_run` |
 | `twist_setup` | Attach a BoneTwistDisperser3D to spread a reference bone's twist toward the chain root. The reference is the end bone's parent unless disperse.extend_end_bone=true. The root/end default to the detected spine chain; mode picks even or weighted distribution. Godot builds the joint list at runtime, so custom amounts live in the Inspector. Created inactive. | `skeleton_path`, `disperse`, `spine_chain`, `name`, `active`, `influence`, `mutable_bone_axes`, `dry_run` |
 
 ### `animation_rig_modifiers` parameters

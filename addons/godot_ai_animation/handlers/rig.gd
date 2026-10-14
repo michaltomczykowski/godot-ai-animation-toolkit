@@ -26,6 +26,14 @@ const MAX_BAKE_SAMPLES := 1200
 
 ## Rollup entry registered with the Godot AI tool registry.
 func run(params: Dictionary, ctx) -> Dictionary:
+	var family_name := OpRegistry.FAMILY_RIG
+	if ctx != null and ctx.get("spec") != null:
+		family_name = str(ctx.spec.name)
+	elif OpRegistry.op_names(OpRegistry.FAMILY_RIG_MODIFIERS).has(str(params.get("op", ""))):
+		family_name = OpRegistry.FAMILY_RIG_MODIFIERS
+	var availability := OpRegistry.preflight(family_name, params)
+	if not availability.is_empty():
+		return availability
 	_dry_run = bool(params.get("dry_run", false))
 	var result := _dispatch(params, ctx)
 	if _dry_run and result.has("data"):

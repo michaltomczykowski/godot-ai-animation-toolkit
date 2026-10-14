@@ -8,7 +8,12 @@ const SequenceSpecs := preload("res://addons/godot_ai_animation/spec/sequence_sp
 const PoseMath := preload("res://addons/godot_ai_animation/spec/pose_math.gd")
 
 
+const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
+
 func run(params: Dictionary, _ctx) -> Dictionary:
+	var availability := OpRegistry.preflight(OpRegistry.FAMILY_SEQUENCE, params)
+	if not availability.is_empty():
+		return availability
 	_dry_run = bool(params.get("dry_run", false))
 	if str(params.get("op", "")) != "compose":
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "Unknown op; valid: compose")
