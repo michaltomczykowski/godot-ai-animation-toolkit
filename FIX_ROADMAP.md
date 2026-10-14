@@ -1,5 +1,78 @@
 # Animation Toolkit repair roadmap
 
+## All turn closure checks green — complete videos, then pause (2026-10-14)
+
+Full ordinary set: 160 public clips/960 native Player/Tree/FPS plays. Additional
+24 timing clips/144 plays; eight aliases/48 plays+48 parity comparisons; 24
+setup turns/144 plays+144 parity comparisons; 28 typed nonmutating refusal pairs;
+320 dry calls across an actual released-core reload. Both schemas expose turn.
+Local400/400 editor,74/74 public motion,14/14 headless and two registry probes
+pass; all eleven fixtures exact, walk/run/idle golden drift zero. Contact checker
+unchanged from its 24 positive/120 corruption controls. Animation code remains
+ac309b7; registry-only schema repair at5dc849a. Source03df031 /CI38538734146 is
+fully green: 28 headless jobs, four editors398/400 with only the two named local
+private-rig skips, both live routes118/118. Six raw logs and source/tree identities
+archived. This does not approve visuals or close broader R2/R3-R5 gates.
+
+Receipts: release_r2_turn_20261013/closure-r001/local-gates.json,
+source-ci-03df031/ci-receipt.json. Native backup independently verifies534 new
+saved scenes plus working notes. Existing focused delivery and qualified human
+acceptance remain intact. Pure headless checks initially used the nested clean
+project; the docs-location test failed. All14 pass in canonical test_project;
+retain original two logs and headless-r002 retry. Other setup/source/precision
+failures are retained as documented below. No full regression was discarded.
+
+Visible editor is closed. Capture roots: G:/godot-ai-dev/toolkit-turn-closure-capture-20261014
+(Grounded/Relaxed/Heavy,24 movies), closure-r001/capture-sneaky (eight movies).
+Sneaky runs separately after editor shutdown and RAM preflight; parent later
+verifies/reuses that completed stage, never regenerates it. Read each
+recording-progress.json; preserve all frames and receipts. Finish32 new movies,
+combine with12 preserved movies, run archive_turn_closure.py, independently
+verify delivery, open Explorer and STOP for remaining-style feedback. No release.
+Next strafe plan is prepared in docs/strafe-quality-review-plan.md; implementation
+waits for this turn review. Setup coverage here is single-stage90-degree turns,
+all styles plus explicit right duration; broader setup/controller contracts stay R3.
+
+## Active turn setup/checker retry r003 (2026-10-14)
+
+Current launcher: release_r2_turn_20261013/run-closure-after-setup-r003.ps1.
+Current visible editor PID28400. Setup-r002's four public/history calls passed,
+but three dummy Tree comparisons exceeded the initial 1e-6 rad tolerance by
+~0.087e-6 rad. Saved channels/interpolation/markers are exact, positions/root
+identical, other rigs pass, and no engine error. Retain that failed parity.
+New checker reports an explicit 1e-5 rad played rotation tolerance (~0.00057 deg)
+for float32 mixer/basis evaluation; exact authored data and 1e-6 m position/root
+gates remain mandatory. Contact/heading/reach/discontinuity checker is unchanged.
+Reuse the four completed public scenes; generate other setup groups fresh in
+setup-r003. First Responsive and subsequent style groups are passing.
+Source03df031 /CI38538734146 in progress. No generation code changed.
+Capture remains active. Finish setup/refusal/reload/regression/CI/media and pause.
+
+## Turn alias discovery repaired — fresh setup retry active (2026-10-14)
+
+The cycle handler supported turn but its preset enum/docs omitted it. Schema
+5dc849a now exposes turn and angle/direction/steps; still ten families/103 ops.
+Generation/playback code remains exact ac309b7; only the registry schema differs.
+CI c5c1540 /38538308917 is pending. New current editor PID28400, source c5c1540,
+Godot4.7.2 visible; previous PID27508 quit through the public API.
+
+Preserve closure-r001 failures: schema commit briefly interrupted the next
+reference batch at the clean-source guard, before writes. All six timing/eight
+alias clips and twenty completed setup references were reused after hash/code
+checks. A setup history witness then assumed an empty initial binding: X Bot
+actually has XBot:position. Client now reads the fixture binding and confirms
+it through public node properties before testing exact Undo restoration.
+Failed two-scene setup attempt remains in contracts-r001/setup; fresh setup-r002
+is running. Active launcher run-closure-after-setup-r002.ps1 then performs
+refusals, core reload, public motion/full editor/headless regression.
+
+Docs generator was initially invoked from the nested validation project and
+resolved the wrong output/evidence directory; its generated file is retained
+as closure-r001/incorrect-project-root-op-index.md. Correct repository-project
+exports pass: 103 partial rows, zero release-wide verified. Updated docs/audit
+are committed. Capture continues independently; inspect both progress receipts.
+No new visual approval, no release. Finish closure delivery and pause for review.
+
 ## Full ordinary turn matrix green — closure checks/recording active (2026-10-14)
 
 Qualified Responsive acceptance is preserved. Remaining four styles now have

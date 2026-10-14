@@ -13019,11 +13019,11 @@
     }
   ],
   "turn_review": {
-    "state": "focused_responsive_accepted_closure_in_progress",
+    "state": "focused_responsive_accepted_full_turn_recording",
     "plan": "docs/turn-quality-review-plan.md",
     "visual_approval": null,
     "release_ready": false,
-    "next_action": "Generate and independently play remaining four turn styles; close timing/alias/setup/reload; record new continuous videos and pause.",
+    "next_action": "Finish both capture roots, verify all 32 new movies, archive full closure, open Explorer and pause for new style feedback",
     "revision": "turn-candidate-r004",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013",
     "validation": "docs/turn-quality-validation.md",
@@ -13173,7 +13173,7 @@
     },
     "closure_plan": "docs/turn-quality-closure-plan.md",
     "closure": {
-      "state": "recording_and_contract_validation",
+      "state": "gates_green_recording",
       "plan": "docs/turn-quality-closure-plan.md",
       "folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001",
       "ordinary_new_public_clips": 128,
@@ -13182,7 +13182,6 @@
       "ordinary_combined_native_runs": 960,
       "additional_clip_source": "d1773833cac13e8105e7e1035a8b658ead1f514a",
       "new_native_matrix": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\other-styles\\native-51ebba33477b419e8a5fe66941a093ab\\matrix.json",
-      "production_addon_matches_accepted_source": true,
       "protected_fixtures_unchanged": 11,
       "contracts": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\contracts-r001\\contracts.json",
       "capture_staging": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\capture-staging.json",
@@ -13190,10 +13189,44 @@
         "G:/godot-ai-dev/toolkit-turn-closure-capture-20261014",
         "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\capture-sneaky"
       ],
-      "ci_run_pending": 38536815930,
-      "ci_source": "b5ae31d3d0e194ba8504daee290297fc56d71470",
+      "ci_source": "03df0314e3ba4b11e86cd653cb615eb5bea881b9",
       "other_styles_visual_approval": null,
-      "release_ready": false
+      "release_ready": false,
+      "generation_and_playback_code_matches_accepted_source": true,
+      "schema_change": "5dc849a exposes the existing turn alias, including angle/direction/steps, through public preset schemas",
+      "setup_retry": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\contracts-r001\\setup-r003\\setup-matrix.json",
+      "active_launcher": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\record-closure-r001.ps1",
+      "retained_failures": [
+        "contracts-r001/contracts-failed-before-resume.json",
+        "contracts-r001/setup/setup-matrix.json",
+        "contracts-r001/capture-right.log"
+      ],
+      "current_editor_pid": null,
+      "exact_saved_keys_required": true,
+      "played_rotation_parity_tolerance_rad": 1e-05,
+      "played_position_parity_tolerance_m": 1e-06,
+      "setup_parity_failed_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\contracts-r001\\setup-r002\\responsive-left\\parity.json",
+      "local_gates": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\local-gates.json",
+      "ci_state": "success",
+      "ci_run": 38538734146,
+      "ci_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\source-ci-03df031\\ci-receipt.json",
+      "parallel_capture_launcher": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\record-sneaky-parallel.ps1",
+      "native_backup": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\native-checkpoint-before-video-completion.json",
+      "saved_scene_backup_entries": 534,
+      "public_timing_clips": 24,
+      "timing_native_plays": 144,
+      "public_alias_clips": 8,
+      "alias_native_plays": 48,
+      "alias_parity_comparisons": 48,
+      "public_setup_turns": 24,
+      "setup_native_plays": 144,
+      "setup_parity_comparisons": 144,
+      "typed_nonmutating_refusal_pairs": 28,
+      "core_reload_dry_calls": 320,
+      "full_editor_tests": 400,
+      "public_motion_tests": 74,
+      "headless_suites": 14,
+      "next_action": "Finish both capture roots, verify all 32 new movies, archive full closure, open Explorer and pause for new style feedback"
     }
   }
 }

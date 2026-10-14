@@ -72,3 +72,10 @@ integration/audit and R4/R5 release remain after turn closure.
 - Focused Responsive acceptance: received; durable feedback receipt saved.
 - Remaining ordinary styles and contract probes: next.
 - Full turn approval and release approval: pending.
+
+## Automated closure checkpoint
+
+All ordinary, targeted timing/alias/setup, refusal and reload gates pass.
+Local suites and exact-source CI03df031 are green; detailed counts, failures,
+scope and receipts are in turn-quality-validation.md. Recordings/delivery
+and explicit remaining-style feedback are pending. No generation keys changed.
