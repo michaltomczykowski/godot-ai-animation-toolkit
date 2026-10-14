@@ -6,7 +6,8 @@ import unittest
 import subprocess
 import tempfile
 import hashlib
-from check_release_audit import validate_inventory, validate_release, required_checks, CORES, git_blob
+import os
+from check_release_audit import validate_inventory, validate_release, required_checks, CORES, git_blob, artifact_is_valid
 
 
 class AuditGateTests(unittest.TestCase):
@@ -50,6 +51,40 @@ class AuditGateTests(unittest.TestCase):
             errors = validate_release(self.doc, receipt, self.root, source, Path(directory))
             self.assertTrue(any("dependency changed" in e for e in errors))
             self.assertTrue(any("mislabeled" in e for e in errors))
+
+    def test_artifact_parent_and_absolute_paths_fail(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            receipt = root / "receipts"
+            receipt.mkdir()
+            external = root / "private.json"
+            external.write_text("private")
+            digest = hashlib.sha256(external.read_bytes()).hexdigest()
+            self.assertFalse(artifact_is_valid({"path": "../private.json", "sha256": digest}, receipt))
+            self.assertFalse(artifact_is_valid({"path": str(external.resolve()), "sha256": digest}, receipt))
+            self.assertFalse(artifact_is_valid({"path": "C:/private/report.json", "sha256": digest}, receipt))
+            internal = receipt / "public.json"
+            internal.write_text("public")
+            self.assertTrue(artifact_is_valid({"path": "public.json", "sha256": hashlib.sha256(internal.read_bytes()).hexdigest()}, receipt))
+
+    def test_artifact_link_escape_fails(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            receipt = root / "receipts"
+            external = root / "external"
+            receipt.mkdir()
+            external.mkdir()
+            report = external / "report.json"
+            report.write_text("external")
+            link = receipt / "escape"
+            try:
+                os.symlink(external, link, target_is_directory=True)
+            except OSError:
+                if os.name != "nt": raise
+                # Junction creation does not require Windows symlink privilege.
+                result = subprocess.run(["powershell", "-NoProfile", "-Command", "New-Item -ItemType Junction -Path '" + str(link).replace("'", "''") + "' -Target '" + str(external).replace("'", "''") + "' | Out-Null"], capture_output=True)
+                self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
+            self.assertFalse(artifact_is_valid({"path": "escape/report.json", "sha256": hashlib.sha256(report.read_bytes()).hexdigest()}, receipt))
 
     def test_inventory_accepts_honest_pending(self):
         self.assertEqual(validate_inventory(self.doc), [])

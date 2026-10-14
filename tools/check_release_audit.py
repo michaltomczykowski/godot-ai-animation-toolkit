@@ -6,7 +6,7 @@ import argparse
 import hashlib
 from functools import lru_cache
 import json
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import subprocess
 import sys
 
@@ -53,6 +53,18 @@ def expected_effect(key):
         if op in {"pose_save", "pose_blend"}: return "file_write"
         if op in {"pose_apply", "rig_chain"}: return "scene_structure"
     return "scene_write"
+
+
+def artifact_is_valid(artifact, receipt_dir):
+    """Only portable files confined to the receipt tree may qualify a release."""
+    raw = artifact.get("path", "")
+    if not isinstance(raw, str) or not raw or Path(raw).is_absolute() or PureWindowsPath(raw).drive:
+        return False
+    receipt_root = receipt_dir.resolve()
+    path = (receipt_root / raw).resolve()
+    if not path.is_relative_to(receipt_root):
+        return False
+    return path.is_file() and sha256(path) == artifact.get("sha256")
 
 
 def required_checks(effect):
@@ -141,8 +153,7 @@ def validate_release(doc, receipt, root, source, receipt_dir):
         if not artifacts:
             errors.append("compatibility pass lacks raw artifact evidence")
         for artifact in artifacts:
-            path = (receipt_dir / artifact.get("path", "")).resolve()
-            if not path.is_file() or sha256(path) != artifact.get("sha256"):
+            if not artifact_is_valid(artifact, receipt_dir):
                 errors.append("compatibility artifact missing or changed")
     actual = {(m.get("platform"), m.get("core_version")) for m in matrix if m.get("status") == "pass" and m.get("engine") == "4.7.2" and m.get("core_commit") == CORES.get(m.get("core_version")) and m.get("tested_source") == tested_source}
     if actual != {(p, c) for p in ("windows", "linux") for c in CORES}:
@@ -189,8 +200,7 @@ def validate_release(doc, receipt, root, source, receipt_dir):
                 if not artifacts:
                     errors.append(f"{key}/{ref}: missing artifacts")
                 for artifact in artifacts:
-                    path = (receipt_dir / artifact.get("path", "")).resolve()
-                    if not path.is_file() or sha256(path) != artifact.get("sha256"):
+                    if not artifact_is_valid(artifact, receipt_dir):
                         errors.append(f"{key}/{ref}: missing/changed artifact {artifact.get('path')}")
     return errors
 
