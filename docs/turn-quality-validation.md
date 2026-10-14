@@ -151,3 +151,26 @@ timing/alias/setup/reload checks, continuous full-style videos, then manual paus
 Work alone with Godot4.7.2 through the separate Godot AI public tools API.
 Keep approved motions/eleven fixtures unchanged. R2/R3-R5 still remain.
 
+
+## Full ordinary turn matrix green — closure checks/recording active (2026-10-14)
+
+Qualified Responsive acceptance is preserved. Remaining four styles now have
+128 public saved/history passes and 768 native passes; combined ordinary set
+is 160 clips/960 Player/Tree/FPS plays. Addon unchanged from accepted ac309b7;
+new clip source d177383. Eleven protected fixtures and twelve prior movies exact.
+New contract/setup-history/reload probes are committed at b5ae31d and pushed;
+CI38536815930 pending. Public timing/alias/setup/refusal/reload and local regression
+run in release_r2_turn_20261013/closure-r001; inspect their receipts before retry.
+Existing client gained a cycle entry option and history witness a setup branch
+during the ordinary batch; neither branch was used by those calls. Per-route
+client hashes are retained. Production addon stayed clean and unchanged.
+
+32 new movies are recording, three styles on G:/godot-ai-dev/toolkit-turn-closure-capture-20261014
+and Sneaky on closure-r001/capture-sneaky to distribute frame storage. Read
+recording-progress.json before retry; preserve frames and receipts. Playback
+uses saved native clips, one bone writer, no actor-yaw consumer. Source b5ae31d
+adds exact saved-key/interpolation/marker and played alias/setup comparisons,
+typed nonmutating refusals and an actual before/after core reload matrix.
+No other-style or full-turn approval yet. Finish gates/media/archive and pause
+for new style video feedback. R2 remaining motions, R3-R5 still pending.
+

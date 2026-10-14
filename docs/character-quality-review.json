@@ -13171,6 +13171,29 @@
       "decision": "qualified acceptance of the presented focused Responsive set; proceed with remaining turn closure",
       "animation_source": "ac309b7ab4fd49a3b719c87d7ac1240982be605e"
     },
-    "closure_plan": "docs/turn-quality-closure-plan.md"
+    "closure_plan": "docs/turn-quality-closure-plan.md",
+    "closure": {
+      "state": "recording_and_contract_validation",
+      "plan": "docs/turn-quality-closure-plan.md",
+      "folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001",
+      "ordinary_new_public_clips": 128,
+      "ordinary_new_native_runs": 768,
+      "ordinary_combined_public_clips": 160,
+      "ordinary_combined_native_runs": 960,
+      "additional_clip_source": "d1773833cac13e8105e7e1035a8b658ead1f514a",
+      "new_native_matrix": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\other-styles\\native-51ebba33477b419e8a5fe66941a093ab\\matrix.json",
+      "production_addon_matches_accepted_source": true,
+      "protected_fixtures_unchanged": 11,
+      "contracts": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\contracts-r001\\contracts.json",
+      "capture_staging": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\capture-staging.json",
+      "capture_roots": [
+        "G:/godot-ai-dev/toolkit-turn-closure-capture-20261014",
+        "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\capture-sneaky"
+      ],
+      "ci_run_pending": 38536815930,
+      "ci_source": "b5ae31d3d0e194ba8504daee290297fc56d71470",
+      "other_styles_visual_approval": null,
+      "release_ready": false
+    }
   }
 }
