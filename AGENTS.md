@@ -1,5 +1,24 @@
 # Agent notes
 
+## Active release completion policy (2026-10-14)
+
+The user explicitly requested implementation of `docs/release-completion-plan.md`.
+This supersedes the historical work-alone and human-review STOP directives below.
+Sol 6.1 workers may implement isolated source changes; the root agent owns the
+live Godot 4.7.2 editor, public Godot AI calls, integration and publication.
+Intermediate and final human review pauses are waived. Keep independent visual
+assessment and all applicable numerical, history, compatibility and package
+gates. Never relabel unviewed media as human approved. Preserve historical
+feedback, accepted fixtures, failed attempts and private X Bot assets locally.
+
+Finish strafe/jump and setup integration, reconcile the 103-operation evidence,
+qualify released cores 4.2.1/4.3.0 on Windows/Linux, then package and publish 2.0.0
+after the exact candidate/main/tag gates. Core main is advisory. Commit/push
+validated checkpoints and verify remote SHAs. Do not push the divergent local
+main. New captures stage under E:/GodotAI-toolkit-release-2.0.0/20261014; existing
+F:/ and G:/ recovery files remain intact. Read the completion plan and current
+FIX_ROADMAP entry before following any older phase instructions.
+
 ## Full turn pack delivered — pause for remaining-style feedback (2026-10-14)
 
 PC Explorer is observed at closure-r001/delivery-r001/review-videos with

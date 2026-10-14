@@ -1,5 +1,11 @@
 # Repair closure and v2.0.0 release
 
+> Active policy, 2026-10-14: the user approved
+> [release-completion-plan.md](release-completion-plan.md), authorized Sol 6.1
+> workers and waived intermediate/final human review pauses. That plan supersedes
+> the work-alone/review-stop instructions in this historical plan. Independent
+> assessment, exact-source validation and package/publication gates remain.
+
 Approved for implementation on 2026-10-10. Work alone on
 `repair/toolkit-quality`, using Godot 4.7.2 and Godot AI's public custom-tools
 API. This replaces the 2026-10-09 proposal. The release request expands the

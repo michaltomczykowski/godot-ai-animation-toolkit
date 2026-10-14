@@ -1,5 +1,26 @@
 # Animation Toolkit repair roadmap
 
+## Autonomous completion to 2.0.0 started (2026-10-14)
+
+User approved `docs/release-completion-plan.md` and waived intermediate/final
+human review pauses. Independent assessment and machine gates remain required;
+historical human approvals retain their original scope. Sol 6.1 workers are
+authorized. Root owns one live Godot 4.7.2/public API queue and final integration.
+
+Starting clean/pushed source: 95a75903261c650b3ba6d704e2cc5f70ca1c458a.
+Completed R1 and walk/run/idle/start-stop/turn proofs are preserved. Remaining:
+strafe, stationary/forward jump, omitted-default setup/translation ownership,
+other-family effect assessment, applicability-aware operation audit, released
+core 4.2.1/4.3.0 Windows/Linux and real ZIP installation gates, packaging/docs,
+PR #1 merge and verified v2.0.0 publication. No release yet.
+
+Implementation workstreams: root strafe/jump and public editor validation;
+motion worker setup defaults/ownership/example; evidence worker registry/audit;
+release worker dependency registration/CI/package. Source changes are isolated
+and integrated before generating exact-source scenes. Capture/recovery staging:
+E:/GodotAI-toolkit-release-2.0.0/20261014 (roughly 282 GiB initially free).
+The full implementation contract and completion criteria are in the saved plan.
+
 ## Full turn pack delivered — pause for remaining-style feedback (2026-10-14)
 
 PC Explorer is observed at closure-r001/delivery-r001/review-videos with
