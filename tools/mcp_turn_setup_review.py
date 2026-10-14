@@ -9,6 +9,7 @@ import asyncio
 from datetime import datetime, timezone
 import hashlib
 import json
+import re
 from pathlib import Path
 import subprocess
 from uuid import uuid4
@@ -53,10 +54,16 @@ async def run(a):
                     assert digest(a.project_root / ref['scene'].removeprefix('res://')) == ref['scene_sha256']
                     target = folder / f'{label}-{rig_id}.tscn'
                     copy_scene(a.project_root / fixture, target)
+                    player_block = re.search(r'(?ms)^\[node name="' + re.escape(player) + r'"[^\n]*\].*?(?=^\[node|\Z)',
+                                             target.read_text(encoding='utf-8-sig'))
+                    assert player_block, 'Fixture player block is required'
+                    root_binding = re.search(r'root_motion_track = NodePath\("([^"]*)"\)', player_block.group())
+                    before_root = root_binding.group(1) if root_binding else ''
                     with target.open('a', encoding='utf-8') as stream:
                         stream.write(f'\n[node name="PublicSetupHistory" type="Node" parent="."]\n'
                             f'metadata/player_path = NodePath("{player}")\n'
                             'metadata/tree_path = NodePath("AnimationTree")\n'
+                            f'metadata/before_root_motion_track = NodePath("{before_root}")\n'
                             f'metadata/direction = "{direction}"\n')
                     scene = 'res://' + target.relative_to(a.project_root).as_posix()
                     # Keep unrelated locomotion reachable on all proportions.
@@ -86,6 +93,7 @@ async def run(a):
                     row['before'] = await inspect(client, name, request['player_path'])
                     await stage('pose_before', 'custom_animation_rig', pose)
                     await stage('binding_before', 'node_get_properties', binding)
+                    assert row['binding_before']['properties'][0]['value'] == before_root, 'History fixture must match the actual caller binding'
                     await stage('dry', 'custom_manage', {'op': 'invoke', 'params': {
                         'tool_name': 'animation_motion', 'params': {**request, 'dry_run': True}}})
                     row['after_dry'] = await inspect(client, name, request['player_path'])
