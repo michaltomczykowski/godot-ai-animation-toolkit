@@ -390,7 +390,7 @@ motion can be verified without rendering it.
 
 1. Copy `addons/godot_ai_animation/` into your project's `addons/` folder.
 2. Install and enable [Godot AI](https://github.com/hi-godot/godot-ai)
-   (`>= 4.1.0`) in the same project.
+   (`>= 4.2.1`) in the same project.
 3. Enable **Godot AI Animation Toolkit** in *Project → Project Settings →
    Plugins* (either order works).
 
@@ -403,8 +403,8 @@ Godot AI dock's Tools tab lists them with enable/disable toggles.
 | | |
 | --- | --- |
 | Godot | 4.7.2 stable |
-| Godot AI | `>= 4.1.0` (custom-tools registry) |
-| Platform | any (no OS-specific code) |
+| Godot AI | `>= 4.2.1` (custom-tools registry) |
+| Qualified platforms | Windows and Linux; other platforms are unqualified |
 
 The addon is **self-contained**: it uses the Godot AI custom-tools registration
 API only, never core animation-handler internals, and loads cleanly (with a
@@ -424,7 +424,7 @@ warning) when Godot AI is absent.
 ```
 
 `test_project/` is a Godot project wired to both addons; `tests/` holds the
-editor suites (191 rows across all nine tools) and the headless checks
+editor suites (103 operations across ten families) and the headless checks
 (`tier1_value_codec.gd`, `tier1_spec_modifiers.gd`, `tier1_fx_specs.gd`,
 `tier1_graph_builders.gd`, `tier1_spec_json.gd`, `tier1_pose_math.gd`,
 `tier1_motion_drivers.gd`, `tier1_quality_modifiers.gd`, 2700+ checks). The
@@ -451,3 +451,17 @@ toolkit call (plus autoplay) or one built demo subtree.
 ## Licence
 
 MIT — see [`LICENSE`](LICENSE).
+
+## 2.0.0 candidate compatibility and installation
+
+Use Godot 4.7.2 with stable Godot AI >=4.2.1. Required release qualification
+covers Windows/Linux with released cores 4.2.1 and 4.3.0; development main is
+advisory. The 2.0.0 metadata is a candidate version until publication gates pass.
+
+Enable families in Godot AI's Tools -> Custom tools (addon-registered) list.
+Ten families register; eight are promoted. Per-family checkboxes apply immediately
+and persist. The native animation-domain selector controls core tools.
+
+Extract the release ZIP into the project root and install Godot AI separately.
+The ZIP includes the MIT LICENSE; tests, models and private footage are excluded.
+Missing/invalid/prerelease/old core metadata prevents registration with a diagnostic.

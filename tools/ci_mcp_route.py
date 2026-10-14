@@ -1049,6 +1049,16 @@ def run(args: argparse.Namespace) -> int:
                 print(f"MCP_CI_FAIL={stage}")
                 print(tail(log_path))
                 return 1
+        if args.install_selection:
+            selection = subprocess.run([
+                sys.executable, str(Path(__file__).with_name("mcp_install_selection.py")),
+                "--core-root", str(args.core_root), "--project", str(args.project),
+                "--port", str(args.port), "--ws-port", str(args.ws_port),
+            ], capture_output=True, text=True, timeout=75)
+            print(selection.stdout, flush=True)
+            if selection.returncode:
+                print(selection.stderr, flush=True)
+                return 1
         if not motion_gate(args):
             print(tail(log_path))
             return 1
@@ -1158,6 +1168,7 @@ def main() -> int:
     parser.add_argument("--timeout", type=int, default=150)
     parser.add_argument("--log", default="mcp-editor.log")
     parser.add_argument("--existing", action="store_true", help="Probe an already-running editor")
+    parser.add_argument("--install-selection", action="store_true", help="Probe clean-install companion family selection")
     args = parser.parse_args()
     args.core_root = args.core_root.resolve()
     args.project = args.project.resolve()
