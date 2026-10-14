@@ -1,5 +1,17 @@
 # Animation Toolkit repair roadmap
 
+## Focused Responsive turns accepted — full turn closure begins (2026-10-14)
+
+User says “let's say they do, do next” about the presented Responsive turn
+videos: qualified acceptance of that focused set; watched files/rigs unspecified.
+Receipt: release_r2_turn_20261013/approved-responsive-r004-feedback.json.
+Preserve source ac309b7, all 32 clips/192 plays and twelve delivered movies.
+Full turn/style approval and release approval remain pending. Follow
+docs/turn-quality-closure-plan.md: remaining 128 public clips/768 native plays,
+timing/alias/setup/reload checks, continuous full-style videos, then manual pause.
+Work alone with Godot4.7.2 through the separate Godot AI public tools API.
+Keep approved motions/eleven fixtures unchanged. R2/R3-R5 still remain.
+
 ## Responsive turn videos delivered — pause for human review (2026-10-14)
 
 Explorer is observed on candidate-r004/delivery-r002/review-videos, with
