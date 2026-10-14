@@ -41,6 +41,14 @@ async def run(a):
     save()
     old_session = ''
     try:
+        async with connected_editor(a) as (client, connection):
+            catalog = await call(client, 'custom_manage', {'op': 'list'})
+            motion = next(t for t in catalog['tools'] if t['name'] == 'animation_motion')
+            if 'turn' not in motion['params_schema']['properties']['preset']['enum']:
+                old_session = connection['session_id']
+                report['schema_refresh_reload'] = await call(client, 'editor_reload_plugin', {})
+                save()
+                assert not report['schema_refresh_reload'].get('error')
         for phase in ('before_reload', 'after_reload'):
             async with connected_editor(a, old_session) as (client, connection):
                 catalog = await call(client, 'custom_manage', {'op': 'list'})
@@ -53,6 +61,10 @@ async def run(a):
                 report['phases'].append(section); save()
                 assert names == EXPECTED_CATALOG and sum(map(len, choices.values())) == 103
                 assert all(t.get('enabled') is True for t in catalog['tools']) and EXPECTED_PROMOTED <= tools
+                motion = next(t for t in catalog['tools'] if t['name'] == 'animation_motion')
+                assert 'turn' in motion['params_schema']['properties']['preset']['enum'], 'Turn alias absent from actual Godot AI schema'
+                promoted_motion = next(t for t in await client.list_tools() if t.name == 'custom_animation_motion')
+                assert 'turn' in promoted_motion.inputSchema['properties']['preset']['enum'], 'Promoted schema omits turn alias'
                 for path, route in routes:
                     for row in route['cases']:
                         original = a.project_root / row['scene'].removeprefix('res://')

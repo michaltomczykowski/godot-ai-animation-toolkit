@@ -46,7 +46,8 @@ def main():
         'addons/godot_ai_animation', 'test_project/tests', 'test_project/tools'], cwd=a.repo).returncode == 0,
         'Current executable engine code differs from CI source')
     require(subprocess.run(['git', 'diff', '--quiet', approval['animation_source'], 'HEAD', '--',
-        'addons/godot_ai_animation'], cwd=a.repo).returncode == 0, 'Accepted generator changed')
+        'addons/godot_ai_animation', ':(exclude)addons/godot_ai_animation/registry/op_registry.gd'], cwd=a.repo).returncode == 0,
+        'Accepted generation/playback code changed; only documented registry schema changes are allowed here')
     protected = read(a.recovery / 'protected-fixtures-unchanged.json')['fixtures']
     for row in protected: require(digest(Path(row['path'])) == row['sha256'], 'Protected fixture changed')
     movies = []

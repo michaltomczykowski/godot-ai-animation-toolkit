@@ -3791,7 +3791,7 @@
         "valid_effect": "pass_played_bones",
         "visual_review": "partial_xbot_sheet"
       },
-      "claimed_effect": "Generic entry point: build the cycle named by `preset` (walk, run or idle) with the same parameters as the dedicated ops.",
+      "claimed_effect": "Generic entry point: build the walk, run or idle cycle, or a one-shot skeletal turn, with the same parameters and heading ownership as the dedicated op.",
       "evidence": [
         "2026-09-30: live Godot AI MCP on imported dummy, mcp_motion_remaining_first.log run 20260930_170226. Dry run left no clip; write/save/forced reopen retained resolved bone tracks; missing skeleton returned typed NODE_NOT_FOUND. Godot 4.7.2 check_motion_remaining_runtime.gd played the saved clip and matched every sampled bone track at an authored key. Contact, loop seam, independent rigs, editor undo, visual review and Linux remain.",
         "2026-10-01: live Godot AI motion_audit on saved scene at 30/60/120 FPS passed played-world contact, penetration and knee-pole checks on the bundled dummy; see mcp_motion_saved_audit_details.log. Independent rig and visual review pending.",

@@ -1848,8 +1848,8 @@ static func _motion_schema() -> Dictionary:
 			},
 			"preset": {
 				"type": "string",
-				"enum": ["walk", "run", "idle"],
-				"description": "cycle: which cycle to build (walk).",
+				"enum": ["walk", "run", "idle", "turn"],
+				"description": "cycle: walk, run or idle loop, or a one-shot skeletal turn (walk). Turn uses angle/direction/steps and the same ownership contract as turn_cycle.",
 			},
 			"player_path": {
 				"type": "string",
@@ -2088,8 +2088,8 @@ static func _motion_ops() -> Array:
 		},
 		{
 			"name": "cycle",
-			"summary": "Generic entry point: build the cycle named by `preset` (walk, run or idle) with the same parameters as the dedicated ops.",
-			"params": ["preset"] + gait_params + ["amplitude", "head_amplitude"],
+			"summary": "Generic entry point: build the walk, run or idle cycle, or a one-shot skeletal turn, with the same parameters and heading ownership as the dedicated op.",
+			"params": ["preset"] + gait_params + ["amplitude", "head_amplitude", "angle", "direction", "steps"],
 			"example": {"op": "cycle", "preset": "run", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "run", "duration": 0.6, "loop_mode": "linear"},
 		},
 		{
