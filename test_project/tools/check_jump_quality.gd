@@ -27,6 +27,7 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 	for i in v.rig.get_bone_count(): initial.append(v.rig.get_bone_global_pose(i).origin)
 	var previous := initial.duplicate()
 	var max_step := 0.0
+	var worst_step := {"bone": "", "time": 0.0, "step_m": 0.0}
 	var max_motion := 0.0
 	var nonfinite := 0
 	var air_frames := 0
@@ -72,7 +73,10 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 		for i in v.rig.get_bone_count():
 			var pose: Transform3D = v.rig.get_bone_global_pose(i)
 			if not pose.origin.is_finite() or not pose.basis.is_finite(): nonfinite += 1
-			max_step = maxf(max_step, pose.origin.distance_to(previous[i]))
+			var step := pose.origin.distance_to(previous[i])
+			if step > max_step:
+				max_step = step
+				worst_step = {"bone": v.rig.get_bone_name(i), "time": time, "step_m": step}
 			max_motion = maxf(max_motion, pose.origin.distance_to(initial[i]))
 			previous[i] = pose.origin
 		trace.append(sample)
@@ -97,7 +101,7 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 		"actor_translation_owner": "extracted carrier" if extracted else "skeletal clip only; no controller translation",
 		"root_error_m": root_error, "grounded_root_delta_m": ground_root_motion, "unexpected_extraction_m": zero_extraction,
 		"observed_flight_frames": air_frames, "nonfinite": nonfinite, "max_pose_step_m": max_step,
-		"feet": metrics, "trace": trace, "failures": errors, "thresholds_pass": errors.is_empty()}
+		"worst_pose_step": worst_step, "feet": metrics, "trace": trace, "failures": errors, "thresholds_pass": errors.is_empty()}
 	v.scene.free()
 	return result
 
