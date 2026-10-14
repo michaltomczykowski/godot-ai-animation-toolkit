@@ -179,3 +179,11 @@ public Godot AI.32 public clips/192 native plays,400 local editor tests
 and Windows/Linux CI8a0f9bc pass. Twelve continuous videos are delivered
 on PC Explorer (eight current/four baseline). Await focused feedback;
 other styles/full turn closure and remaining R2/R3-R5 still apply.
+
+## Turn closure review checkpoint,2026-10-14
+
+Responsive focused turns received qualified acceptance. The remaining four
+styles now have a complete160-clip/960-play ordinary matrix, targeted
+contracts/reload/regression, green source CI and verified continuous MP4s.
+The full pack is delivered; pause for new-style feedback. R2 strafe/jump/
+setup-sequence/family review and R3-R5 remain. See turn-quality-validation.md.

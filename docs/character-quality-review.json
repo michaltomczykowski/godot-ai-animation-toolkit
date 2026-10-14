@@ -3,7 +3,7 @@
   "phase": "character_quality",
   "operation": "walk_start/walk_stop",
   "revision": "start-stop-body-r002",
-  "state": "turn_closure_in_progress",
+  "state": "awaiting_remaining_turn_style_feedback",
   "release_r1_execution": {
     "animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r1_20261010",
@@ -13019,152 +13019,548 @@
     }
   ],
   "turn_review": {
-    "state": "focused_responsive_accepted_full_turn_recording",
+    "state": "awaiting_remaining_turn_style_feedback",
     "plan": "docs/turn-quality-review-plan.md",
     "visual_approval": null,
     "release_ready": false,
-    "next_action": "Finish both capture roots, verify all 32 new movies, archive full closure, open Explorer and pause for new style feedback",
-    "revision": "turn-candidate-r004",
+    "next_action": "Pause for explicit feedback on Grounded/Relaxed/Heavy/Sneaky turn styles in the 6m24s review MP4.",
+    "revision": "turn-full-closure-r001",
     "recovery_folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013",
     "validation": "docs/turn-quality-validation.md",
     "animation_source": "ac309b7ab4fd49a3b719c87d7ac1240982be605e",
-    "ci_source": "8a0f9bc0e9ddfddba2d14da742ac5a68a0fbc74c",
+    "ci_source": "03df0314e3ba4b11e86cd653cb615eb5bea881b9",
     "ci_state": "success",
-    "public_clips": 32,
-    "native_runs": 192,
+    "public_clips": 160,
+    "native_runs": 960,
     "public_motion_tests": 74,
-    "native_matrix": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\native-ce47e422f4bf4da2a5dcb1438e8e4c86\\matrix.json",
+    "native_matrix": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\ordinary-closure-matrix.json",
     "control_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\controls-r004\\summary.json",
     "positive_control_runs": 24,
     "negative_control_runs": 120,
     "protected_fixtures": 11,
     "candidate_quality_approved": false,
     "remaining_gates": [
-      "other styles and full turn closure",
-      "remaining R2 motions/family reviews",
-      "R3 integration/audit",
+      "remaining turn-style video feedback",
+      "R2 strafe/jump/setup-sequence/other-family reviews",
+      "R3 integration/operation audit",
       "R4/R5 release"
     ],
-    "ci_run": 38475599599,
-    "ci_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\source-ci-8a0f9bc\\ci-receipt.json",
-    "local_gates": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\local-gates.json",
+    "ci_run": 38538734146,
+    "ci_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\source-ci-03df031\\ci-receipt.json",
+    "local_gates": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\local-gates.json",
     "full_editor_tests": 400,
     "headless_suites": 14,
     "registry_probes": 2,
-    "review_delivery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-delivery.json",
-    "independent_delivery_integrity": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\independent-delivery-integrity.json",
-    "pc_delivery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\pc-review-delivery.json",
+    "review_delivery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-delivery.json",
+    "independent_delivery_integrity": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\independent-delivery-integrity.json",
+    "pc_delivery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\pc-review-delivery.json",
     "videos": [
       {
+        "kind": "new_style",
+        "style": "grounded",
+        "variant": "left90",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\turn-grounded-left90-clean.mp4",
+        "sha256": "28383517f52a19fde3380c213e8b3cd6bc2d6afb0b51dd827a9beb18ced83638",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left90\\grounded\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left90\\grounded\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "grounded",
+        "variant": "left90",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\diagnostic\\turn-grounded-left90-diagnostic.mp4",
+        "sha256": "113f4095d09b110f18f0b3a264de5351a97b43c2a77fe8163fb4ac27787d4868",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left90\\grounded\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left90\\grounded\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "relaxed",
+        "variant": "left90",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\turn-relaxed-left90-clean.mp4",
+        "sha256": "95b376e3b90e422c22f3598cddafd19d0515a99ea5aa86bc65ba45218ea463c0",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left90\\relaxed\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left90\\relaxed\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "relaxed",
+        "variant": "left90",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\diagnostic\\turn-relaxed-left90-diagnostic.mp4",
+        "sha256": "f394896bb2c2325c7476d6d0076c15cf683d1415aed017b0d39ca815d286fcc1",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left90\\relaxed\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left90\\relaxed\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "heavy",
+        "variant": "left90",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\turn-heavy-left90-clean.mp4",
+        "sha256": "2d99493d2f6b575a11989a3003fd4a4dd568ea7a67308eeca85ff4aadfc25841",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left90\\heavy\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left90\\heavy\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "heavy",
+        "variant": "left90",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\diagnostic\\turn-heavy-left90-diagnostic.mp4",
+        "sha256": "f6da0a52af38c39d0dafefcebed465a695cfba7d5d135127cf27acf018478042",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left90\\heavy\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left90\\heavy\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "sneaky",
+        "variant": "left90",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\turn-sneaky-left90-clean.mp4",
+        "sha256": "4e0e71b93f1eac50ff6604b3ea91e55130a926f3db4ac9399c2beb54ca9e9936",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\capture-sneaky\\left90\\sneaky\\media.json",
+        "route": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\capture-sneaky\\left90\\sneaky\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "sneaky",
+        "variant": "left90",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\diagnostic\\turn-sneaky-left90-diagnostic.mp4",
+        "sha256": "b53ce0219804bcc9ccf1d15f41800e0076d3b140b0dbc94272b5dd536e5aff22",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\capture-sneaky\\left90\\sneaky\\media.json",
+        "route": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\capture-sneaky\\left90\\sneaky\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "grounded",
+        "variant": "right90",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\turn-grounded-right90-clean.mp4",
+        "sha256": "633ada9e39bf0af41284d4fe7f79b86dce0f798bd988703efb7edfb380bce9b9",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right90\\grounded\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right90\\grounded\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "grounded",
+        "variant": "right90",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\diagnostic\\turn-grounded-right90-diagnostic.mp4",
+        "sha256": "be7e020b9b4cd78e767748f69cbdab32d274cd7aa0d089fd1bc751060c6e1f63",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right90\\grounded\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right90\\grounded\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "relaxed",
+        "variant": "right90",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\turn-relaxed-right90-clean.mp4",
+        "sha256": "637f634303e932b8744b75a717de83218786cdea80b2a85845b90a983fd77fda",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right90\\relaxed\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right90\\relaxed\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "relaxed",
+        "variant": "right90",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\diagnostic\\turn-relaxed-right90-diagnostic.mp4",
+        "sha256": "1d27f38ad339e339577efa4e1edc1ec59636da7f53dab0908eec304f96754593",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right90\\relaxed\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right90\\relaxed\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "heavy",
+        "variant": "right90",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\turn-heavy-right90-clean.mp4",
+        "sha256": "307c6fdf5343cd37396e2d6474e54f2418aaf1dabcee40f253b075832d644651",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right90\\heavy\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right90\\heavy\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "heavy",
+        "variant": "right90",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\diagnostic\\turn-heavy-right90-diagnostic.mp4",
+        "sha256": "aa0b991f0c037bb30527023ae7f9684df2f43f106f21ecf65c5a449d84710390",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right90\\heavy\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right90\\heavy\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "sneaky",
+        "variant": "right90",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\turn-sneaky-right90-clean.mp4",
+        "sha256": "192ee04d469f7aeaa98317610bec265072dda01ab79a42293a5ec90f96f16373",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\capture-sneaky\\right90\\sneaky\\media.json",
+        "route": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\capture-sneaky\\right90\\sneaky\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "sneaky",
+        "variant": "right90",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\diagnostic\\turn-sneaky-right90-diagnostic.mp4",
+        "sha256": "a5d70ac7942cc1770e1298f4599a949ac6c1ea04265ae21b4d9fd18976c7657e",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\capture-sneaky\\right90\\sneaky\\media.json",
+        "route": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\capture-sneaky\\right90\\sneaky\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "grounded",
+        "variant": "left180",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\turn-grounded-left180-clean.mp4",
+        "sha256": "5818bef312f77799daa3f38c361e5b9f12b1f485377f4d6cdf4dc3daa4c170fb",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left180\\grounded\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left180\\grounded\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "grounded",
+        "variant": "left180",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\diagnostic\\turn-grounded-left180-diagnostic.mp4",
+        "sha256": "76ab52529c3946e305138b99e93d4d2906c3f1c4435c8f62e0cdfcc4f5cbc3b6",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left180\\grounded\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left180\\grounded\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "relaxed",
+        "variant": "left180",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\turn-relaxed-left180-clean.mp4",
+        "sha256": "9baf05f06fb76267713b2fd6a1804666e06aabc9f47c907bd4d1e8733640483e",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left180\\relaxed\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left180\\relaxed\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "relaxed",
+        "variant": "left180",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\diagnostic\\turn-relaxed-left180-diagnostic.mp4",
+        "sha256": "5f0e5b4d5d4a35c78129996a4ee7abe9471f3168ed1498c003a3319bcff3f982",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left180\\relaxed\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left180\\relaxed\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "heavy",
+        "variant": "left180",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\turn-heavy-left180-clean.mp4",
+        "sha256": "47b83b80caf6f66ecfe6ca41f26a7c3b4f91008a510a3fd1fc92afeffecbc63d",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left180\\heavy\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left180\\heavy\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "heavy",
+        "variant": "left180",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\diagnostic\\turn-heavy-left180-diagnostic.mp4",
+        "sha256": "44cbf0a1d41c7d422307b1ce49074e023acab4fa1414e8f3928607e4637ca5fc",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left180\\heavy\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\left180\\heavy\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "sneaky",
+        "variant": "left180",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\turn-sneaky-left180-clean.mp4",
+        "sha256": "19eaf8a0c174ae5db503010459eeb6014c2e4eeb975dab251c752de608a50b92",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\capture-sneaky\\left180\\sneaky\\media.json",
+        "route": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\capture-sneaky\\left180\\sneaky\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "sneaky",
+        "variant": "left180",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\diagnostic\\turn-sneaky-left180-diagnostic.mp4",
+        "sha256": "3ece575955980c98c67573850dd68ff5b583f2efeef2c3de96585aaf92c6f315",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\capture-sneaky\\left180\\sneaky\\media.json",
+        "route": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\capture-sneaky\\left180\\sneaky\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "grounded",
+        "variant": "right180",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\turn-grounded-right180-clean.mp4",
+        "sha256": "c5b95eee406531c4326caf3651f70c32cf5735797d7056e2c1739e99e97ba6df",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right180\\grounded\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right180\\grounded\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "grounded",
+        "variant": "right180",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\diagnostic\\turn-grounded-right180-diagnostic.mp4",
+        "sha256": "c7e7343bb843608116ea0cfe9d8a043d6c59d32d258772c244777fb9572ad311",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right180\\grounded\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right180\\grounded\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "relaxed",
+        "variant": "right180",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\turn-relaxed-right180-clean.mp4",
+        "sha256": "64d22bd7640ec4b4d480a011ed99abb0ede22e20000f27e94cda80a7f79ad817",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right180\\relaxed\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right180\\relaxed\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "relaxed",
+        "variant": "right180",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\diagnostic\\turn-relaxed-right180-diagnostic.mp4",
+        "sha256": "b11777b42a4f3772d01b9e1a7d4ead5abea0502f732433b2db87d41ab581dfdf",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right180\\relaxed\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right180\\relaxed\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "heavy",
+        "variant": "right180",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\turn-heavy-right180-clean.mp4",
+        "sha256": "bb0b52fb14cfe29b08f504e40edf2bc0f3cbb09c3542c734af4fff52db998ce0",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right180\\heavy\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right180\\heavy\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "heavy",
+        "variant": "right180",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\diagnostic\\turn-heavy-right180-diagnostic.mp4",
+        "sha256": "fb3ba0cf13fefa6f713dd6c41a0345221bba3e0666c3bdee43634d34ec13eb59",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right180\\heavy\\media.json",
+        "route": "G:\\godot-ai-dev\\toolkit-turn-closure-capture-20261014\\right180\\heavy\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "sneaky",
+        "variant": "right180",
+        "mode": "clean",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\turn-sneaky-right180-clean.mp4",
+        "sha256": "fb4c3caf7889ab4796778b3c66d41349dece96297be710dc931e21ea24df8ce0",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\capture-sneaky\\right180\\sneaky\\media.json",
+        "route": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\capture-sneaky\\right180\\sneaky\\route.json"
+      },
+      {
+        "kind": "new_style",
+        "style": "sneaky",
+        "variant": "right180",
+        "mode": "diagnostic",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\diagnostic\\turn-sneaky-right180-diagnostic.mp4",
+        "sha256": "b68c82d771da25dcf4f520272ecfd851e2151066bc99f9229b0c20f00d7cd47e",
+        "frames": 1440,
+        "duration_s": 24,
+        "media_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\capture-sneaky\\right180\\sneaky\\media.json",
+        "route": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\capture-sneaky\\right180\\sneaky\\route.json"
+      },
+      {
         "kind": "candidate-r004",
         "variant": "left90",
         "mode": "clean",
-        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-left90-responsive-clean.mp4",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\accepted-responsive\\turn-left90-responsive-clean.mp4",
         "sha256": "a1d237c9d92f2c84bbe1c1a6bfcaef3cb3887061cee548b4f5f4b458266511f6",
         "frames": 1440,
-        "duration_s": 24.0
+        "duration_s": 24.0,
+        "preserved_from": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-left90-responsive-clean.mp4"
       },
       {
         "kind": "candidate-r004",
         "variant": "left90",
         "mode": "diagnostic",
-        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-left90-responsive-diagnostic.mp4",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\accepted-responsive\\turn-left90-responsive-diagnostic.mp4",
         "sha256": "33e2260a0ca1ec7fe28fa9622276fa6ff94685c9ac6a6366ed70e040cd00d941",
         "frames": 1440,
-        "duration_s": 24.0
+        "duration_s": 24.0,
+        "preserved_from": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-left90-responsive-diagnostic.mp4"
       },
       {
         "kind": "baseline-r001",
         "variant": "left90",
         "mode": "clean",
-        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\baseline-left90-responsive-clean.mp4",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\preserved-baseline\\baseline-left90-responsive-clean.mp4",
         "sha256": "bf501519ff026ae041aff8e5ce264d5a4fd505669de4d4d706d0bbf36bd2ae58",
         "frames": 1440,
-        "duration_s": 24.0
+        "duration_s": 24.0,
+        "preserved_from": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\baseline-left90-responsive-clean.mp4"
       },
       {
         "kind": "candidate-r004",
         "variant": "right90",
         "mode": "clean",
-        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-right90-responsive-clean.mp4",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\accepted-responsive\\turn-right90-responsive-clean.mp4",
         "sha256": "dbc58f6663985c5eef273e611763601a2bcd17dabf04690d2735fe6bcf32dfa0",
         "frames": 1440,
-        "duration_s": 24.0
+        "duration_s": 24.0,
+        "preserved_from": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-right90-responsive-clean.mp4"
       },
       {
         "kind": "candidate-r004",
         "variant": "right90",
         "mode": "diagnostic",
-        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-right90-responsive-diagnostic.mp4",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\accepted-responsive\\turn-right90-responsive-diagnostic.mp4",
         "sha256": "c1dadb660742379fb4f1ec6ff3b2ef47c1853cad44cf6f50dc9b0666cd76cdd5",
         "frames": 1440,
-        "duration_s": 24.0
+        "duration_s": 24.0,
+        "preserved_from": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-right90-responsive-diagnostic.mp4"
       },
       {
         "kind": "baseline-r001",
         "variant": "right90",
         "mode": "clean",
-        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\baseline-right90-responsive-clean.mp4",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\preserved-baseline\\baseline-right90-responsive-clean.mp4",
         "sha256": "77e0413a1fe56be1e0460507db9b3cd6a8d0c29774d5496fd17214b5493ad2bc",
         "frames": 1440,
-        "duration_s": 24.0
+        "duration_s": 24.0,
+        "preserved_from": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\baseline-right90-responsive-clean.mp4"
       },
       {
         "kind": "candidate-r004",
         "variant": "left180",
         "mode": "clean",
-        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-left180-responsive-clean.mp4",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\accepted-responsive\\turn-left180-responsive-clean.mp4",
         "sha256": "6f9876959826cf33024f1d823814533093c3ced0e4b108400d3a2c4ebb7afcbd",
         "frames": 1440,
-        "duration_s": 24.0
+        "duration_s": 24.0,
+        "preserved_from": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-left180-responsive-clean.mp4"
       },
       {
         "kind": "candidate-r004",
         "variant": "left180",
         "mode": "diagnostic",
-        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-left180-responsive-diagnostic.mp4",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\accepted-responsive\\turn-left180-responsive-diagnostic.mp4",
         "sha256": "4515221a2f5ff21cac32c38ad5f1fec406569da2663cbde4fc637e529fed9fa5",
         "frames": 1440,
-        "duration_s": 24.0
+        "duration_s": 24.0,
+        "preserved_from": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-left180-responsive-diagnostic.mp4"
       },
       {
         "kind": "baseline-r001",
         "variant": "left180",
         "mode": "clean",
-        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\baseline-left180-responsive-clean.mp4",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\preserved-baseline\\baseline-left180-responsive-clean.mp4",
         "sha256": "8aeefbfb777109e96f9bc83584d6bdd8d1ee3b1d39ab130ad8fb9314103b9247",
         "frames": 1440,
-        "duration_s": 24.0
+        "duration_s": 24.0,
+        "preserved_from": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\baseline-left180-responsive-clean.mp4"
       },
       {
         "kind": "candidate-r004",
         "variant": "right180",
         "mode": "clean",
-        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-right180-responsive-clean.mp4",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\accepted-responsive\\turn-right180-responsive-clean.mp4",
         "sha256": "17fc915515a112a41f80cf6057075138a010b88d5640ad7b724227f5bd5ab9f4",
         "frames": 1440,
-        "duration_s": 24.0
+        "duration_s": 24.0,
+        "preserved_from": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-right180-responsive-clean.mp4"
       },
       {
         "kind": "candidate-r004",
         "variant": "right180",
         "mode": "diagnostic",
-        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-right180-responsive-diagnostic.mp4",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\accepted-responsive\\turn-right180-responsive-diagnostic.mp4",
         "sha256": "07e14c1f95b746c49171ba53fd6e4442906d9deb874048d13dc44bedbf1b6498",
         "frames": 1440,
-        "duration_s": 24.0
+        "duration_s": 24.0,
+        "preserved_from": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-right180-responsive-diagnostic.mp4"
       },
       {
         "kind": "baseline-r001",
         "variant": "right180",
         "mode": "clean",
-        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\baseline-right180-responsive-clean.mp4",
+        "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\preserved-baseline\\baseline-right180-responsive-clean.mp4",
         "sha256": "beb2daa3eb9ea8e747fb0b7ef6b75c03cd313eb3c4aeb6384cbf9f4a35c46cd1",
         "frames": 1440,
-        "duration_s": 24.0
+        "duration_s": 24.0,
+        "preserved_from": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\baseline-right180-responsive-clean.mp4"
       }
     ],
-    "archived_scene_entries": 121,
+    "archived_scene_entries": 655,
     "focused_visual_approval": {
       "receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\approved-responsive-r004-feedback.json",
       "feedback": "let's say they do, do next",
@@ -13173,7 +13569,7 @@
     },
     "closure_plan": "docs/turn-quality-closure-plan.md",
     "closure": {
-      "state": "gates_green_recording",
+      "state": "awaiting_remaining_turn_style_feedback",
       "plan": "docs/turn-quality-closure-plan.md",
       "folder": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001",
       "ordinary_new_public_clips": 128,
@@ -13226,7 +13622,166 @@
       "full_editor_tests": 400,
       "public_motion_tests": 74,
       "headless_suites": 14,
-      "next_action": "Finish both capture roots, verify all 32 new movies, archive full closure, open Explorer and pause for new style feedback"
-    }
+      "next_action": "Finish both capture roots, verify all 32 new movies, archive full closure, open Explorer and pause for new style feedback",
+      "captures_complete": 32,
+      "review_delivery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-delivery.json",
+      "review_playlist": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-playlist.json",
+      "independent_delivery_integrity": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\independent-delivery-integrity.json",
+      "pc_delivery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\pc-review-delivery.json",
+      "saved_scene_entries": 655,
+      "archives": [
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\animation-source.zip",
+          "sha256": "841d7e45b784db3dd25444f01d2c52f0e52d0d96d4aef1e0b01e9645e23e5bdd",
+          "source": "ac309b7ab4fd49a3b719c87d7ac1240982be605e"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\tested-closure-source.zip",
+          "sha256": "3ee339bda3d11f0c225e3a61020d5779b4cdaed7ba1143dfe01234caf457bc87",
+          "source": "03df0314e3ba4b11e86cd653cb615eb5bea881b9"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\delivery-tooling-source.zip",
+          "sha256": "5b13c55657652e17e9f1614feb1dbd8ab1da4d314176db10fb1ff190c5a2b24c",
+          "source": "8c90dceee3b53cd92b00f18c3c53ac781e0e145d"
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\native-scenes-and-local-rigs.zip",
+          "sha256": "f0468733d7f25b00d21875517d3bf7572ea91b02b5bafd73daf0bf00e43215c9",
+          "scene_entries": 655,
+          "private_assets_local_only": true
+        },
+        {
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\phase-receipts-before-delivery.zip",
+          "sha256": "473cb6533041c39647d61b8c46709ffbda9f8f5a6f8f76937a4c15de326dce60",
+          "scope": "Before final delivery/PC/integrity/new human receipts"
+        }
+      ]
+    },
+    "focused_review": {
+      "revision": "turn-candidate-r004",
+      "animation_source": "ac309b7ab4fd49a3b719c87d7ac1240982be605e",
+      "ci_source": "8a0f9bc0e9ddfddba2d14da742ac5a68a0fbc74c",
+      "ci_run": 38475599599,
+      "ci_receipt": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\source-ci-8a0f9bc\\ci-receipt.json",
+      "public_clips": 32,
+      "native_runs": 192,
+      "native_matrix": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\native-ce47e422f4bf4da2a5dcb1438e8e4c86\\matrix.json",
+      "review_delivery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-delivery.json",
+      "independent_delivery_integrity": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\independent-delivery-integrity.json",
+      "pc_delivery": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\pc-review-delivery.json",
+      "videos": [
+        {
+          "kind": "candidate-r004",
+          "variant": "left90",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-left90-responsive-clean.mp4",
+          "sha256": "a1d237c9d92f2c84bbe1c1a6bfcaef3cb3887061cee548b4f5f4b458266511f6",
+          "frames": 1440,
+          "duration_s": 24.0
+        },
+        {
+          "kind": "candidate-r004",
+          "variant": "left90",
+          "mode": "diagnostic",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-left90-responsive-diagnostic.mp4",
+          "sha256": "33e2260a0ca1ec7fe28fa9622276fa6ff94685c9ac6a6366ed70e040cd00d941",
+          "frames": 1440,
+          "duration_s": 24.0
+        },
+        {
+          "kind": "baseline-r001",
+          "variant": "left90",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\baseline-left90-responsive-clean.mp4",
+          "sha256": "bf501519ff026ae041aff8e5ce264d5a4fd505669de4d4d706d0bbf36bd2ae58",
+          "frames": 1440,
+          "duration_s": 24.0
+        },
+        {
+          "kind": "candidate-r004",
+          "variant": "right90",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-right90-responsive-clean.mp4",
+          "sha256": "dbc58f6663985c5eef273e611763601a2bcd17dabf04690d2735fe6bcf32dfa0",
+          "frames": 1440,
+          "duration_s": 24.0
+        },
+        {
+          "kind": "candidate-r004",
+          "variant": "right90",
+          "mode": "diagnostic",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-right90-responsive-diagnostic.mp4",
+          "sha256": "c1dadb660742379fb4f1ec6ff3b2ef47c1853cad44cf6f50dc9b0666cd76cdd5",
+          "frames": 1440,
+          "duration_s": 24.0
+        },
+        {
+          "kind": "baseline-r001",
+          "variant": "right90",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\baseline-right90-responsive-clean.mp4",
+          "sha256": "77e0413a1fe56be1e0460507db9b3cd6a8d0c29774d5496fd17214b5493ad2bc",
+          "frames": 1440,
+          "duration_s": 24.0
+        },
+        {
+          "kind": "candidate-r004",
+          "variant": "left180",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-left180-responsive-clean.mp4",
+          "sha256": "6f9876959826cf33024f1d823814533093c3ced0e4b108400d3a2c4ebb7afcbd",
+          "frames": 1440,
+          "duration_s": 24.0
+        },
+        {
+          "kind": "candidate-r004",
+          "variant": "left180",
+          "mode": "diagnostic",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-left180-responsive-diagnostic.mp4",
+          "sha256": "4515221a2f5ff21cac32c38ad5f1fec406569da2663cbde4fc637e529fed9fa5",
+          "frames": 1440,
+          "duration_s": 24.0
+        },
+        {
+          "kind": "baseline-r001",
+          "variant": "left180",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\baseline-left180-responsive-clean.mp4",
+          "sha256": "8aeefbfb777109e96f9bc83584d6bdd8d1ee3b1d39ab130ad8fb9314103b9247",
+          "frames": 1440,
+          "duration_s": 24.0
+        },
+        {
+          "kind": "candidate-r004",
+          "variant": "right180",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-right180-responsive-clean.mp4",
+          "sha256": "17fc915515a112a41f80cf6057075138a010b88d5640ad7b724227f5bd5ab9f4",
+          "frames": 1440,
+          "duration_s": 24.0
+        },
+        {
+          "kind": "candidate-r004",
+          "variant": "right180",
+          "mode": "diagnostic",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\turn-right180-responsive-diagnostic.mp4",
+          "sha256": "07e14c1f95b746c49171ba53fd6e4442906d9deb874048d13dc44bedbf1b6498",
+          "frames": 1440,
+          "duration_s": 24.0
+        },
+        {
+          "kind": "baseline-r001",
+          "variant": "right180",
+          "mode": "clean",
+          "path": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\candidate-r004\\delivery-r002\\review-videos\\baseline-right180-responsive-clean.mp4",
+          "sha256": "beb2daa3eb9ea8e747fb0b7ef6b75c03cd313eb3c4aeb6384cbf9f4a35c46cd1",
+          "frames": 1440,
+          "duration_s": 24.0
+        }
+      ]
+    },
+    "review_playlist": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-playlist.json",
+    "primary_review_video": "F:\\GODOTAITESTING\\toolkit_repair_snapshot_2026-09-30\\release_r2_turn_20261013\\closure-r001\\delivery-r001\\review-videos\\PLAY-ALL-new-turn-styles.mp4"
   }
 }

@@ -1,5 +1,43 @@
 # Animation Toolkit repair roadmap
 
+## Full turn pack delivered — pause for remaining-style feedback (2026-10-14)
+
+PC Explorer is observed at closure-r001/delivery-r001/review-videos with
+PLAY-ALL-new-turn-styles.mp4 selected. It is a6m24s/23040-frame stream-copy
+compilation of16 new native clean cases: Grounded, Relaxed, Heavy, Sneaky,
+each left90/right90/left180/right180. Four rigs, simultaneous fixed front/side,
+two complete reset takes per rig,1080p60. Individual32 new clean/diagnostic
+movies and12 preserved focused/baseline movies remain available. User playback
+is not inferred. Qualified Responsive acceptance remains; these four styles
+need explicit feedback. STOP here. No strafe implementation or release yet.
+
+Ordinary160 public clips/960 native plays; timing24/144; aliases8/48 plus48
+parity comparisons; setup24/144 plus144 parity comparisons;28 refusal pairs;
+320 actual core-reload dry calls pass. Local editor400/400, public motion74/74,
+headless14/14, two10-family/103-choice probes, all eleven fixtures and accepted
+gait golden drift zero. CI03df031 /38538734146 green:28 headless jobs, four
+editors398/400 with only two named private-rig skips, both live routes118/118.
+Six raw logs/source identities archived. Generation code remains ac309b7;
+registry5dc849a exposes the existing turn alias. Broader setup/controller/actor
+yaw and remaining R2/R3-R5 gates stay open;103 operation rows remain partial.
+
+Delivery integrity verifies44 source movie copies plus the review compilation,
+five ZIPs, 655 saved scene entries,33 exact protected Git blobs and local
+model dependencies. Private X Bot assets/media remain local. Interim534-scene
+backup and earlier focused delivery/qualified feedback remain intact. Completed
+capture reuse/peer waiting was exercised without new writes. Its initial check
+miscompared an ISO timestamp with PowerShell's parsed DateTime; fixed by comparing
+UTC DateTime values. Failed attempt retained; r002 waits and hash verification pass.
+Other source-guard/setup-binding/float-precision/docs-root failures are retained
+below. Both capture roots are complete; no capture or test editor is running.
+
+Recovery: release_r2_turn_20261013/closure-r001/delivery-r001. Read
+review-delivery.json, review-playlist.json, independent-delivery-integrity.json
+and pc-review-delivery.json. Source ZIPs and receipt snapshot precede final
+delivery/PC/human receipts; later receipts are preserved separately and in these
+Git notes. Combined ordinary manifest: closure-r001/ordinary-closure-matrix.json.
+Next plan: docs/strafe-quality-review-plan.md, after this visual review only.
+
 ## All turn closure checks green — complete videos, then pause (2026-10-14)
 
 Full ordinary set: 160 public clips/960 native Player/Tree/FPS plays. Additional

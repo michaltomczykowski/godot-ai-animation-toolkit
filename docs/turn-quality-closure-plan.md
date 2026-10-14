@@ -79,3 +79,9 @@ All ordinary, targeted timing/alias/setup, refusal and reload gates pass.
 Local suites and exact-source CI03df031 are green; detailed counts, failures,
 scope and receipts are in turn-quality-validation.md. Recordings/delivery
 and explicit remaining-style feedback are pending. No generation keys changed.
+
+## Delivery and next manual gate
+
+All automated closure gates,32 new movies and integrity checks pass.
+Explorer shows the6m24s review compilation. Qualified Responsive feedback
+is preserved; Grounded/Relaxed/Heavy/Sneaky feedback is pending. Pause.
