@@ -393,12 +393,17 @@ func _build_procedural_animation(
 		if motion_node == null:
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"Root motion needs a Node3D character owner under the AnimationPlayer root_node")
+		if not preload("res://addons/godot_ai_animation/spec/motion_space.gd").carries(motion_node, skeleton):
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
+				"Root motion requires the skeleton to inherit its selected owner's transform; top_level descendants are unsupported")
 		root_motion_track = "%s:position" % str(root_node.get_path_to(motion_node))
+		var delta_basis := preload("res://addons/godot_ai_animation/spec/motion_space.gd").root_basis(motion_node, skeleton)
+		var identity_delta := delta_basis.is_equal_approx(Basis.IDENTITY)
 		var motion_keys: Array = []
 		for key in (keys["__root_motion__"] as Dictionary).get("position", []):
 			motion_keys.append({
 				"time": float(key.time),
-				"value": motion_node.position + (key.delta as Vector3),
+				"value": motion_node.position + ((key.delta as Vector3) if identity_delta else delta_basis * (key.delta as Vector3)),
 				"transition": "linear",
 			})
 		ClipSpec.add_value_track(spec, root_motion_track, motion_keys,

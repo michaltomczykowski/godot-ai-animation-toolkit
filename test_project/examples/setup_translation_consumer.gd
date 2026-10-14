@@ -23,6 +23,6 @@ func _physics_process(delta: float) -> void:
 		requested_speed = 0.0
 		tree.set(jump_request_parameter, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 	tree.advance(delta)
-	# Extraction is in the owner's local orientation. Its parent's transform
-	# converts this local position change to world movement exactly once.
-	position += quaternion * tree.get_root_motion_position()
+	# Translation-only extraction is in owner-parent coordinates. The parent
+	# transform converts this position change to world movement exactly once.
+	position += tree.get_root_motion_position()

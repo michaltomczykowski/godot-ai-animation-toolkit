@@ -10,6 +10,7 @@ extends "res://addons/godot_ai_animation/handlers/bone_animation.gd"
 ## and `overrides` trade a small schema for deep tuning.
 
 const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
+const MotionSpace := preload("res://addons/godot_ai_animation/spec/motion_space.gd")
 const MotionSpecs := preload("res://addons/godot_ai_animation/spec/motion_specs.gd")
 const MotionTransitions := preload("res://addons/godot_ai_animation/spec/motion_transitions.gd")
 const MotionDrivers := preload("res://addons/godot_ai_animation/spec/motion_drivers.gd")
@@ -175,10 +176,13 @@ func _run_cycle(params: Dictionary, kind: String) -> Dictionary:
 	committed.data["root_motion"] = bool(prepared.ctx.get("root_motion", false))
 	committed.data["root_motion_track"] = root_motion_track
 	committed.data["speed"] = float(prepared.meta.get("speed",
-		_implied_speed(kind, prepared.config, prepared.ctx, prepared.length)))
-	for key in prepared.meta:
+		_implied_speed(kind, prepared.config, prepared.ctx, prepared.length))) * float(prepared.ctx.world_scale)
+	var world_meta := MotionSpace.world_metrics(prepared.meta, float(prepared.ctx.world_scale))
+	for key in world_meta:
 		if key != "warnings":
-			committed.data[key] = prepared.meta[key]
+			committed.data[key] = world_meta[key]
+	committed.data["world_scale"] = float(prepared.ctx.world_scale)
+	committed.data["root_motion_space"] = "owner_parent" if prepared.rooted else "none"
 	if prepared.meta.has("warnings") and not (prepared.meta.get("warnings") as Array).is_empty():
 		committed.data["warnings"] = prepared.meta.get("warnings")
 	committed.data["markers"] = prepared.markers.size()
@@ -241,6 +245,8 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 	var built := _build_context(params, kind, config)
 	if built.has("error"):
 		return built
+	var world_scale := float(built.ctx.world_scale)
+	MotionSpace.local_config(config, params, overrides, world_scale)
 	var length := float(built.length)
 	var rate := float(built.rate)
 	var ctx: Dictionary = built.ctx
@@ -276,7 +282,7 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		return features
 	_scale_distances_to_rig(config, params, overrides, ctx)
 	ctx["foot_lift_explicit"] = params.has("foot_lift") or overrides.has("foot_lift")
-	ctx["speed"] = maxf(float(params.get("speed", 0.0)), 0.0)
+	ctx["speed"] = maxf(float(params.get("speed", 0.0)), 0.0) / world_scale
 	var direction := str(params.get("direction", "left"))
 	if direction != "left" and direction != "right":
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'direction' must be 'left' or 'right'")
@@ -321,7 +327,10 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 			result = MotionSpecs.gait_keys(ctx, kind == "run")
 	var result_meta: Dictionary = result.get("meta", {})
 	if result_meta.has("reach_error"):
-		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, str(result_meta.reach_error))
+		var reason := str(result_meta.reach_error)
+		if world_scale != 1.0:
+			reason = "World metric request converted at uniform scale %.6f; local skeleton solver: %s" % [world_scale, reason]
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, reason)
 	if kind == "turn" and not str(params.get("player_path", "")).is_empty():
 		var owner := _resolve_player(str(params.player_path))
 		if not owner.has("error"):
@@ -333,20 +342,20 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 					return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
 						"Turn owns skeletal heading, but this player extracts one of its animated bones. Clear that root_motion_track or use a separate player before generating the turn")
 	if kind == "walk" and float(params.get("speed", 0.0)) > 0.0 \
-			and float(result_meta.get("speed", 0.0)) < float(params.speed) - 0.001:
+			and float(result_meta.get("speed", 0.0)) * world_scale < float(params.speed) - 0.001:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 			"Requested walk speed %.3f m/s exceeds the reachable %.3f m/s at duration %.3f s; lower speed or shorten duration" % [
-				float(params.speed), float(result_meta.get("speed", 0.0)), length])
+				float(params.speed), float(result_meta.get("speed", 0.0)) * world_scale, length])
 	if kind == "run" and float(params.get("speed", 0.0)) > 0.0 \
-			and float(result_meta.get("speed", 0.0)) < float(params.speed) - 0.001:
+			and float(result_meta.get("speed", 0.0)) * world_scale < float(params.speed) - 0.001:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 			"Requested run speed %.3f m/s exceeds the reachable %.3f m/s at duration %.3f s; lower speed or shorten duration" % [
-				float(params.speed), float(result_meta.get("speed", 0.0)), length])
+				float(params.speed), float(result_meta.get("speed", 0.0)) * world_scale, length])
 	if kind == "strafe" and float(params.get("speed", 0.0)) > 0.0 \
 			and bool((result.get("meta", {}) as Dictionary).get("lateral_capped", false)):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 			"Requested strafe speed %.3f m/s exceeds this rig's safe lateral reach at duration %.3fs; use speed <= %.3f m/s or shorten duration" % [
-				float(params.speed), length, float((result.meta as Dictionary).lateral_speed_cap)])
+				float(params.speed), length, float((result.meta as Dictionary).lateral_speed_cap) * world_scale])
 	var keys: Dictionary = result.get("keys", {})
 	if keys.is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
@@ -542,7 +551,7 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 		var speed := 0.0
 		if str(prepared.kind) == "walk" or str(prepared.kind) == "run" or str(prepared.kind) == "strafe":
 			speed = float(prepared.meta.get("speed",
-				_implied_speed(str(prepared.kind), prepared.config, prepared.ctx, prepared.length)))
+				_implied_speed(str(prepared.kind), prepared.config, prepared.ctx, prepared.length))) * float(prepared.ctx.world_scale)
 		clips[clip_name] = {
 			"kind": str(prepared.kind),
 			"style": prepared.style,
@@ -560,6 +569,8 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 			"root_motion": prepared.rooted,
 			"steps": int(prepared.meta.get("steps", 0)),
 			"speed": speed,
+			"world_scale": float(prepared.ctx.world_scale),
+			"motion_metrics": MotionSpace.world_metrics(prepared.meta, float(prepared.ctx.world_scale)),
 			"warnings": clip_warnings,
 		}
 	# The locomotion tree: a 1D blend space on speed (idle at 0, walk and run at
@@ -727,6 +738,8 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 		"parameters": parameter_paths,
 		"apply_snippet": _apply_snippet(tree_label, speed_parameter, jump_request, root_motion_owner_path),
 		"root_motion_owner_path": root_motion_owner_path,
+		"root_motion_space": "owner_parent" if root_motion else "none",
+		"world_scale": float(prepared_list[0].ctx.world_scale),
 		"translation_owner": "controller consumes AnimationTree extraction" if root_motion else "external controller",
 		"turn_wired": false,
 		"turn_heading_owner": "skeletal clip only" if include_turn else "not_applicable",
@@ -823,7 +836,7 @@ static func _apply_snippet(tree_label: String, speed_parameter: String, jump_req
 	lines.append("\ttree.advance(delta)")
 	if not owner_label.is_empty():
 		lines.append("\t# Exactly one translation consumer; no actor-yaw extraction.")
-		lines.append("\tmotion_owner.position += motion_owner.quaternion * tree.get_root_motion_position()")
+		lines.append("\tmotion_owner.position += tree.get_root_motion_position()")
 	else:
 		lines.append("\t# In-place setup: your controller supplies character movement.")
 	return "\n".join(lines)
@@ -982,6 +995,9 @@ func _build_context(params: Dictionary, kind: String, resolved_config: Dictionar
 	if resolved.kind != "3d":
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s needs a Skeleton3D (bone roles are matched by name)" % kind)
 	var skeleton: Skeleton3D = resolved.node
+	var geometry := MotionSpace.geometry(skeleton.global_basis)
+	if geometry.has("error"):
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, str(geometry.error))
 	var roles: Dictionary = _resolve_roles(params, skeleton)
 	if roles.has("_error"):
 		return roles["_error"]
@@ -1069,6 +1085,7 @@ func _build_context(params: Dictionary, kind: String, resolved_config: Dictionar
 			false, 0.85, chain_first.chain as Array)
 		if measured.has("error"):
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, str(measured.error))
+	measured["world_scale"] = float(geometry.world_scale)
 	var rest: Dictionary = measured.rest
 	var legs: Dictionary = measured.legs
 	var chain: Array = measured.spine_chain
@@ -1124,6 +1141,7 @@ func _build_context(params: Dictionary, kind: String, resolved_config: Dictionar
 			"arm_down": arm_down,
 			# A travelling strafe needs extracted character-root translation.
 			# Keep the in-place shuffle available when callers explicitly opt out.
+			"world_scale": float(geometry.world_scale),
 			"root_motion": bool(params.get("root_motion", kind == "strafe")),
 		},
 	}
