@@ -1,7 +1,7 @@
 # Actual operation-case collection
 
-This is the first, conservative collector increment. It emits exact successful
-public invocation cases, **not** complete release qualification. Static driver
+The collector emits exact successful public invocation cases and a narrow
+linked FX native-playback adapter, **not** complete release qualification. Static driver
 candidates for all103 operations are in `operation-route-coverage-plan.json`.
 That map contains no executed IDs and confers no passes.
 
@@ -93,7 +93,28 @@ manifest or release approval.
 python -m unittest discover -s tools -p test_operation_case_collector.py
 ```
 
-Seven tests cover successful exact operations, dry/refused/empty results,
+Eleven tests cover successful exact operations, dry/refused/empty results,
 normalized nested routing, unknown/wrong-family/suite-total non-inference,
 changed dependencies, wrong operation/context/duplicate events, and advisory
-core identity. No editor, MCP session or engine launch is needed by these tests.
+core identity. Additional native controls reject missing public origins, wrong operation/scene
+or engine bindings, ambiguous result markers and engine errors. No editor, MCP
+session or engine launch is needed by these tests.
+
+## Actual native FX adapter
+
+`ci_mcp_route.fx_playback_gate` now records each real completed native subprocess
+(command, return code, stdout and stderr), without accepting a caller-supplied
+pass flag. The collector whitelists the exact source-bound
+`check_fx_runtime.gd`, requires the actual engine command used by the version
+probe, binds command and parsed result to the exact operation/scene, checks its
+explicit failure/check arrays and rejects engine errors or ambiguous JSON output.
+It links the result to a prior successful, non-dry public call for the same
+operation and active saved scene using the recorded process performance clock.
+A whole green suite or an unrelated public call cannot supply this origin.
+
+These actual native cases expose only `playback` and `track_paths_types` checks;
+SpriteFrames omits the inapplicable Animation track-path check. Semantic shape,
+source invariance, saved history/Undo and visual gates are not inferred. Native
+audio `playing` is an event observation, never proof of audible captured output.
+Other family runtime adapters remain pending; their existing raw checks still
+run in CI but are not mislabeled as operation-bound receipts.

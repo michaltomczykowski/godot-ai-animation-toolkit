@@ -15,6 +15,7 @@ import socket
 import subprocess
 import sys
 import time
+from operation_case_collector import record_native_result
 
 
 def port_open(port: int) -> bool:
@@ -424,11 +425,14 @@ def fx_playback_gate(args: argparse.Namespace) -> bool:
         return False
     print("MCP_CI_PASS=fx_route", flush=True)
     for row in rows:
-        playback = subprocess.run([
+        command = [
             godot_executable(args.godot), "--headless", "--path",
             str(args.project), "--script", "res://tools/check_fx_runtime.gd",
             "--", row["scene"], row["op"],
-        ], capture_output=True, text=True, timeout=30, check=False)
+        ]
+        playback = subprocess.run(command, capture_output=True, text=True, timeout=30, check=False)
+        canonical_op = "sprite_frames" if row["op"] == "sprite_frames_stopped" else row["op"]
+        record_native_result("animation_fx." + canonical_op, row["scene"], command, playback)
         marker = "FX_RUNTIME="
         reported = next((line[len(marker):] for line in playback.stdout.splitlines()
                          if line.startswith(marker)), "")

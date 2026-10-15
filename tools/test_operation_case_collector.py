@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import subprocess
 import unittest
 from unittest.mock import patch
 import operation_case_collector as c
@@ -15,11 +16,11 @@ class Collector(unittest.TestCase):
         self.context=self.root/'context.json'
         self.context.write_text(json.dumps({'kind':'operation_trace_context','run_id':'unit-fixture',
             'trace_producer_sha256':c.sha(c.__file__),'tested_source':'fixture-source',
-            'engine':'4.7.2.fixture','platform':'linux','core_version':'4.2.1',
+            'engine':'4.7.2.fixture','engine_command':'fixture-godot','platform':'linux','core_version':'4.2.1',
             'core_commit':'fixture-core','core_qualification':'released',
             'dependencies':{'dependency.py':{'sha256':c.sha(self.root/'dependency.py'),'git_blob':'blob'}}}))
         self.traces=self.root/'traces'
-        c._context_cache=None;c._trace_file=None;c._sequence=0
+        c._context_cache=None;c._trace_file=None;c._sequence=0;c._active_scene=""
         self.env=patch.dict(os.environ,{'TOOLKIT_OPERATION_CONTEXT':str(self.context),'TOOLKIT_OPERATION_TRACE_DIR':str(self.traces)})
         self.env.start();self.addCleanup(self.env.stop)
     def collect(self):
@@ -68,4 +69,52 @@ class Collector(unittest.TestCase):
         self.context.write_text(json.dumps(context))
         c.record_public_call('custom_animation_fx',{'op':'shake'},{'data':True})
         self.assertEqual(self.collect()['core_qualification'],'advisory')
+    def native_fixture(self, public=True, scene='res://shake.tscn'):
+        checker=self.root/'test_project/tools/check_fx_runtime.gd'
+        checker.parent.mkdir(parents=True,exist_ok=True)
+        checker.write_text('fixture-only source identity')
+        context=json.loads(self.context.read_text())
+        context['dependencies']['test_project/tools/check_fx_runtime.gd']={'sha256':c.sha(checker),'git_blob':'blob'}
+        self.context.write_text(json.dumps(context))
+        if public:
+            c.record_public_call('scene_open',{'path':scene},{'opened':True})
+            c.record_public_call('custom_animation_fx',{'op':'shake'},{'track_count':1})
+        command=['fixture-godot','--headless','--script','res://tools/check_fx_runtime.gd','--',scene,'shake']
+        payload={'op':'shake','scene':scene,'failures':[],'checks':[{'actual':'native-value'}]}
+        return command,payload
+    def test_actual_native_fx_result_links_exact_public_case_and_narrow_checks(self):
+        command,payload=self.native_fixture()
+        c.record_native_result('animation_fx.shake','res://shake.tscn',command,
+            subprocess.CompletedProcess(command,0,'FX_RUNTIME='+json.dumps(payload),'') )
+        report=self.collect();native=report['cases'][-1]
+        self.assertEqual(native['checks'],{'playback':'pass','track_paths_types':'pass'})
+        self.assertEqual(native['public_case_ids'],[report['cases'][0]['id']])
+        self.assertNotIn('valid_effect',native['checks'])
+    def test_native_green_cannot_borrow_unrelated_or_absent_public_scene(self):
+        command,payload=self.native_fixture(public=False)
+        c.record_native_result('animation_fx.shake','res://shake.tscn',command,
+            subprocess.CompletedProcess(command,0,'FX_RUNTIME='+json.dumps(payload),'') )
+        native=self.collect()['cases'][-1]
+        self.assertEqual(native['checks']['playback'],'fail')
+        self.assertEqual(native['public_case_ids'],[])
+    def test_native_wrong_operation_or_engine_binding_rejected(self):
+        command,payload=self.native_fixture()
+        payload['op']='counter'
+        c.record_native_result('animation_fx.shake','res://shake.tscn',command,
+            subprocess.CompletedProcess(command,0,'FX_RUNTIME='+json.dumps(payload),'') )
+        with self.assertRaisesRegex(ValueError,'operation/scene'): self.collect()
+        file=next(self.traces.glob('*.jsonl'));events=[json.loads(line) for line in file.read_text().splitlines()]
+        events[-1]['command'][0]='different-engine'
+        file.write_text(''.join(json.dumps(event)+'\n' for event in events))
+        with self.assertRaisesRegex(ValueError,'engine command'):self.collect()
+    def test_native_engine_error_and_ambiguous_marker_cannot_be_green(self):
+        command,payload=self.native_fixture()
+        c.record_native_result('animation_fx.shake','res://shake.tscn',command,
+            subprocess.CompletedProcess(command,0,'FX_RUNTIME='+json.dumps(payload),'ERROR: engine failed'))
+        self.assertEqual(self.collect()['cases'][-1]['checks']['playback'],'fail')
+        file=next(self.traces.glob('*.jsonl'));events=[json.loads(line) for line in file.read_text().splitlines()]
+        events[-1]['stderr']='';events[-1]['stdout']+='\n'+events[-1]['stdout']
+        file.write_text(''.join(json.dumps(event)+'\n' for event in events))
+        self.assertEqual(self.collect()['cases'][-1]['checks']['playback'],'fail')
+
 if __name__=='__main__':unittest.main()
