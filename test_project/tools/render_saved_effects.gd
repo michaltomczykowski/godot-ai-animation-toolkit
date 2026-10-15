@@ -19,6 +19,8 @@ var _max_delta_error := 0.0
 var _renderer_sha := ""
 var _runtime_failures: Array = []
 var _logger: ErrorCapture
+const CAPTURE_SIZE := Vector2i(1400, 800)
+var _capture_geometry: Dictionary = {}
 
 class ErrorCapture extends Logger:
 	var errors: Array = []
@@ -83,7 +85,12 @@ func _start() -> void:
 			quit(1)
 			return
 	_resource_checks = _case.dependencies.duplicate()
-	root.size = Vector2i(1400, 800)
+	# Render the complete comparison at a fixed base resolution even when the
+	# OS clamps the physical window to a smaller remote-desktop work area.
+	root.content_scale_size = CAPTURE_SIZE
+	root.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT
+	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP
+	root.size = CAPTURE_SIZE
 	for state in ["undo", "redo"]:
 		var path: String = _case.scenes[state].path
 		if FileAccess.get_sha256(path) != _case.scenes[state].sha256:
@@ -206,6 +213,15 @@ func _state(fixture: Node) -> Dictionary:
 func _process(delta: float) -> bool:
 	if _fixtures.size() != 2:
 		return false
+	var rendered := Vector2i(root.get_texture().get_size())
+	_capture_geometry = {"logical_size": [root.content_scale_size.x, root.content_scale_size.y],
+		"render_size": [rendered.x, rendered.y], "window_size": [root.size.x, root.size.y],
+		"content_scale_mode": root.content_scale_mode, "content_scale_aspect": root.content_scale_aspect}
+	if rendered != CAPTURE_SIZE or root.content_scale_size != CAPTURE_SIZE:
+		_runtime_failures.append("Capture viewport lost full 1400x800 logical/render extent: " + str(_capture_geometry))
+		push_error(_runtime_failures[-1])
+		quit(1)
+		return false
 	_max_delta_error = maxf(_max_delta_error, absf(delta - 1.0 / float(_case.fps)))
 	_elapsed += delta
 	_frames += 1
@@ -230,7 +246,7 @@ func _process(delta: float) -> bool:
 		_load_scene(_viewports[1], "redo")
 	if _elapsed >= float(_case.seconds):
 		var report := {"schema_version": 1, "operation": _case.operation,
-			"case_id": _case.id, "runtime_failures": _runtime_failures, "engine_errors": _logger.errors,
+			"case_id": _case.id, "capture_geometry": _capture_geometry, "runtime_failures": _runtime_failures, "engine_errors": _logger.errors,
 			"camera_presentation": _camera_presentation(), "native_camera_states": _camera_states(), "scenes": _case.scenes, "dependencies_verified": _resource_checks, "samples": _samples,
 			"native_changed_frames": _changes, "observed_difference": _different,
 			"frames": _frames, "elapsed": _elapsed, "plan_sha256": _plan_sha, "renderer_sha256": _renderer_sha, "max_delta_error": _max_delta_error, "engine": Engine.get_version_info(),

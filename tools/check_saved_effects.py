@@ -5,6 +5,29 @@ import json
 import math
 import re
 from pathlib import Path
+import struct
+
+CAPTURE_SIZE = [1400, 800]
+
+def capture_failures(report, frames_dir=None, expected_frames=None):
+    failures = []
+    geometry = report.get('capture_geometry', {})
+    if (geometry.get('logical_size') != CAPTURE_SIZE or geometry.get('render_size') != CAPTURE_SIZE
+            or geometry.get('content_scale_mode') != 2 or geometry.get('content_scale_aspect') != 1):
+        failures.append('missing or cropped fixed logical/render viewport contract')
+    window = geometry.get('window_size', [])
+    if len(window) != 2 or any(not isinstance(v,int) or v <= 0 for v in window):
+        failures.append('actual physical window dimensions missing')
+    if frames_dir is not None:
+        paths = sorted(Path(frames_dir).glob('*.png'))
+        if len(paths) != expected_frames:
+            failures.append(f'capture PNG count {len(paths)} != {expected_frames}')
+        for path in paths:
+            with path.open('rb') as stream: header = stream.read(24)
+            if (len(header) != 24 or header[:8] != b'\x89PNG\r\n\x1a\n' or header[12:16] != b'IHDR'
+                    or list(struct.unpack('>II',header[16:24])) != CAPTURE_SIZE):
+                failures.append('cropped/invalid PNG dimensions: '+path.name)
+    return failures
 
 # Independent history-case inputs, not values extracted from output animation keys.
 ENDPOINTS = {'damage_bar': ('DamageBar', 'value', 30),
@@ -18,7 +41,7 @@ TARGETS = {'shake':'Camera2D','zoom_punch':'Camera2D','hit_flash':'Flash',
            'audio_cue':'CuePlayer'}
 
 def check(case, report):
-    failures = []
+    failures = capture_failures(report)
     if report.get('operation') != case['operation'] or report.get('case_id') != case['id']:
         failures.append('operation/case mismatch')
     if report.get('scenes') != case['scenes'] or report.get('dependencies_verified') != case['dependencies']:
@@ -170,9 +193,12 @@ def main():
     p.add_argument('--case', type=int, required=True)
     p.add_argument('--observations', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
+    p.add_argument('--frames-dir', type=Path, required=True, help='Actual Movie Maker PNG directory; every frame must be 1400x800')
     a = p.parse_args()
     case = json.loads(a.plan.read_text(encoding='utf-8'))['cases'][a.case]
     report = check(case, json.loads(a.observations.read_text(encoding='utf-8')))
+    report['failures'].extend(capture_failures(json.loads(a.observations.read_text(encoding='utf-8')),a.frames_dir,case['fps']*case['seconds']))
+    report['native_observation_pass'] = not report['failures']
     with a.output.open('x', encoding='utf-8') as f:
         json.dump(report, f, indent=2)
     print(json.dumps(report))
