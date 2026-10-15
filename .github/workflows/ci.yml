@@ -361,6 +361,7 @@ jobs:
             clean-install-evidence/*-editor.log
             clean-install-evidence/*-route.log
             clean-install-evidence/clean-install-receipt.json
+            clean-install-evidence/gate-diagnostics/**
 
   release-gate:
     # Repair PRs may retain honest pending evidence. Main and tags must close it.

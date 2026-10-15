@@ -1,5 +1,29 @@
 # Animation Toolkit repair roadmap
 
+## Jump r002 numerical closure (2026-10-16)
+
+Completed80 actual public Godot AI jump clips and480 native Player/Tree plays
+at30/60/120FPS, all passing. Five styles/four rigs/stationary-forward/both
+translation owners. Every public case passes dry run, pose/binding preservation,
+real Undo/Redo and save/forced reopen.24positive and168expected-negative
+checker controls pass with unchanged source scenes. Maximum bone speed7.4223L/s
+under unchanged10L/s limit. Details: docs/jump-candidate-r002-validation.md.
+Continuous jump candidate visual assessment and setup Tree playback remain.
+
+Public regression tests for velocity and atomic jump/turn loop refusals pass.
+SourceCI f5da034 exposed two stale test inputs asking for refused linear turns;
+test-only correction integrated.42 integrated tooling controls and25 preview/
+collector/gate controls pass. New exact-source Windows/Linux CI is still needed.
+
+Publication now waits for two same-run rendered Linux preview jobs and strict
+decoded-pixel/source-restoration receipts, plus existing gates. Tags must equal
+fresh remote main; publish only ZIP/checksum/source manifest. No release yet.
+Preserved graph/rig media paths and timeout phase diagnostics are integrated.
+Actual FX capture detected a second issue: runtime viewport resizing does not
+change MovieMaker's startup dimensions. r002/r003 cropped1152x648 frames are
+failed evidence; a prestartup1400x800 configuration passes a2frame GPUprobe.
+Finish safe startup configuration and fresh full smoke before the49-case queue.
+
 ## Native jump regression and release evidence checkpoint (2026-10-15)
 
 Integrated the2.5% measured neutral knee slack repair without changing the strict

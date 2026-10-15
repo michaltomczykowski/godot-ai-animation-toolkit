@@ -1,5 +1,23 @@
 # Agent notes
 
+## Jump numerical closure; setup/media next (2026-10-16)
+
+Fresh jump r002 is80/80 actual public dry/history/save/reopen clips and480/480
+native Player/Tree30/60/120FPS plays, generationf5da034. Controls24positive plus
+168expected-negative plays pass; scenes unchanged. Maximumspeed7.4223L/s below
+unchanged10 limit. See docs/jump-candidate-r002-validation.md. Editor26144 quit
+through Godot AI after generation; no root editor currently active. Next:
+Responsive setup3variants/with-withoutturn actual public/native matrix, jump
+continuous visual assessment and other-family media. Do not redo successful80.
+
+Integrated saved graph/rig media tooling (native/captures still scoped/pending),
+history timeout diagnostics, strict rendered-preview artifact adapter and
+same-run reusable Linux preview publication gate. Stale2linear-turn editor
+fixtures corrected; full new CI remains required. FXr002/r003 actualMovieMaker
+PNG1152x648 was cropped despite correctruntime logicalviewport. Keep failures;
+configure ProjectSettings viewport dimensions BEFOREstartup. A2frame standalone
+GPUprobe confirms1400x800 with smaller physicalwindow; full fixed smoke next.
+
 ## Current release checkpoint (2026-10-15, late session)
 
 No root-owned Godot editor or render is running at this checkpoint. Launch a
