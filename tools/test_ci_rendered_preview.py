@@ -2,7 +2,7 @@ import tempfile
 from pathlib import Path
 import unittest
 from PIL import Image, ImageDraw
-from ci_rendered_preview import validate_images, require_error, require_success
+from ci_rendered_preview import validate_images, require_error, require_success, validate_editor_log
 
 
 class RenderedPreviewControls(unittest.TestCase):
@@ -45,6 +45,12 @@ class RenderedPreviewControls(unittest.TestCase):
         require_error({'error':{'code':'INVALID_PARAMS'}},'INVALID_PARAMS')
         with self.assertRaises(ValueError): require_error({},'INVALID_PARAMS')
         with self.assertRaises(ValueError): require_success({'error':'refusal'})
+
+    def test_engine_script_and_shutdown_errors_fail_complete_log(self):
+        validate_editor_log('OpenGL API Mesa llvmpipe\nWARNING: diagnostic')
+        for failure in ['ERROR: engine failure','SCRIPT ERROR: invalid call','\x1b[31mERROR:\x1b[0m shutdown leak']:
+            with self.assertRaisesRegex(ValueError,'engine/script'):
+                validate_editor_log('Rendered four frames\n'+failure)
 
 
 if __name__ == '__main__': unittest.main()

@@ -26,3 +26,9 @@ the artifact root. The operation collector must be committed in the candidate
 before running; a pending job or partial trace does not qualify the operation.
 Root wires release gating after the real jobs have passed. Windows GPU proof
 and independent visual assessment remain separate required evidence.
+
+Immediate serialized scene and timeline checkpoints bracket the successful
+preview; additional checkpoints follow dry/missing-clip/overwrite refusals.
+Each checkpoint binds its actual timeline public call ID, raw snapshots and
+hashes. The complete editor log is checked after process termination, including
+shutdown, and any engine or script error rejects the run.

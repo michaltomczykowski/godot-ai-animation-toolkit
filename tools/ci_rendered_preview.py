@@ -10,6 +10,7 @@ import asyncio
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -59,6 +60,12 @@ def require_error(value, code):
     actual = error.get('code', '') if isinstance(error, dict) else str(error).split(':',1)[0]
     if actual != code:
         raise ValueError('expected typed '+code+', got '+str(value))
+
+
+def validate_editor_log(text):
+    text = re.sub(r'\x1b\[[0-9;]*m', '', text)
+    if re.search(r'(?m)^\s*(?:SCRIPT )?ERROR:', text):
+        raise ValueError('engine/script error in complete editor log')
 
 
 async def exercise(args, report):
@@ -113,12 +120,30 @@ async def exercise(args, report):
             'basename':'walk','overwrite':False}
         output=args.project/'rendered_preview_pngs'
         if output.exists(): raise ValueError('fresh PNG output directory required')
+        async def checkpoint(label):
+            timeline=require_success(await call('custom_animation_inspect',{'op':'timeline',**inspect}))
+            case_id=report['calls'][-1]['public_case_id']
+            require_success(await call('scene_save',{}))
+            scene_path=args.output/(label+'-scene.tscn')
+            timeline_path=args.output/(label+'-timeline.json')
+            scene_path.write_bytes(scene.read_bytes())
+            timeline_path.write_text(json.dumps(timeline,sort_keys=True),encoding='utf-8')
+            return {'timeline_public_case_id':case_id,
+                'scene_save_public_case_id':report['calls'][-1]['public_case_id'],
+                'scene':{'path':scene_path.name,'sha256':digest(scene_path)},
+                'timeline':{'path':timeline_path.name,'sha256':digest(timeline_path)}}
+        checkpoints={}
+        report['checkpoints']=checkpoints
+        checkpoints['before_dry']=await checkpoint('before-dry')
         require_error(await call('custom_animation_inspect',{**request,'dry_run':True}),'INVALID_PARAMS')
         if output.exists(): raise ValueError('dry_run created output files')
+        checkpoints['after_dry']=await checkpoint('after-dry')
         require_error(await call('custom_animation_inspect',{**request,'animation_name':'absent'}),'INVALID_PARAMS')
+        checkpoints['before_preview']=await checkpoint('before-preview')
         result=require_success(await call('custom_animation_inspect',request))
         report['public_case_id']=report['calls'][-1]['public_case_id']
         report['raw_response']=result
+        checkpoints['after_preview']=await checkpoint('after-preview')
         expected=['res://rendered_preview_pngs/walk_%02d.png'%i for i in range(4)]
         if result.get('paths') != expected or result.get('times') != request['times']:
             raise ValueError('preview returned wrong paths/times: '+str(result))
@@ -126,12 +151,17 @@ async def exercise(args, report):
         report['images']=validate_images(paths,output)
         before={path.name:digest(path) for path in output.iterdir()}
         require_error(await call('custom_animation_inspect',request),'INVALID_PARAMS')
+        checkpoints['after_overwrite_refusal']=await checkpoint('after-overwrite-refusal')
         if before != {path.name:digest(path) for path in output.iterdir()}:
             raise ValueError('overwrite refusal changed files')
         after=require_success(await call('custom_animation_inspect',{'op':'timeline',**inspect}))
         require_success(await call('scene_save',{}))
         if after != baseline or scene.read_bytes() != baseline_scene:
             raise ValueError('preview/refusals changed saved live scene poses or clip')
+        if any(point['scene']['sha256'] != digest(args.output/'before-scene.tscn')
+               or point['timeline']['sha256'] != digest(args.output/'before-timeline.json')
+               for point in checkpoints.values()):
+            raise ValueError('individual preview/refusal checkpoint changed source scene/timeline')
         (args.output/'after-timeline.json').write_text(json.dumps(after,sort_keys=True),encoding='utf-8')
         report['restoration']={'before_scene':{'path':'before-scene.tscn','sha256':digest(args.output/'before-scene.tscn')},
             'after_scene':{'path':'restored-scene.tscn','sha256':digest(scene)},
@@ -197,6 +227,12 @@ def run(args):
             for path in image_dir.glob('*.png'):
                 shutil.copy2(path,args.output/path.name)
         report['logs']=[{'path':name,'sha256':digest(args.output/name)} for name in ['editor.log','backend.log'] if (args.output/name).is_file()]
+        if (args.output/'editor.log').is_file():
+            try:
+                validate_editor_log((args.output/'editor.log').read_text(encoding='utf-8',errors='replace'))
+            except ValueError as exc:
+                report['passed']=False
+                report['error']=str(exc)
         (args.output/'rendered-preview.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
     print('RENDERED_PREVIEW='+json.dumps({'passed':report['passed'],'error':report.get('error')}))
     return 0 if report['passed'] else 1
