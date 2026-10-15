@@ -7,6 +7,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import uuid
+from gate_diagnostics import progress, bounded_run
 from mcp_presets_audit import call
 from mcp_preset_library_history import valid_suite
 from mcp_rig_modifier_ui_history import connected_editor
@@ -42,9 +43,12 @@ DIRECT_IDS = ('motion_walk_start_local_60', 'secondary_branches_local_60',
               'sequence_rooted_local_60', 'sequence_inline_pose_local_60')
 
 def runtime(args) -> dict:
-    result = subprocess.run([args.godot, '--headless', '--path', str(args.project_root),
-        '--script', 'res://tools/check_motion_sequence_history.gd'],
-        capture_output=True, text=True, timeout=240, check=False)
+    command=[args.godot, '--headless', '--path', str(args.project_root),
+        '--script', 'res://tools/check_motion_sequence_history.gd']
+    if args.record:
+        result=bounded_run(command,240,args.record,'native_history')
+    else:
+        result=subprocess.run(command,capture_output=True,text=True,timeout=240,check=False)
     prefix = 'MOTION_SEQUENCE_HISTORY_RUNTIME='
     payload = next((s[len(prefix):] for s in result.stdout.splitlines() if s.startswith(prefix)), '')
     report = json.loads(payload) if payload else {}
@@ -124,36 +128,45 @@ async def direct(client, row, phase, args) -> dict:
 async def run(args):
     args.route_id = uuid.uuid4().hex
     suites, phases = {}, []
+    progress(args,'connecting')
     async with connected_editor(args) as (client, connection):
         await call(client, 'scene_open', {'path': 'res://main.tscn'})
         for name, expected in SUITES.items():
+            progress(args,'suite_start',suite=name)
             await ready(client)
             result = await call(client, 'test_run', {'suite': name, 'verbose': True})
             suites[name] = result
-            if args.record:
-                args.record.parent.mkdir(parents=True, exist_ok=True)
-                args.record.with_suffix('.progress.json').write_text(
-                    json.dumps({'suites': suites}, indent=2), encoding='utf-8')
+            progress(args,'suite_returned',suite=name,suites=suites)
             if not valid_suite(result, expected): raise RuntimeError('Invalid suite ' + name + ': ' + repr(result))
+        progress(args,'native_start',suites=suites)
         played = runtime(args)
-        if args.record:
-            args.record.with_suffix('.progress.json').write_text(
-                json.dumps({'suites': suites, 'runtime': played}, indent=2), encoding='utf-8')
+        progress(args,'native_completed',suites=suites,runtime=played)
         manifest = Path(played['manifest_path'])
         rows = {row['id']: row for row in json.loads(manifest.read_text(encoding='utf-8'))['cases']}
         for key in DIRECT_IDS:
             rows[key]['_disk_path'] = str(manifest.parent / rows[key]['source'].removeprefix('user://'))
-        results = [await direct(client, rows[key], 'before_reload', args) for key in DIRECT_IDS]
+        results=[]
+        for key in DIRECT_IDS:
+            progress(args,'direct_start',phase='before_reload',case_id=key)
+            results.append(await direct(client,rows[key],'before_reload',args))
+            progress(args,'direct_completed',phase='before_reload',case_id=key)
         phases.append({'phase': 'before_reload', 'connection': connection, 'rows': results})
+        progress(args,'reload_start')
         reload_result = await call(client, 'editor_reload_plugin', {})
         if reload_result.get('error'): raise RuntimeError(reload_result)
+    progress(args,'reconnect_start')
     async with connected_editor(args, phases[0]['connection']['session_id']) as (client, connection):
-        results = [await direct(client, rows[key], 'after_reload', args) for key in DIRECT_IDS]
+        results=[]
+        for key in DIRECT_IDS:
+            progress(args,'direct_start',phase='after_reload',case_id=key)
+            results.append(await direct(client,rows[key],'after_reload',args))
+            progress(args,'direct_completed',phase='after_reload',case_id=key)
         phases.append({'phase': 'after_reload', 'connection': connection, 'rows': results})
     report = {'passed': True, 'suites': suites, 'runtime': played, 'phases': phases, 'reload': reload_result}
     if args.record:
         args.record.parent.mkdir(parents=True, exist_ok=True)
         args.record.write_text(json.dumps(report, indent=2), encoding='utf-8')
+    progress(args,'completed',phases=phases)
     print('MCP_MOTION_SEQUENCE_HISTORY=' + json.dumps(report, sort_keys=True))
     return 0
 

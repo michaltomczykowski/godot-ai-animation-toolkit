@@ -15,6 +15,8 @@ import socket
 import subprocess
 import sys
 import time
+import uuid
+from gate_diagnostics import bounded_run
 from operation_case_collector import record_native_result
 
 
@@ -565,12 +567,17 @@ def rig_bake_state_gate(args: argparse.Namespace) -> bool:
 
 
 def motion_sequence_history_gate(args: argparse.Namespace) -> bool:
-    check = subprocess.run([
+    diagnostic_root = Path(args.log).resolve().parent / "gate-diagnostics"
+    if getattr(args,"case_output_dir",None): diagnostic_root = args.case_output_dir.resolve() / "gate-diagnostics"
+    record = diagnostic_root / ("motion-sequence-" + args.project.name + "-" + uuid.uuid4().hex + ".json")
+    command = [
         sys.executable, str(Path(__file__).with_name("mcp_motion_sequence_history.py")),
         "--core-root", str(args.core_root), "--project-root", str(args.project),
         "--session-hint", args.project.name, "--port", str(args.port),
         "--ws-port", str(args.ws_port), "--godot", godot_executable(args.godot),
-    ], capture_output=True, text=True, timeout=420, check=False)
+        "--record", str(record),
+    ]
+    check = bounded_run(command,420,record,"motion_sequence_history")
     marker = "MCP_MOTION_SEQUENCE_HISTORY="
     payload = next((line[len(marker):] for line in check.stdout.splitlines() if line.startswith(marker)), "")
     report = json.loads(payload) if payload else {}
