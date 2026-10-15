@@ -198,10 +198,15 @@ func _inject_control(v: Dictionary) -> void:
 			var q: Quaternion = clip.track_get_key_value(track, last)
 			clip.track_set_key_value(track, last, q * Quaternion(Vector3.RIGHT, 0.35))
 		if control == "knee_discontinuity" and kind == Animation.TYPE_ROTATION_3D and path.ends_with(":" + str(v.roles.shin_l)):
-			var last := clip.track_get_key_count(track) - 1
-			var key := maxi(1, last / 2)
-			var q: Quaternion = clip.track_get_key_value(track, key)
-			clip.track_set_key_value(track, key, q * Quaternion(Vector3.RIGHT, 2.0))
+			# A common 30 FPS boundary is sampled by all three requested FPS.
+			# Preserve the uncorrupted interpolated pose on each flank.
+			var center := floorf(clip.length * 0.5 * 30.0) / 30.0
+			var left: Quaternion = clip.rotation_track_interpolate(track, center - 1.0 / 120.0)
+			var middle: Quaternion = clip.rotation_track_interpolate(track, center)
+			var right: Quaternion = clip.rotation_track_interpolate(track, center + 1.0 / 120.0)
+			clip.track_insert_key(track, center - 1.0 / 120.0, left)
+			clip.track_insert_key(track, center, middle * Quaternion(Vector3.RIGHT, 2.0))
+			clip.track_insert_key(track, center + 1.0 / 120.0, right)
 	if control == "penetration":
 		var track := clip.add_track(Animation.TYPE_POSITION_3D)
 		var path: NodePath = v.player.get_node(v.player.root_node).get_path_to(v.rig)
