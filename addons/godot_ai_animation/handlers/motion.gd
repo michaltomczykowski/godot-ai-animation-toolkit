@@ -1057,6 +1057,9 @@ func _build_context(params: Dictionary, kind: String, resolved_config: Dictionar
 	var loop_result := _loop_mode(loop_params)
 	if loop_result.has("error"):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, loop_result.error)
+	if kind == "turn" and int(loop_result.ok) == Animation.LOOP_LINEAR and not is_zero_approx(float(resolved_config.get("turn_angle", 90.0))):
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
+			"A turn has different starting and ending headings: linear looping would snap back. Use loop_mode 'none', or 'pingpong' for intentional reversing playback.")
 	if kind == "jump" and int(loop_result.ok) != Animation.LOOP_NONE and not bool(params.get("root_motion", false)) and not is_zero_approx(float(resolved_config.get("jump_distance", 0.0))):
 		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
 			"A forward jump with skeletal translation is a one-shot: use loop_mode 'none' or root_motion true. Looping its different endpoints would return the character to its starting position.")

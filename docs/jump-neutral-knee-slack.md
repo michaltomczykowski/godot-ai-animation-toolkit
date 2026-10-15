@@ -34,3 +34,8 @@ connects different travel endpoints; pingpong reverses the one-shot and walks
 its landing back through flight. A repeating forward-return jump is not a
 supported recipe. Stationary jumps and extracted travel retain their existing
 loop controls.
+
+Nonzero turns likewise refuse explicit `linear` loops before authoring: native
+playback otherwise connects different heading endpoints with a wrap snap.
+Omitted/`none` remains a one-shot. `pingpong` is supported as intentional
+forward-and-reverse turn playback, with the original end heading preserved.

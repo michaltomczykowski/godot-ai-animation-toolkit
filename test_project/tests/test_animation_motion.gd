@@ -3631,3 +3631,36 @@ func test_forward_skeletal_jump_loop_refuses_without_mutation() -> void:
 				assert_eq(rig.player.root_motion_track,binding,"Refusal preserves extraction")
 				for i in poses.size(): assert_eq(rig.skeleton.get_bone_pose(i),poses[i],"Refusal preserves pose")
 	_teardown(rig)
+
+func test_turn_linear_loop_refuses_atomically_and_other_modes_remain_supported() -> void:
+	var rig := _rig("TurnLoopRefusal")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var nodes := _node_paths(EditorInterface.get_edited_scene_root())
+	var clips := _clip_names(rig.player)
+	var version := _undo_version()
+	var binding: NodePath = rig.player.root_motion_track
+	var poses: Array[Transform3D] = []
+	for i in rig.skeleton.get_bone_count(): poses.append(rig.skeleton.get_bone_pose(i))
+	for operation in ["turn_cycle", "cycle"]:
+		for dry in [true, false]:
+			var params := {"op":operation,"preset":"turn","player_path":rig.player_path,"skeleton_path":rig.skeleton_path,
+				"animation_name":"refused_loop_turn","angle":90.0,"root_motion":false,"loop_mode":"linear","dry_run":dry}
+			assert_is_error(_handler.run(params,null),ErrorCodes.OPERATION_UNAVAILABLE)
+			assert_eq(_node_paths(EditorInterface.get_edited_scene_root()),nodes,"Linear turn refusal adds no nodes")
+			assert_eq(_clip_names(rig.player),clips,"Linear turn refusal changes no clips")
+			assert_eq(_undo_version(),version,"Linear turn refusal creates no undo action")
+			assert_eq(rig.player.root_motion_track,binding,"Linear turn refusal preserves extraction")
+			for i in poses.size(): assert_eq(rig.skeleton.get_bone_pose(i),poses[i],"Linear turn refusal preserves pose")
+	for operation in ["turn_cycle", "cycle"]:
+		for loop in ["default", "none", "pingpong"]:
+			var params := {"op":operation,"preset":"turn","player_path":rig.player_path,"skeleton_path":rig.skeleton_path,
+				"animation_name":"supported_turn_"+operation+"_"+loop,"angle":90.0,"root_motion":false}
+			if loop != "default": params.loop_mode = loop
+			var reply := _handler.run(params,null)
+			assert_true(reply.has("data"),"Default/none/reversing turns remain supported: "+str(reply.get("error",{})))
+			if reply.has("data"):
+				var clip: Animation = rig.player.get_animation(params.animation_name)
+				assert_eq(clip.loop_mode,Animation.LOOP_PINGPONG if loop == "pingpong" else Animation.LOOP_NONE,"Supported loop mode is preserved")
+	_teardown(rig)
