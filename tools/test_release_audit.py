@@ -48,6 +48,8 @@ class AuditGateTests(unittest.TestCase):
             derived = qualified_audit(self.doc, receipt, source)
             self.assertTrue(all(r["qualification"] == "verified" and r["status"] == "verified" for r in derived["operations"]))
             self.assertTrue(all(r["qualification"] == "pending" for r in self.doc["operations"]))
+            self.assertTrue(all(r["checks"][name]["status"] == "pass" for r in derived["operations"] for name in required_checks(r["effect_kind"])))
+            self.assertTrue(all("historical_evidence_checks" in r and r["evidence_records"] for r in derived["operations"]))
             artifact.write_text("changed")
             self.assertTrue(any("changed artifact" in e for e in validate_release(self.doc, receipt, self.root, source, Path(directory))))
 

@@ -276,7 +276,14 @@ def qualified_audit(doc, receipt, source):
         row["historical_status"] = row["status"]
         row["status"] = "verified"
         row["qualification"] = "verified"
-        row["qualified_checks"] = receipt["operations"][row["key"]]["checks"]
+        row["historical_evidence_checks"] = row["checks"]
+        row["historical_evidence_records"] = row["evidence_records"]
+        candidate = receipt["operations"][row["key"]]
+        row["evidence_records"] = copy.deepcopy(candidate["evidence_records"])
+        required = required_checks(row["effect_kind"])
+        if row["availability"]["status"] == "unavailable":
+            required = {"mcp_invocation", "typed_errors", "source_unchanged", "reported_errors"}
+        row["checks"] = {name: copy.deepcopy(candidate["checks"][name]) if name in required else {"status": "not_applicable", "reason": "Not required by the operation effect/availability contract.", "evidence_refs": []} for name in CHECKS}
     return result
 
 
