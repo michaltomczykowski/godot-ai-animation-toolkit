@@ -76,6 +76,29 @@ const _RUN_STYLE_MULTIPLIERS := {
 }
 
 
+## A lateral shuffle has its own restrained upper-body response. Including the
+## measured-arm controls also lowers arms in the rig's frame on Z-up skeletons.
+## Foot support and pelvis travel keep the existing strafe schedule.
+const _STRAFE_PROFILES := {
+	"responsive": {
+		"arm_swing": 8.0, "elbow": 14.0, "elbow_swing": 6.0, "lag": 0.05,
+		"elbow_lag": 0.06, "wrist_swing": 2.0, "wrist_lag": 0.09,
+		"torso_twist": 2.5, "torso_flex": 0.8, "torso_roll": 0.6,
+		"head_nod": 0.5, "head_roll": 0.2, "head_lag": 0.035, "head_stabilize": 0.75,
+		"forearm_twist": 2.5, "wrist_sway": 0.7, "arm_variation": 0.0,
+		"variation_seed": 241, "hand_relax": 18.0,
+	},
+	"grounded": {
+		"arm_swing": 7.0, "elbow": 16.0, "elbow_swing": 5.0, "lag": 0.06,
+		"elbow_lag": 0.075, "wrist_swing": 1.6, "wrist_lag": 0.1,
+		"torso_twist": 2.0, "torso_flex": 0.6, "torso_roll": 0.8,
+		"head_nod": 0.4, "head_roll": 0.15, "head_lag": 0.025, "head_stabilize": 0.8,
+		"forearm_twist": 2.0, "wrist_sway": 0.6, "arm_variation": 0.0,
+		"variation_seed": 241, "hand_relax": 20.0,
+	},
+}
+
+
 ## Standing profiles measured through public three-second playback prototypes.
 ## These tables never replace walking/running or their shared style values.
 const _IDLE_PROFILES := {
@@ -207,6 +230,8 @@ static func _resolve_config(base: Dictionary, style: String, overrides: Dictiona
 		config.merge(_RUN_PROFILES[profile], true)
 	elif kind == "idle":
 		config.merge(_IDLE_PROFILES[profile], true)
+	elif kind == "strafe":
+		config.merge(_STRAFE_PROFILES[profile], true)
 	var multipliers: Dictionary = _STYLE_MULTIPLIERS.get(style, {}).duplicate(true)
 	if kind == "run":
 		multipliers.merge(_RUN_STYLE_MULTIPLIERS.get(style, {}), true)
@@ -1234,7 +1259,7 @@ static func strafe_config(style: String, overrides: Dictionary = {}) -> Dictiona
 		"lag": 0.05,
 		"stance": 0.6,
 		"crouch": 0.0,
-	}, style, overrides)
+	}, style, overrides, "strafe")
 
 
 # --- jump -------------------------------------------------------------------

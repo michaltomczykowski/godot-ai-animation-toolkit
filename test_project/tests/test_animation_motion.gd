@@ -2823,6 +2823,48 @@ func test_a_z_up_rig_gets_a_z_up_frame_and_a_z_up_floor() -> void:
 		"sliding along the rig's own ground is still caught (%s)" % str(float(slid.worst)))
 
 
+func test_strafe_arms_hang_and_follow_through_in_played_rig_frame() -> void:
+	for fixture in [DUMMY, "res://repair_synthetic_zup_tall.tscn"]:
+		var rig := _rig("StrafePlayedArms", fixture)
+		assert_false(rig.has("error"), "strafe arm fixture loads: %s" % str(rig))
+		if rig.has("error"): continue
+		var built := _handler.run({
+			"op": "strafe_cycle", "skeleton_path": rig.skeleton_path,
+			"player_path": rig.player_path, "animation_name": "strafe_arms",
+			"root_motion": false,
+		}, null)
+		assert_true(built.has("data"), "strafe builds: %s" % str(built))
+		if built.has("data"):
+			var roles := MotionHandler._resolve_roles({}, rig.skeleton)
+			var up: Vector3 = RigAnalysis.rig_frame(rig.skeleton, roles).up
+			var player: AnimationPlayer = rig.player
+			player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+			player.play("strafe_arms")
+			player.advance(0.0)
+			for side in ["l", "r"]:
+				var arm: int = rig.skeleton.find_bone(roles["arm_" + side])
+				var elbow: int = rig.skeleton.find_bone(roles["forearm_" + side])
+				var hand: int = rig.skeleton.find_bone(roles["hand_" + side])
+				var low_bend := INF
+				var high_bend := 0.0
+				var wrist_excursion := 0.0
+				player.seek(0.0, true)
+				var initial: Quaternion = rig.skeleton.get_bone_pose_rotation(hand)
+				for sample in 17:
+					player.seek(float(sample) / 16.0, true)
+					var upper: Vector3 = (rig.skeleton.get_bone_global_pose(elbow).origin - rig.skeleton.get_bone_global_pose(arm).origin).normalized()
+					var fore: Vector3 = (rig.skeleton.get_bone_global_pose(hand).origin - rig.skeleton.get_bone_global_pose(elbow).origin).normalized()
+					assert_true(upper.dot(up) < -0.8, "%s upper arm hangs below shoulder at sample%d in %s" % [side, sample, fixture])
+					var bend := rad_to_deg(acos(clampf(upper.dot(fore), -1.0, 1.0)))
+					low_bend = minf(low_bend, bend)
+					high_bend = maxf(high_bend, bend)
+					var q: Quaternion = initial.inverse() * rig.skeleton.get_bone_pose_rotation(hand)
+					wrist_excursion = maxf(wrist_excursion, 2.0 * atan2(Vector3(q.x, q.y, q.z).length(), absf(q.w)))
+				assert_gt(high_bend - low_bend, 3.0, "played elbow flex changes through the shuffle")
+				assert_gt(wrist_excursion, 0.01, "played wrist has restrained follow-through")
+		_teardown(rig)
+
+
 func test_z_up_jump_converts_pelvis_translation_to_parent_bone_space() -> void:
 	var rig := _rig("MotionZUpPlayed", "res://repair_synthetic_zup_tall.tscn")
 	assert_false(rig.has("error"), "the scene-owned Z-up fixture loads: %s" % str(rig.get("error", "")))

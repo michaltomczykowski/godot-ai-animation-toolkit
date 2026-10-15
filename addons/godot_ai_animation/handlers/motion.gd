@@ -1107,7 +1107,9 @@ func _build_context(params: Dictionary, kind: String, resolved_config: Dictionar
 	var arm_amount := float(params.get("arm_down", -1.0))
 	# Resolve the style first: implicit profile controls need the same measured
 	# arm geometry as the accepted explicit recipe, particularly on Z-up rigs.
-	var measured_arms := false
+	# Jump has its own sparse action profile, but still needs the measured rig
+	# frame for arm lowering even when no optional follow-through was requested.
+	var measured_arms := kind == "jump"
 	var overrides: Dictionary = params.get("overrides", {})
 	for field in ["elbow_lag", "wrist_swing", "wrist_lag", "torso_twist", "torso_flex", "torso_roll", "head_nod", "head_roll", "head_lag", "head_stabilize", "forearm_twist", "wrist_sway", "arm_variation", "variation_seed", "hand_relax"]:
 		measured_arms = measured_arms or resolved_config.has(field) or params.has(field) or overrides.has(field)

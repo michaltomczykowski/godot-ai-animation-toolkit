@@ -1,5 +1,26 @@
 # Animation Toolkit repair roadmap
 
+## Strafe/jump repair in progress (2026-10-15)
+
+Saved a bounded implementation plan in docs/strafe-jump-completion-plan.md.
+Strafe now has separate restrained upper-body profiles and measured arm lowering;
+jump also requests measured rig-frame arms. Foot/root schedules and accepted
+walk/run/idle/start-stop/turn recipes are untouched. A new played editor test
+checks hanging arms, changing elbow bend and wrist follow-through on Y/Z-up
+rigs; execution awaits the serial baseline capture queue. Pure motion math
+326 checks, setup provenance and motion space26 checks pass on Godot4.7.2.
+
+CI38706386400 exposed missing success markers on the two new pure suites; both
+now emit the required marker after their real assertions pass. Clean-install
+failures are being repaired in the cached-tool test order: refreshing discovery
+evicts the disabled proxy entry before its cached invocation can be witnessed.
+No generic Unknown-tool response will count as typed disabled success.
+
+All completed baseline recordings and failed jump reports are retained on E:.
+Continuous turn inspection covers four representative movies/80 timestamped
+images, explicitly partial and not human approval. Candidate-wide evidence,
+motion qualification, setup playback and release publication remain open.
+
 ## Completion implementation checkpoint (2026-10-15)
 
 Integrated setup omission/provenance, automatic setup turn stages, forward jump
