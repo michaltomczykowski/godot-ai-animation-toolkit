@@ -62,8 +62,8 @@ class SetupRouteControls(unittest.TestCase):
             project = Path(tmp)
             (project / 'fixture.tscn').write_text('[gd_scene format=3]\n[node name="Root" type="Node3D"]\n[node name="Player" type="AnimationPlayer" parent="."]\n')
             args = SimpleNamespace(output=project/'output', project_root=project, repo=project,
-                                   styles=['responsive'], turns=[False, True], godot=None)
-            with patch.object(module.subprocess, 'check_output', return_value='fake-head'), redirect_stdout(io.StringIO()):
+                                   styles=['responsive'], variants=['extracted-stationary', 'in-place-stationary', 'extracted-forward'], turns=[False, True], godot=None, reuse_complete=None)
+            with patch.object(module, 'dependency_hashes', return_value={'toolkit/test': 'digest', 'core/test': 'digest'}), patch.object(module.subprocess, 'check_output', return_value='fake-head'), redirect_stdout(io.StringIO()):
                 if fail:
                     with self.assertRaises(RuntimeError): asyncio.run(module.run(args))
                 else: self.assertEqual(asyncio.run(module.run(args)), 0)
@@ -72,7 +72,18 @@ class SetupRouteControls(unittest.TestCase):
             self.assertEqual(report['passed'], not bool(fail))
             if not fail:
                 self.assertEqual(len(report['groups']), 6)
+                self.assertTrue(list((project/'output').glob('*/receipts/*.json')), 'immutable progress snapshots exist')
                 self.assertEqual(len(state['requests']), 48)
+                before_count = len(state['requests'])
+                args.reuse_complete = args.output
+                args.output = project / 'reused'
+                with patch.object(module, 'dependency_hashes', return_value={'toolkit/test': 'digest', 'core/test': 'digest'}), patch.object(module.subprocess, 'check_output', return_value='fake-head'), redirect_stdout(io.StringIO()):
+                    self.assertEqual(asyncio.run(module.run(args)), 0)
+                self.assertEqual(len(state['requests']), before_count, 'completed public mutations must not repeat')
+                args.output = project / 'rejected-reuse'
+                with patch.object(module, 'dependency_hashes', return_value={'toolkit/test': 'changed'}), patch.object(module.subprocess, 'check_output', return_value='fake-head'):
+                    with self.assertRaisesRegex(ValueError, 'dependency mismatch'): asyncio.run(module.run(args))
+                self.assertEqual(len(state['requests']), before_count)
                 for request in state['requests']:
                     self.assertFalse({'speed', 'run_speed', 'duration', 'run_duration', 'turn_duration'} & request.keys())
                     self.assertFalse(request['active'])

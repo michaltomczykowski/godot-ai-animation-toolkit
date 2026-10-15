@@ -25,12 +25,27 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def dependency_hashes(a):
+    result = {}
+    for label, base in [('toolkit', a.repo / 'addons/godot_ai_animation'), ('core', a.core_root)]:
+        for path in sorted(base.rglob('*')):
+            if path.is_file() and path.suffix in {'.gd', '.py', '.cfg', '.json'} and not any(part in {'.git', '.godot', '.venv', '__pycache__', 'node_modules'} for part in path.relative_to(base).parts):
+                result[label + '/' + path.relative_to(base).as_posix()] = digest(path)
+    if not any(key.startswith('toolkit/') for key in result) or not any(key.startswith('core/') for key in result):
+        raise ValueError('Exact toolkit and released-core production dependencies are required')
+    return result
+
+
 async def run(a):
     a.output.mkdir(parents=True, exist_ok=False)
     folder = a.project_root / 'repair_setup_quality' / uuid4().hex
     folder.mkdir(parents=True)
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=a.repo, text=True).strip()
-    report = dict(passed=False, state='running', source_head=head, groups=[],
+    dependencies = dependency_hashes(a)
+    if a.reuse_complete:
+        previous = json.loads((a.reuse_complete / 'setup-matrix.json').read_text(encoding='utf-8-sig'))
+        if previous.get('production_dependencies') != dependencies: raise ValueError('Reuse production dependency mismatch')
+    report = dict(production_dependencies=dependencies, passed=False, state='running', source_head=head, groups=[],
                   created_utc=datetime.now(timezone.utc).isoformat())
     receipt = a.output / 'setup-matrix.json'
     def save(): write_json(receipt, report)
@@ -39,14 +54,30 @@ async def run(a):
             report['connection'] = connection
             save()
             for style in a.styles:
-                for mode, distance in [('extracted-stationary', 0.0), ('in-place-stationary', 0.0), ('extracted-forward', 0.5)]:
+                for mode in a.variants:
+                    distance = 0.5 if mode == 'extracted-forward' else 0.0
                     for turn in a.turns:
+                        if dependency_hashes(a) != dependencies: raise ValueError('Production dependencies changed during public matrix')
                         label = f'{style}-{mode}-' + ('turn' if turn else 'no-turn')
                         output = a.output / label
                         output.mkdir()
                         route_path = output / 'route.json'
                         route = dict(passed=False, source_head=head, revision='setup-' + label,
                                      operation='character_setup', cases=[])
+                        events = output / 'receipts'
+                        events.mkdir()
+                        serial = 0
+                        def persist():
+                            nonlocal serial
+                            serial += 1
+                            write_json(events / f'{serial:05d}.json', route)
+                            write_json(route_path, route)
+                        reused = {}
+                        if a.reuse_complete:
+                            old_path = a.reuse_complete / label / 'route.json'
+                            if old_path.exists():
+                                old = json.loads(old_path.read_text(encoding='utf-8-sig'))
+                                reused = {r['id']: r for r in old['cases'] if r.get('passed')}
                         for rig_id, rig_label, fixture, root_name, skeleton, player, synthetic in RIGS:
                             target = folder / f'{label}-{rig_id}.tscn'
                             copy_scene(a.project_root / fixture, target)
@@ -68,13 +99,21 @@ async def run(a):
                                 include_turn=turn, active=False, root_motion=not mode.startswith('in-place'))
                             if style != 'responsive': request['style'] = style
                             if distance: request['distance'] = distance
+                            if rig_id in reused:
+                                previous_row = reused[rig_id]
+                                if previous_row['request'] != request or digest(a.project_root / previous_row['scene'].removeprefix('res://')) != previous_row['scene_sha256']:
+                                    raise ValueError('Completed case reuse request/scene mismatch')
+                                row = {**previous_row, 'reused_from': str(a.reuse_complete / label / 'route.json')}
+                                route['cases'].append(row)
+                                persist()
+                                continue
                             row = dict(id=rig_id, label=rig_label, scene=scene, player=player,
                                        skeleton=skeleton, synthetic=synthetic, request=request, params=request.copy())
                             route['cases'].append(row)
                             async def stage(key, tool, params):
                                 value = await call(client, tool, params)
                                 row[key] = value
-                                write_json(route_path, route)
+                                persist()
                                 if value.get('error'): raise RuntimeError(f'{key}: {value}')
                                 return value
                             async def summaries():
@@ -110,10 +149,10 @@ async def run(a):
                                 row['binding_after'] == row['binding_persisted'] and
                                 all(not value.get('error') and value.get('clips') for value in row['after'].values()) and
                                 row['history'].get('passed') == 1 and row['history'].get('failed') == 0 and row['history'].get('skipped') == 0)
-                            write_json(route_path, route)
+                            persist()
                             if not row['passed']: raise RuntimeError('Setup public history/persistence failed: ' + label + '/' + rig_id)
                         route['passed'] = len(route['cases']) == 4 and all(r['passed'] for r in route['cases'])
-                        write_json(route_path, route)
+                        persist()
                         group = dict(route=str(route_path), route_sha256=digest(route_path), passed=route['passed'])
                         report['groups'].append(group)
                         save()
@@ -129,7 +168,7 @@ async def run(a):
                             group['native_sha256'] = digest(native_path)
                             save()
                         print('Public setup bundle: ' + label, flush=True)
-        report.update(state='complete', passed=len(report['groups']) == len(a.styles) * 3 * len(a.turns))
+        report.update(state='complete', passed=len(report['groups']) == len(a.styles) * len(a.variants) * len(a.turns))
     except Exception as error:
         report.update(state='failed', error=f'{type(error).__name__}: {error}')
         raise
@@ -142,6 +181,8 @@ if __name__ == '__main__':
     p = argparse.ArgumentParser(description=__doc__)
     for field in ('repo', 'core-root', 'project-root', 'output'):
         p.add_argument('--' + field, type=Path, required=True)
+    p.add_argument('--reuse-complete', type=Path, help='Reuse successful cases from a previous output only after exact dependency/request/scene hash checks')
+    p.add_argument('--variants', nargs='+', choices=['extracted-stationary', 'in-place-stationary', 'extracted-forward'], default=['extracted-stationary', 'in-place-stationary', 'extracted-forward'])
     p.add_argument('--godot', type=Path, help='Optional native checker after each completed group')
     p.add_argument('--port', type=int, default=8000)
     p.add_argument('--ws-port', type=int, default=9500)
