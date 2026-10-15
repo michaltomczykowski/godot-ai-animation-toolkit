@@ -263,7 +263,7 @@ func _fixture() -> Node:
 	_seed._pose._checks._own(fixture, root)
 	return fixture
 func _params(fixture: Node, op: String) -> Dictionary:
-	return {"op": op, "player_path": str(fixture.get_node("Playback/AnimationPlayer").get_path()), "skeleton_path": str(fixture.get_node("Character/Skeleton").get_path()), "animation_name": "generated", "duration": 1.0, "samples": 30, "roles": Seed.ROLES, "spine_chain": ["spine", "chest", "head"]}
+	return {"op": op, "player_path": str(fixture.get_node("Playback/AnimationPlayer").get_path()), "skeleton_path": str(fixture.get_node("Character/Skeleton").get_path()), "animation_name": "generated", "duration": 1.2 if op == "jump" else 1.0, "samples": 30, "roles": Seed.ROLES, "spine_chain": ["spine", "chest", "head"]}
 
 func test_busy_destination_is_atomic() -> void:
 	var fixture := _fixture()

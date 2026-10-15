@@ -454,6 +454,35 @@ func test_default_optional_head_and_hands_omit_only_missing_features() -> void:
 			for index in renamed: skeleton.set_bone_name(index, renamed[index])
 			_teardown(rig)
 
+func test_explicit_short_jump_duration_refuses_atomically() -> void:
+	var rig := _rig("ShortJumpRefusal", "res://repair_synthetic_short.tscn")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var before := _clip_names(rig.player)
+	var nodes := _node_paths(EditorInterface.get_edited_scene_root())
+	var version := _undo_version()
+	var root_track: NodePath = rig.player.root_motion_track
+	var root_local: bool = rig.player.root_motion_local
+	var pose: Array[Transform3D] = []
+	for i in rig.skeleton.get_bone_count(): pose.append(rig.skeleton.get_bone_global_pose(i))
+	for dry in [true, false]:
+		var refused := _handler.run({"op": "jump", "player_path": rig.player_path,
+			"skeleton_path": rig.skeleton_path, "animation_name": "short_jump_must_not_exist",
+			"height": 0.6, "duration": 1.0, "root_motion": true, "dry_run": dry}, null)
+		assert_is_error(refused, ErrorCodes.VALUE_OUT_OF_RANGE)
+		assert_contains(str(refused.error.message), "Jump flight needs")
+		assert_eq(_clip_names(rig.player), before, "short jump refusal preserves every clip")
+		assert_eq(_node_paths(EditorInterface.get_edited_scene_root()), nodes, "short jump refusal preserves scene")
+		assert_eq(_undo_version(), version, "short jump refusal preserves history")
+		assert_eq(rig.player.root_motion_track, root_track, "short jump refusal preserves root binding")
+		assert_eq(rig.player.root_motion_local, root_local, "short jump refusal preserves root frame")
+		var after: Array[Transform3D] = []
+		for i in rig.skeleton.get_bone_count(): after.append(rig.skeleton.get_bone_global_pose(i))
+		_expect_transition_pose(after, pose, "short jump refusal preserves authored pose")
+	_teardown(rig)
+
+
 func test_style_precedence_preserves_metres_and_effective_sampling() -> void:
 	var rig := _rig("StylePrecedence", "res://repair_synthetic_short.tscn")
 	if rig.has("error"):
@@ -481,7 +510,18 @@ func test_style_precedence_preserves_metres_and_effective_sampling() -> void:
 			"skeleton_path": rig.skeleton_path, "duration": 1.0, "samples": 30}, kind)
 		assert_true(not one_shot.has("error"), "dense one-shot " + kind)
 		if not one_shot.has("error"):
-			assert_eq(float(one_shot.rate), 120.0, "reported rate equals authored one-shot density")
+			if kind == "jump":
+				var hips := str(one_shot.ctx.hips)
+				var authored: Array = one_shot.keys[hips].rotation
+				var density := float(authored.size() - 1) / float(one_shot.length)
+				assert_eq(float(one_shot.rate), density,
+					"reported jump rate equals actual event-split authored interval density")
+				assert_eq(float(one_shot.meta.requested_samples), 30.0,
+					"jump retains caller sampling provenance")
+				assert_eq(float(one_shot.meta.sampling_rate_floor), 120.0,
+					"jump retains the one-shot sampling floor separately")
+			else:
+				assert_eq(float(one_shot.rate), 120.0, "reported rate equals authored one-shot density")
 	var oversize := _handler._prepare_cycle({"player_path": rig.player_path,
 		"skeleton_path": rig.skeleton_path, "duration": 11.0, "samples": 30}, "turn")
 	assert_is_error(oversize, ErrorCodes.VALUE_OUT_OF_RANGE)
