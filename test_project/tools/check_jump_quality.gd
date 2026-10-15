@@ -122,7 +122,7 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 	var recovery_rotation := 0.0
 	for i in v.rig.get_bone_count():
 		var final_pose: Transform3D = v.rig.get_bone_global_pose(i)
-		var residual: Vector3 = v.rig.global_basis * (final_pose.origin - initial_local[i].origin) - skeletal_travel
+		var residual: Vector3 = v.rig.global_basis * (final_pose.origin - initial_local[i].origin) - _recovery_translation(v.rig, i, int(v.indices.hips), skeletal_travel)
 		recovery_position = maxf(recovery_position, residual.length())
 		var q := initial_local[i].basis.orthonormalized().get_rotation_quaternion().inverse() * final_pose.basis.orthonormalized().get_rotation_quaternion()
 		recovery_rotation = maxf(recovery_rotation, 2.0 * atan2(Vector3(q.x, q.y, q.z).length(), absf(q.w)))
@@ -166,6 +166,15 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 		"worst_pose_step": worst_step, "feet": metrics, "trace": trace, "failures": errors, "thresholds_pass": errors.is_empty()}
 	v.scene.free()
 	return result
+
+static func _recovery_translation(rig: Skeleton3D, bone: int, hips: int, travel: Vector3) -> Vector3:
+	# Skeletal travel is authored on hips. Static armature ancestors and sibling
+	# roots never inherit it, while every actual hips descendant does.
+	var ancestor := bone
+	while ancestor >= 0:
+		if ancestor == hips: return travel
+		ancestor = rig.get_bone_parent(ancestor)
+	return Vector3.ZERO
 
 func _inject_control(v: Dictionary) -> void:
 	# Replace both library and animation; never mutate the cached saved resource.
