@@ -11,6 +11,7 @@ import asyncio
 from datetime import datetime, timezone
 import json
 from fixture_copy import copy_scene
+from operation_case_collector import record_public_call
 import sys
 from pathlib import Path
 
@@ -45,9 +46,11 @@ def payload(result: object) -> dict:
 
 async def call(client: Client, name: str, params: dict) -> dict:
     try:
-        return payload(await client.call_tool(name, params))
+        result = payload(await client.call_tool(name, params))
     except ToolError as exc:
-        return {"error": str(exc)}
+        result = {"error": str(exc)}
+    record_public_call(name, params, result)
+    return result
 
 
 def clip_summary(value: dict) -> dict:

@@ -1158,6 +1158,43 @@ def run(args: argparse.Namespace) -> int:
             backend_stream.close()
 
 
+def run_with_case_collection(args: argparse.Namespace) -> int:
+    """Opt-in exact-call artifacts; never manufacture per-operation suite passes."""
+    if not args.case_output_dir:
+        return run(args)
+    if args.existing:
+        raise ValueError('case collection requires the editor launched by this runner')
+    from operation_case_collector import prepare, collect
+    output = args.case_output_dir.resolve()
+    output.mkdir(parents=True, exist_ok=False)
+    root = Path(__file__).resolve().parents[1]
+    context = output / 'operation-context.json'
+    traces = output / 'public-calls'
+    traces.mkdir()
+    prepare(root, args.core_root, Path(godot_executable(args.godot)), context)
+    names = ('TOOLKIT_OPERATION_CONTEXT', 'TOOLKIT_OPERATION_TRACE_DIR')
+    previous = {name:os.environ.get(name) for name in names}
+    os.environ[names[0]] = str(context)
+    os.environ[names[1]] = str(traces)
+    report = None
+    try:
+        result = run(args)
+    finally:
+        for name, value in previous.items():
+            if value is None: os.environ.pop(name, None)
+            else: os.environ[name] = value
+        report = collect(context, traces, root)
+        with (output / 'operation-case-results.json').open('x', encoding='utf-8') as file:
+            json.dump(report, file, indent=2)
+        print('MCP_OPERATION_COVERAGE=' + json.dumps({
+            'successful':len(report['successful_public_operations']),
+            'missing':report['missing_successful_public_operations'],
+            'core_qualification':report['core_qualification']}), flush=True)
+    if args.require_all_public_operations and (report['missing_successful_public_operations'] or report['core_qualification'] != 'released'):
+        return 1
+    return result
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--core-root", type=Path, required=True)
@@ -1169,10 +1206,12 @@ def main() -> int:
     parser.add_argument("--log", default="mcp-editor.log")
     parser.add_argument("--existing", action="store_true", help="Probe an already-running editor")
     parser.add_argument("--install-selection", action="store_true", help="Probe clean-install companion family selection")
+    parser.add_argument("--case-output-dir", type=Path, help="New directory for source-bound raw public calls and operation cases")
+    parser.add_argument("--require-all-public-operations", action="store_true", help="Fail if the actual trace lacks any of103 successful operation choices")
     args = parser.parse_args()
     args.core_root = args.core_root.resolve()
     args.project = args.project.resolve()
-    return run(args)
+    return run_with_case_collection(args)
 
 
 if __name__ == "__main__":
