@@ -2,6 +2,14 @@
 
 ## Strafe/jump repair in progress (2026-10-15)
 
+Eight baseline MP4s are now complete (each1440 decoded frames/24s). Integrated
+reachable ballistic jump planning and the world-height duration hook;8790 pure
+checks pass. Setup Tree checker passes33 native synthetic corruption/transform
+controls. Added both suites to local/CI selection (18pure suites). Actual saved
+candidate/playback/visual checks remain pending. Native review translation
+consumers now use the owner-parent extraction contract, world-space up and
+world-scaled jump velocity; the old failed reports remain untouched.
+
 Saved a bounded implementation plan in docs/strafe-jump-completion-plan.md.
 Strafe now has separate restrained upper-body profiles and measured arm lowering;
 jump also requests measured rig-frame arms. Foot/root schedules and accepted

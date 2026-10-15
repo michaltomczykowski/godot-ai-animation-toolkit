@@ -284,6 +284,15 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 	if features.has("error"):
 		return features
 	_scale_distances_to_rig(config, params, overrides, ctx)
+	if kind == "jump":
+		# Height is now skeleton-local, including implicit rig scaling. Flight
+		# uses world gravity; only omitted duration may grow to fit that flight.
+		var timing := MotionSpecs.JumpPlan.timing(float(config.jump_height) * world_scale,
+			length, params.has("duration"), rate)
+		if timing.has("error"):
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, str(timing.error))
+		length = float(timing.length)
+		ctx["length"] = length
 	ctx["foot_lift_explicit"] = params.has("foot_lift") or overrides.has("foot_lift")
 	ctx["speed"] = maxf(float(params.get("speed", 0.0)), 0.0) / world_scale
 	var direction := str(params.get("direction", "left"))
@@ -363,6 +372,12 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 	if keys.is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"No bones could be keyed - check the skeleton's bone roles")
+	if kind == "jump":
+		# Exact physical events split the sample grid. Report actual average
+		# density and retain the requested/floored density separately.
+		result_meta["requested_samples"] = float(params.get("samples", 60.0))
+		result_meta["sampling_rate_floor"] = rate
+		rate = float(result_meta.effective_samples)
 	return {
 		"resolved": built.resolved,
 		"ctx": ctx,

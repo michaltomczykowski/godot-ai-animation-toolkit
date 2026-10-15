@@ -48,6 +48,7 @@ func _run() -> void:
 	FileAccess.open(directory.path_join("controls.json"),FileAccess.WRITE).store_string(JSON.stringify(report))
 	print("TIER1_SETUP_TREE_CHECKER="+JSON.stringify({"passed":report.passed,"failures":test_failures,"engine_errors":logger.errors,"runs":reports.size(),"receipt":directory.path_join("controls.json")}))
 	OS.remove_logger(logger)
+	print("TIER1 PASS" if report.passed else "TIER1 FAIL")
 	quit(0 if report.passed else 1)
 func _fixture(path: String, rooted: bool, multiplier: float, markers: bool, placement: Transform3D=Transform3D.IDENTITY, fixture: String="res://repair_synthetic_short.tscn") -> Dictionary:
 	var body := (load(fixture) as PackedScene).instantiate() as Node3D

@@ -45,6 +45,8 @@ jobs:
           - tier1_proportions
           - tier1_setup_provenance
           - tier1_motion_space
+          - tier1_setup_tree_checker
+          - tier1_jump_plan
     steps:
       - name: Checkout toolkit
         uses: actions/checkout@v4
@@ -276,6 +278,8 @@ jobs:
         run: ./tools/release_zip.ps1 -Source $env:GITHUB_SHA
       - name: Reject corrupted packages and version/path mismatches
         run: python tools/test_release_package.py
+      - name: Reject corrupt and stale operation qualification evidence
+        run: python -m unittest discover -s tools -p 'test_release_audit.py' -v
       - uses: actions/upload-artifact@v4
         with:
           name: release-package
@@ -340,6 +344,8 @@ jobs:
         run: |
           python -m pip install -e .ci/godot-ai
           gh release download "v${{ matrix.core-ref }}" --repo hi-godot/godot-ai --pattern godot-ai-v4-plugin.zip --dir .ci/released-core
+      - name: Verify cached-call selection test ordering
+        run: python -m unittest discover -s tools -p 'test_install_selection.py' -v
       - name: Qualify both enable orders from extracted ZIPs
         run: |
           python tools/clean_zip_install.py --source "$GITHUB_SHA" --zip dist/godot-ai-animation-toolkit-2.0.0.zip --core-root .ci/godot-ai --core-zip .ci/released-core/godot-ai-v4-plugin.zip --core-ref "${{ matrix.core-ref }}" --output clean-install-evidence

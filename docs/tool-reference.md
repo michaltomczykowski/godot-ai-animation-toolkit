@@ -697,25 +697,36 @@ How motion is generated:
   seeded periodic variation and gentle measured finger curl. Missing implicit
   anatomy is omitted with a reason; explicit unsupported controls return typed
   errors. Results include `resolved_style`, `applied_features`, `omitted_features`.
-  Walk/run profiles have completed review and regression. Idle's new profiles
-  are pending their own continuous-video approval; later motions retain separate
-  baselines. See
+  Walk/run/idle retain their recorded scoped reviews. Strafe now uses its own
+  restrained upper-body profiles; strafe/jump candidate qualification is pending.
+  See
   [current default integration](walk-default-integration-validation.md).
 - **Sampling/loops.** Walk/run/idle/strafe default to linear loops; one-shots
   default to none. Explicit loop modes remain supported. Jump/turn/start/stop
   use at least 120 samples/s and report the effective rate; at most 1200
   intervals may be authored per request.
+- **Jump timing/reach.** Positive height determines ballistic flight under world
+  gravity9.81m/s2. Omitted standalone duration is max(1s, flight_time/0.55).
+  Explicit duration is preserved and refused if flight needs more than68% of
+  it. Shared takeoff/landing events describe both feet; `declared_contacts`,
+  `reach_evaluated` and actual solve/clamp counts accompany the saved clip.
+  Exact event keys can increase average density slightly; `samples` and
+  `effective_samples` report that density, while `requested_samples` and
+  `sampling_rate_floor` retain request/floor provenance. Unreachable targets
+  return a typed error before a clip or history action is written.
 - **Root motion.** `root_motion=true` keys character-root travel at the implied speed
   and wires `AnimationPlayer.root_motion_track` in the same undo action (set
   `set_root_motion=false` to skip). Apply it in game code with
   `get_root_motion_position()` / `get_root_motion_rotation()` — and the
   `*_accumulator()` variants when the node itself rotates.
-  `root_motion` in the reply echoes the requested mode; it does not certify
+  For jump/turn, `root_motion` reports actual extraction and
+  `root_motion_requested` retains the original request. In other cycle replies,
+  `root_motion` echoes the requested mode; it does not certify
   that the clip contains translation. Stationary idle creates no character-root
   travel track and returns an empty `root_motion_track`, including when the mode
   is requested. An extraction binding retained for another clip does not make
   the active idle clip own translation.
-- Walking arm lowering uses measured rest directions and rig up, with twelve
+- Walk, strafe and jump arm lowering uses measured rest directions and rig up, with twelve
   degrees of outward clearance; an explicit `arm_down` wins. Imported bone-local
   axes and world-Y are not assumed.
 - **Rig profiles.** Every cycle op takes `profile` (a name under
@@ -725,7 +736,8 @@ How motion is generated:
 - **`character_setup`** returns a snippet that feeds `velocity.length()` into
   `speed_parameter` each physics frame; the tree is created **inactive** by
   default like the graph ops (`active=true` to enable it), and root motion is
-  wired on both the player and the tree. The default `run_speed` is 2.0 m/s.
+  wired on both the player and the tree. Omitted walk/run speeds and durations
+  use the same rig-relative resolver as their standalone operations.
   A run target that exceeds measured leg reach by more than 1% returns
   `VALUE_OUT_OF_RANGE` before committing a clip. Direct `run_cycle` with an
   omitted `duration` chooses a rig-relative cadence; `character_setup`

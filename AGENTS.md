@@ -1,5 +1,25 @@
 # Agent notes
 
+## Current motion integration (2026-10-15)
+
+All eight Responsive baseline clean movies are complete under E:/GodotAI-toolkit-
+release-2.0.0/20261014 (strafe left/right and jump stationary/forward, both modes).
+Each independently decodes1440frames/24s. Capture queue14881 finished; preserve
+all baseline frames/scenes/failed native checks. Fresh editor/public validation
+comes next. Do not repeat completed baseline recordings.
+
+Strafe measured upper-body repair19ab7a1 is pushed. Setup Tree checker/refusal
+b86f2d2 and reachable ballistic jump84cfd49 are integrated; root timing hook and
+world-space native consumer repairs follow. Pure jump8790checks, setup checker
+33native controls, motion math326, setup provenance and space26 pass locally.
+CI pure count becomes18 with the two new checker/jump suites. Candidate-wide
+public/native/visual qualification remains pending, no release or merge.
+
+Cached-disabled-call harness ordering fixed in aca2849: require typed disabled
+before refreshing discovery (three fake-client controls pass). Fresh four-cell
+CI required. Audit gate14 controls pass. Workers hit usage limits after their
+committed work; unfinished FX renderer/planner remain in isolated audit worktree.
+
 ## Resume checkpoint: integrated completion work (2026-10-15)
 
 Setup/default/transform repairs, applicability-aware audit, core dependency and
