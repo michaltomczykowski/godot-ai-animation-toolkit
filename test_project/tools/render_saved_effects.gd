@@ -21,6 +21,7 @@ var _runtime_failures: Array = []
 var _logger: ErrorCapture
 const CAPTURE_SIZE := Vector2i(1400, 800)
 var _capture_geometry: Dictionary = {}
+var _startup_capture: Dictionary = {}
 
 class ErrorCapture extends Logger:
 	var errors: Array = []
@@ -55,6 +56,14 @@ func _camera_states() -> Array:
 func _initialize() -> void:
 	_logger = ErrorCapture.new()
 	OS.add_logger(_logger)
+	_startup_capture = {"viewport_width": ProjectSettings.get_setting("display/window/size/viewport_width"),
+		"viewport_height": ProjectSettings.get_setting("display/window/size/viewport_height"),
+		"stretch_mode": ProjectSettings.get_setting("display/window/stretch/mode"),
+		"stretch_aspect": ProjectSettings.get_setting("display/window/stretch/aspect")}
+	if _startup_capture.viewport_width != CAPTURE_SIZE.x or _startup_capture.viewport_height != CAPTURE_SIZE.y or _startup_capture.stretch_mode != "viewport" or _startup_capture.stretch_aspect != "keep":
+		push_error("Movie Maker requires fixed viewport settings BEFORE startup; use movie_capture_startup.py: " + str(_startup_capture))
+		quit(1)
+		return
 	_start.call_deferred()
 
 func _start() -> void:
@@ -246,7 +255,7 @@ func _process(delta: float) -> bool:
 		_load_scene(_viewports[1], "redo")
 	if _elapsed >= float(_case.seconds):
 		var report := {"schema_version": 1, "operation": _case.operation,
-			"case_id": _case.id, "capture_geometry": _capture_geometry, "runtime_failures": _runtime_failures, "engine_errors": _logger.errors,
+			"case_id": _case.id, "startup_capture": _startup_capture, "capture_geometry": _capture_geometry, "runtime_failures": _runtime_failures, "engine_errors": _logger.errors,
 			"camera_presentation": _camera_presentation(), "native_camera_states": _camera_states(), "scenes": _case.scenes, "dependencies_verified": _resource_checks, "samples": _samples,
 			"native_changed_frames": _changes, "observed_difference": _different,
 			"frames": _frames, "elapsed": _elapsed, "plan_sha256": _plan_sha, "renderer_sha256": _renderer_sha, "max_delta_error": _max_delta_error, "engine": Engine.get_version_info(),

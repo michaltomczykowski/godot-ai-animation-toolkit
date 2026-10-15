@@ -9,7 +9,7 @@ class NativeObservations(unittest.TestCase):
         for i in range(720):
             t=i%360
             samples.append({'frame':i+1,'time':(i+1)/60,'take':1 if i<360 else 2,'states':[{'DamageBar':{'value':'80'}},{'DamageBar':{'value':str(80-50*min(t/60,1))}}]})
-        return case, {'operation':case['operation'],'case_id':case['id'],'scenes':case['scenes'],'dependencies_verified':{},'frames':720,'max_delta_error':0,'engine_errors':[],'capture_geometry':{'logical_size':[1400,800],'render_size':[1400,800],'window_size':[1152,648],'content_scale_mode':2,'content_scale_aspect':1},'samples':samples}
+        return case, {'operation':case['operation'],'case_id':case['id'],'scenes':case['scenes'],'dependencies_verified':{},'frames':720,'max_delta_error':0,'engine_errors':[],'startup_capture':{'viewport_width':1400,'viewport_height':800,'stretch_mode':'viewport','stretch_aspect':'keep'},'capture_geometry':{'logical_size':[1400,800],'render_size':[1400,800],'window_size':[1152,648],'content_scale_mode':2,'content_scale_aspect':1},'samples':samples}
     def test_real_target_and_independent_endpoint_required(self):
         case, report=self.fixture()
         self.assertTrue(check(case, report)['native_observation_pass'])
@@ -61,7 +61,7 @@ class RemainingObservations(unittest.TestCase):
                 'states':[{'Character':{'position':'(0, 0)'}}, {'Character':{'position':f'({redo}, 0)'}}],
                 'players':[{}, {'AnimationPlayer':{'position':min(t,1)}}]})
         return case, {'operation':case['operation'],'case_id':case['id'],'scenes':case['scenes'],
-                      'dependencies_verified':{},'frames':720,'max_delta_error':0,'engine_errors':[],'capture_geometry':{'logical_size':[1400,800],'render_size':[1400,800],'window_size':[1152,648],'content_scale_mode':2,'content_scale_aspect':1},'samples':samples}
+                      'dependencies_verified':{},'frames':720,'max_delta_error':0,'engine_errors':[],'startup_capture':{'viewport_width':1400,'viewport_height':800,'stretch_mode':'viewport','stretch_aspect':'keep'},'capture_geometry':{'logical_size':[1400,800],'render_size':[1400,800],'window_size':[1152,648],'content_scale_mode':2,'content_scale_aspect':1},'samples':samples}
     def test_native_position_bound_sample_rejects_plausible_wrong_effect(self):
         case,report=self.fixture()
         self.assertTrue(check(case,report)['native_observation_pass'])

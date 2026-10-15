@@ -19,3 +19,19 @@ clock, engine-error and visibility checks. This dimension check does not
 replace image decoding, encoder preflight or continuous visual assessment.
 Earlier 1152×648 cropped attempts remain failed evidence. Regenerate a plan
 with the new renderer hash, then make a fresh capture; do not relabel old PNGs.
+
+Movie Maker chooses its writer dimensions before the script starts. Runtime
+Window settings alone cannot repair a writer initialized at 1152×648. Launch
+through `tools/movie_capture_startup.py --project PROJECT --width 1400 --height
+800 --receipt NEW.json -- GODOT --path PROJECT ...`. It exclusively creates
+`override.cfg` with viewport dimensions and `viewport`/`keep` stretch settings
+before launching, plus a half-size physical window. An existing override is
+preserved and blocks launch. The helper removes only its unchanged owned
+override in `finally`; an override changed by another process is preserved and
+the job fails. The receipt records command/config hashes, exit status, cleanup
+and unchanged project.godot identity. Use one capture per project at a time.
+
+The renderer refuses immediately unless effective startup ProjectSettings
+match that contract. The engine's [Movie Maker resolution documentation](https://docs.godotengine.org/en/stable/tutorials/animation/creating_movies.html#rendering-at-a-higher-resolution-than-the-screen-resolution)
+requires viewport stretch and startup viewport dimensions for captures larger
+than the screen. The runtime extent checks and every-PNG checks remain required.

@@ -7,7 +7,7 @@ from check_saved_effects import capture_failures
 
 class CaptureGeometryControls(unittest.TestCase):
     def report(self):
-        return {'capture_geometry':{'logical_size':[1400,800],'render_size':[1400,800],
+        return {'startup_capture':{'viewport_width':1400,'viewport_height':800,'stretch_mode':'viewport','stretch_aspect':'keep'},'capture_geometry':{'logical_size':[1400,800],'render_size':[1400,800],
             'window_size':[1152,648],'content_scale_mode':2,'content_scale_aspect':1}}
 
     def test_small_window_can_present_complete_logical_render(self):
@@ -32,7 +32,7 @@ class CaptureGeometryControls(unittest.TestCase):
             (folder/'frame001.png').write_bytes(header(1400,800))
             self.assertEqual(capture_failures(self.report(),folder,2),[])
             (folder/'frame001.png').write_bytes(header(1152,648))
-            self.assertIn('cropped/invalid PNG dimensions: frame001.png',capture_failures(self.report(),folder,2))
+            self.assertTrue(any('1 frame(s); first: frame001.png' in item for item in capture_failures(self.report(),folder,2)))
             self.assertTrue(capture_failures(self.report(),folder,3))
 
 

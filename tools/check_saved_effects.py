@@ -12,6 +12,8 @@ CAPTURE_SIZE = [1400, 800]
 def capture_failures(report, frames_dir=None, expected_frames=None):
     failures = []
     geometry = report.get('capture_geometry', {})
+    if report.get('startup_capture') != {'viewport_width':1400,'viewport_height':800,'stretch_mode':'viewport','stretch_aspect':'keep'}:
+        failures.append('missing or wrong pre-startup Movie Maker viewport settings')
     if (geometry.get('logical_size') != CAPTURE_SIZE or geometry.get('render_size') != CAPTURE_SIZE
             or geometry.get('content_scale_mode') != 2 or geometry.get('content_scale_aspect') != 1):
         failures.append('missing or cropped fixed logical/render viewport contract')
@@ -22,11 +24,14 @@ def capture_failures(report, frames_dir=None, expected_frames=None):
         paths = sorted(Path(frames_dir).glob('*.png'))
         if len(paths) != expected_frames:
             failures.append(f'capture PNG count {len(paths)} != {expected_frames}')
+        invalid=[]
         for path in paths:
             with path.open('rb') as stream: header = stream.read(24)
             if (len(header) != 24 or header[:8] != b'\x89PNG\r\n\x1a\n' or header[12:16] != b'IHDR'
                     or list(struct.unpack('>II',header[16:24])) != CAPTURE_SIZE):
-                failures.append('cropped/invalid PNG dimensions: '+path.name)
+                invalid.append(path.name)
+        if invalid:
+            failures.append(f'cropped/invalid PNG dimensions: {len(invalid)} frame(s); first: '+', '.join(invalid[:5]))
     return failures
 
 # Independent history-case inputs, not values extracted from output animation keys.
