@@ -3,9 +3,11 @@
 Historical proof never becomes candidate qualification merely by regenerating docs.
 """
 import argparse
+import copy
 import hashlib
 from functools import lru_cache
 import json
+import re
 from pathlib import Path, PureWindowsPath
 import subprocess
 import sys
@@ -65,6 +67,63 @@ def artifact_is_valid(artifact, receipt_dir):
     if not path.is_relative_to(receipt_root):
         return False
     return path.is_file() and sha256(path) == artifact.get("sha256")
+
+
+STATIC_VISUAL_OPERATIONS = {"animation_inspect.preview", "animation_rig.pose_apply", "animation_rig.rig_chain", "animation_graph.wire"}
+
+
+def operation_binding_errors(evidence, key, check_name, receipt_dir):
+    """Bind declared IDs to parsed operation-specific machine/assessment results."""
+    errors = []
+    if evidence.get("operation_key") != key:
+        errors.append("evidence operation_key differs from row")
+    ids = evidence.get("case_ids", [])
+    if not isinstance(ids, list) or not ids or any(not isinstance(i, str) or not i for i in ids) or len(set(ids)) != len(ids):
+        return errors + ["case_ids must be distinct nonempty strings"]
+    role = "independent_assessment" if check_name == "visual_review" else "operation_case_results"
+    documents = []
+    for artifact in evidence.get("artifacts", []):
+        if artifact.get("role") != role or not artifact_is_valid(artifact, receipt_dir):
+            continue
+        try:
+            document = json.loads((receipt_dir / artifact["path"]).read_text(encoding="utf-8-sig"))
+            if not isinstance(document, dict): raise ValueError("object required")
+            documents.append(document)
+        except (OSError, ValueError, TypeError):
+            errors.append(role + " artifact is not a JSON object")
+    if not documents:
+        return errors + ["missing parsed " + role + " artifact"]
+    field = "assessments" if check_name == "visual_review" else "cases"
+    entries = []
+    for document in documents:
+        values = document.get(field)
+        if not isinstance(values, list):
+            errors.append(role + " requires " + field + " array")
+            continue
+        entries.extend(v for v in values if isinstance(v, dict) and v.get("operation") == key)
+    if check_name == "visual_review":
+        matches = [a for a in entries if isinstance(a.get("case_ids"), list) and all(isinstance(i, str) for i in a["case_ids"]) and set(ids).issubset(set(a["case_ids"]))]
+        valid = False
+        for assessment in matches:
+            media = assessment.get("media", [])
+            findings = assessment.get("findings")
+            method = assessment.get("method")
+            substantive = isinstance(findings, str) and bool(findings.strip()) or isinstance(findings, list) and bool(findings) and all(isinstance(f, str) and bool(f.strip()) for f in findings)
+            if assessment.get("status") != "pass" or assessment.get("reviewer_type") != "independent" or assessment.get("human_approved") is not False or not isinstance(method, str) or not method.strip() or not substantive:
+                continue
+            if not isinstance(media, list) or not media or any(not isinstance(m, dict) or not isinstance(m.get("sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", m["sha256"]) for m in media):
+                continue
+            if key not in STATIC_VISUAL_OPERATIONS and (assessment.get("continuous_media") is not True or not any(m.get("kind") == "video" for m in media)):
+                continue
+            valid = True
+        if not valid:
+            errors.append("independent assessment lacks matching operation/cases/media identities/method/findings")
+    else:
+        for case_id in ids:
+            matches = [case for case in entries if case.get("id") == case_id]
+            if len(matches) != 1 or not isinstance(matches[0].get("checks"), dict) or matches[0]["checks"].get(check_name) != "pass":
+                errors.append(f"case {case_id} lacks unique matching operation and passing {check_name}")
+    return errors
 
 
 def required_checks(effect):
@@ -184,7 +243,7 @@ def validate_release(doc, receipt, root, source, receipt_dir):
                     errors.append(f"{key}: public Godot AI route missing")
                 if name == "visual_review":
                     assessment = evidence.get("assessment", {})
-                    if assessment.get("reviewer_type") != "independent" or not assessment.get("continuous_media") or not assessment.get("findings") or assessment.get("human_approved") is True:
+                    if assessment.get("reviewer_type") != "independent" or not assessment.get("findings") or assessment.get("human_approved") is not False:
                         errors.append(f"{key}: independent continuous assessment missing or mislabeled")
                 if name != "visual_review" and not any(rel.startswith("test_project/") or rel.startswith("tools/") for rel in evidence.get("dependencies", {})):
                     errors.append(f"{key}/{ref}: checker/test dependency missing")
@@ -196,6 +255,8 @@ def validate_release(doc, receipt, root, source, receipt_dir):
                             errors.append(f"{key}/{ref}: stale dependency {rel}")
                     except subprocess.CalledProcessError:
                         errors.append(f"{key}/{ref}: missing source dependency {rel}")
+                for binding_error in operation_binding_errors(evidence, key, name, receipt_dir):
+                    errors.append(f"{key}.{name}/{ref}: {binding_error}")
                 artifacts = evidence.get("artifacts", [])
                 if not artifacts:
                     errors.append(f"{key}/{ref}: missing artifacts")
@@ -205,15 +266,34 @@ def validate_release(doc, receipt, root, source, receipt_dir):
     return errors
 
 
+def qualified_audit(doc, receipt, source):
+    """Called only after release validation; historical inventory stays untouched."""
+    result = copy.deepcopy(doc)
+    result["kind"] = "candidate_qualified_operation_audit"
+    result["qualification_source"] = source
+    result["tested_source"] = receipt["tested_source"]
+    for row in result["operations"]:
+        row["historical_status"] = row["status"]
+        row["status"] = "verified"
+        row["qualification"] = "verified"
+        row["qualified_checks"] = receipt["operations"][row["key"]]["checks"]
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source")
     parser.add_argument("--receipt-dir", type=Path)
     parser.add_argument("--inventory", type=Path)
     parser.add_argument("--inventory-only", action="store_true")
+    parser.add_argument("--qualified-output", type=Path, help="Optional derived candidate audit; written only after all release checks pass")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     doc = json.loads((args.inventory or root / "docs/operation-audit.json").read_text(encoding="utf-8-sig"))
+    if args.inventory_only and args.qualified_output:
+        parser.error("qualified output requires release qualification")
+    if args.qualified_output and args.qualified_output.resolve() == (args.inventory or root / "docs/operation-audit.json").resolve():
+        parser.error("qualified output must not overwrite historical inventory")
     if args.inventory_only:
         errors = validate_inventory(doc)
     else:
@@ -224,15 +304,20 @@ def main():
         if not path.is_file():
             print("RELEASE_AUDIT_FAIL: missing operation-qualification.json")
             return 1
-        errors = validate_release(doc, json.loads(path.read_text(encoding="utf-8-sig")), root, source, args.receipt_dir)
+        receipt = json.loads(path.read_text(encoding="utf-8-sig"))
+        errors = validate_release(doc, receipt, root, source, args.receipt_dir)
     for error in errors:
         print("RELEASE_AUDIT_FAIL: " + error)
     if errors:
         return 1
     pending = [r["key"] for r in doc["operations"] if r["status"] != "verified"]
-    print(f"OPERATION_INVENTORY_OK: 103 rows, {len(pending)} historical partial, candidate qualification pending")
-    if not args.inventory_only:
-        print("RELEASE_AUDIT_PASS: exact-source qualification complete")
+    if args.inventory_only:
+        print(f"OPERATION_INVENTORY_OK: 103 rows, {len(pending)} historical partial, candidate qualification pending")
+    else:
+        if args.qualified_output:
+            args.qualified_output.parent.mkdir(parents=True, exist_ok=True)
+            args.qualified_output.write_text(json.dumps(qualified_audit(doc, receipt, source), indent=2) + "\n", encoding="utf-8")
+        print("RELEASE_AUDIT_PASS: 103 candidate operations verified against source " + source)
     return 0
 
 
