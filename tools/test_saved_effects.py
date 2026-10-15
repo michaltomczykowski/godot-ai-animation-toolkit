@@ -9,12 +9,30 @@ class NativeObservations(unittest.TestCase):
         for i in range(720):
             t=i%360
             samples.append({'frame':i+1,'time':(i+1)/60,'take':1 if i<360 else 2,'states':[{'DamageBar':{'value':'80'}},{'DamageBar':{'value':str(80-50*min(t/60,1))}}]})
-        return case, {'operation':case['operation'],'case_id':case['id'],'scenes':case['scenes'],'dependencies_verified':{},'frames':720,'max_delta_error':0,'samples':samples}
+        return case, {'operation':case['operation'],'case_id':case['id'],'scenes':case['scenes'],'dependencies_verified':{},'frames':720,'max_delta_error':0,'engine_errors':[],'samples':samples}
     def test_real_target_and_independent_endpoint_required(self):
         case, report=self.fixture()
         self.assertTrue(check(case, report)['native_observation_pass'])
         report['samples'][-1]['states'][1]['DamageBar']['value']='31'
         self.assertFalse(check(case, report)['native_observation_pass'])
+    def test_engine_error_or_missing_capture_fails_otherwise_green_observation(self):
+        case,report=self.fixture()
+        for errors in ([{'message':'viewport canvas map failure'}],None):
+            report['engine_errors']=errors
+            self.assertFalse(check(case,report)['native_observation_pass'])
+    def test_camera_numbers_cannot_replace_enabled_native_camera_output(self):
+        case,report=self.fixture()
+        case['operation']='animation_fx.zoom_punch';report['operation']=case['operation']
+        for row in report['samples']:
+            row['states']=[{'Camera2D':{'zoom':'(1, 1)'}}, {'Camera2D':{'zoom':f'({1+row["frame"]%20/100}, 1)'}}]
+        report['camera_presentation']='fixed_comparison_frame'
+        report['native_camera_states']=[{'enabled':True,'current':True}]*2
+        self.assertFalse(check(case,report)['native_observation_pass'])
+        report['camera_presentation']='native_camera_static_calibration_grid'
+        report['native_camera_states'][1]={'enabled':False,'current':False}
+        self.assertFalse(check(case,report)['native_observation_pass'])
+        report['native_camera_states'][1]={'enabled':True,'current':True}
+        self.assertTrue(check(case,report)['native_observation_pass'])
     def test_static_target_cannot_borrow_other_progression(self):
         case, report=self.fixture()
         for row in report['samples']:
@@ -43,7 +61,7 @@ class RemainingObservations(unittest.TestCase):
                 'states':[{'Character':{'position':'(0, 0)'}}, {'Character':{'position':f'({redo}, 0)'}}],
                 'players':[{}, {'AnimationPlayer':{'position':min(t,1)}}]})
         return case, {'operation':case['operation'],'case_id':case['id'],'scenes':case['scenes'],
-                      'dependencies_verified':{},'frames':720,'max_delta_error':0,'samples':samples}
+                      'dependencies_verified':{},'frames':720,'max_delta_error':0,'engine_errors':[],'samples':samples}
     def test_native_position_bound_sample_rejects_plausible_wrong_effect(self):
         case,report=self.fixture()
         self.assertTrue(check(case,report)['native_observation_pass'])

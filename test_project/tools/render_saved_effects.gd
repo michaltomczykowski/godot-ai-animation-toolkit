@@ -18,8 +18,41 @@ var _plan_sha := ""
 var _max_delta_error := 0.0
 var _renderer_sha := ""
 var _runtime_failures: Array = []
+var _logger: ErrorCapture
+
+class ErrorCapture extends Logger:
+	var errors: Array = []
+	func _log_error(fn: String, file: String, line: int, code: String, rationale: String, _notify: bool, type: int, _backtraces: Array) -> void:
+		if type != 1:
+			errors.append({"function": fn, "file": file, "line": line,
+				"code": code, "message": rationale, "type": type})
+
+class CalibrationGrid extends Node2D:
+	func _draw() -> void:
+		for index in range(-12, 13):
+			var value := float(index * 50)
+			draw_line(Vector2(value, -600), Vector2(value, 600), Color(0.3, 0.45, 0.55, 0.5), 1.0)
+			draw_line(Vector2(-600, value), Vector2(600, value), Color(0.3, 0.45, 0.55, 0.5), 1.0)
+		draw_line(Vector2(-600, 0), Vector2(600, 0), Color(0.95, 0.55, 0.2), 2.0)
+		draw_line(Vector2(0, -600), Vector2(0, 600), Color(0.95, 0.55, 0.2), 2.0)
+		draw_circle(Vector2.ZERO, 10, Color.WHITE, false, 2.0)
+
+func _native_camera_mode() -> bool:
+	return _case.operation in ["animation_fx.shake", "animation_fx.zoom_punch"]
+
+func _camera_presentation() -> String:
+	return "native_camera_static_calibration_grid" if _native_camera_mode() else "fixed_comparison_frame"
+
+func _camera_states() -> Array:
+	var result: Array = []
+	for fixture in _fixtures:
+		var camera := fixture.get_node_or_null("Camera2D") as Camera2D
+		result.append({"enabled": camera.enabled, "current": camera.is_current()} if camera != null else {})
+	return result
 
 func _initialize() -> void:
+	_logger = ErrorCapture.new()
+	OS.add_logger(_logger)
 	_start.call_deferred()
 
 func _start() -> void:
@@ -66,14 +99,15 @@ func _start() -> void:
 		viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 		viewport.world_2d = World2D.new()
 		viewport.own_world_3d = true
-		viewport.canvas_transform = Transform2D(0.0, Vector2(250, 260))
 		container.add_child(viewport)
+		# The viewport must own its canvas before setting its canvas transform.
+		viewport.canvas_transform = Transform2D(0.0, Vector2(250, 260))
 		_viewports.append(viewport)
 		_load_scene(viewport, state)
 	_caption = Label.new()
 	_caption.size = Vector2(1400, 790)
 	_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_caption.text = _case.operation + "    UNDO reference (left) / REDO result (right)\nDisplay-only cyan markers; fixed framing (camera values observed). Audio output NOT qualified."
+	_caption.text = _case.operation + "    UNDO reference (left) / REDO result (right)\nDisplay-only cyan markers; native camera + static grid for shake/zoom, fixed framing otherwise. Audio output NOT qualified."
 	root.add_child(_caption)
 
 func _load_scene(viewport: SubViewport, state: String) -> void:
@@ -97,7 +131,8 @@ func _load_scene(viewport: SubViewport, state: String) -> void:
 			child.size = Vector2(220, 50) # Unkeyed fixture display extent, both clones.
 	for child in fixture.get_children():
 		if child is Camera2D:
-			child.enabled = false # Stable comparison frame; camera properties still observed.
+			child.enabled = _native_camera_mode()
+			if _native_camera_mode(): child.make_current()
 		if (child is Node2D and not child is Sprite2D and not child is AnimatedSprite2D) or child is Control:
 			var marker := Polygon2D.new()
 			marker.polygon = PackedVector2Array([Vector2(-12,-12),Vector2(12,-12),Vector2(12,12),Vector2(-12,12)])
@@ -120,6 +155,10 @@ func _load_scene(viewport: SubViewport, state: String) -> void:
 		var light := DirectionalLight3D.new()
 		light.rotation_degrees = Vector3(-45, -30, 0)
 		viewport.add_child(light)
+	if _native_camera_mode():
+		var grid := CalibrationGrid.new()
+		grid.z_index = -10
+		viewport.add_child(grid) # Static world calibration; camera alone changes its presentation.
 	_play_saved(fixture, state)
 	var sprite := fixture.get_node_or_null("SheetSprite") as AnimatedSprite2D
 	if _case.operation.ends_with("sprite_frames") and sprite != null and sprite.sprite_frames != null:
@@ -178,7 +217,7 @@ func _process(delta: float) -> bool:
 	_different = _different or states[0] != states[1]
 	if _frames % 1 == 0:
 		_samples.append({"frame": _frames, "time": _elapsed, "take": 2 if _second_take else 1, "states": states, "players": [_player_times(_fixtures[0], "undo"), _player_times(_fixtures[1], "redo")]})
-	_caption.text = _case.operation + "  UNDO (left) / REDO (right)  t=%.2f\nDisplay-only cyan markers; fixed camera framing. Native property changes: %s\nAudio requires separate captured output/event proof.\nUNDO %s\nREDO %s" % [_elapsed, str(_changes), _target_text(states[0]), _target_text(states[1])]
+	_caption.text = _case.operation + "  UNDO (left) / REDO (right)  t=%.2f\nDisplay-only cyan markers; camera presentation: %s. Native property changes: %s\n50-unit static calibration grid for native camera cases. Audio output proof remains separate.\nUNDO %s\nREDO %s" % [_elapsed, _camera_presentation(), str(_changes), _target_text(states[0]), _target_text(states[1])]
 	if not _second_take and _elapsed >= float(_case.take_seconds):
 		_second_take = true
 		for viewport in _viewports:
@@ -191,15 +230,16 @@ func _process(delta: float) -> bool:
 		_load_scene(_viewports[1], "redo")
 	if _elapsed >= float(_case.seconds):
 		var report := {"schema_version": 1, "operation": _case.operation,
-			"case_id": _case.id, "runtime_failures": _runtime_failures, "scenes": _case.scenes, "dependencies_verified": _resource_checks, "samples": _samples,
+			"case_id": _case.id, "runtime_failures": _runtime_failures, "engine_errors": _logger.errors,
+			"camera_presentation": _camera_presentation(), "native_camera_states": _camera_states(), "scenes": _case.scenes, "dependencies_verified": _resource_checks, "samples": _samples,
 			"native_changed_frames": _changes, "observed_difference": _different,
 			"frames": _frames, "elapsed": _elapsed, "plan_sha256": _plan_sha, "renderer_sha256": _renderer_sha, "max_delta_error": _max_delta_error, "engine": Engine.get_version_info(),
-			"status": "observation_only", "semantic_effect_check": "pending",
+			"status": "failed_engine_or_runtime" if not _logger.errors.is_empty() or not _runtime_failures.is_empty() else "observation_only", "semantic_effect_check": "pending",
 			"continuous_visual_assessment": "pending", "audio_output": "pending" if _case.audio_output_required else "not_applicable",
-			"limits": "Difference/progression are observations, not semantic correctness or visual approval. Camera disabled for stable framing; unrelated CanvasItems hidden; unkeyed bar/panel display extents 220x50; Control/Node2D cyan polygons and Node3D rigid cube/camera/light are display-only; showcase framed at0.55; markers are display-only children. Both clones re-instantiated for take2. SpriteFrames explicitly played for review (saved play=false remains documented)."}
+			"limits": "Difference/progression are observations, not semantic correctness or visual approval. Native camera plus static50-unit calibration grid for shake/zoom; other cameras disabled for stable framing; unrelated CanvasItems hidden; unkeyed bar/panel display extents 220x50; Control/Node2D cyan polygons and Node3D rigid cube/camera/light are display-only; showcase framed at0.55; markers are display-only children. Both clones re-instantiated for take2. SpriteFrames explicitly played for review (saved play=false remains documented)."}
 		var file := FileAccess.open(_output, FileAccess.WRITE)
 		file.store_string(JSON.stringify(report, "  "))
-		quit()
+		quit(1 if not _logger.errors.is_empty() or not _runtime_failures.is_empty() else 0)
 	return false
 
 func _target_text(state: Dictionary) -> String:

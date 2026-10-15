@@ -26,6 +26,16 @@ def check(case, report):
     op = case['operation'].split('.')[-1]
     target = TARGETS.get(op) if case['operation'].startswith('animation_fx.') else None
     failures.extend(report.get('runtime_failures', []))
+    errors = report.get('engine_errors')
+    if not isinstance(errors, list) or errors:
+        failures.append('engine errors present or engine-error capture missing')
+    if case['operation'] in ('animation_fx.shake', 'animation_fx.zoom_punch'):
+        if report.get('camera_presentation') != 'native_camera_static_calibration_grid':
+            failures.append('camera effect was not presented through its native camera and calibration grid')
+        cameras = report.get('native_camera_states', [])
+        if len(cameras) != 2 or not all(c.get('enabled') is True and c.get('current') is True for c in cameras):
+            failures.append('both independent native cameras must be enabled and current')
+
     samples = report.get('samples', [])
     expected_frames = case['fps'] * case['seconds']
     if len(samples) < expected_frames - 2 or report.get('frames', 0) < expected_frames - 2:
