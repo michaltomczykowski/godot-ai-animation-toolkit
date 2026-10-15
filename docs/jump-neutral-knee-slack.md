@@ -23,3 +23,14 @@ requires native Player/Tree 120 FPS checks to pass below the unchanged velocity
 bound. This controlled regression is separate from public generation, history,
 saved-scene qualification and independent visual assessment. Private rig assets
 and controlled local scenes remain local.
+
+## Explicit loops and forward skeletal travel
+
+A jump with nonzero `distance` and `root_motion: false` requires
+`loop_mode: none`. Explicit `linear` and `pingpong` requests return typed
+`OPERATION_UNAVAILABLE` before changing clips, poses, extraction bindings or
+undo history, including dry runs and the `cycle` jump alias. Linear playback
+connects different travel endpoints; pingpong reverses the one-shot and walks
+its landing back through flight. A repeating forward-return jump is not a
+supported recipe. Stationary jumps and extracted travel retain their existing
+loop controls.

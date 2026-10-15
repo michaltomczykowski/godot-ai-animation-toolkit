@@ -3607,3 +3607,27 @@ func test_character_setup_tree_extracts_root_motion_without_player_play() -> voi
 		assert_false(rig.player.is_playing(), "AnimationPlayer is not separately playing bones")
 		tree.active = false
 	_teardown(rig)
+
+func test_forward_skeletal_jump_loop_refuses_without_mutation() -> void:
+	var rig := _rig("JumpLoopRefusal")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var nodes := _node_paths(EditorInterface.get_edited_scene_root())
+	var clips := _clip_names(rig.player)
+	var version := _undo_version()
+	var binding: NodePath = rig.player.root_motion_track
+	var poses: Array[Transform3D] = []
+	for i in rig.skeleton.get_bone_count(): poses.append(rig.skeleton.get_bone_pose(i))
+	for operation in ["jump", "cycle"]:
+		for loop in ["linear", "pingpong"]:
+			for dry in [true, false]:
+				var params := {"op":operation,"preset":"jump","player_path":rig.player_path,"skeleton_path":rig.skeleton_path,
+					"animation_name":"refused_loop_jump","distance":0.5,"root_motion":false,"loop_mode":loop,"dry_run":dry}
+				assert_is_error(_handler.run(params,null),ErrorCodes.OPERATION_UNAVAILABLE)
+				assert_eq(_node_paths(EditorInterface.get_edited_scene_root()),nodes,"Refusal adds no nodes")
+				assert_eq(_clip_names(rig.player),clips,"Refusal changes no clips")
+				assert_eq(_undo_version(),version,"Refusal creates no undo action")
+				assert_eq(rig.player.root_motion_track,binding,"Refusal preserves extraction")
+				for i in poses.size(): assert_eq(rig.skeleton.get_bone_pose(i),poses[i],"Refusal preserves pose")
+	_teardown(rig)
