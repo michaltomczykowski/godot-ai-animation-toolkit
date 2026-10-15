@@ -221,6 +221,47 @@ func test_jump_undo_redo_restores_written_jump() -> void:
 	_transition_history("jump", "PublicJumpHistory", "quality_jump")
 
 
+func test_public_setup_bundle_undo_redo() -> void:
+	var scene := EditorInterface.get_edited_scene_root()
+	var marker := scene.get_node_or_null("PublicSetupBundleHistory") if scene != null else null
+	if marker == null:
+		skip("requires external public setup bundle witness")
+		return
+	var player := scene.get_node(marker.get_meta("player_path")) as AnimationPlayer
+	var tree_path: NodePath = marker.get_meta("tree_path")
+	var tree := scene.get_node_or_null(tree_path) as AnimationTree
+	assert_true(player != null and tree != null, "external bundle exists")
+	if player == null or tree == null: return
+	var names: PackedStringArray = marker.get_meta("clip_names")
+	var digests := {}
+	var all_names := player.get_animation_list()
+	for name in names:
+		assert_true(player.has_animation(name), "bundle contains " + name)
+		if not player.has_animation(name): return
+		digests[name] = GoldenDigest.from_animation(player.get_animation(name))
+	var binding := player.root_motion_track
+	var wiring := [tree.anim_player, tree.root_node, tree.root_motion_track, tree.root_motion_local, tree.active, tree.tree_root]
+	assert_true(editor_undo(_undo_redo), "one external Undo succeeds")
+	for name in names: assert_false(player.has_animation(name), "one Undo removes " + name)
+	assert_true(scene.get_node_or_null(tree_path) == null, "one Undo removes whole tree")
+	assert_eq(player.root_motion_track, marker.get_meta("before_root_motion_track"), "Undo restores caller binding")
+	var remaining := all_names.duplicate()
+	for name in names: remaining.remove_at(remaining.find(name))
+	assert_eq(player.get_animation_list(), remaining, "Undo preserves unrelated clips")
+	assert_true(editor_redo(_undo_redo), "one external Redo succeeds")
+	assert_eq(player.get_animation_list(), all_names, "Redo restores whole clip list")
+	for name in names:
+		assert_true(player.has_animation(name), "Redo restores " + name)
+		if player.has_animation(name):
+			var compared := GoldenDigest.compare(GoldenDigest.from_animation(player.get_animation(name)), digests[name])
+			assert_eq(str(compared.shape), "", "Redo restores structure")
+			assert_eq(int(compared.worst), 0, "Redo restores exact keys")
+	tree = scene.get_node_or_null(tree_path) as AnimationTree
+	assert_true(tree != null, "Redo restores tree")
+	if tree != null: assert_eq([tree.anim_player, tree.root_node, tree.root_motion_track, tree.root_motion_local, tree.active, tree.tree_root], wiring, "Redo restores graph and wiring")
+	assert_eq(player.root_motion_track, binding, "Redo restores bundle binding")
+
+
 func _public_turn_setup_history(scene: Node, marker: Node) -> void:
 	# Observe the external public setup transaction; do not author a second one.
 	var player := scene.get_node(marker.get_meta("player_path")) as AnimationPlayer
