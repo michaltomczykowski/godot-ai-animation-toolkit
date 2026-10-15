@@ -23,7 +23,9 @@ $scripts = @(
 	"res://tests/tier1_spine_twist.gd",
 	"res://tests/tier1_root_motion.gd",
 	"res://tests/tier1_proportions.gd",
-	"res://tests/tier1_spine_chain.gd"
+	"res://tests/tier1_spine_chain.gd",
+	"res://tests/tier1_setup_provenance.gd",
+	"res://tests/tier1_motion_space.gd"
 )
 # Import first. A fresh checkout has no .godot/imported, and a suite that loads a
 # real asset (tier1_spec_json reads tests/fixtures/cue.wav) fails on a Resource
