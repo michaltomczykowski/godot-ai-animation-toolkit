@@ -13,6 +13,7 @@ extends RefCounted
 
 const MotionDrivers := preload("res://addons/godot_ai_animation/spec/motion_drivers.gd")
 const TurnPlan := preload("res://addons/godot_ai_animation/spec/motion_turn_plan.gd")
+const JumpPlan := preload("res://addons/godot_ai_animation/spec/motion_jump_plan.gd")
 const SpineTwist := preload("res://addons/godot_ai_animation/spec/spine_twist.gd")
 const ValueCodec := preload("res://addons/godot_ai_animation/utils/value_codec.gd")
 const RigAnalysis := preload("res://addons/godot_ai_animation/spec/rig_analysis.gd")
@@ -1269,7 +1270,7 @@ static func jump_config(style: String, overrides: Dictionary = {}) -> Dictionary
 		"jump_height": 0.5,
 		"jump_crouch": 0.24,
 		"jump_distance": 0.0,
-		"arm_swing": 65.0,
+		"arm_swing": 35.0 if style == "grounded" else 40.0,
 		"elbow": 12.0,
 		"lean": 6.0,
 	}, style, overrides)
@@ -1309,107 +1310,74 @@ static func _dense_phases(phases: Array, length: float, rate: float) -> Array:
 	return dense
 
 
-## A one-shot jump: anticipation crouch, launch, an air arc, landing absorb and
-## recovery. Feet stay planted before takeoff and after landing; in the air the
-## ankles follow the hips. Keys are sparse with `ease_in_out` transitions.
+## A physical one-shot: shared grounded/flight events, reachable pelvis and
+## linear dense keys. The prewrite handler refuses a failed plan or any clamp.
 static func jump_keys(ctx: Dictionary) -> Dictionary:
 	var config: Dictionary = ctx.config
-	var length := maxf(float(ctx.length), 0.01)
-	var height := maxf(float(config.get("jump_height", 0.5)), 0.0)
-	var crouch := maxf(float(config.get("jump_crouch", 0.24)), 0.0)
-	var distance := float(config.get("jump_distance", 0.0))
-	var roles: Dictionary = ctx.roles
-	var hips := str(ctx.get("hips", ""))
-	var forward: Vector3 = ctx.forward
-	var up: Vector3 = ctx.up
 	var signs := _axis_signs(ctx)
-	var lean := float(config.get("lean", 6.0)) * float(signs.lean)
-	var hips_origin: Vector3 = ctx.get("hips_origin", Vector3.ZERO)
+	var plan := JumpPlan.build(ctx, float(signs.lean))
+	if plan.has("error"): return {"keys": {}, "meta": {"reach_error": plan.error}}
+	var hips := str(ctx.get("hips", ""))
 	var hips_rest := _rest_basis(ctx, hips)
 	var keys := {}
-	# The lean ramp over the torso: [spine, chest, head] used to take 0.5/0.4/0.0
-	# of the lean, i.e. 0.9 total with the head left behind.
-	var lean_chain := _twist_chain(ctx, roles)
-	var lean_shares := _ramp_shares(lean_chain, str(roles.get("head", "")), 0.35, 0.5, 0.25)
-	var phases := _dense_phases([
-		{"t": 0.0, "y": 0.0, "air": 0.0, "lean": 0.0, "swing": 0.0, "bend": float(config.get("elbow", 12.0))},
-		{"t": 0.2, "y": -crouch, "air": 0.0, "lean": 0.5, "swing": -0.9, "bend": float(config.get("elbow", 12.0)) + 15.0},
-		{"t": 0.3, "y": -0.08 * crouch, "air": 0.0, "lean": 0.15, "swing": 0.45, "bend": float(config.get("elbow", 12.0)) + 8.0},
-		{"t": 0.47, "y": height, "air": 1.0, "lean": -0.2, "swing": 1.0, "bend": float(config.get("elbow", 12.0)) + 20.0},
-		{"t": 0.62, "y": 0.82 * height, "air": 1.0, "lean": 0.1, "swing": 0.55, "bend": float(config.get("elbow", 12.0)) + 10.0},
-		{"t": 0.74, "y": 0.06 * height, "air": 0.0, "lean": 0.25, "swing": 0.1, "bend": float(config.get("elbow", 12.0)) + 6.0},
-		{"t": 0.84, "y": -0.85 * crouch, "air": 0.0, "lean": 0.55, "swing": -0.5, "bend": float(config.get("elbow", 12.0)) + 18.0},
-		{"t": 1.0, "y": 0.0, "air": 0.0, "lean": 0.0, "swing": 0.0, "bend": float(config.get("elbow", 12.0))},
-	], length, float(ctx.samples))
-	for phase in phases:
-		var time := float(phase.t) * length
-		# Finish horizontal travel in the air, before the landing contact.
-		var travel_share := MotionDrivers.smoothstep(clampf(
-			(float(phase.t) - 0.3) / 0.32, 0.0, 1.0))
-		var travel := forward * (distance * travel_share)
-		var rooted := bool(ctx.get("root_motion", false)) and not is_zero_approx(distance)
-		var offset := up * float(phase.y) + (Vector3.ZERO if rooted else travel)
-		if rooted:
-			_append_position(keys, "__root_motion__", time, travel)
-		var world := Quaternion(ctx.lateral, deg_to_rad(float(phase.lean) * lean))
+	var lean_chain := _twist_chain(ctx, ctx.roles)
+	var lean_shares := _ramp_shares(lean_chain, str(ctx.roles.get("head", "")), 0.35, 0.5, 0.25)
+	var evaluated := 0
+	var clamps := 0
+	var shortfall := 0.0
+	var rooted := bool(ctx.get("root_motion", false)) and not is_zero_approx(float(config.get("jump_distance", 0.0)))
+	for sample: Dictionary in plan.samples:
+		var time := float(sample.time)
+		var world: Quaternion = sample.world
 		var hips_animated := Basis(world) * hips_rest
+		if rooted: _append_position(keys, "__root_motion__", time, sample.travel)
 		if not hips.is_empty():
 			_append_rotation(keys, hips, time, MotionDrivers.rotation_delta(hips_rest, world))
-			_append_hips_position(ctx, keys, hips, time, offset)
+			_append_hips_position(ctx, keys, hips, time, sample.offset)
 		for side in ["l", "r"]:
 			var leg: Dictionary = ctx.legs[side]
-			var hip_pos: Vector3 = hips_origin + offset + Basis(world) * (leg.hip - hips_origin)
-			var ankle_target: Vector3 = leg.ankle + (Vector3.ZERO if rooted else travel)
-			var air_share := float(phase.air)
-			ankle_target += up * (maxf(float(phase.y), 0.0) * 0.55 * air_share)
-			var jump_solved := MotionDrivers.solve_leg(hip_pos, ankle_target,
-				float(leg.upper), float(leg.lower), _rest_bend(ctx, leg, forward))
-			var knee: Vector3 = jump_solved.knee
-			var effective: Vector3 = jump_solved.effective_ankle
+			var hip: Vector3 = ctx.hips_origin + sample.offset + Basis(world) * ((leg.hip as Vector3) - (ctx.hips_origin as Vector3))
+			var solved := MotionDrivers.solve_leg(hip, sample.feet[side], float(leg.upper), float(leg.lower), _rest_bend(ctx, leg, ctx.forward))
+			evaluated += 1
+			if bool(solved.clamped): clamps += 1
+			shortfall = maxf(shortfall, float(solved.shortfall))
 			var thigh_rest := _rest_basis(ctx, leg.thigh)
 			var shin_rest := _rest_basis(ctx, leg.shin)
-			var thigh_solve := MotionDrivers.aim_delta(hips_animated, hips_rest, thigh_rest,
-				(knee - hip_pos).normalized(), (leg.knee as Vector3) - (leg.hip as Vector3))
-			var shin_solve := MotionDrivers.aim_delta(thigh_solve.global, thigh_rest, shin_rest,
-				(effective - knee).normalized(), (leg.ankle as Vector3) - (leg.knee as Vector3))
-			var transition := "ease_in_out" if float(phase.t) < 0.7 else "ease_out"
-			_append_rotation(keys, leg.thigh, time, thigh_solve.delta, transition)
-			_append_rotation(keys, leg.shin, time, shin_solve.delta, transition)
-			var foot_bone := str(leg.get("foot", ""))
-			if not foot_bone.is_empty():
-				var foot_rest := _rest_basis(ctx, foot_bone)
-				var flat := MotionDrivers.hold_global_delta(shin_solve.global, shin_rest, foot_rest, foot_rest)
-				_append_rotation(keys, foot_bone, time, Quaternion.IDENTITY.slerp(flat, 1.0 - air_share), transition)
-		# The lean runs up the whole torso: the lowest bone takes most of it, the
-		# head takes a little, and any extra spine bone joins in - previously only
-		# the spine and chest existed, so a 6-bone spine bent in two places.
-		var lean_degrees := float(phase.lean) * lean
+			var thigh := MotionDrivers.aim_delta(hips_animated, hips_rest, thigh_rest,
+				((solved.knee as Vector3) - hip).normalized(), (leg.knee as Vector3) - (leg.hip as Vector3))
+			var shin := MotionDrivers.aim_delta(thigh.global, thigh_rest, shin_rest,
+				((solved.effective_ankle as Vector3) - (solved.knee as Vector3)).normalized(), (leg.ankle as Vector3) - (leg.knee as Vector3))
+			_append_rotation(keys, leg.thigh, time, thigh.delta)
+			_append_rotation(keys, leg.shin, time, shin.delta)
+			var foot := str(leg.get("foot", ""))
+			if not foot.is_empty():
+				var foot_rest := _rest_basis(ctx, foot)
+				_append_rotation(keys, foot, time, MotionDrivers.hold_global_delta(shin.global, shin_rest, foot_rest, foot_rest))
 		for slot in lean_chain:
 			var bone := str(slot)
-			if bone == hips or bone.is_empty():
-				continue
+			if bone == hips or bone.is_empty(): continue
 			var share := float(lean_shares.get(bone, 0.0))
-			if is_zero_approx(share):
-				continue
-			var bone_world := Quaternion(ctx.lateral, deg_to_rad(lean_degrees * share))
-			_append_rotation(keys, bone, time,
-				MotionDrivers.rotation_delta(_rest_basis(ctx, bone), bone_world), "ease_in_out")
-		var arm_swing := float(phase.swing) * float(config.get("arm_swing", 65.0))
-		_solve_arm_chain(ctx, keys, "l", time, -arm_swing, float(phase.bend), "ease_in_out")
-		_solve_arm_chain(ctx, keys, "r", time, -arm_swing, float(phase.bend), "ease_in_out")
-	var markers := [
-		{"name": "takeoff", "time": 0.3 * length},
-		{"name": "apex", "time": 0.47 * length},
-		{"name": "land", "time": 0.8 * length},
-	]
-	if keys.has("__root_motion__"):
-		(keys["__root_motion__"] as Dictionary)["loop_close"] = false
+			if is_zero_approx(share): continue
+			var desired := Basis(Quaternion(ctx.lateral, deg_to_rad(float(sample.body)*float(config.get("lean", 6.0))*float(signs.lean)*share))) * _rest_basis(ctx, bone)
+			var parent := str(ctx.rest[bone].parent)
+			_append_rotation(keys, bone, time, MotionDrivers.hold_global_delta(_animated_basis(ctx, keys, parent, time), _rest_basis(ctx, parent), _rest_basis(ctx, bone), desired))
+		var swing := float(sample.swing) * float(config.get("arm_swing", 40.0))
+		_solve_arm_chain(ctx, keys, "l", time, -swing, float(sample.bend), "", 0.0, true)
+		_solve_arm_chain(ctx, keys, "r", time, -swing, float(sample.bend), "", 0.0, true)
+	if clamps > 0:
+		return {"keys": {}, "meta": {"reach_error": "Jump leg solve clamped %d/%d targets (maximum shortfall %.6f m); reduce crouch or inspect rig geometry" % [clamps, evaluated, shortfall], "evaluated_leg_samples": evaluated, "clamped_leg_samples": clamps}}
 	_mark_one_shot(keys)
-	return {
-		"keys": keys,
-		"markers": markers,
-		"meta": {"height": height, "crouch": crouch, "distance": distance},
-	}
+	return {"keys": keys, "markers": plan.markers, "meta": {
+		"height": float(config.get("jump_height", 0.5)), "crouch": float(config.get("jump_crouch", 0.24)), "distance": float(config.get("jump_distance", 0.0)),
+		"clamped": false, "clamp_shortfall_m": shortfall, "clamped_leg_samples": clamps,
+		"evaluated_leg_samples": evaluated, "reach_evaluated": evaluated > 0,
+		"pelvis_base_drop_m": plan.pelvis_base_drop_m, "declared_contacts": plan.contacts, "contact_marker_events": plan.marker_events,
+		"gravity_world": plan.gravity_world, "flight_time": plan.flight_time, "takeoff_time": plan.takeoff_time,
+		"apex_time": plan.apex_time, "landing_time": plan.landing_time, "landing_absorb_time": plan.landing_absorb_time, "recovery_end_time": plan.recovery_end_time,
+		"flight_intervals": plan.flight_intervals, "sampling_intervals": plan.sampling_intervals, "effective_samples": plan.effective_samples,
+		"root_motion_requested": bool(ctx.get("root_motion", false)), "root_motion": rooted,
+		"translation_owner": "actor_root" if rooted else "skeleton", "root_rotation_extracted": false,
+	}}
 
 
 ## A one-shot recipe ends somewhere else than it started (a jump lands, a turn
