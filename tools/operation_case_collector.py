@@ -40,6 +40,36 @@ def operation_key(name, params):
     key = family + '.' + str(args.get('op', ''))
     return (key, args) if key in EXPECTED_OPERATIONS else (None, args)
 
+def ci_source_identity(source):
+    """Label the real checkout honestly; never substitute PR head for tested HEAD."""
+    identity={'event_name':os.environ.get('GITHUB_EVENT_NAME'),
+              'github_sha':os.environ.get('GITHUB_SHA'),
+              'run_id':os.environ.get('GITHUB_RUN_ID'),
+              'checkout_sha':source, 'pr_head_sha':None, 'pr_merge_sha':None}
+    event_path=os.environ.get('GITHUB_EVENT_PATH')
+    if event_path:
+        try:
+            payload=json.loads(Path(event_path).read_text(encoding='utf-8'))
+            identity['event_payload_sha256']=sha(event_path)
+            pr=payload.get('pull_request',{})
+            identity['pr_head_sha']=pr.get('head',{}).get('sha')
+            identity['pr_merge_sha']=pr.get('merge_commit_sha')
+        except (OSError,ValueError,TypeError):
+            identity['event_metadata_error']='CI event payload unavailable or invalid'
+    if identity['event_name']=='pull_request' and source==identity['pr_head_sha']:
+        label='pull_request_head'
+    elif identity['event_name']=='pull_request' and identity['pr_head_sha'] and source==identity['github_sha']:
+        label='pull_request_merge_checkout'
+    elif source==identity['github_sha']:
+        label='event_checkout'
+    elif not identity['event_name']:
+        label='local_checkout'
+    else:
+        label='explicit_or_other_checkout'
+    identity['tested_reference']=label
+    return identity
+
+
 def prepare(root, core_root, godot, output):
     root = root.resolve()
     source = git(root, 'rev-parse', 'HEAD')
@@ -66,7 +96,7 @@ def prepare(root, core_root, godot, output):
     if 'tools/operation_case_collector.py' not in deps:
         raise ValueError('collector must be committed in the tested source')
     context = {'schema_version':1, 'kind':'operation_trace_context',
-               'run_id':uuid.uuid4().hex, 'tested_source':source,
+               'run_id':uuid.uuid4().hex, 'tested_source':source, 'ci_source_identity':ci_source_identity(source),
                'platform':actual_platform, 'core_version':core_version,
                'core_commit':core_commit, 'core_qualification':'released' if core_version else 'advisory',
                'engine':engine_raw, 'engine_command':str(godot), 'engine_version_stdout':engine.stdout,
@@ -102,6 +132,7 @@ def _emit(kind, values):
              'time_ns':time.time_ns(), 'execution_ns':time.perf_counter_ns(), 'driver':Path(sys.argv[0]).name, **values}
     with _trace_file.open('a', encoding='utf-8') as f:
         f.write(json.dumps(event, sort_keys=True)+'\n')
+    return event['id']
 
 
 def record_public_call(name, params, response):
@@ -111,7 +142,7 @@ def record_public_call(name, params, response):
         _active_scene = params.get('path', '')
     key, actual_params = operation_key(name, params)
     if key is not None:
-        _emit('public_operation_call', {'operation':key, 'public_tool':name,
+        return _emit('public_operation_call', {'operation':key, 'public_tool':name,
               'request':params, 'params':actual_params, 'response':response,
               'scene':_active_scene, 'route':'public_godot_ai'})
 
@@ -120,7 +151,7 @@ def record_native_result(operation, scene, command, completed):
     """Record the actual completed subprocess, never a caller-supplied pass flag."""
     if not os.environ.get('TOOLKIT_OPERATION_CONTEXT') and not os.environ.get('TOOLKIT_OPERATION_TRACE_DIR'):
         return
-    _emit('native_saved_output', {'operation':operation, 'scene':scene,
+    return _emit('native_saved_output', {'operation':operation, 'scene':scene,
           'command':[str(part) for part in command], 'returncode':completed.returncode,
           'stdout':completed.stdout, 'stderr':completed.stderr, 'route':'native_godot'})
 

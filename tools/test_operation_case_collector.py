@@ -27,8 +27,9 @@ class Collector(unittest.TestCase):
         with patch.object(c,'git',return_value='blob'):
             return c.collect(self.context,self.traces,self.root)
     def test_only_exact_successful_real_operation_claims_invocation(self):
-        c.record_public_call('custom_animation_fx',{'op':'shake'}, {'track_count':1})
+        emitted=c.record_public_call('custom_animation_fx',{'op':'shake'}, {'track_count':1})
         report=self.collect()
+        self.assertEqual(emitted,report['cases'][0]['id'])
         self.assertEqual(report['successful_public_operations'],['animation_fx.shake'])
         self.assertEqual(report['cases'][0]['checks'],{'mcp_invocation':'pass'})
         self.assertNotIn('valid_effect',report['cases'][0]['checks'])
@@ -159,5 +160,17 @@ class Collector(unittest.TestCase):
         self.assertEqual(c.native_checks(event,context)[0],{'playback':'fail'})
         event['operation']='animation_graph.graph_get'
         self.assertEqual(c.native_checks(event,context)[0],{})
+
+    def test_pr_merge_checkout_identity_cannot_be_relabeled_as_branch_head(self):
+        event=self.root/'github-event.json'
+        event.write_text(json.dumps({'pull_request':{'head':{'sha':'head-sha'},'merge_commit_sha':'merge-sha'}}))
+        with patch.dict(os.environ,{'GITHUB_EVENT_NAME':'pull_request','GITHUB_SHA':'merge-sha','GITHUB_EVENT_PATH':str(event)}):
+            merge=c.ci_source_identity('merge-sha')
+            self.assertEqual(merge['checkout_sha'],'merge-sha')
+            self.assertEqual(merge['pr_head_sha'],'head-sha')
+            self.assertEqual(merge['tested_reference'],'pull_request_merge_checkout')
+            head=c.ci_source_identity('head-sha')
+            self.assertEqual(head['tested_reference'],'pull_request_head')
+            self.assertEqual(head['github_sha'],'merge-sha')
 
 if __name__=='__main__':unittest.main()

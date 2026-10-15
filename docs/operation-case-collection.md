@@ -137,3 +137,18 @@ history qualification. Thirteen pure tests include all native contract shapes,
 wrong scenes, engine failures, exact named output/public-origin binding and
 read-operation applicability. No earlier artifact is relabeled with these new
 checks: a new source/context and actual CI execution are required.
+
+## PR source identity and targeted preview integration
+
+`tested_source` always comes from actual `git rev-parse HEAD`. The context now
+also retains CI event SHA, actual checkout SHA, PR head/merge SHAs and a clear
+classification. A synthetic PR merge checkout is never relabeled as branch-head
+execution; event metadata is informational and confers no checks. Final main/tag
+receipts must bind the real final source. If CI intentionally checks out PR head,
+its context will say so while keeping the original GitHub event SHA separately.
+
+`record_public_call` now returns its exact emitted case ID (orNone when disabled
+or unadvertised), without changing public result dictionaries. A targeted
+rendered-preview runner can bind its actual PNG/source-invariance report to that
+single successful public invocation. Preview semantic/file/visual checks are
+not yet inferred by this API; the strict output adapter remains separate work.
