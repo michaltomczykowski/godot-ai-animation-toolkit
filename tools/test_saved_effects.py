@@ -29,4 +29,36 @@ class NativeObservations(unittest.TestCase):
             if mutation=='clock': bad['samples'][20]['frame']=20
             if mutation=='fixed': bad['max_delta_error']=0.01
             self.assertFalse(check(case,bad)['native_observation_pass'],mutation)
+class RemainingObservations(unittest.TestCase):
+    def fixture(self, op='offset'):
+        case={'operation':'animation_edit.'+op,'variant':op,'id':op+':local',
+              'scenes':{'undo':{'sha256':'a'},'redo':{'sha256':'b'}},'dependencies':{},
+              'fps':60,'seconds':12,'take_seconds':6,
+              'require_progression':op!='cleanup','require_visible_difference':op!='cleanup'}
+        samples=[]
+        for i in range(720):
+            t=(i%360+1)/60
+            redo=0 if op=='cleanup' else max(0,min(100*(t-.2),100))
+            samples.append({'frame':i+1,'time':(i+1)/60,'take':1 if i<360 else 2,
+                'states':[{'Character':{'position':'(0, 0)'}}, {'Character':{'position':f'({redo}, 0)'}}],
+                'players':[{}, {'AnimationPlayer':{'position':min(t,1)}}]})
+        return case, {'operation':case['operation'],'case_id':case['id'],'scenes':case['scenes'],
+                      'dependencies_verified':{},'frames':720,'max_delta_error':0,'samples':samples}
+    def test_native_position_bound_sample_rejects_plausible_wrong_effect(self):
+        case,report=self.fixture()
+        self.assertTrue(check(case,report)['native_observation_pass'])
+        for row in report['samples']:
+            row['states'][1]['Character']['position']='(1, 0)' if row['frame']%2 else '(2, 0)'
+        self.assertFalse(check(case,report)['native_observation_pass'])
+    def test_expected_static_cleanup_does_not_require_invented_motion(self):
+        case,report=self.fixture('cleanup')
+        result=check(case,report)
+        self.assertTrue(result['native_observation_pass'])
+        self.assertEqual(result['checks']['take_1_target_progression'],'not_applicable')
+        self.assertEqual(result['visual_assessment'],'pending')
+    def test_missing_required_native_player_cannot_pass_static_case(self):
+        case,report=self.fixture('cleanup')
+        report['runtime_failures']=['Missing required saved player']
+        self.assertFalse(check(case,report)['native_observation_pass'])
+
 if __name__=='__main__': unittest.main()

@@ -2,6 +2,8 @@
 from __future__ import annotations
 import argparse
 import json
+import math
+import re
 from pathlib import Path
 
 # Independent history-case inputs, not values extracted from output animation keys.
@@ -22,7 +24,8 @@ def check(case, report):
     if report.get('scenes') != case['scenes'] or report.get('dependencies_verified') != case['dependencies']:
         failures.append('scene/dependency identity mismatch')
     op = case['operation'].split('.')[-1]
-    target = TARGETS[op]
+    target = TARGETS.get(op) if case['operation'].startswith('animation_fx.') else None
+    failures.extend(report.get('runtime_failures', []))
     samples = report.get('samples', [])
     expected_frames = case['fps'] * case['seconds']
     if len(samples) < expected_frames - 2 or report.get('frames', 0) < expected_frames - 2:
@@ -42,19 +45,19 @@ def check(case, report):
         if any(len(r.get('states', [])) != 2 for r in rows):
             failures.append(f'take {take}: missing independently played clone')
             continue
-        redo = [r['states'][1].get(target, {}) for r in rows]
-        undo = [r['states'][0].get(target, {}) for r in rows]
+        redo = [r['states'][1].get(target, {}) if target else r['states'][1] for r in rows]
+        undo = [r['states'][0].get(target, {}) if target else r['states'][0] for r in rows]
         if not all(redo) or not all(undo):
             failures.append(f'take {take}: missing target state')
             continue
         changed = len({json.dumps(s, sort_keys=True) for s in redo}) > 1
         different = any(a != b for a, b in zip(redo, undo))
-        if not changed:
+        if not changed and case.get('require_progression', True):
             failures.append(f'take {take}: intended target never progressed')
-        if not different:
+        if not different and case.get('require_visible_difference', True):
             failures.append(f'take {take}: no changed effect relative to undo')
-        checks[f'take_{take}_target_progression'] = 'pass' if changed else 'fail'
-        checks[f'take_{take}_changed_effect'] = 'pass' if different else 'fail'
+        checks[f'take_{take}_target_progression'] = 'pass' if changed else 'not_applicable' if not case.get('require_progression', True) else 'fail'
+        checks[f'take_{take}_changed_effect'] = 'pass' if different else 'not_applicable' if not case.get('require_visible_difference', True) else 'fail'
         if op in ENDPOINTS:
             node, prop, expected = ENDPOINTS[op]
             try:
@@ -71,11 +74,85 @@ def check(case, report):
             checks[f'take_{take}_four_native_cells'] = 'pass' if okay else 'fail'
             if not okay:
                 failures.append(f'take {take}: did not observe all four native cells')
+        if not target:
+            for n, expected in enumerate(expected_samples(case)):
+                at, node, prop, value = expected
+                candidates = [r for r in rows if 'AnimationPlayer' in r.get('players', [{},{}])[1]]
+                best = min(candidates, key=lambda r: abs(r['players'][1]['AnimationPlayer']['position'] - at)) if candidates else None
+                actual_time = best['players'][1]['AnimationPlayer']['position'] if best else -1
+                actual = best['states'][1].get(node, {}).get(prop.split(':')[0]) if best else None
+                okay = abs(actual_time - at) < 0.002 and matches(actual, prop, value)
+                checks[f'take_{take}_independent_sample_{n}'] = 'pass' if okay else 'fail'
+                if not okay:
+                    failures.append(f'take {take}: {node}:{prop} at native {at}: expected {value}, got {actual} at {actual_time}')
     return {'schema_version': 1, 'operation': case['operation'], 'case_id': case['id'],
             'checks': checks, 'failures': failures, 'native_observation_pass': not failures,
             'semantic_endpoints': 'checked' if op in ENDPOINTS else 'not_comprehensive',
             'visual_assessment': 'pending', 'audio_output': 'pending' if op == 'audio_cue' else 'not_applicable',
             'qualification': 'pending', 'human_review': 'waived_not_approved'}
+
+# Independent historical saved-playback expectations. These are not read from
+# output animation keys and are checked against native mixer position, not an
+# assumed frame-to-player ordering. Original reference scripts remain preserved.
+EDIT_EXPECTED = {
+ 'retime':[(.25,'Character','position:x',50)],
+ 'reverse':[(.25,'Character','position:x',75)],
+ 'mirror':[(.5,'Character','position:x',-50)],
+ 'trim':[(.3,'Character','position:x',50)],
+ 'amplitude':[(.5,'Character','position:x',25)],
+ 'resample':[(.25,'Character','position:x',25),(.75,'Character','position:x',75)],
+ 'reduce':[(.25,'Character','position:x',25),(.75,'Character','position:x',75)],
+ 'loop':[(.25,'Character','position:x',25),(.75,'Character','position:x',75)],
+ 'layer':[(.5,'Character','position:x',90)],
+ 'offset':[(.5,'Character','position:x',30)],
+ 'key_edit':[(.5,'Character','position:x',15)],
+ 'overlap':[(.5,'Character','position:x',40)],
+ 'retarget':[(.5,'OtherCharacter','position:x',50),(.5,'Character','position:x',0)],
+ 'ease_range':[(.25,'Character','position:x',6.25),(.5,'Character','position:x',25)],
+ 'set_interp':[(.75,'Character','position:x',0)],
+ 'split_at':[(.25,'Character','position:x',75)],
+ 'split_head':[(.25,'Character','position:x',25)],
+ 'merge':[(.5,'Character','position:x',50),(1.5,'Character','position:x',100)],
+ 'cleanup':[(.5,'Character','position:x',0)],
+ 'smooth':[(.5,'Character','position:y',-40)],
+ # Exact t0 noise keys need a separate pre-advance native sample, intentionally
+ # not inferred from a later frame. General trajectory review stays applicable.
+ 'add_noise':[],
+}
+PRESET_EXPECTED = {
+ 'pulse':[(.5,'Target3D','scale',[1.4,1.4,1.4])],
+ 'bounce':[(.35,'Widget','scale',[2.4,2.4])],
+ 'template_preset':[(.35,'Widget','scale',[2.4,2.4])],
+ 'orbit':[(.25,'Target3D','position',[2,3,6])],
+ 'sweep':[(.25,'Widget','rotation',math.pi/2)],
+ 'drift':[(.5,'Target3D','position',[4,3,4])],
+ 'spin':[(.25,'Target3D','quaternion',[0,math.sqrt(.5),0,math.sqrt(.5)])],
+ 'float':[(.5,'Target3D','position',[2,4,4]),(.5,'Target3D','scale',[1.25,1.25,1.25])],
+ 'stagger':[(.5,'Widget','modulate:a',.75),(.5,'OtherWidget','modulate:a',.51)],
+ 'template_fx':[(.5,'Widget','modulate',[1,0,0,1])],
+ 'spec_apply':[(.5,'Widget','position:x',20)],
+ 'showcase':[],
+}
+
+def expected_samples(case):
+    table = EDIT_EXPECTED if case['operation'].startswith('animation_edit.') else PRESET_EXPECTED
+    return table[case['variant']]
+
+def matches(actual, prop, expected):
+    if actual is None:
+        return False
+    try:
+        values = [float(v) for v in re.findall(r'[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?', str(actual))]
+        if ':' in prop:
+            axis = prop.split(':')[1]
+            index = {'x':0,'y':1,'z':2,'a':3}[axis]
+            values = [values[index]]
+        expected = expected if isinstance(expected,list) else [expected]
+        if prop == 'quaternion':
+            return len(values) == 4 and abs(abs(sum(a*b for a,b in zip(values,expected)))-1) < .002
+        return len(values) == len(expected) and all(abs(a-b)<.02 for a,b in zip(values,expected))
+    except (ValueError, IndexError):
+        return False
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)

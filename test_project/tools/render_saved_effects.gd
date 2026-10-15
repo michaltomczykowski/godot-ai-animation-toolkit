@@ -17,6 +17,7 @@ var _resource_checks := {}
 var _plan_sha := ""
 var _max_delta_error := 0.0
 var _renderer_sha := ""
+var _runtime_failures: Array = []
 
 func _initialize() -> void:
 	_start.call_deferred()
@@ -64,6 +65,7 @@ func _start() -> void:
 		viewport.size = Vector2i(700, 640)
 		viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 		viewport.world_2d = World2D.new()
+		viewport.own_world_3d = true
 		viewport.canvas_transform = Transform2D(0.0, Vector2(250, 260))
 		container.add_child(viewport)
 		_viewports.append(viewport)
@@ -84,6 +86,10 @@ func _load_scene(viewport: SubViewport, state: String) -> void:
 	var fixture := scene.get_node(NodePath(_case.fixture))
 	_fixtures.append(fixture)
 	var targets: Array = _case.targets
+	if _case.get("display_mode", "") == "showcase":
+		viewport.canvas_transform = Transform2D(0.0, Vector2(0.55, 0.55), 0.0, Vector2(0, 100))
+		_play_saved(fixture, state)
+		return
 	for child in fixture.get_children():
 		if child is CanvasItem and str(child.name) not in targets and not child is Camera2D:
 			child.visible = false # Display isolation; all native tracks still play.
@@ -92,29 +98,70 @@ func _load_scene(viewport: SubViewport, state: String) -> void:
 	for child in fixture.get_children():
 		if child is Camera2D:
 			child.enabled = false # Stable comparison frame; camera properties still observed.
-		if child is Node2D and not child is Sprite2D and not child is AnimatedSprite2D:
+		if (child is Node2D and not child is Sprite2D and not child is AnimatedSprite2D) or child is Control:
 			var marker := Polygon2D.new()
 			marker.polygon = PackedVector2Array([Vector2(-12,-12),Vector2(12,-12),Vector2(12,12),Vector2(-12,12)])
 			marker.color = Color(0.2,0.8,0.9,0.7)
 			child.add_child(marker) # Display-only child follows real saved transform.
-	var player := fixture.get_node_or_null(NodePath(_case.player)) as AnimationPlayer
-	if player != null:
-		player.stop()
-		if player.has_animation(_case.clip):
-			player.play(_case.clip)
+	for child in fixture.get_children():
+		if child is Node3D and str(child.name) in targets:
+			var marker := MeshInstance3D.new()
+			marker.mesh = BoxMesh.new()
+			var material := StandardMaterial3D.new()
+			material.albedo_color = Color(0.2, 0.8, 0.9)
+			marker.material_override = material
+			child.add_child(marker) # Display-only rigid geometry, no pose/key writer.
+	if fixture.get_node_or_null("Target3D") != null:
+		var camera := Camera3D.new()
+		viewport.add_child(camera)
+		camera.position = Vector3(9, 9, 16)
+		camera.look_at(Vector3(2, 3, 4))
+		camera.current = true
+		var light := DirectionalLight3D.new()
+		light.rotation_degrees = Vector3(-45, -30, 0)
+		viewport.add_child(light)
+	_play_saved(fixture, state)
 	var sprite := fixture.get_node_or_null("SheetSprite") as AnimatedSprite2D
 	if _case.operation.ends_with("sprite_frames") and sprite != null and sprite.sprite_frames != null:
 		if sprite.sprite_frames.has_animation(_case.clip):
 			sprite.play(_case.clip) # Native process clock; never assign frame.
 
+func _play_saved(fixture: Node, state: String) -> void:
+	if _case.operation == "animation_fx.sprite_frames": return
+	var playbacks: Array = _case.get("playbacks", [{"player": _case.player, "undo_clip": _case.clip, "redo_clip": _case.clip}])
+	for playback in playbacks:
+		var player := fixture.get_node_or_null(NodePath(playback.player)) as AnimationPlayer
+		var clip := str(playback[state + "_clip"])
+		if player == null:
+			if state == "redo": _runtime_failures.append("Missing required saved player: " + str(playback.player))
+			continue
+		player.stop()
+		if player.has_animation(clip): player.play(clip)
+		elif state == "redo": _runtime_failures.append("Missing required saved clip: " + clip)
+
+func _player_times(fixture: Node, state: String) -> Dictionary:
+	var result := {}
+	var playbacks: Array = _case.get("playbacks", [{"player": _case.player, "undo_clip": _case.clip, "redo_clip": _case.clip}])
+	for playback in playbacks:
+		var player := fixture.get_node_or_null(NodePath(playback.player)) as AnimationPlayer
+		if player != null:
+			result[str(playback.player)] = {"clip": playback[state + "_clip"],
+				"position": player.current_animation_position if not player.current_animation.is_empty() else 0.0,
+				"playing": player.is_playing()}
+	return result
+
 func _state(fixture: Node) -> Dictionary:
 	var result := {}
-	for child in fixture.get_children():
+	for path in _case.targets:
+		var child := fixture.get_node_or_null(NodePath(path))
+		if child == null:
+			result[path] = {}
+			continue
 		var props := {}
 		for property in child.get_property_list():
-			if str(property.name) in ["position", "rotation", "scale", "zoom", "modulate", "color", "text", "value", "visible_characters", "frame", "playing"]:
+			if str(property.name) in ["position", "rotation", "quaternion", "scale", "zoom", "modulate", "color", "text", "value", "visible_characters", "frame", "playing"]:
 				props[str(property.name)] = str(child.get(property.name))
-		result[str(child.name)] = props
+		result[path] = props
 	return result
 
 func _process(delta: float) -> bool:
@@ -130,7 +177,7 @@ func _process(delta: float) -> bool:
 	_last = states
 	_different = _different or states[0] != states[1]
 	if _frames % 1 == 0:
-		_samples.append({"frame": _frames, "time": _elapsed, "take": 2 if _second_take else 1, "states": states})
+		_samples.append({"frame": _frames, "time": _elapsed, "take": 2 if _second_take else 1, "states": states, "players": [_player_times(_fixtures[0], "undo"), _player_times(_fixtures[1], "redo")]})
 	_caption.text = _case.operation + "  UNDO (left) / REDO (right)  t=%.2f\nDisplay-only cyan markers; fixed camera framing. Native property changes: %s\nAudio requires separate captured output/event proof.\nUNDO %s\nREDO %s" % [_elapsed, str(_changes), _target_text(states[0]), _target_text(states[1])]
 	if not _second_take and _elapsed >= float(_case.take_seconds):
 		_second_take = true
@@ -144,12 +191,12 @@ func _process(delta: float) -> bool:
 		_load_scene(_viewports[1], "redo")
 	if _elapsed >= float(_case.seconds):
 		var report := {"schema_version": 1, "operation": _case.operation,
-			"case_id": _case.id, "scenes": _case.scenes, "dependencies_verified": _resource_checks, "samples": _samples,
+			"case_id": _case.id, "runtime_failures": _runtime_failures, "scenes": _case.scenes, "dependencies_verified": _resource_checks, "samples": _samples,
 			"native_changed_frames": _changes, "observed_difference": _different,
 			"frames": _frames, "elapsed": _elapsed, "plan_sha256": _plan_sha, "renderer_sha256": _renderer_sha, "max_delta_error": _max_delta_error, "engine": Engine.get_version_info(),
 			"status": "observation_only", "semantic_effect_check": "pending",
 			"continuous_visual_assessment": "pending", "audio_output": "pending" if _case.audio_output_required else "not_applicable",
-			"limits": "Difference/progression are observations, not semantic correctness or visual approval. Camera disabled for stable framing; unrelated CanvasItems hidden; unkeyed bar/panel display extents 220x50; markers are display-only children. Both clones re-instantiated for take2. SpriteFrames explicitly played for review (saved play=false remains documented)."}
+			"limits": "Difference/progression are observations, not semantic correctness or visual approval. Camera disabled for stable framing; unrelated CanvasItems hidden; unkeyed bar/panel display extents 220x50; Control/Node2D cyan polygons and Node3D rigid cube/camera/light are display-only; showcase framed at0.55; markers are display-only children. Both clones re-instantiated for take2. SpriteFrames explicitly played for review (saved play=false remains documented)."}
 		var file := FileAccess.open(_output, FileAccess.WRITE)
 		file.store_string(JSON.stringify(report, "  "))
 		quit()
