@@ -15995,7 +15995,7 @@
           "status": "pending"
         }
       },
-      "claimed_effect": "Generic entry point: build the walk, run or idle cycle, or a one-shot skeletal turn, with the same parameters and heading ownership as the dedicated op.",
+      "claimed_effect": "Generic entry point for walk/run/idle/strafe loops or jump/turn one-shots; identical timing, contacts and ownership to the dedicated op.",
       "effect_kind": "scene_write",
       "evidence": [
         "2026-09-30: live Godot AI MCP on imported dummy, mcp_motion_remaining_first.log run 20260930_170226. Dry run left no clip; write/save/forced reopen retained resolved bone tracks; missing skeleton returned typed NODE_NOT_FOUND. Godot 4.7.2 check_motion_remaining_runtime.gd played the saved clip and matched every sampled bone track at an authored key. Contact, loop seam, independent rigs, editor undo, visual review and Linux remain.",

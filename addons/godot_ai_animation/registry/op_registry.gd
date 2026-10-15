@@ -1922,8 +1922,8 @@ static func _motion_schema() -> Dictionary:
 			},
 			"preset": {
 				"type": "string",
-				"enum": ["walk", "run", "idle", "turn"],
-				"description": "cycle: walk, run or idle loop, or a one-shot skeletal turn (walk). Turn uses angle/direction/steps and the same ownership contract as turn_cycle.",
+				"enum": ["walk", "run", "idle", "turn", "strafe", "jump"],
+				"description": "cycle: walk/run/idle/strafe loops or jump/turn one-shots. Dedicated-op timing, contact and ownership contracts apply.",
 			},
 			"player_path": {
 				"type": "string",
@@ -1939,7 +1939,7 @@ static func _motion_schema() -> Dictionary:
 			},
 			"duration": {
 				"type": "number",
-				"description": "Seconds per cycle. Omitted: idle_cycle/cycle preset=idle use 3 s; run chooses rig-relative cadence (0.6-1.5 s); other motion defaults remain 1 s. Explicit duration wins.",
+				"description": "Seconds per clip. Omitted: idle 3s; run rig-relative cadence (0.6-1.5s); jump max(1s, ballistic flight/0.55); turn scales with stages; walk/strafe/start-stop 1s. Explicit duration is honored or refused with a typed error.",
 			},
 			"style": {
 				"type": "string",
@@ -1981,11 +1981,11 @@ static func _motion_schema() -> Dictionary:
 			},
 			"height": {
 				"type": "number",
-				"description": "jump: apex height in metres (0.5).",
+				"description": "jump: apex height in metres; omitted scales to the measured rig.",
 			},
 			"crouch": {
 				"type": "number",
-				"description": "jump: anticipation/landing crouch depth in metres (0.24).",
+				"description": "jump: anticipation/landing crouch depth in metres; omitted scales to the measured rig.",
 			},
 			"distance": {
 				"type": "number",
@@ -2162,8 +2162,8 @@ static func _motion_ops() -> Array:
 		},
 		{
 			"name": "cycle",
-			"summary": "Generic entry point: build the walk, run or idle cycle, or a one-shot skeletal turn, with the same parameters and heading ownership as the dedicated op.",
-			"params": ["preset"] + gait_params + ["amplitude", "head_amplitude", "angle", "direction", "steps"],
+			"summary": "Generic entry point for walk/run/idle/strafe loops or jump/turn one-shots; identical timing, contacts and ownership to the dedicated op.",
+			"params": ["preset"] + gait_params + ["amplitude", "head_amplitude", "angle", "direction", "steps", "height", "crouch", "distance"],
 			"example": {"op": "cycle", "preset": "run", "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D", "animation_name": "run", "duration": 0.6, "loop_mode": "linear"},
 		},
 		{

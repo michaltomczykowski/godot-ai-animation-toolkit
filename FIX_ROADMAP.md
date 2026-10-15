@@ -1,5 +1,33 @@
 # Animation Toolkit repair roadmap
 
+## Native jump regression and release evidence checkpoint (2026-10-15)
+
+Integrated the2.5% measured neutral knee slack repair without changing the strict
+10 leg-lengths/s whole-bone limit. Controlled native study:400 plays across four
+rigs/five styles/two ownership modes/five frame rates/two mixers pass. New
+automatically discovered editor regression exercises60 native plays on the
+three public fixtures; full integrated suite and fresh public jump r002 remain.
+Preserved r001 failures. Explicit looping forward skeletal jumps also show an
+unsupported backward return across the wrap; a narrow contextual refusal is
+being checked before the next source freeze.
+
+Strafe80 public/480 native cases and24 positive/168 negative controls pass.
+Responsive-left/extracted continuous comparison has a scoped independent pass;
+other representative directions/styles/ownership media remain pending. All
+eight baseline movies are complete. Cycle discovery now exposes the handler's
+existing strafe/jump aliases; duration/rig-relative jump defaults are documented.
+Alias public parity still requires a fresh editor proof.
+
+CI38766797604 passed all required Windows/Linux released-core matrix cells.
+The newer38769129375 passed all four public-route cells but timed out in one
+Linux4.3.0 clean-install history job; retain the failure and add phase diagnostics.
+Four actual traces record102/103 successful operation invocations,1093 cases
+each; preview is correctly unavailable in headless mode. Trace tested source
+64f8c0780f7f07779d46a386a8d872f0c07ebadd is the synthetic PR merge checkout.
+Do not relabel it as branch5466b7c. Successful rendered preview, exact-case
+history/native adapters, remaining-family visual assessment, final-source gates
+and publication remain open. Source/scenes/media are preserved locally on E:.
+
 ## Strafe/jump repair in progress (2026-10-15)
 
 Actual strafe candidate source44089be: all80 public dry/history/save/reopen clips

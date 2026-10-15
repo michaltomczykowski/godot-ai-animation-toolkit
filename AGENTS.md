@@ -1,5 +1,28 @@
 # Agent notes
 
+## Current release checkpoint (2026-10-15, late session)
+
+No root-owned Godot editor or render is running at this checkpoint. Launch a
+fresh visible Godot4.7.2 on the E: validation project for new public proofs.
+All eight baseline movies are complete. Strafe candidate80 public clips and
+480 native plays pass; independent Responsive-left/extracted visual assessment
+is scoped in docs/strafe-responsive-visual-assessment.md. Other visual cases remain.
+Jump r001's40 forward public scenes are preserved with their failed strict
+native checks. The2.5% measured neutral knee slack fix passes400 controlled
+native plays; new editor regression covers60 public-fixture native plays.
+Fresh public stationary/forward r002 generation and480 plays are next.
+
+CI38766797604 (head43f627f) passed the full Windows/Linux matrix, including
+released-core ZIP installs. CI38769129375 (head5466b7c) has one clean Linux4.3.0
+history timeout; all four MCP jobs pass. Actual trace source64f8c0780f7f07779d46a386a8d872f0c07ebadd
+is the PR merge checkout, not branch5466b7c. Each trace records102 successful
+operations/1093 cases; rendered preview remains unqualified by headless CI.
+Do not infer successful preview or per-operation history from suite totals.
+
+Workers own isolated timeout/actual-case adapters, graph saved-scene rendering,
+and jump loop refusal/native regression. Root owns live editor/public/render
+queue. No release, merge or tag yet; keep receipts and failed attempts intact.
+
 ## Current motion integration (2026-10-15)
 
 All eight Responsive baseline clean movies are complete under E:/GodotAI-toolkit-
