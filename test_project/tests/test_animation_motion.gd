@@ -808,9 +808,14 @@ func test_one_shot_recipes_keep_their_endpoint_when_looping() -> void:
 	var turn := _handler.run({
 		"op": "turn_cycle", "skeleton_path": rig.skeleton_path,
 		"player_path": rig.player_path, "animation_name": "turn_looped",
-		"duration": 0.6, "angle": 90, "loop_mode": "linear",
+		"duration": 0.6, "angle": 90, "loop_mode": "pingpong",
 	}, null)
 	assert_true(turn.has("data"), "turn builds: %s" % str(turn))
+	if not turn.has("data"):
+		_teardown(rig)
+		return
+	# Reversing playback is supported and must retain the authored heading.
+	# Linear turn looping is separately required to refuse atomically.
 	var turn_anim: Animation = rig.player.get_animation("turn_looped")
 	var turn_hips := _track_index(turn_anim, ":B-hips", Animation.TYPE_ROTATION_3D)
 	var turn_first: Quaternion = turn_anim.track_get_key_value(turn_hips, 0)
@@ -2565,7 +2570,8 @@ func test_generator_contract_key_times_speeds_and_determinism() -> void:
 		var name := str((recipe as Dictionary)["animation_name"])
 		var params: Dictionary = {
 			"skeleton_path": rig.skeleton_path, "player_path": rig.player_path,
-			"duration": duration, "samples": rate, "loop_mode": "linear",
+			"duration": duration, "samples": rate,
+			"loop_mode": "linear" if bool((recipe as Dictionary).get("looped", false)) else "none",
 		}
 		# An implicit-speed run now keeps its ground speed when duration changes;
 		# the old 1.6 s shared test duration would ask this rig for an unreachable
