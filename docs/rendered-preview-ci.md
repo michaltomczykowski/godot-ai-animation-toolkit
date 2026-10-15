@@ -24,8 +24,11 @@ successful `public_case_id`, `context_sha256`, operation, actual editor command,
 images, restoration snapshots and logs. All referenced files reside beneath
 the artifact root. The operation collector must be committed in the candidate
 before running; a pending job or partial trace does not qualify the operation.
-Root wires release gating after the real jobs have passed. Windows GPU proof
-and independent visual assessment remain separate required evidence.
+CI calls this reusable workflow on the same candidate and waits for both
+released-core jobs. Main/tag gates download only artifacts from that workflow
+run and verify them through the strict preview adapter, exact source SHA and
+full canonical Git dependency set. No latest-workflow lookup is used. Windows
+GPU proof and independent visual assessment remain separate required evidence.
 
 Immediate serialized scene and timeline checkpoints bracket the successful
 preview; additional checkpoints follow dry/missing-clip/overwrite refusals.

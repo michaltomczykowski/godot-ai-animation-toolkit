@@ -12,6 +12,9 @@ env:
   CORE_REF: "bfc264200584ea5823f18356acb164781f57796d"
 
 jobs:
+  rendered-preview:
+    uses: ./.github/workflows/rendered-preview.yml
+
   tier1:
     name: Tier 1 / ${{ matrix.os }} / ${{ matrix.script }}
     runs-on: ${{ matrix.os }}
@@ -362,7 +365,7 @@ jobs:
   release-gate:
     # Repair PRs may retain honest pending evidence. Main and tags must close it.
     if: github.event_name == 'push'
-    needs: [tier1, editor-suite, mcp-route, version-check, package, clean-install, dependency-controls]
+    needs: [tier1, editor-suite, mcp-route, version-check, package, clean-install, dependency-controls, rendered-preview]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -371,6 +374,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Install decoded rendered-evidence validator dependency
+        run: python -m pip install Pillow==11.3.0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: rendered-preview-linux-core-*
+          path: rendered-preview-matrix
+      - name: Verify both exact-run rendered preview receipts
+        run: python tools/check_rendered_preview_matrix.py --source "$GITHUB_SHA" --receipts rendered-preview-matrix
       - uses: actions/download-artifact@v4
         with:
           pattern: clean-install-*
@@ -398,8 +409,14 @@ jobs:
           path: dist
       - name: Verify package before publication
         run: python tools/validate_release_package.py --source "$GITHUB_SHA" --zip "dist/godot-ai-animation-toolkit-${GITHUB_REF_NAME#v}.zip" --version "${GITHUB_REF_NAME#v}"
+      - name: Require tag to identify freshly fetched remote main
+        run: |
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/main)"
       - name: Publish ZIP, checksum and source manifest with curated notes
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "$GITHUB_REF_NAME" --notes-file docs/releases/2.0.0.md
+          archive="dist/godot-ai-animation-toolkit-${GITHUB_REF_NAME#v}.zip"
+          gh release create "$GITHUB_REF_NAME" "$archive" "$archive.manifest.json" "$archive.sha256" --verify-tag --title "$GITHUB_REF_NAME" --notes-file docs/releases/2.0.0.md
