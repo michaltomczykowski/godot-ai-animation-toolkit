@@ -54,6 +54,24 @@ func test_rotated_nested_uniform_world_metrics_and_native_root() -> void:
 				assert_true(absf((view.parent.global_basis*authored).length()-0.2)<0.00001,"authored jump world distance")
 			view.parent.get_parent().remove_child(view.parent)
 			view.parent.free()
+func test_transition_schedule_declares_skeleton_coordinates() -> void:
+	var view := _fixture("res://repair_synthetic_short.tscn",2.0)
+	var args: Dictionary = view.args.duplicate(true)
+	args.merge({"op":"walk_start","animation_name":"schedule_start","duration":0.8,"root_motion":true},true)
+	var result := handler.run(args,null)
+	assert_true(result.has("data"),"transformed transition builds: "+str(result))
+	if result.has("data"):
+		assert_eq(result.data.actor_translation_space,"skeleton_local","schedule space is truthful")
+		assert_true(absf(float(result.data.actor_translation_world_scale)-2.0)<0.000001,"schedule declares effective world scale")
+		var schedule: Array = result.data.actor_translation_keys
+		var last: Array = schedule[-1].offset
+		var schedule_world: Vector3 = view.skeleton.global_basis*Vector3(float(last[0]),float(last[1]),float(last[2]))
+		var clip: Animation = view.player.get_animation("schedule_start")
+		var track: int = clip.find_track(view.player.root_motion_track,Animation.TYPE_POSITION_3D)
+		var authored: Vector3 = clip.track_get_key_value(track,clip.track_get_key_count(track)-1)-clip.track_get_key_value(track,0)
+		assert_true((view.parent.global_basis*authored).distance_to(schedule_world)<0.00001,"skeleton schedule converts to the actual owner-parent root track")
+	view.parent.get_parent().remove_child(view.parent)
+	view.parent.free()
 func test_unsupported_transform_refuses_before_scene_history_changes() -> void:
 	var view := _fixture("res://repair_synthetic_short.tscn",1.0)
 	var parent: Node3D = view.parent

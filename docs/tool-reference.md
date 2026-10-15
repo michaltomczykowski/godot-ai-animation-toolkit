@@ -665,9 +665,11 @@ How motion is generated:
   `gait_duration` (1 s) / `gait_samples` (60/s) describe the walk being joined.
   The standing endpoint is the selected style's ordinary idle at phase zero.
   Boundary windows continue the reference motion. `actor_translation_keys`
-  reports `{time, offset: [x,y,z]}` in `root_motion_node_local` space. For an
-  in-place clip, one gameplay parent supplies that trajectory through linear
-  interpolation; extracted clips use one root-motion consumer instead.
+  reports `{time, offset: [x,y,z]}` in `skeleton_local` space, with
+  `actor_translation_world_scale` identifying the effective uniform world scale.
+  For an in-place clip, transform offsets through the skeleton world basis and
+  let one gameplay parent supply that trajectory through linear interpolation;
+  extracted clips use one root-motion consumer instead.
   `declared_contacts` reports intended support intervals. Simultaneous marker
   cues share a `+`-joined name, preserving `settled` at `capture_duration`.
   Long or fast transfers that exceed reachable support geometry return

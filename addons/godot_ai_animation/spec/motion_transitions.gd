@@ -240,5 +240,6 @@ static func build(ctx: Dictionary, stopping: bool, gait: Dictionary, idle: Dicti
 		"body_reaction_strength": reaction.strength, "body_reaction_features": reaction.applied,
 		"body_reaction_omitted": reaction.omitted,
 		"declared_contacts": contacts,
-		"actor_translation_keys": actor_keys, "actor_translation_space": "root_motion_node_local",
+		"actor_translation_keys": actor_keys, "actor_translation_space": "skeleton_local",
+		"actor_translation_world_scale": float(ctx.get("world_scale", 1.0)),
 		"actor_translation_owner": "root_extraction_consumer" if bool(ctx.root_motion) else "gameplay_parent"}}

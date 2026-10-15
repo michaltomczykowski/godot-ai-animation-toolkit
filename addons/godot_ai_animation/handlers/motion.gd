@@ -772,6 +772,9 @@ static func _setup_plans(params: Dictionary) -> Dictionary:
 			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'%s' must be >= 0" % field)
 	if params.has("speed") and params.has("run_speed") and float(params.run_speed) <= float(params.speed):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "character_setup needs speed < run_speed")
+	if bool(params.get("include_jump", false)) and not bool(params.get("root_motion", true)) and float(params.get("distance", 0.0)) != 0.0:
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
+			"An in-place setup cannot preserve forward jump displacement when its OneShot returns to idle. Enable root_motion extraction, or generate an unextracted standalone jump for your own movement handoff")
 	var direction := str(params.get("direction", "left"))
 	if direction not in ["left", "right"]:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'direction' must be 'left' or 'right'")

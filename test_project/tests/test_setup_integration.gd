@@ -81,6 +81,28 @@ func _matrix(fixture: String) -> void:
 				_same(player, "jump", "explicit_reference_jump")
 		body.get_parent().remove_child(body)
 		body.free()
+func test_setup_forward_jump_in_place_refuses_atomically() -> void:
+	var scene := EditorInterface.get_edited_scene_root()
+	var body := (load(FIXTURES[2]) as PackedScene).instantiate()
+	scene.add_child(body)
+	_assign(body,scene)
+	var player := _find(body,"AnimationPlayer") as AnimationPlayer
+	var skeleton := _find(body,"Skeleton3D") as Skeleton3D
+	var history := Context.undo_redo.get_history_undo_redo(Context.undo_redo.get_object_history_id(body))
+	var version := history.get_version()
+	var names := player.get_animation_list()
+	var binding := player.root_motion_track
+	var pose := skeleton.get_bone_pose_rotation(1)
+	var children := body.get_child_count()
+	var result := handler.run({"op":"character_setup","player_path":Codec.from_node(player,scene),"skeleton_path":Codec.from_node(skeleton,scene),"include_jump":true,"root_motion":false,"distance":0.5},null)
+	assert_true(result.has("error") and result.error.code=="OPERATION_UNAVAILABLE","unsupported in-place setup forward jump typed refusal")
+	assert_eq(history.get_version(),version,"refusal creates no history")
+	assert_eq(player.get_animation_list(),names,"refusal preserves clips")
+	assert_eq(player.root_motion_track,binding,"refusal preserves extraction")
+	assert_eq(skeleton.get_bone_pose_rotation(1),pose,"refusal preserves pose")
+	assert_eq(body.get_child_count(),children,"refusal creates no tree")
+	body.get_parent().remove_child(body)
+	body.free()
 func test_public_setup_saved_clip_witness() -> void:
 	# The public client writes setup and reference clips, then installs this
 	# marker. This branch only inspects the actual public outputs.
