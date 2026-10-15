@@ -16,7 +16,10 @@ def main():
         raise FileExistsError("Preserve previous control evidence")
     a.output.mkdir(parents=True)
     route = json.loads(a.route.read_text(encoding="utf-8-sig"))
-    if route["root_mode"] != "extracted" or route["cases"][0]["params"].get("direction") != "left":
+    rigs = {"dummy", "xbot", "short", "zup_tall"}
+    if (route["root_mode"] != "extracted" or len(route["cases"]) != 4
+            or {r["id"] for r in route["cases"]} != rigs
+            or not all(r["params"].get("direction") == "left" and r["params"].get("root_motion") is True for r in route["cases"])):
         raise ValueError("Controls require extracted left strafe for known support timing")
     original = {row["scene"]: row["scene_sha256"] for row in route["cases"]}
     controls = {
@@ -26,6 +29,8 @@ def main():
         "double_travel": "Root cycle differs from reported speed/direction",
         "reverse_travel": "Root cycle differs from reported speed/direction",
         "stance_slide": "r contact/slide/penetration/knee failure",
+        "missing_root_track": "Extracted position track missing",
+        "pose_pop": "Played bone discontinuity",
     }
     summary = {"passed": False, "rows": [], "route_sha256": hashlib.sha256(a.route.read_bytes()).hexdigest()}
     for control, reason in controls.items():
@@ -38,7 +43,9 @@ def main():
             result = subprocess.run(command, stdout=stream, stderr=subprocess.STDOUT, timeout=120)
         report = json.loads(output.read_text(encoding="utf-8-sig")) if output.exists() else {}
         runs = report.get("runs", [])
-        complete = len(runs) == 24 and not report.get("engine_errors")
+        expected = {(rig, fps, mixer) for rig in rigs for fps in [30, 60, 120] for mixer in ["player", "tree"]}
+        complete = (len(runs) == len(expected) and not report.get("engine_errors")
+                    and {(r["id"], r["fps"], r["mixer"]) for r in runs} == expected)
         passed = (complete and result.returncode == 1 and report.get("passed") is False
                   and all(reason in row["failures"] for row in runs)) if reason else (
                   complete and result.returncode == 0 and report.get("passed") is True)
@@ -49,7 +56,9 @@ def main():
         print(json.dumps(summary["rows"][-1]), flush=True)
     unchanged = all(hashlib.sha256((a.project_root / path.removeprefix("res://")).read_bytes()).hexdigest() == digest
                     for path, digest in original.items())
-    summary.update(scenes_unchanged=unchanged, positive_runs=24, negative_runs=120,
+    summary.update(scenes_unchanged=unchanged,
+                   positive_runs=sum(r["runs"] for r in summary["rows"] if r["expected_failure"] is None),
+                   negative_runs=sum(r["runs"] for r in summary["rows"] if r["expected_failure"] is not None),
                    passed=unchanged and all(row["passed"] for row in summary["rows"]))
     write_json(a.output / "summary.json", summary)
     return int(not summary["passed"])

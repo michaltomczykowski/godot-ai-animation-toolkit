@@ -2,6 +2,24 @@
 
 ## Strafe/jump repair in progress (2026-10-15)
 
+Actual strafe candidate source44089be: all80 public dry/history/save/reopen clips
+and480 Player/Tree/FPS plays pass. Strengthened checker requires hanging arms,
+forearm/wrist motion, an actual extracted position track and6L/s skeletal speed;
+24 positive plus168 negative mutation plays pass, source scenes unchanged.
+First Responsive left/extracted continuous candidate movie is complete,1440
+decoded frames/24s; independent representative assessment is in progress.
+
+Forward jump r001 preserves40 successful public/history scenes, but strict
+native positive checks fail on dummy/short knees at120FPS (11.238/10.866L/s).
+No quality pass or threshold widening. A native actual-rig sweep reproduces
+the failure and is testing2.5% neutral knee slack. The recovery checker now
+subtracts travel only below the hips, preserving static armature ancestors.
+Aligned corruption spike is visible at all three played frame rates. All18
+pure suites pass locally. CI43f627f remains in progress; older CI44089be found
+six stale jump test assumptions, corrected with exact density/atomic refusal
+and1.2s history fixtures. Four-cell raw operation collection is now enabled;
+it derives successful public invocation only, no suite-wide effect/history pass.
+
 Eight baseline MP4s are now complete (each1440 decoded frames/24s). Integrated
 reachable ballistic jump planning and the world-height duration hook;8790 pure
 checks pass. Setup Tree checker passes33 native synthetic corruption/transform

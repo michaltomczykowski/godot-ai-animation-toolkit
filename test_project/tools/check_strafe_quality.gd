@@ -113,6 +113,7 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 			if not clip.has_marker(label + side): marker_errors.append("Missing " + label + side)
 	if not marker_errors.is_empty(): errors.append("Incomplete contact markers")
 	if extracted and mixer.root_motion_track.is_empty(): errors.append("Extracted root track missing")
+	if extracted and root_track < 0: errors.append("Extracted position track missing")
 	# A player may retain an extraction binding for a different saved clip.
 	# It only owns this clip's translation when that track actually exists here.
 	if not extracted and clip.find_track(mixer.root_motion_track, Animation.TYPE_POSITION_3D) >= 0:
@@ -231,7 +232,12 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 	if max_pose_step <= 0.000001: errors.append("Inert skeletal playback")
 	if minimum_foot_gap <= 0.0: errors.append("Left/right feet cross or collapse during lateral stepping")
 	if forward_drift > 0.0001: errors.append("Strafe drifts forward")
-	if max_pose_step > maxf(0.08 * leg, 6.0 * leg / float(fps)): errors.append("Played bone discontinuity")
+	if max_pose_step * fps > 6.0 * leg: errors.append("Played bone discontinuity")
+	if not row.params.has("overrides") and not row.params.has("arm_down"):
+		for side in arms:
+			var arm: Dictionary = arms[side]
+			if arm.max_upper_up_dot >= -0.8 or arm.max_elbow_deg - arm.min_elbow_deg < 1.0 or arm.wrist_excursion_rad < 0.005:
+				errors.append(side + " ordinary arm hang/follow-through failure")
 	var metrics := {}
 	for side: String in feet:
 		var f: Dictionary = feet[side]
@@ -250,6 +256,7 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 		"max_in_place_root_delta_m": zero_root_error, "max_in_place_clip_translation_m": clip_owner_error,
 		"max_reference_position_error_m": max_reference.x, "max_reference_rotation_error_rad": max_reference.y,
 		"crossed_loop_seams": seams, "max_pose_step_m": max_pose_step, "max_seam_step_m": seam_step,
+		"max_skeletal_speed_legs_per_s": max_pose_step * fps / leg,
 		"nonfinite": nonfinite, "generation_reach_clamped": row.write.clamped, "active_mixers": active_mixers,
 		"declared_flight_frames": declared_flight_frames, "observed_flight_frames": flight_frames,
 		"observed_flight_windows": flight_windows, "feet": metrics, "trace": trace,
@@ -263,13 +270,29 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 
 func _inject_control(row: Dictionary, v: Dictionary) -> void:
 	var name := str(row.params.animation_name)
-	var library: AnimationLibrary = v.player.get_animation_library(name.get_slice("/", 0) if name.contains("/") else "")
+	var library_name := name.get_slice("/", 0) if name.contains("/") else ""
+	# A saved scene can share an external library. Rebind a private library as
+	# well as a private clip before changing either resource in a control.
+	var library: AnimationLibrary = v.player.get_animation_library(library_name).duplicate(true)
+	v.player.remove_animation_library(library_name)
+	v.player.add_animation_library(library_name, library)
 	library.remove_animation(name.get_slice("/", 1) if name.contains("/") else name)
 	v.clip = v.clip.duplicate(true)
 	library.add_animation(name.get_slice("/", 1) if name.contains("/") else name, v.clip)
 	var clip: Animation = v.clip
 	if control == "missing_contacts":
 		clip.remove_marker("contact.L")
+	elif control == "missing_root_track":
+		var track := clip.find_track(v.player.root_motion_track, Animation.TYPE_POSITION_3D)
+		if track >= 0: clip.remove_track(track)
+	elif control == "pose_pop":
+		for track in clip.get_track_count():
+			if clip.track_get_type(track) != Animation.TYPE_POSITION_3D or clip.track_get_path(track).get_subname(0) != str(v.roles.hips): continue
+			var index := clip.track_find_key(track, 0.4 * clip.length, Animation.FIND_MODE_APPROX)
+			if index >= 0:
+				var parent: int = v.rig.get_bone_parent(v.indices.hips)
+				var basis_value: Basis = v.rig.get_bone_global_rest(parent).basis if parent >= 0 else Basis.IDENTITY
+				clip.track_set_key_value(track, index, (clip.track_get_key_value(track, index) as Vector3) + basis_value.inverse() * v.rig.global_basis.inverse() * v.up * float(v.leg) * 0.3)
 	elif control == "inert":
 		for track in clip.get_track_count():
 			var value: Variant = clip.track_get_key_value(track, 0)
@@ -308,7 +331,7 @@ func _run() -> void:
 		return
 	var manifest: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(args[0]))
 	control = args[3] if args.size() > 3 else ""
-	if control not in ["", "missing_contacts", "inert", "double_travel", "reverse_travel", "stance_slide"]:
+	if control not in ["", "missing_contacts", "inert", "double_travel", "reverse_travel", "stance_slide", "missing_root_track", "pose_pop"]:
 		quit(1)
 		return
 	var modes: Array = ["player"] if args.size() > 2 and args[2] == "baseline" else ["player", "tree"]

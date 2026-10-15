@@ -239,7 +239,7 @@ jobs:
       - name: Probe families and saved motion, graph, modifier, FX, edit, preset, library, inspect, sequence and rig contracts through Godot AI
         run: |
           set -o pipefail
-          python tools/ci_mcp_route.py --core-root .ci/godot-ai 2>&1 | tee mcp-route.log
+          python tools/ci_mcp_route.py --core-root .ci/godot-ai --case-output-dir operation-evidence 2>&1 | tee mcp-route.log
 
       - name: Preserve editor startup log
         if: always()
@@ -250,6 +250,7 @@ jobs:
             mcp-editor.log
             mcp-backend.log
             mcp-route.log
+            operation-evidence/**
           if-no-files-found: ignore
 
   version-check:
