@@ -118,12 +118,14 @@ def motion_gate(args: argparse.Namespace) -> bool:
     print("MCP_CI_PASS=motion_playback " + summary, flush=True)
     for row in result["operations"]:
         op = row["op"]
-        playback = subprocess.run([
+        command = [
             godot_executable(args.godot), "--headless", "--path",
             str(args.project), "--script",
             "res://tools/check_motion_remaining_runtime.gd", "--",
             row["scene"], op,
-        ], capture_output=True, text=True, timeout=30, check=False)
+        ]
+        playback = subprocess.run(command, capture_output=True, text=True, timeout=30, check=False)
+        record_native_result("animation_motion." + op, row["scene"], command, playback)
         marker = "MOTION_REMAINING_RUNTIME="
         reported = next((line[len(marker):] for line in playback.stdout.splitlines()
                          if line.startswith(marker)), "")
@@ -210,12 +212,15 @@ def motion_setup_gate(args: argparse.Namespace) -> bool:
               + json.dumps(result["failures"]))
         return False
     print("MCP_CI_PASS=motion_setup_route", flush=True)
-    playback = subprocess.run([
+    command = [
         godot_executable(args.godot), "--headless", "--path",
         str(args.project), "--script",
         "res://tools/check_motion_setup_runtime.gd", "--",
         result["row"]["scene"],
-    ], capture_output=True, text=True, timeout=30, check=False)
+    ]
+    playback = subprocess.run(command, capture_output=True, text=True, timeout=30, check=False)
+    for op in ("character_setup", "secondary_motion"):
+        record_native_result("animation_motion." + op, result["row"]["scene"], command, playback)
     marker = "MOTION_SETUP_RUNTIME="
     reported = next((line[len(marker):] for line in playback.stdout.splitlines()
                      if line.startswith(marker)), "")
@@ -297,11 +302,14 @@ def graph_playback_gate(args: argparse.Namespace) -> bool:
     for row in operations:
         if row["op"] == "wire":
             continue
-        playback = subprocess.run([
+        command = [
             godot_executable(args.godot), "--headless", "--path", str(args.project),
             "--script", "res://tools/verify_saved_graph_playback.gd", "--",
             row["scene"],
-        ], capture_output=True, text=True, timeout=30, check=False)
+        ]
+        playback = subprocess.run(command, capture_output=True, text=True, timeout=30, check=False)
+        canonical_op = {"blend_space_2d":"blend_space", "locomotion_state_machine":"locomotion", "wire_parameter":"wire"}.get(row["op"],row["op"])
+        record_native_result("animation_graph." + canonical_op, row["scene"], command, playback)
         if playback.returncode or "GRAPH_SAVED_PLAYBACK_PASS:" not in playback.stdout:
             print("MCP_CI_FAIL=graph_saved_playback:" + row["op"])
             print((playback.stdout + playback.stderr)[-2500:])
@@ -499,11 +507,13 @@ def edit_playback_gate(args: argparse.Namespace) -> bool:
         checker = ("res://tools/check_edit_runtime.gd" if op in simple
                    else "res://tools/check_edit_remaining_runtime.gd")
         marker = "EDIT_RUNTIME=" if op in simple else "EDIT_REMAINING="
-        playback = subprocess.run([
+        command = [
             godot_executable(args.godot), "--headless", "--path",
             str(args.project), "--script", checker,
             "--", row["scene"], op,
-        ], capture_output=True, text=True, timeout=30, check=False)
+        ]
+        playback = subprocess.run(command, capture_output=True, text=True, timeout=30, check=False)
+        record_native_result("animation_edit." + op, row["scene"], command, playback)
         reported = next((line[len(marker):] for line in playback.stdout.splitlines()
                          if line.startswith(marker)), "")
         if playback.returncode or not reported:
@@ -737,12 +747,14 @@ def preset_playback_gate(args: argparse.Namespace) -> bool:
     print("MCP_CI_PASS=preset_route", flush=True)
     for row in rows:
         op = row["op"]
-        playback = subprocess.run([
+        command = [
             godot_executable(args.godot), "--headless", "--path",
             str(args.project), "--script",
             "res://tools/check_presets_saved_playback.gd",
             "--", row["scene"], op,
-        ], capture_output=True, text=True, timeout=30, check=False)
+        ]
+        playback = subprocess.run(command, capture_output=True, text=True, timeout=30, check=False)
+        record_native_result("animation_presets." + op, row["scene"], command, playback)
         marker = ("PRESET_SHOWCASE_PLAYBACK=" if op == "showcase"
                   else "PRESET_SAVED_PLAYBACK=")
         reported = next((line[len(marker):] for line in playback.stdout.splitlines()
@@ -787,11 +799,14 @@ def library_playback_gate(args: argparse.Namespace) -> bool:
             "missing": sorted(required - rows.keys())}))
         return False
     print("MCP_CI_PASS=library_route", flush=True)
-    playback = subprocess.run([
+    command = [
         godot_executable(args.godot), "--headless", "--path",
         str(args.project), "--script", "res://tools/check_library_runtime.gd",
         "--", result["scene"],
-    ], capture_output=True, text=True, timeout=30, check=False)
+    ]
+    playback = subprocess.run(command, capture_output=True, text=True, timeout=30, check=False)
+    for op in ("template_apply", "spec_apply"):
+        record_native_result("animation_library." + op, result["scene"], command, playback)
     marker = "LIBRARY_RUNTIME="
     reported = next((line[len(marker):] for line in playback.stdout.splitlines()
                      if line.startswith(marker)), "")
@@ -879,11 +894,13 @@ def sequence_playback_gate(args: argparse.Namespace) -> bool:
         print("MCP_CI_FAIL=sequence_route: " + json.dumps(result.get("failures")))
         return False
     print("MCP_CI_PASS=sequence_route", flush=True)
-    playback = subprocess.run([
+    command = [
         godot_executable(args.godot), "--headless", "--path",
         str(args.project), "--script", "res://tools/check_sequence_runtime.gd",
         "--", result["row"]["scene"],
-    ], capture_output=True, text=True, timeout=30, check=False)
+    ]
+    playback = subprocess.run(command, capture_output=True, text=True, timeout=30, check=False)
+    record_native_result("animation_sequence.compose", result["row"]["scene"], command, playback)
     marker = "SEQUENCE_RUNTIME="
     reported = next((line[len(marker):] for line in playback.stdout.splitlines()
                      if line.startswith(marker)), "")
@@ -953,6 +970,7 @@ def rig_playback_gate(args: argparse.Namespace) -> bool:
             command.append(op)
         playback = subprocess.run(command, capture_output=True, text=True,
                                   timeout=30, check=False)
+        record_native_result("animation_rig." + op, scene, command, playback)
         reported = next((line[len(marker):] for line in playback.stdout.splitlines()
                          if line.startswith(marker)), "")
         if playback.returncode or not reported:

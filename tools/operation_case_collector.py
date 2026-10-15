@@ -7,6 +7,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
+import re
 import os
 from pathlib import Path
 import platform
@@ -152,6 +154,7 @@ def native_fx_checks(event, context):
         if canonical_op != 'sprite_frames': checks['track_paths_types'] = 'fail'
         return checks, ['missing or ambiguous native JSON result']
     report = json.loads(payloads[0])
+    if not isinstance(report,dict): raise ValueError('native result must be an object')
     if report.get('op') != op or report.get('scene') != event['scene']:
         raise ValueError('native output operation/scene differs from executed command')
     errors = event.get('stdout','')+'\n'+event.get('stderr','')
@@ -162,6 +165,137 @@ def native_fx_checks(event, context):
     checks = {'playback':status}
     if canonical_op != 'sprite_frames': checks['track_paths_types'] = status
     return checks, [] if passed else ['actual native checker failed or reported an engine error']
+
+
+def _number(value):
+    return isinstance(value, (int,float)) and not isinstance(value,bool) and math.isfinite(value)
+
+def native_checks(event, context):
+    command = event.get('command', [])
+    if not command or command[0] != context.get('engine_command'):
+        raise ValueError('native engine command differs from actual version probe')
+    try:
+        script = command[command.index('--script')+1]
+        args = command[command.index('--')+1:]
+    except (ValueError, IndexError):
+        raise ValueError('native command does not identify checker and case')
+    if script == 'res://tools/check_fx_runtime.gd':
+        return native_fx_checks(event,context)
+    rules = {
+      'check_edit_runtime.gd':('animation_edit','EDIT_RUNTIME='),
+      'check_edit_remaining_runtime.gd':('animation_edit','EDIT_REMAINING='),
+      'check_presets_saved_playback.gd':('animation_presets','PRESET_SAVED_PLAYBACK='),
+      'verify_saved_graph_playback.gd':('animation_graph','GRAPH_SAVED_PLAYBACK_PASS: '),
+      'check_motion_remaining_runtime.gd':('animation_motion','MOTION_REMAINING_RUNTIME='),
+      'check_motion_setup_runtime.gd':('animation_motion','MOTION_SETUP_RUNTIME='),
+      'check_rig_recipe_runtime.gd':('animation_rig','RIG_RECIPE_RUNTIME='),
+      'check_rig_pose_clip_runtime.gd':('animation_rig','RIG_POSE_CLIP='),
+      'check_rig_bake_runtime.gd':('animation_rig','RIG_BAKE_RUNTIME='),
+      'check_sequence_runtime.gd':('animation_sequence','SEQUENCE_RUNTIME='),
+      'check_library_runtime.gd':('animation_library','LIBRARY_RUNTIME='),
+    }
+    name = script.removeprefix('res://tools/')
+    if script != 'res://tools/'+name or name not in rules or 'test_project/tools/'+name not in context['dependencies']:
+        raise ValueError('native checker lacks a whitelisted source-bound contract')
+    family,prefix = rules[name]
+    if not event['operation'].startswith(family+'.') or not args or args[0] != event['scene']:
+        raise ValueError('native operation family/scene differs from executed command')
+    op=event['operation'].split('.',1)[1]
+    parameterized = name in {'check_edit_runtime.gd','check_edit_remaining_runtime.gd',
+        'check_presets_saved_playback.gd','check_motion_remaining_runtime.gd','check_rig_recipe_runtime.gd'}
+    if len(args) != (2 if parameterized else 1) or (parameterized and args[1] != op):
+        raise ValueError('native command arguments differ from operation contract')
+    if name == 'check_presets_saved_playback.gd' and op == 'showcase':
+        prefix='PRESET_SHOWCASE_PLAYBACK='
+    raw = event.get('stdout','')+'\n'+event.get('stderr','')
+    payloads=[line[len(prefix):] for line in event.get('stdout','').splitlines() if line.startswith(prefix)]
+    okay=event.get('returncode') == 0 and 'SCRIPT ERROR:' not in raw and 'ERROR:' not in raw and len(payloads)==1
+    report={}
+    if len(payloads)==1 and name != 'verify_saved_graph_playback.gd':
+        report=json.loads(payloads[0])
+        if not isinstance(report,dict): raise ValueError('native result must be an object')
+        scene_optional = name == 'check_motion_remaining_runtime.gd' or (name == 'check_presets_saved_playback.gd' and op == 'showcase')
+        if not scene_optional and report.get('scene') != event['scene']:
+            raise ValueError('native output scene differs from executed command')
+        if 'scene' in report and report['scene'] != event['scene']:
+            raise ValueError('native output scene differs from executed command')
+        if name in {'check_edit_runtime.gd','check_edit_remaining_runtime.gd','check_rig_recipe_runtime.gd'} and report.get('op') != op:
+            raise ValueError('native output operation differs from executed command')
+        if 'op' in report and report['op'] != op:
+            raise ValueError('native output operation differs from executed command')
+    if name in {'check_edit_runtime.gd','check_edit_remaining_runtime.gd'}:
+        expected_count = 3 if name == 'check_edit_runtime.gd' else None
+        samples=report.get('samples',[])
+        limit=1.0 if name == 'check_edit_runtime.gd' else .25
+        okay = okay and isinstance(samples,list) and bool(samples) and (expected_count is None or len(samples)==expected_count)
+        okay = okay and _number(report.get('worst_error')) and report['worst_error']<limit
+    elif name == 'check_presets_saved_playback.gd':
+        if op == 'showcase':
+            players={'AnimBounce','AnimOrbit','AnimSweep','AnimDrift','AnimPulse','AnimFloat','AnimSpin'}
+            rows=report.get('rows',[])
+            okay = okay and report.get('failures')==[] and len(rows)==7 and {r.get('player') for r in rows}==players
+            okay = okay and all(r.get('track') and _number(r.get('maximum_change')) and r['maximum_change']>.001 for r in rows)
+        else:
+            okay = okay and report.get('op')==op and report.get('scene')==event['scene'] and _number(report.get('maximum_change')) and report['maximum_change']>.001
+    elif name == 'verify_saved_graph_playback.gd':
+        if op == 'graph_get':
+            return {}, ['read-only graph_get has no applicable producer playback check']
+        expected_prefix=event['scene']+' walk_x='
+        text=payloads[0] if len(payloads)==1 else ''
+        match=re.fullmatch(re.escape(expected_prefix)+r'([-+0-9.]+) player_idle=true',text)
+        okay = okay and bool(match) and float(match[1])>=20.0
+    elif name in {'check_motion_remaining_runtime.gd','check_rig_recipe_runtime.gd'}:
+        if name == 'check_motion_remaining_runtime.gd' and report.get('clip') != op:
+            raise ValueError('native output clip differs from operation')
+        okay = okay and report.get('failures')==[] and _number(report.get('checked')) and report['checked']>0 and _number(report.get('moving')) and report['moving']>0
+        okay = okay and _number(report.get('worst_error')) and report['worst_error']<.02
+    elif name == 'check_motion_setup_runtime.gd':
+        if op not in {'character_setup','secondary_motion'}: raise ValueError('setup result cannot qualify unrelated motion')
+        okay=okay and report.get('failures')==[]
+        if op == 'character_setup':
+            okay=okay and _number(report.get('thigh_change')) and report['thigh_change']>.001 and _number(report.get('root_extraction')) and report['root_extraction']>.01
+        else:
+            okay=okay and _number(report.get('jaw_range')) and report['jaw_range']>.001 and _number(report.get('jaw_play_error')) and report['jaw_play_error']<=.02
+    elif name == 'check_rig_pose_clip_runtime.gd':
+        if op!='pose_to_clip': raise ValueError('pose clip checker cannot qualify unrelated rig operation')
+        okay=okay and len(report.get('samples',[]))==3 and _number(report.get('worst_error')) and report['worst_error']<.02
+    elif name == 'check_rig_bake_runtime.gd':
+        if op!='bake_pose_sequence':raise ValueError('bake checker cannot qualify unrelated rig operation')
+        okay=okay and report.get('samples')==24 and _number(report.get('worst_error')) and report['worst_error']<.02
+    elif name == 'check_sequence_runtime.gd':
+        if op!='compose':raise ValueError('sequence checker cannot qualify unrelated operation')
+        okay=okay and report.get('contact_impact') is True and _number(report.get('early_angle')) and _number(report.get('late_angle')) and report['late_angle']>report['early_angle']+.25
+        okay=okay and _number(report.get('impact_time')) and abs(report['impact_time']-1.1)<.001
+        angle=report.get('saved_pose_angle')
+        okay=okay and _number(angle) and (angle<0 or abs(angle-.6)<.02)
+    elif name == 'check_library_runtime.gd':
+        if op not in {'template_apply','spec_apply'}:raise ValueError('library playback cannot qualify read/file operations')
+        clip='templated_drift' if op=='template_apply' else 'imported_walk'
+        expected=30.0 if op=='template_apply' else 50.0
+        rows=report.get('samples',[])
+        selected=[row for row in rows if row.get('clip')==clip]
+        okay=okay and len(rows)==2 and len(selected)==1 and _number(report.get('worst_error')) and report['worst_error']<.1
+        okay=okay and len(selected)==1 and _number(selected[0].get('target_x')) and abs(selected[0]['target_x']-expected)<.1 and _number(selected[0].get('source_x')) and abs(selected[0]['source_x'])<.1
+    return {'playback':'pass' if okay else 'fail'}, [] if okay else ['actual source-specific native runtime contract failed']
+
+
+def native_origin_matches(event, call):
+    """Bind named checker outputs, not merely another successful clip in the scene."""
+    command=event['command']
+    script=command[command.index('--script')+1]
+    args=command[command.index('--')+1:]
+    name=script.removeprefix('res://tools/')
+    op=event['operation'].split('.',1)[1]
+    expected=None
+    if name=='check_fx_runtime.gd': expected=args[2] if len(args)>2 else args[1]
+    elif name in {'check_motion_remaining_runtime.gd','check_rig_recipe_runtime.gd'}: expected=args[1]
+    elif name=='check_presets_saved_playback.gd' and op!='showcase': expected='audit_'+op
+    elif name in {'check_edit_runtime.gd','check_edit_remaining_runtime.gd'}: expected='idle' if op=='cleanup' else 'jump' if op=='smooth' else 'walk'
+    elif name=='check_rig_pose_clip_runtime.gd': expected='arm_wave'
+    elif name=='check_rig_bake_runtime.gd': expected='walk_baked'
+    elif name=='check_sequence_runtime.gd': expected='audit_action'
+    elif name=='check_library_runtime.gd': expected='templated_drift' if op=='template_apply' else 'imported_walk'
+    return expected is None or call.get('params',{}).get('animation_name')==expected
 
 
 def collect(context_path, traces, root):
@@ -213,10 +347,10 @@ def collect(context_path, traces, root):
     for event in native_events:
         if event.get('operation') not in EXPECTED_OPERATIONS or event.get('route') != 'native_godot':
             raise ValueError('invalid native operation or route')
-        checks, failures = native_fx_checks(event, context)
+        checks, failures = native_checks(event, context)
         matches = [call for call in public_events
                    if call['operation'] == event['operation'] and call.get('scene') == event.get('scene')
-                   and call['execution_ns'] < event['execution_ns']
+                   and call['execution_ns'] < event['execution_ns'] and native_origin_matches(event,call)
                    and isinstance(call.get('response'),dict) and bool(call['response'])
                    and not call['response'].get('error') and not call.get('params',{}).get('dry_run')]
         if not matches:
@@ -227,7 +361,7 @@ def collect(context_path, traces, root):
                       'scope':'candidate','route':'public_output_native_godot',
                       'public_case_ids':[origin['id']] if origin else [],
                       'raw_event_id':event['id'],'scene':event['scene'],'failures':failures,
-                      'limits':'FX native playback/path/type checks only. Audio means observed native playing event; audible output and visual assessment remain separate.'})
+                      'limits':'Source-specific native playback checks only; additional FX paths/types when applicable. Native audio playing is an event, not audible-output or visual approval.'})
     return {'schema_version':1, 'kind':'operation_case_results',
             'tested_source':context['tested_source'], 'engine':context['engine'],
             'platform':context['platform'], 'core_version':context['core_version'],
@@ -237,7 +371,7 @@ def collect(context_path, traces, root):
             'successful_public_operations':sorted(successful),
             'missing_successful_public_operations':sorted(EXPECTED_OPERATIONS-successful),
             'qualification':'pending', 'visual_review':'pending',
-            'limits':'Exact public non-dry invocation and whitelisted linked FX native playback/path/type checks only. No suite-total inference; semantic, audio-output, history and visual gates stay separate.'}
+            'limits':'Exact public non-dry invocation and whitelisted source-specific native playback checks only. No suite-total inference; semantic, audio-output, history and visual gates stay separate.'}
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)

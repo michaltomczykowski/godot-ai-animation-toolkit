@@ -78,7 +78,7 @@ class Collector(unittest.TestCase):
         self.context.write_text(json.dumps(context))
         if public:
             c.record_public_call('scene_open',{'path':scene},{'opened':True})
-            c.record_public_call('custom_animation_fx',{'op':'shake'},{'track_count':1})
+            c.record_public_call('custom_animation_fx',{'op':'shake','animation_name':'shake'},{'track_count':1})
         command=['fixture-godot','--headless','--script','res://tools/check_fx_runtime.gd','--',scene,'shake']
         payload={'op':'shake','scene':scene,'failures':[],'checks':[{'actual':'native-value'}]}
         return command,payload
@@ -116,5 +116,48 @@ class Collector(unittest.TestCase):
         events[-1]['stderr']='';events[-1]['stdout']+='\n'+events[-1]['stdout']
         file.write_text(''.join(json.dumps(event)+'\n' for event in events))
         self.assertEqual(self.collect()['cases'][-1]['checks']['playback'],'fail')
+
+    def test_other_native_contracts_require_source_operation_scene_and_real_metrics(self):
+        scene='res://native.tscn'
+        players=['AnimBounce','AnimOrbit','AnimSweep','AnimDrift','AnimPulse','AnimFloat','AnimSpin']
+        fixtures=[
+          ('animation_edit.retime','check_edit_runtime.gd','EDIT_RUNTIME=',{'op':'retime','scene':scene,'samples':[0,50,100],'worst_error':0},True),
+          ('animation_edit.retarget','check_edit_remaining_runtime.gd','EDIT_REMAINING=',{'op':'retarget','scene':scene,'samples':[{'measured':50}],'worst_error':0},True),
+          ('animation_presets.pulse','check_presets_saved_playback.gd','PRESET_SAVED_PLAYBACK=',{'op':'pulse','scene':scene,'maximum_change':.2},True),
+          ('animation_presets.showcase','check_presets_saved_playback.gd','PRESET_SHOWCASE_PLAYBACK=',{'rows':[{'player':p,'track':'Target:position','maximum_change':.2} for p in players],'failures':[]},True),
+          ('animation_motion.run_cycle','check_motion_remaining_runtime.gd','MOTION_REMAINING_RUNTIME=',{'clip':'run_cycle','checked':4,'moving':4,'worst_error':0,'failures':[]},True),
+          ('animation_motion.character_setup','check_motion_setup_runtime.gd','MOTION_SETUP_RUNTIME=',{'scene':scene,'thigh_change':.1,'root_extraction':.2,'failures':[]},False),
+          ('animation_motion.secondary_motion','check_motion_setup_runtime.gd','MOTION_SETUP_RUNTIME=',{'scene':scene,'jaw_range':.1,'jaw_play_error':0,'failures':[]},False),
+          ('animation_rig.walk_cycle','check_rig_recipe_runtime.gd','RIG_RECIPE_RUNTIME=',{'scene':scene,'op':'walk_cycle','checked':4,'moving':4,'worst_error':0,'failures':[]},True),
+          ('animation_rig.pose_to_clip','check_rig_pose_clip_runtime.gd','RIG_POSE_CLIP=',{'scene':scene,'samples':[{}, {}, {}],'worst_error':0},False),
+          ('animation_rig.bake_pose_sequence','check_rig_bake_runtime.gd','RIG_BAKE_RUNTIME=',{'scene':scene,'samples':24,'worst_error':0},False),
+          ('animation_sequence.compose','check_sequence_runtime.gd','SEQUENCE_RUNTIME=',{'scene':scene,'contact_impact':True,'early_angle':0,'late_angle':.6,'impact_time':1.1,'saved_pose_angle':.6},False),
+          ('animation_library.template_apply','check_library_runtime.gd','LIBRARY_RUNTIME=',{'scene':scene,'samples':[{'clip':'templated_drift','target_x':30,'source_x':0},{'clip':'imported_walk','target_x':50,'source_x':0}],'worst_error':0},False),
+          ('animation_library.spec_apply','check_library_runtime.gd','LIBRARY_RUNTIME=',{'scene':scene,'samples':[{'clip':'templated_drift','target_x':30,'source_x':0},{'clip':'imported_walk','target_x':50,'source_x':0}],'worst_error':0},False),
+        ]
+        for operation,script,prefix,payload,parameterized in fixtures:
+            with self.subTest(operation=operation):
+                context={'engine_command':'fixture-godot','dependencies':{'test_project/tools/'+script:{}}}
+                command=['fixture-godot','--script','res://tools/'+script,'--',scene]
+                if parameterized:command.append(operation.split('.')[1])
+                event={'operation':operation,'scene':scene,'command':command,'returncode':0,'stdout':prefix+json.dumps(payload),'stderr':''}
+                self.assertEqual(c.native_checks(event,context)[0],{'playback':'pass'})
+                bad=dict(event,returncode=1)
+                self.assertEqual(c.native_checks(bad,context)[0],{'playback':'fail'})
+                bad=dict(event,stderr='ERROR: native runtime failed')
+                self.assertEqual(c.native_checks(bad,context)[0],{'playback':'fail'})
+                bad=dict(event,scene='res://different-scene.tscn')
+                with self.assertRaisesRegex(ValueError,'scene'):c.native_checks(bad,context)
+    def test_graph_plaintext_is_case_bound_and_read_operation_is_not_producer(self):
+        script='verify_saved_graph_playback.gd';scene='res://graph.tscn'
+        context={'engine_command':'fixture-godot','dependencies':{'test_project/tools/'+script:{}}}
+        command=['fixture-godot','--script','res://tools/'+script,'--',scene]
+        event={'operation':'animation_graph.state_machine','scene':scene,'command':command,'returncode':0,
+               'stdout':'GRAPH_SAVED_PLAYBACK_PASS: '+scene+' walk_x=30.000 player_idle=true','stderr':''}
+        self.assertEqual(c.native_checks(event,context)[0],{'playback':'pass'})
+        event['stdout']=event['stdout'].replace(scene,'res://other.tscn')
+        self.assertEqual(c.native_checks(event,context)[0],{'playback':'fail'})
+        event['operation']='animation_graph.graph_get'
+        self.assertEqual(c.native_checks(event,context)[0],{})
 
 if __name__=='__main__':unittest.main()

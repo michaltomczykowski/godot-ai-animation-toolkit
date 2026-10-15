@@ -118,3 +118,22 @@ source invariance, saved history/Undo and visual gates are not inferred. Native
 audio `playing` is an event observation, never proof of audible captured output.
 Other family runtime adapters remain pending; their existing raw checks still
 run in CI but are not mislabeled as operation-bound receipts.
+
+## Other source-specific native adapters
+
+The same actual-subprocess capture now covers existing edit, preset, graph,
+motion/setup/secondary, rig recipe/pose-clip/bake, sequence and library-apply
+runtime gates. Each adapter has an explicit source-path/marker contract and
+checks its actual output metrics, return code and engine errors. It binds the
+command's scene and operation, required output identity fields, actual native
+engine and named generated clip to an earlier successful public case. Graph
+variants map only to their actual canonical public operation; `graph_get` stays
+a read observation with no invented producer playback check. The showcase
+requires all seven distinct named players with actual nonzero changes. The two
+library apply operations select their own independently checked clip/value.
+
+These emit only narrow actual playback checks, not whole-family semantic or
+history qualification. Thirteen pure tests include all native contract shapes,
+wrong scenes, engine failures, exact named output/public-origin binding and
+read-operation applicability. No earlier artifact is relabeled with these new
+checks: a new source/context and actual CI execution are required.
