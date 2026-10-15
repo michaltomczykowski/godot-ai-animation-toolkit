@@ -22,6 +22,15 @@ from mcp_rig_modifier_ui_history import connected_editor
 from review_receipts import write_json
 
 STYLES = ("responsive", "grounded", "relaxed", "heavy", "sneaky")
+CYCLE_PRESETS = {"turn_cycle": "turn", "strafe_cycle": "strafe", "jump": "jump"}
+
+
+def motion_invocation(operation: str, entry_point: str) -> dict:
+    if entry_point == "dedicated":
+        return {"op": operation}
+    if entry_point != "cycle" or operation not in CYCLE_PRESETS:
+        raise ValueError("Cycle alias review supports turn_cycle, strafe_cycle and jump")
+    return {"op": "cycle", "preset": CYCLE_PRESETS[operation]}
 
 
 def save(path: Path, report: dict) -> None:
@@ -29,6 +38,7 @@ def save(path: Path, report: dict) -> None:
 
 
 async def run(args: argparse.Namespace) -> int:
+    invocation = motion_invocation(args.operation, args.entry_point)
     motion = args.operation.removesuffix("_cycle")
     transition = args.operation in ("walk_start", "walk_stop")
     turn = args.operation == "turn_cycle"
@@ -70,6 +80,7 @@ async def run(args: argparse.Namespace) -> int:
                 report = {"schema_version": 1, "revision": f"{args.revision}-{style}",
                           "source_head": source, "operation": args.operation, "profile": style,
                           "root_mode": root_mode, "phase": args.phase, "run_id": run_id,
+                          "entry_point": args.entry_point,
                           "invocation_kind": "explicit prototype" if recipes else "ordinary call",
                           "connection": connection, "created_utc": progress["created_utc"],
                           "tooling_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
@@ -90,10 +101,7 @@ async def run(args: argparse.Namespace) -> int:
                     params = {"op": args.operation, "player_path": player,
                               "skeleton_path": f"/{scene_root}/{rig_path}",
                               "animation_name": f"quality_{motion}", "root_motion": root_mode == "extracted"}
-                    if args.entry_point == "cycle":
-                        if not turn:
-                            raise ValueError("Cycle alias review is currently defined for turn only")
-                        params.update(op="cycle", preset="turn")
+                    params.update(invocation)
                     # Ordinary Responsive/default call. No duration, sample,
                     # speed, loop or recipe override in the reviewed default.
                     if style != "responsive":
