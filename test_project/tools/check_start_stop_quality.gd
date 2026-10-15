@@ -5,6 +5,19 @@ extends SceneTree
 const Native := preload("res://tools/character_quality_native.gd")
 var logger := Native.CaptureErrors.new()
 
+## Position-only extraction is expressed in the carrier owner's parent frame.
+## These checkers do not consume the paired rotation deltas used by bake tools.
+static func _carrier_world(owner: Node3D, delta: Vector3) -> Vector3:
+	var parent := owner.get_parent_node_3d()
+	return parent.global_basis * delta if parent != null and not owner.top_level else delta
+
+static func _actor_schedule_basis(rig: Node3D, owner: Node3D, space: String) -> Dictionary:
+	if space == "skeleton_local": return {"basis": rig.global_basis}
+	# Historical manifests explicitly used this label. Preserve their stated
+	# owner-local convention; new records identify skeleton_local instead.
+	if space == "root_motion_node_local": return {"basis": owner.global_basis}
+	return {"error": "Unknown or missing actor_translation_space: " + space}
+
 func _initialize() -> void:
 	OS.add_logger(logger)
 	_run.call_deferred()
@@ -36,6 +49,7 @@ func _tree(v: Dictionary, mode: String) -> AnimationMixer:
 	tree.anim_player = tree.get_path_to(v.player)
 	tree.root_node = tree.get_path_to(v.player.get_node(v.player.root_node))
 	tree.root_motion_track = v.player.root_motion_track
+	tree.root_motion_local = v.player.root_motion_local
 	tree.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	var node := AnimationNodeAnimation.new()
 	node.animation = v.animation_name
@@ -126,6 +140,17 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 	var actor_animation: Animation = null
 	var actor_errors: Array[String] = []
 	var actor_schedule_known: bool = row.write.has("actor_translation_keys")
+	var schedule_basis := Basis.IDENTITY
+	if actor_schedule_known:
+		var mapping := _actor_schedule_basis(v.rig, v.body, str(row.write.get("actor_translation_space", "")))
+		if mapping.has("error"):
+			actor_errors.append(mapping.error)
+		else:
+			schedule_basis = mapping.basis
+		if str(row.write.get("actor_translation_space", "")) == "skeleton_local":
+			var reported_scale := float(row.write.get("actor_translation_world_scale", -1.0))
+			if absf(reported_scale - v.rig.global_basis.x.length()) > 0.00001:
+				actor_errors.append("Actor schedule world scale differs from saved skeleton")
 	if not extracted:
 		driver = Node3D.new()
 		root.add_child(driver)
@@ -147,7 +172,7 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 					continue
 				var value := Vector3(float(offset[0]), float(offset[1]), float(offset[2]))
 				if not value.is_finite(): actor_errors.append("Nonfinite actor schedule")
-				actor_animation.track_insert_key(0, time, value)
+				actor_animation.track_insert_key(0, time, schedule_basis * value)
 				previous_time = time
 			if previous_time < action_duration - 0.000001: actor_errors.append("Actor schedule ends before action")
 		elif baseline:
@@ -182,8 +207,8 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 	if extracted and root_track < 0: errors.append("Extracted root track missing")
 	if not extracted and root_track >= 0: errors.append("In-place clip owns extracted translation")
 	var expected_root := Vector3.ZERO
-	if root_track >= 0: expected_root = clip.position_track_interpolate(root_track, clip.length) - clip.position_track_interpolate(root_track, 0.0)
-	if not extracted and paired_track >= 0: expected_root = paired.clip.position_track_interpolate(paired_track, paired.clip.length) - paired.clip.position_track_interpolate(paired_track, 0.0)
+	if root_track >= 0: expected_root = _carrier_world(v.body, clip.position_track_interpolate(root_track, clip.length) - clip.position_track_interpolate(root_track, 0.0))
+	if not extracted and paired_track >= 0: expected_root = _carrier_world(paired.body, paired.clip.position_track_interpolate(paired_track, paired.clip.length) - paired.clip.position_track_interpolate(paired_track, 0.0))
 	if not extracted and actor_animation != null and actor_animation.track_get_key_count(0) >= 2:
 		expected_root = actor_animation.position_track_interpolate(0, action_duration) - actor_animation.position_track_interpolate(0, 0.0)
 	var feet := {}
@@ -206,9 +231,10 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 	var trace: Array = []
 	for frame in frames + 1:
 		if frame > 0:
+			var before_root: Vector3 = v.body.global_position
 			mixer.advance(dt)
 			var delta := mixer.get_root_motion_position()
-			if extracted: v.body.position += v.body.quaternion * delta
+			if extracted: v.body.position += delta
 			else:
 				in_place_root = maxf(in_place_root, delta.length())
 				if actor_animation != null and actor_animation.track_get_key_count(0) >= 2:
@@ -216,8 +242,8 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 				elif paired_track >= 0:
 					var at := minf(float(frame) / fps, clip.length)
 					var before := minf(float(frame - 1) / fps, clip.length)
-					v.body.global_position += paired.clip.position_track_interpolate(paired_track, at) - paired.clip.position_track_interpolate(paired_track, before)
-			backward = maxf(backward, -delta.dot(v.forward))
+					v.body.global_position += _carrier_world(paired.body, paired.clip.position_track_interpolate(paired_track, at) - paired.clip.position_track_interpolate(paired_track, before))
+			backward = maxf(backward, -(v.body.global_position - before_root).dot(v.forward))
 		v.time = float(frame) / fps
 		reference.player.seek(minf(v.time, clip.length), true)
 		var poses := _poses(v.rig)

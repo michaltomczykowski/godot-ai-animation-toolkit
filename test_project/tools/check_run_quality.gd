@@ -122,7 +122,7 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 			mixer.advance(dt)
 			var delta := mixer.get_root_motion_position()
 			if extracted:
-				v.body.position += v.body.quaternion * delta
+				v.body.position += delta
 			else:
 				# In-place bones need a caller-owned actor velocity for world planting.
 				# Observe inert clip/root output before applying that single owner.

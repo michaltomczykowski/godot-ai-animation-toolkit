@@ -64,7 +64,7 @@ func _advance_review(view: Dictionary, time: float) -> void:
 	if delta > 0.0 and view.player.is_playing():
 		view.player.advance(delta)
 		if not view.player.root_motion_track.is_empty():
-			view.body.position += view.body.quaternion * view.player.get_root_motion_position()
+			view.body.position += view.player.get_root_motion_position()
 	_draw_rig(view.rig)
 	view.previous = time
 func _run() -> void:

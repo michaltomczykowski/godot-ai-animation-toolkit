@@ -25,7 +25,7 @@ func _sequence_check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 		var source: Dictionary = sources[segment.source_animation]
 		var track: int = source.clip.find_track(source.player.root_motion_track, Animation.TYPE_POSITION_3D)
 		if track >= 0:
-			expected_travel += source.clip.position_track_interpolate(track, segment.source_end) - source.clip.position_track_interpolate(track, segment.source_start)
+			expected_travel += _carrier_world(source.body, source.clip.position_track_interpolate(track, segment.source_end) - source.clip.position_track_interpolate(track, segment.source_start))
 	var mixer := _tree(v, mode)
 	var failures: Array[String] = []
 	var active := 0
@@ -52,7 +52,7 @@ func _sequence_check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 		var time := float(frame) / fps
 		if frame > 0:
 			mixer.advance(1.0 / fps)
-			v.body.position += v.body.quaternion * mixer.get_root_motion_position()
+			v.body.position += mixer.get_root_motion_position()
 		var delta: Vector3 = v.body.global_position - previous_root
 		backward = maxf(backward, -delta.dot(v.forward))
 		previous_root = v.body.global_position

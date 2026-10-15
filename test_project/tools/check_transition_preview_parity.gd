@@ -18,6 +18,7 @@ func _mixer(v: Dictionary, mode: String) -> AnimationMixer:
 	tree.anim_player = tree.get_path_to(v.player)
 	tree.root_node = tree.get_path_to(v.player.get_node(v.player.root_node))
 	tree.root_motion_track = v.player.root_motion_track
+	tree.root_motion_local = v.player.root_motion_local
 	tree.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	var node := AnimationNodeAnimation.new()
 	node.animation = v.player.current_animation
@@ -59,8 +60,8 @@ func _run() -> void:
 					if frame > 0:
 						am.advance(1.0 / fps)
 						bm.advance(1.0 / fps)
-						a.body.position += a.body.quaternion * am.get_root_motion_position()
-						b.body.position += b.body.quaternion * bm.get_root_motion_position()
+						a.body.position += am.get_root_motion_position()
+						b.body.position += bm.get_root_motion_position()
 					root_error = maxf(root_error, (a.body.global_position - a.initial_body).distance_to(b.body.global_position - b.initial_body))
 					for i in a.rig.get_bone_count():
 						var ap: Transform3D = a.rig.get_bone_global_pose(i)
