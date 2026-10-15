@@ -1,0 +1,59 @@
+name: Rendered preview
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  linux-rendered-preview:
+    name: Rendered preview / Linux / core ${{ matrix.core-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {core-version: '4.2.1', core-sha: 'bfc264200584ea5823f18356acb164781f57796d'}
+          - {core-version: '4.3.0', core-sha: 'b82b5c519b1b17228f70d8effce1626f391bd1dd'}
+    env:
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      GALLIUM_DRIVER: llvmpipe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: hi-godot/godot-ai
+          ref: ${{ matrix.core-sha }}
+          path: .ci/godot-ai
+      - uses: chickensoft-games/setup-godot@c233594225991af5aec714e52457cc76d6df8fa2
+        with:
+          version: '4.7.2'
+          use-dotnet: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install backend and software renderer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xauth libgl1-mesa-dri mesa-utils
+          python -m pip install -e .ci/godot-ai Pillow==11.3.0
+      - name: Link addons and import public fixtures
+        run: |
+          ln -s "$PWD/.ci/godot-ai/plugin/addons/godot_ai" test_project/addons/godot_ai
+          ln -s "$PWD/addons/godot_ai_animation" test_project/addons/godot_ai_animation
+          godot --headless --path test_project --import
+      - name: Unit controls
+        run: python -m unittest discover -s tools -p test_ci_rendered_preview.py -v
+      - name: Actual rendered editor and public preview calls
+        run: |
+          xvfb-run -a -s '-screen 0 1280x1024x24 +extension GLX' sh -c 'glxinfo -B; python tools/ci_rendered_preview.py --core-root .ci/godot-ai'
+      - name: Preserve exact calls, renderer logs, restoration snapshots and PNGs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendered-preview-linux-core-${{ matrix.core-version }}
+          path: rendered-preview-artifacts
+          if-no-files-found: error
