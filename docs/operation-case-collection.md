@@ -152,3 +152,31 @@ or unadvertised), without changing public result dictionaries. A targeted
 rendered-preview runner can bind its actual PNG/source-invariance report to that
 single successful public invocation. Preview semantic/file/visual checks are
 not yet inferred by this API; the strict output adapter remains separate work.
+
+## Strict rendered-preview adapter
+
+After an actual targeted preview run, collect it with:
+
+```bash
+python tools/operation_case_collector.py collect --root . --context rendered-preview-artifacts/context.json --trace-dir rendered-preview-artifacts/traces --preview-report rendered-preview-artifacts/rendered-preview.json --output rendered-preview-artifacts/operation-case-results.json --allow-partial
+```
+
+The pure downloaded-artifact API is
+`operation_preview_adapter.verify_preview_bundle(directory: Path)`, returning
+`{'context': context, 'proof': {public_case_id, checks, artifacts, limits}}`.
+The matrix caller must separately require the expected exact tested source,
+platform, released core/version and committed dependency Git blobs. Raw source
+file SHA256s can differ across operating-system line endings; do not compare a
+Windows raw checkout hash with Linux bytes as a canonical-source test.
+
+The adapter rebinds raw trace IDs/requests/context and reopens all four PNGs,
+requiring320x240 opaque, nonblank, pairwise different decoded pixels and exact
+reported pixel metrics/hashes. It rejects headless commands, missing renderer
+identity and any complete editor-log engine/script errors, including ANSI.
+All five immediate source checkpoints must bind actual timeline call IDs and
+unchanged serialized scene bytes/timelines around the successful preview and
+actual typed dry/missing/overwrite refusals. Portable paths remain confined to
+the receipt root. It augments that exact existing successful preview case with
+`valid_effect`, `file_effect`, `source_unchanged`, `typed_errors` and
+`reported_errors`. Independent visual assessment remains pending. Seven pure
+adapter controls pass; no real preview is claimed without actual runner output.

@@ -329,7 +329,7 @@ def native_origin_matches(event, call):
     return expected is None or call.get('params',{}).get('animation_name')==expected
 
 
-def collect(context_path, traces, root):
+def collect(context_path, traces, root, preview_report=None):
     context = json.loads(context_path.read_text(encoding='utf-8'))
     if context.get('kind') != 'operation_trace_context' or not context.get('dependencies'):
         raise ValueError('invalid trace context')
@@ -393,6 +393,14 @@ def collect(context_path, traces, root):
                       'public_case_ids':[origin['id']] if origin else [],
                       'raw_event_id':event['id'],'scene':event['scene'],'failures':failures,
                       'limits':'Source-specific native playback checks only; additional FX paths/types when applicable. Native audio playing is an event, not audible-output or visual approval.'})
+    if preview_report is not None:
+        from operation_preview_adapter import validate_preview
+        preview=validate_preview(preview_report,context_path,context,public_events)
+        actual=[case for case in cases if case['id']==preview['public_case_id'] and case['operation']=='animation_inspect.preview']
+        if len(actual)!=1:raise ValueError('preview public case identity ambiguous')
+        actual[0]['checks'].update(preview['checks'])
+        actual[0]['limits']=preview['limits']
+        artifacts.extend(preview['artifacts'])
     return {'schema_version':1, 'kind':'operation_case_results',
             'tested_source':context['tested_source'], 'engine':context['engine'],
             'platform':context['platform'], 'core_version':context['core_version'],
@@ -418,11 +426,12 @@ def main():
     out.add_argument('--root',type=Path,required=True)
     out.add_argument('--output',type=Path,required=True)
     out.add_argument('--allow-partial',action='store_true')
+    out.add_argument('--preview-report',type=Path)
     a=p.parse_args()
     if a.command=='prepare':
         prepare(a.root,a.core_root,a.godot,a.output)
         return 0
-    report=collect(a.context,a.trace_dir,a.root)
+    report=collect(a.context,a.trace_dir,a.root,a.preview_report)
     with a.output.open('x',encoding='utf-8') as f:
         json.dump(report,f,indent=2)
     print(json.dumps({'public_operations':len(report['successful_public_operations']),
