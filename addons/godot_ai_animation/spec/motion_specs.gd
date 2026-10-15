@@ -1372,6 +1372,7 @@ static func jump_keys(ctx: Dictionary) -> Dictionary:
 		"clamped": false, "clamp_shortfall_m": shortfall, "clamped_leg_samples": clamps,
 		"evaluated_leg_samples": evaluated, "reach_evaluated": evaluated > 0,
 		"pelvis_base_drop_m": plan.pelvis_base_drop_m, "declared_contacts": plan.contacts, "contact_marker_events": plan.marker_events,
+		"neutral_knee_drop_m": plan.neutral_knee_drop_m, "neutral_knee_drop_fraction": plan.neutral_knee_drop_fraction,
 		"gravity_world": plan.gravity_world, "flight_time": plan.flight_time, "takeoff_time": plan.takeoff_time,
 		"apex_time": plan.apex_time, "landing_time": plan.landing_time, "landing_absorb_time": plan.landing_absorb_time, "recovery_end_time": plan.recovery_end_time,
 		"flight_intervals": plan.flight_intervals, "sampling_intervals": plan.sampling_intervals, "effective_samples": plan.effective_samples,

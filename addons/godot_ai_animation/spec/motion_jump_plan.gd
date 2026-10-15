@@ -3,6 +3,10 @@ extends RefCounted
 ## Jump-only physical timeline and reachable skeleton-space targets.
 const GRAVITY_WORLD := 9.81
 const INTERVAL_BUDGET := 1200
+## A solver's 1 mm numerical reach margin is not a stable neutral knee bend.
+## Keep deliberate jump-only slack through push-off and catch; otherwise knee
+## velocity grows sharply near extension even with continuous hip velocity.
+const NEUTRAL_KNEE_DROP_FRACTION := 0.025
 
 static func timing(height_world: float, requested_length: float, duration_explicit: bool, rate: float) -> Dictionary:
 	if not is_finite(height_world) or height_world <= 0.0:
@@ -75,7 +79,8 @@ static func build(ctx: Dictionary, lean_sign: float) -> Dictionary:
 	var leg_length := 0.5 * (float(ctx.legs.l.upper) + float(ctx.legs.l.lower) + float(ctx.legs.r.upper) + float(ctx.legs.r.lower))
 	var tuck := minf(0.05 * leg_length, 0.15 * height)
 	var samples: Array = []
-	var drop := 0.0
+	var neutral_drop := NEUTRAL_KNEE_DROP_FRACTION * leg_length
+	var drop := neutral_drop
 	for at in times:
 		var air := clampf((at - float(plan.takeoff_time)) / float(plan.flight_time), 0.0, 1.0)
 		var y := vertical(at, plan, height, crouch, scale)
@@ -137,5 +142,7 @@ static func build(ctx: Dictionary, lean_sign: float) -> Dictionary:
 			"land": events.append_array(["contact.L_2", "contact.R_2"])
 			"recovery_end": events.append_array(["toe_off.L_2", "toe_off.R_2"])
 		marker_events.append({"name":marker.name, "time":marker.time, "events":events})
-	plan.merge({"samples":samples, "markers":markers, "contacts":contacts, "marker_events":marker_events, "pelvis_base_drop_m":drop}, true)
+	plan.merge({"samples":samples, "markers":markers, "contacts":contacts, "marker_events":marker_events,
+		"pelvis_base_drop_m":drop, "neutral_knee_drop_m":neutral_drop,
+		"neutral_knee_drop_fraction":NEUTRAL_KNEE_DROP_FRACTION}, true)
 	return plan

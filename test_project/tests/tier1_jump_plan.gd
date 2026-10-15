@@ -35,6 +35,8 @@ func _init() -> void:
 	var reach_ctx := context(Basis.IDENTITY, 60.0, true, 0.5)
 	var reach_plan := Plan.build(reach_ctx, 1.0)
 	check(float(reach_plan.pelvis_base_drop_m) > 0.001, "neutral pelvis avoids exact-extension clamp")
+	check(absf(float(reach_plan.neutral_knee_drop_m)-0.025*0.8) < 0.000001 and reach_plan.neutral_knee_drop_fraction == 0.025, "deliberate measured-leg knee slack")
+	check(float(reach_plan.pelvis_base_drop_m) >= float(reach_plan.neutral_knee_drop_m), "reach correction never removes neutral slack")
 	for sample: Dictionary in reach_plan.samples:
 		if float(sample.time) > float(reach_plan.takeoff_time) and float(sample.time) < float(reach_plan.apex_time):
 			var pelvis_height := (sample.offset as Vector3).dot(Vector3.UP) + float(reach_plan.pelvis_base_drop_m)
