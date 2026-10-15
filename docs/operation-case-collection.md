@@ -180,3 +180,36 @@ the receipt root. It augments that exact existing successful preview case with
 `valid_effect`, `file_effect`, `source_unchanged`, `typed_errors` and
 `reported_errors`. Independent visual assessment remains pending. Seven pure
 adapter controls pass; no real preview is claimed without actual runner output.
+
+## Bounded FX/edit snapshot assertions
+
+The existing public FX and edit drivers now emit raw per-operation rows directly
+after their actual comparison checks. They include the exact request, before,
+after-dry, after-write and persisted inspections and real public responses.
+A pure source-specific adapter recomputes only `dry_run` and `save_reopen`;
+explicit offset/overlap wrap refusals expose only their actual `typed_errors`.
+There is no whole-audit green-to-every-operation mapping.
+
+The collector binds the exact write/dry public IDs and target inspections in
+execution order. Successful save and forced-reopen support calls must occur
+between the correct after-write and persisted probes. SpriteFrames binds its
+actual node-property responses and preserves only durable assignment/animation
+identity across reopen; running frame equality is intentionally inapplicable.
+Support events (`scene_open`, `scene_save`, `node_get_properties`, `test_run`)
+carry exact actual IDs but never count as advertised operation invocations.
+The preview bundle loader accepts those support events without manufacturing
+operation coverage. Existing public tool result dictionaries are unchanged.
+
+Scope: 16 FX and 20 edit operation keys through existing calls, no new live calls.
+Six focused controls reject changed dry state, absent persisted clips, missing
+actual reopen, wrong requests/operations/declared checks and generic refusal
+errors. The checks stay pending until this instrumented source actually runs.
+
+Remaining assertion gaps are explicit: Undo/Redo and saved per-history-state
+restoration require inner-case history instrumentation; semantic expectations,
+full non-target/source invariants and general typed refusals are not inferred
+from these snapshot rows. Preset/graph/rig/modifier/motion/sequence/read/file
+validators still need their own applicable exact assertions. Actual previews
+supply their narrow file/source/error checks; independent continuous visual
+assessment and audible output remain separate. Existing historical matrices
+remain reusable narratives/raw evidence, not newly fabricated candidate passes.

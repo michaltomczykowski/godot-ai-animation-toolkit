@@ -15,6 +15,7 @@ from fastmcp import Client
 from fastmcp.client.transports import StdioTransport
 
 from mcp_presets_audit import call
+from operation_case_collector import record_snapshot_result
 
 
 PLAYER = "/RepairFxFixture/AnimationPlayer"
@@ -111,6 +112,7 @@ async def run(args: argparse.Namespace) -> int:
             params = {"op": "sprite_frames" if op.startswith("sprite_frames") else op,
                       "player_path": PLAYER,
                       "animation_name": op, **extras}
+            row["request"] = dict(params)
             row["before"] = await timeline(client, op)
             row["dry"] = await call(client, "custom_animation_fx",
                                     {**params, "dry_run": True})
@@ -145,6 +147,7 @@ async def run(args: argparse.Namespace) -> int:
             clips = row["persisted"].get("describe", {}).get("clips", [])
             if len(clips) != 1 or not all(t.get("node_resolved") for t in clips[0].get("tracks", [])):
                 failures.append(f"{op}: missing clip or unresolved track")
+        record_snapshot_result("fx_snapshot_v1",row)
     print("MCP_FX_AUDIT=" + json.dumps({"run_id": run_id,
         "operations": rows, "failures": failures}, sort_keys=True))
     return 1 if failures else 0

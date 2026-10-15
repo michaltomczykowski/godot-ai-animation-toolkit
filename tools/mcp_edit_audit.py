@@ -15,6 +15,7 @@ from fastmcp import Client
 from fastmcp.client.transports import StdioTransport
 
 from mcp_presets_audit import call
+from operation_case_collector import record_snapshot_result
 
 
 PLAYER = "/RepairGraphFixture/AnimationPlayer"
@@ -105,6 +106,8 @@ async def run(args: argparse.Namespace) -> int:
             params = {"op": actual_op, "player_path": PLAYER,
                       "animation_name": animation,
                       **{k: v for k, v in extras.items() if not k.startswith("_")}}
+            row["request"] = dict(params)
+            row["inspection_animation"] = inspect_name
             row["before"] = await describe(client, inspect_name)
             row["dry"] = await call(client, "custom_animation_edit",
                                     {**params, "dry_run": True})
@@ -132,6 +135,7 @@ async def run(args: argparse.Namespace) -> int:
                     failures.append(f"{row['op']}: {stage} did not return typed rejection")
             if not equivalent(row["before"], row["after"]) or not equivalent(row["before"], row["persisted"]):
                 failures.append(f"{row['op']}: rejected edit changed the clip")
+            record_snapshot_result("edit_snapshot_v1",row)
             continue
         if row.get("prep", {}).get("error"):
             failures.append(f"{row['op']}: prep: {row['prep']['error']}")
@@ -147,6 +151,7 @@ async def run(args: argparse.Namespace) -> int:
         if row["op"] == "split_at" and (row["head"].get("error") or
                 not equivalent(row["head"], row["persisted_head"])):
             failures.append("split_at: head clip absent or changed after reopen")
+        record_snapshot_result("edit_snapshot_v1",row)
     print("MCP_EDIT_AUDIT=" + json.dumps({"run_id": run_id,
         "operations": rows, "failures": failures}, sort_keys=True))
     return 1 if failures else 0

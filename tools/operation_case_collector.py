@@ -140,6 +140,8 @@ def record_public_call(name, params, response):
     global _active_scene
     if name == 'scene_open' and isinstance(response, dict) and not response.get('error'):
         _active_scene = params.get('path', '')
+    if name in {'scene_open','scene_save','node_get_properties','test_run'}:
+        return _emit('public_support_call',{'public_tool':name,'request':params,'response':response,'scene':_active_scene,'route':'public_godot_ai'})
     key, actual_params = operation_key(name, params)
     if key is not None:
         return _emit('public_operation_call', {'operation':key, 'public_tool':name,
@@ -154,6 +156,15 @@ def record_native_result(operation, scene, command, completed):
     return _emit('native_saved_output', {'operation':operation, 'scene':scene,
           'command':[str(part) for part in command], 'returncode':completed.returncode,
           'stdout':completed.stdout, 'stderr':completed.stderr, 'route':'native_godot'})
+
+
+def record_snapshot_result(validator,row):
+    if not os.environ.get('TOOLKIT_OPERATION_CONTEXT') and not os.environ.get('TOOLKIT_OPERATION_TRACE_DIR'):return
+    from operation_snapshot_checks import derive
+    family='animation_fx' if validator=='fx_snapshot_v1' else 'animation_edit'
+    op='sprite_frames' if row['op']=='sprite_frames_stopped' else row['op'].removesuffix('_wrap_reject')
+    return _emit('operation_snapshot_assertions',{'operation':family+'.'+op,
+        'validator':validator,'row':row,'checks':derive(validator,row),'route':'public_godot_ai'})
 
 
 def native_fx_checks(event, context):
@@ -342,7 +353,7 @@ def collect(context_path, traces, root, preview_report=None):
         if git(root, 'rev-parse', context['tested_source']+':'+rel) != identity['git_blob']:
             raise ValueError('source blob mismatch: '+rel)
     cases, seen, successful = [], set(), set()
-    public_events, native_events = [], []
+    public_events, native_events, support_events, snapshot_events = [], [], [], []
     artifacts = [{'path':context_path.name,'sha256':sha(context_path),'role':'trace_context'}]
     for path in sorted(traces.glob('*.jsonl')):
         portable_path = path.resolve().relative_to(context_path.parent.resolve()).as_posix()
@@ -350,11 +361,18 @@ def collect(context_path, traces, root, preview_report=None):
         previous = 0
         for line in path.read_text(encoding='utf-8').splitlines():
             event = json.loads(line)
-            if event.get('kind') not in {'public_operation_call','native_saved_output'} or event.get('context_sha256') != sha(context_path) or event.get('run_id') != context['run_id']:
+            if event.get('kind') not in {'public_operation_call','native_saved_output','public_support_call','operation_snapshot_assertions'} or event.get('context_sha256') != sha(context_path) or event.get('run_id') != context['run_id']:
                 raise ValueError('foreign or unbound call event')
             if event.get('id') in seen or event.get('sequence') != previous+1:
                 raise ValueError('duplicate/out-of-order call event')
             seen.add(event['id']); previous += 1
+            if event['kind'] == 'public_support_call':
+                if event.get('public_tool') not in {'scene_open','scene_save','node_get_properties','test_run'} or event.get('route')!='public_godot_ai':raise ValueError('invalid public support call')
+                support_events.append(event)
+                continue
+            if event['kind'] == 'operation_snapshot_assertions':
+                snapshot_events.append(event)
+                continue
             if event['kind'] == 'native_saved_output':
                 native_events.append(event)
                 continue
@@ -393,9 +411,16 @@ def collect(context_path, traces, root, preview_report=None):
                       'public_case_ids':[origin['id']] if origin else [],
                       'raw_event_id':event['id'],'scene':event['scene'],'failures':failures,
                       'limits':'Source-specific native playback checks only; additional FX paths/types when applicable. Native audio playing is an event, not audible-output or visual approval.'})
+    for event in snapshot_events:
+        from operation_snapshot_checks import verify_event
+        proof=verify_event(event,context,public_events,support_events)
+        cases.append({'id':event['id'],'operation':event['operation'],'checks':proof['checks'],
+                      'scope':'candidate','route':'public_godot_ai','raw_event_id':event['id'],
+                      'public_case_ids':proof['public_case_ids'],'dry_case_ids':proof['dry_case_ids'],
+                      'failures':proof['failures'],'limits':proof['limits']})
     if preview_report is not None:
         from operation_preview_adapter import validate_preview
-        preview=validate_preview(preview_report,context_path,context,public_events)
+        preview=validate_preview(preview_report,context_path,context,public_events+support_events)
         actual=[case for case in cases if case['id']==preview['public_case_id'] and case['operation']=='animation_inspect.preview']
         if len(actual)!=1:raise ValueError('preview public case identity ambiguous')
         actual[0]['checks'].update(preview['checks'])

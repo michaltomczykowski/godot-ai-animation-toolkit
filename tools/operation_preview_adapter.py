@@ -151,11 +151,16 @@ def verify_preview_bundle(directory):
         sequence=0
         for line in path.read_text(encoding='utf-8').splitlines():
             event=json.loads(line)
-            if event.get('kind')!='public_operation_call' or event.get('route')!='public_godot_ai' or event.get('context_sha256')!=context_sha or event.get('run_id')!=context.get('run_id'):
+            if event.get('kind') not in {'public_operation_call','public_support_call'} or event.get('route')!='public_godot_ai' or event.get('context_sha256')!=context_sha or event.get('run_id')!=context.get('run_id'):
                 raise ValueError('preview trace is foreign or not an actual public call')
             if event.get('id') in seen or event.get('sequence')!=sequence+1:
                 raise ValueError('preview trace duplicate/out-of-order identity')
             sequence+=1;seen.add(event['id'])
+            if event['kind']=='public_support_call':
+                if event.get('public_tool') not in {'scene_open','scene_save','node_get_properties','test_run'} or event.get('operation') is not None:
+                    raise ValueError('invalid preview public support call')
+                events.append(event)
+                continue
             operation,_=operation_key(event.get('public_tool',''),event.get('request',{}))
             if operation!=event.get('operation'):raise ValueError('preview trace operation differs from actual request')
             events.append(event)
