@@ -28,6 +28,7 @@ func _run() -> void:
 	check(logger.errors.is_empty(), "no engine errors")
 	OS.remove_logger(logger)
 	print("TIER1_MOTION_SPACE=" + JSON.stringify({"passed":failures.is_empty(), "checks":checks, "failures":failures}))
+	print("TIER1 PASS" if failures.is_empty() else "TIER1 FAIL")
 	quit(0 if failures.is_empty() else 1)
 func _native(scale_value: float, fps: int) -> void:
 	var parent := Node3D.new()

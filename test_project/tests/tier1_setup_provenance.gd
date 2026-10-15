@@ -26,4 +26,5 @@ func _initialize() -> void:
 	var example := load("res://examples/setup_translation_consumer.gd") as GDScript
 	check(example != null and example.can_instantiate(), "translation consumer example parses")
 	print("TIER1_SETUP_PROVENANCE=" + JSON.stringify({"passed": failures.is_empty(), "failures": failures}))
+	print("TIER1 PASS" if failures.is_empty() else "TIER1 FAIL")
 	quit(0 if failures.is_empty() else 1)
