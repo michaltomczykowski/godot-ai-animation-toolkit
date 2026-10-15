@@ -150,6 +150,11 @@ func _end() -> void:
 
 func _process(_delta: float) -> bool:
 	if not rendering:return false
+	var texture_size:Vector2i=root.get_texture().get_size()
+	var logical_size:Vector2i=Vector2i(root.get_visible_rect().size)
+	if texture_size!=Vector2i(1920,1080) or logical_size!=Vector2i(1920,1080):
+		failures.append("Incorrect logical render target: texture=%s visible=%s physical=%s"%[texture_size,logical_size,root.size])
+		rendering=false;_finish();return false
 	if frame==2*fps:
 		# Last take frame has already rendered. Check the exact end boundary,
 		# then replace the instance before the next take's first movie frame.
@@ -169,7 +174,8 @@ func _process(_delta: float) -> bool:
 func _setup_display() -> void:
 	root.size=Vector2i(1920,1080)
 	root.content_scale_size=Vector2i(1920,1080)
-	root.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+	root.content_scale_mode=Window.CONTENT_SCALE_MODE_VIEWPORT
+	root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_KEEP
 	var board:=Board.new();root.add_child(board)
 	var camera:=Camera2D.new();camera.position=Vector2(100,-40);camera.zoom=Vector2(3,3);root.add_child(camera);camera.make_current()
 	var layer:=CanvasLayer.new();root.add_child(layer)
@@ -188,7 +194,7 @@ func _finish() -> void:
 	var report:={"passed":passed,"control":control,"mode":"native" if native_only else "render","runs":runs,"failures":failures,"engine_errors":logger.errors,
 		"manifest_sha256":FileAccess.get_sha256(manifest_path),"renderer_sha256":FileAccess.get_sha256(get_script().resource_path),
 		"native_helper_sha256":FileAccess.get_sha256(get_script().resource_path.get_base_dir().path_join("saved_graph_media_native.gd")),
-		"frames":0 if native_only else 7*2*2*60,"fixed_camera":{"position":[100,-40],"zoom":[3,3]},"reset_policy":"Each take instantiates the original hashed scene anew; state-machine saved automatic transition continues; no neutral tail is claimed.","visual_approval":false,"display_geometry":manifest.get("display_geometry","")}
+		"frames":0 if native_only else 7*2*2*60,"fixed_camera":{"position":[100,-40],"zoom":[3,3]},"reset_policy":"Each take instantiates the original hashed scene anew; state-machine saved automatic transition continues; no neutral tail is claimed.","viewport_sizes":{"physical_window":[root.size.x,root.size.y],"logical":[root.get_visible_rect().size.x,root.get_visible_rect().size.y],"texture":[root.get_texture().get_size().x,root.get_texture().get_size().y]},"visual_approval":false,"display_geometry":manifest.get("display_geometry","")}
 	FileAccess.open(report_path,FileAccess.WRITE).store_string(JSON.stringify(report))
 	OS.remove_logger(logger)
 	print("SAVED_GRAPH_MEDIA="+JSON.stringify({"passed":passed,"runs":runs.size(),"failures":failures,"engine_errors":logger.errors}))
