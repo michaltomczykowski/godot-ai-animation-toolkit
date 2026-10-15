@@ -1,5 +1,37 @@
 # Agent notes
 
+## Resume checkpoint: integrated completion work (2026-10-15)
+
+Setup/default/transform repairs, applicability-aware audit, core dependency and
+rollback controls,2.0.0 packaging/CI scaffolding are integrated. They are not yet
+release-qualified. Root added the motion preflight hook. New pure suite count
+is16; final editor/MCP totals must be discovered, never inferred from old400.
+Run fresh integrated regression/Windows-Linux CI before claiming completion.
+
+Fresh live baseline was generated through released Godot AI4.2.1 on visible
+Godot4.7.2:16 Responsive strafe clips/96 native Player/Tree/FPS plays pass.
+Stationary/forward0.5m jump also has16 saved public/history clips. Its first
+24 native stationary checks fail missing reach metadata and excessive fingertip
+velocity near0.267s; original reports and diagnostic r002 are retained. The
+strafe baseline video reveals raised Z-up arms (world-DOWN fallback), so numeric
+passes do not close quality. Fix measured arm lowering/strafe profiles and jump
+arm timing/reach reports after baseline capture. Do not weaken quality bounds.
+
+One completed strafe-left/extracted24s1080p60 MP4 (1440 independently decoded
+frames) is at E:/GodotAI-toolkit-release-2.0.0/20261014/strafe/baseline-r001/left/
+responsive. Recording receipt complete. Remaining baseline movies still need
+capture; do not overwrite this movie/frames. Editor16656 quit through the public
+API; no root-owned Godot job was active at resume. New validation project is
+E:/GodotAI-toolkit-release-2.0.0/20261014/validation (dev junctions, not ZIP proof).
+Historical F/G recovery and all accepted fixtures remain intact.
+
+Worker source commits preserved in shared Git: setup a423b11+8c3e545; audit
+fa74790+751c68e; package eaef9b3+0597430+cb627ec. These were cherry-picked to root.
+Operation evidence is honestly103 candidate-pending; release gate deliberately
+blocks publication without portable actual operation/core/platform receipts.
+No merge/tag/release has occurred. Runtime turn ownership remains skeletal,
+setup turn clip-only, translation-only extraction; no actor-yaw controller.
+
 ## Active release completion policy (2026-10-14)
 
 The user explicitly requested implementation of `docs/release-completion-plan.md`.

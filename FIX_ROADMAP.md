@@ -1,5 +1,35 @@
 # Animation Toolkit repair roadmap
 
+## Completion implementation checkpoint (2026-10-15)
+
+Integrated setup omission/provenance, automatic setup turn stages, forward jump
+extraction/terminal hold and ownership/snippet fixes; uniform world-metric and
+owner-parent root conversion with typed unsupported-transform refusals; registry
+availability and all handler preflights; v2 applicability-aware evidence and
+confined release-artifact gate; core>=4.2.1 diagnostics/atomic fallback/ownership
+cleanup; committed-source2.0.0 packaging/checksum and Windows/Linux released
+4.2.1/4.3.0 editor/MCP/ZIP matrices. Core main advisory. Pure suites now16.
+These are integrated changes pending fresh full source/public qualification.
+
+Focused worker checks passed (setup1365 assertions, transform83 and native26,
+protected gait drift0, audit12corruption checks, package5corruption controls,
+dependency/rollback controls). Do not label them fresh integrated passes.
+
+Actual released-core public baseline: strafe16clips with dry/Undo/Redo/save/reopen,
+96native Player/Tree/FPS passes; jump16saved public/history clips (stationary and
+forward0.5m, both ownership flags). New stationary jump checker fails24/24 for
+unreported reach evaluation and high fingertip movement near0.267s. Preserve
+native-check.json and diagnostic native-check-r002.json. Contact alone passes.
+First strafe MP4 captures Z-up raised arms despite numerical passes: repair the
+measured arm frame/profile before qualifying quality. No motion repair yet.
+
+E:/GodotAI-toolkit-release-2.0.0/20261014 contains scenes/route/native receipts and
+the completed strafe-left/extracted clean24s1080p60 video. Remaining baseline
+capture, motion fixes/full matrix, setup Tree blends, operation visuals/case
+binding, four-cell actual compatibility/install and release gates remain open.
+The editor was gracefully closed through Godot AI after preserving all cases.
+Historical media/fixtures unchanged. User review waiver still applies; no release.
+
 ## Autonomous completion to 2.0.0 started (2026-10-14)
 
 User approved `docs/release-completion-plan.md` and waived intermediate/final
