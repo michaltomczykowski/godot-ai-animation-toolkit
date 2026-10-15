@@ -24,12 +24,13 @@ static func load_case(row: Dictionary, parent: Node) -> Dictionary:
 	for role in roles:
 		indices[role] = rig.find_bone(roles[role])
 		assert(indices[role] >= 0, "Reported bone role must resolve")
-	var spine := rest(rig, roles, "head") - rest(rig, roles, "hips")
-	# Fixtures have authored Y/Z-up conventions. Select the dominant axis from rest,
-	# independently of the generator/audit's frame helper and of world Y.
+	var spine := rig.get_bone_global_rest(indices.head).origin - rig.get_bone_global_rest(indices.hips).origin
+	# Select the fixture's authored local Y/Z-up convention, then transform that
+	# axis to world space. Dominant world axes are wrong for rotated parents.
 	var up := Vector3.ZERO
 	var component := spine.abs().max_axis_index()
 	up[component] = signf(spine[component])
+	up = (rig.global_basis * up).normalized()
 	var forward := rest(rig, roles, "toe_l") - rest(rig, roles, "foot_l")
 	forward = (forward - up * forward.dot(up)).normalized()
 	assert(forward.length_squared() > 0.9, "Distinct rest forward axis required")
@@ -60,8 +61,9 @@ static func load_case(row: Dictionary, parent: Node) -> Dictionary:
 		"initial_body": body.global_position, "time": 0.0}
 static func advance(view: Dictionary, delta: float) -> void:
 	view.player.advance(delta)
-	# Exactly one consumer, in the root-motion node's local convention.
-	view.body.position += view.body.quaternion * view.player.get_root_motion_position()
+	# Translation-only keys and Godot extraction are in owner-parent space.
+	# The saved carrier already includes skeleton-to-parent conversion.
+	view.body.position += view.player.get_root_motion_position()
 	view.time += delta
 static func contact(view: Dictionary, side: String) -> bool:
 	var suffix := side.to_upper()

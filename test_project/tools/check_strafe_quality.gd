@@ -3,6 +3,7 @@ extends SceneTree
 ## Saved engine playback only. No motion specs, IK or hand-applied bone poses.
 const Native := preload("res://tools/character_quality_native.gd")
 var logger := Native.CaptureErrors.new()
+var control := ""
 
 func _initialize() -> void:
 	OS.add_logger(logger)
@@ -28,6 +29,7 @@ func _tree(view: Dictionary, name: String) -> AnimationMixer:
 	tree.anim_player = tree.get_path_to(view.player)
 	tree.root_node = tree.get_path_to(view.player.get_node(view.player.root_node))
 	tree.root_motion_track = view.player.root_motion_track
+	tree.root_motion_local = view.player.root_motion_local
 	tree.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	var node := AnimationNodeAnimation.new()
 	node.animation = view.animation_name
@@ -37,10 +39,12 @@ func _tree(view: Dictionary, name: String) -> AnimationMixer:
 	return tree
 
 func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
+	row = row.duplicate(true)
 	var v := Native.load_case(row, root)
 	if v.has("error"):
 		return {"thresholds_pass": false, "failures": [v.error]}
 	v.animation_name = row.params.animation_name
+	if not control.is_empty(): _inject_control(row, v)
 	var reference := Native.load_case(row, root)
 	if reference.has("error"):
 		v.scene.free()
@@ -61,8 +65,25 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 		v.initial_body = driver.global_position
 	var leg: float = v.leg
 	var speed: float = row.write.speed
+	var root_track := clip.find_track(mixer.root_motion_track, Animation.TYPE_POSITION_3D)
+	var expected_travel := Vector3.ZERO
+	var cycle_contract_error := 0.0
+	if extracted and root_track >= 0:
+		# Six seconds can end part-way through a nonlinear root cycle. Read the
+		# saved native interpolation for phase, and independently check its net
+		# cycle travel against the public speed/direction contract.
+		var first := clip.position_track_interpolate(root_track, 0.0)
+		var last := clip.position_track_interpolate(root_track, clip.length)
+		var parent: Node3D = v.body.get_parent_node_3d()
+		var parent_basis: Basis = parent.global_basis if parent != null and not v.body.top_level else Basis.IDENTITY
+		var cycles := floorf(6.0 / clip.length)
+		expected_travel = parent_basis * ((last - first) * cycles + clip.position_track_interpolate(root_track, fposmod(6.0, clip.length)) - first)
+		var left := Native.flat(Native.rest(v.rig, v.roles, "foot_l") - Native.rest(v.rig, v.roles, "foot_r"), v.up).normalized()
+		var direction := left * (1.0 if str(row.params.get("direction", "left")) == "left" else -1.0)
+		cycle_contract_error = (parent_basis * (last - first)).distance_to(direction * speed * clip.length)
 	var anatomical_left := Native.flat(Native.rest(v.rig, v.roles, "foot_l") - Native.rest(v.rig, v.roles, "foot_r"), v.up).normalized()
 	var travel_axis := anatomical_left * (1.0 if str(row.params.get("direction", "left")) == "left" else -1.0)
+	if not extracted: expected_travel = travel_axis * speed * 6.0
 	var minimum_foot_gap := INF
 	var max_reference := Vector2.ZERO
 	var zero_root_error := 0.0
@@ -124,7 +145,7 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 			mixer.advance(dt)
 			var delta := mixer.get_root_motion_position()
 			if extracted:
-				v.body.position += v.body.quaternion * delta
+				v.body.position += delta
 			else:
 				# In-place bones need a caller-owned actor velocity for world planting.
 				# Observe inert clip/root output before applying that single owner.
@@ -179,7 +200,7 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 		for index in v.rig.get_bone_count():
 			var pose: Transform3D = v.rig.get_bone_global_pose(index)
 			if not pose.origin.is_finite() or not pose.basis.is_finite(): nonfinite += 1
-			var step := pose.origin.distance_to(previous[index])
+			var step: float = (v.rig.global_basis * (pose.origin - previous[index])).length()
 			max_pose_step = maxf(max_pose_step, step)
 			if crossed: seam_step = maxf(seam_step, step)
 			previous[index] = pose.origin
@@ -196,13 +217,14 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 			a.wrist_excursion_rad = maxf(a.wrist_excursion_rad, 2.0 * atan2(Vector3(q.x, q.y, q.z).length(), absf(q.w)))
 		trace.append(sample)
 	var travel: Vector3 = v.body.global_position - v.initial_body
-	var root_error := travel.distance_to(travel_axis * speed * 6.0)
+	var root_error := travel.distance_to(expected_travel)
 	var forward_drift := absf(travel.dot(v.forward))
 	var slide_limit := minf(0.02 * leg, 0.03)
 	if not path_errors.is_empty(): errors.append("Invalid track paths/types")
 	if nonfinite > 0: errors.append("Nonfinite played poses")
 	if bool(row.write.clamped): errors.append("Generation reach clamp")
 	if root_error >= 0.0001: errors.append("Root/actor travel mismatch")
+	if cycle_contract_error >= 0.0001: errors.append("Root cycle differs from reported speed/direction")
 	if zero_root_error > 0.000001 or clip_owner_error > 0.000001: errors.append("In-place clip owns translation")
 	if seams == 0: errors.append("No crossed loop seam coverage")
 	if max_reference.x > 0.001 * leg or max_reference.y > 0.0001: errors.append("Repeated engine pose differs at fractional phase")
@@ -222,7 +244,8 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 		"actor_translation_owner": "extracted track target" if extracted else "unanimated gameplay parent outside the visual mixer subtree",
 		"frames": 6 * fps + 1, "dt": dt, "leg_length_m": leg, "period_s": clip.length,
 		"slide_limit_m": slide_limit, "penetration_limit_m": 0.01 * leg,
-		"root_distance_m": travel.length(), "expected_root_distance_m": speed * 6.0, "root_error_m": root_error,
+		"root_distance_m": travel.length(), "expected_root_distance_m": expected_travel.length(), "root_error_m": root_error,
+		"root_cycle_contract_error_m": cycle_contract_error,
 		"minimum_signed_lateral_foot_gap_m": minimum_foot_gap, "forward_drift_m": forward_drift,
 		"max_in_place_root_delta_m": zero_root_error, "max_in_place_clip_translation_m": clip_owner_error,
 		"max_reference_position_error_m": max_reference.x, "max_reference_rotation_error_rad": max_reference.y,
@@ -238,12 +261,56 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 	reference.scene.free()
 	return result
 
+func _inject_control(row: Dictionary, v: Dictionary) -> void:
+	var name := str(row.params.animation_name)
+	var library: AnimationLibrary = v.player.get_animation_library(name.get_slice("/", 0) if name.contains("/") else "")
+	library.remove_animation(name.get_slice("/", 1) if name.contains("/") else name)
+	v.clip = v.clip.duplicate(true)
+	library.add_animation(name.get_slice("/", 1) if name.contains("/") else name, v.clip)
+	var clip: Animation = v.clip
+	if control == "missing_contacts":
+		clip.remove_marker("contact.L")
+	elif control == "inert":
+		for track in clip.get_track_count():
+			var value: Variant = clip.track_get_key_value(track, 0)
+			for key in clip.track_get_key_count(track): clip.track_set_key_value(track, key, value)
+	elif control in ["double_travel", "reverse_travel"]:
+		var track := clip.find_track(v.player.root_motion_track, Animation.TYPE_POSITION_3D)
+		if track >= 0:
+			var first: Vector3 = clip.track_get_key_value(track, 0)
+			var factor := 2.0 if control == "double_travel" else -1.0
+			for key in clip.track_get_key_count(track):
+				clip.track_set_key_value(track, key, first + ((clip.track_get_key_value(track, key) as Vector3) - first) * factor)
+	elif control == "stance_slide":
+		var track := clip.add_track(Animation.TYPE_POSITION_3D)
+		var path: NodePath = v.player.get_node(v.player.root_node).get_path_to(v.rig)
+		clip.track_set_path(track, NodePath(str(path) + ":" + str(v.roles.foot_r)))
+		var rest_position: Vector3 = v.rig.get_bone_pose_position(v.indices.foot_r)
+		# The trailing right foot is planted through the first left step.
+		var parent: int = v.rig.get_bone_parent(v.indices.foot_r)
+		var parent_basis: Basis = v.rig.get_bone_global_rest(parent).basis if parent >= 0 else Basis.IDENTITY
+		var shift: Vector3 = parent_basis.inverse() * v.rig.global_basis.inverse() * v.forward * float(v.leg) * 0.12
+		for event in [[0.0, 0.0], [0.15, 1.0], [0.35, 0.0], [1.0, 0.0]]:
+			clip.track_insert_key(track, float(event[0]) * clip.length, rest_position + shift * float(event[1]))
+	row.write.track_count = clip.get_track_count()
+	var count := 0
+	for track in clip.get_track_count(): count += clip.track_get_key_count(track)
+	row.write.key_count = count
+	v.player.stop()
+	v.player.clear_caches()
+	v.player.play(name)
+	v.player.advance(0.0)
+
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
 	if args.size() < 2:
 		quit(1)
 		return
 	var manifest: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(args[0]))
+	control = args[3] if args.size() > 3 else ""
+	if control not in ["", "missing_contacts", "inert", "double_travel", "reverse_travel", "stance_slide"]:
+		quit(1)
+		return
 	var modes: Array = ["player"] if args.size() > 2 and args[2] == "baseline" else ["player", "tree"]
 	var results: Array = []
 	var failures: Array = []
@@ -258,6 +325,7 @@ func _run() -> void:
 				if not result.get("thresholds_pass", false): failures.append("%s/%s/%s: %s" % [row.id, fps, mode, str(result.get("failures", ["Invalid check result"]))])
 	var expected := 4 * 3 * modes.size()
 	var report := {"source_head": manifest.source_head, "revision": manifest.revision,
+		"control": control,
 		"route_sha256": FileAccess.get_sha256(args[0]),
 		"checker_sha256": FileAccess.get_sha256("res://tools/check_strafe_quality.gd"),
 		"native_helper_sha256": FileAccess.get_sha256("res://tools/character_quality_native.gd"),

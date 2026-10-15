@@ -28,6 +28,7 @@ func _tree(view: Dictionary, name: String) -> AnimationMixer:
 	tree.anim_player = tree.get_path_to(view.player)
 	tree.root_node = tree.get_path_to(view.player.get_node(view.player.root_node))
 	tree.root_motion_track = view.player.root_motion_track
+	tree.root_motion_local = view.player.root_motion_local
 	tree.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	var node := AnimationNodeAnimation.new()
 	node.animation = view.animation_name

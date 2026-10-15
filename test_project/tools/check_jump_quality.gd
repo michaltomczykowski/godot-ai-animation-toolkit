@@ -24,9 +24,14 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 		feet[side] = {"active": false, "anchor": Vector3.ZERO, "slide": 0.0, "penetration": 0.0,
 			"contact_height": 0.0, "pole": Vector3.ZERO, "flips": 0, "max_lift": 0.0, "frames": 0}
 	var initial: Array[Vector3] = []
-	for i in v.rig.get_bone_count(): initial.append(v.rig.get_bone_global_pose(i).origin)
+	var previous_rotations: Array[Quaternion] = []
+	for i in v.rig.get_bone_count():
+		var pose: Transform3D = v.rig.global_transform * v.rig.get_bone_global_pose(i)
+		initial.append(pose.origin)
+		previous_rotations.append(pose.basis.orthonormalized().get_rotation_quaternion())
 	var previous := initial.duplicate()
 	var max_step := 0.0
+	var max_angular_velocity := 0.0
 	var worst_step := {"bone": "", "time": 0.0, "step_m": 0.0}
 	var max_motion := 0.0
 	var nonfinite := 0
@@ -41,7 +46,7 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 			mixer.advance(1.0 / fps)
 			var delta := mixer.get_root_motion_position()
 			if extracted:
-				v.body.position += v.body.quaternion * delta
+				v.body.position += delta
 				if time <= takeoff or time >= landing + 1.0 / fps: ground_root_motion = maxf(ground_root_motion, delta.length())
 			else: zero_extraction = maxf(zero_extraction, delta.length())
 		var contact := time <= takeoff + 0.000001 or time >= landing - 0.000001
@@ -71,7 +76,7 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 			sample.feet[side] = {"p": Native.values(foot), "height": height, "declared_contact": contact}
 		if airborne: air_frames += 1
 		for i in v.rig.get_bone_count():
-			var pose: Transform3D = v.rig.get_bone_global_pose(i)
+			var pose: Transform3D = v.rig.global_transform * v.rig.get_bone_global_pose(i)
 			if not pose.origin.is_finite() or not pose.basis.is_finite(): nonfinite += 1
 			var step := pose.origin.distance_to(previous[i])
 			if step > max_step:
@@ -79,6 +84,10 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 				worst_step = {"bone": v.rig.get_bone_name(i), "time": time, "step_m": step}
 			max_motion = maxf(max_motion, pose.origin.distance_to(initial[i]))
 			previous[i] = pose.origin
+			var rotation := pose.basis.orthonormalized().get_rotation_quaternion()
+			var q := previous_rotations[i].inverse() * rotation
+			max_angular_velocity = maxf(max_angular_velocity, 2.0 * atan2(Vector3(q.x, q.y, q.z).length(), absf(q.w)) * fps)
+			previous_rotations[i] = rotation
 		trace.append(sample)
 	var travel: Vector3 = v.body.global_position - v.initial_body if extracted else Native.point(v, "hips") - first_hip
 	var expected: Vector3 = v.forward * float(row.write.distance)
@@ -88,7 +97,7 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 	if ground_root_motion > 0.000001: errors.append("Actor travels during declared grounded phase")
 	if zero_extraction > 0.000001: errors.append("Nonextracted jump has competing extraction")
 	if nonfinite > 0 or max_motion <= 0.000001: errors.append("Nonfinite or inert skeletal playback")
-	if max_step > maxf(0.12 * leg, 10.0 * leg / fps): errors.append("Played jump discontinuity")
+	if max_step * fps > 10.0 * leg or max_angular_velocity > 50.0: errors.append("Played jump discontinuity")
 	if air_frames <= 0: errors.append("No simultaneous observed flight")
 	var metrics := {}
 	for side: String in feet:
@@ -101,6 +110,7 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 		"actor_translation_owner": "extracted carrier" if extracted else "skeletal clip only; no controller translation",
 		"root_error_m": root_error, "grounded_root_delta_m": ground_root_motion, "unexpected_extraction_m": zero_extraction,
 		"observed_flight_frames": air_frames, "nonfinite": nonfinite, "max_pose_step_m": max_step,
+		"max_bone_speed_legs_per_s": max_step * fps / leg, "max_bone_angular_speed_rad_s": max_angular_velocity,
 		"worst_pose_step": worst_step, "feet": metrics, "trace": trace, "failures": errors, "thresholds_pass": errors.is_empty()}
 	v.scene.free()
 	return result
