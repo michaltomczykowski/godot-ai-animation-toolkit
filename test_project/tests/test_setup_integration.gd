@@ -264,3 +264,56 @@ func test_setup_custom_animation_root_and_remote_tree_history_serialization() ->
 		var fresh_grounder := Codec.resolve_scene_path(str(fresh.data.grounding_path),scene) as Grounding
 		assert_eq(fresh_grounder.validate_configuration(),"","new remote helper paths usable")
 	hub.free();body.free();second.free()
+
+func test_setup_internal_modifier_writers_refuse_dry_write_and_runtime() -> void:
+	var scene := EditorInterface.get_edited_scene_root()
+	var body := (load(FIXTURES[2]) as PackedScene).instantiate()
+	body.name="InternalWriterSetup";scene.add_child(body);_assign(body,scene)
+	var player := _find(body,"AnimationPlayer") as AnimationPlayer
+	var rig := _find(body,"Skeleton3D") as Skeleton3D
+	var args := {"op":"character_setup","player_path":Codec.from_node(player,scene),"skeleton_path":Codec.from_node(rig,scene)}
+	var simulator := PhysicalBoneSimulator3D.new()
+	rig.add_child(simulator,false,Node.INTERNAL_MODE_BACK);simulator.active=true
+	assert_true(Grounding.is_inert_internal_simulator(simulator),"exact inert internal empty simulator exemption")
+	var dry := args.duplicate(true);dry.dry_run=true
+	var history := Context.undo_redo.get_history_undo_redo(Context.undo_redo.get_object_history_id(body))
+	var version := history.get_version()
+	var names := player.get_animation_list()
+	var binding := player.root_motion_track
+	var pose := rig.get_bone_pose_rotation(1)
+	var rest := rig.get_bone_rest(1)
+	assert_true(handler.run(dry,null).has("data"),"inert internal simulator admits dry setup")
+	assert_eq(history.get_version(),version,"inert dry remains mutation free")
+	for mode in ["nonempty","simulating"]:
+		var sentinel: Node = null
+		if mode=="nonempty":
+			sentinel=Node.new();simulator.add_child(sentinel)
+		else:
+			simulator.physical_bones_start_simulation()
+			assert_true(simulator.is_simulating_physics(),"empty simulator running-state boundary is real")
+		assert_false(Grounding.is_inert_internal_simulator(simulator),"potential writer is never exempt: "+mode)
+		var children := rig.get_child_count(true)
+		for request in [dry,args]:
+			var refusal := handler.run(request,null)
+			assert_true(refusal.has("error") and refusal.error.code=="OPERATION_UNAVAILABLE","internal "+mode+" typed dry/write refusal")
+			assert_eq(history.get_version(),version,"internal refusal no Undo action")
+			assert_eq(player.get_animation_list(),names,"internal refusal preserves library")
+			assert_eq(player.root_motion_track,binding,"internal refusal preserves extraction")
+			assert_eq(rig.get_bone_pose_rotation(1),pose,"internal refusal preserves bone pose")
+			assert_eq(rig.get_bone_rest(1),rest,"internal refusal preserves rest")
+			assert_eq(rig.get_child_count(true),children,"internal refusal adds no helper")
+			assert_true(simulator.active,"internal writer never silently disabled")
+		if sentinel!=null: sentinel.free()
+		simulator.physical_bones_stop_simulation()
+	var made := handler.run(args,null)
+	assert_true(made.has("data"),"inert empty internal node permits actual setup")
+	if made.has("data"):
+		var grounder := Codec.resolve_scene_path(str(made.data.grounding_path),scene) as Grounding
+		assert_eq(grounder.validate_configuration(),"","runtime admits exact inert internal node")
+		var sentinel := Node.new();simulator.add_child(sentinel)
+		assert_true(grounder.validate_configuration().contains("Foreign active bone modifier"),"runtime refuses internal nonempty potential writer")
+		sentinel.free();simulator.physical_bones_start_simulation()
+		assert_true(grounder.validate_configuration().contains("Foreign active bone modifier"),"runtime refuses internal running simulator")
+		simulator.physical_bones_stop_simulation()
+		assert_eq(grounder.validate_configuration(),"","runtime ownership recovers after explicit stop")
+	body.free()

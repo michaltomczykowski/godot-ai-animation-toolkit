@@ -684,13 +684,13 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 	if player.active and player.is_playing():
 		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Stop the bound AnimationPlayer before setup so the AnimationTree is the sole playback writer")
 	var grounder: SkeletonModifier3D = null
-	for candidate in rig.get_children():
+	for candidate in rig.get_children(true):
 		if candidate is SkeletonModifier3D:
 			if candidate.get_script() == SetupGrounding:
 				if grounder != null:
 					return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Duplicate setup grounding ownership")
 				grounder = candidate
-			elif candidate.active:
+			elif candidate.active and not SetupGrounding.is_inert_internal_simulator(candidate):
 				return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Character setup grounding cannot follow a foreign active bone modifier; disable it explicitly or use standalone clips")
 	for mixer in scene_root.find_children("*", "AnimationMixer", true, false):
 		if mixer == tree or mixer == player or not mixer.active or (mixer is AnimationPlayer and not mixer.is_playing()): continue

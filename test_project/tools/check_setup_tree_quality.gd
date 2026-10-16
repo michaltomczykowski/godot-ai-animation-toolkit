@@ -41,8 +41,7 @@ func _prepare_admission_control(_scene: Node, _row: Dictionary, _rig: Skeleton3D
 func _inert_internal_simulator(candidate: Node) -> bool:
 	# Godot inserts this empty compatibility node internally on scene entry.
 	# A user-owned/child-bearing/simulating/scripted modifier is not exempt.
-	var simulator := candidate as PhysicalBoneSimulator3D
-	return simulator!=null and simulator.get_script()==null and simulator.get_parent()!=null and not simulator.get_parent().get_children().has(simulator) and simulator.get_child_count(true)==0 and not simulator.is_simulating_physics()
+	return Grounding.is_inert_internal_simulator(candidate)
 func _saved_writer_conflicts(scene: Node, rig: Skeleton3D, tree: AnimationTree) -> Array[String]:
 	var problems: Array[String] = []
 	var mixers := scene.find_children("*","AnimationMixer",true,false)

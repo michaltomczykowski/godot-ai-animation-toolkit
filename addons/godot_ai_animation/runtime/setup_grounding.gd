@@ -56,6 +56,12 @@ func _fail(message: String) -> bool:
 	reset_grounding("configuration_or_runtime_error")
 	return false
 
+static func is_inert_internal_simulator(candidate: Node) -> bool:
+	# The engine's empty compatibility node is not a bone writer. Never exempt
+	# user-owned/scripted/nonempty/simulating modifiers by class alone.
+	var simulator := candidate as PhysicalBoneSimulator3D
+	return simulator!=null and simulator.get_script()==null and simulator.get_parent()!=null and not simulator.get_parent().get_children().has(simulator) and simulator.get_child_count(true)==0 and not simulator.is_simulating_physics()
+
 func validate_configuration() -> String:
 	if not is_equal_approx(influence,1.0): return "Grounding requires full influence=1 for its final-pose contract"
 	var rig := get_skeleton()
@@ -70,10 +76,10 @@ func validate_configuration() -> String:
 	if not rig_up.is_finite() or not rig_forward.is_finite() or rig_up.length() < 0.9 or rig_forward.length() < 0.9 or absf(rig_up.normalized().dot(rig_forward.normalized())) > 0.001: return "Grounding measured axes are invalid"
 	if not is_finite(maximum_correction_leg_ratio) or maximum_correction_leg_ratio <= 0.0 or not is_finite(target_tolerance_m) or target_tolerance_m <= 0.0: return "Grounding solve limits are invalid"
 	var owned := 0
-	for node in rig.get_children():
+	for node in rig.get_children(true):
 		if node is SkeletonModifier3D:
 			if node.get_script() == get_script(): owned += 1
-			elif node.active: return "Foreign active bone modifier has unsupported setup ownership/order"
+			elif node.active and not is_inert_internal_simulator(node): return "Foreign active bone modifier has unsupported setup ownership/order"
 	if owned != 1: return "Duplicate setup grounding ownership"
 	for side in ["l","r"]:
 		var thigh := rig.find_bone(str(role_names.get("thigh_"+side,"")))
