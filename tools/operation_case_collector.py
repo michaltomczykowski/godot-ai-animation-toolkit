@@ -282,10 +282,30 @@ def native_checks(event, context):
     elif name == 'verify_saved_graph_playback.gd':
         if op == 'graph_get':
             return {}, ['read-only graph_get has no applicable producer playback check']
-        expected_prefix=event['scene']+' walk_x='
         text=payloads[0] if len(payloads)==1 else ''
-        match=re.fullmatch(re.escape(expected_prefix)+r'([-+0-9.]+) player_idle=true',text)
-        okay = okay and bool(match) and float(match[1])>=20.0
+        number=r'([-+0-9.]+)'
+        # Match each actual checker branch and its original native thresholds.
+        # A generic walk marker cannot qualify a jump, additive or wired branch.
+        if op=='wire':
+            pattern=r' condition_walk_x='+number
+            valid=lambda m:float(m[1])>=20.0
+        elif op=='locomotion' and Path(event['scene']).name=='locomotion_state_machine.tscn':
+            pattern=r' walk_x='+number+r' run_x='+number
+            valid=lambda m:float(m[1])>=20.0 and float(m[2])>=70.0
+        elif op=='one_shot_layer':
+            pattern=r' jump_y='+number
+            valid=lambda m:float(m[1])<=-20.0
+        elif op=='additive_lean':
+            pattern=r' lean='+number
+            valid=lambda m:float(m[1])>=.05
+        elif op in {'state_machine','blend_space','blend_tree','locomotion'}:
+            pattern=r' walk_x='+number
+            valid=lambda m:float(m[1])>=20.0
+        else:
+            raise ValueError('graph operation has no source-specific playback branch')
+        match=re.fullmatch(re.escape(event['scene'])+pattern+r' player_idle=true',text)
+        try:okay = okay and bool(match) and valid(match)
+        except ValueError:okay=False
     elif name in {'check_motion_remaining_runtime.gd','check_rig_recipe_runtime.gd'}:
         if name == 'check_motion_remaining_runtime.gd' and report.get('clip') != op:
             raise ValueError('native output clip differs from operation')

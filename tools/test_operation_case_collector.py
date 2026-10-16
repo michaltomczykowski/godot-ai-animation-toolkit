@@ -173,4 +173,26 @@ class Collector(unittest.TestCase):
             self.assertEqual(head['tested_reference'],'pull_request_head')
             self.assertEqual(head['github_sha'],'merge-sha')
 
+    def test_graph_variant_outputs_retain_exact_native_thresholds(self):
+        script='verify_saved_graph_playback.gd'
+        context={'engine_command':'fixture-godot','dependencies':{'test_project/tools/'+script:{}}}
+        rows=[('wire','wire_parameter','condition_walk_x=48.333','condition_walk_x=19.999'),
+              ('locomotion','locomotion_state_machine','walk_x=48.333 run_x=93.333','walk_x=48.333 run_x=69.999'),
+              ('one_shot_layer','one_shot_layer','jump_y=-77.333','jump_y=-19.999'),
+              ('additive_lean','additive_lean','lean=0.116','lean=0.049')]
+        for op,basename,good,bad in rows:
+            with self.subTest(operation=op):
+                scene='res://audit/'+basename+'.tscn'
+                event={'operation':'animation_graph.'+op,'scene':scene,
+                       'command':['fixture-godot','--script','res://tools/'+script,'--',scene],
+                       'returncode':0,'stdout':'GRAPH_SAVED_PLAYBACK_PASS: '+scene+' '+good+' player_idle=true','stderr':''}
+                self.assertEqual(c.native_checks(event,context)[0],{'playback':'pass'})
+                event['stdout']=event['stdout'].replace(good,bad)
+                self.assertEqual(c.native_checks(event,context)[0],{'playback':'fail'})
+                event['stdout']='GRAPH_SAVED_PLAYBACK_PASS: '+scene+' walk_x=50.000 player_idle=true'
+                self.assertEqual(c.native_checks(event,context)[0],{'playback':'fail'})
+                event['stdout']='GRAPH_SAVED_PLAYBACK_PASS: '+scene+' '+good+' player_idle=true'
+                event['stderr']='ERROR: actual engine failure'
+                self.assertEqual(c.native_checks(event,context)[0],{'playback':'fail'})
+
 if __name__=='__main__':unittest.main()
