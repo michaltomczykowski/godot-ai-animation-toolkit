@@ -122,7 +122,8 @@ def identities_match(manifest, runs):
 def qualifies_report(manifest, report, exit_code, control):
     """Also usable to reanalyze immutable completed reports without Godot."""
     runs = report.get("runs", [])
-    complete = identities_match(manifest, runs) and not report.get("engine_errors")
+    engine_errors = report.get("engine_errors")
+    complete = isinstance(engine_errors, list) and not engine_errors and identities_match(manifest, runs)
     if control in NEGATIVE:
         valid = complete and exit_code == 1 and report.get("passed") is False and all(
             row.get("passed") is False and any(

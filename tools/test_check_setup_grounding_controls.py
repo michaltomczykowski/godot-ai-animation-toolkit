@@ -63,6 +63,16 @@ class Controls(unittest.TestCase):
     def test_original_scene_write_is_detected(self): self.run_case("scene_write")
 
 class Identity(unittest.TestCase):
+    def test_missing_or_nonlist_engine_error_receipt_is_rejected(self):
+        manifest={"cases":[{"id":"rig","quality_specs":[{"kind":"blend","speed":1.0}]}]}
+        report={"passed":True,"engine_errors":[],"runs":[dict(id="rig",fps=fps,spec={"kind":"blend","speed":1.0},passed=True) for fps in subject.FPS]}
+        self.assertTrue(subject.qualifies_report(manifest,report,0,"positive"))
+        missing=copy.deepcopy(report);missing.pop("engine_errors")
+        self.assertFalse(subject.qualifies_report(manifest,missing,0,"positive"))
+        for invalid in (None,"",{},0,False):
+            with self.subTest(value=invalid):
+                corrupt=copy.deepcopy(report);corrupt["engine_errors"]=invalid
+                self.assertFalse(subject.qualifies_report(manifest,corrupt,0,"positive"))
     def test_actual_machine_echo_and_integer_spelling(self):
         self.assertTrue(subject.same_serialized_value({"speed":.4103197621675715,"duration":6.0},
                                                       {"speed":.410319762167571,"duration":6}))
