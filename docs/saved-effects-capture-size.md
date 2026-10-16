@@ -54,3 +54,14 @@ callback mode, assigned animation and native position. The checker requires
 every selected redo player to be active, idle and progressing on both takes.
 `is_playing` alone is insufficient: manual players can report playing at a frozen
 position. SpriteFrames uses its separate native sprite clock contract.
+
+The exact transition comparison uses a static 0.5 canvas scale and (150,150)
+translation on both clones/takes. Its preserved 640×360 ColorRect then occupies
+320×180 at full scale within the 700×610 pane. Each frame records the actual
+Control rectangle transformed through `get_global_transform_with_canvas()`,
+the unchanged local dimensions and visibility. The checker rejects clipped or
+missing rectangles and requires the full-size terminal extent in both panes
+and takes. No target position, scale, pivot, size or animation keys are adjusted.
+Other fixed-frame cases retain their existing transform; native camera effects
+remain camera-driven. The earlier clipped case08 is retained as incomplete
+visual evidence; this framing requires a fresh immutable plan and capture.

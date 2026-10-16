@@ -194,6 +194,8 @@ func _load_scene(viewport: SubViewport, state: String) -> void:
 	_apply_fixed_presentation(viewport)
 
 func _fixed_transform() -> Transform2D:
+	if _case.operation == "animation_fx.transition":
+		return Transform2D(0.0, Vector2(0.5, 0.5), 0.0, Vector2(150, 150))
 	return Transform2D(0.0, Vector2(0.55, 0.55), 0.0, Vector2(0, 100)) if _case.get("display_mode", "") == "showcase" else Transform2D(0.0, Vector2(250, 260))
 
 func _apply_fixed_presentation(viewport: SubViewport) -> void:
@@ -212,7 +214,15 @@ func _presentation_states() -> Array:
 		var fixed_ok := _native_camera_mode() or transform.is_equal_approx(expected)
 		if not fixed_ok and not _runtime_failures.has("Fixed comparison framing changed after camera shutdown"):
 			_runtime_failures.append("Fixed comparison framing changed after camera shutdown")
-		states.append({"canvas_transform": [transform.x.x, transform.x.y, transform.y.x, transform.y.y, transform.origin.x, transform.origin.y],
+		var target_rects := {}
+		if _case.operation == "animation_fx.transition":
+			var fixture := _fixtures[_viewports.find(viewport)]
+			for path in _case.targets:
+				var target := fixture.get_node_or_null(NodePath(path)) as Control
+				if target == null: continue
+				var rect: Rect2 = target.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, target.size)
+				target_rects[str(path)] = {"local_size": [target.size.x, target.size.y], "viewport_rect": [rect.position.x, rect.position.y, rect.size.x, rect.size.y], "visible_in_tree": target.is_visible_in_tree()}
+		states.append({"canvas_transform": [transform.x.x, transform.x.y, transform.y.x, transform.y.y, transform.origin.x, transform.origin.y], "target_rects": target_rects,
 			"body_rect": [viewport.get_parent().position.x, BODY_TOP, 700, 610], "fixed_frame_valid": fixed_ok,
 			"audio_listener_2d": viewport.audio_listener_enable_2d, "audio_listener_3d": viewport.audio_listener_enable_3d})
 	return states
