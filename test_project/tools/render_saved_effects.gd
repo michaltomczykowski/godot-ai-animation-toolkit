@@ -246,6 +246,25 @@ func _player_times(fixture: Node, state: String) -> Dictionary:
 				"playing": player.is_playing()}
 	return result
 
+func _playback_contracts() -> Array:
+	var result: Array = []
+	var playbacks: Array = _case.get("playbacks", [{"player": _case.player, "undo_clip": _case.clip, "redo_clip": _case.clip}])
+	for index in _fixtures.size():
+		var state := "undo" if index == 0 else "redo"
+		for playback in playbacks:
+			var player := _fixtures[index].get_node_or_null(NodePath(playback.player)) as AnimationPlayer
+			var name := str(playback[state + "_clip"])
+			if player == null or not player.has_animation(name): continue
+			var clip := player.get_animation(name)
+			var tracks: Array = []
+			for track in clip.get_track_count():
+				var keys: Array = []
+				for key in clip.track_get_key_count(track):
+					keys.append({"time": clip.track_get_key_time(track, key), "value": str(clip.track_get_key_value(track, key))})
+				tracks.append({"path": str(clip.track_get_path(track)), "type": clip.track_get_type(track), "enabled": clip.track_is_enabled(track), "interpolation": clip.track_get_interpolation_type(track), "keys": keys})
+			result.append({"state": state, "player": str(playback.player), "clip": name, "length": clip.length, "loop_mode": clip.loop_mode, "tracks": tracks})
+	return result
+
 func _state(fixture: Node) -> Dictionary:
 	var result := {}
 	for path in _case.targets:
@@ -299,7 +318,7 @@ func _process(delta: float) -> bool:
 			"case_id": _case.id, "header_rect": [12, 8, 1376, 170], "startup_capture": _startup_capture, "capture_geometry": _capture_geometry, "runtime_failures": _runtime_failures, "engine_errors": _logger.errors,
 			"camera_presentation": _camera_presentation(), "native_camera_states": _camera_states(), "scenes": _case.scenes, "dependencies_verified": _resource_checks, "samples": _samples,
 			"native_changed_frames": _changes, "observed_difference": _different,
-			"frames": _frames, "elapsed": _elapsed, "plan_sha256": _plan_sha, "renderer_sha256": _renderer_sha, "max_delta_error": _max_delta_error, "engine": Engine.get_version_info(),
+			"frames": _frames, "playback_contracts": _playback_contracts(), "elapsed": _elapsed, "plan_sha256": _plan_sha, "renderer_sha256": _renderer_sha, "max_delta_error": _max_delta_error, "engine": Engine.get_version_info(),
 			"status": "failed_engine_or_runtime" if not _logger.errors.is_empty() or not _runtime_failures.is_empty() else "observation_only", "semantic_effect_check": "pending",
 			"continuous_visual_assessment": "pending", "audio_output": "pending" if _case.audio_output_required else "not_applicable",
 			"limits": "Difference/progression are observations, not semantic correctness or visual approval. Native camera plus static50-unit calibration grid for shake/zoom; other cameras disabled for stable framing; unrelated CanvasItems hidden; unkeyed bar/panel display extents 220x50; Control/Node2D cyan polygons and Node3D rigid cube/camera/light are display-only; showcase framed at0.55; markers are display-only children. Both clones re-instantiated for take2. SpriteFrames explicitly played for review (saved play=false remains documented)."}

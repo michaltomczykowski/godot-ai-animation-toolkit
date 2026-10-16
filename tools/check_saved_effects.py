@@ -6,6 +6,7 @@ import math
 import re
 from pathlib import Path
 import struct
+from saved_effect_contracts import is_nearest_hold
 
 CAPTURE_SIZE = [1400, 800]
 
@@ -62,6 +63,8 @@ def player_clock_failures(case, samples):
 
 def check(case, report):
     failures = capture_failures(report)
+    if case.get('operation')=='animation_edit.set_interp' and case.get('variant')=='set_interp' and not case.get('require_progression',True) and not is_nearest_hold(case):
+        failures.append('held nearest representative lacks its exact contract')
     if report.get('operation') != case['operation'] or report.get('case_id') != case['id']:
         failures.append('operation/case mismatch')
     if report.get('scenes') != case['scenes'] or report.get('dependencies_verified') != case['dependencies']:
@@ -132,6 +135,21 @@ def check(case, report):
             failures.append(f'take {take}: no changed effect relative to undo')
         checks[f'take_{take}_target_progression'] = 'pass' if changed else 'not_applicable' if not case.get('require_progression', True) else 'fail'
         checks[f'take_{take}_changed_effect'] = 'pass' if different else 'not_applicable' if not case.get('require_visible_difference', True) else 'fail'
+        if is_nearest_hold(case):
+            contracts=report.get('playback_contracts',[])
+            valid=True
+            for state,interpolation in [('undo',1),('redo',0)]:
+                clips=[clip for clip in contracts if clip.get('state')==state and clip.get('player')=='AnimationPlayer']
+                track=next((track for clip in clips for track in clip.get('tracks',[]) if track.get('path')=='Character:position'),{})
+                keys=track.get('keys',[])
+                valid=valid and len(clips)==1 and clips[0].get('length')==1.0 and clips[0].get('loop_mode')==1 and track.get('type')==0 and track.get('enabled') is True and track.get('interpolation')==interpolation and len(keys)==2
+                valid=valid and len(keys)==2 and keys[0].get('time')==0.0 and keys[1].get('time')==1.0 and matches(keys[0].get('value'),'position:x',0) and matches(keys[1].get('value'),'position:x',100)
+            held=all(matches(state.get('Character',{}).get('position'),'position:x',0) for state in redo)
+            reference_moved=len({json.dumps(state,sort_keys=True) for state in undo})>1
+            undo_clock=all(len(row.get('players',[]))==2 and row['players'][0].get('AnimationPlayer',{}).get('active') is True and row['players'][0].get('AnimationPlayer',{}).get('callback_mode_process')==1 for row in rows)
+            okay=valid and held and reference_moved and undo_clock and different
+            checks[f'take_{take}_held_nearest_output']='pass' if okay else 'fail'
+            if not okay: failures.append(f'take {take}: nearest held output/reference/actual track metadata mismatch')
         if op in ENDPOINTS:
             node, prop, expected = ENDPOINTS[op]
             try:
