@@ -5,22 +5,27 @@ const Sandbox := preload("res://addons/godot_ai_animation/utils/evaluation_sandb
 const Errors := preload("res://addons/godot_ai_animation/utils/error_codes.gd")
 const RootMotion := preload("res://addons/godot_ai_animation/utils/bake_root_motion.gd")
 const SUPPORTED := ["TwoBoneIK3D", "CCDIK3D", "FABRIK3D", "SplineIK3D", "LookAtModifier3D", "BoneTwistDisperser3D", "RetargetModifier3D", "SpringBoneSimulator3D"]
-class Witness extends SkeletonModifier3D:
+const GROUNDING_PATH := "res://addons/godot_ai_animation/runtime/setup_grounding.gd"
+const GROUNDING_FIELDS := ["influence", "tree_path", "player_path", "role_names", "rig_up", "rig_forward", "speed_parameter", "base_prefix", "jump_parameter", "maximum_correction_leg_ratio", "target_tolerance_m"]
+class FinalCapture extends RefCounted:
+	var skeleton: Skeleton3D
 	var poses: Array = []
 	var count := 0
 	var skin_poses: Array = []
 	var skin_count := 0
-	func _process_modification_with_delta(_delta: float) -> void:
+	func capture_final() -> void:
 		poses.clear()
-		var skeleton := get_skeleton()
 		for i in skeleton.get_bone_count():
 			poses.append({"rotation": skeleton.get_bone_pose_rotation(i), "position": skeleton.get_bone_pose_position(i), "scale": skeleton.get_bone_pose_scale(i)})
 		count += 1
 	func capture_skin() -> void:
 		skin_poses.clear()
-		var rig := get_skeleton()
-		for i in rig.get_bone_count(): skin_poses.append(rig.get_bone_pose(i))
+		for i in skeleton.get_bone_count(): skin_poses.append(skeleton.get_bone_pose(i))
 		skin_count += 1
+class Witness extends SkeletonModifier3D:
+	var capture: FinalCapture
+	func _process_modification_with_delta(_delta: float) -> void:
+		capture.capture_final()
 var sandbox := Sandbox.new()
 var skeleton: Skeleton3D
 var player: AnimationPlayer
@@ -30,10 +35,17 @@ var root_motion: RefCounted
 var rigs: Array[Skeleton3D] = []
 var witnesses: Dictionary = {}
 var guarded_modifiers: Dictionary = {}
+var grounders: Dictionary = {}
 var modifiers: Array = []
 var reset_modifiers: Array = []
 var preserved: Array = []
 var _test_fail_at := -1.0 # Internal failure injection; never exposed on the tool wire.
+
+func _is_grounding(node: Node) -> bool:
+	var script: Script = node.get_script()
+	if script == null or script.resource_path != GROUNDING_PATH or script != load(GROUNDING_PATH): return false
+	var constants := script.get_script_constant_map()
+	return constants.get("CONTRACT_VERSION") == 1 and constants.get("CONFIG_FIELDS") == GROUNDING_FIELDS
 
 func open(scene_root: Node, source_skeleton: Skeleton3D, source_player: AnimationPlayer, animation: String, source_tree: AnimationTree = null, replay: RefCounted = null, motion: RefCounted = null, motion_owner: Node3D = null) -> Dictionary:
 	if source_player.get_script() != null:
@@ -46,6 +58,7 @@ func open(scene_root: Node, source_skeleton: Skeleton3D, source_player: Animatio
 		ancestor = ancestor.get_parent()
 	for rig in needed.keys(): _retarget_rigs(rig, needed)
 	var candidates: Array = []
+	var trusted_grounders := {}
 	for rig in needed:
 		preserved.append(rig)
 		for child in rig.get_children():
@@ -53,7 +66,17 @@ func open(scene_root: Node, source_skeleton: Skeleton3D, source_player: Animatio
 	for candidate in candidates:
 		if not candidate.active: continue
 		if candidate is PhysicalBoneSimulator3D and not candidate.is_simulating_physics(): continue
-		if candidate.get_script() != null or not SUPPORTED.has(candidate.get_class()):
+		if _is_grounding(candidate):
+			if source_tree == null or candidate.get_node_or_null(candidate.get("tree_path")) != source_tree or candidate.get_node_or_null(candidate.get("player_path")) != source_player:
+				return _fail("setup grounding requires its matching explicit source Tree/Player replay")
+			var configuration: String = candidate.call("validate_configuration")
+			if not configuration.is_empty(): return _fail("setup grounding configuration: " + configuration)
+			var roles: Dictionary = candidate.get("role_names")
+			for role in roles:
+				if not (role is String or role is StringName) or not (roles[role] is String or roles[role] is StringName):
+					return _fail("setup grounding role configuration must contain names only")
+			trusted_grounders[candidate] = true
+		elif candidate.get_script() != null or not SUPPORTED.has(candidate.get_class()):
 			return _fail("unsupported active modifier %s (%s)" % [candidate.get_path(), candidate.get_class()])
 		if candidate is SpringBoneSimulator3D:
 			for i in candidate.get_setting_count():
@@ -62,7 +85,17 @@ func open(scene_root: Node, source_skeleton: Skeleton3D, source_player: Animatio
 	var opened := sandbox.open(scene_root)
 	if opened.has("error"): return opened
 	for candidate in candidates:
-		if candidate.get_script() != null or not SUPPORTED.has(candidate.get_class()):
+		if trusted_grounders.has(candidate):
+			var copy: Node = sandbox.get_copy(candidate)
+			if copy == null: return _fail("setup grounding missing from private hierarchy")
+			# Generic sandbox scripts stay stripped. Restore only the audited helper
+			# and exported configuration; never copy live anchors/phases/diagnostics.
+			copy.set_script(candidate.get_script())
+			for field in GROUNDING_FIELDS:
+				copy.set(field, sandbox._paths(candidate, copy, sandbox._value(candidate.get(field))))
+			copy.call("reset_grounding", "private_bake_start")
+			grounders[copy.get_parent()] = copy
+		elif candidate.get_script() != null or not SUPPORTED.has(candidate.get_class()):
 			guarded_modifiers[sandbox.get_copy(candidate)] = "unsupported modifier %s (%s)" % [candidate.get_path(), candidate.get_class()]
 	skeleton = sandbox.get_copy(source_skeleton)
 	player = sandbox.get_copy(source_player)
@@ -72,17 +105,27 @@ func open(scene_root: Node, source_skeleton: Skeleton3D, source_player: Animatio
 		var copy: Node = sandbox.get_copy(original)
 		if copy is Skeleton3D and needed.has(original):
 			rigs.append(copy)
-			var witness := Witness.new()
-			witness.name = "BakeFinalPoseWitness"
-			copy.add_child(witness)
-			copy.skeleton_updated.connect(witness.capture_skin)
-			witnesses[copy] = witness
+			var capture := FinalCapture.new()
+			capture.skeleton = copy
+			var witness: Witness
+			if grounders.has(copy):
+				# Full-influence grounding owns the final stack. Adding a foreign
+				# modifier would invalidate that contract, even a passive Witness.
+				grounders[copy].modification_processed.connect(capture.capture_final)
+			else:
+				witness = Witness.new()
+				witness.name = "BakeFinalPoseWitness"
+				witness.capture = capture
+				copy.add_child(witness)
+			copy.skeleton_updated.connect(capture.capture_skin)
+			witnesses[copy] = capture
 			for child in copy.get_children():
 				if child is SkeletonModifier3D and child != witness and child.active:
 					if child is PhysicalBoneSimulator3D and not child.is_simulating_physics(): continue
 					modifiers.append(child.get_class())
 					if child is SpringBoneSimulator3D:
 						reset_modifiers.append(child.get_class())
+					elif _is_grounding(child): reset_modifiers.append(child.get_class())
 	# Dictionary insertion follows the copied hierarchy: parent/source skeletons
 	# are evaluated before native retarget children and their own stacks.
 	player.speed_scale = 1.0
@@ -100,6 +143,9 @@ func open(scene_root: Node, source_skeleton: Skeleton3D, source_player: Animatio
 		player.advance(0.0)
 	root_motion = motion
 	if root_motion != null: root_motion.begin(sandbox.get_copy(motion_owner) if motion_owner != null else null)
+	for rig in grounders:
+		var configuration: String = grounders[rig].call("validate_configuration")
+		if not configuration.is_empty(): return _fail("private setup grounding configuration: " + configuration)
 	for rig in rigs:
 		for child in rig.get_children():
 			if child is SpringBoneSimulator3D and child.active: child.reset()
@@ -143,11 +189,16 @@ func sample(delta: float, time: float) -> Dictionary:
 				for i in child.get_setting_count():
 					if child.get_center_from(i) != SpringBoneSimulator3D.CENTER_FROM_WORLD_ORIGIN and not child.get_children().filter(func(node): return node is SpringBoneCollision3D).is_empty():
 						return _fail("relative spring center with collisions rig=%s t=%.6f" % [rig.name, time])
-		var final_capture: Witness = witnesses[rig]
+		var final_capture: FinalCapture = witnesses[rig]
 		var prior_count := final_capture.count
 		var skin_count := final_capture.skin_count
 		rig.advance(delta)
 		rig.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
+		if grounders.has(rig):
+			var grounder: Node = grounders[rig]
+			var residual := float(grounder.get("evaluation_residual_m"))
+			if grounder.get("status") != "grounded" or not str(grounder.get("last_error")).is_empty() or not is_finite(residual) or residual > float(grounder.get("target_tolerance_m")) or int(grounder.get("unreachable")) != 0:
+				return _fail("setup grounding final solve failed rig=%s t=%.6f: %s" % [rig.name, time, grounder.call("diagnostics")])
 		if final_capture.count != prior_count + 1 or final_capture.poses.size() != rig.get_bone_count(): return _fail("missing final capture rig=%s t=%.6f" % [rig.name, time])
 		if final_capture.skin_count > skin_count:
 			if final_capture.skin_poses.size() != final_capture.poses.size(): return _fail("skin capture missing rig=%s t=%.6f" % [rig.name, time])
@@ -156,7 +207,7 @@ func sample(delta: float, time: float) -> Dictionary:
 				var skin: Transform3D = final_capture.skin_poses[i]
 				if not skin.is_equal_approx(Transform3D(Basis(pose.rotation).scaled_local(pose.scale), pose.position)):
 					return _fail("skin/final witness mismatch rig=%s bone=%s t=%.6f" % [rig.name, rig.get_bone_name(i), time])
-	var witness: Witness = witnesses[skeleton]
+	var witness: FinalCapture = witnesses[skeleton]
 	if witness.count != count + 1 or witness.poses.size() != skeleton.get_bone_count():
 		return _fail("missing final capture at t=%.6f" % time)
 	for i in witness.poses.size():
@@ -169,6 +220,7 @@ func close() -> void:
 	sandbox.close()
 	witnesses.clear()
 	guarded_modifiers.clear()
+	grounders.clear()
 	rigs.clear()
 	skeleton = null
 	player = null
