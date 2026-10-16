@@ -69,6 +69,7 @@ def new_take_specs(row, omit_prime=False):
     spec = dynamic_specs(row)[-1]
     spec["reset_at_s"] = 2.6
     spec["reset_contract"] = "new_take_v1"
+    spec["require_warm_anchor"] = True
     if omit_prime:
         spec["omit_new_take_prime"] = True
     return [spec]

@@ -326,14 +326,19 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 			if int(take_contact_frames.l)==0 or int(take_contact_frames.r)==0: errors.append("New-take insufficient contact coverage")
 			var warm_anchors: int = (v.modifier.get("_anchors") as Dictionary).size()
 			var warm_phases: int = (v.modifier.get("_phases") as Dictionary).size()
-			if warm_anchors==0 or warm_phases==0: errors.append("New-take reset requires actual warm stance and phase state")
+			if warm_phases==0 or (bool(spec.get("require_warm_anchor",false)) and warm_anchors==0): errors.append("New-take reset requires actual warm stance and phase state")
 			tree.active=false
 			var resets_before: int = v.modifier.resets
 			var signals_before: int = v.signals
 			var evaluations_before: int = v.modifier.evaluations
+			var unreachable_before: int = v.modifier.unreachable
+			var residual_before: float = v.modifier.max_residual_m
+			var correction_before: float = v.modifier.max_correction_m
 			v.modifier.reset_grounding("explicit_new_take_control")
+			var resets_after_explicit: int = v.modifier.resets
 			var cleared := (v.modifier.get("_anchors") as Dictionary).is_empty() and (v.modifier.get("_phases") as Dictionary).is_empty()
 			if v.modifier.resets!=resets_before+1 or not cleared or v.modifier.reset_reason!="explicit_new_take_control": errors.append("Grounding explicit reset did not clear stance/phase state and reason")
+			if v.modifier.evaluations!=evaluations_before or v.modifier.unreachable!=unreachable_before or v.modifier.max_residual_m!=residual_before or v.modifier.max_correction_m!=correction_before: errors.append("Explicit reset erased cumulative grounding diagnostics")
 			tree.active=true
 			var prime_delta := Vector3.ZERO
 			var cut_position_jump := 0.0
@@ -344,13 +349,15 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 				prime_delta=tree.get_root_motion_position()
 				v.rig.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
 				extra_prime_signals=v.signals-signals_before
+				if v.modifier.evaluations!=evaluations_before+1 or v.modifier.unreachable!=unreachable_before or v.modifier.max_residual_m<residual_before or v.modifier.max_correction_m<correction_before: errors.append("New-take prime changed cumulative grounding counters unexpectedly")
+				if v.modifier.status!="grounded" or not v.modifier.last_error.is_empty() or not is_finite(v.modifier.evaluation_residual_m) or v.modifier.evaluation_residual_m>v.modifier.target_tolerance_m: errors.append("New-take prime lacks a valid grounded solve")
 				if extra_prime_signals!=1 or prime_delta.length()>0.000001 or v.owner.global_position.distance_to(cut_origin)>0.000001: errors.append("New-take zero-time final-signal priming/travel failure")
 				for bone in v.rig.get_bone_count():
 					var primed: Transform3D = _pose(v,bone)
 					cut_position_jump=maxf(cut_position_jump,(v.rig.global_basis*(primed.origin-previous[bone].origin)).length())
 					cut_rotation_jump=maxf(cut_rotation_jump,previous[bone].basis.orthonormalized().get_rotation_quaternion().angle_to(primed.basis.orthonormalized().get_rotation_quaternion()))
 					previous[bone]=primed
-			reset_witness={"cut_s":float(frame)*dt,"warm_anchors":warm_anchors,"warm_phases":warm_phases,"cleared":cleared,"resets_before":resets_before,"resets_after_explicit":resets_before+1,"resets_after_prime":v.modifier.resets,"signals_before":signals_before,"signals_after_prime":v.signals,"evaluations_before":evaluations_before,"evaluations_after_prime":v.modifier.evaluations,"prime_delta_parent":[prime_delta.x,prime_delta.y,prime_delta.z],"cut_position_jump_m":cut_position_jump,"cut_rotation_jump_rad":cut_rotation_jump,"prime_omitted":bool(spec.get("omit_new_take_prime",false))}
+			reset_witness={"cut_s":float(frame)*dt,"warm_anchors":warm_anchors,"warm_phases":warm_phases,"cleared":cleared,"resets_before":resets_before,"resets_after_explicit":resets_after_explicit,"resets_after_prime":v.modifier.resets,"signals_before":signals_before,"signals_after_prime":v.signals,"unreachable_before":unreachable_before,"max_residual_before_m":residual_before,"max_correction_before_m":correction_before,"evaluations_before":evaluations_before,"evaluations_after_prime":v.modifier.evaluations,"prime_delta_parent":[prime_delta.x,prime_delta.y,prime_delta.z],"cut_position_jump_m":cut_position_jump,"cut_rotation_jump_rad":cut_rotation_jump,"prime_omitted":bool(spec.get("omit_new_take_prime",false))}
 			for side: String in feet:
 				feet[side].active=false
 				feet[side].pole=Vector3.ZERO
@@ -425,6 +432,7 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 		takes.append({"start_frame":take_start_frame,"end_frame":frames,"expected_distance_m":take_distance,"endpoint_error_m":final_take_error,"contact_frames":take_contact_frames.duplicate()})
 		if not reset_performed or final_take_error>0.0001: errors.append("New-take endpoint differs from exact requested distance")
 		if int(take_contact_frames.l)==0 or int(take_contact_frames.r)==0: errors.append("New-take insufficient contact coverage")
+	if v.signals!=frames+extra_prime_signals: errors.append("Total final-signal count differs from physical frames plus explicit primes")
 	var elapsed := frames*dt
 	var actual: Vector3 = v.owner.global_position-v.initial_owner if v.rooted or not jump else _point(v,"hips")-initial_hip
 	var expected: Vector3 = v.forward*(expected_distance if jump else commanded_distance)

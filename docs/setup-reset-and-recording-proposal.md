@@ -96,3 +96,11 @@ The unprimed control must specifically fail an endpoint assertion.
 
 Offline orchestration controls:16 pass. GDScript parsing and 12+12 native cells
 are pending the root-owned process slot; no native validation is claimed.
+
+Review follow-up: warm phases are required for every reset. A nonempty warm
+anchor is required only by the explicit new2.6s control flag, so the existing
+3.0s dynamic input remains testable with proper new-take priming. Witnesses
+capture actual reset counts. Reset preserves cumulative evaluation/reach/max
+counters; prime requires exactly one evaluation, a finite in-limit grounded
+solve and nondecreasing maxima. Total final signals must equal physical frames
+plus explicitly counted prime signals. Parsing/native remain pending.
