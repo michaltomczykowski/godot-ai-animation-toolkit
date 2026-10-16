@@ -145,8 +145,22 @@ def check(case, report):
                 valid=valid and len(clips)==1 and clips[0].get('length')==1.0 and clips[0].get('loop_mode')==1 and track.get('type')==0 and track.get('enabled') is True and track.get('interpolation')==interpolation and len(keys)==2
                 valid=valid and len(keys)==2 and keys[0].get('time')==0.0 and keys[1].get('time')==1.0 and matches(keys[0].get('value'),'position:x',0) and matches(keys[1].get('value'),'position:x',100)
             held=all(matches(state.get('Character',{}).get('position'),'position:x',0) for state in redo)
-            reference_moved=len({json.dumps(state,sort_keys=True) for state in undo})>1
-            undo_clock=all(len(row.get('players',[]))==2 and row['players'][0].get('AnimationPlayer',{}).get('active') is True and row['players'][0].get('AnimationPlayer',{}).get('callback_mode_process')==1 for row in rows)
+            playback=next((entry for entry in case.get('playbacks',[{'player':case.get('player','AnimationPlayer'),'undo_clip':case.get('clip','walk')}]) if entry.get('player')=='AnimationPlayer'),{})
+            undo_name=playback.get('undo_clip')
+            reference_valid=True
+            phases=[]
+            for row,state in zip(rows,undo):
+                clock=row.get('players',[{},{}])[0].get('AnimationPlayer',{})
+                phase=clock.get('position')
+                numbers=[float(value) for value in re.findall(r'[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?',str(state.get('Character',{}).get('position','')))]
+                phase_valid=isinstance(phase,(int,float)) and math.isfinite(phase) and 0<=phase<=1
+                reference_valid=reference_valid and phase_valid and len(numbers)==2 and all(math.isfinite(value) for value in numbers)
+                if phase_valid and len(numbers)==2:
+                    reference_valid=reference_valid and abs(numbers[0]-100*phase)<=.0001 and abs(numbers[1])<=.0001
+                    phases.append(phase)
+                reference_valid=reference_valid and clock.get('active') is True and clock.get('callback_mode_process')==1 and clock.get('assigned_animation')==undo_name
+            reference_moved=reference_valid and bool(phases) and max(phases)>0 and max(phases)-min(phases)>0
+            undo_clock=reference_valid
             okay=valid and held and reference_moved and undo_clock and different
             checks[f'take_{take}_held_nearest_output']='pass' if okay else 'fail'
             if not okay: failures.append(f'take {take}: nearest held output/reference/actual track metadata mismatch')
