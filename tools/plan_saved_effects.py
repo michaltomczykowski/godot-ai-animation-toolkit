@@ -5,11 +5,13 @@ import hashlib
 import json
 from pathlib import Path
 import re
+from saved_effect_contracts import apply_representative_contract
 
 ROOT = Path(__file__).resolve().parents[1]
 FX = 'shake zoom_punch hit_flash damage_bar typewriter progress_fill counter dialog_pop transition wave spring pendulum path_follow flipbook sprite_frames audio_cue'.split()
 TARGETS = dict(zip(FX, [['Camera2D'],['Camera2D'],['Flash'],['DamageBar'],['TypeLabel'],['FillBar'],['ScoreLabel'],['DialogPanel'],['FadeOverlay'],['Card1','Card2','Card3'],['SpringTarget'],['PendulumTarget'],['Drone','PatrolPath'],['Sprite2D'],['SheetSprite'],['CuePlayer']]))
 TOOLS = ['tools/plan_saved_effects.py', 'test_project/tools/render_saved_effects.gd', 'tools/check_saved_effects.py',
+         'tools/saved_effect_contracts.py',
          'test_project/tools/check_fx_runtime.gd',
          'test_project/tools/check_preset_library_history.gd',
          'test_project/tools/check_edit_history_runtime.gd']
@@ -111,6 +113,7 @@ def plan_remaining(inventory, project):
                 'require_visible_difference': variant not in ['cleanup','resample','reduce'],
                 'display_mode':'showcase' if variant == 'showcase' else 'isolated_targets',
                 'status':'planned_not_played'}
+        case = apply_representative_contract(case)
         result['cases'].append(case)
         if variant == 'split_at':
             head = dict(case, id=key+':split_head', variant='split_head',
