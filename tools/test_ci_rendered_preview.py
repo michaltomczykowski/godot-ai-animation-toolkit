@@ -1,8 +1,9 @@
 import tempfile
 from pathlib import Path
 import unittest
+import asyncio
 from PIL import Image, ImageDraw
-from ci_rendered_preview import validate_images, require_error, require_success, validate_editor_log
+from ci_rendered_preview import validate_images, require_error, require_success, validate_editor_log, scene_ready, wait_scene
 
 
 class RenderedPreviewControls(unittest.TestCase):
@@ -51,6 +52,28 @@ class RenderedPreviewControls(unittest.TestCase):
         for failure in ['ERROR: engine failure','SCRIPT ERROR: invalid call','\x1b[31mERROR:\x1b[0m shutdown leak']:
             with self.assertRaisesRegex(ValueError,'engine/script'):
                 validate_editor_log('Rendered four frames\n'+failure)
+
+    def test_scene_readiness_requires_exact_scene_and_real_sentinels(self):
+        required=('/RepairRigFixture/AnimationPlayer','/RepairRigFixture/Dummy/Skeleton3D')
+        state={'current_scene':'res://repair_rendered_preview.tscn'}
+        hierarchy={'nodes':[{'path':path} for path in required]}
+        self.assertTrue(scene_ready(state,hierarchy,state['current_scene'],required))
+        self.assertFalse(scene_ready({'current_scene':'res://main.tscn'},hierarchy,state['current_scene'],required))
+        self.assertFalse(scene_ready(state,{'nodes':[]},state['current_scene'],required))
+
+    def test_startup_scene_race_resets_stability_without_retrying_mutations(self):
+        target='res://repair_rendered_preview.tscn'
+        scenes=iter([target,target,'res://main.tscn',target,target,target])
+        calls=[]
+        async def call(name,params):
+            calls.append(name)
+            return {'current_scene':next(scenes)} if name=='editor_state' else {'nodes':[{'path':'/sentinel'}]}
+        async def pause(_): pass
+        report=asyncio.run(wait_scene(call,target,('/sentinel',),pause=pause))
+        self.assertEqual(report['stable_reads'],3)
+        self.assertEqual(len(calls),12)
+        self.assertEqual(set(calls),{'editor_state','scene_get_hierarchy'})
+        with self.assertRaises(TimeoutError): asyncio.run(wait_scene(call,target,timeout=0,pause=pause))
 
 
 if __name__ == '__main__': unittest.main()

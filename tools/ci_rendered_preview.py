@@ -68,6 +68,24 @@ def validate_editor_log(text):
         raise ValueError('engine/script error in complete editor log')
 
 
+def scene_ready(state, hierarchy, scene, required=()):
+    paths={node.get('path') for node in hierarchy.get('nodes',[])}
+    return (not state.get('error') and not hierarchy.get('error')
+        and state.get('current_scene')==scene and set(required)<=paths)
+
+
+async def wait_scene(call, scene, required=(), timeout=60, pause=asyncio.sleep):
+    deadline=time.monotonic()+timeout
+    stable=0
+    while time.monotonic()<deadline:
+        state=await call('editor_state',{})
+        hierarchy=await call('scene_get_hierarchy',{'depth':8,'limit':100})
+        stable=stable+1 if scene_ready(state,hierarchy,scene,required) else 0
+        if stable>=3: return {'state':state,'hierarchy':hierarchy,'stable_reads':stable}
+        await pause(.5)
+    raise TimeoutError('edited scene did not become stable before mutation: '+scene)
+
+
 async def exercise(args, report):
     from fastmcp import Client
     from fastmcp.client.transports import StdioTransport
@@ -94,6 +112,9 @@ async def exercise(args, report):
             if time.monotonic() > deadline: raise TimeoutError('one editor session did not become ready')
             await asyncio.sleep(1)
         require_success(await call('session_activate',{'session_id':sessions[0]['session_id']}))
+        # Startup scene restoration can finish after the MCP session connects.
+        # Wait for the explicitly launched scene before navigating elsewhere.
+        report['startup_ready']=await wait_scene(call,'res://main.tscn')
         scene = args.project/'repair_rendered_preview.tscn'
         copy_scene(args.project/'repair_rig_fixture.tscn', scene)
         require_success(await call('scene_open',{'path':'res://repair_rendered_preview.tscn'}))
@@ -105,6 +126,8 @@ async def exercise(args, report):
             if 'custom_animation_motion' in tools and 'custom_animation_inspect' in tools: break
             if time.monotonic() > deadline: raise TimeoutError('toolkit registry did not become ready')
             await asyncio.sleep(1)
+        report['fixture_ready']=await wait_scene(call,'res://repair_rendered_preview.tscn',
+            (player,skeleton))
         require_success(await call('custom_animation_motion',{'op':'walk_cycle',
             'player_path':player,'skeleton_path':skeleton,'animation_name':'rendered_walk',
             'duration':1.0,'root_motion':False}))
@@ -202,7 +225,8 @@ def run(args):
             while not (port_open(args.port) and port_open(args.ws_port)):
                 if backend.poll() is not None or time.monotonic()>deadline: raise RuntimeError('backend startup failed')
                 time.sleep(.25)
-            command=[args.godot,'--editor','--path',str(args.project),'--rendering-method','gl_compatibility','--audio-driver','Dummy']
+            command=[args.godot,'--editor','--path',str(args.project),'--rendering-method','gl_compatibility',
+                '--rendering-driver','opengl3','--audio-driver','Dummy','res://main.tscn']
             report['editor_command']=command
             owned.append(subprocess.Popen(command,env=env,stdout=editor_log,stderr=subprocess.STDOUT))
             asyncio.run(exercise(args,report))

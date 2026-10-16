@@ -35,3 +35,16 @@ preview; additional checkpoints follow dry/missing-clip/overwrite refusals.
 Each checkpoint binds its actual timeline public call ID, raw snapshots and
 hashes. The complete editor log is checked after process termination, including
 shutdown, and any engine or script error rejects the run.
+
+The actual editor and import explicitly select `gl_compatibility` and
+`opengl3`. The Linux job installs Mesa's Vulkan drivers as well, because editor
+subsystems can probe a local RenderingDevice even with the OpenGL renderer.
+Such probe errors still reject the complete log. A fresh job must demonstrate
+that the chosen package/driver setup removes the errors.
+
+The editor explicitly launches `main.tscn`. Before opening the render fixture,
+the driver requires three consecutive public state/hierarchy reads of that
+startup scene. After navigation it requires three consecutive reads of the
+exact fixture scene and both real player/skeleton paths before the single
+walk-generation request. Reads may wait for readiness; failed generation is
+never retried. Readiness samples are preserved in the call report.

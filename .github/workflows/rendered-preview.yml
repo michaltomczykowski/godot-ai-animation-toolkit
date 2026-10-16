@@ -35,13 +35,13 @@ jobs:
       - name: Install backend and software renderer
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb xauth libgl1-mesa-dri mesa-utils
+          sudo apt-get install -y xvfb xauth libgl1-mesa-dri mesa-utils mesa-vulkan-drivers libvulkan1
           python -m pip install -e .ci/godot-ai Pillow==11.3.0
       - name: Link addons and import public fixtures
         run: |
           ln -s "$PWD/.ci/godot-ai/plugin/addons/godot_ai" test_project/addons/godot_ai
           ln -s "$PWD/addons/godot_ai_animation" test_project/addons/godot_ai_animation
-          godot --headless --path test_project --import
+          godot --headless --path test_project --rendering-method gl_compatibility --rendering-driver opengl3 --import
       - name: Unit controls
         run: python -m unittest discover -s tools -p test_ci_rendered_preview.py -v
       - name: Actual rendered editor and public preview calls
