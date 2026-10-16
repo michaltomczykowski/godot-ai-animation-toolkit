@@ -46,6 +46,8 @@ class HistoryChecks(unittest.TestCase):
         self.assertEqual(derive(row)['undo_redo'],'fail')
         row,*_=self.fixture();row['persist_undo']['path']='user://fx_history_counter_new_undo.tscn'
         self.assertEqual(derive(row)['save_reopen'],'fail')
+        row,*_=self.fixture();row['before']['props']={'value':1000.0};row['undone']['props']={'value':1000.00005}
+        self.assertEqual(derive(row)['undo_redo'],'fail')
 
     def test_sticky_failure_skips_and_suite_totals_cannot_become_case_passes(self):
         row,context,event,begins,ends=self.fixture();row['failed_before']=True

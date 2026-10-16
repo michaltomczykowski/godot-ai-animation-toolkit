@@ -1,7 +1,21 @@
 """Recompute scoped FX inner-history assertions, never suite-total passes."""
 from __future__ import annotations
 import re
-from operation_snapshot_checks import equivalent
+import math
+
+
+def equivalent(left,right):
+    """Match this source suite's _same, including strict absolute tolerance."""
+    if isinstance(left,bool) or isinstance(right,bool):return type(left) is bool and type(right) is bool and left==right
+    if isinstance(left,(int,float)) and isinstance(right,(int,float)):
+        return math.isfinite(left) and math.isfinite(right) and abs(left-right)<.00001
+    if isinstance(left,dict) and isinstance(right,dict):
+        # Native vectors/colors use Godot value equality, not _same's numeric
+        # scalar tolerance. The transport preserves their typed components.
+        if left.get('type') in {'Vector2','Vector3','Color'} or right.get('type') in {'Vector2','Vector3','Color'}:return left==right
+        return left.keys()==right.keys() and all(equivalent(left[key],right[key]) for key in left)
+    if isinstance(left,list) and isinstance(right,list):return len(left)==len(right) and all(equivalent(a,b) for a,b in zip(left,right))
+    return type(left) is type(right) and left==right
 
 TESTS={'new':'test_new_clip_scene_history',
        'overwrite':'test_overwritten_clip_scene_history',
