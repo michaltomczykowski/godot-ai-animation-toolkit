@@ -51,3 +51,30 @@ controls pass. No Godot/native run occurred. Root must parse and execute this
 increment. POSE_FILE implementation remains pending the next increment.
 The shared preset emitter/dispatch is reserved for the coordinated preset worker;
 it cannot produce any evidence until that worker supplies its validator and rows.
+
+## Increment 2 implemented (native execution pending)
+
+rig_pose_file_v1 records six exact dispatches in the existing
+rig_pose_history.test_pose_file_and_shape_contracts: two sentinel overwrite
+refusals; pose_save overwrite and successful dry overwrite; nontrivial pose_blend
+write and successful different-factor dry overwrite. Existing test name and
+unobserved shape/read cases remain intact. Trace rows include exact paths,
+request/response, before/after file bytes and SHA, native rest and pose bone
+components, fixture and entire scene transform/bone snapshots, both history
+versions, and Logger deltas. No resource identity or full property-serialization
+claim is made by these scene snapshots.
+
+The new endpoints differ in rotation, translation and scale. Actual JSON readback
+assertions require the halfway values and response agreement; quarter-factor dry
+prediction differs while the real previous file bytes must remain unchanged.
+The Python validator independently calculates quaternion rest-relative capture
+and the fixed source pair's interpolation, verifies actual serialized output and
+non-target invariance, and binds exact six ordinal/request signatures to the
+actual public verbose test span. No scene Undo/Redo, playback, visual or external
+MCP operation invocation is inferred from a public test_run inner dispatch.
+
+Eight focused pose-file offline controls pass, including wrong output, changed
+non-target/source/history, changed dry bytes, false error codes, wrong paths/hash,
+identical endpoints, skipped/missing public spans and wrong ordinal/operation.
+Root must parse touched GDScripts and execute rig_pose_history through its real
+public test_run. Historical candidate evidence remains unchanged and pending.

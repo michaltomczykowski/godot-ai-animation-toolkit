@@ -326,3 +326,13 @@ The root's signed nonzero RefCounted-ID history fix is independent: this increme
 does not modify `operation_history_checks.py`. Library apply history, broader
 malformed/path matrices, pose-file semantics and other rig histories still need
 their own exact case adapters. Existing historical passes are not reclassified.
+
+### Rig pose file contracts
+
+`rig_pose_file_v1` / `tools/operation_pose_file_checks.py` consumes only raw rows
+emitted by `test_rig_pose_history.gd` inside the exact actual public test_run span.
+Six ordinal-bound pose_save/pose_blend file cases record source components,
+embedded file bytes+hashes, transform/bone scene invariance, history and errors.
+Independent capture/interpolation checks and positive dry-byte observations may
+prove only their emitted applicable checks. Root native parse and real execution
+are required; offline controls and suite totals are not qualification receipts.

@@ -6,12 +6,15 @@ const Context := preload("res://addons/godot_ai_animation/utils/tool_context.gd"
 const Checks := preload("res://tests/test_preset_library_history.gd")
 const Capture := preload("res://tests/test_graph_route_history.gd")
 const Ops := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
+const HistoryTrace := preload("res://tests/operation_history_trace.gd")
 const DIR := "res://animation_toolkit/rig_history_contracts/"
 var _undo: EditorUndoRedoManager
 var _dispatcher
 var _checks := Checks.new()
 var _logger: Capture.ErrorCapture
 var _files: Array[String] = []
+var _file_fixture: Node
+var _file_ordinal := 0
 
 func suite_name() -> String: return "rig_pose_history"
 func suite_setup(ctx: Dictionary) -> void:
@@ -24,8 +27,45 @@ func suite_setup(ctx: Dictionary) -> void:
 func suite_teardown() -> void:
 	OS.remove_logger(_logger)
 	for path in _files: DirAccess.remove_absolute(path)
+func teardown() -> void:
+	_file_fixture = null
+func _file_observation(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path): return {"path": path, "exists": false}
+	return {"path": path, "exists": true, "bytes_hex": FileAccess.get_file_as_bytes(path).hex_encode(), "sha256": FileAccess.get_sha256(path)}
+func _source_bones() -> Array:
+	var result: Array = []
+	var skeleton := _file_fixture.get_node("Skeleton") as Skeleton3D
+	for i in skeleton.get_bone_count():
+		var rest := skeleton.get_bone_rest(i)
+		result.append({"name": skeleton.get_bone_name(i), "rest_rotation": rest.basis.get_rotation_quaternion(), "rest_position": rest.origin,
+			"pose_rotation": skeleton.get_bone_pose_rotation(i), "pose_position": skeleton.get_bone_pose_position(i), "pose_scale": skeleton.get_bone_pose_scale(i)})
+	return result
 func _call(params: Dictionary) -> Dictionary:
-	return _dispatcher.call("_dispatch", {"request_id": "rig-pose-history", "command": "custom_tool:animation_rig", "params": params})
+	var row := {}
+	if _file_fixture != null:
+		var root := EditorInterface.get_edited_scene_root()
+		var history := _undo.get_history_undo_redo(_undo.get_object_history_id(root))
+		var global := _undo.get_history_undo_redo(EditorUndoRedoManager.GLOBAL_HISTORY)
+		_file_ordinal += 1
+		row = {"suite": "rig_pose_history", "test": "test_pose_file_and_shape_contracts", "mode": "pose_file_contract", "ordinal": _file_ordinal,
+			"op": str(params.op), "request": params.duplicate(true), "before": _snapshot(_file_fixture), "scene_before": _snapshot(root),
+			"source_bones": _source_bones(), "source_path": str(_file_fixture.get_node("Skeleton").get_path()), "file_before": _file_observation(str(params.path)),
+			"history_before": history.get_version(), "global_before": global.get_version(), "errors_before": _logger.errors.size(),
+			"failed_before": _failed, "assertion_count_before": _assertion_count}
+	var reply: Dictionary = _dispatcher.call("_dispatch", {"request_id": "rig-pose-history", "command": "custom_tool:animation_rig", "params": params})
+	if not row.is_empty():
+		var root := EditorInterface.get_edited_scene_root()
+		row.response = reply.duplicate(true)
+		row.after = _snapshot(_file_fixture)
+		row.scene_after = _snapshot(root)
+		row.source_bones_after = _source_bones()
+		row.file_after = _file_observation(str(params.path))
+		row.history_after = _undo.get_history_undo_redo(_undo.get_object_history_id(root)).get_version()
+		row.global_after = _undo.get_history_undo_redo(EditorUndoRedoManager.GLOBAL_HISTORY).get_version()
+		row.errors_after = _logger.errors.size()
+		row.errors = _logger.errors.slice(int(row.errors_before))
+		HistoryTrace.emit_pose_file(row)
+	return reply
 func _same(a: Variant, b: Variant) -> bool:
 	if a is Transform2D and b is Transform2D: return a.is_equal_approx(b)
 	if a is Dictionary and b is Dictionary:
@@ -229,6 +269,8 @@ func test_pose_file_and_shape_contracts() -> void:
 	var path := DIR + "saved.json"
 	_file(path, "sentinel")
 	var params := {"op": "pose_save", "skeleton_path": str(fixture.get_node("Skeleton").get_path()), "path": path, "overwrite": false}
+	_file_fixture = fixture
+	_file_ordinal = 0
 	for dry in [true, false]:
 		assert_has_key(_call(params.merged({"dry_run": dry})).get("error", {}), "code", "overwrite refusal matches dry")
 		assert_eq(FileAccess.get_file_as_string(path), "sentinel")
@@ -238,10 +280,29 @@ func test_pose_file_and_shape_contracts() -> void:
 	var bytes := FileAccess.get_file_as_bytes(path)
 	assert_has_key(_call(params.merged({"overwrite": true, "dry_run": true}, true)), "data")
 	assert_eq(FileAccess.get_file_as_bytes(path), bytes)
-	var blended := _call({"op": "pose_blend", "from_pose": _pose(), "to_pose": _pose(), "path": DIR + "blend.json", "factor": 0.25})
-	_files.append(DIR + "blend.json")
+	# Independent endpoint and midpoint values, rather than blending identical poses.
+	var from_pose := {"rest_relative": true, "bones": {"arm_L": {"rotation": {"kind": "quaternion", "x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0}, "position": {"kind": "vector3", "x": 0.0, "y": 0.0, "z": 0.0}, "scale": {"kind": "vector3", "x": 1.0, "y": 1.0, "z": 1.0}}}}
+	var to_pose := {"rest_relative": true, "bones": {"arm_L": {"rotation": {"kind": "quaternion", "x": 0.0, "y": 0.0, "z": sin(PI / 4.0), "w": cos(PI / 4.0)}, "position": {"kind": "vector3", "x": 2.0, "y": 4.0, "z": 6.0}, "scale": {"kind": "vector3", "x": 3.0, "y": 5.0, "z": 7.0}}}}
+	var blend_params := {"op": "pose_blend", "from_pose": from_pose, "to_pose": to_pose, "path": DIR + "blend.json", "factor": 0.5, "overwrite": true}
+	_file(DIR + "blend.json", "blend-sentinel")
+	var blended := _call(blend_params)
 	assert_has_key(blended, "data")
 	assert_eq(blended.get("data", {}).get("undoable"), false)
+	var readback: Variant = JSON.parse_string(FileAccess.get_file_as_string(DIR + "blend.json"))
+	assert_true(readback is Dictionary, "actual blend file JSON readback")
+	if readback is Dictionary:
+		var bone: Dictionary = readback.get("bones", {}).get("arm_L", {})
+		assert_true(_checks._same(bone.get("position"), {"kind": "vector3", "x": 1.0, "y": 2.0, "z": 3.0}), "independent halfway position")
+		assert_true(_checks._same(bone.get("scale"), {"kind": "vector3", "x": 2.0, "y": 3.0, "z": 4.0}), "independent halfway scale")
+		assert_true(is_equal_approx(float(bone.get("rotation", {}).get("z", -1.0)), sin(PI / 8.0)), "independent halfway rotation z")
+		assert_true(is_equal_approx(float(bone.get("rotation", {}).get("w", -1.0)), cos(PI / 8.0)), "independent halfway rotation w")
+		assert_true(_checks._same(readback, blended.get("data", {}).get("pose")), "response equals actual file readback")
+	var blend_bytes := FileAccess.get_file_as_bytes(DIR + "blend.json")
+	var predicted := _call(blend_params.merged({"factor": 0.25, "dry_run": true}, true))
+	assert_has_key(predicted, "data", "positive different-factor dry blend")
+	assert_eq(FileAccess.get_file_as_bytes(DIR + "blend.json"), blend_bytes, "positive dry blend preserves actual bytes")
+	assert_true(is_equal_approx(float(predicted.get("data", {}).get("pose", {}).get("bones", {}).get("arm_L", {}).get("position", {}).get("x", -1.0)), 0.5), "positive dry predicts quarter position")
+	_file_fixture = null
 	assert_has_key(_call({"op": "pose_list", "pose_dir": DIR}), "data")
 	assert_has_key(_call({"op": "rig_get", "skeleton_path": params.skeleton_path}), "data")
 	_file(DIR + "broken.json", "{broken")
