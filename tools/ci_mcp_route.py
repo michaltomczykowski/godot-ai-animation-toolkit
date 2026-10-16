@@ -709,12 +709,15 @@ def rig_deferred_pose_gate(args: argparse.Namespace) -> bool:
 
 def preset_library_history_gate(args: argparse.Namespace) -> bool:
     """Require history and fresh-engine playback as well as the older audits."""
-    history = subprocess.run([
+    from gate_diagnostics import bounded_run
+    record = Path(args.log).resolve().with_name(Path(args.log).stem + '-preset-library-history.json')
+    history = bounded_run([
         sys.executable, str(Path(__file__).with_name("mcp_preset_library_history.py")),
         "--core-root", str(args.core_root), "--project-root", str(args.project),
         "--session-hint", args.project.name, "--port", str(args.port),
         "--ws-port", str(args.ws_port), "--godot", godot_executable(args.godot),
-    ], capture_output=True, text=True, timeout=120, check=False)
+        "--record", str(record),
+    ], 120, record, 'preset_library_history')
     marker = "MCP_PRESET_LIBRARY_HISTORY="
     payload = next((line[len(marker):] for line in history.stdout.splitlines() if line.startswith(marker)), "")
     report = json.loads(payload) if payload else {}

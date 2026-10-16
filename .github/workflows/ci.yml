@@ -253,6 +253,7 @@ jobs:
             mcp-editor.log
             mcp-backend.log
             mcp-route.log
+            mcp-editor-preset-library-history*
             operation-evidence/**
           if-no-files-found: ignore
 
@@ -360,6 +361,7 @@ jobs:
           path: |
             clean-install-evidence/*-editor.log
             clean-install-evidence/*-route.log
+            clean-install-evidence/*preset-library-history*
             clean-install-evidence/clean-install-receipt.json
             clean-install-evidence/gate-diagnostics/**
 
