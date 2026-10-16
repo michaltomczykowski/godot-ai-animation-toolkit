@@ -31,6 +31,14 @@ EXPECTED={
 
 def digest(value): return isinstance(value,str) and re.fullmatch('[0-9a-f]{64}',value) is not None
 
+def intended_track_path(variant,node,prop):
+    # Float authors one TYPE_VALUE Transform3D track. Position and scale are
+    # independent native observations of that transform, not separate tracks.
+    if (variant=='float' and node=='Target3D' and prop in {'position','scale'}) or (variant=='showcase' and node=='ReviewShowcase/World3D/FloatCube' and prop=='position:y'):
+        prop='transform'
+    return node.removeprefix('ReviewShowcase/')+':'+prop
+
+
 def derive(row):
     required={'request','dry','invalid_request','invalid','write','before','after_dry','after_error','generated','undone','redone','versions','undo_success','redo_success','persist_undo','persist_redo','failed_before','failed_after','assertion_count','recipe_path','recipe_sha256_before','recipe_sha256_after','errors_before','errors_after','errors'}
     if not required<=row.keys(): raise ValueError('preset case lacks exact raw stages')
@@ -71,7 +79,7 @@ def derive(row):
     for sample,want in zip(samples,expected):
         time,node,prop,value=want
         native=native and sample.get('clock')=='native_manual_mixer' and same(sample.get('time'),time) and sample.get('node')==node and sample.get('property')==prop and same(sample.get('actual'),value) and same(sample.get('expected'),value)
-        path=node.removeprefix('ReviewShowcase/')+':'+prop
+        path=intended_track_path(variant,node,prop)
         typed_tracks=sample.get('tracks',[])
         tracks=tracks and bool(typed_tracks) and any(track.get('path')==path for track in typed_tracks) and all(track.get('type')==0 for track in typed_tracks)
     return {name:'pass' if result else 'fail' for name,result in [('dry_run',dry),('typed_errors',typed),('undo_redo',history),('save_reopen',saved),('source_unchanged',clean and recipe and source),('reported_errors',errors),('valid_effect',native),('playback',native),('track_paths_types',tracks)]}

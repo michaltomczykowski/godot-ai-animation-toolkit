@@ -14,6 +14,12 @@ def fixture(variant='bounce',mode='local'):
     native=[{'time':time,'node':node,'property':prop,'actual':copy.deepcopy(value),'expected':copy.deepcopy(value),
         'clock':'native_manual_mixer','tracks':[{'path':node.removeprefix('ReviewShowcase/')+':'+prop,'type':0}]}
         for time,node,prop,value in EXPECTED[variant]]
+    # Actual generator representation: float stores a Transform3D value track,
+    # while native observation reads its resulting position/scale components.
+    for sample in native:
+        if variant=='float': sample['tracks']=[{'path':'Target3D:transform','type':0}]
+        elif variant=='showcase' and sample['node']=='ReviewShowcase/World3D/FloatCube':
+            sample['tracks']=[{'path':'World3D/FloatCube:transform','type':0}]
     row={'suite':'preset_library_history','test':'test_showcase_subtree_history' if variant=='showcase' else 'test_'+mode+'_history',
         'mode':mode,'family':family,'variant':variant,'op':op,'request':{'op':op,'player_path':'/Main/PresetHistory/AnimationPlayer'},
         'dry':{'data':{'dry_run':True}},'invalid':{'error':{'code':'NODE_NOT_FOUND','message':'Missing'}},'write':{'data':{'undoable':True}},
@@ -36,6 +42,20 @@ def fixture(variant='bounce',mode='local'):
 
 
 class PresetProofControls(unittest.TestCase):
+    def test_actual_float_transform_tracks_preserve_independent_component_proofs(self):
+        for variant in ('float','showcase'):
+            row=fixture(variant)
+            self.assertEqual(derive(row)['track_paths_types'],'pass')
+            index=0 if variant=='float' else 5
+            for track in ({'path':'Other:transform','type':0},
+                          {'path':'Target3D:transform' if variant=='float' else 'World3D/FloatCube:transform','type':1},
+                          {'path':'Target3D:position' if variant=='float' else 'World3D/FloatCube:position:y','type':0}):
+                changed=copy.deepcopy(row);changed['persist_redo']['native'][index]['tracks']=[track]
+                self.assertEqual(derive(changed)['track_paths_types'],'fail',track)
+            changed=copy.deepcopy(row)
+            changed['persist_redo']['native'][index]['actual']=0
+            self.assertEqual(derive(changed)['valid_effect'],'fail')
+
     def test_every_known_variant_and_layout_has_positive_raw_control(self):
         for variant in EXPECTED:
             for mode in (['root','local','instanced','editable'] if variant=='showcase' else ['local','overwrite','missing_library','instanced','editable']):
