@@ -1,5 +1,27 @@
 # Animation Toolkit repair roadmap
 
+## Hit-flash repair exercised through Godot AI (2026-10-16 evening)
+
+The49-case media queue exposed an actual inert default: white-to-white flash.
+Adaptive contrast and typed inert endpoint refusal now pass164pure checks,
+actual64contrast/40refusal assertions, FX64history/17direct public cases, and
+64native FX checks. Edit72history/three contracts and146native saved edit states
+also pass. Fresh fixed hitflash has two readable pulse/restoration takes in a
+720frame/12s fully decoded movie, with scoped independent assessment. See
+docs/live-fx-contrast-validation.md. Original failed capture is preserved/encoded.
+
+New49-case serial media queue is running from plan-r007 with36 fresh FX/edit
+operations; no fullfamily/releasevisual approval yet. Collector rejected temporary
+driver provenance; supported-CLI collection still needed. Signed resource IDs
+caused a false evidence rejection; nonzero/exact identity repair passes13controls,
+and reanalysis of original136 inner history rows passes with explicit old/new
+source identities. Both collector/wrapper failures remain documented.
+
+CI44a09d6 fails only Windows4.2.1 cleanZIP rig-history120s timeout; new durable
+phase instrumentation retains that limit. Other platform/core cells pass. Setup
+production grounding remains an isolated draft after its300-play prototype proof;
+fresh public saved-helper, dynamic blend/reset and visual qualification remain.
+
 ## Controlled setup grounding and audible capture (2026-10-16)
 
 The disposable setup modifier now passes all60 native cases under unchanged

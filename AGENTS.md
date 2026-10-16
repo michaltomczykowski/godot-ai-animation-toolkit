@@ -1,5 +1,41 @@
 # Agent notes
 
+## Latest resume: real contrast fixed, media running (2026-10-16 evening)
+
+Root abe56ee pushed/verified;4e6cec2 rig timeout diagnostics integrated afterward.
+Read docs/live-fx-contrast-validation.md. Hit-flash default was genuinely inert;
+05cc8e7 adaptive contrast now passes164pure checks, actual public64contrast+
+40atomic assertions, FX64history/17direct cases and native64FX+146edit states.
+Actual editor28600 was observed connected and then publicly quit. No editor now.
+NewAPPDATA effects/public-r007/appdata protects every historical saved user scene.
+
+Current active root job: exec session88655, serial49-case GPU+encode+decode queue
+effects/media-r007, immutable effects/plan-r007.json. Read queue.json for progress
+and failures. Cases00–02 completed; default hitflash720frame capture/native/full
+decode passes. Scoped independent temporal review documented. Failedr006case02
+is retained and separately encoded before-inert-hit-flash-r006.mp4. Keep one
+Godot job at a time; no editor/native launches until queue releases the slot.
+
+Full operation collector rejected temporary imported audit driver run_public.py.
+Keep raw traces; no qualified fullbundle claimed. InnerFX64/edit72 rows have
+independent reanalysis: signed resource IDs exposed bad positivity assumption,
+fixed95663c8/nonzero+exact equality (13controls). Oldfailedderivation retained.
+First temporary nativewrapper's nonexistent logger-field assumption also retained;
+corrected r002 validates actual schema+complete logs, passes68native processes.
+
+CI38876970657 head44a09d6 fails only Windows4.2.1 cleanZIP rig-history120s timeout;
+all other cells pass. Original logs E:/.../ci-44a09d6/clean-windows-421.4e6cec2 adds
+durable exact-suite/native/transport phases without changing120s/passcriteria.
+Earlier50e CI failed only Linux4.2.1 preset history timeout. Fresh CI stillneeded.
+
+Motion worker production draft stays isolated/uncommitted in toolkit-release-
+checkers-20261015: motion handler/runtime helper/nativechecker/editor tests and
+dynamiccontrols. Not integrated or qualified. Backup6files+binarypatch in
+E:/.../setup/worker-wip-20261016.zip SHA4724e21d2c7792eb2bdd9d3372191cd508bd3b48ba1d7b3ca1c717d3e9361dcf.
+Worker resumed afterusagepause; fixed cumulative residual lockout/full influence/
+chain/name ownership guards, completing phase plan/tests. Other workers continue
+library exactfile evidence and narrow inert FX refusals. Root reviews/integrates.
+
 ## Resume checkpoint: setup prototype and real audio (2026-10-16)
 
 Continue docs/release-completion-plan.md. Motion worker's disposable setup
