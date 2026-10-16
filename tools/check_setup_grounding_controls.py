@@ -65,6 +65,15 @@ def dynamic_specs(row):
                       reset_at_s=3.0))
     return specs
 
+def new_take_specs(row, omit_prime=False):
+    spec = dynamic_specs(row)[-1]
+    spec["reset_at_s"] = 2.6
+    spec["reset_contract"] = "new_take_v1"
+    if omit_prime:
+        spec["omit_new_take_prime"] = True
+    return [spec]
+
+
 def same_serialized_value(expected, actual):
     """Exact JSON structure/types, except finite int/float serialization noise.
 
@@ -124,6 +133,9 @@ def qualifies_report(manifest, report, exit_code, control):
     runs = report.get("runs", [])
     engine_errors = report.get("engine_errors")
     complete = isinstance(engine_errors, list) and not engine_errors and identities_match(manifest, runs)
+    if control == "new_take_unprimed":
+        return complete and exit_code == 1 and report.get("passed") is False and all(
+            row.get("passed") is False and any("endpoint" in str(error).lower() for error in row.get("failures", [])) for row in runs)
     if control in NEGATIVE:
         valid = complete and exit_code == 1 and report.get("passed") is False and all(
             row.get("passed") is False and any(
@@ -133,6 +145,15 @@ def qualifies_report(manifest, report, exit_code, control):
     else:
         valid = complete and exit_code == 0 and report.get("passed") is True and all(
             row.get("passed") is True for row in runs)
+    if control == "new_take":
+        valid = valid and all(
+            row.get("reset_performed") is True and row.get("extra_prime_signals") == 1
+            and len(row.get("takes", [])) == 2
+            and row.get("reset_witness", {}).get("cleared") is True
+            and row.get("reset_witness", {}).get("warm_anchors", 0) > 0
+            and row.get("reset_witness", {}).get("warm_phases", 0) > 0
+            and row.get("reset_witness", {}).get("prime_omitted") is False
+            for row in runs)
     if control == "recover_residual":
         valid = valid and all(float(row.get("grounding", {}).get("max_residual_m", 0)) >= 1.0
             and float(row.get("grounding", {}).get("evaluation_residual_m", 1))
@@ -144,6 +165,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for key in ("route", "project-root", "godot", "output"):
         parser.add_argument("--"+key, type=Path, required=True)
+    parser.add_argument("--new-take-only", action="store_true", help="Run only distinct twelve-cell primed/unprimed controls")
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError("Preserve previous controls and failed attempts")
@@ -158,11 +180,11 @@ def main():
     checker = root / "test_project/tools/check_setup_grounding_controls.gd"
     summary = dict(passed=False, route_sha256=digest(args.route), wrapper_sha256=digest(Path(__file__).resolve()),
                    checker_sha256=digest(checker), runtime_sha256=digest(root / "addons/godot_ai_animation/runtime/setup_grounding.gd"), rows=[])
-    for control in ("positive", "dynamic", "recover_residual", "saved_unrelated_rig_tree", *NEGATIVE):
+    for control in (("new_take", "new_take_unprimed") if args.new_take_only else ("positive", "dynamic", "recover_residual", "saved_unrelated_rig_tree", *NEGATIVE)):
         manifest = copy.deepcopy(route)
         for row in manifest["cases"]:
-            row["grounding_control"] = "positive" if control == "dynamic" else control
-            row["quality_specs"] = dynamic_specs(row) if control == "dynamic" else base_specs(row)
+            row["grounding_control"] = "positive" if control in ("dynamic", "new_take", "new_take_unprimed") else control
+            row["quality_specs"] = new_take_specs(row, control == "new_take_unprimed") if control.startswith("new_take") else dynamic_specs(row) if control == "dynamic" else base_specs(row)
         manifest_path = args.output / (control+"-manifest.json")
         manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         output = args.output / (control+".json")

@@ -82,3 +82,17 @@ PNG dimensions. Configure viewport dimensions before process startup if using
 MovieMaker; assert actual render/PNG sizes. Fixed cameras must include full
 travel, feet, hands and jump height. Capture remains pending, followed by a
 scoped temporal/visual assessment; numerical checks confer no image approval.
+
+## Approved new-take implementation checkpoint
+
+`check_setup_grounding_controls.py --new-take-only` prepares distinct primed and
+unprimed manifests (one spec per rig, three FPS each). Original default dynamic
+spec retains reset_at_s=3.0; immutable old failed reports are never rewritten.
+The checker records two take endpoints/contact counts, actual warm reset state,
+explicit clear/reason/count, zero-time final signal, cumulative evaluation/reset
+counts and the cut pose discontinuity. It resets only cross-cut previous-pose,
+stance-window and pole baselines; all accumulated maxima/gates remain intact.
+The unprimed control must specifically fail an endpoint assertion.
+
+Offline orchestration controls:16 pass. GDScript parsing and 12+12 native cells
+are pending the root-owned process slot; no native validation is claimed.

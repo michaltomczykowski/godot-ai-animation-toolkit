@@ -103,3 +103,37 @@ class Identity(unittest.TestCase):
         self.assertFalse(subject.identities_match(ambiguous,runs+runs))
 
 if __name__=="__main__": unittest.main()
+
+
+class NewTake(unittest.TestCase):
+    def test_distinct_specs_leave_legacy_unchanged(self):
+        row={"write":{"speed_values":{"walk":1.0,"run":2.0},"clips":{},"root_motion":True}}
+        self.assertEqual(subject.dynamic_specs(row)[-1]["reset_at_s"],3.0)
+        positive=subject.new_take_specs(row)[0]
+        negative=subject.new_take_specs(row,True)[0]
+        self.assertEqual(positive["reset_at_s"],2.6)
+        self.assertEqual(positive["reset_contract"],"new_take_v1")
+        self.assertNotIn("omit_new_take_prime",positive)
+        self.assertTrue(negative["omit_new_take_prime"])
+
+    def test_unprimed_requires_endpoint_counterexample(self):
+        spec={"reset_at_s":2.6}
+        manifest={"cases":[{"id":"rig","quality_specs":[spec]}]}
+        runs=[{"id":"rig","fps":fps,"spec":spec,"passed":False,
+               "failures":["New-take endpoint differs from exact requested distance"]} for fps in subject.FPS]
+        report={"runs":runs,"passed":False,"engine_errors":[]}
+        self.assertTrue(subject.qualifies_report(manifest,report,1,"new_take_unprimed"))
+        runs[0]["failures"]=["unrelated failure"]
+        self.assertFalse(subject.qualifies_report(manifest,report,1,"new_take_unprimed"))
+
+    def test_positive_requires_warm_reset_signal_witness(self):
+        spec={"reset_at_s":2.6}
+        manifest={"cases":[{"id":"rig","quality_specs":[spec]}]}
+        witness={"cleared":True,"warm_anchors":1,"warm_phases":2,"prime_omitted":False}
+        runs=[{"id":"rig","fps":fps,"spec":spec,"passed":True,"reset_performed":True,
+               "extra_prime_signals":1,"takes":[{},{}],"reset_witness":dict(witness)} for fps in subject.FPS]
+        report={"runs":runs,"passed":True,"engine_errors":[]}
+        self.assertTrue(subject.qualifies_report(manifest,report,0,"new_take"))
+        runs[0]["reset_witness"]["warm_anchors"]=0
+        self.assertFalse(subject.qualifies_report(manifest,report,0,"new_take"))
+

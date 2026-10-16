@@ -291,6 +291,13 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 	var controller_end := float(spec.get("controller_speed_end_mps",speed_end if not v.rooted and absf(controller_speed-speed)<0.000001 else controller_speed))
 	if not is_finite(controller_end): errors.append("Invalid ramp controller speed")
 	var reset_performed := false
+	var reset_witness := {}
+	var takes: Array = []
+	var take_origin: Vector3 = v.owner.global_position
+	var take_distance := 0.0
+	var take_start_frame := 0
+	var take_contact_frames := {"l":0,"r":0}
+	var extra_prime_signals := 0
 	var max_velocity := 0.0
 	var max_angular_velocity := 0.0
 	var nonfinite := 0
@@ -311,12 +318,48 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 			commanded_distance+=sample_speed*dt
 			if not v.rooted: controller_speed=lerpf(controller_start,controller_end,(float(frame)+0.5)/frames)
 		if spec.has("reset_at_s") and not reset_performed and float(frame)*dt>=float(spec.reset_at_s):
+			# Explicit NEW TAKE: physical continuity gates apply inside each take.
+			var take_actual: Vector3 = v.owner.global_position-take_origin
+			var take_error := _flat(take_actual-v.forward*take_distance,v.up).length()
+			takes.append({"start_frame":take_start_frame,"end_frame":frame,"expected_distance_m":take_distance,"endpoint_error_m":take_error,"contact_frames":take_contact_frames.duplicate()})
+			if take_error>0.0001: errors.append("New-take endpoint differs from exact requested distance")
+			if int(take_contact_frames.l)==0 or int(take_contact_frames.r)==0: errors.append("New-take insufficient contact coverage")
+			var warm_anchors: int = (v.modifier.get("_anchors") as Dictionary).size()
+			var warm_phases: int = (v.modifier.get("_phases") as Dictionary).size()
+			if warm_anchors==0 or warm_phases==0: errors.append("New-take reset requires actual warm stance and phase state")
 			tree.active=false
 			var resets_before: int = v.modifier.resets
-			v.modifier.reset_grounding("explicit_seek_or_new_take_test")
-			if v.modifier.resets!=resets_before+1 or not (v.modifier.get("_anchors") as Dictionary).is_empty() or not (v.modifier.get("_phases") as Dictionary).is_empty(): errors.append("Grounding explicit reset did not clear stance/phase state")
+			var signals_before: int = v.signals
+			var evaluations_before: int = v.modifier.evaluations
+			v.modifier.reset_grounding("explicit_new_take_control")
+			var cleared := (v.modifier.get("_anchors") as Dictionary).is_empty() and (v.modifier.get("_phases") as Dictionary).is_empty()
+			if v.modifier.resets!=resets_before+1 or not cleared or v.modifier.reset_reason!="explicit_new_take_control": errors.append("Grounding explicit reset did not clear stance/phase state and reason")
 			tree.active=true
+			var prime_delta := Vector3.ZERO
+			var cut_position_jump := 0.0
+			var cut_rotation_jump := 0.0
+			var cut_origin: Vector3 = v.owner.global_position
+			if not bool(spec.get("omit_new_take_prime",false)):
+				tree.advance(0.0)
+				prime_delta=tree.get_root_motion_position()
+				v.rig.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
+				extra_prime_signals=v.signals-signals_before
+				if extra_prime_signals!=1 or prime_delta.length()>0.000001 or v.owner.global_position.distance_to(cut_origin)>0.000001: errors.append("New-take zero-time final-signal priming/travel failure")
+				for bone in v.rig.get_bone_count():
+					var primed: Transform3D = _pose(v,bone)
+					cut_position_jump=maxf(cut_position_jump,(v.rig.global_basis*(primed.origin-previous[bone].origin)).length())
+					cut_rotation_jump=maxf(cut_rotation_jump,previous[bone].basis.orthonormalized().get_rotation_quaternion().angle_to(primed.basis.orthonormalized().get_rotation_quaternion()))
+					previous[bone]=primed
+			reset_witness={"cut_s":float(frame)*dt,"warm_anchors":warm_anchors,"warm_phases":warm_phases,"cleared":cleared,"resets_before":resets_before,"resets_after_explicit":resets_before+1,"resets_after_prime":v.modifier.resets,"signals_before":signals_before,"signals_after_prime":v.signals,"evaluations_before":evaluations_before,"evaluations_after_prime":v.modifier.evaluations,"prime_delta_parent":[prime_delta.x,prime_delta.y,prime_delta.z],"cut_position_jump_m":cut_position_jump,"cut_rotation_jump_rad":cut_rotation_jump,"prime_omitted":bool(spec.get("omit_new_take_prime",false))}
+			for side: String in feet:
+				feet[side].active=false
+				feet[side].pole=Vector3.ZERO
+			take_origin=v.owner.global_position
+			take_distance=0.0
+			take_start_frame=frame
+			take_contact_frames={"l":0,"r":0}
 			reset_performed=true
+		if not jump: take_distance+=sample_speed*dt
 		var binding_error: String = v.modifier.validate_configuration()
 		if not v.modifier.active or v.modifier.get_parent()!=v.rig or v.modifier.get_node_or_null(v.modifier.tree_path)!=tree or not binding_error.is_empty(): errors.append("Saved grounding binding/ownership changed: "+binding_error)
 		var before_owner: Vector3 = v.owner.global_position
@@ -353,6 +396,7 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 				f.slide=maxf(f.slide,_flat(foot-f.anchor,v.up).length())
 				f.height=maxf(f.height,absf(height))
 				f.frames+=1
+				take_contact_frames[side]+=1
 			f.penetration=maxf(f.penetration,-height)
 			airborne=airborne and height>0.01*float(v.leg)
 			var hip := _point(v,"thigh_"+side)
@@ -376,6 +420,11 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 			previous[bone]=pose
 		previous_phase=phase
 		trace.append(sample)
+	if spec.has("reset_at_s"):
+		var final_take_error := _flat(v.owner.global_position-take_origin-v.forward*take_distance,v.up).length()
+		takes.append({"start_frame":take_start_frame,"end_frame":frames,"expected_distance_m":take_distance,"endpoint_error_m":final_take_error,"contact_frames":take_contact_frames.duplicate()})
+		if not reset_performed or final_take_error>0.0001: errors.append("New-take endpoint differs from exact requested distance")
+		if int(take_contact_frames.l)==0 or int(take_contact_frames.r)==0: errors.append("New-take insufficient contact coverage")
 	var elapsed := frames*dt
 	var actual: Vector3 = v.owner.global_position-v.initial_owner if v.rooted or not jump else _point(v,"hips")-initial_hip
 	var expected: Vector3 = v.forward*(expected_distance if jump else commanded_distance)
@@ -420,7 +469,7 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 			_free(reference)
 	var yaw_error: float = v.initial_rotation.angle_to(v.owner.global_basis.orthonormalized().get_rotation_quaternion())
 	if yaw_error>0.00001: errors.append("Unexpected actor-yaw ownership")
-	var result := {"id":row.get("id",""),"fps":fps,"spec":spec,"frames":frames,"elapsed_s":elapsed,"leg_length_m":v.leg,"rooted":v.rooted,"endpoint_error_m":endpoint_error,"expected_world_distance_m":expected_distance if jump else commanded_distance,"actual_world_distance_m":_flat(actual,v.up).length(),"controller_speed_mps":controller_speed,"reset_performed":reset_performed,"extraction_error_m":extraction_error,"unconsumed_actor_change_m":unconsumed_actor_change,"grounded_root_delta_world_m":grounded_delta,"jump_capture_duration_s":capture,"terminal_hold_s":hold,"fadein_s":fadein,"fadeout_s":fadeout,"recovery_position_error_m":recovery_position,"recovery_rotation_error_rad":recovery_rotation,"shot_frames":shot_frames,"observed_flight_frames":air_frames,"nonfinite":nonfinite,"max_bone_speed_legs_per_s":max_velocity,"max_bone_angular_speed_rad_s":max_angular_velocity,"feet":feet,"trace":trace,"grounding":v.modifier.diagnostics(),"modification_processed_signals":v.signals,"passed":errors.is_empty(),"failures":errors}
+	var result := {"id":row.get("id",""),"fps":fps,"spec":spec,"frames":frames,"elapsed_s":elapsed,"leg_length_m":v.leg,"rooted":v.rooted,"endpoint_error_m":endpoint_error,"expected_world_distance_m":expected_distance if jump else commanded_distance,"actual_world_distance_m":_flat(actual,v.up).length(),"controller_speed_mps":controller_speed,"reset_performed":reset_performed,"reset_witness":reset_witness,"takes":takes,"extra_prime_signals":extra_prime_signals,"extraction_error_m":extraction_error,"unconsumed_actor_change_m":unconsumed_actor_change,"grounded_root_delta_world_m":grounded_delta,"jump_capture_duration_s":capture,"terminal_hold_s":hold,"fadein_s":fadein,"fadeout_s":fadeout,"recovery_position_error_m":recovery_position,"recovery_rotation_error_rad":recovery_rotation,"shot_frames":shot_frames,"observed_flight_frames":air_frames,"nonfinite":nonfinite,"max_bone_speed_legs_per_s":max_velocity,"max_bone_angular_speed_rad_s":max_angular_velocity,"feet":feet,"trace":trace,"grounding":v.modifier.diagnostics(),"modification_processed_signals":v.signals,"passed":errors.is_empty(),"failures":errors}
 	_free(v)
 	return result
 func _specs(row: Dictionary) -> Array:
