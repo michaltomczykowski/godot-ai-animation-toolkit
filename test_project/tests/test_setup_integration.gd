@@ -1,5 +1,6 @@
 @tool
 extends McpTestSuite
+const Capture := preload("res://tests/test_graph_route_history.gd")
 const Grounding := preload("res://addons/godot_ai_animation/runtime/setup_grounding.gd")
 const Motion := preload("res://addons/godot_ai_animation/handlers/motion.gd")
 const Context := preload("res://addons/godot_ai_animation/utils/tool_context.gd")
@@ -7,10 +8,23 @@ const Codec := preload("res://addons/godot_ai_animation/utils/value_codec.gd")
 const Digest := preload("res://tests/golden_digest.gd")
 const FIXTURES := ["res://models/human_dummy/HumanCharacterDummy_F.fbx", "res://models/x_bot/X Bot.fbx", "res://repair_synthetic_short.tscn", "res://repair_synthetic_zup_tall.tscn"]
 var handler: Motion
+var _logger: Capture.ErrorCapture
+var _engine_scope_start := -1
 func suite_name() -> String: return "setup_integration"
 func suite_setup(ctx: Dictionary) -> void:
 	Context.undo_redo = ctx.get("undo_redo")
 	handler = Motion.new()
+	_logger = Capture.ErrorCapture.new()
+	OS.add_logger(_logger)
+func setup() -> void: _engine_scope_start = -1
+func teardown() -> void:
+	if _engine_scope_start >= 0 and is_instance_valid(_logger):
+		assert_eq(_logger.errors.size(), _engine_scope_start, "zero scoped setup/save-reopen engine errors: "+str(_logger.errors.slice(_engine_scope_start)))
+	_engine_scope_start = -1
+func suite_teardown() -> void:
+	if is_instance_valid(_logger):
+		OS.remove_logger(_logger)
+		_logger = null
 func _same(player: AnimationPlayer, actual: String, reference: String) -> void:
 	assert_true(player.has_animation(actual) and player.has_animation(reference), "parity clips exist")
 	if not player.has_animation(actual) or not player.has_animation(reference): return
@@ -27,6 +41,7 @@ func test_default_setup_private_xbot_five_styles() -> void: _matrix(FIXTURES[1])
 func test_default_setup_short_five_styles() -> void: _matrix(FIXTURES[2])
 func test_default_setup_zup_tall_five_styles() -> void: _matrix(FIXTURES[3])
 func _matrix(fixture: String) -> void:
+	_engine_scope_start = _logger.errors.size()
 	var scene := EditorInterface.get_edited_scene_root()
 	if not ResourceLoader.exists(fixture):
 		skip("private/local fixture unavailable: " + fixture)
@@ -140,6 +155,9 @@ func test_public_setup_saved_clip_witness() -> void:
 	for pair in marker.get_meta("clip_pairs", []): _same(player, str(pair[0]), str(pair[1]))
 func _assign(node: Node, owner_node: Node) -> void:
 	node.owner = owner_node
+	# Retained scene instances own their inherited descendants. Re-owning those
+	# descendants to the edited root would save new typed nodes over base nodes.
+	if not node.scene_file_path.is_empty(): return
 	for child in node.get_children(): _assign(child, owner_node)
 func _find(node: Node, type: String) -> Node:
 	if node.is_class(type): return node
@@ -198,15 +216,20 @@ func test_setup_grounding_conflicts_and_dry_are_atomic() -> void:
 	body.free()
 
 func test_setup_custom_animation_root_and_remote_tree_history_serialization() -> void:
+	_engine_scope_start = _logger.errors.size()
 	var scene := EditorInterface.get_edited_scene_root()
 	var body := (load(FIXTURES[2]) as PackedScene).instantiate()
+	track(body)
 	body.name="NestedRootSetup"
+	# This regression deliberately reparents a Player; use a local disposable
+	# tree instead of trying to reparent an inherited scene-instance node.
+	body.scene_file_path=""
 	scene.add_child(body);_assign(body,scene)
 	var player := _find(body,"AnimationPlayer") as AnimationPlayer
 	var rig := _find(body,"Skeleton3D") as Skeleton3D
 	var drivers := Node.new();drivers.name="Drivers";body.add_child(drivers);drivers.owner=scene
 	player.reparent(drivers);player.root_node=NodePath("../..")
-	var hub := Node.new();hub.name="RemoteSetupTree";scene.add_child(hub);hub.owner=scene
+	var hub := Node.new();track(hub);hub.name="RemoteSetupTree";scene.add_child(hub);hub.owner=scene
 	var tree := AnimationTree.new();tree.name="CustomTree";tree.active=false;hub.add_child(tree);tree.owner=scene
 	var prior_root := tree.root_node
 	var prior_player := tree.anim_player
@@ -239,15 +262,21 @@ func test_setup_custom_animation_root_and_remote_tree_history_serialization() ->
 		assert_eq(ResourceSaver.save(packed,saved_path),OK,"save remote bundle to unique disposable scene")
 		var saved_scene := ResourceLoader.load(saved_path,"PackedScene",ResourceLoader.CACHE_MODE_IGNORE) as PackedScene
 		var reopened := saved_scene.instantiate()
+		track(reopened)
 		var saved_tree := reopened.get_node(scene.get_path_to(tree)) as AnimationTree
 		var saved_player := reopened.get_node(scene.get_path_to(player)) as AnimationPlayer
 		var saved_grounder := reopened.get_node(grounder_path) as Grounding
+		var saved_body := reopened.get_node(scene.get_path_to(body))
+		assert_true(saved_body.get_node_or_null("AnimationPlayer")==null,"reopen does not resurrect inherited Player at its old slot")
+		assert_eq(saved_body.find_children("*","AnimationPlayer",true,false).size(),1,"reopen contains exactly one intended nested Player")
 		assert_eq(saved_tree.get_node_or_null(saved_tree.root_node),saved_player.get_node_or_null(saved_player.root_node),"saved/reinstantiated animation roots agree")
 		assert_eq(saved_grounder.get_node_or_null(saved_grounder.tree_path),saved_tree,"saved remote helper Tree path")
 		assert_eq(saved_grounder.get_node_or_null(saved_grounder.player_path),saved_player,"saved nested helper Player path")
 		reopened.free()
 	var second := (load(FIXTURES[2]) as PackedScene).instantiate()
-	second.name="DetachedRemoteSetup";scene.add_child(second);_assign(second,scene)
+	track(second)
+	second.name="DetachedRemoteSetup";second.scene_file_path=""
+	scene.add_child(second);_assign(second,scene)
 	var second_player := _find(second,"AnimationPlayer") as AnimationPlayer
 	var second_rig := _find(second,"Skeleton3D") as Skeleton3D
 	var second_drivers := Node.new();second.add_child(second_drivers);second_drivers.owner=scene
