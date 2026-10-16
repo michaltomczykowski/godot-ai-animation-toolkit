@@ -65,6 +65,24 @@ def check(case, report):
             failures.append('both independent native cameras must be enabled and current')
 
     samples = report.get('samples', [])
+    if report.get('header_rect') != [12,8,1376,170]:
+        failures.append('fixed header/body separation missing')
+    expected_transform=[.55,0,0,.55,0,100] if case.get('display_mode')=='showcase' else [1,0,0,1,250,260]
+    presentation_failures=0
+    for sample in samples:
+        panes=sample.get('presentation',[])
+        if len(panes)!=2:
+            presentation_failures+=1
+            continue
+        for index,pane in enumerate(panes):
+            actual=pane.get('canvas_transform',[])
+            if pane.get('body_rect') != [index*700,190,700,610]:
+                presentation_failures+=1
+            if case['operation'] not in ('animation_fx.shake','animation_fx.zoom_punch'):
+                if len(actual)!=6 or any(not isinstance(a,(int,float)) or not math.isfinite(a) or abs(a-b)>.00001 for a,b in zip(actual,expected_transform)):
+                    presentation_failures+=1
+    if presentation_failures:
+        failures.append(f'invalid/missing fixed pane presentation in {presentation_failures} observations')
     expected_frames = case['fps'] * case['seconds']
     if len(samples) < expected_frames - 2 or report.get('frames', 0) < expected_frames - 2:
         failures.append('incomplete fixed-FPS temporal samples')

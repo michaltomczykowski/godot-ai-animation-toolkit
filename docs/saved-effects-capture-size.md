@@ -35,3 +35,12 @@ The renderer refuses immediately unless effective startup ProjectSettings
 match that contract. The engine's [Movie Maker resolution documentation](https://docs.godotengine.org/en/stable/tutorials/animation/creating_movies.html#rendering-at-a-higher-resolution-than-the-screen-resolution)
 requires viewport stretch and startup viewport dimensions for captures larger
 than the screen. The runtime extent checks and every-PNG checks remain required.
+
+Fixed comparison framing is applied after saved Camera2D nodes are disabled,
+including both newly instanced takes. Camera shake/zoom keep their native camera
+presentation. Every frame records the actual canvas transform and pane bounds;
+the checker independently rejects an identity/reset offset in fixed-frame cases.
+The bounded header occupies y8–178; both body panes occupy y190–800, so captions
+cannot cover effects. These are presentation transforms only; animated target
+keys, poses and local transforms are not rewritten. Fresh pixel inspection and
+continuous review remain required even when these placement checks pass.

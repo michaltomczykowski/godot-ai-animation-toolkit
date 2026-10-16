@@ -20,6 +20,7 @@ var _renderer_sha := ""
 var _runtime_failures: Array = []
 var _logger: ErrorCapture
 const CAPTURE_SIZE := Vector2i(1400, 800)
+const BODY_TOP := 190
 var _capture_geometry: Dictionary = {}
 var _startup_capture: Dictionary = {}
 
@@ -107,21 +108,22 @@ func _start() -> void:
 			quit(1)
 			return
 		var container := SubViewportContainer.new()
-		container.position = Vector2(_fixtures.size() * 700, 80)
-		container.size = Vector2(700, 640)
+		container.position = Vector2(_fixtures.size() * 700, BODY_TOP)
+		container.size = Vector2(700, 610)
 		root.add_child(container)
 		var viewport := SubViewport.new()
-		viewport.size = Vector2i(700, 640)
+		viewport.size = Vector2i(700, 610)
 		viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 		viewport.world_2d = World2D.new()
 		viewport.own_world_3d = true
 		container.add_child(viewport)
-		# The viewport must own its canvas before setting its canvas transform.
-		viewport.canvas_transform = Transform2D(0.0, Vector2(250, 260))
 		_viewports.append(viewport)
 		_load_scene(viewport, state)
 	_caption = Label.new()
-	_caption.size = Vector2(1400, 790)
+	_caption.position = Vector2(12, 8)
+	_caption.size = Vector2(1376, 170)
+	_caption.clip_contents = true
+	_caption.max_lines_visible = 6
 	_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_caption.text = _case.operation + "    UNDO reference (left) / REDO result (right)\nDisplay-only cyan markers; native camera + static grid for shake/zoom, fixed framing otherwise. Audio output NOT qualified."
 	root.add_child(_caption)
@@ -137,7 +139,7 @@ func _load_scene(viewport: SubViewport, state: String) -> void:
 	_fixtures.append(fixture)
 	var targets: Array = _case.targets
 	if _case.get("display_mode", "") == "showcase":
-		viewport.canvas_transform = Transform2D(0.0, Vector2(0.55, 0.55), 0.0, Vector2(0, 100))
+		_apply_fixed_presentation(viewport)
 		_play_saved(fixture, state)
 		return
 	for child in fixture.get_children():
@@ -180,6 +182,30 @@ func _load_scene(viewport: SubViewport, state: String) -> void:
 	if _case.operation.ends_with("sprite_frames") and sprite != null and sprite.sprite_frames != null:
 		if sprite.sprite_frames.has_animation(_case.clip):
 			sprite.play(_case.clip) # Native process clock; never assign frame.
+	_apply_fixed_presentation(viewport)
+
+func _fixed_transform() -> Transform2D:
+	return Transform2D(0.0, Vector2(0.55, 0.55), 0.0, Vector2(0, 100)) if _case.get("display_mode", "") == "showcase" else Transform2D(0.0, Vector2(250, 260))
+
+func _apply_fixed_presentation(viewport: SubViewport) -> void:
+	if _native_camera_mode(): return
+	# Camera shutdown resets its viewport canvas transform. Apply framing only
+	# after every saved camera is disabled, including freshly instanced take 2.
+	for camera in viewport.find_children("*", "Camera2D", true, false):
+		camera.enabled = false
+	viewport.canvas_transform = _fixed_transform()
+
+func _presentation_states() -> Array:
+	var states: Array = []
+	for viewport in _viewports:
+		var transform := viewport.canvas_transform
+		var expected := _fixed_transform()
+		var fixed_ok := _native_camera_mode() or transform.is_equal_approx(expected)
+		if not fixed_ok and not _runtime_failures.has("Fixed comparison framing changed after camera shutdown"):
+			_runtime_failures.append("Fixed comparison framing changed after camera shutdown")
+		states.append({"canvas_transform": [transform.x.x, transform.x.y, transform.y.x, transform.y.y, transform.origin.x, transform.origin.y],
+			"body_rect": [viewport.get_parent().position.x, BODY_TOP, 700, 610], "fixed_frame_valid": fixed_ok})
+	return states
 
 func _play_saved(fixture: Node, state: String) -> void:
 	if _case.operation == "animation_fx.sprite_frames": return
@@ -241,7 +267,7 @@ func _process(delta: float) -> bool:
 	_last = states
 	_different = _different or states[0] != states[1]
 	if _frames % 1 == 0:
-		_samples.append({"frame": _frames, "time": _elapsed, "take": 2 if _second_take else 1, "states": states, "players": [_player_times(_fixtures[0], "undo"), _player_times(_fixtures[1], "redo")]})
+		_samples.append({"frame": _frames, "time": _elapsed, "take": 2 if _second_take else 1, "states": states, "presentation": _presentation_states(), "players": [_player_times(_fixtures[0], "undo"), _player_times(_fixtures[1], "redo")]})
 	_caption.text = _case.operation + "  UNDO (left) / REDO (right)  t=%.2f\nDisplay-only cyan markers; camera presentation: %s. Native property changes: %s\n50-unit static calibration grid for native camera cases. Audio output proof remains separate.\nUNDO %s\nREDO %s" % [_elapsed, _camera_presentation(), str(_changes), _target_text(states[0]), _target_text(states[1])]
 	if not _second_take and _elapsed >= float(_case.take_seconds):
 		_second_take = true
@@ -255,7 +281,7 @@ func _process(delta: float) -> bool:
 		_load_scene(_viewports[1], "redo")
 	if _elapsed >= float(_case.seconds):
 		var report := {"schema_version": 1, "operation": _case.operation,
-			"case_id": _case.id, "startup_capture": _startup_capture, "capture_geometry": _capture_geometry, "runtime_failures": _runtime_failures, "engine_errors": _logger.errors,
+			"case_id": _case.id, "header_rect": [12, 8, 1376, 170], "startup_capture": _startup_capture, "capture_geometry": _capture_geometry, "runtime_failures": _runtime_failures, "engine_errors": _logger.errors,
 			"camera_presentation": _camera_presentation(), "native_camera_states": _camera_states(), "scenes": _case.scenes, "dependencies_verified": _resource_checks, "samples": _samples,
 			"native_changed_frames": _changes, "observed_difference": _different,
 			"frames": _frames, "elapsed": _elapsed, "plan_sha256": _plan_sha, "renderer_sha256": _renderer_sha, "max_delta_error": _max_delta_error, "engine": Engine.get_version_info(),
