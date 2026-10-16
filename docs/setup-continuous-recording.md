@@ -47,3 +47,32 @@ Official timing reference: [Skeleton3D manual modifier advance and signals](http
 Offline scheduler controls:4pass, including immutable input, exact durations,
 supported four-rig scope, extracted/in-place controller ownership and truncation
 refusals. Engine parse and actual output are pending; no media has been created.
+
+## Strict admission and frame proof follow-up
+
+Renderer now requires a fourth argument: the caller-bound exact schedule SHA256.
+It rejects schedule contract/rig IDs/take counts/frame counts/speeds/condition/
+OneShot timing mismatches before scene playback. Planner requires actual finite
+positive clip lengths, ordered finite gait speeds and scene resource paths with
+SHA256. This is schedule admission, not source or visual approval.
+
+Each sample records its rig/take/view/frame/time identity and skin-update count
+before physical advance, after advance and after draw. A cumulative old skin
+signal cannot satisfy the per-frame increase. Each take must contain its exact
+scheduled trace length and prime+frame final-signal count; total frames must
+match all eight declared takes. The offline validator checks these identities,
+counts, source/schedule hashes, engine-error list and each framing witness.
+
+Camera remains fixed. Its initial conservative extent includes all rest bones,
+both full-travel endpoints and vertical clearance. Every physical frame then
+projects every final-signaled bone (including fingers) into its actual camera:
+no behind-camera point and at least20pixels of margin in the952x900 view.
+This provides explicit skeleton/frustum proof across the entire native path;
+it does not establish a deformed mesh silhouette, garment/hair bounds or visual
+quality. Those remain part of the tiny-capture and temporal assessment. Failure
+stops capture; cameras never chase/recenter to conceal cropping.
+
+Offline:5 scheduler tests and2 receipt tests pass; the latter include12 concrete
+corruptions (stale skin, truncated trace, wrong view/take, crop/behind, time,
+signal count, source/schedule hash and engine errors). GDScript/native/capture
+validation remains pending; no process was launched for this follow-up.

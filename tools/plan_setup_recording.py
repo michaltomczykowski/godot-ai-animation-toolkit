@@ -24,7 +24,16 @@ def build(route, condition, seconds=3.0):
         for _ in range(4):
             if 'clips' in meta: break
             meta=next((meta[k] for k in ('data','result','response') if isinstance(meta.get(k),dict)),{})
+        if not isinstance(row.get('scene'),str) or not row['scene'].startswith('res://'):
+            raise ValueError('Require saved scene resource path')
+        if not isinstance(row.get('scene_sha256'),str) or len(row['scene_sha256'])!=64 or any(c not in '0123456789abcdef' for c in row['scene_sha256']):
+            raise ValueError('Require exact saved scene SHA256')
         values=meta['speed_values']
+        if any(type(values.get(k)) not in (int,float) or not math.isfinite(values[k]) or values[k]<=0 for k in ('walk','run')) or values['run']<=values['walk']:
+            raise ValueError('Require finite ordered saved speeds')
+        lengths=[meta['clips'][clip].get('length') for clip in ('idle','walk','run')]
+        if any(type(v) not in (int,float) or not math.isfinite(v) or v<=0 for v in lengths):
+            raise ValueError('Require actual finite positive saved clip lengths')
         speed=float(values['walk'])/2 if condition=='half_idle_walk' else (float(values['walk'])+float(values['run']))/2 if condition=='half_walk_run' else 0.0
         required=max(float(meta['clips'][clip].get('length',0)) for clip in ('idle','walk','run'))
         if seconds < required: raise ValueError('Take must cover each relevant saved cycle')
