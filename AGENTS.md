@@ -1,5 +1,31 @@
 # Agent notes
 
+## Latest checkpoint: actual integration exercised (2026-10-16, late)
+
+Read docs/setup-grounding-integration-validation.md. Source66c3ede passes11
+actual parses and all18pure suites, including33saved synthetic setup controls.
+The empty internal physics helper false refusal is fixed with an exact inert
+exception; real internal potential writers now refuse in setup/runtime/checker.
+
+Fresh visible editor29580 on releasedcore4.2.1 completed46 public-test assertions
+groups with zero skips: FX144assertions, library4tests/exact16file outcomes,
+setupownership/internalguards and38bake tests (newgroundedbake2/6886assertions).
+Full editor log has ONE actual popup-parent engine error at remote-tree saved
+scene instantiate, so that case/wholelog remain UNQUALIFIED despite greenasserts.
+Motionworker diagnoses isolated fix. All raw responses/scenes/logs under
+setup/production-r002. Editor29580 quit through publicAPI; no Godot job now.
+
+FX media:16r007 +22r008cases complete. r008queue stopped atcase22nearest
+interpolation's legitimate heldredo; exact held/reference/track contract fixed,
+24offline controls and rendererparse pass. Case08transition's boundary clipping
+also fixed capture-only with actual rectangle gates; new capturepending. Preserve
+alloriginalmovies/failedr008case22. No active media queue at this checkpoint.
+
+Next: engine-clean remote-root regression, fresh first four-rig serialized public
+setup group then60nativeplays/dynamiccontrols; finish remaining11effects plus
+transitionreplacement under freshplans, independentassessment and fullreleasegates.
+Operationworker bake is integrated and scopedactualtests pass. No merge/tag/release.
+
 ## Resume checkpoint: serialized setup integrated (2026-10-16, later)
 
 Root production head0570270 includes serialized setup grounding, atomic setup

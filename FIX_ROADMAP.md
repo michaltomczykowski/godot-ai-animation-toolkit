@@ -1,5 +1,25 @@
 # Animation Toolkit repair roadmap
 
+## Grounded bake integration exercised through Godot AI (2026-10-16, late)
+
+All18 headless suites and11 edited-script parses pass. New setup-grounder bake
+passes2 actual public tests/6886 assertions;36 existing bake tests also pass.
+FX constant-request refusal144 assertions, four library contracts/exact16file
+outcomes and setup ownership/internal-writer guards pass. Details and source
+identities: docs/setup-grounding-integration-validation.md.
+
+The remote Tree save/reopen test exposed an engine error while its assertions
+remained green. It stays unqualified and is being repaired; the complete editor
+log is not approved. Editor29580 was visibly connected and publicly quit.
+Fresh four-rig production setup playback is next, followed by dynamic controls.
+
+38of49 saved effects comparisons are captured/decoded. The next nearest-edit
+representative intentionally holds its redo endpoint; its exact native hold and
+moving reference now have a narrow checked contract. Transition media had clipped
+boundaries; capture-only framing and per-frame rectangle checks are integrated.
+Remaining11 movies and replacement transition capture need fresh plans/review.
+Historical failures remain intact. No merge/tag/release or gate waiver.
+
 ## Serialized setup and saved-player clocks integrated (2026-10-16, later)
 
 Production setup now serializes the owned grounding modifier in its single
