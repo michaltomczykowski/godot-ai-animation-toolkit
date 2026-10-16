@@ -1,5 +1,25 @@
 # Agent notes
 
+## Resume priority: actual setup grounding (2026-10-16 morning)
+
+No Godot process active after editor12380 public quit. Root branchb6ea09f,
+remote10c97da; d22 startuphelper andb6ea snapshotcollector pendingpush.
+New plan: docs/setup-grounded-playback-repair-plan.md. Four fresh public setup
+bundles pass history/persistence, but60 nativeTreeplays have36 real contact
+failures (intermediate idle/walk/run blends and jump OneShot). Exact endpoints
+24pass, root endpoints correct, engineerrors0. Preserve all E:/.../setup/
+candidate-r001 scenes/traces. Worker motion has one headless reproslot; root
+must coordinate before GPU/editor launch. Do not waive contacts or change
+accepted standalone clips. Native modifier results require signal-time capture.
+
+JumpResponsiveforwardextractedclean+diagnostic bothcomplete24s1080p60/1440
+decodedframes. Motionworker assessing; remaining styles/modesvisuals pending.
+FXr004case03 full720PNG1400x800+nativepass, but actualimage showsUItargets under
+caption: camera-disable resets displaycanvas transform, presentationfix pending.
+CI10c97da/38814930955 all previousmatrixjobspass; onlytwo new rendered Linux
+previewjobsfail. Operationworker diagnosing and continuing exactFXhistoryhooks.
+Workersresumed afterovernightusagereset; no release/tag/merge.
+
 ## Jump numerical closure; setup/media next (2026-10-16)
 
 Fresh jump r002 is80/80 actual public dry/history/save/reopen clips and480/480

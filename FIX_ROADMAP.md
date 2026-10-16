@@ -1,5 +1,25 @@
 # Animation Toolkit repair roadmap
 
+## Setup playback failure isolated (2026-10-16)
+
+Fresh Responsive setup group:4 public bundles pass dry run/history/save/reopen;
+60 native Tree plays yield24 exact walk/run passes and36 intermediate-blend/
+OneShot contact failures, with zero engine errors and correct root endpoints.
+Dummy60FPS penetration is11mm idle/walk,77mm walk/run,25mm jump handoff.
+No thresholds changed and no setup quality approval. Saved failing scenes and
+raw native traces remain under E:/.../setup/candidate-r001. The new bounded
+phase is saved in docs/setup-grounded-playback-repair-plan.md. Reproduce blend
+causality and prototype setup-owned post-playback grounding before integration;
+keep accepted standalone clips unchanged. Editor12380 was quit through Godot AI.
+
+Both Responsive forward/extracted jump candidate movies are complete and fully
+decode1440frames/24s each; independent scoped assessment is underway. The fixed
+FX startup override captures720 complete1400x800 PNGs with native endpoints and
+no engine errors; presentation still needs repair because a camera reset moves
+UI targets beneath the caption. Geometry/numerical passes are not visual approval.
+CI38814930955 passes the existing full matrix; only the two newly added Linux
+rendered-preview jobs fail and are being diagnosed. Publication remains blocked.
+
 ## Jump r002 numerical closure (2026-10-16)
 
 Completed80 actual public Godot AI jump clips and480 native Player/Tree plays
