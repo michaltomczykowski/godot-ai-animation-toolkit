@@ -9,6 +9,9 @@ static func emit_fx(row: Dictionary) -> void:
 static func emit_edit(row: Dictionary) -> void:
 	_emit(row, "animation_edit", "test_edit_route_history.gd", "edit_history_v1")
 
+static func emit_library_file(row: Dictionary) -> void:
+	_emit(row, "animation_library", "test_library_contracts.gd", "library_file_v1")
+
 static func _emit(row: Dictionary, family: String, driver: String, validator: String) -> void:
 	var context_path := OS.get_environment("TOOLKIT_OPERATION_CONTEXT")
 	var trace_dir := OS.get_environment("TOOLKIT_OPERATION_TRACE_DIR")
@@ -48,5 +51,9 @@ static func _safe(value: Variant) -> Variant:
 	if value is Vector2: return {"type": "Vector2", "x": value.x, "y": value.y}
 	if value is Vector3: return {"type": "Vector3", "x": value.x, "y": value.y, "z": value.z}
 	if value is Color: return {"type": "Color", "r": value.r, "g": value.g, "b": value.b, "a": value.a}
+	if value is Quaternion: return {"type": "Quaternion", "x": value.x, "y": value.y, "z": value.z, "w": value.w}
+	if value is Basis: return {"type": "Basis", "x": _safe(value.x), "y": _safe(value.y), "z": _safe(value.z)}
+	if value is Transform2D: return {"type": "Transform2D", "x": _safe(value.x), "y": _safe(value.y), "origin": _safe(value.origin)}
+	if value is Transform3D: return {"type": "Transform3D", "basis": _safe(value.basis), "origin": _safe(value.origin)}
 	if value is NodePath or value is StringName: return str(value)
 	return value

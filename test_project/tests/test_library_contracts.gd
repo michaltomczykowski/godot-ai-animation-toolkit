@@ -5,12 +5,15 @@ const History := preload("res://tests/test_preset_library_history.gd")
 const Context := preload("res://addons/godot_ai_animation/utils/tool_context.gd")
 const Registry := preload("res://addons/godot_ai/custom_tools/mcp_tool_registry.gd")
 const Capture := preload("res://tests/test_graph_route_history.gd")
+const HistoryTrace := preload("res://tests/operation_history_trace.gd")
 const DIR := "res://animation_toolkit/history_contracts/"
 var _checks := History.new()
 var _undo: EditorUndoRedoManager
 var _dispatcher
 var _logger: Capture.ErrorCapture
 var _files: Array[String] = []
+var _file_evidence_fixture: Node
+var _file_evidence_ordinal := 0
 
 func suite_name() -> String: return "library_contracts"
 func suite_setup(ctx: Dictionary) -> void:
@@ -23,8 +26,39 @@ func suite_setup(ctx: Dictionary) -> void:
 func suite_teardown() -> void:
 	OS.remove_logger(_logger)
 	for path in _files: DirAccess.remove_absolute(path)
+func teardown() -> void:
+	_file_evidence_fixture = null
 func _call(params: Dictionary) -> Dictionary:
-	return _dispatcher.call("_dispatch", {"request_id": "library-contracts", "command": "custom_tool:animation_library", "params": params})
+	var evidence := {}
+	if _file_evidence_fixture != null:
+		var history := _undo.get_history_undo_redo(_undo.get_object_history_id(_file_evidence_fixture))
+		var global := _undo.get_history_undo_redo(EditorUndoRedoManager.GLOBAL_HISTORY)
+		_file_evidence_ordinal += 1
+		evidence = {"suite": "library_contracts", "test": "test_file_operations_preserve_history_and_dry_bytes",
+			"mode": "file_contract", "ordinal": _file_evidence_ordinal, "op": str(params.op),
+			"request": params.duplicate(true), "before": _checks._snapshot(_file_evidence_fixture),
+			"file_before": _file_observation(str(params.get("library_path", params.get("path", "")))),
+			"history_before": history.get_version(), "global_before": global.get_version(),
+			"errors_before": _logger.errors.size(), "failed_before": _failed,
+			"assertion_count_before": _assertion_count}
+	var reply: Dictionary = _dispatcher.call("_dispatch", {"request_id": "library-contracts", "command": "custom_tool:animation_library", "params": params})
+	if not evidence.is_empty():
+		var history := _undo.get_history_undo_redo(_undo.get_object_history_id(_file_evidence_fixture))
+		var global := _undo.get_history_undo_redo(EditorUndoRedoManager.GLOBAL_HISTORY)
+		evidence.response = reply.duplicate(true)
+		evidence.after = _checks._snapshot(_file_evidence_fixture)
+		evidence.file_after = _file_observation(str(params.get("library_path", params.get("path", ""))))
+		evidence.history_after = history.get_version()
+		evidence.global_after = global.get_version()
+		evidence.errors_after = _logger.errors.size()
+		evidence.errors = _logger.errors.slice(int(evidence.errors_before))
+		HistoryTrace.emit_library_file(evidence)
+	return reply
+
+func _file_observation(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path): return {"path": path, "exists": false}
+	var bytes := FileAccess.get_file_as_bytes(path)
+	return {"path": path, "exists": true, "bytes_hex": bytes.hex_encode(), "sha256": FileAccess.get_sha256(path)}
 func _file(path: String, data: Variant) -> void:
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	file.store_string(data if data is String else JSON.stringify(data))
@@ -56,6 +90,8 @@ func test_file_operations_preserve_history_and_dry_bytes() -> void:
 	_files.append(path)
 	DirAccess.remove_absolute(path)
 	var save := {"op": "template_save", "name": "bounce", "tool": "animation_presets", "forward_op": "bounce", "library_path": path, "intensity": 0.25}
+	_file_evidence_fixture = fixture
+	_file_evidence_ordinal = 0
 	assert_has_key(_call(save.merged({"dry_run": true})), "data", "new recipe dry")
 	assert_false(FileAccess.file_exists(path), "dry does not create recipe")
 	var made := _call(save)
@@ -96,6 +132,7 @@ func test_file_operations_preserve_history_and_dry_bytes() -> void:
 	assert_eq(history.get_version(), version, "file ops zero scene history")
 	assert_eq(global.get_version(), global_version, "file ops zero global history")
 	assert_eq(_logger.errors.size(), errors, "file ops engine errors " + str(_logger.errors.slice(errors)))
+	_file_evidence_fixture = null
 	fixture.free()
 
 func test_safe_paths_and_malformed_documents_are_typed() -> void:

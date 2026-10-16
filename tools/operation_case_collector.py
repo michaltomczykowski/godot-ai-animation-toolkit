@@ -477,7 +477,10 @@ def collect(context_path, traces, root, preview_report=None):
                       'public_case_ids':proof['public_case_ids'],'dry_case_ids':proof['dry_case_ids'],
                       'failures':proof['failures'],'limits':proof['limits']})
     for event in history_events:
-        from operation_history_checks import verify_event
+        if event.get('validator')=='library_file_v1':
+            from operation_library_file_checks import verify_event
+        else:
+            from operation_history_checks import verify_event
         if event.get('operation') not in EXPECTED_OPERATIONS:raise ValueError('invalid inner history operation')
         proof=verify_event(event,context,test_begins,support_events)
         cases.append({'id':event['id'],'operation':event['operation'],'checks':proof['checks'],

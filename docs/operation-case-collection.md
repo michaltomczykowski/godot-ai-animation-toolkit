@@ -287,3 +287,42 @@ The remaining uninstrumented inner-history families are presets, graph, rig,
 modifiers, motion/setup and sequence. Read/file effects need their own exact
 applicable result contracts. Existing native playback adapters and historical
 matrices remain separate evidence; no aggregate pass fills these gaps.
+
+## Library file/read contracts
+
+The existing `library_contracts.test_file_operations_preserve_history_and_dry_bytes`
+now records its16 actual dispatcher calls for five operation keys:
+`template_save`, `template_list`, `template_delete`, `spec_export`, `spec_import`.
+The calls already cover new files, replacement, deletion, reads, dry runs and
+duplicate/missing refusals. No new tool call, file write or assertion was added.
+Only this existing test activates the observer; other library tests remain
+uninstrumented. Teardown clears the observer even after a failed test.
+
+Each raw `library_file_v1` row includes exact request/response, file existence
+and bytes with independently checked SHA256, fixture snapshots, scene/global
+history versions and Logger deltas. The helper preserves typed transform data.
+`operation_library_file_checks.py` verifies the exact file paths and recipe/read
+contents, requested overwrite/delete behavior, and exported scalar clip metadata
+against the independent engine snapshot. Imported summaries must match the
+actual stored spec. A generic successful reply or changed output file alone
+cannot pass these contracts.
+
+Derived checks are limited to actual `valid_effect` and `file_effect` for
+successful writes, `valid_effect` for reads, `dry_run` for successful dry writes,
+`typed_errors` for actual typed nonmutating refusals, and observed
+`source_unchanged` / `reported_errors`. Source invariance includes the fixture,
+both history versions and, for reads/dry/refusals, exact file bytes. File writes
+must remain non-undoable and create no scene/global history action. No fabricated
+Undo/Redo, saved-scene playback, visual, audio or external invocation is added.
+
+The exact public span and passing non-skipped verbose test remain required;
+suite totals cannot substitute. Eight pure controls exercise all five positive
+contracts and reject corrupt hashes, wrong paths/bytes, changed scenes/history,
+wrong recipe/export/read results, engine errors, generic refusals, other public
+spans and skipped/aggregate results. Existing collector/snapshot/preview tests
+still pass. All16 actual results remain pending execution of this source.
+
+The root's signed nonzero RefCounted-ID history fix is independent: this increment
+does not modify `operation_history_checks.py`. Library apply history, broader
+malformed/path matrices, pose-file semantics and other rig histories still need
+their own exact case adapters. Existing historical passes are not reclassified.
