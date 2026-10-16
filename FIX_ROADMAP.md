@@ -1,5 +1,30 @@
 # Animation Toolkit repair roadmap
 
+## Serialized setup and saved-player clocks integrated (2026-10-16, later)
+
+Production setup now serializes the owned grounding modifier in its single
+history transaction and binds remote Trees to the Player's actual animation root.
+Native checks require that saved helper and capture its final signal; they never
+install the prototype. Initial parse/offline controls passed, but the final
+integrated source and fresh public production scenes still need execution.
+Independent root source comparison passes: only existing run/setup motion bodies
+change and all28 protected fixture/golden blobs remain exact. See
+docs/setup-grounding-implementation-phases.md and docs/setup-tree-checker.md.
+
+All16 FX movies from media-r007 are fully captured/decoded. The next preset
+exposed a manual-clock capture harness defect: selected saved Players now run
+on owned native idle clocks in both fresh takes. The remaining33-case queue is
+running in media-r008-remaining with separate immutable producer identities.
+This is media preparation, not whole-family visual approval. Constant FX request
+guards pass176pure assertions; their new editor cases and exact library file/read
+collection remain pending. Active setup-helper bake integration is being repaired
+under strict source-binding, private-state and final-signal contracts.
+
+No release gates are waived. Fresh production setup, representative continuous
+visuals, all103 applicable operation rows and exact-source Windows/Linux released-
+core CI remain before PR merge/tag/publication. Current recovery state is at the
+top of AGENTS.md; preserve every earlier failed scene, trace and movie.
+
 ## Hit-flash repair exercised through Godot AI (2026-10-16 evening)
 
 The49-case media queue exposed an actual inert default: white-to-white flash.

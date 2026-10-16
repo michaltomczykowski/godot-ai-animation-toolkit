@@ -1,5 +1,35 @@
 # Agent notes
 
+## Resume checkpoint: serialized setup integrated (2026-10-16, later)
+
+Root production head0570270 includes serialized setup grounding, atomic setup
+history/configuration, remote Tree/Player root binding and stricter saved native
+checks. Actual production public/native/visual qualification is STILL PENDING.
+The completed300-play prototype is separate evidence. Independent root comparison
+against67832e4 confirms only existing run/setup function bodies changed and all28
+protected fixture/golden blobs are exact; corrected extraction receipt is
+E:/GodotAI-toolkit-release-2.0.0/20261014/setup/root-0570270-source-preservation-r002.json.
+The older false extractor result is preserved with its reason.
+
+Current root native slot is exec3587: effects/media-r008-remaining, immutable
+plan-r008-remaining.json, serial33-case queue. Read queue.json for live progress.
+The16 FX movies in media-r007 are complete; the old queue stopped at the first
+preset because its saved Player used MANUAL clock.67832e4 fixes comparison-player
+clock ownership, not clip data. The new queue starts with that preset; preserve
+both runs and producer identities. One Godot job at a time, no editor meanwhile.
+
+a067d9c refuses constant numeric/text/spring FX before authoring;176pure FX
+checks pass, new actual editor refusal cases remain pending.09fffa1 prepares
+library exact-file/read evidence, parsed with offline controls; actual16 library
+calls remain pending. Newest CI runs38934184185/38933367937 were in progress.
+
+Next: finish queue, final integrated GDScript parse/pure suites, visible editor
+public setup/history/save/reopen and saved-helper native checks, then dynamic
+grounding controls. Operation worker implements bounded active-helper bake
+support in its isolated worktree: audited helper only, private cloned config,
+signal-time capture, unchanged live state and retained foreign-script refusals.
+No merge/tag/release; continue docs/release-completion-plan.md and push checkpoints.
+
 ## Latest resume: real contrast fixed, media running (2026-10-16 evening)
 
 Root abe56ee pushed/verified;4e6cec2 rig timeout diagnostics integrated afterward.
