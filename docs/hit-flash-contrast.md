@@ -32,10 +32,10 @@ path follow, flipbook, sprite frames and audio require caller/target resources;
 their resource shape and audible/visual output still need case qualification.
 Damage bar defaults from the current value to 0; progress fill defaults from
 the current value to 1. Either can be numerically constant when already at its
-destination. Those separate baseline-dependent contracts merit a narrow
-no-change decision; this repair does not alter them or classify inert output
-as a passing effect. Explicit zero spring offsets and single-cell frame ranges
-also require contract-specific review rather than a family-wide disable.
+destination. Those baseline-dependent equal endpoints and zero spring offsets are now
+refused by the narrow [no-effect request contract](fx-no-effect-requests.md).
+Constant formatted counters are refused too. Single-cell frame ranges remain
+a separate contract question rather than a family-wide disable.
 
 Focused editor tests cover white, dark, transparent and explicit distinct
 colors, native midpoint/end playback, resource save/reload, Undo/Redo, and

@@ -675,3 +675,51 @@ func test_hit_flash_explicit_no_change_and_transparent_endpoints_refuse_atomical
 				assert_false(player.has_animation("refused"),"Refusal creates no clip")
 				assert_eq(rect.modulate,baseline,"Refusal preserves target")
 		_teardown(rig)
+
+func test_proven_inert_numeric_text_and_spring_requests_refuse_atomically() -> void:
+	var cases := [
+		{"op":"damage_bar","target":ProgressBar.new(),"params":{}},
+		{"op":"progress_fill","target":ProgressBar.new(),"params":{},"baseline":1.0},
+		{"op":"damage_bar","target":ProgressBar.new(),"params":{"from":20.0,"to":20.0}},
+		{"op":"progress_fill","target":ProgressBar.new(),"params":{"from":20.0,"to":20.0}},
+		{"op":"counter","target":Label.new(),"params":{"from":1.0,"to":1.0}},
+		{"op":"counter","target":Label.new(),"params":{"from":0.1,"to":0.2,"format":"%d"}},
+		{"op":"counter","target":Label.new(),"params":{"from":0.0,"to":100.0,"format":"fixed"}},
+		{"op":"spring","target":Node2D.new(),"params":{"offset":{"x":0.0,"y":0.0}}},
+		{"op":"spring","target":Node3D.new(),"params":{"offset":{"x":0.0,"y":0.0,"z":0.0}}},
+	]
+	for row: Dictionary in cases:
+		if row.has("baseline"): row.target.value=row.baseline
+		var rig := _rig("Inert"+str(cases.find(row)),row.target)
+		if rig.has("error"):
+			skip(rig.error)
+			return
+		var scene := EditorInterface.get_edited_scene_root()
+		var player := ValueCodec.resolve_scene_path(rig.player_path,scene) as AnimationPlayer
+		var history := _undo_redo.get_history_undo_redo(_undo_redo.get_object_history_id(scene))
+		var version := history.get_version()
+		var libraries := player.get_animation_library_list()
+		var children := scene.get_child_count()
+		var baseline: Variant = row.target.get("value") if row.target is ProgressBar else row.target.text if row.target is Label else row.target.position
+		var params := {"op":row.op,"player_path":rig.player_path,"target_path":rig.target_path,"animation_name":"inert_control"}
+		params.merge(row.params,true)
+		for dry in [true,false]:
+			var refusal := _handler.run(params.merged({"dry_run":dry}),null)
+			assert_is_error(refusal,ErrorCodes.OPERATION_UNAVAILABLE)
+			assert_eq(history.get_version(),version,"Inert request creates no undo action")
+			assert_eq(player.get_animation_library_list(),libraries,"Inert request allocates no library")
+			assert_false(player.has_animation("inert_control"),"Inert request creates no clip")
+			assert_eq(scene.get_child_count(),children,"Inert request adds no nodes")
+			var after: Variant = row.target.get("value") if row.target is ProgressBar else row.target.text if row.target is Label else row.target.position
+			assert_eq(after,baseline,"Inert request leaves target unchanged")
+		if row.op=="spring": params.offset={"x":10.0,"y":0.0,"z":0.0}
+		elif row.op=="counter": params.merge({"from":0.0,"to":100.0,"format":"%d"},true)
+		else: params.merge({"from":0.0,"to":10.0},true)
+		assert_has_key(_handler.run(params.merged({"dry_run":true}),null),"data","Noninert dry control remains supported")
+		var written := _handler.run(params,null)
+		assert_has_key(written,"data","Noninert write control remains supported")
+		if written.has("data"):
+			var clip := player.get_animation("inert_control")
+			assert_true(clip.track_get_key_count(0)>1,"Noninert control has actual animation keys")
+			assert_true(str(clip.track_get_key_value(0,0))!=str(clip.track_get_key_value(0,clip.track_get_key_count(0)-1)),"Noninert control endpoints differ")
+		_teardown(rig)
