@@ -183,6 +183,14 @@ adapter controls pass; no real preview is claimed without actual runner output.
 
 ## Bounded FX/edit snapshot assertions
 
+The first live edit72 trace exposed signed RefCounted resource IDs: an actual
+library ID was `-9223369453582862363`, exactly preserved through dry run and
+Undo. The adapter's positivity assumption incorrectly rejected all72 dry/history
+rows. Identity checks now require a nonzero integer and exact equality; zero
+still fails. Raw failed derivation is preserved. The live editor assertions and
+native playback were passing; this fixes the evidence adapter, without changing
+editing behavior or equality tolerances.
+
 The existing public FX and edit drivers now emit raw per-operation rows directly
 after their actual comparison checks. They include the exact request, before,
 after-dry, after-write and persisted inspections and real public responses.

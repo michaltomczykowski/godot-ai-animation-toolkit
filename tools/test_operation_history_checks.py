@@ -101,6 +101,16 @@ class PublicSpan(unittest.TestCase):
 
 
 class EditHistoryChecks(unittest.TestCase):
+    def test_signed_resource_ids_preserve_identity_and_zero_does_not(self):
+        row, *_ = self.fixture()
+        actual = -9223369453582862363
+        row.update(original_library_id=actual, dry_library_id=actual, undo_library_id=actual)
+        self.assertEqual(derive(row)['dry_run'], 'pass')
+        self.assertEqual(derive(row)['undo_redo'], 'pass')
+        row.update(original_library_id=0, dry_library_id=0, undo_library_id=0)
+        self.assertEqual(derive(row)['dry_run'], 'fail')
+        self.assertEqual(derive(row)['undo_redo'], 'fail')
+
     def fixture(self,mode='local',op='retime',variant='base'):
         row,context,event,begins,ends=HistoryChecks().fixture()
         row.update(suite='edit_route_history',op=op,mode=mode,variant=variant,

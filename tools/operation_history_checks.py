@@ -46,9 +46,11 @@ def derive(row):
     saved=clean and persisted(row['persist_undo'],before,'undo') and persisted(row['persist_redo'],generated,'redo')
     if edit:
         identity=row.get('original_library_id')
-        dry=dry and type(identity) is int and identity>0 and row.get('dry_library_id')==identity and versions.get('global_dry_error')==versions.get('global_before')
+        # RefCounted ObjectIDs may carry the high bit and serialize as negative
+        # signed Godot ints. Zero is invalid; positivity is not an ID contract.
+        dry=dry and type(identity) is int and identity!=0 and row.get('dry_library_id')==identity and versions.get('global_dry_error')==versions.get('global_before')
         typed=typed and versions.get('global_dry_error')==versions.get('global_before')
-        history=history and type(identity) is int and identity>0 and row.get('undo_library_id')==identity and bool(row.get('original_clip_ids')) and row.get('undo_clip_ids')==row.get('original_clip_ids')
+        history=history and type(identity) is int and identity!=0 and row.get('undo_library_id')==identity and bool(row.get('original_clip_ids')) and row.get('undo_clip_ids')==row.get('original_clip_ids')
     checks={key:'pass' if value else 'fail' for key,value in
             [('dry_run',dry),('typed_errors',typed),('undo_redo',history),('save_reopen',saved)]}
     if edit:
