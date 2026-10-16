@@ -21,7 +21,10 @@ def derive(row):
     if not any(same(doc,x) for x in (recipes if op=='template_list' else clips)): raise ValueError('not an exact malformed fixture')
     invariant=row.get('failed_before') is False and bool(row.get('before')) and same(row['before'],row.get('after')) and before==after and type(row.get('history_before')) is int and row.get('history_after')==row['history_before'] and type(row.get('global_before')) is int and row.get('global_after')==row['global_before']
     error=row.get('response',{}).get('error',{})
-    typed=isinstance(error,dict) and error.get('code')=='INVALID_PARAMS' and isinstance(error.get('message'),str) and bool(error['message'])
+    # Library envelope validation uses INVALID_PARAMS; the three exact clip
+    # fixtures violate schema field types and SpecJson returns WRONG_TYPE.
+    expected_code='INVALID_PARAMS' if op=='template_list' else 'WRONG_TYPE'
+    typed=isinstance(error,dict) and error.get('code')==expected_code and isinstance(error.get('message'),str) and bool(error['message'])
     clean=type(row.get('errors_before')) is int and row.get('errors_after')==row['errors_before'] and row.get('errors')==[]
     return {'typed_errors':'pass' if invariant and typed else 'fail','source_unchanged':'pass' if invariant else 'fail','reported_errors':'pass' if clean else 'fail'}
 

@@ -50,6 +50,15 @@ def blend_bones(request):
 def pose_matches(doc,bones,source):
     return isinstance(doc,dict) and doc.get('format')=='godot-ai-animation-pose' and doc.get('version')==1 and doc.get('rest_relative') is True and doc.get('source')==source and near(doc.get('bones'),bones)
 
+def canonical_source(source):
+    # Native get_path includes editor UI ancestors. The public pose contract
+    # names /<edited-root>/RigPoseHistory/Skeleton, as ValueCodec.from_node
+    # documents. The exact fixture has these last two descendants under root.
+    parts=source.split('/')
+    if len(parts)<5 or parts[:2]!=['','root'] or any(not p or p in ('.','..') for p in parts[2:]) or parts[-2:]!=['RigPoseHistory','Skeleton']:
+        raise ValueError('unexpected absolute native source path')
+    return '/'+('/'.join(parts[-3:]))
+
 def derive(row):
     op=row.get('op');request=row.get('request',{});reply=row.get('response',{})
     if op not in {'pose_save','pose_blend'} or request.get('op')!=op:raise ValueError('pose file operation differs from dispatch')
@@ -74,9 +83,9 @@ def derive(row):
         return checks
     data=reply.get('data',{})
     bones=captured if op=='pose_save' else blend_bones(request)
-    expected_source=source if op=='pose_save' else ''
+    expected_source=canonical_source(source) if op=='pose_save' else ''
     valid=isinstance(data,dict) and data.get('undoable') is False and data.get('saved_path')==path and data.get('bone_count')==len(bones) and pose_matches(data.get('pose'),bones,expected_source)
-    if op=='pose_save':valid=valid and data.get('kind')=='3d' and data.get('skeleton_path')==source
+    if op=='pose_save':valid=valid and data.get('kind')=='3d' and data.get('skeleton_path')==expected_source
     else:valid=valid and data.get('factor')==request['factor'] and data.get('only_in_from')==[] and data.get('only_in_to')==[]
     if dry:
         checks['dry_run']='pass' if invariant and valid and data.get('dry_run') is True and before==after else 'fail'
@@ -94,6 +103,7 @@ def verify_event(event,context,begins,support):
     for path in ('test_project/tests/test_rig_pose_history.gd','test_project/tests/operation_history_trace.gd',
                  'test_project/tests/test_preset_library_history.gd','test_project/tests/test_graph_route_history.gd',
                  'addons/godot_ai_animation/handlers/rig.gd','addons/godot_ai_animation/spec/pose_math.gd',
+                 'addons/godot_ai_animation/handlers/animation_tool_base.gd','addons/godot_ai_animation/utils/value_codec.gd',
                  'addons/godot_ai_animation/spec/spec_json.gd','tools/mcp_presets_audit.py',
                  'tools/operation_library_file_checks.py','tools/operation_pose_file_checks.py'):
         if path not in dependencies:raise ValueError('pose file source not bound: '+path)

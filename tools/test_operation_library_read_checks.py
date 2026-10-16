@@ -1,5 +1,6 @@
 import copy
 import hashlib
+import json
 import unittest
 from operation_library_read_checks import derive
 
@@ -13,6 +14,18 @@ class ReadTests(unittest.TestCase):
     def test_exact_refusal(self): self.assertEqual(set(derive(row()).values()),{'pass'})
     def test_unknown_is_not_typed(self):
         r=row();r['response']['error']['code']='UNKNOWN';self.assertEqual(derive(r)['typed_errors'],'fail')
+    def test_exact_clip_schema_type_errors(self):
+        fixtures=[{'format':'godot-ai-animation-clip','version':1,'tracks':{}},
+                  {'format':'godot-ai-animation-clip','version':1,'markers':[4],'tracks':[]},
+                  {'format':'godot-ai-animation-clip','version':1,'tracks':[{'type':0,'path':'Widget:position','keys':[4]}]}]
+        for document in fixtures:
+            r=row();r['op']='spec_import';r['request']={'op':'spec_import','path':r['file_before']['path']}
+            raw=json.dumps(document).encode()
+            for key in ('file_before','file_after'):r[key].update(bytes_hex=raw.hex(),sha256=hashlib.sha256(raw).hexdigest())
+            r['response']['error']['code']='WRONG_TYPE'
+            self.assertEqual(set(derive(r).values()),{'pass'})
+            r['response']['error']['code']='INVALID_PARAMS'
+            self.assertEqual(derive(r)['typed_errors'],'fail')
     def test_mutation_and_engine_errors(self):
         for key,value in [('after',{'fixture':'changed'}),('history_after',8),('global_after',9)]:
             r=row();r[key]=value;self.assertEqual(derive(r)['source_unchanged'],'fail')

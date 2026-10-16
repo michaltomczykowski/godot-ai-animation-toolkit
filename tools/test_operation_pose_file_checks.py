@@ -3,7 +3,7 @@ import hashlib
 import json
 import math
 import unittest
-from operation_pose_file_checks import derive, saved_bones, blend_bones, TEST, verify_event
+from operation_pose_file_checks import canonical_source, derive, saved_bones, blend_bones, TEST, verify_event
 
 def native(kind,values):return dict(type=kind,**dict(zip('xyzw',values)))
 def observation(path,raw):return {'path':path,'exists':True,'bytes_hex':raw.hex(),'sha256':hashlib.sha256(raw).hexdigest()}
@@ -21,9 +21,9 @@ def row(op='pose_save',dry=False):
         request.update(from_pose=endpoint(0,[0,0,0],[1,1,1]),to_pose=endpoint(math.pi/2,[2,4,6],[3,5,7]),factor=.25 if dry else .5)
     r={'op':op,'request':request,'source_path':source,'source_bones':bones,'source_bones_after':copy.deepcopy(bones),'before':{'fixture':'authored'},'after':{'fixture':'authored'},'scene_before':{'all_transforms':'authored'},'scene_after':{'all_transforms':'authored'},'failed_before':False,'history_before':3,'history_after':3,'global_before':4,'global_after':4,'errors_before':0,'errors_after':0,'errors':[]}
     expected=saved_bones(r) if op=='pose_save' else blend_bones(request)
-    doc={'format':'godot-ai-animation-pose','version':1,'source':source if op=='pose_save' else '', 'rest_relative':True,'bones':expected}
+    doc={'format':'godot-ai-animation-pose','version':1,'source':canonical_source(source) if op=='pose_save' else '', 'rest_relative':True,'bones':expected}
     data={'pose':doc,'bone_count':len(expected),'saved_path':path,'undoable':False}
-    if op=='pose_save':data.update(kind='3d',skeleton_path=source)
+    if op=='pose_save':data.update(kind='3d',skeleton_path=canonical_source(source))
     else:data.update(factor=request['factor'],only_in_from=[],only_in_to=[])
     before=b'sentinel';after=json.dumps(doc).encode()
     if dry:request['dry_run']=True;data['dry_run']=True;before=after=b'previous-valid-bytes'
@@ -31,6 +31,15 @@ def row(op='pose_save',dry=False):
     return r
 
 class PoseFileTests(unittest.TestCase):
+    def test_editor_ancestors_are_not_public_pose_source(self):
+        r=row();old=r['source_path'];source='/root/@EditorNode@1/@SubViewport@2/Fixture/RigPoseHistory/Skeleton'
+        r['source_path']=source;r['request']['skeleton_path']=source
+        self.assertEqual(canonical_source(source),'/Fixture/RigPoseHistory/Skeleton')
+        self.assertEqual(set(derive(r).values()),{'pass'})
+        r['response']['data']['pose']['source']=old
+        self.assertEqual(derive(r)['valid_effect'],'fail')
+        for bad in ('Fixture/RigPoseHistory/Skeleton','/root/Fixture/Other/Skeleton','/root/../RigPoseHistory/Skeleton'):
+            with self.assertRaises(ValueError):canonical_source(bad)
     def test_save_and_nontrivial_blend(self):
         for op in ['pose_save','pose_blend']:
             r=row(op);self.assertEqual(set(derive(r).values()),{'pass'})
@@ -63,6 +72,7 @@ class PoseFileTests(unittest.TestCase):
         r=row();r.update(suite='rig_pose_history',test=TEST,mode='pose_file_contract',ordinal=3,assertion_count_before=2)
         event={'driver':'test_rig_pose_history.gd','validator':'rig_pose_file_v1','route':'public_test_run_inner_dispatch','operation':'animation_rig.pose_save','row':r,'test_run_begin_id':'begin'}
         deps=['test_project/tests/test_rig_pose_history.gd','test_project/tests/operation_history_trace.gd','test_project/tests/test_preset_library_history.gd','test_project/tests/test_graph_route_history.gd','addons/godot_ai_animation/handlers/rig.gd','addons/godot_ai_animation/spec/pose_math.gd','addons/godot_ai_animation/spec/spec_json.gd','tools/mcp_presets_audit.py','tools/operation_library_file_checks.py','tools/operation_pose_file_checks.py']
+        deps+=['addons/godot_ai_animation/handlers/animation_tool_base.gd','addons/godot_ai_animation/utils/value_codec.gd']
         context={'dependencies':dict.fromkeys(deps,{})};req={'suite':'rig_pose_history','verbose':True}
         begins=[{'id':'begin','request':req,'execution_ns':1}]
         support=[{'id':'end','public_tool':'test_run','test_run_begin_id':'begin','request':req,'execution_ns':2,'response':{'results':[{'suite':'rig_pose_history','test':TEST,'passed':True,'assertion_count':70}]}}]
