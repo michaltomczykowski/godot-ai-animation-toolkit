@@ -12,6 +12,12 @@ static func emit_edit(row: Dictionary) -> void:
 static func emit_library_file(row: Dictionary) -> void:
 	_emit(row, "animation_library", "test_library_contracts.gd", "library_file_v1")
 
+static func emit_library_read(row: Dictionary) -> void:
+	_emit(row, "animation_library", "test_library_contracts.gd", "library_read_refusal_v1")
+
+static func emit_preset_library(row: Dictionary, family: String) -> void:
+	_emit(row, family, "test_preset_library_history.gd", "preset_library_history_v1")
+
 static func _emit(row: Dictionary, family: String, driver: String, validator: String) -> void:
 	var context_path := OS.get_environment("TOOLKIT_OPERATION_CONTEXT")
 	var trace_dir := OS.get_environment("TOOLKIT_OPERATION_TRACE_DIR")

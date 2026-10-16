@@ -14,6 +14,7 @@ var _logger: Capture.ErrorCapture
 var _files: Array[String] = []
 var _file_evidence_fixture: Node
 var _file_evidence_ordinal := 0
+var _read_evidence := false
 
 func suite_name() -> String: return "library_contracts"
 func suite_setup(ctx: Dictionary) -> void:
@@ -28,9 +29,10 @@ func suite_teardown() -> void:
 	for path in _files: DirAccess.remove_absolute(path)
 func teardown() -> void:
 	_file_evidence_fixture = null
+	_read_evidence = false
 func _call(params: Dictionary) -> Dictionary:
 	var evidence := {}
-	if _file_evidence_fixture != null:
+	if _file_evidence_fixture != null and (not _read_evidence or params.op in ["template_list", "spec_import"]):
 		var history := _undo.get_history_undo_redo(_undo.get_object_history_id(_file_evidence_fixture))
 		var global := _undo.get_history_undo_redo(EditorUndoRedoManager.GLOBAL_HISTORY)
 		_file_evidence_ordinal += 1
@@ -41,6 +43,9 @@ func _call(params: Dictionary) -> Dictionary:
 			"history_before": history.get_version(), "global_before": global.get_version(),
 			"errors_before": _logger.errors.size(), "failed_before": _failed,
 			"assertion_count_before": _assertion_count}
+		if _read_evidence:
+			evidence.test = "test_safe_paths_and_malformed_documents_are_typed"
+			evidence.mode = "malformed_read_refusal"
 	var reply: Dictionary = _dispatcher.call("_dispatch", {"request_id": "library-contracts", "command": "custom_tool:animation_library", "params": params})
 	if not evidence.is_empty():
 		var history := _undo.get_history_undo_redo(_undo.get_object_history_id(_file_evidence_fixture))
@@ -52,7 +57,8 @@ func _call(params: Dictionary) -> Dictionary:
 		evidence.global_after = global.get_version()
 		evidence.errors_after = _logger.errors.size()
 		evidence.errors = _logger.errors.slice(int(evidence.errors_before))
-		HistoryTrace.emit_library_file(evidence)
+		if _read_evidence: HistoryTrace.emit_library_read(evidence)
+		else: HistoryTrace.emit_library_file(evidence)
 	return reply
 
 func _file_observation(path: String) -> Dictionary:
@@ -146,6 +152,9 @@ func test_safe_paths_and_malformed_documents_are_typed() -> void:
 		for dry in [true, false]:
 			_typed_error(_call({"op": "template_save", "name": "unsafe", "forward_op": "bounce", "library_path": path, "dry_run": dry}), "unsafe recipe " + path)
 			_typed_error(_call({"op": "spec_export", "player_path": str(player.get_path()), "animation_name": "unrelated", "path": path, "dry_run": dry}), "unsafe export " + path)
+	_file_evidence_fixture = fixture
+	_file_evidence_ordinal = 0
+	_read_evidence = true
 	var path := DIR + "malformed.json"
 	for doc in ["{bad-json", [], {"format": "other"}, {"format": "godot-ai-animation-library", "version": 99, "templates": {}}, {"templates": []}, {"templates": {"broken": []}}, {"templates": {"broken": {"tool": "animation_presets", "op": "bounce", "params": []}}}, {"templates": {"broken": {"tool": "animation_presets", "op": "missing", "params": {}}}}]:
 		_file(path, doc)
@@ -157,6 +166,8 @@ func test_safe_paths_and_malformed_documents_are_typed() -> void:
 		_file(path, doc)
 		for op in ["spec_import", "spec_apply"]:
 			_typed_error(_call({"op": op, "path": path, "player_path": str(player.get_path())}), "malformed spec " + str(doc))
+	_file_evidence_fixture = null
+	_read_evidence = false
 	for change in [{"interp": 99}, {"update_mode": -1}, {"keys": [{"time": 0, "value": {"kind": "vector2", "x": "bad", "y": 0}}]}]:
 		var doc := _checks._spec()
 		doc.tracks[0].merge(change, true)

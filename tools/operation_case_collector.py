@@ -477,7 +477,11 @@ def collect(context_path, traces, root, preview_report=None):
                       'public_case_ids':proof['public_case_ids'],'dry_case_ids':proof['dry_case_ids'],
                       'failures':proof['failures'],'limits':proof['limits']})
     for event in history_events:
-        if event.get('validator')=='library_file_v1':
+        if event.get('validator')=='preset_library_history_v1':
+            from operation_preset_history_checks import verify_event
+        elif event.get('validator')=='library_read_refusal_v1':
+            from operation_library_read_checks import verify_event
+        elif event.get('validator')=='library_file_v1':
             from operation_library_file_checks import verify_event
         else:
             from operation_history_checks import verify_event
