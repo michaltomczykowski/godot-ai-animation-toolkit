@@ -196,3 +196,71 @@ func test_setup_grounding_conflicts_and_dry_are_atomic() -> void:
 		assert_eq(player.get_animation_list(),names,"duplicate writes no clips")
 		duplicate.free()
 	body.free()
+
+func test_setup_custom_animation_root_and_remote_tree_history_serialization() -> void:
+	var scene := EditorInterface.get_edited_scene_root()
+	var body := (load(FIXTURES[2]) as PackedScene).instantiate()
+	body.name="NestedRootSetup"
+	scene.add_child(body);_assign(body,scene)
+	var player := _find(body,"AnimationPlayer") as AnimationPlayer
+	var rig := _find(body,"Skeleton3D") as Skeleton3D
+	var drivers := Node.new();drivers.name="Drivers";body.add_child(drivers);drivers.owner=scene
+	player.reparent(drivers);player.root_node=NodePath("../..")
+	var hub := Node.new();hub.name="RemoteSetupTree";scene.add_child(hub);hub.owner=scene
+	var tree := AnimationTree.new();tree.name="CustomTree";tree.active=false;hub.add_child(tree);tree.owner=scene
+	var prior_root := tree.root_node
+	var prior_player := tree.anim_player
+	var prior_names := player.get_animation_list()
+	var args := {"op":"character_setup","player_path":Codec.from_node(player,scene),"skeleton_path":Codec.from_node(rig,scene),"tree_path":Codec.from_node(tree,scene)}
+	var dry := args.duplicate(true);dry.dry_run=true
+	assert_true(handler.run(dry,null).has("data"),"remote Tree custom animation root dry preflight")
+	assert_eq(tree.root_node,prior_root,"dry preserves remote root_node")
+	assert_eq(player.get_animation_list(),prior_names,"dry preserves remote clip library")
+	var made := handler.run(args,null)
+	assert_true(made.has("data"),"remote Tree with custom Player root builds: "+str(made))
+	if made.has("data"):
+		var grounder := Codec.resolve_scene_path(str(made.data.grounding_path),scene) as Grounding
+		assert_eq(tree.get_node_or_null(tree.root_node),body,"Tree root_node resolves actual custom animation root")
+		assert_eq(tree.get_node_or_null(tree.anim_player),player,"remote Tree binds nested Player")
+		assert_eq(grounder.validate_configuration(),"","remote helper is usable")
+		var grounder_path := scene.get_path_to(grounder)
+		var wanted_root := tree.root_node
+		assert_true(editor_undo(Context.undo_redo),"remote bundle single Undo")
+		assert_eq(tree.root_node,prior_root,"Undo restores caller Tree root_node")
+		assert_eq(tree.anim_player,prior_player,"Undo restores caller Player binding")
+		assert_eq(player.get_animation_list(),prior_names,"Undo restores original clip set")
+		assert_true(scene.get_node_or_null(grounder_path)==null,"Undo removes remote helper")
+		assert_true(editor_redo(Context.undo_redo),"remote bundle single Redo")
+		assert_eq(tree.root_node,wanted_root,"Redo restores exact remote root_node")
+		grounder=scene.get_node(grounder_path) as Grounding
+		assert_eq(grounder.validate_configuration(),"","Redo restores working helper paths")
+		var packed := PackedScene.new();assert_eq(packed.pack(scene),OK,"pack remote saved bundle")
+		var saved_path := "user://setup_remote_tree_history_"+str(Time.get_ticks_usec())+".tscn"
+		assert_eq(ResourceSaver.save(packed,saved_path),OK,"save remote bundle to unique disposable scene")
+		var saved_scene := ResourceLoader.load(saved_path,"PackedScene",ResourceLoader.CACHE_MODE_IGNORE) as PackedScene
+		var reopened := saved_scene.instantiate()
+		var saved_tree := reopened.get_node(scene.get_path_to(tree)) as AnimationTree
+		var saved_player := reopened.get_node(scene.get_path_to(player)) as AnimationPlayer
+		var saved_grounder := reopened.get_node(grounder_path) as Grounding
+		assert_eq(saved_tree.get_node_or_null(saved_tree.root_node),saved_player.get_node_or_null(saved_player.root_node),"saved/reinstantiated animation roots agree")
+		assert_eq(saved_grounder.get_node_or_null(saved_grounder.tree_path),saved_tree,"saved remote helper Tree path")
+		assert_eq(saved_grounder.get_node_or_null(saved_grounder.player_path),saved_player,"saved nested helper Player path")
+		reopened.free()
+	var second := (load(FIXTURES[2]) as PackedScene).instantiate()
+	second.name="DetachedRemoteSetup";scene.add_child(second);_assign(second,scene)
+	var second_player := _find(second,"AnimationPlayer") as AnimationPlayer
+	var second_rig := _find(second,"Skeleton3D") as Skeleton3D
+	var second_drivers := Node.new();second.add_child(second_drivers);second_drivers.owner=scene
+	second_player.reparent(second_drivers);second_player.root_node=NodePath("../..")
+	var new_args := {"op":"character_setup","player_path":Codec.from_node(second_player,scene),"skeleton_path":Codec.from_node(second_rig,scene),"tree_path":Codec.from_node(hub,scene)+"/FreshTree"}
+	var new_dry := new_args.duplicate(true);new_dry.dry_run=true
+	assert_true(handler.run(new_dry,null).has("data"),"detached remote Tree preflight resolves actual animation root")
+	assert_true(hub.get_node_or_null("FreshTree")==null,"detached dry creates no Tree")
+	var fresh := handler.run(new_args,null)
+	assert_true(fresh.has("data"),"detached remote Tree commit succeeds: "+str(fresh))
+	if fresh.has("data"):
+		var fresh_tree := hub.get_node("FreshTree") as AnimationTree
+		assert_eq(fresh_tree.get_node_or_null(fresh_tree.root_node),second,"new remote Tree has exact custom animation root")
+		var fresh_grounder := Codec.resolve_scene_path(str(fresh.data.grounding_path),scene) as Grounding
+		assert_eq(fresh_grounder.validate_configuration(),"","new remote helper paths usable")
+	hub.free();body.free();second.free()

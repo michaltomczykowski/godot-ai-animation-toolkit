@@ -311,7 +311,12 @@ in the same undo action; `secondary_motion` bakes offline spring bones (hair,
 tails, cloth) into supported clips; `character_setup` goes from a bare rig to a
 playable locomotion set — idle + walk + run (optionally jump/turn), a speed
 blend space, the `AnimationTree` and the root-motion track — in one call and one
-undo. T-pose rigs get their arms lowered automatically.
+undo. Setup also owns a serialized level-plane SkeletonModifier3D that corrects
+post-blend ankle grounding; it refuses foreign active modifier/mixer ownership
+conflicts before writes. Tree and Player resolve the same animation root even
+when placed separately. Returned helper diagnostics and explicit seek/new-take
+reset instructions are documented in [setup-tree-checker.md](docs/setup-tree-checker.md).
+T-pose rigs get their arms lowered automatically.
 
 Individual motion/secondary/sequence writes and dry runs require a stopped or
 paused destination and inactive linked AnimationTrees. An incompatible extraction

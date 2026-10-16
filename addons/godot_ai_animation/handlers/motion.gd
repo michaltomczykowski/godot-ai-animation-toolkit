@@ -733,12 +733,20 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 	var want_active := bool(params.get("active", false))
 	var old_root: AnimationRootNode = tree.tree_root if not created_tree else null
 	var old_anim_player := tree.anim_player
+	var old_tree_animation_root := tree.root_node
 	var old_active := tree.active
 	var old_tree_root_motion := tree.root_motion_track
 	var old_player_root_motion := player.root_motion_track
 	var old_tree_root_motion_local := tree.root_motion_local
 	var old_player_root_motion_local := player.root_motion_local
 	var wanted_player := _tree_anim_player_path(tree, player, tree_parent, created_tree)
+	var wanted_animation_root := tree.get_path_to(player_root) if not created_tree else NodePath("..") if tree_parent == player_root else NodePath("../"+str(tree_parent.get_path_to(player_root)))
+	# Resolve from the existing parent when the new Tree is still detached.
+	var root_probe := tree_parent.get_node_or_null(NodePath(str(wanted_animation_root).trim_prefix("../"))) if created_tree and wanted_animation_root != NodePath("..") else tree_parent if created_tree else tree.get_node_or_null(wanted_animation_root)
+	var player_probe := tree_parent.get_node_or_null(NodePath(str(wanted_player).trim_prefix("../"))) if created_tree else tree.get_node_or_null(wanted_player)
+	if root_probe != player_root or player_probe != player:
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Setup Tree animation root/Player paths cannot resolve before commit")
+
 	if not _dry_run:
 		_create_scene_pinned_action("MCP: Character setup")
 		var undo := ToolContext.undo_redo
@@ -766,6 +774,9 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 			undo.add_do_property(tree, "anim_player", wanted_player)
 			if not created_tree:
 				undo.add_undo_property(tree, "anim_player", old_anim_player)
+		if tree.root_node != wanted_animation_root:
+			undo.add_do_property(tree, "root_node", wanted_animation_root)
+			if not created_tree: undo.add_undo_property(tree, "root_node", old_tree_animation_root)
 		# An explicit in-place setup must clear extraction left by an older graph.
 		undo.add_do_property(player, "root_motion_track", NodePath(root_motion_track))
 		undo.add_undo_property(player, "root_motion_track", old_player_root_motion)

@@ -75,3 +75,11 @@ The older33 synthetic controls above are historical evidence for the earlier che
 Offline orchestration controls: `python tools/test_check_setup_grounding_controls.py` passes5 tests for successful cell accounting, one negative false pass, wrong identity at the same count, engine error rejection, and original scene mutation detection. Existing output directories are refused. This tests orchestration only, not animation or GDScript parsing.
 
 `setup-grounding-source-preservation.json` binds the isolated comparison head and exact tracked fixture/golden blobs. Only the existing motion `run` cleanup and `motion_character_setup` function bodies change; standalone `_prepare_cycle` and all other motion functions are exact against that head. Later root generator repairs are outside this isolated comparison and must be preserved during cherry-pick integration.
+
+
+Post-commit parse checkpoint: all7 edited GDScript scripts passed Godot4.7.2 official `ed1daf0bf` headless check-only at source `bb8ce83`, with engine-banner-only logs retained locally under `private-setup-production-parse-r001`. This did not execute any fixtures or qualify production playback. The following remote-Tree root binding repair and its editor regression are later changes and require their own parse/native evidence.
+
+Setup now explicitly stages the Tree's `root_node` to resolve the Player's actual animation root, even for a custom Player root and a Tree outside its parent. Detached paths are resolved from the future Tree parent before commit. Existing `root_node` is restored by the same Undo transaction; the canonical sibling `..` case remains unchanged. The editor regression covers existing and newly created remote Trees, nested Player roots, dry mutation freedom, single Undo/Redo and save to a unique disposable user scene and CACHE_MODE_IGNORE reopen of the actual relative bindings. Actual editor/public execution remains pending.
+
+
+Remote-root follow-up check-only passed motion, integration test and registry at the initial root-path patch, with banner-only logs in `private-setup-production-parse-r002`. The subsequent disk-reopen assertion and explicit reset state assertions were added after that checkpoint and require their own final parse. No later test source is attributed to an earlier parse.

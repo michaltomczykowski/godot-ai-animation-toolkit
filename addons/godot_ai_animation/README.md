@@ -203,7 +203,7 @@ through `custom_manage(op="list")` and invoke it through `custom_manage` with
 | `turn_cycle` | One-shot in-place pivot turn with anticipation and settle; `angle`, `direction`, `steps`. |
 | `walk_start` / `walk_stop` | Short blends in/out of a gait, sampled at `phase` so they match the cycle frame-for-frame. A rooted stop transfers support and continues forward to neutral. |
 | `cycle` | Generic entry: `preset` = walk / run / idle. |
-| `character_setup` | The whole locomotion set in one undo: idle + walk + run (+ optional jump/turn), the AnimationTree wired, the root-motion track set; returns the speed parameter and a game-side snippet. |
+| `character_setup` | The whole locomotion set in one undo: idle + walk + run (+ optional jump/turn), the AnimationTree/root extraction wired and an owned level-plane SkeletonModifier3D for post-blend ankle grounding. Returns speed/helper paths and a game-side snippet; foreign active modifier/mixer ownership conflicts are typed prewrite refusals. |
 | `secondary_motion` | Bake offline spring bones (hair/tail/cloth) into an existing clip, deterministically. |
 
 Omitted/`default` style resolves to `responsive`; `grounded` is optional.

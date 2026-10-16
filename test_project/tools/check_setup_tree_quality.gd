@@ -280,7 +280,9 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 			if not v.rooted: controller_speed=lerpf(controller_start,controller_end,(float(frame)+0.5)/frames)
 		if spec.has("reset_at_s") and not reset_performed and float(frame)*dt>=float(spec.reset_at_s):
 			tree.active=false
+			var resets_before: int = v.modifier.resets
 			v.modifier.reset_grounding("explicit_seek_or_new_take_test")
+			if v.modifier.resets!=resets_before+1 or not (v.modifier.get("_anchors") as Dictionary).is_empty() or not (v.modifier.get("_phases") as Dictionary).is_empty(): errors.append("Grounding explicit reset did not clear stance/phase state")
 			tree.active=true
 			reset_performed=true
 		var binding_error: String = v.modifier.validate_configuration()
