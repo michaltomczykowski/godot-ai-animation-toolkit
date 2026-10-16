@@ -1,5 +1,35 @@
 # Animation Toolkit repair roadmap
 
+## Controlled setup grounding and audible capture (2026-10-16)
+
+The disposable setup modifier now passes all60 native cases under unchanged
+contact, velocity and endpoint limits. Bypass reproduces the original36 contact
+failures and24 endpoint passes. Original blend timing/root consumption remain;
+phase synchronization alone changed speeds and did not solve nonlinear FK
+penetration. Final300-play binding/order/preservation controls are being reviewed.
+This is prototype evidence; production wiring and fresh public setup generation
+are still required.
+
+Linux rendered preview passes for both released cores in CI38874520068; root
+independently validates decoded pixels, typed refusals, actual public IDs and
+source restoration against actual checkout9d58446828c6112d33d387b7d75acd308efc2749.
+Linux4.2.1 clean install has a separate120s preset-history timeout; phase/result
+diagnostics are integrated without extending or skipping its gate. Other cells
+were still running at this checkpoint. The whole CI run is not approved.
+
+Real audio inspection caught silent r005 output despite green playing flags.
+The saved scene is valid; its isolated comparison SubViewport lacked enabled
+positional listeners. Renderer-only fix and actual PCM checker pass r006's two
+fresh cues with waveform correlations0.99946/0.99983 and no engine errors. Failed
+audio, cropped captures and bad framing remain preserved. See
+docs/saved-audio-output-proof.md. Serial49-case saved-media queue is implemented;
+encoding, full decode and independent continuous review still remain.
+
+FX64/edit72 existing inner history cases now emit raw stages tied to an actual
+public test_run span. Root Godot4.7.2 parsing and focused Python checks pass;
+fresh actual execution is pending. No per-operation history success is invented
+from suite totals. This checkpoint does not close103-operation qualification.
+
 ## Setup playback failure isolated (2026-10-16)
 
 Fresh Responsive setup group:4 public bundles pass dry run/history/save/reopen;

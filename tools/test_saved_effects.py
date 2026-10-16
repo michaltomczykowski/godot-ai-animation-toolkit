@@ -3,6 +3,21 @@ import unittest
 from check_saved_effects import check
 
 class NativeObservations(unittest.TestCase):
+    def test_positional_audio_requires_native_listeners_in_both_takes(self):
+        case, report = self.fixture()
+        case.update(operation='animation_fx.audio_cue', audio_output_required=True)
+        report['operation'] = case['operation']
+        for row in report['samples']:
+            row['states'] = [{'CuePlayer': {'playing': 'false'}},
+                             {'CuePlayer': {'playing': str(row['frame'] % 20 < 5)}}]
+            for pane in row['presentation']:
+                pane.update(audio_listener_2d=True, audio_listener_3d=True)
+        self.assertTrue(check(case, report)['native_observation_pass'])
+        for index in (0, 400):
+            bad = copy.deepcopy(report)
+            bad['samples'][index]['presentation'][1]['audio_listener_2d'] = False
+            self.assertFalse(check(case, bad)['native_observation_pass'])
+
     def fixture(self):
         case = {'operation':'animation_fx.damage_bar','id':'damage:new','scenes':{'undo':{'sha256':'a'},'redo':{'sha256':'b'}},'dependencies':{},'fps':60,'seconds':12,'take_seconds':6}
         samples=[]

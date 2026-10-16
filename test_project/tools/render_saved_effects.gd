@@ -116,6 +116,10 @@ func _start() -> void:
 		viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 		viewport.world_2d = World2D.new()
 		viewport.own_world_3d = true
+		# Isolated SubViewports do not process positional audio by default.
+		# Listen to the saved players; never replace their audio tracks/streams.
+		viewport.audio_listener_enable_2d = _case.audio_output_required
+		viewport.audio_listener_enable_3d = _case.audio_output_required
 		container.add_child(viewport)
 		_viewports.append(viewport)
 		_load_scene(viewport, state)
@@ -204,7 +208,8 @@ func _presentation_states() -> Array:
 		if not fixed_ok and not _runtime_failures.has("Fixed comparison framing changed after camera shutdown"):
 			_runtime_failures.append("Fixed comparison framing changed after camera shutdown")
 		states.append({"canvas_transform": [transform.x.x, transform.x.y, transform.y.x, transform.y.y, transform.origin.x, transform.origin.y],
-			"body_rect": [viewport.get_parent().position.x, BODY_TOP, 700, 610], "fixed_frame_valid": fixed_ok})
+			"body_rect": [viewport.get_parent().position.x, BODY_TOP, 700, 610], "fixed_frame_valid": fixed_ok,
+			"audio_listener_2d": viewport.audio_listener_enable_2d, "audio_listener_3d": viewport.audio_listener_enable_3d})
 	return states
 
 func _play_saved(fixture: Node, state: String) -> void:

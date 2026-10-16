@@ -53,8 +53,9 @@ def validate_capture(case,folder,plan_sha,checker=check):
     native=checker(case,report)
     failures=native['failures']+capture_failures(report,folder,case['fps']*case['seconds'])
     if failures: raise ValueError('native capture failed: '+str(failures[:5]))
-    logs=[p for p in (folder/'capture.log',folder/'errors.log') if p.is_file()]
-    if not logs: raise ValueError('complete capture log is required')
+    primary=folder/'capture.log' if (folder/'capture.log').is_file() else folder/'renderer.log'
+    if not primary.is_file() or not primary.stat().st_size: raise ValueError('complete capture log is required')
+    logs=[primary]+([folder/'errors.log'] if (folder/'errors.log').is_file() else [])
     for path in logs: validate_editor_log(path.read_text(encoding='utf-8',errors='replace'))
     paths=sorted(folder.glob('frame????????.png'))
     expected=[f'frame{i:08d}.png' for i in range(case['fps']*case['seconds'])]

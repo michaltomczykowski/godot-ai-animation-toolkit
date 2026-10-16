@@ -76,6 +76,8 @@ def check(case, report):
             continue
         for index,pane in enumerate(panes):
             actual=pane.get('canvas_transform',[])
+            if case.get('audio_output_required') and (pane.get('audio_listener_2d') is not True or pane.get('audio_listener_3d') is not True):
+                presentation_failures+=1
             if pane.get('body_rect') != [index*700,190,700,610]:
                 presentation_failures+=1
             if case['operation'] not in ('animation_fx.shake','animation_fx.zoom_punch'):

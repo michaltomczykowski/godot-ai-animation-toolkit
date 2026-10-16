@@ -1,5 +1,34 @@
 # Agent notes
 
+## Resume checkpoint: setup prototype and real audio (2026-10-16)
+
+Continue docs/release-completion-plan.md. Motion worker's disposable setup
+grounding prototype passes all60 native cases with original timing and root
+ownership; bypass reproduces24passes/36failures. Final300-play ownership/pose
+controls completed; root review and production integration remain pending.
+No production grounding node is integrated yet. Keep original setup failures.
+
+Both Linux rendered previews now pass on cores4.2.1/4.3.0 in CI38874520068,
+actual merge checkout9d58446828c6112d33d387b7d75acd308efc2749 (branch50e313e).
+Root independently decoded/validated downloaded receipts and source identities.
+That run is not fully green: Linux4.2.1 clean ZIP times out at preset history's
+unchanged120s outer gate.051234b adds durable phase/result/timeout diagnostics;
+fresh CI needed. Never describe the preview success as complete release CI.
+
+FXr005 audio native flags passed but actual WAV was entirely silent. Preserve
+failed audio-check.json. Comparison SubViewport lacked positional listeners;
+renderer-only repair passes new r006720-frame capture and actual two-cue PCM
+matching input above0.999 correlation. See docs/saved-audio-output-proof.md.
+Current immutable effects plan-r006 has49 cases. Serial media queue c2ce2a2
+needs execution and independent review; private output only, one Godot at a time.
+ffprobe9.0.2 downloaded/extracted under E:/.../native-tools; zip SHA256
+60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba.
+
+FX64 and edit72 inner-history trace sources parse on actual Godot4.7.2. Python
+controls pass; actual public execution from this instrumented source is pending.
+Do not infer those per-operation history checks from older suite totals.
+No merge, tag or release. Push validated checkpoints; never push local main.
+
 ## Resume priority: actual setup grounding (2026-10-16 morning)
 
 No Godot process active after editor12380 public quit. Root branchb6ea09f,
