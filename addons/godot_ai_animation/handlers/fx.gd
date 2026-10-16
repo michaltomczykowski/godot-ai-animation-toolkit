@@ -145,7 +145,7 @@ func fx_hit_flash(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
 			"hit_flash targets a CanvasItem (Control/Node2D), got %s" % target.get_class())
 	var base_color: Color = (target as CanvasItem).modulate
-	var flash := _coerce_color(params.get("color", Color(1, 1, 1, 1)))
+	var flash := _coerce_color(params.get("color", FxSpecs.hit_flash_default_color(base_color)))
 	if flash == null:
 		return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "'color' must be a hex string or {r,g,b[,a]} dict")
 	var duration := float(params.get("duration", 0.18))
@@ -156,6 +156,8 @@ func fx_hit_flash(params: Dictionary) -> Dictionary:
 	FxSpecs.assign_paths(built.spec, context.track_path_root, "modulate")
 	return _commit_spec(context, built.spec, "MCP: Hit flash %s" % context.track_path_root, {
 		"color": ValueCodec.serialize(flash),
+		"base_color": ValueCodec.serialize(base_color),
+		"color_mode": "explicit" if params.has("color") else "automatic_contrast",
 		"count": count,
 	})
 

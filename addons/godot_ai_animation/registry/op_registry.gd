@@ -1079,7 +1079,7 @@ static func _fx_schema() -> Dictionary:
 			},
 			"amount": {"type": "number", "description": "zoom_punch: fractional punch (0.08 = +8%)."},
 			"peak_ratio": {"type": "number", "description": "zoom_punch: when the peak happens, 0-1 (default 0.3)."},
-			"color": {"description": "hit_flash: flash color (hex string or {r,g,b[,a]}); transition: overlay color."},
+			"color": {"description": "hit_flash: explicit modulation color (hex string or {r,g,b[,a]}), differing from baseline. Omit for an automatic contrast pulse; a transparent baseline pulses at alpha 1 then restores. Both endpoints transparent are refused. transition: overlay color."},
 			"count": {"type": "integer", "description": "hit_flash: number of flashes (default 1)."},
 			"steps": {
 				"type": "integer",
@@ -1163,7 +1163,7 @@ static func _fx_ops() -> Array:
 			"name": "hit_flash",
 			"summary": "Flash a CanvasItem's modulate and back (damage feedback).",
 			"params": ["player_path", "target_path", "color", "duration", "count", "animation_name", "overwrite"],
-			"example": {"op": "hit_flash", "player_path": "/Main", "target_path": "Player", "color": "#ffffff", "count": 2},
+			"example": {"op": "hit_flash", "player_path": "/Main", "target_path": "Player", "count": 2},
 		},
 		{
 			"name": "damage_bar",

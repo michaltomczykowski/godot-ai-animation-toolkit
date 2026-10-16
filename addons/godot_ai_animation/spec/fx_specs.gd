@@ -119,12 +119,23 @@ static func zoom_punch_spec(base: Variant, amount: float, duration: float, peak_
 
 # --- hit_flash -------------------------------------------------------------
 
+## An omitted color is a contrasting modulation pulse, not white-on-white.
+static func hit_flash_default_color(base: Color) -> Color:
+	var alpha := base.a if base.a > 0.0 else 1.0
+	if maxf(base.r, maxf(base.g, base.b)) < 0.5:
+		return Color(1.0, 1.0, 1.0, alpha)
+	return Color(base.r * 0.25, base.g * 0.25, base.b * 0.25, alpha)
+
 ## Flash `modulate` to `flash` and back `count` times.
 static func hit_flash_spec(base: Color, flash: Color, duration: float, count: int) -> Dictionary:
 	if duration <= 0.0:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'duration' must be > 0")
 	if count < 1:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'count' must be >= 1")
+	if base.is_equal_approx(flash):
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "hit_flash color equals the baseline modulation; choose a contrasting color or omit color for an automatic contrast pulse")
+	if base.a <= 0.0 and flash.a <= 0.0:
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "hit_flash baseline and pulse are both transparent; choose a visible pulse alpha")
 	var step := duration / float(count * 2)
 	var keys: Array = [{"time": 0.0, "value": base, "transition": 1.0}]
 	for index in count:

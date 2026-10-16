@@ -605,3 +605,73 @@ func test_registry_matches_fx_schema() -> void:
 			assert_true(info.schema.properties.has(param), "%s declares param %s" % [descriptor.name, param])
 	assert_true(str(info.description).length() <= OpRegistry.MAX_DESCRIPTION_CHARS,
 		"the fx description fits the custom-tool cap")
+
+func test_hit_flash_default_contrast_native_restore_history_and_persistence() -> void:
+	for index in 4:
+		var rect := ColorRect.new()
+		rect.color = Color(0.3,0.2,0.2,1)
+		rect.modulate = [Color.WHITE,Color(0.1,0.2,0.3,1),Color(1,1,1,0),Color.WHITE][index]
+		var baseline := rect.modulate
+		var intrinsic := rect.color
+		var rig := _rig("Contrast"+str(index),rect)
+		if rig.has("error"):
+			skip(rig.error)
+			return
+		var player := ValueCodec.resolve_scene_path(rig.player_path,EditorInterface.get_edited_scene_root()) as AnimationPlayer
+		var params := {"op":"hit_flash","player_path":rig.player_path,"target_path":rig.target_path,"animation_name":"contrast"}
+		if index==3: params.color="#ff0000"
+		var dry := _handler.run(params.merged({"dry_run":true}),null)
+		assert_has_key(dry,"data")
+		assert_false(player.has_animation("contrast"),"Default contrast dry run writes no clip")
+		assert_eq(rect.modulate,baseline,"Dry run preserves modulation")
+		var result := _handler.run(params,null)
+		assert_has_key(result,"data")
+		if not result.has("data"):
+			_teardown(rig)
+			continue
+		assert_eq(result.data.color_mode,"explicit" if index==3 else "automatic_contrast")
+		var animation := player.get_animation("contrast")
+		var pulse: Color = animation.track_get_key_value(0,1)
+		assert_false(pulse.is_equal_approx(baseline),"Default/explicit pulse actually differs")
+		player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+		player.play("contrast")
+		player.seek(animation.length*0.5,true)
+		assert_true(rect.modulate.is_equal_approx(pulse),"Native AnimationPlayer reaches pulse")
+		player.seek(animation.length,true)
+		assert_true(rect.modulate.is_equal_approx(baseline),"Native AnimationPlayer restores baseline")
+		player.stop()
+		assert_eq(rect.color,intrinsic,"Intrinsic ColorRect color is untouched")
+		var path := "user://hit_flash_contrast_%d.tres" % index
+		assert_eq(ResourceSaver.save(animation,path),OK,"Actual resource saves")
+		var reopened := ResourceLoader.load(path,"Animation",ResourceLoader.CACHE_MODE_IGNORE) as Animation
+		assert_true((reopened.track_get_key_value(0,1) as Color).is_equal_approx(pulse),"Saved/reopened pulse persists")
+		assert_true((reopened.track_get_key_value(0,2) as Color).is_equal_approx(baseline),"Saved/reopened restoration persists")
+		assert_true(editor_undo(_undo_redo),"Actual undo succeeds")
+		assert_false(player.has_animation("contrast"),"Undo removes contrast clip")
+		assert_true(editor_redo(_undo_redo),"Actual redo succeeds")
+		assert_true(player.has_animation("contrast"),"Redo restores contrast clip")
+		_teardown(rig)
+
+func test_hit_flash_explicit_no_change_and_transparent_endpoints_refuse_atomically() -> void:
+	for baseline in [Color.WHITE,Color(0.1,0.2,0.3,0)]:
+		var rect := ColorRect.new()
+		rect.modulate=baseline
+		var rig := _rig("NoChange",rect)
+		if rig.has("error"):
+			skip(rig.error)
+			return
+		var scene := EditorInterface.get_edited_scene_root()
+		var player := ValueCodec.resolve_scene_path(rig.player_path,scene) as AnimationPlayer
+		var history := _undo_redo.get_history_undo_redo(_undo_redo.get_object_history_id(scene))
+		var version := history.get_version()
+		var libraries := player.get_animation_library_list()
+		for pulse in [baseline,Color(1,0,0,0) if baseline.a==0 else baseline]:
+			for dry in [true,false]:
+				var result := _handler.run({"op":"hit_flash","player_path":rig.player_path,"target_path":rig.target_path,
+					"animation_name":"refused","color":pulse,"dry_run":dry},null)
+				assert_is_error(result,ErrorCodes.OPERATION_UNAVAILABLE)
+				assert_eq(history.get_version(),version,"Refusal creates no undo action")
+				assert_eq(player.get_animation_library_list(),libraries,"Refusal creates no library")
+				assert_false(player.has_animation("refused"),"Refusal creates no clip")
+				assert_eq(rect.modulate,baseline,"Refusal preserves target")
+		_teardown(rig)

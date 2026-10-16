@@ -120,6 +120,16 @@ func _check_hit_flash() -> void:
 	_expect_approx(float(built.spec.length), 0.18, "hit_flash length")
 	_expect_error(FxSpecs.hit_flash_spec(base, flash, 0.0, 1), "hit_flash rejects zero duration")
 	_expect_error(FxSpecs.hit_flash_spec(base, flash, 0.2, 0), "hit_flash rejects count 0")
+	_expect_error(FxSpecs.hit_flash_spec(base, base, 0.2, 1), "hit_flash rejects an explicit no-change color")
+	_expect_error(FxSpecs.hit_flash_spec(Color(0,0,0,0), Color(1,1,1,0), 0.2, 1), "hit_flash rejects two transparent endpoints")
+	for baseline in [Color.WHITE, Color(0.1,0.2,0.3,1), Color(1,1,1,0), Color(0,0,0,0)]:
+		var pulse := FxSpecs.hit_flash_default_color(baseline)
+		_expect(not pulse.is_equal_approx(baseline), "default contrast differs from baseline")
+		_expect(pulse.a > 0.0, "default pulse has visible alpha")
+		var contrast := FxSpecs.hit_flash_spec(baseline,pulse,0.18,1)
+		_expect(not contrast.has("error"), "default contrast builds")
+		var contrast_keys := _keys(contrast.spec)
+		_expect((contrast_keys[-1].value as Color).is_equal_approx(baseline), "default contrast restores exact baseline")
 
 
 func _check_typewriter() -> void:
