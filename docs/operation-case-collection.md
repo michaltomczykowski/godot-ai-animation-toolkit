@@ -213,3 +213,36 @@ validators still need their own applicable exact assertions. Actual previews
 supply their narrow file/source/error checks; independent continuous visual
 assessment and audible output remain separate. Existing historical matrices
 remain reusable narratives/raw evidence, not newly fabricated candidate passes.
+
+## FX16 inner-history raw cases
+
+The existing64 FX history cases (16 operations, four modes) now record their
+actual inner dispatcher request/responses, unchanged dry/error snapshots,
+scene/global history versions, generated/Undo/Redo snapshots and both saved
+state reopen snapshots with serialized file hashes. They use the same snapshots
+at the existing assertions, preserving thresholds and avoiding duplicate probes.
+
+The shared public wrapper creates one strict in-flight `test_run` span. Editor
+records carry that exact span ID; the completed actual public response must
+contain the exact passing, non-skipped verbose test. Concurrent requests are
+refused to avoid ambiguous attribution. No span means no history evidence.
+The optional helper never changes assertions or invokes operations itself.
+
+`operation_history_checks.py` independently recomputes only `dry_run`,
+`typed_errors` (actual typed missing-node refusal), `undo_redo` and `save_reopen`.
+Sticky prior assertion failure remains failure. Wrong operation, test, span,
+saved filename, mutated snapshots or aggregate-only suite totals cannot pass.
+The route is `public_test_run_inner_dispatch`, not a separate external public
+invocation; the direct public-operation trace remains necessary for invocation.
+There is no semantic, full-source, visual or audible-output inference.
+
+No new command is needed: the existing opt-in `ci_mcp_route.py --case-output-dir`
+run propagates context to the editor and existing FX history driver. Collection
+includes only rows actually emitted. Six focused pure controls pass; these64
+cases remain pending execution from the instrumented source. No native/editor
+process was run by the worker for this increment; integration must parse the
+two GDScript files and CI must exercise the actual public suite.
+
+Remaining inner-history families, read/file semantics and full applicable
+per-operation source/error/semantic checks are still pending. Preserved earlier
+matrices do not automatically become candidate receipts.

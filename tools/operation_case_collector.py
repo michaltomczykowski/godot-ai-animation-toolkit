@@ -16,12 +16,14 @@ import subprocess
 import sys
 import time
 import uuid
+from contextlib import contextmanager
 from check_release_audit import EXPECTED_OPERATIONS, CORES
 
 _context_cache = None
 _trace_file = None
 _sequence = 0
 _active_scene = ""
+_active_test_run = None
 
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -135,13 +137,41 @@ def _emit(kind, values):
     return event['id']
 
 
+@contextmanager
+def public_test_run_span(name, params):
+    """Bind editor inner cases to one real in-flight public test_run request."""
+    global _active_test_run
+    if name!='test_run' or not os.environ.get('TOOLKIT_OPERATION_CONTEXT'):
+        yield
+        return
+    directory=Path(os.environ['TOOLKIT_OPERATION_TRACE_DIR'])
+    directory.mkdir(parents=True,exist_ok=True)
+    active=directory/'active-public-test-run.json'
+    # Concurrent test requests would make attribution ambiguous. Refuse them.
+    file=active.open('x',encoding='utf-8')
+    try:
+        with file:
+            begin=_emit('public_test_run_begin',{'public_tool':name,'request':params,
+                        'scene':_active_scene,'route':'public_godot_ai'})
+            context_path=Path(os.environ['TOOLKIT_OPERATION_CONTEXT'])
+            context=json.loads(context_path.read_text(encoding='utf-8'))
+            _active_test_run={'begin_id':begin,'request':params,'run_id':context['run_id'],
+                              'context_sha256':sha(context_path)}
+            json.dump(_active_test_run,file)
+        yield
+    finally:
+        _active_test_run=None
+        active.unlink()
+
+
 def record_public_call(name, params, response):
     """Called only AFTER the shared public MCP call completed; no caller mutations."""
     global _active_scene
     if name == 'scene_open' and isinstance(response, dict) and not response.get('error'):
         _active_scene = params.get('path', '')
     if name in {'scene_open','scene_save','node_get_properties','test_run'}:
-        return _emit('public_support_call',{'public_tool':name,'request':params,'response':response,'scene':_active_scene,'route':'public_godot_ai'})
+        extra={'test_run_begin_id':_active_test_run['begin_id']} if name=='test_run' and _active_test_run else {}
+        return _emit('public_support_call',{'public_tool':name,'request':params,'response':response,'scene':_active_scene,'route':'public_godot_ai',**extra})
     key, actual_params = operation_key(name, params)
     if key is not None:
         return _emit('public_operation_call', {'operation':key, 'public_tool':name,
@@ -374,6 +404,7 @@ def collect(context_path, traces, root, preview_report=None):
             raise ValueError('source blob mismatch: '+rel)
     cases, seen, successful = [], set(), set()
     public_events, native_events, support_events, snapshot_events = [], [], [], []
+    test_begins, history_events = [], []
     artifacts = [{'path':context_path.name,'sha256':sha(context_path),'role':'trace_context'}]
     for path in sorted(traces.glob('*.jsonl')):
         portable_path = path.resolve().relative_to(context_path.parent.resolve()).as_posix()
@@ -381,11 +412,18 @@ def collect(context_path, traces, root, preview_report=None):
         previous = 0
         for line in path.read_text(encoding='utf-8').splitlines():
             event = json.loads(line)
-            if event.get('kind') not in {'public_operation_call','native_saved_output','public_support_call','operation_snapshot_assertions'} or event.get('context_sha256') != sha(context_path) or event.get('run_id') != context['run_id']:
+            if event.get('kind') not in {'public_operation_call','native_saved_output','public_support_call','operation_snapshot_assertions','public_test_run_begin','editor_history_assertions'} or event.get('context_sha256') != sha(context_path) or event.get('run_id') != context['run_id']:
                 raise ValueError('foreign or unbound call event')
             if event.get('id') in seen or event.get('sequence') != previous+1:
                 raise ValueError('duplicate/out-of-order call event')
             seen.add(event['id']); previous += 1
+            if event['kind']=='public_test_run_begin':
+                if event.get('public_tool')!='test_run' or event.get('route')!='public_godot_ai':raise ValueError('invalid public test begin')
+                test_begins.append(event)
+                continue
+            if event['kind']=='editor_history_assertions':
+                history_events.append(event)
+                continue
             if event['kind'] == 'public_support_call':
                 if event.get('public_tool') not in {'scene_open','scene_save','node_get_properties','test_run'} or event.get('route')!='public_godot_ai':raise ValueError('invalid public support call')
                 support_events.append(event)
@@ -438,6 +476,14 @@ def collect(context_path, traces, root, preview_report=None):
                       'scope':'candidate','route':'public_godot_ai','raw_event_id':event['id'],
                       'public_case_ids':proof['public_case_ids'],'dry_case_ids':proof['dry_case_ids'],
                       'failures':proof['failures'],'limits':proof['limits']})
+    for event in history_events:
+        from operation_history_checks import verify_event
+        if event.get('operation') not in EXPECTED_OPERATIONS:raise ValueError('invalid inner history operation')
+        proof=verify_event(event,context,test_begins,support_events)
+        cases.append({'id':event['id'],'operation':event['operation'],'checks':proof['checks'],
+                      'scope':'candidate','route':'public_test_run_inner_dispatch',
+                      'raw_event_id':event['id'],'public_test_run_case_id':proof['public_test_run_case_id'],
+                      'mode':event['row']['mode'],'limits':proof['limits']})
     if preview_report is not None:
         from operation_preview_adapter import validate_preview
         preview=validate_preview(preview_report,context_path,context,public_events+support_events)

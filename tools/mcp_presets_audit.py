@@ -11,7 +11,7 @@ import asyncio
 from datetime import datetime, timezone
 import json
 from fixture_copy import copy_scene
-from operation_case_collector import record_public_call
+from operation_case_collector import record_public_call, public_test_run_span
 import sys
 from pathlib import Path
 
@@ -45,11 +45,12 @@ def payload(result: object) -> dict:
 
 
 async def call(client: Client, name: str, params: dict) -> dict:
-    try:
-        result = payload(await client.call_tool(name, params))
-    except ToolError as exc:
-        result = {"error": str(exc)}
-    record_public_call(name, params, result)
+    with public_test_run_span(name, params):
+        try:
+            result = payload(await client.call_tool(name, params))
+        except ToolError as exc:
+            result = {"error": str(exc)}
+        record_public_call(name, params, result)
     return result
 
 
