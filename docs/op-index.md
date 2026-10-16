@@ -116,15 +116,15 @@ Handler: `res://addons/godot_ai_animation/handlers/fx.gd`
 | `axis` | string | shake/wave: axes to move along, any of "x", "y", "z" (default xy for 2D, xyz for 3D). |
 | `amount` | number | zoom_punch: fractional punch (0.08 = +8%). |
 | `peak_ratio` | number | zoom_punch: when the peak happens, 0-1 (default 0.3). |
-| `color` | any | hit_flash: flash color (hex string or {r,g,b[,a]}); transition: overlay color. |
+| `color` | any | hit_flash: explicit modulation color (hex string or {r,g,b[,a]}), differing from baseline. Omit for an automatic contrast pulse; a transparent baseline pulses at alpha 1 then restores. Both endpoints transparent are refused. transition: overlay color. |
 | `count` | integer | hit_flash: number of flashes (default 1). |
 | `steps` | integer | typewriter: discrete characters (0 = smooth). counter: number of increments. |
 | `delay` | number | typewriter/progress_fill/damage_bar: seconds to hold before the motion. |
 | `from_ratio` | number | typewriter: starting visible_ratio (default 0). |
 | `to_ratio` | number | typewriter: ending visible_ratio (default 1). |
-| `from` | number | progress_fill/counter/damage_bar: starting value (default: the property's current value). |
+| `from` | number | progress_fill/damage_bar: starting value defaults to current property; equal from/to are refused. counter: starting value defaults to 0. |
 | `to` | number | progress_fill/counter/damage_bar: ending value. |
-| `format` | string | counter: printf format for the number (default "%d"). |
+| `format` | string | counter: printf format for the number (default "%d"); all sampled formatted outputs must not be identical. |
 | `prefix` | string | counter: text before the number. |
 | `suffix` | string | counter: text after the number. |
 | `method` | string | counter: setter called with the formatted string (default "set_text"). |
@@ -134,7 +134,7 @@ Handler: `res://addons/godot_ai_animation/handlers/fx.gd`
 | `period` | number | wave/pendulum: seconds per cycle (default 1.2 / 1.0). |
 | `phase_step` | number | wave: seconds each following target lags (default 0.12). |
 | `cycles` | integer | wave: loops of the sine in the clip (default 1). |
-| `offset` | any | spring: travel offset as {x,y[,z]} matching the target's position type. |
+| `offset` | any | spring: nonzero travel offset as {x,y[,z]} matching the target's position type; zero offsets are refused. |
 | `damping` | number | spring: 0-1 damping ratio (default 0.35; >= 1 is critically damped). |
 | `samples` | integer | spring/path_follow: key samples (default 30 / 24). |
 | `path_node` | string | path_follow: scene path to the Path2D/Path3D to follow. |
@@ -166,7 +166,7 @@ Required: `op`.
 ```json
 {"duration":0.4,"intensity":10,"op":"shake","player_path":"/Main","seed":7,"target_path":"Camera2D"}
 {"amount":0.12,"op":"zoom_punch","player_path":"/Main","target_path":"Camera2D"}
-{"color":"#ffffff","count":2,"op":"hit_flash","player_path":"/Main","target_path":"Player"}
+{"count":2,"op":"hit_flash","player_path":"/Main","target_path":"Player"}
 {"delay":0.3,"op":"damage_bar","player_path":"/Main/HUD","target_path":"GhostBar","to":40}
 {"duration":1.6,"op":"typewriter","player_path":"/Main/HUD","steps":40,"target_path":"DialogLabel"}
 {"duration":0.6,"op":"progress_fill","player_path":"/Main/HUD","target_path":"HealthBar","to":100}

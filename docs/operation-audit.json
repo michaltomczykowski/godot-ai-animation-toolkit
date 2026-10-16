@@ -2176,7 +2176,6 @@
         }
       },
       "example": {
-        "color": "#ffffff",
         "count": 2,
         "op": "hit_flash",
         "player_path": "/Main",
