@@ -7,6 +7,7 @@ import argparse
 import copy
 import hashlib
 import json
+import math
 from pathlib import Path
 import subprocess
 
@@ -64,8 +65,79 @@ def dynamic_specs(row):
                       reset_at_s=3.0))
     return specs
 
-def identity(runs):
-    return {(row.get("id"), row.get("fps"), json.dumps(row.get("spec"), sort_keys=True)) for row in runs}
+def same_serialized_value(expected, actual):
+    """Exact JSON structure/types, except finite int/float serialization noise.
+
+    Godot prints float Variants with 15 significant digits. This tolerance is
+    ONLY for echoed request identity, never any physical acceptance metric.
+    Zero and int/int values remain exact; bool is never a number here.
+    """
+    if isinstance(expected, bool) or isinstance(actual, bool):
+        return type(expected) is type(actual) and expected == actual
+    if isinstance(expected, (int, float)) and isinstance(actual, (int, float)):
+        try:
+            left, right = float(expected), float(actual)
+        except (ValueError, OverflowError):
+            return False
+        if not math.isfinite(left) or not math.isfinite(right):
+            return False
+        if type(expected) is int and type(actual) is int:
+            return expected == actual
+        if left == 0.0 or right == 0.0:
+            return left == right
+        tolerance = max(8 * max(math.ulp(left), math.ulp(right)),
+                        max(abs(left), abs(right)) * 1e-14)
+        return abs(left-right) <= tolerance
+    if type(expected) is not type(actual):
+        return False
+    if isinstance(expected, dict):
+        return expected.keys() == actual.keys() and all(
+            same_serialized_value(value, actual[key]) for key, value in expected.items())
+    if isinstance(expected, list):
+        return len(expected) == len(actual) and all(
+            same_serialized_value(left, right) for left, right in zip(expected, actual))
+    return expected == actual
+
+
+def identities_match(manifest, runs):
+    expected = [(row["id"], fps, spec) for row in manifest["cases"]
+                for spec in row["quality_specs"] for fps in FPS]
+    if not expected or len(runs) != len(expected):
+        return False
+    unmatched = set(range(len(expected)))
+    for row in runs:
+        # IDs and FPS are exact, including type. Do not let True alias FPS1,
+        # or floats/strings silently alias the declared integer frame rate.
+        if type(row.get("id")) is not str or type(row.get("fps")) is not int:
+            return False
+        matches = [index for index in unmatched if
+                   row["id"] == expected[index][0] and row["fps"] == expected[index][1]
+                   and same_serialized_value(expected[index][2], row.get("spec"))]
+        if len(matches) != 1:  # Reject missing, duplicate and ambiguous cells.
+            return False
+        unmatched.remove(matches[0])
+    return not unmatched
+
+
+def qualifies_report(manifest, report, exit_code, control):
+    """Also usable to reanalyze immutable completed reports without Godot."""
+    runs = report.get("runs", [])
+    complete = identities_match(manifest, runs) and not report.get("engine_errors")
+    if control in NEGATIVE:
+        valid = complete and exit_code == 1 and report.get("passed") is False and all(
+            row.get("passed") is False and any(
+                "ground" in str(error).lower() or "modification_processed" in str(error)
+                or "Saved competing mixer" in str(error) or "Foreign active modifier" in str(error)
+                for error in row.get("failures", [])) for row in runs)
+    else:
+        valid = complete and exit_code == 0 and report.get("passed") is True and all(
+            row.get("passed") is True for row in runs)
+    if control == "recover_residual":
+        valid = valid and all(float(row.get("grounding", {}).get("max_residual_m", 0)) >= 1.0
+            and float(row.get("grounding", {}).get("evaluation_residual_m", 1))
+            <= float(row.get("grounding", {}).get("target_tolerance_m", 0)) for row in runs)
+    return valid
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -83,7 +155,7 @@ def main():
     args.output.mkdir(parents=True)
     root = Path(__file__).resolve().parents[1]
     checker = root / "test_project/tools/check_setup_grounding_controls.gd"
-    summary = dict(passed=False, route_sha256=digest(args.route),
+    summary = dict(passed=False, route_sha256=digest(args.route), wrapper_sha256=digest(Path(__file__).resolve()),
                    checker_sha256=digest(checker), runtime_sha256=digest(root / "addons/godot_ai_animation/runtime/setup_grounding.gd"), rows=[])
     for control in ("positive", "dynamic", "recover_residual", "saved_unrelated_rig_tree", *NEGATIVE):
         manifest = copy.deepcopy(route)
@@ -98,15 +170,7 @@ def main():
             result = subprocess.run(command, stdout=stream, stderr=subprocess.STDOUT, timeout=300)
         report = json.loads(output.read_text(encoding="utf-8-sig")) if output.exists() else {}
         runs = report.get("runs", [])
-        expected = {(row["id"], fps, json.dumps(spec, sort_keys=True))
-                    for row in manifest["cases"] for spec in row["quality_specs"] for fps in FPS}
-        complete = len(runs)==len(expected) and identity(runs)==expected and not report.get("engine_errors")
-        if control in NEGATIVE:
-            valid = complete and result.returncode==1 and report.get("passed") is False and all(not row.get("passed") and any("ground" in str(error).lower() or "modification_processed" in str(error) or "Saved competing mixer" in str(error) or "Foreign active modifier" in str(error) for error in row.get("failures", [])) for row in runs)
-        else:
-            valid = complete and result.returncode==0 and report.get("passed") is True and all(row.get("passed") for row in runs)
-        if control == "recover_residual":
-            valid = valid and all(float(row.get("grounding", {}).get("max_residual_m", 0))>=1.0 and float(row.get("grounding", {}).get("evaluation_residual_m", 1))<=float(row.get("grounding", {}).get("target_tolerance_m", 0)) for row in runs)
+        valid = qualifies_report(manifest, report, result.returncode, control)
         summary["rows"].append(dict(control=control, passed=valid, runs=len(runs), exit_code=result.returncode,
                                     manifest_sha256=digest(manifest_path), report_sha256=digest(output) if output.exists() else None))
         (args.output / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
