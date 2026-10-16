@@ -41,8 +41,8 @@ class Controls(unittest.TestCase):
             result=json.loads((output/"summary.json").read_text(encoding="utf-8"))
             self.assertEqual(status,0 if fault is None else 1)
             self.assertEqual(result["passed"],fault is None)
-            self.assertEqual(len(result["rows"]),8)
-            self.assertEqual(len(list(output.glob("*-manifest.json"))),8)
+            self.assertEqual(len(result["rows"]),12)
+            self.assertEqual(len(list(output.glob("*-manifest.json"))),12)
             if fault is None:
                 self.assertEqual(result["rows"][0]["runs"],15)
                 self.assertEqual(result["rows"][1]["runs"],27)

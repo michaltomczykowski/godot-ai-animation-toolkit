@@ -11,7 +11,7 @@ from pathlib import Path
 import subprocess
 
 FPS = (30, 60, 120)
-NEGATIVE = ("disabled", "missing", "wrong_path", "wrong_order", "partial_influence")
+NEGATIVE = ("disabled", "missing", "wrong_path", "wrong_order", "partial_influence", "saved_same_rig_tree", "saved_same_rig_autoplay", "internal_nonempty_simulator")
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -85,7 +85,7 @@ def main():
     checker = root / "test_project/tools/check_setup_grounding_controls.gd"
     summary = dict(passed=False, route_sha256=digest(args.route),
                    checker_sha256=digest(checker), runtime_sha256=digest(root / "addons/godot_ai_animation/runtime/setup_grounding.gd"), rows=[])
-    for control in ("positive", "dynamic", "recover_residual", *NEGATIVE):
+    for control in ("positive", "dynamic", "recover_residual", "saved_unrelated_rig_tree", *NEGATIVE):
         manifest = copy.deepcopy(route)
         for row in manifest["cases"]:
             row["grounding_control"] = "positive" if control == "dynamic" else control
@@ -102,7 +102,7 @@ def main():
                     for row in manifest["cases"] for spec in row["quality_specs"] for fps in FPS}
         complete = len(runs)==len(expected) and identity(runs)==expected and not report.get("engine_errors")
         if control in NEGATIVE:
-            valid = complete and result.returncode==1 and report.get("passed") is False and all(not row.get("passed") and any("ground" in str(error).lower() or "modification_processed" in str(error) for error in row.get("failures", [])) for row in runs)
+            valid = complete and result.returncode==1 and report.get("passed") is False and all(not row.get("passed") and any("ground" in str(error).lower() or "modification_processed" in str(error) or "Saved competing mixer" in str(error) or "Foreign active modifier" in str(error) for error in row.get("failures", [])) for row in runs)
         else:
             valid = complete and result.returncode==0 and report.get("passed") is True and all(row.get("passed") for row in runs)
         if control == "recover_residual":

@@ -36,6 +36,32 @@ func _properties(tree: AnimationTree) -> Dictionary:
 	var found := {}
 	for property in tree.get_property_list(): found[str(property.name)]=true
 	return found
+func _prepare_admission_control(_scene: Node, _row: Dictionary, _rig: Skeleton3D, _tree: AnimationTree, _player: AnimationPlayer) -> void:
+	pass # Overridden only by the disposable corruption harness.
+func _inert_internal_simulator(candidate: Node) -> bool:
+	# Godot inserts this empty compatibility node internally on scene entry.
+	# A user-owned/child-bearing/simulating/scripted modifier is not exempt.
+	var simulator := candidate as PhysicalBoneSimulator3D
+	return simulator!=null and simulator.get_script()==null and simulator.get_parent()!=null and not simulator.get_parent().get_children().has(simulator) and simulator.get_child_count(true)==0 and not simulator.is_simulating_physics()
+func _saved_writer_conflicts(scene: Node, rig: Skeleton3D, tree: AnimationTree) -> Array[String]:
+	var problems: Array[String] = []
+	var mixers := scene.find_children("*","AnimationMixer",true,false)
+	if scene is AnimationMixer: mixers.append(scene)
+	for mixer: AnimationMixer in mixers:
+		if mixer==tree or not mixer.active: continue
+		# Autoplay starts on _ready, after this off-tree admission inspection.
+		# It must not be hidden by disabling the Player before adding the scene.
+		if mixer is AnimationPlayer and not mixer.is_playing() and str(mixer.autoplay).is_empty(): continue
+		var target: Node = null
+		if not mixer.root_node.is_absolute(): target=mixer.get_node_or_null(mixer.root_node)
+		else:
+			var absolute := str(mixer.root_node).trim_prefix("/root")
+			var prefix := "/"+str(scene.name)
+			if absolute.is_empty() or absolute==prefix: target=scene
+			elif absolute.begins_with(prefix+"/"): target=scene.get_node_or_null(NodePath(absolute.trim_prefix(prefix+"/")))
+		if target!=null and (target==rig or target.is_ancestor_of(rig)):
+			problems.append("Saved competing mixer can write the setup skeleton: "+str(scene.get_path_to(mixer)))
+	return problems
 func _load(row: Dictionary) -> Dictionary:
 	var path := str(row.get("scene",""))
 	if path.is_empty() or not ResourceLoader.exists(path): return {"error":"Saved scene missing"}
@@ -44,10 +70,6 @@ func _load(row: Dictionary) -> Dictionary:
 	if packed==null: return {"error":"Saved scene cannot be loaded"}
 	var scene := packed.instantiate()
 	scene.set_meta("setup_checker_saved_root",str(scene.name))
-	for mixer in scene.find_children("*","AnimationMixer",true,false):
-		mixer.active=false
-		mixer.callback_mode_process=AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
-	root.add_child(scene)
 	var meta := _data(row.get("write",{}))
 	if not meta.has("clips"): meta=_data(row.get("setup_response",{}))
 	var player := _node(scene,str(row.get("player",meta.get("player_path","")))) as AnimationPlayer
@@ -59,6 +81,17 @@ func _load(row: Dictionary) -> Dictionary:
 	if not issues.is_empty():
 		scene.free()
 		return {"error":str(issues)}
+	_prepare_admission_control(scene,row,rig,tree,player)
+	issues.append_array(_saved_writer_conflicts(scene,rig,tree))
+	if not issues.is_empty():
+		scene.free()
+		return {"error":str(issues)}
+	# Ownership was checked against original saved flags/autoplay first. Only
+	# now normalize callbacks/mixers for isolated fixed-clock graph measurement.
+	for mixer in scene.find_children("*","AnimationMixer",true,false):
+		mixer.active=false
+		mixer.callback_mode_process=AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	root.add_child(scene)
 	var modifier := _node(scene,str(meta.get("grounding_path",""))) as Grounding
 	if modifier==null or modifier.get_script()!=Grounding or modifier.get_parent()!=rig:
 		issues.append("Saved setup-owned grounder is missing or has wrong script/parent")
@@ -69,7 +102,7 @@ func _load(row: Dictionary) -> Dictionary:
 		var problem: String = modifier.validate_configuration()
 		if not problem.is_empty(): issues.append("Saved grounding configuration: "+problem)
 	for candidate in scene.find_children("*","SkeletonModifier3D",true,false):
-		if candidate!=modifier and candidate.active: issues.append("Foreign active modifier prevents final grounded ownership witness")
+		if candidate!=modifier and candidate.active and not _inert_internal_simulator(candidate): issues.append("Foreign active modifier prevents final grounded ownership witness: "+str(scene.get_path_to(candidate)))
 	if tree.get_node_or_null(tree.anim_player)!=player: issues.append("Saved tree does not bind the requested player")
 	var animation_root := player.get_node_or_null(player.root_node)
 	if tree.get_node_or_null(tree.root_node)!=animation_root: issues.append("Saved tree and player root_node differ")
