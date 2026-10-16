@@ -1,5 +1,27 @@
 # Animation Toolkit repair roadmap
 
+## First serialized production setup group passes (2026-10-16 late)
+
+Four real public setup bundles pass dry run, exact pose/binding preservation,
+50external Undo/Redo assertions each, save and forced reopen. All60 saved
+Player-owned Tree plays pass at30/60/120FPS on dummy/XBot/short/Z-up tall rigs,
+with zero engine errors, unreachable targets or knee flips. All60 baseline
+identities match: old24pass/36fail becomes60pass, with actual root distances
+exactly unchanged. Maximum penetration1.61micrometres/slide0.98micrometres.
+Scope and receipts: docs/setup-production-first-group.md; visuals still pending.
+
+The remote-root saved fixture error is repaired and passes28actual assertions
+with a clean fresh-editor log.768dynamic/ownership controls are preserved;
+machine JSON-echo identity handling now matchesall768 and11groups qualify.
+Twelve explicit reset cells still fail; their new-take semantics are being
+diagnosed without changing physical gates. No whole-matrix approval is claimed.
+
+The remaining12-case media queue is active, including corrected full-transition
+framing and the exact nearest-held-output contract. Both first cases pass native
+capture and complete video decode. Bounded file/read/preset history evidence work
+continues under docs/qualification-gap-analysis-20261016.md, whose103-row old-CI
+coverage is not current qualification. No merge/tag/release yet.
+
 ## Grounded bake integration exercised through Godot AI (2026-10-16, late)
 
 All18 headless suites and11 edited-script parses pass. New setup-grounder bake

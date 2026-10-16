@@ -1,5 +1,35 @@
 # Agent notes
 
+## Current resume: production setup60pass, media queue active (2026-10-16 late)
+
+Read docs/setup-production-first-group.md. Actualsourcec19a25e freshpublic
+four-rig Responsive extracted-stationary/no-turn group passesdry/pose/binding/
+external50assertionsUndoRedo each/save/forcedreopen. Editor5232 publiclyquit;
+completeeditorlogengineerrors0. Saved60Treeplays30/60/120pass, noengineerrors,
+unreachable/kneeflips0, finalsignals exact. NativeSHA03f19430326703b57c3ee1c64b7b9c1231576121395461cc1d9d48c85e123798.
+All60identitiesmatchold24pass36fail; actualrootdistancesEXACTunchanged.
+Raw E:/.../setup/production-r003. Remote-root fixturefix actual28assertions/0errors.
+
+Original768controlruncomplete, scenesunchanged. Wrapper JSONfloat-echo identity
+false failures fixed3da/e31;13offlinecontrols pass. Immutable reanalysisr002
+matchesall768/approves11groups; dynamic96/108pass but12resetcasesstillfail.
+Motionworker diagnoses explicitNEWTAKE contract (reactivationresetsphase and
+losesfirstrootdelta). No runtime/threshold edits authorized fromthatfailureyet.
+Keepoldsummary/nativeJSONs untouched; no blanketcontrols/visualqualification.
+
+ROOT GODOT SLOT HELD: exec35246 serial12-case GPU/encode/decode queue
+effects/media-r009-completion from immutableplan-r009-completion.json.
+Readqueue.json; firsttransition+nearesthold pass720native/PNG/fullMP4decode.
+Remaining10finishing49uniqueoperationscenes; transitionreplacescroppedview.
+No other native/editor whilequeue. ThereisNOeditor now. Allprivate media stayslocal.
+
+Operationworker ownsbounded LIB_READ/POSE_FILE exactevidence; Releaseworker
+ownsbounded preset/libraryapply history hooks; Motion ownsresetproposal and
+continuoussetuprecordingplan. Their sourceworkisolated/no nativepermission.
+103-operation gap analysis9e1e735 is historicalnotqualification. Nextcloseactual
+resetgap/capturequeue, setupvideos/broadermatrix, evidencefamilies andfinalCI.
+Continue docs/release-completion-plan.md; no merge/tag/release yet.
+
 ## Latest checkpoint: actual integration exercised (2026-10-16, late)
 
 Read docs/setup-grounding-integration-validation.md. Source66c3ede passes11
