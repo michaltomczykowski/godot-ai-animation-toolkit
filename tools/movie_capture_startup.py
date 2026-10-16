@@ -7,6 +7,7 @@ replaced. The owned override is removed in finally only if its bytes still match
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 
@@ -39,6 +40,10 @@ def run_capture(project,width,height,receipt,command,runner=subprocess.run):
         try:
             with override.open('xb') as stream: stream.write(data)
             report['override_owned']=True
+            report['state']='owned_override_ready_before_launch'
+            json.dump(report,receipt_stream,indent=2)
+            receipt_stream.flush()
+            os.fsync(receipt_stream.fileno())
             completed=runner(command,check=False)
             report['returncode']=completed.returncode
         except Exception as exc:
@@ -54,7 +59,12 @@ def run_capture(project,width,height,receipt,command,runner=subprocess.run):
             report['project_sha256_after']=sha(project_file.read_bytes())
             if report['project_sha256_after']!=before: report['error']='project.godot changed during capture'
             report['passed']=report['returncode']==0 and not report.get('error') and report['cleanup']=='owned_override_removed'
+            report['state']='finished'
+            receipt_stream.seek(0)
+            receipt_stream.truncate()
             json.dump(report,receipt_stream,indent=2)
+            receipt_stream.flush()
+            os.fsync(receipt_stream.fileno())
     return report
 
 
