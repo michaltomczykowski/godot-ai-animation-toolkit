@@ -608,12 +608,15 @@ def rig_bake_restoration_gate(args: argparse.Namespace) -> bool:
 
 
 def rig_clip_history_gate(args: argparse.Namespace) -> bool:
-    check = subprocess.run([
+    from gate_diagnostics import bounded_run
+    record = Path(args.log).resolve().with_name(Path(args.log).stem + '-rig-clip-history.json')
+    check = bounded_run([
         sys.executable, str(Path(__file__).with_name("mcp_rig_clip_history.py")),
         "--core-root", str(args.core_root), "--project-root", str(args.project),
         "--session-hint", args.project.name, "--port", str(args.port),
         "--ws-port", str(args.ws_port), "--godot", godot_executable(args.godot),
-    ], capture_output=True, text=True, timeout=120, check=False)
+        "--record", str(record),
+    ], 120, record, 'rig_clip_history')
     marker = "MCP_RIG_CLIP_HISTORY="
     payload = next((line[len(marker):] for line in check.stdout.splitlines() if line.startswith(marker)), "")
     report = json.loads(payload) if payload else {}

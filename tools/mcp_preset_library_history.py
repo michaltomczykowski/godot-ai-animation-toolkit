@@ -33,7 +33,7 @@ def progress(args, stage, **values):
     args._progress.update(values)
     args._progress['stage']=stage
     args._progress['events'].append(event)
-    print('PRESET_LIBRARY_PROGRESS='+json.dumps(event,sort_keys=True),flush=True)
+    print(getattr(args,'progress_marker','PRESET_LIBRARY_PROGRESS')+'='+json.dumps(event,sort_keys=True),flush=True)
     if args.record:
         target=args.record.with_suffix('.progress.json')
         pending=args.record.with_suffix('.progress.pending')
