@@ -16205,7 +16205,7 @@
           "status": "pending"
         }
       },
-      "claimed_effect": "One call, one undo: build idle + walk + run (optionally jump/turn), wire the locomotion AnimationTree and set the root-motion track; returns the speed parameter and a game-side snippet.",
+      "claimed_effect": "One undo builds idle/walk/run (+jump/turn), Tree/root extraction and an owned level-plane grounding modifier. Refuses foreign active modifier/mixer conflicts; returns speed, helper path and controller snippet.",
       "effect_kind": "scene_write",
       "evidence": [
         "2026-09-30: live Godot AI MCP mcp_motion_setup_secondary_fixed.log run 20260930_171447 built five clips and a saved AnimationTree with root-motion path. Dry run left no clip. Headless Godot 4.7.2 enabled the saved tree, observed 0.417 rad thigh change and 0.28 m extracted root translation in five 0.1 s advances. Contact, visual, undo and Linux pending.",
