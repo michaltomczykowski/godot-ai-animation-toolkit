@@ -44,3 +44,13 @@ The bounded header occupies y8–178; both body panes occupy y190–800, so capt
 cannot cover effects. These are presentation transforms only; animated target
 keys, poses and local transforms are not rewritten. Fresh pixel inspection and
 continuous review remain required even when these placement checks pass.
+
+Saved history fixtures may persist AnimationPlayers with a manual callback mode.
+The renderer disables clone mixers before adding them to the tree, then enables
+only the selected owned players and selects the idle callback before `play()`.
+Both fresh takes use this automatic engine clock; no `seek`, `advance`, key or
+pose writes drive presentation. Per-player samples record actual active flag,
+callback mode, assigned animation and native position. The checker requires
+every selected redo player to be active, idle and progressing on both takes.
+`is_playing` alone is insufficient: manual players can report playing at a frozen
+position. SpriteFrames uses its separate native sprite clock contract.

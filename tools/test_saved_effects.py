@@ -23,7 +23,7 @@ class NativeObservations(unittest.TestCase):
         samples=[]
         for i in range(720):
             t=i%360
-            samples.append({'presentation':[{'canvas_transform':[1,0,0,1,250,260],'body_rect':[0,190,700,610]},{'canvas_transform':[1,0,0,1,250,260],'body_rect':[700,190,700,610]}],'frame':i+1,'time':(i+1)/60,'take':1 if i<360 else 2,'states':[{'DamageBar':{'value':'80'}},{'DamageBar':{'value':str(80-50*min(t/60,1))}}]})
+            samples.append({'presentation':[{'canvas_transform':[1,0,0,1,250,260],'body_rect':[0,190,700,610]},{'canvas_transform':[1,0,0,1,250,260],'body_rect':[700,190,700,610]}],'frame':i+1,'time':(i+1)/60,'take':1 if i<360 else 2,'players':[{}, {'AnimationPlayer':{'active':True,'callback_mode_process':1,'assigned_animation':'generated','position':min((t+1)/60,1)}}],'states':[{'DamageBar':{'value':'80'}},{'DamageBar':{'value':str(80-50*min(t/60,1))}}]})
         return case, {'operation':case['operation'],'case_id':case['id'],'scenes':case['scenes'],'dependencies_verified':{},'frames':720,'max_delta_error':0,'engine_errors':[],'header_rect':[12,8,1376,170],'startup_capture':{'viewport_width':1400,'viewport_height':800,'stretch_mode':'viewport','stretch_aspect':'keep'},'capture_geometry':{'logical_size':[1400,800],'render_size':[1400,800],'window_size':[1152,648],'content_scale_mode':2,'content_scale_aspect':1},'samples':samples}
     def test_camera_reset_identity_framing_is_rejected_on_either_take(self):
         for index in [0,400]:
@@ -69,7 +69,7 @@ class NativeObservations(unittest.TestCase):
             self.assertFalse(check(case,bad)['native_observation_pass'],mutation)
 class RemainingObservations(unittest.TestCase):
     def fixture(self, op='offset'):
-        case={'operation':'animation_edit.'+op,'variant':op,'id':op+':local',
+        case={'operation':'animation_edit.'+op,'variant':op,'id':op+':local','clip':'idle' if op=='cleanup' else 'walk',
               'scenes':{'undo':{'sha256':'a'},'redo':{'sha256':'b'}},'dependencies':{},
               'fps':60,'seconds':12,'take_seconds':6,
               'require_progression':op!='cleanup','require_visible_difference':op!='cleanup'}
@@ -79,7 +79,7 @@ class RemainingObservations(unittest.TestCase):
             redo=0 if op=='cleanup' else max(0,min(100*(t-.2),100))
             samples.append({'presentation':[{'canvas_transform':[1,0,0,1,250,260],'body_rect':[0,190,700,610]},{'canvas_transform':[1,0,0,1,250,260],'body_rect':[700,190,700,610]}],'frame':i+1,'time':(i+1)/60,'take':1 if i<360 else 2,
                 'states':[{'Character':{'position':'(0, 0)'}}, {'Character':{'position':f'({redo}, 0)'}}],
-                'players':[{}, {'AnimationPlayer':{'position':min(t,1)}}]})
+                'players':[{}, {'AnimationPlayer':{'active':True,'callback_mode_process':1,'assigned_animation':case['clip'],'position':min(t,1)}}]})
         return case, {'operation':case['operation'],'case_id':case['id'],'scenes':case['scenes'],
                       'dependencies_verified':{},'frames':720,'max_delta_error':0,'engine_errors':[],'header_rect':[12,8,1376,170],'startup_capture':{'viewport_width':1400,'viewport_height':800,'stretch_mode':'viewport','stretch_aspect':'keep'},'capture_geometry':{'logical_size':[1400,800],'render_size':[1400,800],'window_size':[1152,648],'content_scale_mode':2,'content_scale_aspect':1},'samples':samples}
     def test_native_position_bound_sample_rejects_plausible_wrong_effect(self):

@@ -138,6 +138,11 @@ func _load_scene(viewport: SubViewport, state: String) -> void:
 		quit(1)
 		return
 	var scene := packed.instantiate()
+	# Saved history fixtures intentionally use MANUAL mixers. Disable every
+	# clone mixer before it enters the tree; only selected players below own
+	# this presentation's automatic native clock.
+	for mixer in scene.find_children("*", "AnimationMixer", true, false):
+		mixer.active = false
 	viewport.add_child(scene)
 	var fixture := scene.get_node(NodePath(_case.fixture))
 	_fixtures.append(fixture)
@@ -222,7 +227,10 @@ func _play_saved(fixture: Node, state: String) -> void:
 			if state == "redo": _runtime_failures.append("Missing required saved player: " + str(playback.player))
 			continue
 		player.stop()
-		if player.has_animation(clip): player.play(clip)
+		if player.has_animation(clip):
+			player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_IDLE
+			player.active = true
+			player.play(clip)
 		elif state == "redo": _runtime_failures.append("Missing required saved clip: " + clip)
 
 func _player_times(fixture: Node, state: String) -> Dictionary:
@@ -232,6 +240,8 @@ func _player_times(fixture: Node, state: String) -> Dictionary:
 		var player := fixture.get_node_or_null(NodePath(playback.player)) as AnimationPlayer
 		if player != null:
 			result[str(playback.player)] = {"clip": playback[state + "_clip"],
+				"assigned_animation": player.assigned_animation,
+				"active": player.active, "callback_mode_process": player.callback_mode_process,
 				"position": player.current_animation_position if not player.current_animation.is_empty() else 0.0,
 				"playing": player.is_playing()}
 	return result

@@ -45,6 +45,21 @@ TARGETS = {'shake':'Camera2D','zoom_punch':'Camera2D','hit_flash':'Flash',
            'path_follow':'Drone','flipbook':'Sprite2D','sprite_frames':'SheetSprite',
            'audio_cue':'CuePlayer'}
 
+def player_clock_failures(case, samples):
+    if case['operation']=='animation_fx.sprite_frames': return []
+    selected=case.get('playbacks',[{'player':case.get('player','AnimationPlayer'),'redo_clip':case.get('clip','generated')}])
+    failures=[]
+    for take in (1,2):
+        rows=[row for row in samples if row.get('take')==take]
+        for playback in selected:
+            path=playback['player']
+            clocks=[row.get('players',[{},{}])[1].get(path,{}) for row in rows if len(row.get('players',[]))==2]
+            valid=(bool(rows) and len(clocks)==len(rows) and all(clock.get('active') is True
+                and clock.get('callback_mode_process')==1 and clock.get('assigned_animation')==playback['redo_clip']
+                for clock in clocks) and max((clock.get('position',0) for clock in clocks),default=0)>0)
+            if not valid: failures.append(f'take {take}: selected redo player {path} lacks active idle native clock/progression')
+    return failures
+
 def check(case, report):
     failures = capture_failures(report)
     if report.get('operation') != case['operation'] or report.get('case_id') != case['id']:
@@ -65,6 +80,7 @@ def check(case, report):
             failures.append('both independent native cameras must be enabled and current')
 
     samples = report.get('samples', [])
+    failures.extend(player_clock_failures(case,samples))
     if report.get('header_rect') != [12,8,1376,170]:
         failures.append('fixed header/body separation missing')
     expected_transform=[.55,0,0,.55,0,100] if case.get('display_mode')=='showcase' else [1,0,0,1,250,260]
