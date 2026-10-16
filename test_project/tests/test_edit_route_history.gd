@@ -8,6 +8,7 @@ const Ops := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
 const Context := preload("res://addons/godot_ai_animation/utils/tool_context.gd")
 const Checks := preload("res://tests/test_fx_route_history.gd")
 const Capture := preload("res://tests/test_graph_route_history.gd")
+const HistoryTrace := preload("res://tests/operation_history_trace.gd")
 const FIXTURE := preload("res://repair_edit_fixture.tscn")
 const CASES := {
 	"retime": {"factor": 0.5}, "reverse": {}, "mirror": {"axis": "x"},
@@ -72,17 +73,23 @@ func _own(node: Node, owner_node: Node) -> void:
 	if node != owner_node: node.owner = owner_node
 	for child in node.get_children(): _own(child, owner_node)
 
-func _persist(edited_root: Node, expected: Dictionary, label: String) -> void:
+func _persist(edited_root: Node, expected: Dictionary, label: String) -> Dictionary:
 	var packed := PackedScene.new()
-	assert_eq(packed.pack(edited_root), OK, label + " packs")
+	var pack_result := packed.pack(edited_root)
+	assert_eq(pack_result, OK, label + " packs")
 	var path := "user://edit_history_%s.tscn" % label
-	assert_eq(ResourceSaver.save(packed, path), OK, label + " saves")
+	var save_result := ResourceSaver.save(packed, path)
+	assert_eq(save_result, OK, label + " saves")
 	var loaded := ResourceLoader.load(path, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene
 	assert_true(loaded != null, label + " loads")
-	if loaded == null: return
+	if loaded == null: return {"pack_result": pack_result, "save_result": save_result, "fixture_found": false}
 	var reopened := loaded.instantiate()
-	assert_true(_checks._same(_snapshot(reopened.get_node("EditHistory")), expected), label + " saved state matches")
+	var actual := _snapshot(reopened.get_node("EditHistory"))
+	assert_true(_checks._same(actual, expected), label + " saved state matches")
 	reopened.free()
+	return {"path": path, "sha256": FileAccess.get_sha256(path),
+		"pack_result": pack_result, "save_result": save_result,
+		"fixture_found": true, "snapshot": actual}
 
 func _seed(op: String, variant: String) -> Node:
 	var fixture := FIXTURE.instantiate()
@@ -115,6 +122,8 @@ func _seed(op: String, variant: String) -> Node:
 	return fixture
 
 func _case(op: String, mode: String, variant: String) -> void:
+	var assertions_before := _assertion_count
+	var failed_before := _failed
 	var edited_root := EditorInterface.get_edited_scene_root()
 	var history := _undo.get_history_undo_redo(_undo.get_object_history_id(edited_root))
 	var global_history := _undo.get_history_undo_redo(EditorUndoRedoManager.GLOBAL_HISTORY)
@@ -154,21 +163,46 @@ func _case(op: String, mode: String, variant: String) -> void:
 		var cross := str(fixture.get_node("OtherPlayer").get_path())
 		if op == "merge": params.sources[1].player_path = cross
 		else: params.source_player_path = cross
+	var original_ids := {}
+	for name in originals: original_ids[name] = originals[name].get_instance_id()
+	var evidence := {"suite": "edit_route_history", "op": op, "mode": mode, "variant": variant,
+		"test": {"local": "test_local_scene_history", "instanced": "test_instanced_scene_history",
+			"editable": "test_editable_instance_scene_history"}[mode],
+		"request": params.duplicate(true), "before": baseline, "scene": edited_root.scene_file_path,
+		"versions": {"before": version, "global_before": global_version},
+		"failed_before": failed_before, "errors_before": error_count,
+		"original_library_id": original_library.get_instance_id(), "original_clip_ids": original_ids,
+		"peer_before": peer_before, "source_path": source_path if peer != null else "",
+		"source_sha256_before": FileAccess.get_sha256(source_path) if peer != null else ""}
 	var dry := _call(params.merged({"dry_run": true}))
+	evidence.dry = dry.duplicate(true)
+	evidence.after_dry = _snapshot(fixture)
+	evidence.versions.dry = history.get_version()
+	var dry_library := player.get_animation_library("")
+	evidence.dry_library_id = dry_library.get_instance_id() if dry_library != null else 0
 	assert_has_key(dry, "data", label + " dry route " + str(dry))
-	assert_true(_checks._same(_snapshot(fixture), baseline), label + " dry unchanged")
+	assert_true(_checks._same(evidence.after_dry, baseline), label + " dry unchanged")
 	assert_eq(history.get_version(), version, label + " dry scene history")
 	assert_true(player.get_animation_library("") == original_library, label + " dry library identity")
 	var invalid := _call(params.merged({"player_path": "/Missing"}, true))
+	evidence.invalid_request = params.merged({"player_path": "/Missing"}, true)
+	evidence.invalid = invalid.duplicate(true)
+	evidence.after_error = _snapshot(fixture)
+	evidence.versions.error = history.get_version()
+	evidence.versions.global_dry_error = global_history.get_version()
 	assert_has_key(invalid, "error", label + " rejected route")
 	assert_has_key(invalid.get("error", {}), "code", label + " typed rejection")
-	assert_true(_checks._same(_snapshot(fixture), baseline), label + " rejected unchanged")
+	assert_true(_checks._same(evidence.after_error, baseline), label + " rejected unchanged")
 	assert_eq(history.get_version(), version, label + " rejected scene history")
 	assert_eq(global_history.get_version(), global_version, label + " dry/rejected global history")
 	assert_eq(edited_root.is_editable_instance(fixture), mode == "editable", label + " dry/rejected editability")
 	var made := _call(params)
+	evidence.write = made.duplicate(true)
 	assert_has_key(made, "data", label + " write route " + str(made))
 	var generated := _snapshot(fixture)
+	evidence.generated = generated
+	evidence.versions.write = history.get_version()
+	evidence.versions.global_write = global_history.get_version()
 	assert_false(_checks._same(generated, baseline), label + " effect")
 	assert_true(_checks._same(generated.other, baseline.other), label + " cross-player inputs unchanged")
 	var changed_names: Array = [str(params.animation_name)]
@@ -178,24 +212,45 @@ func _case(op: String, mode: String, variant: String) -> void:
 		if name not in changed_names: assert_true(_checks._same(generated.clips[name], baseline.clips[name]), label + " unrelated " + name)
 	assert_eq(history.get_version(), version + 1, label + " one scene action")
 	assert_eq(global_history.get_version(), global_version, label + " no global action")
-	assert_true(history.undo(), label + " undo")
-	assert_true(_checks._same(_snapshot(fixture), baseline), label + " exact undo")
+	var undo_result := history.undo()
+	evidence.undo_success = undo_result
+	evidence.undone = _snapshot(fixture)
+	var undo_library := player.get_animation_library("")
+	evidence.undo_library_id = undo_library.get_instance_id() if undo_library != null else 0
+	var restored_ids := {}
+	for name in originals:
+		var restored := original_library.get_animation(name)
+		restored_ids[name] = restored.get_instance_id() if restored != null else 0
+	evidence.undo_clip_ids = restored_ids
+	assert_true(undo_result, label + " undo")
+	assert_true(_checks._same(evidence.undone, baseline), label + " exact undo")
 	assert_true(player.get_animation_library("") == original_library, label + " library identity restored")
 	for name in originals: assert_true(original_library.get_animation(name) == originals[name], label + " clip identity restored " + name)
 	assert_eq(edited_root.is_editable_instance(fixture), mode == "editable", label + " undo editability")
-	_persist(edited_root, baseline, label + "_undo")
-	assert_true(history.redo(), label + " redo")
-	assert_true(_checks._same(_snapshot(fixture), generated), label + " exact redo")
-	_persist(edited_root, generated, label + "_redo")
+	evidence.persist_undo = _persist(edited_root, baseline, label + "_undo")
+	var redo_result := history.redo()
+	evidence.redo_success = redo_result
+	evidence.redone = _snapshot(fixture)
+	assert_true(redo_result, label + " redo")
+	assert_true(_checks._same(evidence.redone, generated), label + " exact redo")
+	evidence.persist_redo = _persist(edited_root, generated, label + "_redo")
 	if peer != null:
-		assert_true(_checks._same(_snapshot(peer), peer_before), label + " peer unchanged")
+		evidence.peer_after = _snapshot(peer)
+		assert_true(_checks._same(evidence.peer_after, peer_before), label + " peer unchanged")
 		var pristine := (ResourceLoader.load(source_path, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene).instantiate()
-		assert_true(_checks._same(_snapshot(pristine), baseline), label + " source file unchanged")
+		evidence.pristine = _snapshot(pristine)
+		evidence.source_sha256_after = FileAccess.get_sha256(source_path)
+		assert_true(_checks._same(evidence.pristine, baseline), label + " source file unchanged")
 		pristine.free()
 		assert_true(player.get_animation_library("") != peer.get_node("AnimationPlayer").get_animation_library(""), label + " scene library isolated")
 		peer.free()
 	assert_eq(_logger.errors.size(), error_count, label + " no engine errors: " + str(_logger.errors.slice(error_count)))
+	evidence.errors_after = _logger.errors.size()
+	evidence.errors = _logger.errors.slice(error_count)
 	fixture.free()
+	evidence.failed_after = _failed
+	evidence.assertion_count = _assertion_count - assertions_before
+	HistoryTrace.emit_edit(evidence)
 
 func _matrix(mode: String) -> void:
 	for op in CASES: _case(op, mode, "base")

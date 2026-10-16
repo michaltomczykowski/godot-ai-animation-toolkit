@@ -246,3 +246,36 @@ two GDScript files and CI must exercise the actual public suite.
 Remaining inner-history families, read/file semantics and full applicable
 per-operation source/error/semantic checks are still pending. Preserved earlier
 matrices do not automatically become candidate receipts.
+
+## Edit20 inner-history raw cases
+
+The existing72 edit cases now use the same public span:20 base operations,
+split/merge overwrite variants, and merge/layer cross-player variants, each in
+local/instanced/editable mode. The helper's explicit `edit_history_v1` identity
+binds the actual edit case source, the shared FX equality source and the actual
+graph Logger class source; it cannot qualify another family or invented variant.
+
+Raw records retain real requests/responses, existing snapshot comparison points,
+scene/global versions, original and restored library/clip instance IDs, and both
+saved state load snapshots with serialized file hashes. No extra operations,
+scene saves, native processes, assertion resets or threshold changes were added.
+
+In addition to the four narrow dry/error/history/save checks, the adapter can
+derive `reported_errors` from the actual operation-case Logger counts/slice and
+`source_unchanged` for the specifically observed non-target inputs: unchanged
+other clips in the target player, OtherPlayer, plus the peer and the packed
+source file for instanced/editable cases. It recomputes both pristine snapshot
+equality and source-file hash equality. This does not claim general semantic
+correctness, visual approval, audible output or preservation of unobserved data.
+
+Twelve focused history controls cover both families. Edit controls reject
+other-player/clip changes, missing peer/pristine snapshots, changed file identity,
+replacement library/clip identities, engine errors, another suite or an invented
+variant. Existing FX controls and public preview/snapshot collectors still pass.
+All72 edit results remain pending actual execution from this source. Root owns
+GDScript parsing and public editor tests; the worker ran only pure Python checks.
+
+The remaining uninstrumented inner-history families are presets, graph, rig,
+modifiers, motion/setup and sequence. Read/file effects need their own exact
+applicable result contracts. Existing native playback adapters and historical
+matrices remain separate evidence; no aggregate pass fills these gaps.

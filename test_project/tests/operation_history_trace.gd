@@ -4,6 +4,12 @@ extends RefCounted
 ## Optional raw evidence only. The Python public wrapper owns the active span;
 ## this helper never invokes an operation or alters test assertion state.
 static func emit_fx(row: Dictionary) -> void:
+	_emit(row, "animation_fx", "test_fx_route_history.gd", "fx_history_v1")
+
+static func emit_edit(row: Dictionary) -> void:
+	_emit(row, "animation_edit", "test_edit_route_history.gd", "edit_history_v1")
+
+static func _emit(row: Dictionary, family: String, driver: String, validator: String) -> void:
 	var context_path := OS.get_environment("TOOLKIT_OPERATION_CONTEXT")
 	var trace_dir := OS.get_environment("TOOLKIT_OPERATION_TRACE_DIR")
 	if context_path.is_empty() and trace_dir.is_empty(): return
@@ -13,19 +19,19 @@ static func emit_fx(row: Dictionary) -> void:
 		return
 	var span: Variant = JSON.parse_string(FileAccess.get_file_as_string(active_path))
 	if not span is Dictionary or span.get("context_sha256") != FileAccess.get_sha256(context_path):
-		push_error("FX history evidence has a foreign public test span")
+		push_error("History evidence has a foreign public test span")
 		return
 	var stem := "%s-editor-%s-%s" % [span.run_id, OS.get_process_id(), Time.get_ticks_usec()]
 	var event := {"schema_version": 1, "kind": "editor_history_assertions",
 		"context_sha256": span.context_sha256, "run_id": span.run_id,
 		"id": stem + ":1", "sequence": 1,
 		"time_ns": int(Time.get_unix_time_from_system() * 1000000000.0),
-		"driver": "test_fx_route_history.gd", "route": "public_test_run_inner_dispatch",
-		"operation": "animation_fx." + str(row.op), "validator": "fx_history_v1",
+		"driver": driver, "route": "public_test_run_inner_dispatch",
+		"operation": family + "." + str(row.op), "validator": validator,
 		"test_run_begin_id": span.begin_id, "row": _safe(row)}
 	var file := FileAccess.open(trace_dir.path_join(stem + ".jsonl"), FileAccess.WRITE)
 	if file == null:
-		push_error("FX history evidence file could not be written")
+		push_error("History evidence file could not be written")
 		return
 	file.store_line(JSON.stringify(event))
 	file.close()

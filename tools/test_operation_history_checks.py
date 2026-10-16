@@ -99,4 +99,72 @@ class PublicSpan(unittest.TestCase):
         self.assertEqual(set(result['cases'][0]['checks'].values()),{'pass'})
         self.assertEqual(result['successful_public_operations'],[])
 
+
+class EditHistoryChecks(unittest.TestCase):
+    def fixture(self,mode='local',op='retime',variant='base'):
+        row,context,event,begins,ends=HistoryChecks().fixture()
+        row.update(suite='edit_route_history',op=op,mode=mode,variant=variant,
+                   test={'local':'test_local_scene_history','instanced':'test_instanced_scene_history','editable':'test_editable_instance_scene_history'}[mode],
+                   original_library_id=100,dry_library_id=100,undo_library_id=100,
+                   original_clip_ids={'walk':101,'run':102},undo_clip_ids={'walk':101,'run':102},
+                   errors_before=0,errors_after=0,errors=[])
+        before={'clips':{'walk':{'length':1},'run':{'length':1}},'other':{'walk':{'length':1}}}
+        after=copy.deepcopy(before)
+        after['clips']['walk' if op!='merge' else 'walk_run']={'length':.5}
+        row.update(before=before,after_dry=copy.deepcopy(before),after_error=copy.deepcopy(before),
+                   generated=after,undone=copy.deepcopy(before),redone=copy.deepcopy(after))
+        row['request'].update(op=op,animation_name='walk')
+        row['invalid_request']=dict(row['request'],player_path='/Missing')
+        row['versions']['global_dry_error']=0
+        for stage,snapshot in [('undo',before),('redo',after)]:
+            row['persist_'+stage].update(path=f'user://edit_history_{mode}_{op}_{variant}_{stage}.tscn',snapshot=copy.deepcopy(snapshot))
+        if mode!='local':
+            row.update(source_path=f'user://edit_source_{mode}_{op}_{variant}.tscn',
+                       source_sha256_before='b'*64,source_sha256_after='b'*64,
+                       peer_before=copy.deepcopy(before),peer_after=copy.deepcopy(before),pristine=copy.deepcopy(before))
+        for path in ('test_project/tests/test_edit_route_history.gd','test_project/tests/test_graph_route_history.gd'):context['dependencies'][path]={}
+        event.update(operation='animation_edit.'+op,driver='test_edit_route_history.gd',validator='edit_history_v1')
+        begins[0]['request']['suite']='edit_route_history';ends[0]['request']['suite']='edit_route_history'
+        ends[0]['response']['results'][0].update(suite='edit_route_history',test=row['test'])
+        return row,context,event,begins,ends
+
+    def test_existing_exact_local_and_instanced_cases_have_only_scoped_checks(self):
+        for mode in ('local','instanced','editable'):
+            row,context,event,begins,ends=self.fixture(mode)
+            proof=verify_event(event,context,begins,ends)
+            self.assertEqual(set(proof['checks']),{'dry_run','typed_errors','undo_redo','save_reopen','source_unchanged','reported_errors'})
+            self.assertEqual(set(proof['checks'].values()),{'pass'})
+            self.assertNotIn('valid_effect',proof['checks'])
+
+    def test_non_target_clip_and_other_player_changes_cannot_pass(self):
+        for mutate in ('unrelated','other'):
+            row,*_=self.fixture()
+            if mutate=='unrelated':row['generated']['clips']['run']['length']=.7
+            else:row['generated']['other']['walk']['length']=.7
+            self.assertEqual(derive(row)['source_unchanged'],'fail')
+
+    def test_peer_pristine_and_real_source_file_identity_are_required(self):
+        for field,value in [('peer_after',{}),('pristine',{}),('source_sha256_after','c'*64),('source_path','user://another.tscn')]:
+            with self.subTest(field=field):
+                row,*_=self.fixture('instanced');row[field]=value
+                self.assertEqual(derive(row)['source_unchanged'],'fail')
+
+    def test_identical_snapshots_do_not_replace_original_resource_identity(self):
+        for field,value,check in [('dry_library_id',200,'dry_run'),('undo_library_id',200,'undo_redo'),('undo_clip_ids',{'walk':201,'run':102},'undo_redo')]:
+            row,*_=self.fixture();row[field]=value
+            self.assertEqual(derive(row)[check],'fail')
+
+    def test_engine_errors_are_not_hidden_by_other_passing_snapshots(self):
+        for field,value in [('errors_after',1),('errors',['actual engine error'])]:
+            row,*_=self.fixture();row[field]=value
+            self.assertEqual(derive(row)['reported_errors'],'fail')
+
+    def test_only_actual_variants_and_the_exact_edit_public_test_are_eligible(self):
+        row,context,event,begins,ends=self.fixture(variant='cross')
+        with self.assertRaisesRegex(ValueError,'variant'):verify_event(event,context,begins,ends)
+        row,context,event,begins,ends=self.fixture();ends[0]['request']['suite']='fx_route_history'
+        with self.assertRaisesRegex(ValueError,'request'):verify_event(event,context,begins,ends)
+        row,context,event,begins,ends=self.fixture();context['dependencies'].pop('test_project/tests/test_graph_route_history.gd')
+        with self.assertRaisesRegex(ValueError,'logger'):verify_event(event,context,begins,ends)
+
 if __name__=='__main__':unittest.main()
