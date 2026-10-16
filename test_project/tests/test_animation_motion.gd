@@ -239,11 +239,25 @@ func test_public_setup_bundle_undo_redo() -> void:
 		assert_true(player.has_animation(name), "bundle contains " + name)
 		if not player.has_animation(name): return
 		digests[name] = GoldenDigest.from_animation(player.get_animation(name))
+	var grounders: Array = []
+	for candidate in scene.find_children("*", "SkeletonModifier3D", true, false):
+		if candidate.get_script() == preload("res://addons/godot_ai_animation/runtime/setup_grounding.gd") and candidate.get_node_or_null(candidate.get("tree_path")) == tree: grounders.append(candidate)
+	assert_eq(grounders.size(), 1, "external bundle has one saved owned grounder")
+	if grounders.size() != 1: return
+	var grounder: SkeletonModifier3D = grounders[0]
+	var grounder_path := scene.get_path_to(grounder)
+	var grounder_config := {}
+	for field in preload("res://addons/godot_ai_animation/runtime/setup_grounding.gd").CONFIG_FIELDS: grounder_config[field] = grounder.get(field)
+	var grounder_owner := grounder.owner
+	var grounder_index := grounder.get_index()
+	assert_true(grounder.active, "external grounder is active")
+	assert_eq(grounder.call("validate_configuration"), "", "external grounder bindings/order are valid")
 	var binding := player.root_motion_track
 	var wiring := [tree.anim_player, tree.root_node, tree.root_motion_track, tree.root_motion_local, tree.active, tree.tree_root]
 	assert_true(editor_undo(_undo_redo), "one external Undo succeeds")
 	for name in names: assert_false(player.has_animation(name), "one Undo removes " + name)
 	assert_true(scene.get_node_or_null(tree_path) == null, "one Undo removes whole tree")
+	assert_true(scene.get_node_or_null(grounder_path) == null, "one Undo removes whole grounding binding")
 	assert_eq(player.root_motion_track, marker.get_meta("before_root_motion_track"), "Undo restores caller binding")
 	var remaining := all_names.duplicate()
 	for name in names: remaining.remove_at(remaining.find(name))
@@ -260,6 +274,15 @@ func test_public_setup_bundle_undo_redo() -> void:
 	assert_true(tree != null, "Redo restores tree")
 	if tree != null: assert_eq([tree.anim_player, tree.root_node, tree.root_motion_track, tree.root_motion_local, tree.active, tree.tree_root], wiring, "Redo restores graph and wiring")
 	assert_eq(player.root_motion_track, binding, "Redo restores bundle binding")
+	grounder = scene.get_node_or_null(grounder_path) as SkeletonModifier3D
+	assert_true(grounder != null, "Redo restores owned grounder")
+	if grounder != null:
+		for field in preload("res://addons/godot_ai_animation/runtime/setup_grounding.gd").CONFIG_FIELDS: assert_eq(grounder.get(field), grounder_config[field], "Redo restores grounding "+field)
+		assert_eq(grounder.owner, grounder_owner, "Redo restores grounder scene owner")
+		assert_eq(grounder.get_index(), grounder_index, "Redo restores modifier ordering")
+		assert_true(grounder.active, "Redo restores grounder activation")
+		assert_eq(grounder.call("validate_configuration"), "", "Redo restores valid grounding binding")
+
 
 
 func _public_turn_setup_history(scene: Node, marker: Node) -> void:

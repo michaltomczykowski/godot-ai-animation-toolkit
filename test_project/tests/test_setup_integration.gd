@@ -1,5 +1,6 @@
 @tool
 extends McpTestSuite
+const Grounding := preload("res://addons/godot_ai_animation/runtime/setup_grounding.gd")
 const Motion := preload("res://addons/godot_ai_animation/handlers/motion.gd")
 const Context := preload("res://addons/godot_ai_animation/utils/tool_context.gd")
 const Codec := preload("res://addons/godot_ai_animation/utils/value_codec.gd")
@@ -45,6 +46,27 @@ func _matrix(fixture: String) -> void:
 		var setup := handler.run(args, null)
 		assert_true(setup.has("data"), "default setup " + fixture + " " + style + ": " + str(setup))
 		if setup.has("data"):
+			var grounder := Codec.resolve_scene_path(str(setup.data.grounding_path), scene) as Grounding
+			assert_true(grounder != null and grounder.get_script() == Grounding, "serialized setup grounder")
+			if grounder != null:
+				assert_eq(grounder.get_parent(), skeleton, "grounder is under bound skeleton")
+				assert_eq(grounder.owner, scene, "grounder is scene owned")
+				assert_true(grounder.active, "grounder ready while Tree inactive")
+				assert_eq(grounder.validate_configuration(), "", "saved relative binding/configuration")
+				for field in Grounding.CONFIG_FIELDS:
+					assert_false(grounder.get(field) is Object, "serialized config contains no object references")
+				var packed := PackedScene.new()
+				assert_eq(packed.pack(scene), OK, "pack actual setup helper/bundle")
+				var clone := packed.instantiate()
+				var saved := clone.get_node_or_null(scene.get_path_to(grounder)) as Grounding
+				assert_true(saved != null, "packed setup retains grounder")
+				if saved != null:
+					for field in Grounding.CONFIG_FIELDS: assert_eq(saved.get(field), grounder.get(field), "serialized grounding "+field)
+					assert_true(saved.active, "serialized helper active")
+					assert_eq(saved.owner, clone, "serialized scene owner")
+					assert_eq(saved.get_node_or_null(saved.player_path), clone.get_node(scene.get_path_to(player)), "serialized relative Player binding")
+					assert_eq(saved.get_node_or_null(saved.tree_path), clone.get_node(scene.get_path_to(grounder.get_node(grounder.tree_path))), "serialized relative Tree binding")
+				clone.free()
 			assert_gt(float(setup.data.speed_values.run), float(setup.data.speed_values.walk), "solved blend order")
 			assert_false(setup.data.turn_wired, "turn remains unwired")
 			assert_false(setup.data.actor_yaw_extraction, "translation extraction only")
@@ -73,6 +95,7 @@ func _matrix(fixture: String) -> void:
 			var made := handler.run(explicit, null)
 			assert_true(made.has("data"), "explicit setup values")
 			if made.has("data"):
+				assert_eq(Codec.resolve_scene_path(str(made.data.grounding_path), scene), grounder, "overwrite reuses owned grounder")
 				assert_eq(float(made.data.clips.run.capture_duration), float(explicit.run_duration), "explicit run duration")
 				assert_eq(float(made.data.clips.turn_left.capture_duration), 1.8, "explicit turn duration")
 				assert_eq(float(made.data.clips.jump.capture_duration), 1.6, "explicit jump duration")
@@ -124,3 +147,52 @@ func _find(node: Node, type: String) -> Node:
 		var found := _find(child, type)
 		if found != null: return found
 	return null
+
+func test_setup_grounding_conflicts_and_dry_are_atomic() -> void:
+	var scene := EditorInterface.get_edited_scene_root()
+	var body := (load(FIXTURES[2]) as PackedScene).instantiate()
+	scene.add_child(body)
+	_assign(body,scene)
+	var player := _find(body,"AnimationPlayer") as AnimationPlayer
+	var rig := _find(body,"Skeleton3D") as Skeleton3D
+	var args := {"op":"character_setup","player_path":Codec.from_node(player,scene),"skeleton_path":Codec.from_node(rig,scene)}
+	var names := player.get_animation_list()
+	var count := rig.get_child_count()
+	var history := Context.undo_redo.get_history_undo_redo(Context.undo_redo.get_object_history_id(body))
+	var version := history.get_version()
+	var dry := args.duplicate(true);dry.dry_run=true
+	assert_true(handler.run(dry,null).has("data"),"grounding dry configuration succeeds")
+	assert_eq(rig.get_child_count(),count,"dry adds no helper")
+	assert_eq(player.get_animation_list(),names,"dry writes no clips")
+	assert_eq(history.get_version(),version,"dry creates no history")
+	var foreign := SkeletonModifier3D.new();rig.add_child(foreign);foreign.active=true
+	var refusal := handler.run(args,null)
+	assert_true(refusal.has("error") and refusal.error.code=="OPERATION_UNAVAILABLE","foreign active modifier typed refusal")
+	assert_eq(history.get_version(),version,"foreign conflict creates no history")
+	assert_eq(player.get_animation_list(),names,"foreign conflict writes no clips")
+	assert_true(foreign.active,"foreign writer is never silently disabled")
+	foreign.free()
+	var occupied := Node.new();occupied.name="SetupGrounding";rig.add_child(occupied)
+	refusal=handler.run(args,null)
+	assert_true(refusal.has("error") and refusal.error.code=="OPERATION_UNAVAILABLE","foreign name typed refusal")
+	assert_eq(history.get_version(),version,"name conflict creates no history")
+	assert_eq(player.get_animation_list(),names,"name conflict writes no clips")
+	occupied.free()
+	var tree_collision := Node.new();tree_collision.name="AnimationTree";player.get_parent().add_child(tree_collision)
+	refusal=handler.run(args,null)
+	assert_true(refusal.has("error") and refusal.error.code=="OPERATION_UNAVAILABLE","occupied Tree name typed refusal")
+	assert_eq(history.get_version(),version,"Tree name conflict creates no history")
+	assert_eq(player.get_animation_list(),names,"Tree name conflict writes no clips")
+	assert_eq(rig.get_child_count(),count,"Tree name conflict leaves no grounder")
+	tree_collision.free()
+	var made := handler.run(args,null)
+	assert_true(made.has("data"),"uncontested setup succeeds")
+	if made.has("data"):
+		version=history.get_version();names=player.get_animation_list()
+		var duplicate := Grounding.new();rig.add_child(duplicate)
+		refusal=handler.run(args,null)
+		assert_true(refusal.has("error") and refusal.error.code=="OPERATION_UNAVAILABLE","duplicate owner typed refusal")
+		assert_eq(history.get_version(),version,"duplicate creates no history")
+		assert_eq(player.get_animation_list(),names,"duplicate writes no clips")
+		duplicate.free()
+	body.free()

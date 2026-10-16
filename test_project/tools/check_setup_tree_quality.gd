@@ -7,6 +7,7 @@ class Errors extends Logger:
 	func _log_error(_fn: String, _file: String, _line: int, code: String, rationale: String, _notify: bool, type: int, _trace: Array) -> void:
 		if type != 1: errors.append(rationale if not rationale.is_empty() else code)
 var logger := Errors.new()
+const Grounding := preload("res://addons/godot_ai_animation/runtime/setup_grounding.gd")
 const FPS := [30,60,120]
 func _initialize() -> void:
 	OS.add_logger(logger)
@@ -28,7 +29,7 @@ func _node(scene: Node, path: String) -> Node:
 	path=path.trim_prefix("/"+saved_name+"/")
 	return scene.get_node_or_null(NodePath(path))
 func _point(v: Dictionary, role: String, rest: bool=false) -> Vector3:
-	var transform: Transform3D = v.rig.get_bone_global_rest(v.indices[role]) if rest else v.rig.get_bone_global_pose(v.indices[role])
+	var transform: Transform3D = v.rig.get_bone_global_rest(v.indices[role]) if rest else _pose(v,v.indices[role])
 	return (v.rig.global_transform*transform).origin
 func _flat(value: Vector3, up: Vector3) -> Vector3: return value-up*value.dot(up)
 func _properties(tree: AnimationTree) -> Dictionary:
@@ -46,7 +47,6 @@ func _load(row: Dictionary) -> Dictionary:
 	for mixer in scene.find_children("*","AnimationMixer",true,false):
 		mixer.active=false
 		mixer.callback_mode_process=AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
-	for modifier in scene.find_children("*","SkeletonModifier3D",true,false): modifier.active=false
 	root.add_child(scene)
 	var meta := _data(row.get("write",{}))
 	if not meta.has("clips"): meta=_data(row.get("setup_response",{}))
@@ -59,6 +59,17 @@ func _load(row: Dictionary) -> Dictionary:
 	if not issues.is_empty():
 		scene.free()
 		return {"error":str(issues)}
+	var modifier := _node(scene,str(meta.get("grounding_path",""))) as Grounding
+	if modifier==null or modifier.get_script()!=Grounding or modifier.get_parent()!=rig:
+		issues.append("Saved setup-owned grounder is missing or has wrong script/parent")
+	else:
+		if not modifier.active: issues.append("Saved setup grounder is disabled")
+		if modifier.get_node_or_null(modifier.get("tree_path"))!=tree or modifier.get_node_or_null(modifier.get("player_path"))!=player: issues.append("Saved setup grounder binds another Tree/Player")
+		if int(meta.get("grounding",{}).get("contract_version",-1))!=Grounding.CONTRACT_VERSION: issues.append("Saved grounding contract metadata is missing")
+		var problem: String = modifier.validate_configuration()
+		if not problem.is_empty(): issues.append("Saved grounding configuration: "+problem)
+	for candidate in scene.find_children("*","SkeletonModifier3D",true,false):
+		if candidate!=modifier and candidate.active: issues.append("Foreign active modifier prevents final grounded ownership witness")
 	if tree.get_node_or_null(tree.anim_player)!=player: issues.append("Saved tree does not bind the requested player")
 	var animation_root := player.get_node_or_null(player.root_node)
 	if tree.get_node_or_null(tree.root_node)!=animation_root: issues.append("Saved tree and player root_node differ")
@@ -76,7 +87,7 @@ func _load(row: Dictionary) -> Dictionary:
 	var dominant := local_spine.abs().max_axis_index()
 	local_up[dominant]=signf(local_spine[dominant])
 	var up: Vector3 = (rig.global_basis*local_up).normalized()
-	var v := {"scene":scene,"rig":rig,"player":player,"tree":tree,"meta":meta,"roles":roles,"indices":indices,"up":up}
+	var v := {"modifier":modifier,"signals":0,"scene":scene,"rig":rig,"player":player,"tree":tree,"meta":meta,"roles":roles,"indices":indices,"up":up}
 	var forward: Vector3 = _flat(_point(v,"toe_l",true)-_point(v,"foot_l",true),up).normalized()
 	if forward.length_squared()<0.9:
 		scene.free()
@@ -120,9 +131,20 @@ func _load(row: Dictionary) -> Dictionary:
 	if not issues.is_empty():
 		_free(v)
 		return {"error":str(issues)}
+	if modifier.get("role_names")!=roles: issues.append("Saved grounder roles differ from public rig profile")
+	if not issues.is_empty():
+		_free(v)
+		return {"error":str(issues)}
+	modifier.modification_processed.connect(func():
+		v.captured=[]
+		v.signals+=1
+		for bone in rig.get_bone_count(): v.captured.append(rig.get_bone_global_pose(bone))
+	)
 	v.initial_owner=v.owner.global_position
 	v.initial_rotation=v.owner.global_basis.orthonormalized().get_rotation_quaternion()
 	return v
+func _pose(v: Dictionary,bone: int) -> Transform3D:
+	return v.captured[bone] if v.has("captured") else v.rig.get_bone_global_pose(bone)
 func _free(v: Dictionary) -> void:
 	if v.has("driver"): v.driver.free()
 	elif v.has("scene"): v.scene.free()
@@ -224,12 +246,19 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 	var feet := {}
 	for side in ["l","r"]: feet[side]={"active":false,"anchor":Vector3.ZERO,"slide":0.0,"penetration":0.0,"height":0.0,"windows":0,"frames":0,"pole":Vector3.ZERO,"knee_flips":0}
 	var previous: Array[Transform3D] = []
-	for bone in v.rig.get_bone_count(): previous.append(v.rig.get_bone_global_pose(bone))
+	for bone in v.rig.get_bone_count(): previous.append(_pose(v,bone))
 	var initial_hip := _point(v,"hips")
 	var controller_speed := float(spec.get("controller_speed_mps",0.0 if v.rooted else speed))
 	if not is_finite(controller_speed): errors.append("Controller speed must be finite")
 	if v.rooted and controller_speed!=0.0: errors.append("Extracted setup cannot also receive controller translation")
 	if jump and controller_speed!=0.0: errors.append("Jump cannot also receive controller travel")
+	var commanded_distance := 0.0
+	var speed_end := float(spec.get("speed_end_mps",speed))
+	if not is_finite(speed_end) or speed_end<0.0: errors.append("Invalid ramp speed")
+	var controller_start := controller_speed
+	var controller_end := float(spec.get("controller_speed_end_mps",speed_end if not v.rooted and absf(controller_speed-speed)<0.000001 else controller_speed))
+	if not is_finite(controller_end): errors.append("Invalid ramp controller speed")
+	var reset_performed := false
 	var max_velocity := 0.0
 	var max_angular_velocity := 0.0
 	var nonfinite := 0
@@ -243,6 +272,19 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 	var frames := ceili(duration*fps)
 	var dt := 1.0/fps
 	for frame in frames:
+		var sample_speed := lerpf(speed,speed_end,(float(frame)+0.5)/frames)
+		if not jump:
+			tree.set(v.speed_parameter,sample_speed)
+			points=_points(v,sample_speed)
+			commanded_distance+=sample_speed*dt
+			if not v.rooted: controller_speed=lerpf(controller_start,controller_end,(float(frame)+0.5)/frames)
+		if spec.has("reset_at_s") and not reset_performed and float(frame)*dt>=float(spec.reset_at_s):
+			tree.active=false
+			v.modifier.reset_grounding("explicit_seek_or_new_take_test")
+			tree.active=true
+			reset_performed=true
+		var binding_error: String = v.modifier.validate_configuration()
+		if not v.modifier.active or v.modifier.get_parent()!=v.rig or v.modifier.get_node_or_null(v.modifier.tree_path)!=tree or not binding_error.is_empty(): errors.append("Saved grounding binding/ownership changed: "+binding_error)
 		var before_owner: Vector3 = v.owner.global_position
 		tree.advance(dt)
 		unconsumed_actor_change=maxf(unconsumed_actor_change,v.owner.global_position.distance_to(before_owner))
@@ -252,6 +294,10 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 		else:
 			extraction_error=maxf(extraction_error,delta.length())
 			if not jump: v.owner.global_position+=v.forward*controller_speed*dt
+		var prior_signals: int = v.signals
+		v.rig.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
+		if v.signals!=prior_signals+1: errors.append("Missing per-frame final modification_processed witness")
+		if str(v.modifier.status)!="grounded" or not str(v.modifier.last_error).is_empty() or v.modifier.unreachable>0: errors.append("Grounding runtime diagnostic failure: "+str(v.modifier.diagnostics()))
 		var phase := 0.0
 		var shot_active := false
 		if jump:
@@ -287,7 +333,7 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 			sample.feet[side]={"height_m":height,"declared_contact":contact}
 		if airborne: air_frames+=1
 		for bone in v.rig.get_bone_count():
-			var pose: Transform3D = v.rig.get_bone_global_pose(bone)
+			var pose: Transform3D = _pose(v,bone)
 			if not pose.origin.is_finite() or not pose.basis.is_finite(): nonfinite+=1
 			var world_step: Vector3 = v.rig.global_basis*(pose.origin-previous[bone].origin)
 			max_velocity=maxf(max_velocity,world_step.length()/dt/float(v.leg))
@@ -298,7 +344,7 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 		trace.append(sample)
 	var elapsed := frames*dt
 	var actual: Vector3 = v.owner.global_position-v.initial_owner if v.rooted or not jump else _point(v,"hips")-initial_hip
-	var expected: Vector3 = v.forward*(expected_distance if jump else speed*elapsed)
+	var expected: Vector3 = v.forward*(expected_distance if jump else commanded_distance)
 	var endpoint_error := _flat(actual-expected,v.up).length()
 	if endpoint_error>0.0001: errors.append("Graph/controller world endpoint differs from exact requested distance")
 	if extraction_error>0.000001: errors.append("In-place graph emits competing root extraction")
@@ -331,7 +377,7 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 			ref_player.advance(0.0)
 			var retained: Vector3 = Vector3.ZERO if v.rooted else v.forward*expected_distance
 			for bone in v.rig.get_bone_count():
-				var actual_pose: Transform3D = v.rig.get_bone_global_pose(bone)
+				var actual_pose: Transform3D = _pose(v,bone)
 				var reference_pose: Transform3D = reference.rig.get_bone_global_pose(bone)
 				recovery_position=maxf(recovery_position,((v.rig.global_basis*(actual_pose.origin-reference_pose.origin))-retained).length())
 				var rotation := reference_pose.basis.orthonormalized().get_rotation_quaternion().inverse()*actual_pose.basis.orthonormalized().get_rotation_quaternion()
@@ -340,7 +386,7 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 			_free(reference)
 	var yaw_error: float = v.initial_rotation.angle_to(v.owner.global_basis.orthonormalized().get_rotation_quaternion())
 	if yaw_error>0.00001: errors.append("Unexpected actor-yaw ownership")
-	var result := {"id":row.get("id",""),"fps":fps,"spec":spec,"frames":frames,"elapsed_s":elapsed,"leg_length_m":v.leg,"rooted":v.rooted,"endpoint_error_m":endpoint_error,"expected_world_distance_m":expected_distance if jump else speed*elapsed,"actual_world_distance_m":_flat(actual,v.up).length(),"controller_speed_mps":controller_speed,"extraction_error_m":extraction_error,"unconsumed_actor_change_m":unconsumed_actor_change,"grounded_root_delta_world_m":grounded_delta,"jump_capture_duration_s":capture,"terminal_hold_s":hold,"fadein_s":fadein,"fadeout_s":fadeout,"recovery_position_error_m":recovery_position,"recovery_rotation_error_rad":recovery_rotation,"shot_frames":shot_frames,"observed_flight_frames":air_frames,"nonfinite":nonfinite,"max_bone_speed_legs_per_s":max_velocity,"max_bone_angular_speed_rad_s":max_angular_velocity,"feet":feet,"trace":trace,"passed":errors.is_empty(),"failures":errors}
+	var result := {"id":row.get("id",""),"fps":fps,"spec":spec,"frames":frames,"elapsed_s":elapsed,"leg_length_m":v.leg,"rooted":v.rooted,"endpoint_error_m":endpoint_error,"expected_world_distance_m":expected_distance if jump else commanded_distance,"actual_world_distance_m":_flat(actual,v.up).length(),"controller_speed_mps":controller_speed,"reset_performed":reset_performed,"extraction_error_m":extraction_error,"unconsumed_actor_change_m":unconsumed_actor_change,"grounded_root_delta_world_m":grounded_delta,"jump_capture_duration_s":capture,"terminal_hold_s":hold,"fadein_s":fadein,"fadeout_s":fadeout,"recovery_position_error_m":recovery_position,"recovery_rotation_error_rad":recovery_rotation,"shot_frames":shot_frames,"observed_flight_frames":air_frames,"nonfinite":nonfinite,"max_bone_speed_legs_per_s":max_velocity,"max_bone_angular_speed_rad_s":max_angular_velocity,"feet":feet,"trace":trace,"grounding":v.modifier.diagnostics(),"modification_processed_signals":v.signals,"passed":errors.is_empty(),"failures":errors}
 	_free(v)
 	return result
 func _specs(row: Dictionary) -> Array:

@@ -77,7 +77,7 @@ func _fixture(path: String, rooted: bool, multiplier: float, markers: bool, plac
 		var track := clip.add_track(Animation.TYPE_POSITION_3D)
 		clip.track_set_path(track,NodePath("Dummy/Skeleton3D:B-hips"))
 		clip.track_insert_key(track,0.0,hip)
-		clip.track_insert_key(track,0.5,hip+to_hip_parent*local_up*0.0001)
+		clip.track_insert_key(track,0.5,hip-to_hip_parent*local_up*0.001)
 		clip.track_insert_key(track,1.0,hip)
 		if rooted:
 			track=clip.add_track(Animation.TYPE_POSITION_3D)
@@ -134,11 +134,23 @@ func _fixture(path: String, rooted: bool, multiplier: float, markers: bool, plac
 	tree.root_motion_track=player.root_motion_track
 	tree.root_motion_local=true
 	tree.active=false
+	var roles := {"hips":"B-hips","head":"B-head","thigh_l":"B-thigh.L","shin_l":"B-shin.L","foot_l":"B-foot.L","toe_l":"B-toe.L","thigh_r":"B-thigh.R","shin_r":"B-shin.R","foot_r":"B-foot.R"}
+	var grounder := Grounding.new()
+	grounder.name="SetupGrounding"
+	skeleton.add_child(grounder)
+	grounder.tree_path=grounder.get_path_to(tree)
+	grounder.player_path=grounder.get_path_to(player)
+	grounder.role_names=roles
+	grounder.rig_up=local_up
+	grounder.rig_forward=forward
+	grounder.speed_parameter="parameters/Base/blend_position"
+	grounder.base_prefix="parameters/Base/"
+	grounder.jump_parameter="parameters/OneShot/request"
 	for child in body.get_children(): _own(child,body)
 	var packed := PackedScene.new()
 	_expect(packed.pack(body)==OK and ResourceSaver.save(packed,path)==OK,"save synthetic graph")
 	body.free()
-	return {"id":path.get_file(),"scene":path,"scene_sha256":FileAccess.get_sha256(path),"player":"AnimationPlayer","skeleton":"Dummy/Skeleton3D","request":{"include_jump":true,"root_motion":rooted,"distance":0.2},"roles":{"hips":"B-hips","head":"B-head","thigh_l":"B-thigh.L","shin_l":"B-shin.L","foot_l":"B-foot.L","toe_l":"B-toe.L","thigh_r":"B-thigh.R","shin_r":"B-shin.R","foot_r":"B-foot.R"},"write":{"root_motion":rooted,"tree_path":"/SyntheticSetup/AnimationTree","speed_parameter":"parameters/Base/blend_position","jump_request_parameter":"parameters/OneShot/request","speed_values":{"idle":0.0,"walk":0.2,"run":0.4},"clips":{"idle":{"length":1.0},"walk":{"length":1.0},"run":{"length":1.0},"jump":{"length":1.201,"capture_duration":1.2,"root_motion_terminal_hold":0.001}}}}
+	return {"id":path.get_file(),"scene":path,"scene_sha256":FileAccess.get_sha256(path),"player":"AnimationPlayer","skeleton":"Dummy/Skeleton3D","request":{"include_jump":true,"root_motion":rooted,"distance":0.2},"roles":{"hips":"B-hips","head":"B-head","thigh_l":"B-thigh.L","shin_l":"B-shin.L","foot_l":"B-foot.L","toe_l":"B-toe.L","thigh_r":"B-thigh.R","shin_r":"B-shin.R","foot_r":"B-foot.R"},"write":{"grounding_path":"/SyntheticSetup/Dummy/Skeleton3D/SetupGrounding","grounding":{"contract_version":Grounding.CONTRACT_VERSION},"root_motion":rooted,"tree_path":"/SyntheticSetup/AnimationTree","speed_parameter":"parameters/Base/blend_position","jump_request_parameter":"parameters/OneShot/request","speed_values":{"idle":0.0,"walk":0.2,"run":0.4},"clips":{"idle":{"length":1.0},"walk":{"length":1.0},"run":{"length":1.0},"jump":{"length":1.201,"capture_duration":1.2,"root_motion_terminal_hold":0.001}}}}
 func _own(node: Node, owner_node: Node) -> void:
 	node.owner=owner_node
 	for child in node.get_children(): _own(child,owner_node)

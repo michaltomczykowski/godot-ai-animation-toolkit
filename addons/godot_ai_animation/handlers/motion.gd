@@ -16,6 +16,7 @@ const MotionTransitions := preload("res://addons/godot_ai_animation/spec/motion_
 const MotionDrivers := preload("res://addons/godot_ai_animation/spec/motion_drivers.gd")
 const SpecIO := preload("res://addons/godot_ai_animation/spec/spec_io.gd")
 const GraphBuilders := preload("res://addons/godot_ai_animation/spec/graph_builders.gd")
+const SetupGrounding := preload("res://addons/godot_ai_animation/runtime/setup_grounding.gd")
 const SecondarySampler := preload("res://addons/godot_ai_animation/utils/secondary_clip_sampler.gd")
 var _test_secondary_fail_at := -1 # Internal failure injection, not on the tool wire.
 
@@ -71,6 +72,7 @@ const _OVERRIDE_KEYS := {
 ## A single request can otherwise allocate tens of millions of keys by asking
 ## for a very long clip at 120 samples/s. Check before MotionSpecs builds keys.
 const MAX_CYCLE_INTERVALS := 1200
+var _pending_setup_grounder: SkeletonModifier3D
 var _pending_setup_tree: AnimationTree
 
 
@@ -81,10 +83,14 @@ func run(params: Dictionary, _ctx) -> Dictionary:
 		return availability
 	_dry_run = bool(params.get("dry_run", false))
 	_pending_setup_tree = null
+	_pending_setup_grounder = null
 	var result := _dispatch(params)
 	if is_instance_valid(_pending_setup_tree) and not _pending_setup_tree.is_inside_tree():
 		_pending_setup_tree.free()
 	_pending_setup_tree = null
+	if is_instance_valid(_pending_setup_grounder) and not _pending_setup_grounder.is_inside_tree():
+		_pending_setup_grounder.free()
+	_pending_setup_grounder = null
 	if _dry_run and result.has("data"):
 		result.data["dry_run"] = true
 		result.data["undoable"] = false
@@ -661,6 +667,8 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 			tree.name = "AnimationTree"
 			tree_parent = player.get_parent() if player.get_parent() != null else scene_root
 			created_tree = true
+	if created_tree and tree_parent.get_node_or_null(NodePath(str(tree.name))) != null:
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Requested setup Tree name is occupied; pass an unused explicit tree_path")
 	var root_motion_track := ""
 	var root_motion_owner_path := ""
 	if root_motion:
@@ -670,6 +678,58 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 				"Root motion needs a Node3D character owner under the AnimationPlayer root_node")
 		root_motion_track = "%s:position" % str(player_root.get_path_to(motion_node))
 		root_motion_owner_path = ValueCodec.from_node(motion_node, scene_root)
+	# Grounding is part of this exact bundle, after native graph mixing. Preflight
+	# ownership before staging any library, scene or editable-instance write.
+	var rig: Skeleton3D = prepared_list[0].resolved.node
+	if player.active and player.is_playing():
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Stop the bound AnimationPlayer before setup so the AnimationTree is the sole playback writer")
+	var grounder: SkeletonModifier3D = null
+	for candidate in rig.get_children():
+		if candidate is SkeletonModifier3D:
+			if candidate.get_script() == SetupGrounding:
+				if grounder != null:
+					return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Duplicate setup grounding ownership")
+				grounder = candidate
+			elif candidate.active:
+				return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Character setup grounding cannot follow a foreign active bone modifier; disable it explicitly or use standalone clips")
+	for mixer in scene_root.find_children("*", "AnimationMixer", true, false):
+		if mixer == tree or mixer == player or not mixer.active or (mixer is AnimationPlayer and not mixer.is_playing()): continue
+		var other_root: Node = mixer.get_node_or_null(mixer.root_node)
+		if other_root != null and (other_root == rig or other_root.is_ancestor_of(rig)):
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Another active animation mixer can write the setup skeleton; stop it explicitly before setup")
+	for side in ["l", "r"]:
+		var roles: Dictionary = prepared_list[0].ctx.roles
+		var thigh := rig.find_bone(str(roles.get("thigh_"+side, "")))
+		var shin := rig.find_bone(str(roles.get("shin_"+side, "")))
+		var foot := rig.find_bone(str(roles.get("foot_"+side, "")))
+		if thigh < 0 or shin < 0 or foot < 0 or rig.get_bone_parent(shin) != thigh or rig.get_bone_parent(foot) != shin:
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Character setup grounding requires direct measured thigh/shin/foot chains")
+		var a := rig.get_bone_global_rest(thigh).origin.distance_to(rig.get_bone_global_rest(shin).origin)
+		var b := rig.get_bone_global_rest(shin).origin.distance_to(rig.get_bone_global_rest(foot).origin)
+		if not is_finite(a+b) or minf(a,b)<=0.0000001:
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Character setup grounding measured leg geometry is degenerate")
+	var created_grounder := grounder == null
+	if created_grounder:
+		if rig.get_node_or_null("SetupGrounding") != null:
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "SetupGrounding name is already owned by another node")
+		grounder = SetupGrounding.new()
+		grounder.name = "SetupGrounding"
+		grounder.active = false
+		_pending_setup_grounder = grounder
+	else:
+		if grounder.get_node_or_null(grounder.get("player_path")) != player or created_tree or grounder.get_node_or_null(grounder.get("tree_path")) != tree:
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Existing setup grounder belongs to another Player/Tree; rebind explicitly by removing that bundle first")
+	var relative_tree := "../"+str(rig.get_path_to(tree)) if not created_tree else "../"+str(rig.get_path_to(tree_parent))+"/"+str(tree.name)
+	var grounding_config := {
+		"influence": 1.0, "tree_path": NodePath(relative_tree), "player_path": NodePath("../"+str(rig.get_path_to(player))),
+		"role_names": prepared_list[0].ctx.roles.duplicate(true),
+		"rig_up": prepared_list[0].ctx.up, "rig_forward": prepared_list[0].ctx.forward,
+		"speed_parameter": speed_parameter, "base_prefix": "parameters/Base/" if include_jump else "parameters/",
+		"jump_parameter": jump_request, "maximum_correction_leg_ratio": 0.25, "target_tolerance_m": 0.00001,
+	}
+	var old_grounder_owner := grounder.owner
+	var old_grounder_index := grounder.get_index() if not created_grounder else -1
+	var old_grounder_active := grounder.active
 	var want_active := bool(params.get("active", false))
 	var old_root: AnimationRootNode = tree.tree_root if not created_tree else null
 	var old_anim_player := tree.anim_player
@@ -689,6 +749,8 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 		# Trees may be placed inside a different scene instance from the player.
 		# The clip staging below handles the player's instance permissions.
 		var tree_levels := _instance_levels(tree_parent if created_tree else tree)
+		for level in _instance_levels(rig):
+			if not tree_levels.has(level): tree_levels.append(level)
 		for level in tree_levels:
 			undo.add_do_method(level.parent, "set_editable_instance", level.instance, true)
 		_stage_animation_changes(undo, player, library, created_library, removed, added)
@@ -714,6 +776,22 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 		if not created_tree:
 			undo.add_undo_property(tree, "root_motion_track", old_tree_root_motion)
 			undo.add_undo_property(tree, "root_motion_local", old_tree_root_motion_local)
+		if created_grounder:
+			undo.add_do_method(rig, "add_child", grounder, true)
+			undo.add_do_reference(grounder)
+		else:
+			undo.add_do_property(grounder, "active", false)
+			undo.add_undo_property(grounder, "active", old_grounder_active)
+			undo.add_undo_method(rig, "move_child", grounder, old_grounder_index)
+			undo.add_undo_method(grounder, "set_owner", old_grounder_owner)
+		undo.add_do_method(grounder, "set_owner", scene_root)
+		undo.add_do_method(rig, "move_child", grounder, rig.get_child_count() if created_grounder else rig.get_child_count()-1)
+		for field in grounding_config:
+			undo.add_do_property(grounder, field, grounding_config[field])
+			if not created_grounder: undo.add_undo_property(grounder, field, grounder.get(field))
+		undo.add_do_method(grounder, "reset_grounding", "setup_transaction")
+		undo.add_do_property(grounder, "active", true)
+		if created_grounder: undo.add_undo_method(rig, "remove_child", grounder)
 		undo.add_do_property(tree, "active", want_active)
 		if created_tree:
 			undo.add_undo_method(tree_parent, "remove_child", tree)
@@ -745,6 +823,8 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 		"player_path": player_path,
 		"skeleton_path": str(prepared_list[0].resolved.path),
 		"tree_path": tree_label,
+		"grounding_path": "%s/%s" % [ValueCodec.from_node(rig, scene_root), str(grounder.name)],
+		"grounding": {"contract_version": SetupGrounding.CONTRACT_VERSION, "created": created_grounder, "active": true, "status": "configured_pending_native_playback", "plane": "measured_rest_ankle", "maximum_correction_leg_ratio": 0.25, "target_tolerance_m": 0.00001, "root_motion_owner": "unchanged", "sample_signal": "modification_processed", "reset_method": "reset_grounding", "seek_reset": "call reset_grounding before explicit seeks/new takes; large native phase jumps also reset automatically"},
 		"tree_created": created_tree,
 		"tree_active": want_active,
 		"clips": clips,
