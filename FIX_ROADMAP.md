@@ -1,5 +1,23 @@
 # Animation Toolkit repair roadmap
 
+## Four setup movies retained; complete CI checkpoint (2026-10-17 evening)
+
+CI39018338100 at6f00b0f passes every job, including both Windows clean installs.
+The older Windows421 sequence timeout is retained with an honest transport
+diagnosis limit. Added bounded diagnostics preserve timing/backend evidence;
+they are observational, not a claimed transport repair or timeout waiver.
+
+Four clean/diagnostic saved-setup blend movies each complete1440frames/24s with
+full decode and native skin/framing proofs. Interrupted704frame jump capture is
+preserved; exact owned startup override recovered, fresh jump-only capture next.
+Independent visual assessment exposed showcase clipping; capture-only static fit
+and every-frameControlbounds now pass a fresh720frame/12s decoded replacement.
+Original failure remains recorded. Independent replacement review is pending.
+
+Two source-bound ZIP preview projects with releasedcores421/430 and isolated
+endpoint settings are prepared. Actual Windows preview execution follows the
+jump recording slot. Package validation succeeds; final release gates remain.
+
 ## Native restart and exact file/preset audit closed (2026-10-17)
 
 Godot4.7.2 passes the distinct12primed/12expected-unprimed reset controls,

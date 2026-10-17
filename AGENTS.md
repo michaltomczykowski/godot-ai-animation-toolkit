@@ -1,5 +1,37 @@
 # Agent notes
 
+## Resume after interrupted capture: 4 movies retained (2026-10-17 evening)
+
+HEAD8489efa adds capture-only showcase framing;0cb1623 adds CI observations.
+Actual source6f00b0f CI39018338100 is FULLY GREEN, including Windows421 cleanZIP.
+Earlier timeout remains unproven: dispatcher '[send]' occurs before actual
+WebSocket sending. New diagnostics preserve per-test timing/await stacks/backend
+logs without changing420s timeout, calls or coverage.6Python controls and actual
+Godot4.7.2 diagnostic-script parse pass. Fresh CI for later commits pending.
+
+Saved-recording-r005 retains4complete1440frame/24s clean+diagnostic blend movies,
+full PNG/native/fullMP4decode receipts, source6f00b0f. Jump-clean stopped704frames;
+no process remained at resume. Cause unknown. Original partial/startup retained.
+Exact leftover owned override verified/removed with recovery receipt
+setup/interrupted-r005-recovery.json. Fresh jump-only runner prepared:
+E:/GodotAI-toolkit-release-2.0.0/20261014/setup/capture_saved_setup_r006.py.
+Read saved-recording-r006/queue.json before any native launch; root owns ONE slot.
+
+Independent preset assessment found real showcase DriftLine clipping. Original
+failed frames preserved.8489efa uses static0.45scale and exact per-frame6Control
+bounds, no animation edits. New effects/media-r010-showcase completes720frames
+and12sdecode, allnative/bounds pass. Root fullframe120 shows full line; independent
+replacement temporal assessment pending.21Python controls+actual rendererparse pass.
+Private first8FX and8otherpreset scoped temporal pixel assessments are recorded;
+no continuous human watching/artistic/all47approval claimed. Edit assessment incomplete.
+
+Two isolated Windows preview ZIP projects prepared at windows-previews-6f00b0f,
+exact releasedcores421/430; no addonlinks, private endpoint settings8123/9623 and
+8124/9624 preserve existingbackend8000/9500. Package6f validates94entries. Actual
+imports/previews still pending; preparation is not qualification. Core430checkout
+E:/.../released-core-4.3.0 is exactb82b5c5; core421checkout remainsbfc2642.
+Continue release-completion-plan.md. No merge/tag/release.
+
 ## Current resume: exact history checks passed, setup capture next (2026-10-17)
 
 Read docs/resume-validation-20261017.md before older entries. Actual Godot4.7.2
