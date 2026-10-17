@@ -42,7 +42,7 @@ retained. Compare both views' native trajectories and validate decoded PNG/video
 counts before the independent temporal/visual assessment. Numerical success
 must never be relabeled visual or human approval.
 
-Official timing reference: [Skeleton3D manual modifier advance and signals](https://docs.godotengine.org/en/4.5/classes/class_skeleton3d.html).
+Official timing reference: [Skeleton3D manual modifier advance and signals](https://docs.godotengine.org/en/4.7/classes/class_skeleton3d.html).
 
 Offline scheduler controls:4pass, including immutable input, exact durations,
 supported four-rig scope, extracted/in-place controller ownership and truncation

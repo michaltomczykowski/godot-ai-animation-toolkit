@@ -158,7 +158,14 @@ func _framing(v: Dictionary) -> Dictionary:
 	return {"passed":valid,"bone_count":v.rig.get_bone_count(),"behind":behind,"minimum_px":[minimum.x,minimum.y],"maximum_px":[maximum.x,maximum.y],"margin_px":margin,"scope":"all final signaled bones including fingers; mesh silhouette needs visual review"}
 func _schedule_error(schedule: Dictionary) -> String:
 	var recording: Dictionary = schedule.get("recording",{})
-	if recording.get("contract")!="saved_setup_v1" or recording.get("fps")!=60 or recording.get("size")!=[1920,1080] or recording.get("fresh_scene_per_take")!=true or recording.get("camera")!="fixed_front_side": return "Unsupported recording contract"
+	var dimensions: Variant = recording.get("size")
+	# JSON parses numbers as floats. Array equality is type-sensitive in Godot;
+	# compare the exact component values without coercing/truncating dimensions.
+	if not dimensions is Array or dimensions.size()!=2: return "Invalid recording dimensions"
+	for dimension: Variant in dimensions:
+		if not (dimension is int or dimension is float): return "Invalid recording dimensions"
+	if dimensions[0]!=1920 or dimensions[1]!=1080: return "Invalid recording dimensions"
+	if recording.get("contract")!="saved_setup_v1" or recording.get("fps")!=60 or recording.get("fresh_scene_per_take")!=true or recording.get("camera")!="fixed_front_side": return "Unsupported recording contract"
 	if str(recording.get("route_sha256","")).length()!=64 or str(recording.get("planner_sha256","")).length()!=64: return "Missing schedule provenance hashes"
 	var cases: Array = schedule.get("cases",[])
 	if cases.size()!=4: return "Require exactly four rigs"

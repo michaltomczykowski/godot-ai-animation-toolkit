@@ -27,6 +27,7 @@ $scripts = @(
 	"res://tests/tier1_setup_provenance.gd",
 	"res://tests/tier1_motion_space.gd",
 	"res://tests/tier1_setup_tree_checker.gd",
+	"res://tests/tier1_setup_recording.gd",
 	"res://tests/tier1_jump_plan.gd"
 )
 # Import first. A fresh checkout has no .godot/imported, and a suite that loads a
