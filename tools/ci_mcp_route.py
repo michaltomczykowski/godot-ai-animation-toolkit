@@ -363,6 +363,7 @@ def modifier_playback_gate(args: argparse.Namespace) -> bool:
                 command.append(op)
             playback = subprocess.run(command, capture_output=True, text=True,
                                       timeout=30, check=False)
+            record_native_result("animation_rig_modifiers." + op, row["scene"], command, playback)
             reported = next((line[len(runtime_marker):]
                              for line in playback.stdout.splitlines()
                              if line.startswith(runtime_marker)), "")
@@ -968,6 +969,10 @@ def rig_playback_gate(args: argparse.Namespace) -> bool:
         print("MCP_CI_FAIL=rig_route:recipes_missing")
         return False
     playback_cases = [
+        ("pose_apply", results["pose_apply"]["scene"],
+         "res://tools/check_rig_saved_structure_runtime.gd", "RIG_SAVED_STRUCTURE="),
+        ("rig_chain", results["rig_chain"]["scene"],
+         "res://tools/check_rig_saved_structure_runtime.gd", "RIG_SAVED_STRUCTURE="),
         ("pose_to_clip", results["pose_crud"]["scene"],
          "res://tools/check_rig_pose_clip_runtime.gd", "RIG_POSE_CLIP="),
         ("bake_pose_sequence", results["bake_pose_sequence"]["scene"],
@@ -979,7 +984,7 @@ def rig_playback_gate(args: argparse.Namespace) -> bool:
     for op, scene, checker, marker in playback_cases:
         command = [godot_executable(args.godot), "--headless", "--path",
                    str(args.project), "--script", checker, "--", scene]
-        if checker.endswith("check_rig_recipe_runtime.gd"):
+        if checker.endswith(("check_rig_recipe_runtime.gd", "check_rig_saved_structure_runtime.gd")):
             command.append(op)
         playback = subprocess.run(command, capture_output=True, text=True,
                                   timeout=30, check=False)

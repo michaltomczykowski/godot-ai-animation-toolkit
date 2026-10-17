@@ -142,7 +142,7 @@ func _probe() -> void:
 					failures.append("active twist did not distribute to hips (processed %d times)" % int(observed.count))
 		_:
 			failures.append("unknown operation")
-	print("RIG_MODIFIER_RUNTIME=" + JSON.stringify({"op": args[1],
+	print("RIG_MODIFIER_RUNTIME=" + JSON.stringify({"scene": args[0], "op": args[1],
 		"modifier_class": modifier.get_class(), "target_resolved": target_resolved,
 		"response": response, "failures": failures}))
 	quit(0 if failures.is_empty() else 1)

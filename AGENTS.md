@@ -1,5 +1,29 @@
 # Agent notes
 
+## Resume: complete setup captures, exact Windows runtimes (2026-10-17 late)
+
+Read docs/windows-preview-local-execution.md and rig-native-playback-adapters.md.
+Six saved setup movies complete: four r005 blends at6f00b0f, two r006 jumps
+at5eef8d5; each1440frames/24s/native/fullMP4decodePASS. Original704frame interrupted
+jump retained. Independent pixel/temporal assessment pending. Showcase r010
+replacement independently sampled both takes: full line, min50px right margin.
+Ten edit representatives independently assessed240PNG/all7200native samples;
+no new sampled defect, exact initialization/scope limitations retained privately.
+
+Windows first cleanZIP preview at5eef never launched Godot: development Python
+violates released core421 runtime pins. Original backend traceback preserved;
+runner now retains primary failure over secondary empty-renderer-log error.
+Separate exact runtime environments421/430 prepared under E:/.../runtime-released-*;
+both verify_runtime_dependencies() pass, Pillow12.3.0 added. Fresh batch pending.
+
+Seven rig playback adapters integrated. Root actual replay exposed two new probe
+oracle errors (double rest and absolute-vs-rest-relative quaternion); corrected
+probes pass2original+8corruptednative controls, no production edits/fixture changes.
+45offline mixed collector/preview/rig/profile controls pass. Fresh actual public
+CI coverage still pending; older fullygreen6f CI is preserved, not relabeled.
+Root owns single native slot; inspect actual process/execution queue before launch.
+Continue release-completion-plan.md. No merge/tag/release yet.
+
 ## Resume after interrupted capture: 4 movies retained (2026-10-17 evening)
 
 HEAD8489efa adds capture-only showcase framing;0cb1623 adds CI observations.

@@ -1,5 +1,27 @@
 # Animation Toolkit repair roadmap
 
+## Complete saved captures and rig playback probes (2026-10-17 late)
+
+All six saved setup recordings now complete1440frames/24s/native/full-decode
+receipts; four r005 blends at6f00b0f, two fresh r006 jumps at5eef8d5. Original
+interrupted704frames remain. Independent temporal/pixel assessment is pending.
+Showcase replacement independently sampled both takes, with full line and50px
+minimum right margin. Ten edit representatives pass scoped independent assessment
+of240PNG/all7200native samples; no broad artistic or whole-candidate approval.
+
+Seven raw rig playback gaps now have source-specific adapters; actual native
+review corrected two probe oracle errors before CI. Two original saved fixtures
+and eight deliberately corrupt scene copies pass expected-positive/negative
+controls. No production animation or protected fixture changed. Fresh public CI
+execution remains pending. See docs/rig-native-playback-adapters.md.
+
+The first Windows cleanZIP preview never launched Godot: wrong development
+Python failed released421's exact dependency check. Failure logs preserved;
+primary failure no longer gets overwritten by missing renderer diagnostics.
+Separate421/430 runtimes now pass actual pinned-runtime verification.45offline
+mixed controls pass; fresh rendered batch is next. Details and limits:
+docs/windows-preview-local-execution.md. No merge/tag/release yet.
+
 ## Four setup movies retained; complete CI checkpoint (2026-10-17 evening)
 
 CI39018338100 at6f00b0f passes every job, including both Windows clean installs.

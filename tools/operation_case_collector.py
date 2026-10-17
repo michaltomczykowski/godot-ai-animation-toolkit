@@ -243,6 +243,9 @@ def _number(value):
     return isinstance(value, (int,float)) and not isinstance(value,bool) and math.isfinite(value)
 
 def native_checks(event, context):
+    from operation_rig_native_checks import OPS, verify_native
+    if event.get('operation') in OPS:
+        return verify_native(event, context)
     command = event.get('command', [])
     if not command or command[0] != context.get('engine_command'):
         raise ValueError('native engine command differs from actual version probe')
@@ -373,6 +376,9 @@ def native_checks(event, context):
 
 def native_origin_matches(event, call):
     """Bind named checker outputs, not merely another successful clip in the scene."""
+    from operation_rig_native_checks import OPS, origin_matches
+    if event.get('operation') in OPS:
+        return origin_matches(event, call)
     command=event['command']
     script=command[command.index('--script')+1]
     args=command[command.index('--')+1:]

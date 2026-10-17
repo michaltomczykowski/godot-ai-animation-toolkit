@@ -262,7 +262,10 @@ def run(args):
                         args.renderer_profile,report['context']['platform'],complete_log)
             except ValueError as exc:
                 report['passed']=False
-                report['error']=str(exc)
+                if report.get('error'):
+                    report.setdefault('secondary_errors',[]).append(str(exc))
+                else:
+                    report['error']=str(exc)
         (args.output/'rendered-preview.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
     print('RENDERED_PREVIEW='+json.dumps({'passed':report['passed'],'error':report.get('error')}))
     return 0 if report['passed'] else 1

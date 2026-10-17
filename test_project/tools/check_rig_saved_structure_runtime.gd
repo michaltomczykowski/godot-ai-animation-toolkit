@@ -24,21 +24,30 @@ func _probe() -> void:
 	if bone < 0 or parent < 0:
 		failures.append("expected saved bone missing")
 	else:
+		var rest := skeleton.get_bone_rest(bone)
 		if args[1] == "rig_chain":
 			if skeleton.get_bone_parent(bone) != parent:
 				failures.append("saved appended parent differs")
-			worst = skeleton.get_bone_rest(bone).origin.distance_to(Vector3(0, 0.05, 0))
+			worst = rest.origin.distance_to(Vector3(0, 0.05, 0))
+			worst = maxf(worst, rest.basis.get_rotation_quaternion().angle_to(Quaternion.IDENTITY))
+			worst = maxf(worst, rest.basis.get_scale().distance_to(Vector3.ONE))
 		var before := skeleton.get_bone_global_pose(bone).basis.get_rotation_quaternion()
 		if args[1] == "rig_chain":
-			skeleton.set_bone_pose_rotation(parent, Quaternion(Vector3.UP, 0.4))
+			skeleton.set_bone_pose_rotation(parent, skeleton.get_bone_pose_rotation(parent) * Quaternion(Vector3.UP, 0.4))
 		for _i in 6:
 			skeleton.advance(0.1)
 			await process_frame
+			if not skeleton.is_bone_enabled(bone) or not skeleton.get_bone_pose(bone).is_finite():
+				failures.append("saved bone disabled or nonfinite")
+			worst = maxf(worst, skeleton.get_bone_pose_position(bone).distance_to(rest.origin))
+			worst = maxf(worst, skeleton.get_bone_pose_scale(bone).distance_to(Vector3.ONE))
 			if args[1] == "pose_apply":
-				worst = maxf(worst, skeleton.get_bone_pose_rotation(bone).angle_to(Quaternion(Vector3.UP, 0.6)))
+				var expected_rotation := (rest.basis.get_rotation_quaternion() * Quaternion(Vector3.UP, 0.6)).normalized()
+				worst = maxf(worst, skeleton.get_bone_pose_rotation(bone).angle_to(expected_rotation))
 			else:
-				# Native local bone pose includes rest in global propagation.
-				var expected := skeleton.get_bone_global_pose(parent) * skeleton.get_bone_rest(bone) * skeleton.get_bone_pose(bone)
+				# Godot 4 local pose already contains the rest offset.
+				worst = maxf(worst, skeleton.get_bone_pose_rotation(bone).angle_to(Quaternion.IDENTITY))
+				var expected := skeleton.get_bone_global_pose(parent) * skeleton.get_bone_pose(bone)
 				var actual := skeleton.get_bone_global_pose(bone)
 				worst = maxf(worst, expected.origin.distance_to(actual.origin))
 				worst = maxf(worst, expected.basis.get_rotation_quaternion().angle_to(actual.basis.get_rotation_quaternion()))

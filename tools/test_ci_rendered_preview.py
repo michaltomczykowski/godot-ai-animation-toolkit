@@ -2,8 +2,12 @@ import tempfile
 from pathlib import Path
 import unittest
 import asyncio
+from argparse import Namespace
+import json
+import os
+from unittest.mock import Mock, patch
 from PIL import Image, ImageDraw
-from ci_rendered_preview import validate_images, require_error, require_success, validate_editor_log, scene_ready, wait_scene
+from ci_rendered_preview import run, validate_images, require_error, require_success, validate_editor_log, scene_ready, wait_scene
 
 
 class RenderedPreviewControls(unittest.TestCase):
@@ -52,6 +56,27 @@ class RenderedPreviewControls(unittest.TestCase):
         for failure in ['ERROR: engine failure','SCRIPT ERROR: invalid call','\x1b[31mERROR:\x1b[0m shutdown leak']:
             with self.assertRaisesRegex(ValueError,'engine/script'):
                 validate_editor_log('Rendered four frames\n'+failure)
+
+    def test_backend_startup_failure_survives_empty_editor_log_validation(self):
+        args=Namespace(project=self.directory,core_root=self.directory,
+            output=self.directory/'failed-run',renderer_profile='windows-native-opengl',
+            godot='godot',port=8123,ws_port=9623)
+        def prepare(_root,_core,_godot,path):
+            context={'platform':'windows'}
+            path.write_text(json.dumps(context),encoding='utf-8')
+            return context
+        process=Mock()
+        process.poll.return_value=1
+        with patch.dict(os.environ), patch('operation_case_collector.prepare',prepare), \
+             patch('ci_rendered_preview.validate_environment'), \
+             patch('ci_rendered_preview.port_open',return_value=False), \
+             patch('ci_rendered_preview.subprocess.Popen',return_value=process):
+            self.assertEqual(run(args),1)
+        report=json.loads((args.output/'rendered-preview.json').read_text())
+        self.assertFalse(report['passed'])
+        self.assertEqual(report['error'],'backend startup failed')
+        self.assertEqual(report['secondary_errors'],['editor log has no actual OpenGL API identity'])
+        process.terminate.assert_not_called()
 
     def test_scene_readiness_requires_exact_scene_and_real_sentinels(self):
         required=('/RepairRigFixture/AnimationPlayer','/RepairRigFixture/Dummy/Skeleton3D')
