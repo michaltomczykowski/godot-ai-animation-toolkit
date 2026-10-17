@@ -4658,3 +4658,5 @@ review branch; no release or media upload is part of this phase.
   as well as the documented minimum, using its public toolkit suite path.
 
 2026-10-17 inspect read evidence: isolated raw per-row hooks/strict adapter for eight operations; 10 offline adapter and 15 collector controls pass. Actual public candidate execution, complete engine reported_errors and broader pose/source invariance pending. See docs/inspect-read-evidence-adapter.md. No addon/fixture edits.
+
+2026-10-17 inspect root review: source_unchanged now pending for every partial walk snapshot (changed walk still fails). Describe verifies walk identity/length/track path/type/count; motion seam must be finite nonbool ~=100. 13 adapter controls pass, including Infinity/NaN/wrong identity. Full source invariance remains pending.

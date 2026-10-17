@@ -1,4 +1,5 @@
 """Strict fixed-fixture read assertions; no live pose or engine-log inference."""
+import math
 from operation_snapshot_checks import equivalent, successful, error_code
 
 ERROR_CODES = dict(describe='NODE_NOT_FOUND', timeline='INVALID_PARAMS', audit='NODE_NOT_FOUND',
@@ -12,6 +13,7 @@ DEPENDENCIES = ('tools/mcp_inspect_audit.py', 'tools/operation_inspect_checks.py
     'addons/godot_ai_animation/handlers/inspect.gd',
     'addons/godot_ai_animation/handlers/edit.gd',
     'addons/godot_ai_animation/spec/quality_modifiers.gd',
+    'addons/godot_ai_animation/spec/clip_spec.gd',
     'addons/godot_ai_animation/handlers/animation_tool_base.gd',
     'addons/godot_ai_animation/utils/error_codes.gd',
     'addons/godot_ai_animation/registry/op_registry.gd')
@@ -29,7 +31,14 @@ def walk(value):
 
 def effect(op,r):
     if not successful(r):return False
-    if op=='describe':return r.get('clip_count')==1 and len(r.get('clips',[]))==1 and r['clips'][0].get('key_count')==2
+    if op=='describe':
+        clips=r.get('clips',[])
+        if r.get('clip_count')!=1 or len(clips)!=1:return False
+        clip=clips[0];tracks=clip.get('tracks',[])
+        return (clip.get('name')=='walk' and clip.get('length')==1.0
+                and clip.get('track_count')==1 and clip.get('key_count')==2
+                and len(tracks)==1 and tracks[0].get('path')=='Character:position'
+                and tracks[0].get('type')=='value' and tracks[0].get('keys')==2)
     if op=='timeline':return walk(r)
     if op=='audit':return r.get('players_scanned')==1 and r.get('clips_scanned')==5
     if op=='compare':
@@ -39,7 +48,9 @@ def effect(op,r):
                 and changed[0].get('key_count_a')==2 and changed[0].get('key_count_b')==2
                 and changed[0].get('changed_keys')==1 and changed[0].get('max_delta')==100)
     if op=='stats':return r.get('totals',{}).get('key_count')==12
-    if op=='motion_report':return isinstance(r.get('worst_seam_gap'),(float,int)) and 99<=r['worst_seam_gap']
+    if op=='motion_report':
+        gap=r.get('worst_seam_gap')
+        return type(gap) in (float,int) and math.isfinite(gap) and math.isclose(gap,100.0,rel_tol=0.0,abs_tol=1e-5)
     if op=='dry_run':return r.get('dry_run') is True and r.get('length_before')==1 and r.get('length_after')==0.5
     if op=='help':return r.get('tool_count')==1 and len(r.get('tools',[]))==1 and len(r['tools'][0].get('ops',[]))==20 and sorted(x.get('name','') for x in r['tools'][0]['ops'])==sorted(EDIT_OPS)
     return False
@@ -48,7 +59,7 @@ def effect(op,r):
 def derive(row):
     op=row.get('op');ok=op in ERROR_CODES
     return {'valid_effect':'pass' if ok and effect(op,row.get('result',{})) else 'fail',
-            'source_unchanged':'pass' if walk(row.get('before',{})) and equivalent(row.get('before'),row.get('after')) else 'fail',
+            'source_unchanged':'pending' if walk(row.get('before',{})) and equivalent(row.get('before'),row.get('after')) else 'fail',
             'typed_errors':'pass' if ok and error_code(row.get('typed_error'))==ERROR_CODES[op] else 'fail'}
 
 
@@ -79,4 +90,5 @@ def verify_event(event,context,public_events,scene_events):
     checks=derive(row)
     if event.get('checks')!=checks:raise ValueError('inspect declared checks mismatch')
     return {'checks':checks,'public_case_ids':[read['id'],refusal['id'],before['id'],after['id'],max(opens,key=lambda e:e['execution_ns'])['id']], 'dry_case_ids':[], 'failures':[],
-            'limits':'Fixed authored 2D fixture response predicates and walk timeline equality only. Live pose/history/file invariance and complete engine reported_errors remain pending; no visual/playback claim.'}
+            'observations':{'walk_timeline_equal':walk(row.get('before',{})) and equivalent(row.get('before'),row.get('after'))},
+            'limits':'source_unchanged remains pending because all-clip/live pose/Player/invalid-call invariance is unobserved. Fixed authored 2D fixture response predicates and walk timeline equality only. Live pose/history/file invariance and complete engine reported_errors remain pending; no visual/playback claim.'}

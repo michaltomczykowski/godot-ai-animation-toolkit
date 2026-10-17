@@ -4,7 +4,7 @@ from operation_inspect_checks import derive, effect, verify_event, DEPENDENCIES,
 from mcp_inspect_audit import CASES, ERROR_CASES
 
 WALK={'key_count':2,'tracks':[{'path':'Character:position','keys':[{'value':{'x':0}},{'value':{'x':100}}]}]}
-RESULTS={'describe':{'clip_count':1,'clips':[{'key_count':2}]},'timeline':WALK,
+RESULTS={'describe':{'clip_count':1,'clips':[{'name':'walk','length':1.0,'track_count':1,'key_count':2,'tracks':[{'path':'Character:position','type':'value','keys':2}]}]},'timeline':WALK,
  'audit':{'players_scanned':1,'clips_scanned':5},'compare':{'identical':False,'changed_tracks':[{'path':'Character:position','key_count_a':2,'key_count_b':2,'changed_keys':1,'max_delta':100}]},
  'stats':{'totals':{'key_count':12}},'motion_report':{'worst_seam_gap':100},
  'dry_run':{'dry_run':True,'length_before':1,'length_after':0.5},'help':{'tool_count':1,'tools':[{'ops':[{'name':x} for x in EDIT_OPS]}]}}
@@ -21,7 +21,21 @@ class InspectTests(unittest.TestCase):
   return event,{'dependencies':dict.fromkeys(DEPENDENCIES,{})},calls,[opened]
  def test_eight_exact_rows(self):
   for op in RESULTS:
-   with self.subTest(op=op):self.assertEqual(set(verify_event(*self.fixture(op))['checks'].values()),{'pass'})
+   with self.subTest(op=op):self.assertEqual(verify_event(*self.fixture(op))['checks'],{'valid_effect':'pass','source_unchanged':'pending','typed_errors':'pass'})
+ def test_seam_wrong_values_rejected(self):
+  for gap in (float('inf'),float('-inf'),float('nan'),True,False,99,101,1e100):
+   with self.subTest(gap=gap):self.assertFalse(effect('motion_report',{'worst_seam_gap':gap}))
+ def test_describe_wrong_identity_rejected(self):
+  for field,value in [('name','run'),('length',2),('track_count',2)]:
+   result=copy.deepcopy(RESULTS['describe']);result['clips'][0][field]=value
+   self.assertFalse(effect('describe',result))
+  for field,value in [('path','OtherCharacter:position'),('type','method'),('keys',3)]:
+   result=copy.deepcopy(RESULTS['describe']);result['clips'][0]['tracks'][0][field]=value
+   self.assertFalse(effect('describe',result))
+ def test_partial_snapshot_never_qualifies_source(self):
+  args=self.fixture('stats');proof=verify_event(*args)
+  self.assertTrue(proof['observations']['walk_timeline_equal'])
+  self.assertEqual(proof['checks']['source_unchanged'],'pending')
  def test_inert_rejected(self):
   for op in RESULTS:self.assertFalse(effect(op,{}))
  def test_generic_changed_flag_rejected(self):
