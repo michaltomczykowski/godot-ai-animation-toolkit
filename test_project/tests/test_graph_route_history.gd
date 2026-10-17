@@ -1,6 +1,7 @@
 @tool
 extends McpTestSuite
 
+const GraphTrace := preload("res://tests/graph_history_trace.gd")
 const Registry := preload("res://addons/godot_ai/custom_tools/mcp_tool_registry.gd")
 const Ops := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
 const Builders := preload("res://addons/godot_ai_animation/spec/graph_builders.gd")
@@ -51,7 +52,7 @@ func _snapshot(fixture: Node) -> Dictionary:
 		var path := str(property.name)
 		if path.begins_with("parameters/") and not tree.get(path) is Resource:
 			parameters[path] = tree.get(path)
-	return {"tree": true, "root": Builders.graph_dump(tree.tree_root),
+	return {"tree": true, "root_class":tree.tree_root.get_class() if tree.tree_root!=null else "", "player_resolves":tree.get_node_or_null(tree.anim_player)==fixture.get_node("AnimationPlayer"), "root": Builders.graph_dump(tree.tree_root),
 		"player": str(tree.anim_player), "active": tree.active, "parameters": parameters}
 
 func _seed(fixture: Node) -> void:
@@ -70,20 +71,92 @@ func _own(node: Node, edited_root: Node) -> void:
 	node.owner = edited_root
 	for child in node.get_children(): _own(child, edited_root)
 
-func _persist(edited_root: Node, fixture: Node, expected: Dictionary, label: String) -> void:
+func _inputs(fixture: Node) -> Dictionary:
+	var player := fixture.get_node("AnimationPlayer") as AnimationPlayer
+	var clips := {}
+	for name in player.get_animation_list():
+		var animation := player.get_animation(name)
+		var tracks: Array = []
+		for index in animation.get_track_count():
+			var keys: Array = []
+			for key in animation.track_get_key_count(index): keys.append({"time":animation.track_get_key_time(index,key),"value":animation.track_get_key_value(index,key),"transition":animation.track_get_key_transition(index,key)})
+			tracks.append({"path":str(animation.track_get_path(index)),"type":animation.track_get_type(index),"enabled":animation.track_is_enabled(index),"interpolation":animation.track_get_interpolation_type(index),"keys":keys})
+		clips[str(name)]={"length":animation.length,"loop_mode":animation.loop_mode,"tracks":tracks}
+	return {"clips":clips,"target_position":fixture.get_node("Character").position,"target_rotation":fixture.get_node("Character").rotation}
+
+func _native_saved(saved: Node, op: String) -> Array:
+	var clone := saved.duplicate()
+	for mixer in clone.find_children("*","AnimationMixer",true,false):
+		mixer.active=false
+		mixer.callback_mode_process=AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	EditorInterface.get_edited_scene_root().get_tree().root.add_child(clone)
+	var tree := clone.get_node("AnimationTree") as AnimationTree
+	var player := clone.get_node("AnimationPlayer") as AnimationPlayer
+	var target := clone.get_node("Character") as Node2D
+	var samples: Array = []
+	if tree.tree_root==null:
+		clone.free()
+		return samples # New wire creates a binding, no playable root.
+	tree.active=true
+	tree.advance(0.0)
+	if op=="state_machine":
+		var playback := tree.get("parameters/playback") as AnimationNodeStateMachinePlayback
+		playback.start("idle")
+		tree.advance(0.1)
+		samples.append({"stage":"idle","x":target.position.x,"player_playing":player.is_playing(),"clock":"native_saved_tree"})
+		assert_true(absf(target.position.x)<=0.01,"native saved idle baseline")
+		playback.travel("walk")
+	elif op in ["blend_space","locomotion"]: tree.set("parameters/blend_position",1.0)
+	elif op=="blend_tree":
+		tree.advance(0.1)
+		samples.append({"stage":"idle","x":target.position.x,"player_playing":player.is_playing(),"clock":"native_saved_tree"})
+		assert_true(absf(target.position.x)<=0.01,"native saved blend idle baseline")
+		tree.set("parameters/Blend2/blend_amount",1.0)
+	elif op=="one_shot_layer":
+		tree.advance(0.1)
+		tree.set("parameters/OneShot/request",AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+	elif op=="additive_lean": tree.set("parameters/Add2/add_amount",1.0)
+	for _frame in 30: tree.advance(1.0/60.0)
+	var stage := "walk" if op in ["state_machine","blend_space","blend_tree","locomotion"] else "jump" if op=="one_shot_layer" else "lean" if op=="additive_lean" else "neutral_hold"
+	samples.append({"stage":stage,"x":target.position.x,"y":target.position.y,"rotation":target.rotation,"player_playing":player.is_playing(),"clock":"native_saved_tree","frames":30,"dt":1.0/60.0})
+	assert_false(player.is_playing(),"native Tree sole playback writer")
+	if stage=="walk": assert_true(target.position.x>=20.0,"native saved walk branch")
+	elif stage=="jump": assert_true(target.position.y<=-20.0,"native saved jump branch")
+	elif stage=="lean": assert_true(target.rotation>=0.05,"native saved lean branch")
+	elif stage=="neutral_hold": assert_true(absf(target.position.x)<=0.01 and absf(target.position.y)<=0.01,"native wire seeded idle hold")
+	if op in ["blend_space","locomotion"]:
+		var walk_x := target.position.x
+		tree.set("parameters/blend_position",2.0)
+		for _frame in 6: tree.advance(1.0/60.0)
+		samples.append({"stage":"run","x":target.position.x,"player_playing":player.is_playing(),"clock":"native_saved_tree","frames":6,"dt":1.0/60.0})
+		assert_true(target.position.x>walk_x+10.0,"native saved faster run branch")
+	clone.free()
+	return samples
+
+func _persist(edited_root: Node, fixture: Node, expected: Dictionary, label: String, op: String="") -> Dictionary:
 	var packed := PackedScene.new()
-	assert_eq(packed.pack(edited_root), OK, label + " packs")
+	var pack_result := packed.pack(edited_root)
+	assert_eq(pack_result, OK, label + " packs")
 	var path := "user://graph_history_%s.tscn" % label
-	assert_eq(ResourceSaver.save(packed, path), OK, label + " saves")
+	var save_result := ResourceSaver.save(packed, path)
+	assert_eq(save_result, OK, label + " saves")
 	var saved := (ResourceLoader.load(path, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene).instantiate()
-	assert_eq(_snapshot(saved.get_node(str(fixture.name))), expected, label + " saved state matches")
+	var found := saved.get_node_or_null(str(fixture.name))
+	var snapshot := _snapshot(found) if found!=null else {}
+	assert_eq(snapshot, expected, label + " saved state matches")
+	var fixture_found := found!=null
+	var native := _native_saved(found,op) if found!=null and label.ends_with("_redo") else []
 	saved.free()
+	return {"path":path,"sha256":FileAccess.get_sha256(path),"pack_result":pack_result,"save_result":save_result,"fixture_found":fixture_found,"snapshot":snapshot,"native":native}
 
 func _matrix(mode: String) -> void:
 	var edited_root := EditorInterface.get_edited_scene_root()
 	var history := _undo.get_history_undo_redo(_undo.get_object_history_id(edited_root))
 	var global_history := _undo.get_history_undo_redo(EditorUndoRedoManager.GLOBAL_HISTORY)
 	for op in CASES:
+		var assertions_before := _assertion_count
+		var failed_before := _failed
+		var source_path := ""
 		_logger.errors.clear()
 		var fixture := FIXTURE.instantiate()
 		fixture.name = "GraphHistory"
@@ -91,7 +164,7 @@ func _matrix(mode: String) -> void:
 		var peer: Node
 		if mode.begins_with("instanced"):
 			var packed := PackedScene.new()
-			var source_path := "user://graph_history_source_%s_%s.tscn" % [op, mode]
+			source_path = "user://graph_history_source_%s_%s.tscn" % [op, mode]
 			assert_eq(packed.pack(fixture), OK)
 			assert_eq(ResourceSaver.save(packed, source_path), OK)
 			fixture.free()
@@ -115,33 +188,60 @@ func _matrix(mode: String) -> void:
 		var params: Dictionary = CASES[op].duplicate(true)
 		params.merge({"op": op, "player_path": str(fixture.get_node("AnimationPlayer").get_path()),
 			"tree_path": str(fixture.get_path()) + "/AnimationTree", "active": op != "wire"})
+		var evidence := {"suite":"graph_route_history","test":{"new":"test_new_graph_scene_history","replace":"test_replaced_graph_scene_history","instanced":"test_instanced_graph_scene_history","instanced_new":"test_instanced_new_graph_scene_history"}[mode],"mode":mode,"op":op,"request":params.duplicate(true),"scene":edited_root.scene_file_path,"before":baseline,"inputs_before":_inputs(fixture),"versions":{"before":version,"global_before":global_version},"failed_before":failed_before,"errors_before":0,"fixture_sha256_before":FileAccess.get_sha256("res://repair_graph_fixture.tscn"),"source_path":source_path,"source_sha256_before":FileAccess.get_sha256(source_path) if not source_path.is_empty() else "","peer_before":peer_before}
 		var orphans := Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)
-		assert_has_key(_call(params.merged({"dry_run": true})), "data", op + " dry route")
+		var dry := _call(params.merged({"dry_run": true}))
+		evidence.dry=dry
+		evidence.after_dry=_snapshot(fixture)
+		evidence.versions.dry=history.get_version()
+		assert_has_key(dry, "data", op + " dry route")
 		assert_eq(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT), orphans, op + " dry run leaves no orphan tree")
 		assert_eq(_snapshot(fixture), baseline, op + " dry state")
 		assert_eq(history.get_version(), version, op + " dry history")
-		assert_is_error(_call(params.merged({"player_path": "/Missing"}, true)), "NODE_NOT_FOUND", op + " invalid route")
+		evidence.invalid_request=params.merged({"player_path":"/Missing"},true)
+		evidence.invalid=_call(evidence.invalid_request)
+		evidence.after_error=_snapshot(fixture)
+		evidence.versions.error=history.get_version()
+		assert_is_error(evidence.invalid, "NODE_NOT_FOUND", op + " invalid route")
 		assert_eq(_snapshot(fixture), baseline, op + " invalid state")
 		assert_eq(history.get_version(), version, op + " invalid history")
 		var result := _call(params)
 		assert_has_key(result, "data", op + " write " + str(result))
+		evidence.write=result
 		var generated := _snapshot(fixture)
+		evidence.generated=generated
+		evidence.versions.write=history.get_version()
+		evidence.versions.global_write=global_history.get_version()
 		assert_ne(generated, baseline, op + " effect")
 		assert_eq(history.get_version(), version + 1, op + " one scene action")
 		assert_eq(global_history.get_version(), global_version, op + " no global action")
-		assert_true(history.undo(), op + " undo")
+		evidence.undo_success=history.undo()
+		evidence.undone=_snapshot(fixture)
+		assert_true(evidence.undo_success, op + " undo")
 		assert_eq(_snapshot(fixture), baseline, op + " exact undo")
 		if old_tree != null: assert_true(old_tree.tree_root == old_root, op + " original root identity")
 		if peer != null: assert_false(edited_root.is_editable_instance(fixture), op + " undo instance editability")
-		_persist(edited_root, fixture, baseline, op + "_" + mode + "_undo")
-		assert_true(history.redo(), op + " redo")
+		evidence.persist_undo=_persist(edited_root, fixture, baseline, op + "_" + mode + "_undo",op)
+		evidence.redo_success=history.redo()
+		evidence.redone=_snapshot(fixture)
+		assert_true(evidence.redo_success, op + " redo")
 		assert_eq(_snapshot(fixture), generated, op + " exact redo")
-		_persist(edited_root, fixture, generated, op + "_" + mode + "_redo")
+		evidence.persist_redo=_persist(edited_root, fixture, generated, op + "_" + mode + "_redo",op)
+		evidence.inputs_after=_inputs(fixture)
+		evidence.peer_after=_snapshot(peer) if peer!=null else {}
+		evidence.source_sha256_after=FileAccess.get_sha256(source_path) if not source_path.is_empty() else ""
+		evidence.fixture_sha256_after=FileAccess.get_sha256("res://repair_graph_fixture.tscn")
+		assert_eq(evidence.inputs_after,evidence.inputs_before,op+" source inputs unchanged")
 		if peer != null:
 			assert_eq(_snapshot(peer), peer_before, op + " peer unchanged")
 			peer.free()
 		fixture.free()
 		assert_eq(_logger.errors, [], op + " " + mode + " emits no engine errors")
+		evidence.errors_after=_logger.errors.size()
+		evidence.errors=_logger.errors.duplicate()
+		evidence.failed_after=_failed
+		evidence.assertion_count=_assertion_count-assertions_before
+		GraphTrace.emit(evidence)
 
 func test_registry_has_a_graph_history_case_for_every_operation() -> void:
 	var names: Array = []
