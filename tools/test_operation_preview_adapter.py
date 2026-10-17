@@ -10,7 +10,7 @@ class PreviewAdapter(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
         self.root=Path(self.tmp.name);self.context_path=self.root/'context.json'
-        self.context={'schema_version':1,'kind':'operation_trace_context','run_id':'fixture-preview','platform':'linux','engine_command':'fixture-godot','dependencies':{'tools/ci_rendered_preview.py':{},'tools/operation_preview_adapter.py':{}}}
+        self.context={'schema_version':1,'kind':'operation_trace_context','run_id':'fixture-preview','platform':'linux','engine_command':'fixture-godot','dependencies':{'tools/ci_rendered_preview.py':{},'tools/operation_preview_adapter.py':{},'tools/preview_renderer_profile.py':{}}}
         self.context_path.write_text(json.dumps(self.context))
         self.params={'op':'preview','player_path':'/Fixture/Player','animation_name':'rendered_walk',
                      'width':320,'height':240,'times':[.05,.23,.47,.71],
@@ -52,7 +52,7 @@ class PreviewAdapter(unittest.TestCase):
         self.report={'schema_version':1,'operation':'animation_inspect.preview','passed':True,
             'context':self.context,'context_sha256':digest(self.context_path),'public_case_id':'fixture:6',
             'raw_response':self.response,'images':images,'restoration':restore,'checkpoints':checkpoints,
-            'logs':logs,'renderer_identity':[renderer],
+            'logs':logs,'renderer_identity':[renderer],'renderer_profile':'linux-mesa-llvmpipe',
             'editor_command':['fixture-godot','--editor','--rendering-method','gl_compatibility']}
         self.path=self.root/'rendered-preview.json'
     def validate(self):
@@ -63,6 +63,31 @@ class PreviewAdapter(unittest.TestCase):
         self.assertEqual(proof['public_case_id'],'fixture:6')
         self.assertEqual(set(proof['checks']),{'valid_effect','file_effect','source_unchanged','typed_errors','reported_errors'})
         self.assertNotIn('visual_review',proof['checks'])
+    def test_windows_profile_binds_real_complete_log_and_context(self):
+        self.context['platform']='windows'
+        self.context_path.write_text(json.dumps(self.context))
+        self.report['context_sha256']=digest(self.context_path)
+        self.report['renderer_profile']='windows-native-opengl'
+        renderer='OpenGL API 3.3.0 NVIDIA 581.80 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce GTX 1070 Ti'
+        (self.root/'editor.log').write_text(renderer)
+        self.report['logs'][0]['sha256']=digest(self.root/'editor.log')
+        self.report['renderer_identity']=[renderer]
+        self.assertEqual(self.validate()['checks']['file_effect'],'pass')
+        for bad in (None,'linux-mesa-llvmpipe'):
+            self.report['renderer_profile']=bad
+            with self.assertRaises(ValueError):self.validate()
+    def test_logged_identity_cannot_omit_another_actual_device(self):
+        path=self.root/'editor.log'
+        path.write_text(path.read_text()+'\nOpenGL API other unexpected device')
+        self.report['logs'][0]['sha256']=digest(path)
+        with self.assertRaisesRegex(ValueError,'identity differs'):self.validate()
+    def test_explicit_profile_requires_bound_helper(self):
+        del self.context['dependencies']['tools/preview_renderer_profile.py']
+        self.context_path.write_text(json.dumps(self.context))
+        self.report['context_sha256']=digest(self.context_path)
+        with self.assertRaisesRegex(ValueError,'helper not bound'):self.validate()
+        del self.report['renderer_profile']
+        self.assertEqual(self.validate()['checks']['file_effect'],'pass')
     def test_wrong_case_context_or_headless_refusal_never_qualify(self):
         original=copy.deepcopy(self.report)
         for field,value in [('public_case_id','fixture:2'),('context_sha256','foreign'),('editor_command',['fixture-godot','--editor','--headless'])]:

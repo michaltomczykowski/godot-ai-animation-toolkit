@@ -4,6 +4,7 @@ import hashlib
 import json
 import re
 from pathlib import Path, PureWindowsPath
+from preview_renderer_profile import LINUX, WINDOWS, validate_renderer_identity
 
 
 def digest(path):
@@ -66,10 +67,15 @@ def validate_preview(report_path,context_path,context,public_events):
     if any(marker in clean_text for marker in ('ERROR:','SCRIPT ERROR:','Parse Error')):
         raise ValueError('preview editor reported an engine/script error')
     identity=report.get('renderer_identity',[])
-    if not identity or not all(isinstance(line,str) and line in text and 'OpenGL API' in line for line in identity):
+    profile=report.get('renderer_profile')
+    # Historical Linux-only receipts predate an explicit profile. Their
+    # llvmpipe/platform contract is retained; Windows never receives a default.
+    if profile is None and context['platform']=='linux' and 'tools/preview_renderer_profile.py' not in context['dependencies']: profile=LINUX
+    if profile not in (LINUX,WINDOWS): raise ValueError('preview renderer profile missing or unsupported')
+    if report.get('renderer_profile') is not None and 'tools/preview_renderer_profile.py' not in context['dependencies']: raise ValueError('preview renderer profile helper not bound to tested source')
+    actual_identity=validate_renderer_identity(profile,context['platform'],text)
+    if identity!=actual_identity:
         raise ValueError('preview renderer identity differs from actual startup log')
-    if context['platform']=='linux' and not any('llvmpipe' in line.lower() for line in identity):
-        raise ValueError('Linux preview contract requires actual llvmpipe renderer identity')
     rows=report.get('images',[])
     if len(rows)!=4 or [row.get('path') for row in rows]!=[Path(path).name for path in expected]:
         raise ValueError('preview must bind exactly four requested image identities')
