@@ -12,6 +12,8 @@ from fastmcp import Client
 from fastmcp.client.transports import StdioTransport
 
 from mcp_presets_audit import call
+from operation_case_collector import record_snapshot_result
+from operation_inspect_checks import derive, ERROR_CODES
 
 
 PLAYER = "/RepairGraphFixture/AnimationPlayer"
@@ -65,14 +67,20 @@ async def run(args: argparse.Namespace) -> int:
                 "animation_name": "walk"})
             bad = await call(client, "custom_animation_inspect", {
                 "op": op, **ERROR_CASES[op]})
-            rows.append({"op": op, "result": result, "typed_error": bad,
-                         "source_intact": after == baseline})
+            row = {"op": op, "scene": SCENE, "request": {"op": op, **extras},
+                   "error_request": {"op": op, **ERROR_CASES[op]},
+                   "result": result, "typed_error": bad, "before": baseline, "after": after,
+                   "open": opened, "source_intact": after == baseline}
+            rows.append(row)
+            record_snapshot_result("inspect_read_v1", row)
     failures = [f"{row['op']}: {row['result'].get('error')}" for row in rows
                 if row["result"].get("error")]
     failures += [f"{row['op']}: changed source clip" for row in rows
                  if not row["source_intact"]]
     failures += [f"{row['op']}: invalid call did not return a typed error"
-                 for row in rows if not str(row["typed_error"].get("error", "")).split(":", 1)[0].isupper()]
+                 for row in rows if str(row["typed_error"].get("error", "")).split(":", 1)[0] != ERROR_CODES[row["op"]]]
+    failures += [row["op"] + ": strict " + key for row in rows
+                 for key, status in derive(row).items() if status == "fail"]
     results = {row["op"]: row["result"] for row in rows}
     if results["describe"].get("clip_count") != 1 or results["describe"].get("clips", [{}])[0].get("key_count") != 2:
         failures.append("describe: expected the saved two-key walk clip")

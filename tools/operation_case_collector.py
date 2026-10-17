@@ -190,6 +190,10 @@ def record_native_result(operation, scene, command, completed):
 
 def record_snapshot_result(validator,row):
     if not os.environ.get('TOOLKIT_OPERATION_CONTEXT') and not os.environ.get('TOOLKIT_OPERATION_TRACE_DIR'):return
+    if validator=="inspect_read_v1":
+        from operation_inspect_checks import derive
+        return _emit("operation_snapshot_assertions", {"operation":"animation_inspect."+row["op"],
+            "validator":validator,"row":row,"checks":derive(row),"route":"public_godot_ai"})
     from operation_snapshot_checks import derive
     family='animation_fx' if validator=='fx_snapshot_v1' else 'animation_edit'
     op='sprite_frames' if row['op']=='sprite_frames_stopped' else row['op'].removesuffix('_wrap_reject')
@@ -476,7 +480,10 @@ def collect(context_path, traces, root, preview_report=None):
                       'raw_event_id':event['id'],'scene':event['scene'],'failures':failures,
                       'limits':'Source-specific native playback checks only; additional FX paths/types when applicable. Native audio playing is an event, not audible-output or visual approval.'})
     for event in snapshot_events:
-        from operation_snapshot_checks import verify_event
+        if event.get("validator")=="inspect_read_v1":
+            from operation_inspect_checks import verify_event
+        else:
+            from operation_snapshot_checks import verify_event
         proof=verify_event(event,context,public_events,support_events)
         cases.append({'id':event['id'],'operation':event['operation'],'checks':proof['checks'],
                       'scope':'candidate','route':'public_godot_ai','raw_event_id':event['id'],

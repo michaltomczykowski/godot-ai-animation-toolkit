@@ -4656,3 +4656,5 @@ review branch; no release or media upload is part of this phase.
   demonstrated failures or silently mark them passed. Correct justified N/A
   handling in the audit exporter. Test the package with released Godot AI 4.3.0
   as well as the documented minimum, using its public toolkit suite path.
+
+2026-10-17 inspect read evidence: isolated raw per-row hooks/strict adapter for eight operations; 10 offline adapter and 15 collector controls pass. Actual public candidate execution, complete engine reported_errors and broader pose/source invariance pending. See docs/inspect-read-evidence-adapter.md. No addon/fixture edits.
