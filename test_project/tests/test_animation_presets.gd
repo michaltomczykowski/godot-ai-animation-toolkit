@@ -682,6 +682,21 @@ func test_preset_spin_quarter_turn_quaternions() -> void:
 
 # --- showcase --------------------------------------------------------------
 
+func test_preset_showcase_dry_run_does_not_add_a_node() -> void:
+	var scene_root := EditorInterface.get_edited_scene_root()
+	if scene_root == null:
+		skip("No scene root")
+		return
+	var name := "DryRunPresetShowcase"
+	assert_true(scene_root.get_node_or_null(name) == null, "fixture starts without the showcase")
+	var result := PresetsHandler.new().run({"op": "showcase", "name": name, "dry_run": true}, null)
+	assert_has_key(result, "data")
+	assert_eq(result.data.animations, 7, "dry run reports the seven planned clips")
+	assert_true(bool(result.data.dry_run), "dry run is marked in the response")
+	assert_false(bool(result.data.undoable), "dry run creates no undo action")
+	assert_true(scene_root.get_node_or_null(name) == null,
+		"showcase dry run must not insert its subtree")
+
 func test_preset_showcase_builds_and_undoes_a_runnable_demo() -> void:
 	var scene_root := EditorInterface.get_edited_scene_root()
 	if scene_root == null:

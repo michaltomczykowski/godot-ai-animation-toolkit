@@ -9,9 +9,12 @@ on:
 env:
   GODOT_VERSION: "4.7.2"
   # Pinned Godot AI release the toolkit is validated against.
-  CORE_REF: "v4.2.1"
+  CORE_REF: "bfc264200584ea5823f18356acb164781f57796d"
 
 jobs:
+  rendered-preview:
+    uses: ./.github/workflows/rendered-preview.yml
+
   tier1:
     name: Tier 1 / ${{ matrix.os }} / ${{ matrix.script }}
     runs-on: ${{ matrix.os }}
@@ -25,7 +28,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        # The same fourteen pure suites tools/test_tier1.ps1 runs locally. One
+        # The same pure suites tools/test_tier1.ps1 runs locally. One
         # matrix leg per suite so a failure names the suite, and so a suite that
         # only ever ran on a developer's machine still gates the release.
         script:
@@ -43,6 +46,11 @@ jobs:
           - tier1_spine_chain
           - tier1_root_motion
           - tier1_proportions
+          - tier1_setup_provenance
+          - tier1_motion_space
+          - tier1_setup_tree_checker
+          - tier1_setup_recording
+          - tier1_jump_plan
     steps:
       - name: Checkout toolkit
         uses: actions/checkout@v4
@@ -112,9 +120,14 @@ jobs:
         # compared on Linux, so the cross-OS axis of the float maths was never
         # exercised. Tier-1 already runs both; the editor suites now do too,
         # because this is the only leg that runs the golden fixtures.
-        os: [ubuntu-latest, windows-latest]
-        # The pinned release is the gate; `main` is informational drift detection.
-        core-ref: ["v4.2.1", "main"]
+        # Released versions gate; `main` is informational drift detection.
+        include:
+          - {os: ubuntu-latest, core-ref: "4.2.1", core-sha: "bfc264200584ea5823f18356acb164781f57796d"}
+          - {os: windows-latest, core-ref: "4.2.1", core-sha: "bfc264200584ea5823f18356acb164781f57796d"}
+          - {os: ubuntu-latest, core-ref: "4.3.0", core-sha: "b82b5c519b1b17228f70d8effce1626f391bd1dd"}
+          - {os: windows-latest, core-ref: "4.3.0", core-sha: "b82b5c519b1b17228f70d8effce1626f391bd1dd"}
+          - {os: ubuntu-latest, core-ref: "main", core-sha: "main"}
+          - {os: windows-latest, core-ref: "main", core-sha: "main"}
     continue-on-error: ${{ matrix.core-ref == 'main' }}
     defaults:
       run:
@@ -130,7 +143,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: hi-godot/godot-ai
-          ref: ${{ matrix.core-ref }}
+          ref: ${{ matrix.core-sha }}
           path: .ci/godot-ai
 
       - name: Set up Godot
@@ -164,42 +177,252 @@ jobs:
             exit 1
           fi
 
+      - name: Audit every registry operation
+        if: matrix.os == 'ubuntu-latest' && matrix.core-ref == '4.2.1'
+        run: |
+          godot --headless --path test_project --script res://tools/export_operation_audit.gd
+          git diff --exit-code -- docs/operation-audit.json
+
+      - name: Preserve exact-source editor log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editor-${{ matrix.os }}-${{ matrix.core-ref }}
+          path: editor.log
+
+  mcp-route:
+    name: Live MCP route / ${{ matrix.os }} / core ${{ matrix.core-ref }}
+    runs-on: ${{ matrix.os }}
+    # Full saved-history matrices and external reload checks take almost
+    # fifteen minutes on Windows; retain room for runner/startup variation.
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-latest, core-ref: "4.2.1", core-sha: "bfc264200584ea5823f18356acb164781f57796d"}
+          - {os: windows-latest, core-ref: "4.2.1", core-sha: "bfc264200584ea5823f18356acb164781f57796d"}
+          - {os: ubuntu-latest, core-ref: "4.3.0", core-sha: "b82b5c519b1b17228f70d8effce1626f391bd1dd"}
+          - {os: windows-latest, core-ref: "4.3.0", core-sha: "b82b5c519b1b17228f70d8effce1626f391bd1dd"}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout toolkit
+        uses: actions/checkout@v4
+
+      - name: Checkout Godot AI (pinned)
+        uses: actions/checkout@v4
+        with:
+          repository: hi-godot/godot-ai
+          ref: ${{ matrix.core-sha }}
+          path: .ci/godot-ai
+
+      - name: Set up Godot
+        uses: chickensoft-games/setup-godot@c233594225991af5aec714e52457cc76d6df8fa2 # v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pinned Godot AI backend
+        run: python -m pip install -e .ci/godot-ai
+
+      - name: Link addons
+        run: |
+          ln -s "$PWD/.ci/godot-ai/plugin/addons/godot_ai" test_project/addons/godot_ai
+          ln -s "$PWD/addons/godot_ai_animation" test_project/addons/godot_ai_animation
+
+      - name: Import project
+        run: godot --headless --path test_project --import
+
+      - name: Probe families and saved motion, graph, modifier, FX, edit, preset, library, inspect, sequence and rig contracts through Godot AI
+        run: |
+          set -o pipefail
+          python tools/ci_mcp_route.py --core-root .ci/godot-ai --case-output-dir operation-evidence 2>&1 | tee mcp-route.log
+
+      - name: Preserve editor startup log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-editor-${{ matrix.os }}-${{ matrix.core-ref }}
+          path: |
+            mcp-editor.log
+            mcp-backend.log
+            mcp-route.log
+            mcp-editor-preset-library-history*
+            mcp-editor-rig-clip-history*
+            operation-evidence/**
+          if-no-files-found: ignore
+
   version-check:
-    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout toolkit
         uses: actions/checkout@v4
 
       - name: plugin.cfg version must match the tag
+        if: startsWith(github.ref, 'refs/tags/v')
         run: |
           tag="${GITHUB_REF_NAME#v}"
           version=$(sed -n 's/^version="\(.*\)"$/\1/p' addons/godot_ai_animation/plugin.cfg)
           echo "tag=$tag plugin.cfg=$version"
           [ "$tag" = "$version" ]
 
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build and validate committed package
+        shell: pwsh
+        run: ./tools/release_zip.ps1 -Source $env:GITHUB_SHA
+      - name: Reject corrupted packages and version/path mismatches
+        run: python tools/test_release_package.py
+      - name: Reject corrupt and stale operation qualification evidence
+        run: python -m unittest discover -s tools -p 'test_release_audit.py' -v
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-package
+          path: dist/*
+
+  dependency-controls:
+    name: Dependency and rollback controls / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chickensoft-games/setup-godot@c233594225991af5aec714e52457cc76d6df8fa2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run isolated metadata and typed registration controls
+        shell: bash
+        run: python tools/test_core_dependency.py --godot godot
+
+  clean-install:
+    name: Clean ZIP install / ${{ matrix.os }} / core ${{ matrix.core-ref }}
+    needs: package
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-latest, core-ref: "4.2.1", core-sha: "bfc264200584ea5823f18356acb164781f57796d"}
+          - {os: windows-latest, core-ref: "4.2.1", core-sha: "bfc264200584ea5823f18356acb164781f57796d"}
+          - {os: ubuntu-latest, core-ref: "4.3.0", core-sha: "b82b5c519b1b17228f70d8effce1626f391bd1dd"}
+          - {os: windows-latest, core-ref: "4.3.0", core-sha: "b82b5c519b1b17228f70d8effce1626f391bd1dd"}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: hi-godot/godot-ai
+          ref: ${{ matrix.core-sha }}
+          path: .ci/godot-ai
+      - uses: chickensoft-games/setup-godot@c233594225991af5aec714e52457cc76d6df8fa2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-package
+          path: dist
+      - name: Install exact released backend and download released plugin
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m pip install -e .ci/godot-ai
+          gh release download "v${{ matrix.core-ref }}" --repo hi-godot/godot-ai --pattern godot-ai-v4-plugin.zip --dir .ci/released-core
+      - name: Verify cached-call selection test ordering
+        run: python -m unittest discover -s tools -p 'test_install_selection.py' -v
+      - name: Qualify both enable orders from extracted ZIPs
+        run: |
+          python tools/clean_zip_install.py --source "$GITHUB_SHA" --zip dist/godot-ai-animation-toolkit-2.0.0.zip --core-root .ci/godot-ai --core-zip .ci/released-core/godot-ai-v4-plugin.zip --core-ref "${{ matrix.core-ref }}" --output clean-install-evidence
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: clean-install-${{ matrix.os }}-${{ matrix.core-ref }}
+          path: |
+            clean-install-evidence/*-editor.log
+            clean-install-evidence/*-route.log
+            clean-install-evidence/*preset-library-history*
+            clean-install-evidence/*rig-clip-history*
+            clean-install-evidence/clean-install-receipt.json
+            clean-install-evidence/gate-diagnostics/**
+
+  release-gate:
+    # Repair PRs may retain honest pending evidence. Main and tags must close it.
+    if: github.event_name == 'push'
+    needs: [tier1, editor-suite, mcp-route, version-check, package, clean-install, dependency-controls, rendered-preview]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install decoded rendered-evidence validator dependency
+        run: python -m pip install Pillow==11.3.0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: rendered-preview-linux-core-*
+          path: rendered-preview-matrix
+      - name: Verify both exact-run rendered preview receipts
+        run: python tools/check_rendered_preview_matrix.py --source "$GITHUB_SHA" --receipts rendered-preview-matrix
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: clean-install-*
+          path: release-matrix
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-package
+          path: dist
+      - name: Verify exact-source installation matrix
+        run: python tools/check_install_matrix.py --source "$GITHUB_SHA" --receipts release-matrix --package dist/godot-ai-animation-toolkit-2.0.0.zip.manifest.json
+      - name: Require complete exact-source operation qualification
+        run: python tools/check_release_audit.py --source "$GITHUB_SHA" --receipt-dir docs/release-qualification
+
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [tier1, editor-suite, version-check]
+    needs: [release-gate]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Checkout toolkit
-        uses: actions/checkout@v4
-
-      - name: Build release zip
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-package
+          path: dist
+      - name: Verify package before publication
+        run: python tools/validate_release_package.py --source "$GITHUB_SHA" --zip "dist/godot-ai-animation-toolkit-${GITHUB_REF_NAME#v}.zip" --version "${GITHUB_REF_NAME#v}"
+      - name: Require tag to identify freshly fetched remote main
         run: |
-          mkdir -p dist
-          # The licence ships with the addon: someone who unzips this into a
-          # project has to get the terms, not just the code.
-          git archive --format=zip \
-            --output "dist/godot-ai-animation-toolkit-${GITHUB_REF_NAME#v}.zip" \
-            HEAD addons/godot_ai_animation LICENSE
-
-      - name: Create GitHub release
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/main)"
+      - name: Publish ZIP, checksum and source manifest with curated notes
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/*.zip \
-            --title "$GITHUB_REF_NAME" --generate-notes
+          archive="dist/godot-ai-animation-toolkit-${GITHUB_REF_NAME#v}.zip"
+          gh release create "$GITHUB_REF_NAME" "$archive" "$archive.manifest.json" "$archive.sha256" --verify-tag --title "$GITHUB_REF_NAME" --notes-file docs/releases/2.0.0.md

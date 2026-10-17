@@ -232,7 +232,7 @@ func test_mirror_position_about_pivot() -> void:
 	_teardown(fixture)
 
 
-func test_offset_wrap_keeps_length() -> void:
+func test_offset_wrap_rejects_discontinuous_seam() -> void:
 	var fixture := _fixture("Offset")
 	if fixture.has("error"):
 		skip(fixture.error)
@@ -241,10 +241,10 @@ func test_offset_wrap_keeps_length() -> void:
 		"op": "offset", "player_path": fixture.player_path, "animation_name": "clip",
 		"delta": 0.5, "wrap": true,
 	}, null)
-	assert_has_key(result, "data")
+	assert_is_error(result, ErrorCodes.VALUE_OUT_OF_RANGE)
 	var anim := _fetch_anim(fixture.player_path, "clip")
-	assert_true(is_equal_approx(anim.length, 1.0), "wrapped offset keeps the length")
-	assert_eq(anim.track_get_key_count(0), 2, "wrapped offset dedupes the seam keys")
+	assert_true(is_equal_approx(anim.length, 1.0), "rejected wrap keeps the length")
+	assert_eq(anim.track_get_key_count(0), 3, "rejected wrap keeps all motion keys")
 	_teardown(fixture)
 
 
@@ -590,7 +590,12 @@ func test_quality_passes_smooth_resample_noise_overlap_layer() -> void:
 		"op": "overlap", "player_path": fixture.player_path, "animation_name": "clip",
 		"track_path": "QPTarget:position", "delay": 0.1, "wrap": true,
 	}, null)
-	assert_true(overlapped.has("data"), "overlap: %s" % str(overlapped))
+	assert_is_error(overlapped, ErrorCodes.VALUE_OUT_OF_RANGE)
+	overlapped = _handler.run({
+		"op": "overlap", "player_path": fixture.player_path, "animation_name": "clip",
+		"track_path": "QPTarget:position", "delay": 0.1, "wrap": false,
+	}, null)
+	assert_true(overlapped.has("data"), "nonwrapped overlap: %s" % str(overlapped))
 	var source := ClipSpec.make(1.0, Animation.LOOP_NONE)
 	ClipSpec.add_value_track(source, "QPTarget:modulate:a", [
 		{"time": 0.0, "value": 1.0, "transition": 1.0},

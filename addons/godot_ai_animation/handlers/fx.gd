@@ -25,6 +25,9 @@ const _MAX_WAVE_TARGETS := 64
 
 ## Rollup entry registered with the Godot AI tool registry.
 func run(params: Dictionary, _ctx) -> Dictionary:
+	var availability := OpRegistry.preflight(OpRegistry.FAMILY_FX, params)
+	if not availability.is_empty():
+		return availability
 	_dry_run = bool(params.get("dry_run", false))
 	var result := _dispatch(params)
 	if _dry_run and result.has("data"):
@@ -142,7 +145,7 @@ func fx_hit_flash(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
 			"hit_flash targets a CanvasItem (Control/Node2D), got %s" % target.get_class())
 	var base_color: Color = (target as CanvasItem).modulate
-	var flash := _coerce_color(params.get("color", Color(1, 1, 1, 1)))
+	var flash := _coerce_color(params.get("color", FxSpecs.hit_flash_default_color(base_color)))
 	if flash == null:
 		return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "'color' must be a hex string or {r,g,b[,a]} dict")
 	var duration := float(params.get("duration", 0.18))
@@ -153,6 +156,8 @@ func fx_hit_flash(params: Dictionary) -> Dictionary:
 	FxSpecs.assign_paths(built.spec, context.track_path_root, "modulate")
 	return _commit_spec(context, built.spec, "MCP: Hit flash %s" % context.track_path_root, {
 		"color": ValueCodec.serialize(flash),
+		"base_color": ValueCodec.serialize(base_color),
+		"color_mode": "explicit" if params.has("color") else "automatic_contrast",
 		"count": count,
 	})
 
@@ -362,7 +367,7 @@ func fx_wave(params: Dictionary) -> Dictionary:
 			return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
 				"wave needs a Vector2/Vector3 position on %s" % str(entry))
 		baselines.append(baseline)
-		track_paths.append(resolved.track_path_root)
+		track_paths.append(str(resolved.track_path_root) + ":position")
 	var built := FxSpecs.wave_spec(track_paths, baselines, str(params.get("axis", "y")),
 		float(params.get("amplitude", 12.0)), float(params.get("period", 1.2)),
 		float(params.get("phase_step", 0.12)), int(params.get("cycles", 1)))
@@ -550,18 +555,34 @@ func fx_sprite_frames(params: Dictionary) -> Dictionary:
 	var sprite := node as AnimatedSprite2D
 	var old_frames: Variant = sprite.sprite_frames
 	var old_playing := sprite.is_playing()
-	sprite.stop()
+	var old_animation := sprite.animation
+	var old_frame := sprite.frame
+	var old_progress := sprite.frame_progress
+	var old_speed := sprite.get_playing_speed() / sprite.speed_scale if not is_zero_approx(sprite.speed_scale) else 1.0
 	var play := bool(params.get("play", true))
-	_create_scene_pinned_action("MCP: Sprite frames %s" % sprite_path)
-	var undo := ToolContext.undo_redo
-	undo.add_do_property(node, "sprite_frames", built.frames)
-	undo.add_undo_property(node, "sprite_frames", old_frames)
-	undo.add_do_method(sprite, "play", animation_name)
-	if old_playing:
-		undo.add_undo_method(sprite, "play")
-	else:
+	if not _dry_run:
+		_create_scene_pinned_action("MCP: Sprite frames %s" % sprite_path)
+		var undo := ToolContext.undo_redo
+		# Child resource overrides need editable instances to survive packing.
+		# Keep that permission change in the same scene history action.
+		for level in _instance_levels(sprite):
+			undo.add_do_method(level.parent, "set_editable_instance", level.instance, true)
+			undo.add_undo_method(level.parent, "set_editable_instance", level.instance, false)
+		undo.add_do_method(sprite, "stop")
+		undo.add_do_property(node, "sprite_frames", built.frames)
+		undo.add_do_property(sprite, "animation", StringName(animation_name))
 		undo.add_undo_method(sprite, "stop")
-	undo.commit_action()
+		if old_frames != null:
+			undo.add_undo_property(node, "sprite_frames", old_frames)
+			undo.add_undo_property(sprite, "animation", old_animation)
+		else:
+			undo.add_undo_method(self, "_restore_null_sprite_frames", sprite, old_animation)
+		if play:
+			undo.add_do_method(sprite, "play", animation_name)
+		if old_playing:
+			undo.add_undo_method(sprite, "play", old_animation, old_speed)
+		undo.add_undo_method(sprite, "set_frame_and_progress", old_frame, old_progress)
+		undo.commit_action()
 	return {"data": {
 		"sprite_path": sprite_path,
 		"texture": texture_path,
@@ -739,6 +760,18 @@ static func _loop_mode(params: Dictionary, default_mode: String) -> Dictionary:
 	if not _LOOP_MODES.has(mode):
 		return {"error": "Invalid loop_mode '%s'. Valid: %s" % [mode, ", ".join(_LOOP_MODES.keys())]}
 	return {"ok": _LOOP_MODES[mode]}
+
+
+func _restore_null_sprite_frames(sprite: AnimatedSprite2D, animation: StringName) -> void:
+	# Godot rejects selecting a name without frames, but retains that name
+	# when frames are removed. Select it against a temporary valid resource
+	# first, then remove the resource, preserving the original null state.
+	var temporary := SpriteFrames.new()
+	if not temporary.has_animation(animation):
+		temporary.add_animation(animation)
+	sprite.sprite_frames = temporary
+	sprite.animation = animation
+	sprite.sprite_frames = null
 
 
 func _coerce_vector(raw: Variant, like: Variant) -> Variant:

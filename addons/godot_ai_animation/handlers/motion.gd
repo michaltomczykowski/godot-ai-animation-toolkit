@@ -10,10 +10,15 @@ extends "res://addons/godot_ai_animation/handlers/bone_animation.gd"
 ## and `overrides` trade a small schema for deep tuning.
 
 const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
+const MotionSpace := preload("res://addons/godot_ai_animation/spec/motion_space.gd")
 const MotionSpecs := preload("res://addons/godot_ai_animation/spec/motion_specs.gd")
+const MotionTransitions := preload("res://addons/godot_ai_animation/spec/motion_transitions.gd")
 const MotionDrivers := preload("res://addons/godot_ai_animation/spec/motion_drivers.gd")
 const SpecIO := preload("res://addons/godot_ai_animation/spec/spec_io.gd")
 const GraphBuilders := preload("res://addons/godot_ai_animation/spec/graph_builders.gd")
+const SetupGrounding := preload("res://addons/godot_ai_animation/runtime/setup_grounding.gd")
+const SecondarySampler := preload("res://addons/godot_ai_animation/utils/secondary_clip_sampler.gd")
+var _test_secondary_fail_at := -1 # Internal failure injection, not on the tool wire.
 
 const _CYCLE_KINDS := {
 	"walk_cycle": "walk",
@@ -27,7 +32,7 @@ const _CYCLE_KINDS := {
 	"walk_stop": "walk_stop",
 }
 
-const _GAIT_KEYS := ["stride", "knee_bend", "arm_swing", "arm_twist", "bob", "sway", "hip_yaw", "hip_roll", "chest_yaw", "lean", "foot_lift", "elbow", "elbow_swing", "lag", "stance", "crouch", "toe_roll", "twist_spread"]
+const _GAIT_KEYS := ["stride", "knee_bend", "arm_swing", "arm_twist", "bob", "sway", "hip_yaw", "hip_roll", "chest_yaw", "lean", "foot_lift", "elbow", "elbow_swing", "lag", "stance", "crouch", "toe_roll", "twist_spread", "elbow_lag", "wrist_swing", "wrist_lag", "torso_twist", "torso_flex", "torso_roll", "head_nod", "head_roll", "head_lag", "head_stabilize", "forearm_twist", "wrist_sway", "arm_variation", "variation_seed", "hand_relax"]
 
 ## Overrides that are switches rather than numbers, so they are not coerced.
 const _BOOLEAN_OVERRIDES := ["planted"]
@@ -40,6 +45,11 @@ func _scale_distances_to_rig(config: Dictionary, params: Dictionary, overrides: 
 	var explicit: Array = []
 	for key in params:
 		explicit.append(str(key))
+	# Friendly jump aliases write their canonical config keys below. Treat them
+	# as explicit too, or a caller's 0.5 m jump silently changes with rig size.
+	for alias in {"height": "jump_height", "distance": "jump_distance", "crouch": "jump_crouch"}:
+		if params.has(alias):
+			explicit.append({"height": "jump_height", "distance": "jump_distance", "crouch": "jump_crouch"}[alias])
 	for key in overrides:
 		explicit.append(str(key))
 	MotionSpecs.scale_distances_to_rig(config, ctx, explicit, MotionSpecs.REFERENCE_LEG)
@@ -51,19 +61,36 @@ const _OVERRIDE_KEYS := {
 	"strafe": _GAIT_KEYS,
 	"walk_start": _GAIT_KEYS,
 	"walk_stop": _GAIT_KEYS,
-	"idle": ["amplitude", "head_amplitude", "look", "twist", "bob", "sway", "shift", "noise", "lean", "arm_sway", "elbow", "arm_twist", "twist_spread", "planted"],
+	"idle": ["amplitude", "head_amplitude", "look", "twist", "bob", "sway", "shift", "noise", "lean", "arm_sway", "elbow", "arm_twist", "twist_spread", "planted", "elbow_swing", "elbow_lag", "wrist_swing", "wrist_lag", "forearm_twist", "wrist_sway", "arm_variation", "variation_seed", "hand_relax"],
 	# Only keys a recipe actually reads are accepted. `jump` never applied
-	# `foot_lift` and `turn` never applied `lean`/`toe_roll`, so they used to be
+	# `foot_lift` and `turn` never applied `toe_roll`, so they used to be
 	# accepted, reported as success and change nothing; now they are refused.
 	"jump": ["jump_height", "jump_crouch", "jump_distance", "arm_swing", "elbow", "lean"],
-	"turn": ["turn_angle", "arm_swing", "elbow", "foot_lift", "steps"],
+	"turn": ["turn_angle", "arm_swing", "elbow", "foot_lift", "steps", "lean", "wrist_swing", "forearm_twist", "wrist_sway", "hand_relax"],
 }
+
+## A single request can otherwise allocate tens of millions of keys by asking
+## for a very long clip at 120 samples/s. Check before MotionSpecs builds keys.
+const MAX_CYCLE_INTERVALS := 1200
+var _pending_setup_grounder: SkeletonModifier3D
+var _pending_setup_tree: AnimationTree
 
 
 ## Rollup entry registered with the Godot AI tool registry.
 func run(params: Dictionary, _ctx) -> Dictionary:
+	var availability := OpRegistry.preflight(OpRegistry.FAMILY_MOTION, params)
+	if not availability.is_empty():
+		return availability
 	_dry_run = bool(params.get("dry_run", false))
+	_pending_setup_tree = null
+	_pending_setup_grounder = null
 	var result := _dispatch(params)
+	if is_instance_valid(_pending_setup_tree) and not _pending_setup_tree.is_inside_tree():
+		_pending_setup_tree.free()
+	_pending_setup_tree = null
+	if is_instance_valid(_pending_setup_grounder) and not _pending_setup_grounder.is_inside_tree():
+		_pending_setup_grounder.free()
+	_pending_setup_grounder = null
 	if _dry_run and result.has("data"):
 		result.data["dry_run"] = true
 		result.data["undoable"] = false
@@ -72,6 +99,14 @@ func run(params: Dictionary, _ctx) -> Dictionary:
 
 func _dispatch(params: Dictionary) -> Dictionary:
 	var op: String = params.get("op", "")
+	if _CYCLE_KINDS.has(op) or op == "secondary_motion":
+		if not _dry_run:
+			var context := _require_undo("animation_motion " + op)
+			if context.has("error"): return context
+		var destination := _resolve_player(str(params.get("player_path", "")))
+		if destination.has("error"): return destination
+		var available := _idle_clip_destination(destination.player)
+		if available.has("error"): return available
 	match op:
 		"walk_cycle":
 			return _run_cycle(params, "walk")
@@ -113,8 +148,11 @@ func _run_cycle(params: Dictionary, kind: String) -> Dictionary:
 		var player_resolved := _resolve_player(str(params.get("player_path", "")))
 		if not player_resolved.has("error"):
 			var root_node := ValueCodec.player_root_node(player_resolved.player)
-			if root_node != null:
-				root_motion_track = "%s:%s" % [str(root_node.get_path_to(prepared.resolved.node)), str(prepared.ctx.hips)]
+			var motion_node := _root_motion_node(root_node, prepared.resolved.node) if root_node != null else null
+			if motion_node != null:
+				root_motion_track = "%s:position" % str(root_node.get_path_to(motion_node))
+				var compatible := _extraction_change_safe(player_resolved.player, NodePath(root_motion_track), true, [prepared.anim_name])
+				if compatible.has("error"): return compatible
 				extra_props.append({
 					"object": player_resolved.player,
 					"property": "root_motion_track",
@@ -134,20 +172,26 @@ func _run_cycle(params: Dictionary, kind: String) -> Dictionary:
 						"old": false,
 					})
 	var committed := _commit_procedural_clip(params, prepared.resolved, prepared.anim_name,
-		prepared.length, prepared.loop_mode, prepared.keys, prepared.markers, extra_props)
+		prepared.length, prepared.loop_mode, prepared.keys, prepared.markers, extra_props, true)
 	if committed.has("error"):
 		return committed
 	committed.data["style"] = prepared.style
+	committed.data["resolved_style"] = MotionSpecs.resolved_style(prepared.style)
+	committed.data["applied_features"] = prepared.applied_features
+	committed.data["omitted_features"] = prepared.omitted_features
 	committed.data["samples"] = prepared.rate
 	committed.data["roles"] = prepared.ctx.roles
 	committed.data["spine_chain"] = prepared.ctx.spine_chain
 	committed.data["root_motion"] = bool(prepared.ctx.get("root_motion", false))
 	committed.data["root_motion_track"] = root_motion_track
 	committed.data["speed"] = float(prepared.meta.get("speed",
-		_implied_speed(kind, prepared.config, prepared.ctx, prepared.length)))
-	for key in prepared.meta:
+		_implied_speed(kind, prepared.config, prepared.ctx, prepared.length))) * float(prepared.ctx.world_scale)
+	var world_meta := MotionSpace.world_metrics(prepared.meta, float(prepared.ctx.world_scale))
+	for key in world_meta:
 		if key != "warnings":
-			committed.data[key] = prepared.meta[key]
+			committed.data[key] = world_meta[key]
+	committed.data["world_scale"] = float(prepared.ctx.world_scale)
+	committed.data["root_motion_space"] = "owner_parent" if prepared.rooted else "none"
 	if prepared.meta.has("warnings") and not (prepared.meta.get("warnings") as Array).is_empty():
 		committed.data["warnings"] = prepared.meta.get("warnings")
 	committed.data["markers"] = prepared.markers.size()
@@ -165,9 +209,9 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
 			"Invalid preset '%s'. Valid: walk, run, idle, jump, turn, strafe" % kind)
 	var style := str(params.get("style", "default"))
-	if style != "default" and not MotionSpecs._STYLE_MULTIPLIERS.has(style):
+	if not MotionSpecs.STYLE_NAMES.has(style):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
-			"Invalid style '%s'. Valid: %s" % [style, ", ".join(MotionSpecs._STYLE_MULTIPLIERS.keys())])
+			"Invalid style '%s'. Valid: %s" % [style, ", ".join(MotionSpecs.STYLE_NAMES)])
 	var overrides = params.get("overrides", {})
 	if not (overrides is Dictionary):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'overrides' must be an object")
@@ -176,21 +220,19 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		if not valid_keys.has(str(key)):
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"Unknown %s override '%s'. Valid: %s" % [kind, str(key), ", ".join(valid_keys)])
-	var built := _build_context(params, kind)
-	if built.has("error"):
-		return built
-	var config: Dictionary = MotionSpecs.walk_config(style, {})
-	match kind:
-		"run":
-			config = MotionSpecs.run_config(style, {})
-		"idle":
-			config = MotionSpecs.idle_config(style, {})
-		"jump":
-			config = MotionSpecs.jump_config(style, {})
-		"turn":
-			config = MotionSpecs.turn_config(style, {})
-		"strafe":
-			config = MotionSpecs.strafe_config(style, {})
+		if str(key) in _BOOLEAN_OVERRIDES:
+			if not overrides[key] is bool: return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Override '%s' must be a boolean" % key)
+		elif not (overrides[key] is int or overrides[key] is float):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Override '%s' must be a number" % key)
+	var numeric_fields := valid_keys.duplicate()
+	numeric_fields.append_array(["duration", "samples", "gait_duration", "gait_samples", "speed", "phase", "arm_down", "height", "distance", "crouch", "angle"])
+	for field in numeric_fields:
+		if not params.has(field): continue
+		if str(field) in _BOOLEAN_OVERRIDES:
+			if not params[field] is bool: return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'%s' must be a boolean" % field)
+		elif not (params[field] is int or params[field] is float):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'%s' must be a number" % field)
+	var config := MotionSpecs.config_for_kind(kind, style)
 	for key in overrides:
 		config[str(key)] = overrides[key]
 	for key in valid_keys:
@@ -209,18 +251,69 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		config["jump_crouch"] = float(params["crouch"])
 	if params.has("angle"):
 		config["turn_angle"] = float(params["angle"])
+	var built := _build_context(params, kind, config)
+	if built.has("error"):
+		return built
+	var world_scale := float(built.ctx.world_scale)
+	MotionSpace.local_config(config, params, overrides, world_scale)
 	var length := float(built.length)
 	var rate := float(built.rate)
 	var ctx: Dictionary = built.ctx
 	ctx["config"] = config
+	for field in ["elbow_lag", "wrist_lag", "head_lag"]:
+		if config.has(field) and (float(config[field]) < 0.0 or float(config[field]) > 0.25):
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "%s must be between 0 and 0.25 cycle fractions" % field)
+	if absf(float(config.get("wrist_swing", 0.0))) > 20.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "wrist_swing must be between -20 and 20 degrees")
+	if absf(float(config.get("torso_twist", 0.0))) > 45.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "torso_twist must be between -45 and 45 degrees")
+	var articulate := false
+	for field in ["torso_flex", "torso_roll", "head_nod", "head_roll"]:
+		if absf(float(config.get(field, 0.0))) > 10.0:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "%s must be between -10 and 10 degrees" % field)
+	for field in ["torso_flex", "torso_roll", "head_nod", "head_roll", "head_lag", "head_stabilize"]:
+		articulate = articulate or config.has(field)
+	if float(config.get("head_stabilize", 0.0)) < 0.0 or float(config.get("head_stabilize", 0.0)) > 1.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "head_stabilize must be between 0 and 1")
+	for field in ["forearm_twist", "wrist_sway"]:
+		var limit := 20.0 if field == "forearm_twist" else 10.0
+		if absf(float(config.get(field, 0.0))) > limit:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "%s must be between -%s and %s degrees" % [field, limit, limit])
+	for field in ["arm_variation", "hand_relax"]:
+		var limit := 3.0 if field == "arm_variation" else 45.0
+		if float(config.get(field, 0.0)) < 0.0 or float(config.get(field, 0.0)) > limit:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "%s must be between 0 and %s degrees" % [field, limit])
+	var seed_value := float(config.get("variation_seed", 0))
+	if seed_value < 0.0 or seed_value > 2147483647.0 or seed_value != floorf(seed_value):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "variation_seed must be an integer from 0 to 2147483647")
+	var features := _optional_features(params, overrides, config, built, articulate, kind == "idle")
+	if features.has("error"):
+		return features
 	_scale_distances_to_rig(config, params, overrides, ctx)
-	ctx["speed"] = maxf(float(params.get("speed", 0.0)), 0.0)
+	if kind == "jump":
+		# Height is now skeleton-local, including implicit rig scaling. Flight
+		# uses world gravity; only omitted duration may grow to fit that flight.
+		var timing := MotionSpecs.JumpPlan.timing(float(config.jump_height) * world_scale,
+			length, params.has("duration"), rate)
+		if timing.has("error"):
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, str(timing.error))
+		length = float(timing.length)
+		ctx["length"] = length
+	ctx["foot_lift_explicit"] = params.has("foot_lift") or overrides.has("foot_lift")
+	ctx["speed"] = maxf(float(params.get("speed", 0.0)), 0.0) / world_scale
 	var direction := str(params.get("direction", "left"))
 	if direction != "left" and direction != "right":
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'direction' must be 'left' or 'right'")
 	ctx["direction"] = direction
 	ctx["phase"] = clampf(float(params.get("phase", 0.0)), 0.0, 0.999)
 	if kind == "strafe":
+		var ankle_gap := absf(((ctx.legs.l.ankle as Vector3) -
+			(ctx.legs.r.ankle as Vector3)).dot(ctx.lateral as Vector3))
+		var smaller_leg := minf(float(ctx.legs.l.upper) + float(ctx.legs.l.lower),
+			float(ctx.legs.r.upper) + float(ctx.legs.r.lower))
+		if ankle_gap <= maxf(0.001, smaller_leg * 0.02):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"Strafe needs distinct left/right rest ankle spacing along the rig's lateral axis; check foot roles and rest pose")
 		ctx["step_axis"] = (built.ctx.lateral as Vector3) * (1.0 if direction == "left" else -1.0)
 		ctx["knee_hint"] = built.ctx.forward
 	var result: Dictionary
@@ -234,13 +327,63 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		"strafe":
 			result = MotionSpecs.strafe_keys(ctx, direction)
 		"walk_start", "walk_stop":
-			result = MotionSpecs.transition_keys(ctx, kind == "walk_stop")
+			# A transition's duration/density describes the transfer, not the walk
+			# it joins. Prepare both references without committing another clip.
+			var gait_params := params.duplicate(true)
+			gait_params["duration"] = params.get("gait_duration", 1.0)
+			gait_params["samples"] = params.get("gait_samples", 60.0)
+			gait_params["loop_mode"] = "linear"
+			var gait_reference := _prepare_cycle(gait_params, "walk")
+			if gait_reference.has("error"): return gait_reference
+			var idle_params := {"duration": 3.0, "samples": 60.0, "loop_mode": "linear", "root_motion": false}
+			for field in ["player_path", "skeleton_path", "roles", "profile", "spine_chain", "style", "arm_down"]:
+				if params.has(field): idle_params[field] = params[field]
+			var idle_reference := _prepare_cycle(idle_params, "idle")
+			if idle_reference.has("error"): return idle_reference
+			result = MotionTransitions.build(ctx, kind == "walk_stop", gait_reference, idle_reference)
 		_:
 			result = MotionSpecs.gait_keys(ctx, kind == "run")
+	var result_meta: Dictionary = result.get("meta", {})
+	if result_meta.has("reach_error"):
+		var reason := str(result_meta.reach_error)
+		if world_scale != 1.0:
+			reason = "World metric request converted at uniform scale %.6f; local skeleton solver: %s" % [world_scale, reason]
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, reason)
+	if kind == "turn" and not str(params.get("player_path", "")).is_empty():
+		var owner := _resolve_player(str(params.player_path))
+		if not owner.has("error"):
+			var binding: NodePath = owner.player.root_motion_track
+			var animation_root: Node = ValueCodec.player_root_node(owner.player)
+			if animation_root != null and binding.get_subname_count() == 1:
+				var target: Node = animation_root.get_node_or_null(NodePath(binding.get_concatenated_names()))
+				if target == built.resolved.node and (result.keys as Dictionary).has(str(binding.get_subname(0))):
+					return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
+						"Turn owns skeletal heading, but this player extracts one of its animated bones. Clear that root_motion_track or use a separate player before generating the turn")
+	if kind == "walk" and float(params.get("speed", 0.0)) > 0.0 \
+			and float(result_meta.get("speed", 0.0)) * world_scale < float(params.speed) - 0.001:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Requested walk speed %.3f m/s exceeds the reachable %.3f m/s at duration %.3f s; lower speed or shorten duration" % [
+				float(params.speed), float(result_meta.get("speed", 0.0)) * world_scale, length])
+	if kind == "run" and float(params.get("speed", 0.0)) > 0.0 \
+			and float(result_meta.get("speed", 0.0)) * world_scale < float(params.speed) - 0.001:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Requested run speed %.3f m/s exceeds the reachable %.3f m/s at duration %.3f s; lower speed or shorten duration" % [
+				float(params.speed), float(result_meta.get("speed", 0.0)) * world_scale, length])
+	if kind == "strafe" and float(params.get("speed", 0.0)) > 0.0 \
+			and bool((result.get("meta", {}) as Dictionary).get("lateral_capped", false)):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Requested strafe speed %.3f m/s exceeds this rig's safe lateral reach at duration %.3fs; use speed <= %.3f m/s or shorten duration" % [
+				float(params.speed), length, float((result.meta as Dictionary).lateral_speed_cap) * world_scale])
 	var keys: Dictionary = result.get("keys", {})
 	if keys.is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"No bones could be keyed - check the skeleton's bone roles")
+	if kind == "jump":
+		# Exact physical events split the sample grid. Report actual average
+		# density and retain the requested/floored density separately.
+		result_meta["requested_samples"] = float(params.get("samples", 60.0))
+		result_meta["sampling_rate_floor"] = rate
+		rate = float(result_meta.effective_samples)
 	return {
 		"resolved": built.resolved,
 		"ctx": ctx,
@@ -252,10 +395,94 @@ func _prepare_cycle(params: Dictionary, kind: String) -> Dictionary:
 		"rate": rate,
 		"loop_mode": int(built.loop_mode),
 		"style": style,
+		"applied_features": features.applied,
+		"omitted_features": features.omitted,
 		"kind": kind,
 		"anim_name": str(params.get("animation_name", kind)),
-		"rooted": bool(built.ctx.get("root_motion", false)) and not str(built.ctx.get("hips", "")).is_empty(),
+		"rooted": bool(built.ctx.get("root_motion", false)) and keys.has("__root_motion__"),
 	}
+
+
+## Defaults may omit anatomy; explicit nonzero controls must never silently do
+## nothing. Removing keys (not just zeroing values) avoids selecting solvers
+## whose presence-based switches require geometry this rig does not have.
+func _optional_features(params: Dictionary, overrides: Dictionary, config: Dictionary, built: Dictionary, articulate: bool, idle: bool = false) -> Dictionary:
+	var ctx: Dictionary = built.ctx
+	var applied: Array = []
+	var omitted: Array = []
+	if idle:
+		for item in [{"feature": "idle_head_motion", "role": "head", "fields": ["look", "head_amplitude"]},
+				{"feature": "idle_breathing", "role": "chest", "fields": ["amplitude"]}]:
+			var requested := false
+			for field in item.fields: requested = requested or not is_zero_approx(float(config.get(field, 0.0)))
+			if not requested: continue
+			var bone := str(ctx.roles.get(item.role, ""))
+			if bone.is_empty() or not (ctx.spine_chain as Array).has(bone) or not MotionSpecs.rest_ancestor(ctx, bone, str(ctx.hips)):
+				var reason := "Idle %s needs its resolved %s joint in the connected animated spine chain" % [item.feature, item.role]
+				if _explicit_feature(params, overrides, item.fields):
+					return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, reason)
+				for field in item.fields: config.erase(field)
+				omitted.append({"feature": item.feature, "reason": reason})
+			else:
+				applied.append(item.feature)
+	var upper := ["torso_flex", "torso_roll", "head_nod", "head_roll", "head_lag", "head_stabilize"]
+	if articulate:
+		var layout := MotionSpecs.upper_body_layout(ctx)
+		if layout.has("error"):
+			if _explicit_feature(params, overrides, upper):
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, str(layout.error))
+			for field in upper: config.erase(field)
+			omitted.append({"feature": "torso_head_articulation", "reason": str(layout.error)})
+		else:
+			ctx["upper_body_layout"] = layout
+			applied.append("torso_head_articulation")
+	var hands := ["elbow_lag", "wrist_swing", "wrist_lag", "forearm_twist", "wrist_sway", "arm_variation", "variation_seed", "hand_relax"]
+	var moving_hands := false
+	for field in ["wrist_swing", "forearm_twist", "wrist_sway", "arm_variation", "hand_relax"]:
+		moving_hands = moving_hands or not is_zero_approx(float(config.get(field, 0.0)))
+	if moving_hands:
+		var reason := ""
+		for side in ["l", "r"]:
+			if not ctx.roles.has("arm_" + side) or not ctx.roles.has("forearm_" + side) or not ctx.roles.has("hand_" + side):
+				reason = "Requested hand motion requires resolved arm, forearm and hand roles on both sides"
+				break
+			var arm := str(ctx.roles["arm_" + side])
+			var fore := str(ctx.roles["forearm_" + side])
+			var hand := str(ctx.roles["hand_" + side])
+			if not MotionSpecs.rest_ancestor(ctx, fore, arm) or not MotionSpecs.rest_ancestor(ctx, hand, fore) \
+					or (ctx.rest[hand].origin as Vector3).distance_to(ctx.rest[fore].origin as Vector3) < 0.0001:
+				reason = "Requested hand motion needs connected arm -> forearm -> hand geometry"
+				break
+		if not reason.is_empty():
+			if _explicit_feature(params, overrides, hands):
+				return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, reason)
+			var finger_requested := float(config.get("hand_relax", 0.0)) > 0.0
+			for field in hands: config.erase(field)
+			ctx["arm_hand_follow_through"] = false
+			omitted.append({"feature": "arm_hand_follow_through", "reason": reason})
+			if finger_requested: omitted.append({"feature": "finger_relaxation", "reason": reason})
+		else:
+			ctx["arm_hand_follow_through"] = true
+			applied.append("arm_hand_follow_through")
+	if float(config.get("hand_relax", 0.0)) > 0.0:
+		var fingers := MotionSpecs.hand_layout(built.skeleton, ctx)
+		if fingers.has("error"):
+			if _explicit_feature(params, overrides, ["hand_relax"]):
+				return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, str(fingers.error))
+			config.erase("hand_relax")
+			omitted.append({"feature": "finger_relaxation", "reason": str(fingers.error)})
+		else:
+			ctx["hand_layout"] = fingers
+			applied.append("finger_relaxation")
+	return {"applied": applied, "omitted": omitted}
+
+
+static func _explicit_feature(params: Dictionary, overrides: Dictionary, fields: Array) -> bool:
+	for field in fields:
+		if params.has(field) or overrides.has(field):
+			if not is_zero_approx(float(params.get(field, overrides.get(field, 0.0)))):
+				return true
+	return false
 
 
 ## Ground speed a gaits represent, in metres per second (0 for everything else).
@@ -288,54 +515,23 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 	var player_root := ValueCodec.player_root_node(player)
 	if player_root == null:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "The AnimationPlayer has no resolvable root_node")
-	var walk_speed := maxf(float(params.get("speed", 1.4)), 0.0)
-	var run_speed := maxf(float(params.get("run_speed", 4.0)), 0.0)
-	if walk_speed <= 0.0 or run_speed <= walk_speed:
-		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
-			"character_setup needs 0 < speed < run_speed (got speed=%.3f, run_speed=%.3f)" % [walk_speed, run_speed])
+	var planned := _setup_plans(params)
+	if planned.has("error"):
+		return planned
+	var walk_speed := float(params.get("speed", 0.0))
+	var run_speed := float(params.get("run_speed", 0.0))
 	var overwrite := bool(params.get("overwrite", true))
 	var root_motion := bool(params.get("root_motion", true))
 	var include_jump := bool(params.get("include_jump", false))
 	var include_turn := bool(params.get("include_turn", false))
-	var direction := str(params.get("direction", "left"))
-	if direction != "left" and direction != "right":
-		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'direction' must be 'left' or 'right'")
-	var plans: Array = [
-		{"kind": "idle", "name": "idle", "args": {
-			"duration": float(params.get("idle_duration", 3.0)),
-			"loop_mode": "linear", "root_motion": false,
-		}},
-		{"kind": "walk", "name": "walk", "args": {
-			"duration": float(params.get("duration", 1.0)), "speed": walk_speed,
-			"loop_mode": "linear", "root_motion": root_motion,
-		}},
-		{"kind": "run", "name": "run", "args": {
-			"duration": float(params.get("run_duration", 0.6)), "speed": run_speed,
-			"loop_mode": "linear", "root_motion": root_motion,
-		}},
-	]
-	if include_jump:
-		plans.append({"kind": "jump", "name": "jump", "args": {
-			"duration": float(params.get("jump_duration", 1.2)),
-			"height": float(params.get("height", 0.5)),
-			"crouch": float(params.get("crouch", 0.24)),
-			"distance": float(params.get("distance", 0.0)),
-			"loop_mode": "none", "root_motion": false,
-		}})
-	if include_turn:
-		plans.append({"kind": "turn", "name": "turn_" + direction, "args": {
-			"duration": float(params.get("turn_duration", 0.7)),
-			"angle": float(params.get("angle", 90.0)),
-			"direction": direction,
-			"loop_mode": "none", "root_motion": false,
-		}})
+	var plans: Array = planned.plans
 	var common := {
 		"player_path": player_path,
 		"skeleton_path": str(params.get("skeleton_path", "")),
 		"roles": params.get("roles", {}),
 		"profile": params.get("profile", null),
 		"style": str(params.get("style", "default")),
-		"samples": float(params.get("samples", 24.0)),
+		"samples": float(params.get("samples", 60.0)),
 		"set_root_motion": false,
 		"dry_run": _dry_run,
 	}
@@ -370,20 +566,35 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 			clip_name, prepared.length, prepared.loop_mode, prepared.keys, prepared.markers)
 		if built.has("error"):
 			return built
+		var terminal_hold := 0.0
+		if root_motion and not str(built.root_motion_track).is_empty():
+			terminal_hold = preserve_translation_endpoint(built.spec, str(built.root_motion_track))
+			if terminal_hold > 0.0: built.anim = SpecBuilder.to_animation(built.spec)
 		added[clip_name] = built.anim
 		var clip_warnings: Array = (prepared.meta.get("warnings", []) as Array).duplicate()
 		var speed := 0.0
 		if str(prepared.kind) == "walk" or str(prepared.kind) == "run" or str(prepared.kind) == "strafe":
 			speed = float(prepared.meta.get("speed",
-				_implied_speed(str(prepared.kind), prepared.config, prepared.ctx, prepared.length)))
+				_implied_speed(str(prepared.kind), prepared.config, prepared.ctx, prepared.length))) * float(prepared.ctx.world_scale)
 		clips[clip_name] = {
 			"kind": str(prepared.kind),
-			"length": prepared.length,
+			"style": prepared.style,
+			"resolved_style": MotionSpecs.resolved_style(prepared.style),
+			"applied_features": prepared.applied_features,
+			"omitted_features": prepared.omitted_features,
+			"samples": prepared.rate,
+			"length": float(built.spec.length),
+			"capture_duration": prepared.length,
+			"root_motion_terminal_hold": terminal_hold,
 			"loop_mode": ValueCodec.loop_mode_to_string(prepared.loop_mode),
 			"track_count": (built.spec.tracks as Array).size(),
 			"key_count": ClipSpec.total_key_count(built.spec),
 			"marker_count": (prepared.markers as Array).size(),
+			"root_motion": prepared.rooted,
+			"steps": int(prepared.meta.get("steps", 0)),
 			"speed": speed,
+			"world_scale": float(prepared.ctx.world_scale),
+			"motion_metrics": MotionSpace.world_metrics(prepared.meta, float(prepared.ctx.world_scale)),
 			"warnings": clip_warnings,
 		}
 	# The locomotion tree: a 1D blend space on speed (idle at 0, walk and run at
@@ -392,9 +603,12 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 	# mixer to invent one).
 	var walk_solved := float((clips.get(str(clips_by_kind.walk), {}) as Dictionary).get("speed", walk_speed))
 	var run_solved := float((clips.get(str(clips_by_kind.run), {}) as Dictionary).get("speed", run_speed))
+	if not is_finite(walk_solved) or not is_finite(run_solved) or walk_solved <= 0.0 or run_solved <= walk_solved:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"character_setup needs solved 0 < walk speed < run speed (got %.3f and %.3f m/s); adjust explicit speeds or timing" % [walk_solved, run_solved])
 	var speed_warnings: Array = []
 	for pair in [[str(clips_by_kind.walk), walk_speed, walk_solved], [str(clips_by_kind.run), run_speed, run_solved]]:
-		if absf(float(pair[1]) - float(pair[2])) > 0.01:
+		if float(pair[1]) > 0.0 and absf(float(pair[1]) - float(pair[2])) > 0.01:
 			speed_warnings.append("%s: requested %.2f m/s, the stride cap allows %.2f m/s - the blend point uses the solved speed"
 				% [str(pair[0]), float(pair[1]), float(pair[2])])
 	var built_space := GraphBuilders.blend_space({
@@ -437,6 +651,7 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 				return ErrorCodes.make(ErrorCodes.NODE_NOT_FOUND,
 					"Cannot create an AnimationTree at %s: parent '%s' not found" % [tree_path, tree_path.get_base_dir()])
 			tree = AnimationTree.new()
+			_pending_setup_tree = tree
 			tree.name = tree_path.get_file()
 			tree_parent = parent
 			created_tree = true
@@ -448,41 +663,153 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 				break
 		if tree == null:
 			tree = AnimationTree.new()
+			_pending_setup_tree = tree
 			tree.name = "AnimationTree"
 			tree_parent = player.get_parent() if player.get_parent() != null else scene_root
 			created_tree = true
+	if created_tree and tree_parent.get_node_or_null(NodePath(str(tree.name))) != null:
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Requested setup Tree name is occupied; pass an unused explicit tree_path")
 	var root_motion_track := ""
-	if root_motion and not str(prepared_list[0].ctx.get("hips", "")).is_empty():
-		root_motion_track = "%s:%s" % [str(player_root.get_path_to(prepared_list[0].resolved.node)), str(prepared_list[0].ctx.hips)]
+	var root_motion_owner_path := ""
+	if root_motion:
+		var motion_node := _root_motion_node(player_root, prepared_list[0].resolved.node)
+		if motion_node == null:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+				"Root motion needs a Node3D character owner under the AnimationPlayer root_node")
+		root_motion_track = "%s:position" % str(player_root.get_path_to(motion_node))
+		root_motion_owner_path = ValueCodec.from_node(motion_node, scene_root)
+	# Grounding is part of this exact bundle, after native graph mixing. Preflight
+	# ownership before staging any library, scene or editable-instance write.
+	var rig: Skeleton3D = prepared_list[0].resolved.node
+	if player.active and player.is_playing():
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Stop the bound AnimationPlayer before setup so the AnimationTree is the sole playback writer")
+	var grounder: SkeletonModifier3D = null
+	for candidate in rig.get_children(true):
+		if candidate is SkeletonModifier3D:
+			if candidate.get_script() == SetupGrounding:
+				if grounder != null:
+					return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Duplicate setup grounding ownership")
+				grounder = candidate
+			elif candidate.active and not SetupGrounding.is_inert_internal_simulator(candidate):
+				return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Character setup grounding cannot follow a foreign active bone modifier; disable it explicitly or use standalone clips")
+	for mixer in scene_root.find_children("*", "AnimationMixer", true, false):
+		if mixer == tree or mixer == player or not mixer.active or (mixer is AnimationPlayer and not mixer.is_playing()): continue
+		var other_root: Node = mixer.get_node_or_null(mixer.root_node)
+		if other_root != null and (other_root == rig or other_root.is_ancestor_of(rig)):
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Another active animation mixer can write the setup skeleton; stop it explicitly before setup")
+	for side in ["l", "r"]:
+		var roles: Dictionary = prepared_list[0].ctx.roles
+		var thigh := rig.find_bone(str(roles.get("thigh_"+side, "")))
+		var shin := rig.find_bone(str(roles.get("shin_"+side, "")))
+		var foot := rig.find_bone(str(roles.get("foot_"+side, "")))
+		if thigh < 0 or shin < 0 or foot < 0 or rig.get_bone_parent(shin) != thigh or rig.get_bone_parent(foot) != shin:
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Character setup grounding requires direct measured thigh/shin/foot chains")
+		var a := rig.get_bone_global_rest(thigh).origin.distance_to(rig.get_bone_global_rest(shin).origin)
+		var b := rig.get_bone_global_rest(shin).origin.distance_to(rig.get_bone_global_rest(foot).origin)
+		if not is_finite(a+b) or minf(a,b)<=0.0000001:
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Character setup grounding measured leg geometry is degenerate")
+	var created_grounder := grounder == null
+	if created_grounder:
+		if rig.get_node_or_null("SetupGrounding") != null:
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "SetupGrounding name is already owned by another node")
+		grounder = SetupGrounding.new()
+		grounder.name = "SetupGrounding"
+		grounder.active = false
+		_pending_setup_grounder = grounder
+	else:
+		if grounder.get_node_or_null(grounder.get("player_path")) != player or created_tree or grounder.get_node_or_null(grounder.get("tree_path")) != tree:
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Existing setup grounder belongs to another Player/Tree; rebind explicitly by removing that bundle first")
+	var relative_tree := "../"+str(rig.get_path_to(tree)) if not created_tree else "../"+str(rig.get_path_to(tree_parent))+"/"+str(tree.name)
+	var grounding_config := {
+		"influence": 1.0, "tree_path": NodePath(relative_tree), "player_path": NodePath("../"+str(rig.get_path_to(player))),
+		"role_names": prepared_list[0].ctx.roles.duplicate(true),
+		"rig_up": prepared_list[0].ctx.up, "rig_forward": prepared_list[0].ctx.forward,
+		"speed_parameter": speed_parameter, "base_prefix": "parameters/Base/" if include_jump else "parameters/",
+		"jump_parameter": jump_request, "maximum_correction_leg_ratio": 0.25, "target_tolerance_m": 0.00001,
+	}
+	var old_grounder_owner := grounder.owner
+	var old_grounder_index := grounder.get_index() if not created_grounder else -1
+	var old_grounder_active := grounder.active
 	var want_active := bool(params.get("active", false))
 	var old_root: AnimationRootNode = tree.tree_root if not created_tree else null
 	var old_anim_player := tree.anim_player
+	var old_tree_animation_root := tree.root_node
 	var old_active := tree.active
 	var old_tree_root_motion := tree.root_motion_track
 	var old_player_root_motion := player.root_motion_track
+	var old_tree_root_motion_local := tree.root_motion_local
+	var old_player_root_motion_local := player.root_motion_local
 	var wanted_player := _tree_anim_player_path(tree, player, tree_parent, created_tree)
+	var wanted_animation_root := tree.get_path_to(player_root) if not created_tree else NodePath("..") if tree_parent == player_root else NodePath("../"+str(tree_parent.get_path_to(player_root)))
+	# Resolve from the existing parent when the new Tree is still detached.
+	var root_probe := tree_parent.get_node_or_null(NodePath(str(wanted_animation_root).trim_prefix("../"))) if created_tree and wanted_animation_root != NodePath("..") else tree_parent if created_tree else tree.get_node_or_null(wanted_animation_root)
+	var player_probe := tree_parent.get_node_or_null(NodePath(str(wanted_player).trim_prefix("../"))) if created_tree else tree.get_node_or_null(wanted_player)
+	if root_probe != player_root or player_probe != player:
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Setup Tree animation root/Player paths cannot resolve before commit")
+
 	if not _dry_run:
 		_create_scene_pinned_action("MCP: Character setup")
 		var undo := ToolContext.undo_redo
+		# Stop the attached mixer before either side changes its clip library.
+		undo.add_undo_property(tree, "active", false)
+		if not created_tree:
+			undo.add_do_property(tree, "active", false)
+		# Trees may be placed inside a different scene instance from the player.
+		# The clip staging below handles the player's instance permissions.
+		var tree_levels := _instance_levels(tree_parent if created_tree else tree)
+		for level in _instance_levels(rig):
+			if not tree_levels.has(level): tree_levels.append(level)
+		for level in tree_levels:
+			undo.add_do_method(level.parent, "set_editable_instance", level.instance, true)
 		_stage_animation_changes(undo, player, library, created_library, removed, added)
 		if created_tree:
 			undo.add_do_method(tree_parent, "add_child", tree, true)
-			undo.add_undo_method(tree_parent, "remove_child", tree)
 			undo.add_do_method(tree, "set_owner", scene_root)
 			undo.add_do_reference(tree)
+			undo.add_do_property(tree, "active", false)
 		undo.add_do_property(tree, "tree_root", tree_root)
-		undo.add_undo_property(tree, "tree_root", old_root)
+		if not created_tree:
+			undo.add_undo_property(tree, "tree_root", old_root)
 		if tree.anim_player != wanted_player:
 			undo.add_do_property(tree, "anim_player", wanted_player)
-			undo.add_undo_property(tree, "anim_player", old_anim_player)
-		if tree.active != want_active:
-			undo.add_do_property(tree, "active", want_active)
-			undo.add_undo_property(tree, "active", old_active)
-		if not root_motion_track.is_empty():
-			undo.add_do_property(player, "root_motion_track", NodePath(root_motion_track))
-			undo.add_undo_property(player, "root_motion_track", old_player_root_motion)
-			undo.add_do_property(tree, "root_motion_track", NodePath(root_motion_track))
+			if not created_tree:
+				undo.add_undo_property(tree, "anim_player", old_anim_player)
+		if tree.root_node != wanted_animation_root:
+			undo.add_do_property(tree, "root_node", wanted_animation_root)
+			if not created_tree: undo.add_undo_property(tree, "root_node", old_tree_animation_root)
+		# An explicit in-place setup must clear extraction left by an older graph.
+		undo.add_do_property(player, "root_motion_track", NodePath(root_motion_track))
+		undo.add_undo_property(player, "root_motion_track", old_player_root_motion)
+		undo.add_do_property(tree, "root_motion_track", NodePath(root_motion_track))
+		undo.add_do_property(player, "root_motion_local", root_motion or old_player_root_motion_local)
+		undo.add_undo_property(player, "root_motion_local", old_player_root_motion_local)
+		undo.add_do_property(tree, "root_motion_local", root_motion or old_tree_root_motion_local)
+		if not created_tree:
 			undo.add_undo_property(tree, "root_motion_track", old_tree_root_motion)
+			undo.add_undo_property(tree, "root_motion_local", old_tree_root_motion_local)
+		if created_grounder:
+			undo.add_do_method(rig, "add_child", grounder, true)
+			undo.add_do_reference(grounder)
+		else:
+			undo.add_do_property(grounder, "active", false)
+			undo.add_undo_property(grounder, "active", old_grounder_active)
+			undo.add_undo_method(rig, "move_child", grounder, old_grounder_index)
+			undo.add_undo_method(grounder, "set_owner", old_grounder_owner)
+		undo.add_do_method(grounder, "set_owner", scene_root)
+		undo.add_do_method(rig, "move_child", grounder, rig.get_child_count() if created_grounder else rig.get_child_count()-1)
+		for field in grounding_config:
+			undo.add_do_property(grounder, field, grounding_config[field])
+			if not created_grounder: undo.add_undo_property(grounder, field, grounder.get(field))
+		undo.add_do_method(grounder, "reset_grounding", "setup_transaction")
+		undo.add_do_property(grounder, "active", true)
+		if created_grounder: undo.add_undo_method(rig, "remove_child", grounder)
+		undo.add_do_property(tree, "active", want_active)
+		if created_tree:
+			undo.add_undo_method(tree_parent, "remove_child", tree)
+		else:
+			undo.add_undo_property(tree, "active", old_active)
+		for level in tree_levels:
+			undo.add_undo_method(level.parent, "set_editable_instance", level.instance, false)
 		undo.commit_action()
 	var tree_label := ""
 	if created_tree:
@@ -507,6 +834,8 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 		"player_path": player_path,
 		"skeleton_path": str(prepared_list[0].resolved.path),
 		"tree_path": tree_label,
+		"grounding_path": "%s/%s" % [ValueCodec.from_node(rig, scene_root), str(grounder.name)],
+		"grounding": {"contract_version": SetupGrounding.CONTRACT_VERSION, "created": created_grounder, "active": true, "status": "configured_pending_native_playback", "plane": "measured_rest_ankle", "maximum_correction_leg_ratio": 0.25, "target_tolerance_m": 0.00001, "root_motion_owner": "unchanged", "sample_signal": "modification_processed", "reset_method": "reset_grounding", "seek_reset": "call reset_grounding before explicit seeks/new takes; large native phase jumps also reset automatically"},
 		"tree_created": created_tree,
 		"tree_active": want_active,
 		"clips": clips,
@@ -516,11 +845,66 @@ func motion_character_setup(params: Dictionary) -> Dictionary:
 		"speed_values": {"idle": 0.0, "walk": walk_solved, "run": run_solved},
 		"jump_request_parameter": jump_request,
 		"parameters": parameter_paths,
-		"apply_snippet": _apply_snippet(tree_label, speed_parameter, jump_request),
+		"apply_snippet": _apply_snippet(tree_label, speed_parameter, jump_request, root_motion_owner_path),
+		"root_motion_owner_path": root_motion_owner_path,
+		"root_motion_space": "owner_parent" if root_motion else "none",
+		"world_scale": float(prepared_list[0].ctx.world_scale),
+		"translation_owner": "controller consumes AnimationTree extraction" if root_motion else "external controller",
+		"turn_wired": false,
+		"turn_heading_owner": "skeletal clip only" if include_turn else "not_applicable",
+		"actor_yaw_extraction": false,
+		"jump_wired": include_jump,
+		"jump_translation_owner": ("AnimationTree extraction" if root_motion else "skeletal clip") if include_jump else "not_applicable",
 		"warnings": warnings + speed_warnings,
 		"undoable": true,
-		"note": "inactive tree by default; pass active=true (or enable the tree) when the scene is ready",
+		"note": "active tree owns playback" if want_active else "inactive tree; pass active=true (or enable the tree) when the scene is ready",
 	}}
+
+
+## Preserve caller provenance: omitted controls are resolved by the same motion
+## path as standalone calls. Jump keeps the documented 1.2 s wrapper duration.
+static func _setup_plans(params: Dictionary) -> Dictionary:
+	for field in ["speed", "run_speed", "duration", "run_duration", "idle_duration", "jump_duration", "turn_duration", "height", "crouch", "distance", "angle", "samples", "jump_fadein", "jump_fadeout"]:
+		if not params.has(field): continue
+		if not (params[field] is int or params[field] is float):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'%s' must be a number" % field)
+		if not is_finite(float(params[field])):
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'%s' must be finite" % field)
+	for field in ["speed", "run_speed", "duration", "run_duration", "idle_duration", "jump_duration", "turn_duration"]:
+		if params.has(field) and float(params[field]) <= 0.0:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'%s' must be > 0" % field)
+	for field in ["jump_fadein", "jump_fadeout"]:
+		if params.has(field) and float(params[field]) < 0.0:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'%s' must be >= 0" % field)
+	if params.has("speed") and params.has("run_speed") and float(params.run_speed) <= float(params.speed):
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "character_setup needs speed < run_speed")
+	if bool(params.get("include_jump", false)) and not bool(params.get("root_motion", true)) and float(params.get("distance", 0.0)) != 0.0:
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
+			"An in-place setup cannot preserve forward jump displacement when its OneShot returns to idle. Enable root_motion extraction, or generate an unextracted standalone jump for your own movement handoff")
+	var direction := str(params.get("direction", "left"))
+	if direction not in ["left", "right"]:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'direction' must be 'left' or 'right'")
+	var rooted := bool(params.get("root_motion", true))
+	var plans: Array = [
+		{"kind": "idle", "name": "idle", "args": {"loop_mode": "linear", "root_motion": false}},
+		{"kind": "walk", "name": "walk", "args": {"loop_mode": "linear", "root_motion": rooted}},
+		{"kind": "run", "name": "run", "args": {"loop_mode": "linear", "root_motion": rooted}},
+	]
+	var mappings: Array = [{"idle_duration": "duration"}, {"duration": "duration", "speed": "speed"}, {"run_duration": "duration", "run_speed": "speed"}]
+	if bool(params.get("include_jump", false)):
+		plans.append({"kind": "jump", "name": "jump", "args": {"duration": 1.2, "loop_mode": "none", "root_motion": rooted}})
+		mappings.append({"jump_duration": "duration", "height": "height", "crouch": "crouch", "distance": "distance"})
+	if bool(params.get("include_turn", false)):
+		plans.append({"kind": "turn", "name": "turn_" + direction, "args": {"direction": direction, "loop_mode": "none", "root_motion": false}})
+		mappings.append({"turn_duration": "duration", "angle": "angle"})
+	for index in plans.size():
+		for source in mappings[index]:
+			if params.has(source): plans[index].args[mappings[index][source]] = params[source]
+		if plans[index].kind == "turn":
+			# Setup has no public steps control: split large angles into existing
+			# 90-degree pivots while the shared validator retains its 1..8 bound.
+			plans[index].args["steps"] = max(1, ceili(absf(float(plans[index].args.get("angle", 90.0))) / 90.0))
+	return {"plans": plans}
 
 
 ## Path from the (possibly detached) tree to the player.
@@ -542,17 +926,31 @@ static func _first_parameter(paths: Array, suffix: String, fallback: String) -> 
 	return fallback
 
 
-static func _apply_snippet(tree_label: String, speed_parameter: String, jump_request: String) -> String:
+static func _apply_snippet(tree_label: String, speed_parameter: String, jump_request: String, owner_label: String = "") -> String:
 	var lines: Array = [
-		"@onready var tree: AnimationTree = get_node(\"%s\")" % tree_label,
-		"",
-		"# each physics frame:",
-		"tree.set(\"%s\", velocity.length())" % speed_parameter,
+		"# Attach to a scene node. Set desired_ground_speed from your movement input.",
+		"@onready var tree: AnimationTree = get_tree().root.get_node(%s)" % JSON.stringify(tree_label.trim_prefix("/")),
+		"var desired_ground_speed := 0.0",
 	]
+	if not owner_label.is_empty():
+		lines.append("@onready var motion_owner: Node3D = get_tree().root.get_node(%s)" % JSON.stringify(owner_label.trim_prefix("/")))
+	lines.append("\nfunc _ready() -> void:")
+	lines.append("\ttree.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL")
+	lines.append("\ttree.active = true")
+	lines.append("\nfunc _physics_process(delta: float) -> void:")
+	lines.append("\ttree.set(%s, desired_ground_speed)" % JSON.stringify(speed_parameter))
 	if not jump_request.is_empty():
-		lines.append("")
-		lines.append("if Input.is_action_just_pressed(\"jump\"):")
-		lines.append("\ttree.set(\"%s\", AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)" % jump_request)
+		lines.append("\t# Forward jump travel is authored; start it from idle.")
+		lines.append("\tif Input.is_action_just_pressed(\"jump\"):")
+		lines.append("\t\tdesired_ground_speed = 0.0")
+		lines.append("\t\ttree.set(%s, 0.0)" % JSON.stringify(speed_parameter))
+		lines.append("\t\ttree.set(%s, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)" % JSON.stringify(jump_request))
+	lines.append("\ttree.advance(delta)")
+	if not owner_label.is_empty():
+		lines.append("\t# Exactly one translation consumer; no actor-yaw extraction.")
+		lines.append("\tmotion_owner.position += tree.get_root_motion_position()")
+	else:
+		lines.append("\t# In-place setup: your controller supplies character movement.")
 	return "\n".join(lines)
 
 
@@ -578,6 +976,10 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"Animation '%s' not found on %s" % [anim_name, player_path])
 	var anim := library.get_animation(anim_name)
+	if anim.get_script() != null: return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Scripted secondary source animations cannot be duplicated")
+	for track in anim.get_track_count():
+		if anim.track_is_enabled(track) and anim.track_get_type(track) in [Animation.TYPE_METHOD, Animation.TYPE_AUDIO, Animation.TYPE_ANIMATION]:
+			return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Secondary source events cannot be sampled offline; use a transform-only source")
 	var unsupported := SpecIO.unsupported_tracks(anim)
 	if not unsupported.is_empty():
 		return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
@@ -589,12 +991,14 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 	if resolved.kind != "3d":
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "secondary_motion needs a Skeleton3D")
 	var skeleton: Skeleton3D = resolved.node
-	var bones: Array = params.get("bones", [])
+	var raw_bones: Variant = params.get("bones", [])
+	if not raw_bones is Array: return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'bones' must be an array")
+	var bones: Array = raw_bones
 	if bones.is_empty():
 		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM,
 			"secondary_motion needs 'bones': [\"B-hair01\", ...]")
 	var root_node := ValueCodec.player_root_node(player)
-	if root_node == null:
+	if root_node == null or not root_node.is_ancestor_of(skeleton):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "The AnimationPlayer has no resolvable root_node")
 	var track_root := str(root_node.get_path_to(skeleton))
 	if track_root.is_empty() or track_root == ".":
@@ -605,6 +1009,7 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "The clip is empty (length 0)")
 	var infos := {}
 	for bone in bones:
+		if not bone is String or infos.has(bone): return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Secondary bones must be distinct names")
 		var bone_name := str(bone)
 		var index := skeleton.find_bone(bone_name)
 		if index < 0:
@@ -615,53 +1020,57 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 		if ClipSpec.find_track_index(spec, "%s:%s" % [track_root, bone_name], Animation.TYPE_ROTATION_3D) >= 0:
 			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 				"'%s' already has a rotation track in '%s' - jiggle bones must be unkeyed" % [bone_name, anim_name])
-		infos[bone_name] = {
-			"index": index,
-			"parent_index": parent_index,
-			"parent_rest": skeleton.get_bone_global_rest(parent_index).basis,
-			"bone_rest": skeleton.get_bone_global_rest(index).basis,
-		}
-	var fps := clampf(float(params.get("samples", 30.0)), 4.0, 120.0)
-	var steps := maxi(2, int(round(length * fps)))
-	var dt := length / float(steps)
-	var snapshot := _pose_snapshot(skeleton)
-	var parent_globals := {}
-	for bone_name in infos:
-		parent_globals[bone_name] = []
-	var targets := {}
-	for bone_name in infos:
-		targets[bone_name] = []
-	for step in steps + 1:
-		var time := length * float(step) / float(steps)
-		_apply_spec_at(skeleton, spec, time)
-		for bone_name in infos:
-			var info: Dictionary = infos[bone_name]
-			var parent_basis := skeleton.get_bone_global_pose(int(info.parent_index)).basis
-			parent_globals[bone_name].append(parent_basis)
-			targets[bone_name].append(
-				(parent_basis * (info.parent_rest as Basis).inverse() * (info.bone_rest as Basis)).get_rotation_quaternion())
-	_pose_restore(skeleton, snapshot)
+		infos[bone_name] = true
+	for field in ["samples", "stiffness", "damping"]:
+		if params.has(field) and not (params[field] is int or params[field] is float):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'%s' must be a number" % field)
+	var fps := float(params.get("samples", 30.0))
 	var stiffness := float(params.get("stiffness", 120.0))
 	var damping := float(params.get("damping", 12.0))
-	if stiffness < 0.0 or damping < 0.0:
-		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'stiffness' and 'damping' must be >= 0")
+	if not is_finite(fps) or fps < 4.0 or fps > 120.0 or not is_finite(length) or ceili(length * fps) > MAX_CYCLE_INTERVALS:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "Secondary motion needs 4-120 samples/s and at most 1200 intervals")
+	if not is_finite(stiffness) or not is_finite(damping) or stiffness < 0.0 or damping < 0.0:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'stiffness' and 'damping' must be finite and >= 0")
+	if not SpecIO.compressed_tracks(anim).is_empty(): return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Compressed secondary source tracks cannot be edited")
+	var times: Array = [0.0]
+	for step in range(1, ceili(length * fps) + 1): times.append(minf(float(step) / fps, length))
+	if times.size() > 1 and length - float(times[times.size() - 2]) <= 0.00002 * maxf(1.0, length):
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Secondary endpoint is too close for native key lookup; adjust duration or sampling")
+	var sampled := SecondarySampler.capture(EditorInterface.get_edited_scene_root(), skeleton, player, anim_name, bones, times, _test_secondary_fail_at)
+	if sampled.has("error"): return sampled
+	var parent_globals: Dictionary = sampled.parents
+	var targets: Dictionary = sampled.targets
 	var substeps := 2
-	var sim_dt := dt / float(substeps)
 	for bone_name in infos:
-		var expanded: Array = []
-		for target in targets[bone_name]:
+		var states: Array = [targets[bone_name][0]]
+		var state: Quaternion = states[0]
+		var velocity := Vector3.ZERO
+		for step in range(1, times.size()):
+			var dt := (float(times[step]) - float(times[step - 1])) / substeps
 			for _sub in substeps:
-				expanded.append(target)
-		var states := MotionDrivers.follow_spring(
-			expanded, stiffness, damping, sim_dt, (targets[bone_name][0] as Quaternion))
+				# Velocity and the premultiplied step are in skeleton space.
+				# Form the error in that same frame, including rotated rests.
+				var error: Quaternion = (targets[bone_name][step] as Quaternion) * state.inverse()
+				if error.w < 0.0: error = -error
+				var vector := Vector3(error.x, error.y, error.z)
+				var angle := 2.0 * atan2(vector.length(), absf(error.w))
+				var displacement := vector.normalized() * angle if angle > 0.000001 else Vector3.ZERO
+				velocity += (displacement * stiffness - velocity * damping) * dt
+				var turn := velocity.length() * dt
+				if not velocity.is_finite() or not is_finite(turn): return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Secondary spring exceeded finite precision; lower coefficients")
+				if turn > 0.000001: state = (Quaternion(velocity.normalized(), turn) * state).normalized()
+			if not state.is_finite(): return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "Secondary spring produced a nonfinite rotation; lower coefficients")
+			states.append(state)
 		var keys: Array = []
-		for step in steps + 1:
-			var time := length * float(step) / float(steps)
-			var state: Quaternion = states[mini(step * substeps, states.size() - 1)]
+		for step in times.size():
+			var time := float(times[step])
+			var sampled_state: Quaternion = states[step]
 			var parent_global: Basis = parent_globals[bone_name][step]
+			# Native pose rotation already includes its local rest orientation.
+			# Convert the followed skeleton-space rotation into the parent frame.
 			keys.append({
 				"time": time,
-				"value": (parent_global.inverse() * Basis(state)).get_rotation_quaternion().normalized(),
+				"value": (parent_global.inverse() * Basis(sampled_state)).get_rotation_quaternion().normalized(),
 				"transition": "linear",
 			})
 		ClipSpec.align_quaternions(keys)
@@ -674,7 +1083,7 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 		return valid
 	var built := SpecBuilder.to_animation(spec)
 	_commit_animation_changes("MCP: Secondary motion %s" % anim_name, player, library, false,
-		{anim_name: anim}, {anim_name: built})
+		{anim_name: anim}, {anim_name: built}, _bone_pose_history_props(skeleton))
 	return {"data": {
 		"player_path": player_path,
 		"skeleton_path": resolved.path,
@@ -691,18 +1100,21 @@ func motion_secondary(params: Dictionary) -> Dictionary:
 
 # --- rig context ------------------------------------------------------------
 
-func _build_context(params: Dictionary, kind: String) -> Dictionary:
+func _build_context(params: Dictionary, kind: String, resolved_config: Dictionary = {}) -> Dictionary:
 	var resolved := _resolve_skeleton(params)
 	if resolved.has("error"):
 		return resolved
 	if resolved.kind != "3d":
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "%s needs a Skeleton3D (bone roles are matched by name)" % kind)
 	var skeleton: Skeleton3D = resolved.node
+	var geometry := MotionSpace.geometry(skeleton.global_basis)
+	if geometry.has("error"):
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, str(geometry.error))
 	var roles: Dictionary = _resolve_roles(params, skeleton)
 	if roles.has("_error"):
 		return roles["_error"]
 	var required: Array = ["hips", "thigh_l", "thigh_r", "shin_l", "shin_r"]
-	if kind != "idle":
+	if kind != "idle" or bool(resolved_config.get("planted", true)):
 		required.append_array(["foot_l", "foot_r"])
 	var missing: Array = []
 	for role in required:
@@ -711,7 +1123,12 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 	if not missing.is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"Cannot find bones for: %s. Pass 'roles' to name them explicitly (e.g. {\"thigh_l\": \"B-thigh.L\"})." % ", ".join(missing))
-	var length := float(params.get("duration", 1.0))
+	var default_length := 3.0 if kind == "idle" else 1.0
+	if kind == "turn":
+		# A second pivot still needs release/swing/recovery time. Explicit caller
+		# duration remains untouched; only omitted timing scales with stages.
+		default_length = maxf(1.0, 0.7 * maxf(float(resolved_config.get("steps", 1.0)), absf(float(resolved_config.get("turn_angle", 90.0))) / 90.0))
+	var length := float(params.get("duration", default_length))
 	if not is_finite(length) or length <= 0.0:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "duration must be a finite number > 0")
 	# Every numeric recipe parameter reaches the clip as a key value, so a NaN or
@@ -725,10 +1142,41 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 			var bad := _first_non_finite(value, str(key))
 			if not bad.is_empty():
 				return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, bad)
-	var loop_result := _loop_mode(params)
+	var loop_params := params.duplicate()
+	if not loop_params.has("loop_mode"):
+		loop_params["loop_mode"] = "linear" if kind in ["walk", "run", "idle", "strafe"] else "none"
+	var loop_result := _loop_mode(loop_params)
 	if loop_result.has("error"):
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, loop_result.error)
-	var rate := clampf(float(params.get("samples", 24.0)), 4.0, 120.0)
+	if kind == "turn" and int(loop_result.ok) == Animation.LOOP_LINEAR and not is_zero_approx(float(resolved_config.get("turn_angle", 90.0))):
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
+			"A turn has different starting and ending headings: linear looping would snap back. Use loop_mode 'none', or 'pingpong' for intentional reversing playback.")
+	if kind == "jump" and int(loop_result.ok) != Animation.LOOP_NONE and not bool(params.get("root_motion", false)) and not is_zero_approx(float(resolved_config.get("jump_distance", 0.0))):
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE,
+			"A forward jump with skeletal translation is a one-shot: use loop_mode 'none' or root_motion true. Looping its different endpoints would return the character to its starting position.")
+	var rate := clampf(float(params.get("samples", 60.0)), 4.0, 120.0)
+	var intervals := MotionDrivers.sample_count(length, rate)
+	if (kind == "walk" or kind == "run") and intervals < 24:
+		# `samples` is a requested density, not permission to commit a gait that
+		# misses the knee turn and cuts its own floor. Short clips need a higher
+		# keys-per-second rate for the same number of phase samples.
+		rate = minf(120.0, maxf(24.0, 24.0 / length))
+		intervals = MotionDrivers.sample_count(length, rate)
+		if intervals < 24:
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+				"A walk/run loop needs 24 sampled intervals for stable leg playback; duration %.3f s is too short at the 120 keys/s limit" % length)
+	if kind in ["jump", "turn", "walk_start", "walk_stop"] and rate < 120.0:
+		# Landing foot IK must be authored densely enough that engine
+		# interpolation stays above the floor between solved samples.
+		rate = 120.0
+		intervals = MotionDrivers.sample_count(length, rate)
+	if intervals > MAX_CYCLE_INTERVALS:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"duration × samples exceeds the %d-interval motion budget (requested %d); shorten duration or lower samples"
+				% [MAX_CYCLE_INTERVALS, intervals])
+	if kind in ["walk_start", "walk_stop"] and length < 0.2:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE,
+			"Start/stop needs duration >= 0.2 s for support transfer and a complete 30 FPS reference neighbourhood")
 	# The rest map, the leg map and the rig frame are the three measurements a
 	# recipe needs, and they are the same three for everyone - so they live in the
 	# spec layer, where a headless test can reach them, and the handler reads them
@@ -742,6 +1190,20 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 		false, 0.85, chain_first.chain as Array)
 	if measured.has("error"):
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, str(measured.error))
+	if kind == "run" and not params.has("duration"):
+		# A run's implicit speed is independent of clip length. Choose cadence
+		# from the measured leg so the reference stride stays reachable across
+		# proportions: shorter legs take quicker steps, longer legs slower ones.
+		# Explicit duration is always honoured and may return a reach error.
+		length = clampf(sqrt(MotionSpecs.measured_leg(measured) /
+			MotionSpecs.REFERENCE_LEG), 0.6, 1.5)
+		if MotionDrivers.sample_count(length, rate) < 24:
+			rate = minf(120.0, maxf(rate, 24.0 / length))
+		measured = MotionSpecs.context_from_skeleton(skeleton, roles, length, rate,
+			false, 0.85, chain_first.chain as Array)
+		if measured.has("error"):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, str(measured.error))
+	measured["world_scale"] = float(geometry.world_scale)
 	var rest: Dictionary = measured.rest
 	var legs: Dictionary = measured.legs
 	var chain: Array = measured.spine_chain
@@ -758,11 +1220,23 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 	var lateral: Vector3 = frame.lateral
 	var arm_down := {}
 	var arm_amount := float(params.get("arm_down", -1.0))
-	if arm_amount < 0.0:
+	# Resolve the style first: implicit profile controls need the same measured
+	# arm geometry as the accepted explicit recipe, particularly on Z-up rigs.
+	# Jump has its own sparse action profile, but still needs the measured rig
+	# frame for arm lowering even when no optional follow-through was requested.
+	var measured_arms := kind == "jump"
+	var overrides: Dictionary = params.get("overrides", {})
+	for field in ["elbow_lag", "wrist_swing", "wrist_lag", "torso_twist", "torso_flex", "torso_roll", "head_nod", "head_roll", "head_lag", "head_stabilize", "forearm_twist", "wrist_sway", "arm_variation", "variation_seed", "hand_relax"]:
+		measured_arms = measured_arms or resolved_config.has(field) or params.has(field) or overrides.has(field)
+	if not measured_arms and arm_amount < 0.0:
 		arm_amount = _default_arm_down(skeleton, roles)
 	for side in ["l", "r"]:
 		var arm := str(roles.get("arm_" + side, ""))
-		arm_down[side] = _aim_delta(skeleton, arm, Vector3.DOWN, arm_amount) if not arm.is_empty() else Quaternion.IDENTITY
+		if measured_arms:
+			arm_down[side] = MotionSpecs.arm_lower_delta(
+				MotionSpecs._rest_basis(measured, arm), measured.arm_directions.get(side, Vector3.ZERO), up, arm_amount)
+		else:
+			arm_down[side] = _aim_delta(skeleton, arm, Vector3.DOWN, arm_amount) if not arm.is_empty() else Quaternion.IDENTITY
 	return {
 		"resolved": resolved,
 		"skeleton": skeleton,
@@ -778,11 +1252,17 @@ func _build_context(params: Dictionary, kind: String) -> Dictionary:
 			"up": up,
 			"lateral": lateral,
 			"hips": hips,
+			"hips_parent_basis": measured.hips_parent_basis,
 			"hips_origin": rest[hips].origin if not hips.is_empty() else Vector3.ZERO,
 			"legs": legs,
 			"rest": rest,
+			"arm_directions": measured.arm_directions,
+			"measured_arms": measured_arms,
 			"arm_down": arm_down,
-			"root_motion": bool(params.get("root_motion", false)),
+			# A travelling strafe needs extracted character-root translation.
+			# Keep the in-place shuffle available when callers explicitly opt out.
+			"world_scale": float(geometry.world_scale),
+			"root_motion": bool(params.get("root_motion", kind == "strafe")),
 		},
 	}
 
@@ -813,15 +1293,15 @@ static func _first_non_finite(value: Variant, path: String) -> String:
 func _spine_chain(params: Dictionary, skeleton: Skeleton3D, roles: Dictionary) -> Dictionary:
 	return resolve_spine_chain(params, skeleton, roles)
 
+
+## Legacy profile lowering retained only until the recorded candidate is approved.
+## Candidate controls above use measured rig-up/child geometry instead.
 func _default_arm_down(skeleton: Skeleton3D, roles: Dictionary) -> float:
 	for side in ["l", "r"]:
 		var arm := str(roles.get("arm_" + side, ""))
-		if arm.is_empty():
-			continue
 		var index := skeleton.find_bone(arm)
-		if index < 0:
-			continue
+		if index < 0: continue
 		var rest_dir := (skeleton.get_bone_global_rest(index).basis * Vector3.UP).normalized()
-		if absf(rest_dir.dot(Vector3.UP)) < 0.5:
-			return 78.0
+		if absf(rest_dir.dot(Vector3.UP)) < 0.5: return 78.0
 	return 0.0
+

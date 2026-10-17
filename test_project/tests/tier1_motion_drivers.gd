@@ -26,11 +26,31 @@ func _init() -> void:
 	_check_spring()
 	_check_smoothing()
 	_check_foot_trajectory()
+	_check_arm_lowering()
 	if _failures == 0:
 		print("TIER1 PASS (%d checks)" % _checks)
 	else:
 		print("TIER1 FAIL (%d/%d checks failed)" % [_failures, _checks])
 	quit(0 if _failures == 0 else 1)
+
+
+func _check_arm_lowering() -> void:
+	# Bone-local Y deliberately differs from the actual arm-to-elbow direction.
+	# Rotate the entire rig frame, including a Z-up case; results must covary.
+	for frame in [Basis.IDENTITY, Basis(Vector3.RIGHT, PI * 0.5), Basis(Vector3(1, 2, 3).normalized(), 0.73)]:
+		var rest_basis: Basis = frame * Basis(Vector3.FORWARD, 0.41)
+		var direction: Vector3 = frame * Vector3.RIGHT
+		var up: Vector3 = frame * Vector3.UP
+		for amount in [-1.0, 0.0, 40.0, 120.0]:
+			var q := MotionSpecs.arm_lower_delta(rest_basis, direction, up, amount)
+			var world := rest_basis * Basis(q) * rest_basis.inverse()
+			var expected := 12.0 if amount < 0.0 else maxf(0.0, 90.0 - amount)
+			_expect(absf(rad_to_deg((world * direction).angle_to(-up)) - expected) < 0.001,
+				"arm lowering uses measured child geometry and rig up")
+		var down := MotionSpecs.arm_lower_delta(rest_basis, -up, up)
+		_expect(absf(down.w) > 0.999999, "already lowered arm remains lowered")
+	_expect(MotionSpecs.arm_lower_delta(Basis.IDENTITY, Vector3.ZERO, Vector3.UP) == Quaternion.IDENTITY,
+		"missing optional arm geometry is finite and inert")
 
 
 ## The foot's lift profile. It used to be 1.0 across the whole swing, so the

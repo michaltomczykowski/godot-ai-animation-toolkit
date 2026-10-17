@@ -1,0 +1,23 @@
+{
+  "arm_swing": 20.0,
+  "elbow": 7.0,
+  "elbow_swing": 22.0,
+  "lag": 0.025,
+  "elbow_lag": 0.06,
+  "wrist_swing": 7.0,
+  "wrist_lag": 0.085,
+  "hip_yaw": 7.0,
+  "hip_roll": 2.8,
+  "torso_twist": 9.0,
+  "torso_flex": 2.6,
+  "torso_roll": 0.8,
+  "head_nod": 2.4,
+  "head_roll": 0.45,
+  "head_lag": 0.035,
+  "head_stabilize": 0.6,
+  "forearm_twist": 6.5,
+  "wrist_sway": 3.0,
+  "arm_variation": 1.2,
+  "variation_seed": 241,
+  "hand_relax": 18.0
+}

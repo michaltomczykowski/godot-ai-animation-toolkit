@@ -124,11 +124,17 @@ static func rotation_delta(global_rest: Basis, world_rotation: Quaternion) -> Qu
 ## {"delta": Quaternion, "global": Basis} where `global` is the bone's resulting
 ## global basis, ready to chain into a child.
 static func aim_delta(
-	parent_animated: Basis, parent_global_rest: Basis, bone_global_rest: Basis, desired_dir: Vector3,
+	parent_animated: Basis, parent_global_rest: Basis, bone_global_rest: Basis,
+	desired_dir: Vector3, child_rest_offset: Vector3 = Vector3.ZERO,
 ) -> Dictionary:
 	var target := desired_dir.normalized()
 	var rest_local_animated := parent_animated * parent_global_rest.orthonormalized().inverse() * bone_global_rest.orthonormalized()
+	# Imported skeletons are not required to align a bone's local +Y with the
+	# direction to its child. Aim the actual rest child offset when available.
 	var rest_dir := (rest_local_animated * Vector3.UP).normalized()
+	if child_rest_offset.length_squared() >= _EPSILON:
+		rest_dir = (parent_animated * parent_global_rest.orthonormalized().inverse()
+			* child_rest_offset).normalized()
 	if rest_dir.length_squared() < _EPSILON or target.length_squared() < _EPSILON:
 		return {"delta": Quaternion.IDENTITY, "global": rest_local_animated}
 	var swing := Quaternion(rest_dir, target)
