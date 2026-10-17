@@ -1,5 +1,25 @@
 # Animation Toolkit repair roadmap
 
+## Actual two-core Windows ZIP previews pass (2026-10-17 night)
+
+At3dcb7f8, actual GodotAI preview calls pass from clean ZIP installs against
+released4.2.1 and4.3.0 on Godot4.7.2/nativeNVIDIAOpenGL. Each4PNGset fully
+decodes, is nonblank/distinct, and preserves exact scene/timeline at allfive
+checkpoints; typed refusals/complete error logs/source/core bindings pass.
+Independent static view of8images finds whole visiblebody/time-varying poses,
+no crop/blank/corruption. Two original runtime setup failures are retained.
+See docs/windows-preview-local-execution.md for exact identities and limits.
+
+Six saved setup recordings independently qualify their scoped media assessment:
+all8640PNG hashes/six fresh full24sdecodes/allnative traces;896orderedsource
+frames+96decodedendpoints+dense jumpdetails viewed. Narrow squat andopenstiff
+hands remain stylized limitations; no broaderstyles/modes/controller approval.
+Private assessment copied/hashverified to durable setup/independent-assessment-r001.
+
+Next: broader30group/120bundle publicsetupmatrix andsavednativeplays, remaining
+family media andexact operation validators.613productiondependencies matchold
+firstgroup for honestreuse. CI3dcb stillpending; no merge/tag/release yet.
+
 ## Complete saved captures and rig playback probes (2026-10-17 late)
 
 All six saved setup recordings now complete1440frames/24s/native/full-decode

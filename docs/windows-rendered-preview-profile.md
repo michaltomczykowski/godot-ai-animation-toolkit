@@ -1,7 +1,8 @@
 # Explicit Windows rendered-preview profile
 
-Tool integration complete; actual Windows renderer/MCP execution remains pending.
-Existing failed artifacts stay unchanged. This is not a Windows rendering receipt.
+Tool integration complete. Actual two-core Windows ZIP previews now pass at3dcb7f8;
+see `windows-preview-local-execution.md` for exact source, receipts and failed
+setup attempts. Existing failed artifacts stay unchanged.
 
 ## Integration boundary
 
@@ -17,7 +18,8 @@ log. Known software/translation aliases fail. Vendors are not allowlisted.
 
 The adapter now recomputes the exact complete-log identity and requires the helper
 dependency for explicit profiles. Linux CI passes its profile explicitly.25
-profile/runner/adapter controls pass; no actual Windows execution is claimed.
+profile/runner/adapter controls pass. Actual execution is recorded separately in
+the linked checkpoint; a profile declaration alone never qualifies rendering.
 
 ## Root-owned actual command
 

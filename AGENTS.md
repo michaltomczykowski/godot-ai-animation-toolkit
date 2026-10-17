@@ -1,5 +1,30 @@
 # Agent notes
 
+## Actual Windows previews and setup media complete (2026-10-17 night)
+
+Root pushed3dcb7f8, exact Windows cleanZIP preview against released421 AND430
+passes in windows-previews-3dcb7f8-r003. Every actual public call/restoration/
+typed refusal/decoded4PNG/complete-log renderer/source check passes.8original
+PNGs independently viewed; whole character/no crop/time-varying poses. Original
+two runtime setup failures retained. Separate exact private runtimes under
+E:/.../runtime-released-4.2.1 and4.3.0 now also installtheir exactcore package.
+Read docs/windows-preview-local-execution.md for receipts/hashes/limits.
+
+Six setup recordings independently qualify scoped media:8640PNG hashes, six
+fresh full24sdecodes, all traces;896ordered pixel samples+96decodedendpoints+
+dense jump details viewed. Narrow dummy squat/openstiffhands noted, no new
+observed crossing/flip; no broaderstyles/modes approval. Durable assessment
+E:/.../setup/independent-assessment-r001 (138copied files+hashverified receipt).
+
+NEXT prepared root-only runner E:/.../run_setup_matrix_r004.py needs source-head
+guard updated afterthisdocscommit, uses exact421runtime, ownports8125/9625,
+one visibleeditor for30publicgroups/120bundles thenpublicquit andserialnative.
+No concurrent native while editor.613 production dependency hashes exactly
+match reusable first4riggroup; preserve reused sourceidentity. Do not pass
+--godot topublic matrix whileeditoralive. Read execution.json beforelaunch.
+Workers graph evidence andremaining15FX/edit/library assessments stayisolated.
+Continue release-completion-plan.md; no merge/tag/release yet.
+
 ## Resume: complete setup captures, exact Windows runtimes (2026-10-17 late)
 
 Read docs/windows-preview-local-execution.md and rig-native-playback-adapters.md.
