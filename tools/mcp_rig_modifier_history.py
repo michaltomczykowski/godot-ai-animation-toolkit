@@ -10,6 +10,7 @@ import sys
 from fastmcp import Client
 from fastmcp.client.transports import StdioTransport
 from mcp_presets_audit import call
+from operation_case_collector import record_native_result
 from mcp_preset_library_history import valid_suite
 
 OPS = ('ik_setup', 'look_at_setup', 'twist_setup', 'spring_setup', 'retarget_setup')
@@ -76,8 +77,11 @@ async def run(args: argparse.Namespace) -> int:
     report = {}
     diagnostics = ''
     if passed:
-        runtime = subprocess.run([args.godot, '--headless', '--path', str(args.project_root),
-            '--script', 'res://tools/check_rig_modifier_history.gd'], capture_output=True, text=True, timeout=90, check=False)
+        command = [args.godot, '--headless', '--path', str(args.project_root),
+            '--script', 'res://tools/check_rig_modifier_history.gd']
+        runtime = subprocess.run(command, capture_output=True, text=True, timeout=90, check=False)
+        for op in OPS:
+            record_native_result('animation_rig_modifiers.' + op, 'user://rig_modifier_history.json', command, runtime)
         marker = 'RIG_MODIFIER_HISTORY_RUNTIME='
         payload = next((line[len(marker):] for line in runtime.stdout.splitlines() if line.startswith(marker)), '')
         report = json.loads(payload) if payload else {}

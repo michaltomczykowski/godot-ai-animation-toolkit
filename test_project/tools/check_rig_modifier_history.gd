@@ -11,6 +11,7 @@ class Witness extends SkeletonModifier3D:
 	func _process_modification_with_delta(_delta: float) -> void: pass
 var failures: Array[String] = []
 var rows: Array = []
+var comparisons: Array = []
 var saved_states := 0
 var logger := CaptureErrors.new()
 var native_states := 0
@@ -170,7 +171,12 @@ func _settings(row: Dictionary, source: Skeleton3D, modifier: SkeletonModifier3D
 			_check(modifier.profile != null and modifier.get_child_count() >= 1, label + " retarget useful profile/child")
 		"twist_setup":
 			_check(modifier.get_setting_count() == 1, label + " twist settings")
+func _stamp(row: Dictionary, state: String, _reference: bool, start_failures: int, start_errors: int, properties: Dictionary) -> void:
+	rows[-1].merge({"op":row.op,"params":row.params,"scene":row.states[state],"scene_sha256":FileAccess.get_sha256(row.states[state]),"source":row.source,"modifier":row.modifier,"case_failures":failures.slice(start_failures),"case_engine_errors":logger.errors.slice(start_errors),"native_requested_properties":properties},true)
 func _play(row: Dictionary, state: String, reference: bool = false, fps: int = 60) -> Array:
+	var proof_failures := failures.size()
+	var proof_errors := logger.errors.size()
+	var proof_properties := {}
 	var label := str(row.id) + "/" + state + ("/native" if reference else "") + "/" + str(fps)
 	var packed := ResourceLoader.load(row.states[state], "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene
 	_check(packed != null, label + " saved scene exists")
@@ -196,6 +202,7 @@ func _play(row: Dictionary, state: String, reference: bool = false, fps: int = 6
 		source.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
 		_check(_difference(peer_before, _poses(peer)) < 0.001, label + " Undo peer stable")
 		rows.append({"id": row.id, "state": state, "fps": fps, "native": false, "effect": 0.0, "samples": 1})
+		_stamp(row,state,reference,proof_failures,proof_errors,proof_properties)
 		saved_states += 1
 		scene.free()
 		return []
@@ -222,6 +229,7 @@ func _play(row: Dictionary, state: String, reference: bool = false, fps: int = 6
 		await process_frame
 		Native.finish(modifier)
 		var configured := _properties(modifier)
+		proof_properties = {"saved":expected_saved,"independent_native":configured}
 		for key in configured:
 			# Generated joint lists are evaluated below after the first step.
 			if key.contains("/joints/") or key.ends_with("/joint_count"): continue
@@ -338,6 +346,7 @@ func _play(row: Dictionary, state: String, reference: bool = false, fps: int = 6
 				_check(sample.final[i].is_equal_approx(expected), label + " influence=" + str(weight) + " bone=" + str(i))
 	_check(_difference(peer_before, _poses(peer)) < 0.001, label + " peer isolated during playback")
 	rows.append({"id": row.id, "state": state, "fps": fps, "native": reference, "effect": _difference(off.final, full.final), "samples": full.final_count, "collision_checks": full.collision_checks, "penetration": full.penetration, "collision_response": collision_response, "influences": [0.0, 0.5, 1.0], "influence_error": influence_error, "influence_contract": "source_rest" if row.op == "retarget_setup" else "pose_blend"})
+	_stamp(row,state,reference,proof_failures,proof_errors,proof_properties)
 	var result: Array = full.final
 	if reference: native_states += 1
 	else: saved_states += 1
@@ -374,8 +383,9 @@ func _run() -> void:
 			await _play(row, "undo", false, fps)
 			var repeated: Array = await _play(row, "redo", false, fps)
 			_check(_difference(first, repeated) < 0.001, str(row.id) + " Do/Redo playback equivalent")
+			comparisons.append({"id":row.id,"op":row.op,"fps":fps,"params":row.params,"native_reference_error":_difference(first,native),"redo_error":_difference(first,repeated),"states":row.states})
 	OS.remove_logger(logger)
-	print("RIG_MODIFIER_HISTORY_RUNTIME=" + JSON.stringify({"failures": failures, "engine_errors": logger.errors, "saved_states": saved_states, "native_states": native_states, "stack_states": stack_states, "rows": rows}))
+	print("RIG_MODIFIER_HISTORY_RUNTIME=" + JSON.stringify({"failures": failures, "engine_errors": logger.errors, "saved_states": saved_states, "native_states": native_states, "stack_states": stack_states, "rows": rows,"comparisons":comparisons,"manifest_sha256":FileAccess.get_sha256("user://rig_modifier_history.json")}))
 	quit(0 if failures.is_empty() and logger.errors.is_empty() else 1)
 
 func _stack(row: Dictionary, state: String, fps: int, reference: bool) -> Array:

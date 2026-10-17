@@ -2,6 +2,7 @@
 extends McpTestSuite
 
 ## Public-route writes; independent processes consume the saved manifest.
+const HistoryTrace := preload("res://tests/operation_history_trace.gd")
 const Registry := preload("res://addons/godot_ai/custom_tools/mcp_tool_registry.gd")
 const Context := preload("res://addons/godot_ai_animation/utils/tool_context.gd")
 const Pose := preload("res://tests/test_rig_pose_history.gd")
@@ -15,6 +16,7 @@ var _dispatcher
 var _pose := Pose.new()
 var _logger: Capture.ErrorCapture
 var _rows: Array = []
+var _proof_saved := {}
 
 func suite_name() -> String: return "rig_modifier_history"
 func suite_setup(ctx: Dictionary) -> void:
@@ -250,15 +252,26 @@ func _params(op: String, fixture: Dictionary) -> Dictionary:
 func _persist(label: String, expected: Dictionary) -> String:
 	var root := EditorInterface.get_edited_scene_root()
 	var packed := PackedScene.new()
-	assert_eq(packed.pack(root), OK, label + " pack")
+	var pack_result := packed.pack(root)
+	assert_eq(pack_result, OK, label + " pack")
 	var path := "user://modifier_history_%s.tscn" % label
-	assert_eq(ResourceSaver.save(packed, path), OK, label + " save")
+	var save_result := ResourceSaver.save(packed, path)
+	assert_eq(save_result, OK, label + " save")
 	var saved := (ResourceLoader.load(path, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene).instantiate()
 	var actual := _snapshot(saved)
 	assert_true(_pose._same(actual, expected), label + " persisted exact state " + str(_pose._checks._differences(actual, expected)))
+	_proof_saved[label] = {"path":path,"sha256":FileAccess.get_sha256(path),"pack_result":pack_result,"save_result":save_result,"snapshot":actual}
 	saved.free()
 	return path
+func _proof_test(op: String, layout: String, variant: String) -> String:
+	if variant == "dummy": return "test_dummy_history"
+	if layout.begins_with("nested_"): return "test_nested_history"
+	if variant != "base": return "test_" + op.replace("_setup", "") + "_variants"
+	return "test_" + layout + "_history"
 func _case(op: String, layout: String, variant: String = "base", overrides: Dictionary = {}) -> void:
+	var proof_assertions := _assertion_count
+	var proof_failed := _failed
+	_proof_saved.clear()
 	var label := "%s_%s_%s" % [layout, op, variant]
 	var root := EditorInterface.get_edited_scene_root()
 	var previous := root.get_children()
@@ -307,12 +320,23 @@ func _case(op: String, layout: String, variant: String = "base", overrides: Dict
 	var errors := _logger.errors.size()
 	var orphans := Node.get_orphan_node_ids()
 	var refusal := layout == "locked" and op == "retarget_setup"
+	var proof := {"id":label,"suite":"rig_modifier_history","test":_proof_test(op,layout,variant),"mode":layout,"variant":variant,"op":op,"request":params.duplicate(true),"before":baseline,"identities_before":identities,"peer_before":peer_before,"errors_before":errors,"failed_before":proof_failed,"refusal":refusal,"source_path":fixture.path,"source_hash_before":FileAccess.get_sha256(fixture.path),"inner_path":fixture.inner_path,"inner_hash_before":FileAccess.get_sha256(fixture.inner_path),"versions":{"before":version,"global_before":global_version},"orphans_before":str(orphans)}
 	var dry := _call(params.merged({"dry_run": true}, true))
+	proof.dry = dry
+	proof.after_dry = _snapshot(root)
+	proof.versions.dry = history.get_version()
+	proof.versions.global_dry = global_history.get_version()
+	proof.orphans_dry = str(Node.get_orphan_node_ids())
 	assert_has_key(dry.get("error", {}) if refusal else dry, "code" if refusal else "data", label + " dry response")
 	assert_true(_pose._same(_snapshot(root), baseline), label + " dry unchanged")
 	assert_eq(Node.get_orphan_node_ids(), orphans, label + " dry no leak")
 	assert_eq(history.get_version(), version, label + " dry no action")
 	var result := _call(params)
+	proof.write = result
+	proof.generated = _snapshot(root)
+	proof.versions.write = history.get_version()
+	proof.versions.global_write = global_history.get_version()
+	proof.orphans_write = str(Node.get_orphan_node_ids())
 	if refusal:
 		assert_has_key(result.get("error", {}), "code", label + " typed refusal")
 		assert_true(_pose._same(_snapshot(root), baseline), label + " refusal unchanged")
@@ -330,6 +354,7 @@ func _case(op: String, layout: String, variant: String = "base", overrides: Dict
 		for key in ["modifier_path", "target_path", "pole_path", "path_path", "moved_path", "collisions_moved"]:
 			if data.has(key): assert_eq(dry.get("data", {}).get(key), data[key], label + " predicted " + key)
 		var modifier := Codec.resolve_scene_path(str(data.get("modifier_path", "")), root)
+		proof.modifier_class = modifier.get_class() if modifier != null else ""
 		assert_true(modifier is SkeletonModifier3D, label + " valid modifier")
 		assert_eq(history.get_version(), version + 1, label + " one scene action")
 		var generated := _snapshot(root)
@@ -337,11 +362,20 @@ func _case(op: String, layout: String, variant: String = "base", overrides: Dict
 		var modifier_rel := str(root.get_path_to(modifier)) if modifier != null else ""
 		var source_rel := str(root.get_path_to(fixture.source))
 		var receiver_rel := str(root.get_path_to(fixture.receiver))
-		assert_true(history.undo(), label + " undo")
+		var undo_ok := history.undo()
+		proof.undo_success = undo_ok
+		proof.undone = _snapshot(root)
+		proof.identities_undo = _identities(root,{})
+		assert_true(undo_ok, label + " undo")
 		assert_true(_pose._same(_snapshot(root), baseline), label + " exact undo " + str(_pose._checks._differences(_snapshot(root), baseline)))
 		assert_eq(_identities(root, {}), identities, label + " identities undo")
 		var undo_path := _persist(label + "_undo", baseline)
-		assert_true(history.redo(), label + " redo")
+		var redo_ok := history.redo()
+		proof.redo_success = redo_ok
+		proof.redone = _snapshot(root)
+		proof.modifier_identity_redo = Codec.resolve_scene_path(str(data.get("modifier_path", "")), root).get_instance_id() if Codec.resolve_scene_path(str(data.get("modifier_path", "")), root) != null else 0
+		proof.modifier_identity_do = modifier.get_instance_id() if modifier != null else 0
+		assert_true(redo_ok, label + " redo")
 		assert_true(Codec.resolve_scene_path(str(data.get("modifier_path", "")), root) == modifier, label + " modifier identity redo")
 		assert_true(_pose._same(_snapshot(root), generated), label + " exact redo")
 		var redo_path := _persist(label + "_redo", generated)
@@ -354,7 +388,19 @@ func _case(op: String, layout: String, variant: String = "base", overrides: Dict
 	assert_true(fixture.wrapper.get_node("SharedPath").curve == shared, label + " shared resource identity")
 	var pristine := (ResourceLoader.load(fixture.path, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene).instantiate()
 	assert_true(_pose._same(_snapshot(pristine), peer_before), label + " freshly loaded source unchanged")
+	proof.pristine = _snapshot(pristine)
 	pristine.free()
+	proof.peer_after = _snapshot(fixture.peer)
+	proof.source_hash_after = FileAccess.get_sha256(fixture.path)
+	proof.inner_hash_after = FileAccess.get_sha256(fixture.inner_path)
+	proof.shared_resource_identity = fixture.wrapper.get_node("SharedPath").curve == shared
+	proof.persisted = _proof_saved.duplicate(true)
+	proof.versions.global_after = global_history.get_version()
+	proof.errors_after = _logger.errors.size()
+	proof.errors = _logger.errors.slice(errors)
+	proof.failed_after = _failed
+	proof.assertion_count = _assertion_count - proof_assertions
+	HistoryTrace.emit_modifier_history(proof)
 	assert_eq(_logger.errors.size(), errors, label + " engine errors " + str(_logger.errors.slice(errors)))
 	for child in root.get_children():
 		if not previous.has(child): child.free()
@@ -441,6 +487,8 @@ func test_predictable_refusals() -> void:
 	for i in cases.size():
 		for dry in [false, true]:
 			var result := _call(cases[i].merged({"dry_run": dry}, true))
+			var refusal_proof := {"id":"refusal_%d_%s" % [i,dry],"suite":"rig_modifier_history","test":"test_predictable_refusals","mode":"local","variant":"predictable_refusal","op":cases[i].op,"request":cases[i].merged({"dry_run":dry},true),"refusal":true,"single_refusal":true,"response":result,"before":baseline,"after":_snapshot(root),"versions":{"before":version,"after":history.get_version(),"global_before":global_version,"global_after":global_history.get_version()},"orphans_before":str(orphans),"orphans_after":str(Node.get_orphan_node_ids()),"errors":_logger.errors.slice(errors),"error_count_before":errors,"error_count_after":_logger.errors.size(),"expected_code":"OPERATION_UNAVAILABLE" if i == 0 or i >= 8 else "","failed_before":_failed,"failed_after":_failed,"assertion_count":1}
+			HistoryTrace.emit_modifier_history(refusal_proof)
 			assert_has_key(result.get("error", {}), "code", "typed refusal %d dry=%s" % [i, dry])
 			if i == 0 or i >= 8: assert_eq(result.get("error", {}).get("code"), "OPERATION_UNAVAILABLE", "unsupported native combination unavailable")
 			assert_true(_pose._same(_snapshot(root), baseline), "refusal scene unchanged")

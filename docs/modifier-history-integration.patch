@@ -1,0 +1,45 @@
+--- a/test_project/tests/operation_history_trace.gd
++++ b/test_project/tests/operation_history_trace.gd
+@@ -20,6 +20,9 @@
+ 
+ static func emit_preset_library(row: Dictionary, family: String) -> void:
+ 	_emit(row, family, "test_preset_library_history.gd", "preset_library_history_v1")
++
++static func emit_modifier_history(row: Dictionary) -> void:
++	_emit(row, "animation_rig_modifiers", "test_rig_modifier_history.gd", "rig_modifier_history_v1")
+ 
+ static func _emit(row: Dictionary, family: String, driver: String, validator: String) -> void:
+ 	var context_path := OS.get_environment("TOOLKIT_OPERATION_CONTEXT")
+--- a/tools/operation_case_collector.py
++++ b/tools/operation_case_collector.py
+@@ -460,6 +460,9 @@
+     for event in native_events:
+         if event.get('operation') not in EXPECTED_OPERATIONS or event.get('route') != 'native_godot':
+             raise ValueError('invalid native operation or route')
++        if 'res://tools/check_rig_modifier_history.gd' in event.get('command', []):
++            # Joined below to exact inner history case/state hashes, not public-call totals.
++            continue
+         checks, failures = native_checks(event, context)
+         matches = [call for call in public_events
+                    if call['operation'] == event['operation'] and call.get('scene') == event.get('scene')
+@@ -483,7 +486,9 @@
+                       'public_case_ids':proof['public_case_ids'],'dry_case_ids':proof['dry_case_ids'],
+                       'failures':proof['failures'],'limits':proof['limits']})
+     for event in history_events:
+-        if event.get('validator')=='rig_pose_file_v1':
++        if event.get('validator')=='rig_modifier_history_v1':
++            from operation_modifier_history_checks import verify_event
++        elif event.get('validator')=='rig_pose_file_v1':
+             from operation_pose_file_checks import verify_event
+         elif event.get('validator')=='preset_library_history_v1':
+             from operation_preset_history_checks import verify_event
+@@ -494,7 +499,8 @@
+         else:
+             from operation_history_checks import verify_event
+         if event.get('operation') not in EXPECTED_OPERATIONS:raise ValueError('invalid inner history operation')
+-        proof=verify_event(event,context,test_begins,support_events)
++        evidence_support = support_events + native_events if event.get('validator')=='rig_modifier_history_v1' else support_events
++        proof=verify_event(event,context,test_begins,evidence_support)
+         cases.append({'id':event['id'],'operation':event['operation'],'checks':proof['checks'],
+                       'scope':'candidate','route':'public_test_run_inner_dispatch',
+                       'raw_event_id':event['id'],'public_test_run_case_id':proof['public_test_run_case_id'],
