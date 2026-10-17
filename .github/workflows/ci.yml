@@ -253,6 +253,7 @@ jobs:
           path: |
             mcp-editor.log
             mcp-backend.log
+            *-backend.log
             mcp-route.log
             mcp-editor-preset-library-history*
             mcp-editor-rig-clip-history*
@@ -362,6 +363,7 @@ jobs:
           name: clean-install-${{ matrix.os }}-${{ matrix.core-ref }}
           path: |
             clean-install-evidence/*-editor.log
+            clean-install-evidence/*-backend.log
             clean-install-evidence/*-route.log
             clean-install-evidence/*preset-library-history*
             clean-install-evidence/*rig-clip-history*

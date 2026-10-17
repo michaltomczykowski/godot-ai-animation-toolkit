@@ -9,6 +9,7 @@ import subprocess
 import uuid
 from gate_diagnostics import progress, bounded_run
 from mcp_presets_audit import call
+from motion_sequence_transport_diagnostics import observed_call
 from mcp_preset_library_history import valid_suite
 from mcp_rig_modifier_ui_history import connected_editor
 from mcp_rig_bake_restoration import ready
@@ -134,7 +135,7 @@ async def run(args):
         for name, expected in SUITES.items():
             progress(args,'suite_start',suite=name)
             await ready(client)
-            result = await call(client, 'test_run', {'suite': name, 'verbose': True})
+            result = await observed_call(args, client, call, 'test_run', {'suite': name, 'verbose': True})
             suites[name] = result
             progress(args,'suite_returned',suite=name,suites=suites)
             if not valid_suite(result, expected): raise RuntimeError('Invalid suite ' + name + ': ' + repr(result))

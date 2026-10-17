@@ -15,10 +15,23 @@ const SEQUENCES := ["gap", "partial", "saved_pose", "inline_pose", "rooted", "se
 var _seed := Seed.new()
 var _undo: EditorUndoRedoManager
 var _dispatcher
+var _diagnostic_test := ""
+var _diagnostic_started := 0
+var _diagnostic_suite_started := 0
+var _diagnostic_tests := 0
 var _logger: Capture.ErrorCapture
 
 func suite_name() -> String: return "motion_sequence_history"
+func _diagnostic_begin(name: String) -> void:
+	_diagnostic_test=name
+	_diagnostic_started=Time.get_ticks_msec()
+	print("MOTION_SEQUENCE_TEST_START="+JSON.stringify({"test":name,"ticks_ms":_diagnostic_started}))
+func teardown() -> void:
+	_diagnostic_tests+=1
+	print("MOTION_SEQUENCE_TEST_END="+JSON.stringify({"test":_diagnostic_test,"duration_ms":Time.get_ticks_msec()-_diagnostic_started,"assertion_failed":_failed}))
 func suite_setup(ctx: Dictionary) -> void:
+	_diagnostic_suite_started=Time.get_ticks_msec()
+	_diagnostic_tests=0
 	_undo = ctx.undo_redo
 	Context.undo_redo = _undo
 	_dispatcher = Registry.get_instance().get("_dispatcher")
@@ -229,20 +242,47 @@ func _matrix(group: String, mode: String) -> void:
 	for variant in variants:
 		for fps in [30, 60, 120]: _case(group, variant, mode, fps)
 	print("MOTION_SEQUENCE_MATRIX_COMPLETED=" + group + ":" + mode)
-func test_motion_local() -> void: _matrix("motion", "local")
-func test_motion_locked() -> void: _matrix("motion", "instanced")
-func test_motion_editable() -> void: _matrix("motion", "editable")
-func test_motion_missing_library() -> void: _matrix("motion", "missing_library")
-func test_motion_overwrite() -> void: _matrix("motion", "overwrite")
-func test_secondary_local() -> void: _matrix("secondary", "local")
-func test_secondary_locked() -> void: _matrix("secondary", "instanced")
-func test_secondary_editable() -> void: _matrix("secondary", "editable")
-func test_sequence_local() -> void: _matrix("sequence", "local")
-func test_sequence_locked() -> void: _matrix("sequence", "instanced")
-func test_sequence_editable() -> void: _matrix("sequence", "editable")
-func test_sequence_missing_library() -> void: _matrix("sequence", "missing_library")
-func test_sequence_overwrite() -> void: _matrix("sequence", "overwrite")
+func test_motion_local() -> void:
+	_diagnostic_begin("test_motion_local")
+	_matrix("motion", "local")
+func test_motion_locked() -> void:
+	_diagnostic_begin("test_motion_locked")
+	_matrix("motion", "instanced")
+func test_motion_editable() -> void:
+	_diagnostic_begin("test_motion_editable")
+	_matrix("motion", "editable")
+func test_motion_missing_library() -> void:
+	_diagnostic_begin("test_motion_missing_library")
+	_matrix("motion", "missing_library")
+func test_motion_overwrite() -> void:
+	_diagnostic_begin("test_motion_overwrite")
+	_matrix("motion", "overwrite")
+func test_secondary_local() -> void:
+	_diagnostic_begin("test_secondary_local")
+	_matrix("secondary", "local")
+func test_secondary_locked() -> void:
+	_diagnostic_begin("test_secondary_locked")
+	_matrix("secondary", "instanced")
+func test_secondary_editable() -> void:
+	_diagnostic_begin("test_secondary_editable")
+	_matrix("secondary", "editable")
+func test_sequence_local() -> void:
+	_diagnostic_begin("test_sequence_local")
+	_matrix("sequence", "local")
+func test_sequence_locked() -> void:
+	_diagnostic_begin("test_sequence_locked")
+	_matrix("sequence", "instanced")
+func test_sequence_editable() -> void:
+	_diagnostic_begin("test_sequence_editable")
+	_matrix("sequence", "editable")
+func test_sequence_missing_library() -> void:
+	_diagnostic_begin("test_sequence_missing_library")
+	_matrix("sequence", "missing_library")
+func test_sequence_overwrite() -> void:
+	_diagnostic_begin("test_sequence_overwrite")
+	_matrix("sequence", "overwrite")
 func test_registry_writers_covered() -> void:
+	_diagnostic_begin("test_registry_writers_covered")
 	var names := Ops.op_names("animation_motion")
 	names.erase("character_setup")
 	var covered := ["walk_cycle", "run_cycle", "idle_cycle", "jump", "turn_cycle", "strafe_cycle", "walk_start", "walk_stop", "cycle", "secondary_motion"]
@@ -251,6 +291,7 @@ func test_registry_writers_covered() -> void:
 	assert_eq(names, covered, "every motion writer represented or retained setup gate")
 	assert_eq(Ops.op_names("animation_sequence"), ["compose"], "all sequence writers covered")
 func suite_teardown() -> void:
+	print("MOTION_SEQUENCE_SUITE_END="+JSON.stringify({"tests":_diagnostic_tests,"duration_ms":Time.get_ticks_msec()-_diagnostic_suite_started}))
 	OS.remove_logger(_logger)
 	DirAccess.remove_absolute("res://animation_toolkit/poses/matrix_history_pose.json")
 func _call(family: String, params: Dictionary) -> Dictionary:
@@ -266,6 +307,7 @@ func _params(fixture: Node, op: String) -> Dictionary:
 	return {"op": op, "player_path": str(fixture.get_node("Playback/AnimationPlayer").get_path()), "skeleton_path": str(fixture.get_node("Character/Skeleton").get_path()), "animation_name": "generated", "duration": 1.2 if op == "jump" else 1.0, "samples": 30, "roles": Seed.ROLES, "spine_chain": ["spine", "chest", "head"]}
 
 func test_busy_destination_is_atomic() -> void:
+	_diagnostic_begin("test_busy_destination_is_atomic")
 	var fixture := _fixture()
 	var player := fixture.get_node("Playback/AnimationPlayer") as AnimationPlayer
 	player.play("source/input")
@@ -284,6 +326,7 @@ func test_busy_destination_is_atomic() -> void:
 	fixture.free()
 
 func test_secondary_rotated_rest_keeps_native_initial_pose() -> void:
+	_diagnostic_begin("test_secondary_rotated_rest_keeps_native_initial_pose")
 	var fixture := _fixture()
 	var skeleton := fixture.get_node("Character/Skeleton") as Skeleton3D
 	var player := fixture.get_node("Playback/AnimationPlayer") as AnimationPlayer
@@ -307,6 +350,7 @@ func test_secondary_rotated_rest_keeps_native_initial_pose() -> void:
 	fixture.free()
 
 func test_sequence_missing_channel_enters_from_authored_pose() -> void:
+	_diagnostic_begin("test_sequence_missing_channel_enters_from_authored_pose")
 	var fixture := _fixture()
 	var player := fixture.get_node("Playback/AnimationPlayer") as AnimationPlayer
 	var skeleton := fixture.get_node("Character/Skeleton") as Skeleton3D

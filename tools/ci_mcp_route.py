@@ -1029,7 +1029,7 @@ def run(args: argparse.Namespace) -> int:
             # supported attach/adoption path used by local editor sessions.
             if port_open(args.port) or port_open(args.ws_port):
                 raise RuntimeError("CI requires unused backend ports before startup")
-            backend_path = log_path.with_name("mcp-backend.log")
+            backend_path = log_path.with_name(log_path.stem + "-backend.log")
             backend_stream = backend_path.open("wb")
             backend = subprocess.Popen(
                 [sys.executable, "-m", "godot_ai", "--transport", "streamable-http",
