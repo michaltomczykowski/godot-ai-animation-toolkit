@@ -2,6 +2,8 @@ extends "res://tools/check_setup_tree_quality.gd"
 ## Saved native setup capture. No replacement graph, animation, helper or bone writes.
 ## Args: immutable schedule.json NEW_OUTPUT clean|diagnostic EXPECTED_SCHEDULE_SHA256
 var render_views: Array = []
+func _timing(v: Dictionary) -> Dictionary:
+	return {"signals":v.signals,"evaluations":v.modifier.evaluations,"status":v.modifier.status}
 func _material(color: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color=color
@@ -29,10 +31,13 @@ func _port(index: int) -> SubViewport:
 func _view(row: Dictionary, port: SubViewport, side: bool, diagnostic: bool) -> Dictionary:
 	var v := _load(row) # Shared saved-hash, ownership and helper admission.
 	if v.has("error"): return v
+	v.prime_timing={"loaded":_timing(v)}
+	v.rig.modifier_callback_mode_process=Skeleton3D.MODIFIER_CALLBACK_MODE_PROCESS_MANUAL
 	var world := Node3D.new()
 	port.add_child(world)
 	var holder: Node = v.driver if v.has("driver") else v.scene
 	holder.reparent(world,true)
+	v.prime_timing["reparented"]=_timing(v)
 	v.world=world
 	v.skin_updates=0
 	v.rig.skeleton_updated.connect(func(): v.skin_updates+=1)
@@ -111,13 +116,23 @@ func _view(row: Dictionary, port: SubViewport, side: bool, diagnostic: bool) -> 
 			world.add_child(rod)
 			v.proxy.append({"node":rod,"a":parent,"b":bone})
 	v.tree.set(v.speed_parameter,speed)
+	v.prime_timing["presentation_ready"]=_timing(v)
+	# Mounting the saved skeleton in its SubViewport may emit one inactive
+	# modifier notification. It has no graph evaluation or physical time.
+	v.preparation_signals=v.signals
+	if v.preparation_signals>1 or v.modifier.evaluations!=0 or v.modifier.status!="inactive": push_error("Unexpected evaluated pose during presentation mount")
+	var prime_origin: Vector3 = v.owner.global_position
 	v.tree.active=true
 	v.tree.advance(0.0)
+	v.prime_timing["tree_primed"]=_timing(v)
 	v.modifier.reset_grounding("fresh_recording_take")
 	v.rig.advance(0.0)
+	v.prime_timing["skeleton_advanced"]=_timing(v)
 	v.rig.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
-	v.prime_signals=v.signals
-	if v.signals!=1: push_error("Fresh take requires exactly one zero-time final signal")
+	v.prime_timing["skeleton_notified"]=_timing(v)
+	v.prime_signals=v.signals-v.preparation_signals
+	if v.prime_signals!=1 or v.modifier.evaluations!=1: push_error("Fresh take requires exactly one zero-time final evaluation and signal")
+	if v.owner.global_position!=prime_origin or v.tree.get_root_motion_position()!=Vector3.ZERO: push_error("Zero-time prime moved the root")
 	return v
 func _advance_view(v: Dictionary, row: Dictionary, frame: int) -> Dictionary:
 	if frame==int(row.render_spec.jump_fire_at_frame): v.tree.set(v.jump_parameter,AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
@@ -241,8 +256,8 @@ func _run() -> void:
 				if not logger.errors.is_empty(): break
 			if trace.size()!=int(row.render_spec.frames_per_take): push_error("Incomplete declared take trace")
 			for v: Dictionary in render_views:
-				if v.signals!=v.prime_signals+trace.size(): push_error("Total final signal count differs from take frames plus prime")
-			results.append({"id":row.id,"take":take+1,"scene_sha256":row.scene_sha256,"frames":trace.size(),"trace":trace,"presentation":render_views[0].presentation,"prime_signals":[render_views[0].prime_signals,render_views[1].prime_signals]})
+				if v.signals!=v.preparation_signals+v.prime_signals+trace.size(): push_error("Total final signal count differs from mount plus prime plus take frames")
+			results.append({"id":row.id,"take":take+1,"scene_sha256":row.scene_sha256,"frames":trace.size(),"trace":trace,"presentation":render_views[0].presentation,"preparation_signals":[render_views[0].preparation_signals,render_views[1].preparation_signals],"prime_signals":[render_views[0].prime_signals,render_views[1].prime_signals],"prime_timing":[render_views[0].prime_timing,render_views[1].prime_timing]})
 			for v: Dictionary in render_views: v.world.free()
 			render_views=[]
 			if not logger.errors.is_empty(): break

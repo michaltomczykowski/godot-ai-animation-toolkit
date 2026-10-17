@@ -17,12 +17,20 @@ def validate(schedule, report, expected_schedule_sha256):
         if type(frames) is not int or frames<180: return False
         if (actual.get('id'),actual.get('take'),actual.get('scene_sha256'))!=(row['id'],take,row['scene_sha256']): return False
         if actual.get('frames')!=frames or len(actual.get('trace',[]))!=frames or actual.get('prime_signals')!=[1,1]: return False
+        preparation=actual.get('preparation_signals')
+        if not isinstance(preparation,list) or len(preparation)!=2 or any(type(v) is not int or v not in (0,1) for v in preparation): return False
+        timings=actual.get('prime_timing')
+        if not isinstance(timings,list) or len(timings)!=2: return False
+        for count,timing in zip(preparation,timings):
+            mounted=timing.get('presentation_ready',{});primed=timing.get('skeleton_notified',{})
+            if mounted.get('signals')!=count or mounted.get('evaluations')!=0 or mounted.get('status')!='inactive': return False
+            if primed.get('signals')!=count+1 or primed.get('evaluations')!=1 or primed.get('status')!='grounded': return False
         for frame,samples in enumerate(actual['trace']):
             if len(samples)!=2: return False
-            for view,sample in zip(('front','side'),samples):
+            for index,(view,sample) in enumerate(zip(('front','side'),samples)):
                 if (sample.get('id'),sample.get('take'),sample.get('view'),sample.get('frame'))!=(row['id'],take,view,frame): return False
                 if not math.isclose(sample.get('time_s',-1),(frame+1)/60,abs_tol=1e-12): return False
-                if sample.get('signals')!=frame+2: return False
+                if sample.get('signals')!=preparation[index]+frame+2: return False
                 before=sample.get('skin_updates_before');after=sample.get('skin_updates_after_draw')
                 if type(before) is not int or type(after) is not int or after<=before: return False
                 proof=sample.get('framing',{})
