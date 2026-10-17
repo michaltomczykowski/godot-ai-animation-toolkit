@@ -48,16 +48,29 @@ func _view(row: Dictionary, port: SubViewport, side: bool, diagnostic: bool) -> 
 	env.environment.background_color=Color(0.035,0.055,0.075)
 	env.environment.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR
 	env.environment.ambient_light_color=Color.WHITE
-	env.environment.ambient_light_energy=0.6
+	env.environment.ambient_light_energy=0.35
 	world.add_child(env)
 	var light := DirectionalLight3D.new()
 	world.add_child(light)
 	light.rotation_degrees=Vector3(-40,-30,0)
+	light.light_energy=0.85
 	var right: Vector3 = v.forward.cross(v.up).normalized()
 	var speed := float(row.render_spec.speed_mps)
 	var duration := float(row.render_spec.frames_per_take)/60.0
 	var travel := speed*duration
 	var center: Vector3 = _point(v,"hips",true)+v.forward*travel*0.5
+	# A static rest-sole presentation plane, independently measured before any
+	# graph playback. Bone-ground contact thresholds remain in the checker.
+	var visual_ground := float(v.ground)-0.035*float(v.leg)
+	var rest_mesh_min := INF
+	var measured_meshes := 0
+	for mesh: MeshInstance3D in v.scene.find_children("*","MeshInstance3D",true,false):
+		if mesh.mesh==null or not mesh.is_visible_in_tree(): continue
+		measured_meshes+=1
+		var bounds := mesh.get_aabb()
+		for corner in 8: rest_mesh_min=minf(rest_mesh_min,(mesh.global_transform*bounds.get_endpoint(corner)).dot(v.up))
+	if measured_meshes>0: visual_ground=rest_mesh_min
+	v.visual_floor={"height_m":visual_ground,"bone_ground_m":v.ground,"rest_ankle_offset_m":float(v.ground)-visual_ground,"source":"rest mesh AABB" if measured_meshes>0 else "proxy rest ankle minus3.5%leg","mesh_count":measured_meshes,"fixed_during_take":true}
 	var floor := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
 	plane.size=Vector2(maxf(6.0*float(v.leg),travel+4.0*float(v.leg)),maxf(6.0*float(v.leg),travel+4.0*float(v.leg)))
@@ -65,7 +78,7 @@ func _view(row: Dictionary, port: SubViewport, side: bool, diagnostic: bool) -> 
 	floor.mesh=plane
 	world.add_child(floor)
 	floor.global_basis=Basis(right,v.up,-v.forward)
-	floor.global_position=center+v.up*(float(v.ground)-center.dot(v.up)-0.005*float(v.leg))
+	floor.global_position=center+v.up*(visual_ground-center.dot(v.up)-0.005*float(v.leg))
 	# Static quarter-leg grid uses measured geometry axes, never a world-Y guess.
 	for axis in 2:
 		for offset in range(-12,13):
@@ -80,8 +93,8 @@ func _view(row: Dictionary, port: SubViewport, side: bool, diagnostic: bool) -> 
 	var camera := Camera3D.new()
 	world.add_child(camera)
 	camera.projection=Camera3D.PROJECTION_ORTHOGONAL
-	camera.size=maxf(3.5*float(v.leg),travel+2.5*float(v.leg))
-	camera.global_position=center+(right if side else v.forward)*8.0*float(v.leg)+v.up*0.35*float(v.leg)
+	camera.size=maxf(3.5*float(v.leg),travel+2.5*float(v.leg)) if side else 3.5*float(v.leg)
+	camera.global_position=center+(right if side else v.forward)*8.0*float(v.leg)+v.up*2.5*float(v.leg)
 	camera.look_at(center,v.up)
 	camera.current=true
 	v.camera=camera
@@ -257,7 +270,7 @@ func _run() -> void:
 			if trace.size()!=int(row.render_spec.frames_per_take): push_error("Incomplete declared take trace")
 			for v: Dictionary in render_views:
 				if v.signals!=v.preparation_signals+v.prime_signals+trace.size(): push_error("Total final signal count differs from mount plus prime plus take frames")
-			results.append({"id":row.id,"take":take+1,"scene_sha256":row.scene_sha256,"frames":trace.size(),"trace":trace,"presentation":render_views[0].presentation,"preparation_signals":[render_views[0].preparation_signals,render_views[1].preparation_signals],"prime_signals":[render_views[0].prime_signals,render_views[1].prime_signals],"prime_timing":[render_views[0].prime_timing,render_views[1].prime_timing]})
+			results.append({"id":row.id,"take":take+1,"scene_sha256":row.scene_sha256,"frames":trace.size(),"trace":trace,"presentation":render_views[0].presentation,"visual_floor":[render_views[0].visual_floor,render_views[1].visual_floor],"preparation_signals":[render_views[0].preparation_signals,render_views[1].preparation_signals],"prime_signals":[render_views[0].prime_signals,render_views[1].prime_signals],"prime_timing":[render_views[0].prime_timing,render_views[1].prime_timing]})
 			for v: Dictionary in render_views: v.world.free()
 			render_views=[]
 			if not logger.errors.is_empty(): break
