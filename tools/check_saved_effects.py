@@ -85,6 +85,27 @@ def transition_rect_failures(case,samples):
             failures.append(f'take {take}: transition actual target bounds missing/cropped or full-size hold not witnessed ({invalid} invalid observations)')
     return failures
 
+def showcase_rect_failures(case,samples):
+    if case.get('display_mode')!='showcase':return []
+    names={'Title','BounceButton','OrbitDot','SweepPivot/SweepBar','DriftLine','PulseLabel'}
+    failures=[]
+    for take in (1,2):
+        rows=[row for row in samples if row.get('take')==take]
+        valid=bool(rows)
+        for row in rows:
+            panes=row.get('presentation',[])
+            if len(panes)!=2:valid=False;continue
+            if panes[0].get('showcase_present') is not False or panes[0].get('showcase_controls')!={}:valid=False
+            controls=panes[1].get('showcase_controls',{})
+            if panes[1].get('showcase_present') is not True or set(controls)!=names:valid=False;continue
+            for control in controls.values():
+                rect=control.get('viewport_rect',[])
+                if len(rect)!=4 or any(type(v) not in (int,float) or not math.isfinite(v) for v in rect):valid=False;continue
+                x,y,width,height=rect
+                if control.get('visible_in_tree') is not True or control.get('fits') is not True or width<=0 or height<=0 or x<4-.0001 or y<4-.0001 or x+width>696.0001 or y+height>606.0001:valid=False
+        if not valid:failures.append(f'take {take}: showcase canvas bounds absent, hidden or cropped')
+    return failures
+
 def check(case, report):
     failures = capture_failures(report)
     if case.get('operation')=='animation_edit.set_interp' and case.get('variant')=='set_interp' and not case.get('require_progression',True) and not is_nearest_hold(case):
@@ -109,9 +130,10 @@ def check(case, report):
     samples = report.get('samples', [])
     failures.extend(player_clock_failures(case,samples))
     failures.extend(transition_rect_failures(case,samples))
+    failures.extend(showcase_rect_failures(case,samples))
     if report.get('header_rect') != [12,8,1376,170]:
         failures.append('fixed header/body separation missing')
-    expected_transform=[.55,0,0,.55,0,100] if case.get('display_mode')=='showcase' else [1,0,0,1,250,260]
+    expected_transform=[.45,0,0,.45,20,100] if case.get('display_mode')=='showcase' else [1,0,0,1,250,260]
     if case['operation']=='animation_fx.transition': expected_transform=[.5,0,0,.5,150,150]
     presentation_failures=0
     for sample in samples:

@@ -196,7 +196,9 @@ func _load_scene(viewport: SubViewport, state: String) -> void:
 func _fixed_transform() -> Transform2D:
 	if _case.operation == "animation_fx.transition":
 		return Transform2D(0.0, Vector2(0.5, 0.5), 0.0, Vector2(150, 150))
-	return Transform2D(0.0, Vector2(0.55, 0.55), 0.0, Vector2(0, 100)) if _case.get("display_mode", "") == "showcase" else Transform2D(0.0, Vector2(250, 260))
+	# Original DriftLine reaches x1100 with width300; fixed0.45 leaves50px
+	# right margin in the700px pane. This changes only viewport presentation.
+	return Transform2D(0.0, Vector2(0.45, 0.45), 0.0, Vector2(20, 100)) if _case.get("display_mode", "") == "showcase" else Transform2D(0.0, Vector2(250, 260))
 
 func _apply_fixed_presentation(viewport: SubViewport) -> void:
 	if _native_camera_mode(): return
@@ -215,6 +217,8 @@ func _presentation_states() -> Array:
 		if not fixed_ok and not _runtime_failures.has("Fixed comparison framing changed after camera shutdown"):
 			_runtime_failures.append("Fixed comparison framing changed after camera shutdown")
 		var target_rects := {}
+		var showcase_rects := {}
+		var showcase_present := false
 		if _case.operation == "animation_fx.transition":
 			var fixture := _fixtures[_viewports.find(viewport)]
 			for path in _case.targets:
@@ -222,7 +226,20 @@ func _presentation_states() -> Array:
 				if target == null: continue
 				var rect: Rect2 = target.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, target.size)
 				target_rects[str(path)] = {"local_size": [target.size.x, target.size.y], "viewport_rect": [rect.position.x, rect.position.y, rect.size.x, rect.size.y], "visible_in_tree": target.is_visible_in_tree()}
+		if _case.get("display_mode", "") == "showcase":
+			var fixture := _fixtures[_viewports.find(viewport)]
+			var showcase := fixture.get_node_or_null("ReviewShowcase")
+			showcase_present=showcase!=null
+			if showcase!=null:
+				for control: Control in showcase.find_children("*","Control",true,false):
+					var rect: Rect2 = control.get_global_transform_with_canvas()*Rect2(Vector2.ZERO,control.size)
+					var path := str(showcase.get_path_to(control))
+					var fits := rect.position.x>=4 and rect.position.y>=4 and rect.end.x<=696 and rect.end.y<=606
+					showcase_rects[path]={"viewport_rect":[rect.position.x,rect.position.y,rect.size.x,rect.size.y],"visible_in_tree":control.is_visible_in_tree(),"fits":fits}
+					var failure := "Showcase canvas control is cropped: "+path
+					if not fits and not _runtime_failures.has(failure): _runtime_failures.append(failure)
 		states.append({"canvas_transform": [transform.x.x, transform.x.y, transform.y.x, transform.y.y, transform.origin.x, transform.origin.y], "target_rects": target_rects,
+			"showcase_present":showcase_present,"showcase_controls":showcase_rects,
 			"body_rect": [viewport.get_parent().position.x, BODY_TOP, 700, 610], "fixed_frame_valid": fixed_ok,
 			"audio_listener_2d": viewport.audio_listener_enable_2d, "audio_listener_3d": viewport.audio_listener_enable_3d})
 	return states
@@ -331,7 +348,7 @@ func _process(delta: float) -> bool:
 			"frames": _frames, "playback_contracts": _playback_contracts(), "elapsed": _elapsed, "plan_sha256": _plan_sha, "renderer_sha256": _renderer_sha, "max_delta_error": _max_delta_error, "engine": Engine.get_version_info(),
 			"status": "failed_engine_or_runtime" if not _logger.errors.is_empty() or not _runtime_failures.is_empty() else "observation_only", "semantic_effect_check": "pending",
 			"continuous_visual_assessment": "pending", "audio_output": "pending" if _case.audio_output_required else "not_applicable",
-			"limits": "Difference/progression are observations, not semantic correctness or visual approval. Native camera plus static50-unit calibration grid for shake/zoom; other cameras disabled for stable framing; unrelated CanvasItems hidden; unkeyed bar/panel display extents 220x50; Control/Node2D cyan polygons and Node3D rigid cube/camera/light are display-only; showcase framed at0.55; markers are display-only children. Both clones re-instantiated for take2. SpriteFrames explicitly played for review (saved play=false remains documented)."}
+			"limits": "Difference/progression are observations, not semantic correctness or visual approval. Native camera plus static50-unit calibration grid for shake/zoom; other cameras disabled for stable framing; unrelated CanvasItems hidden; unkeyed bar/panel display extents 220x50; Control/Node2D cyan polygons and Node3D rigid cube/camera/light are display-only; showcase fixed0.45 scale with every canvas Control bounded each frame;3D silhouette remains visual assessment; markers are display-only children. Both clones re-instantiated for take2. SpriteFrames explicitly played for review (saved play=false remains documented)."}
 		var file := FileAccess.open(_output, FileAccess.WRITE)
 		file.store_string(JSON.stringify(report, "  "))
 		quit(1 if not _logger.errors.is_empty() or not _runtime_failures.is_empty() else 0)
