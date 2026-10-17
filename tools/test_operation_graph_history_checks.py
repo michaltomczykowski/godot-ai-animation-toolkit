@@ -52,7 +52,7 @@ class GraphProof(unittest.TestCase):
             row=fixture(op);row['persist_redo']['native'][-1]['x']=0;row['persist_redo']['native'][-1]['y']=0;row['persist_redo']['native'][-1]['rotation']=0
             self.assertEqual(derive(row)['valid_effect'],'fail',op)
     def test_corruptions_fail_observed_gate(self):
-        for fault in ('dry','error','undo','redo','save','source','peer','fixture','history','global','sticky','engine','path','class','clip','competing','clock','dt','framecount','missing_native','echo','wrong_request','wrong_tree_request'):
+        for fault in ('dry','error','undo','redo','save','source','peer','fixture','history','global','sticky','engine','path','class','clip','competing','clock','dt','framecount','missing_native','echo','wrong_request','wrong_tree_request','bool_request','bool_point'):
             row=fixture(mode='instanced')
             if fault=='dry':row['after_dry']={}
             elif fault=='error':row['invalid']['error']['code']='OTHER'
@@ -74,6 +74,8 @@ class GraphProof(unittest.TestCase):
             elif fault=='dt':row['persist_redo']['native'][0]['dt']=.1
             elif fault=='framecount':row['persist_redo']['native'][0]['frames']=1
             elif fault=='missing_native':row['persist_redo']['native']=[]
+            elif fault=='bool_request':row['request']['dimensions']=True
+            elif fault=='bool_point':row['generated']['root']['points'][1]['position']=True
             elif fault=='wrong_request':row['request']['max']=4
             elif fault=='wrong_tree_request':row['request']['tree_path']='/Other/AnimationTree'
             elif fault=='echo':row['persist_redo']['native'][0].update(x=0,expected_x=0)

@@ -25,7 +25,16 @@ def request_matches(row):
     player=request.get('player_path')
     if not isinstance(player,str) or not player.endswith('/GraphHistory/AnimationPlayer'):return False
     expected=dict(REQUESTS[op],op=op,player_path=player,tree_path=player.removesuffix('AnimationPlayer')+'AnimationTree',active=op!='wire')
-    return request==expected
+    return exact_json(request,expected)
+
+
+def exact_json(a,b):
+    if isinstance(a,bool) or isinstance(b,bool):return type(a) is type(b) and a==b
+    if number(a) and number(b):return a==b
+    if type(a) is not type(b):return False
+    if isinstance(a,dict):return a.keys()==b.keys() and all(exact_json(a[k],b[k]) for k in a)
+    if isinstance(a,list):return len(a)==len(b) and all(exact_json(x,y) for x,y in zip(a,b))
+    return a==b
 
 
 def shape(row):
@@ -41,7 +50,7 @@ def shape(row):
         return root.get('type')=='state_machine' and {x.get('name'):x.get('node') for x in states}=={k:{'type':'animation','animation':k} for k in ('idle','walk')} and any(x.get('from')=='idle' and x.get('to')=='walk' and number(x.get('xfade_time')) and abs(x['xfade_time']-.1)<1e-6 for x in links)
     if op in ('blend_space','locomotion'):
         points=root.get('points',[])
-        return root.get('type')=='blend_space_1d' and root.get('min')==0 and root.get('max')==2 and len(points)==3 and {(x.get('animation'),x.get('position')) for x in points}=={('idle',0),('walk',1),('run',2)}
+        return root.get('type')=='blend_space_1d' and number(root.get('min')) and root['min']==0 and number(root.get('max')) and root['max']==2 and len(points)==3 and all(number(x.get('position')) for x in points) and {(x.get('animation'),x.get('position')) for x in points}=={('idle',0),('walk',1),('run',2)}
     nodes={x.get('name'):x.get('node',{}) for x in root.get('nodes',[])}
     if root.get('type')!='blend_tree':return False
     if op=='one_shot_layer':return nodes.get('Base')=={'type':'animation','animation':'idle'} and nodes.get('Shot')=={'type':'animation','animation':'jump'} and nodes.get('OneShot',{}).get('class')=='AnimationNodeOneShot'
