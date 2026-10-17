@@ -1,5 +1,27 @@
 # Animation Toolkit repair roadmap
 
+## Native restart and exact file/preset audit closed (2026-10-17)
+
+Godot4.7.2 passes the distinct12primed/12expected-unprimed reset controls,
+33synthetic setup checks and60ordinary saved graph plays. Original failed
+reset reports remain intact. New takes have explicit phase cuts, zero-time
+priming and unchanged per-take contact/root gates; continuous resume is unclaimed.
+
+Actual public test_run on releasedcore4.2.1 passes12tests and92strictly derived
+inner cases:59preset/library history/save/reopen/native/track cases,16library
+file outcomes,11read refusals and6pose-file contracts. First strict derivation
+exposed14validator errors; exact response vocabulary, canonical scene paths and
+transform tracks are corrected, followed by a fresh passing public run. Product
+generators were unchanged. See docs/resume-validation-20261017.md for raw hashes.
+
+All49effective effects representatives now have720frames/12s decoded videos;
+an independent catalog verifies47operation keys. Remaining visual assessments
+are explicit. First saved setup recording has1440valid native frames; improved
+rest-sole floor/framing is prepared for3conditions, clean+diagnostic captures.
+Windows preview tool support is integrated; actual Windows rendering still needs
+both released cores. Latest CI has one Windows4.2.1 clean-install sequence timeout
+to diagnose. No release or full candidate qualification is claimed.
+
 ## First serialized production setup group passes (2026-10-16 late)
 
 Four real public setup bundles pass dry run, exact pose/binding preservation,

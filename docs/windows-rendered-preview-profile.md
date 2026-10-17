@@ -1,13 +1,12 @@
 # Explicit Windows rendered-preview profile
 
-Tool-only preparation; no actual renderer/editor/MCP processes were launched.
-No runtime/addon or Linux CI changes are required. Existing failed artifacts stay
-unchanged. This is not a Windows rendering qualification receipt.
+Tool integration complete; actual Windows renderer/MCP execution remains pending.
+Existing failed artifacts stay unchanged. This is not a Windows rendering receipt.
 
 ## Integration boundary
 
-Apply `docs/patches/windows-rendered-preview-profile.patch` to the current root
-runner after its frozen public run. The patch was prepared against runner raw
+Root applied `docs/patches/windows-rendered-preview-profile.patch` to the runner.
+The preserved patch was prepared against runner raw
 SHA256 `4525b8d21bb5750471ccfa9229cd2e0427a1b22787fc0dec40bf54943c3d35a6`.
 It adds one explicit argument and uses the standalone profile helper. The default
 remains `linux-mesa-llvmpipe`: Linux host/context, DISPLAY, and actual llvmpipe
@@ -16,9 +15,9 @@ OpenGL log identity remain mandatory. Windows requires explicit
 and actual API version/driver plus vendor/device lines from the complete editor
 log. Known software/translation aliases fail. Vendors are not allowlisted.
 
-Root can review/check with `git apply --check` then apply the patch. The patch is
-an artifact, not an imported baseline file. Six standalone offline controls pass.
-Python compilation of the patched runner succeeds; no execution is claimed.
+The adapter now recomputes the exact complete-log identity and requires the helper
+dependency for explicit profiles. Linux CI passes its profile explicitly.25
+profile/runner/adapter controls pass; no actual Windows execution is claimed.
 
 ## Root-owned actual command
 
@@ -36,14 +35,13 @@ context, four fully decoded 320x240 PNGs with nonblank and all-pairs-distinct pi
 checks, exact source/timeline checkpoints, typed dry/missing/overwrite refusals,
 complete engine error checks and portable hashes. These gates are unchanged.
 
-## Required downstream binding before qualification
+## Downstream binding
 
-`operation_preview_adapter.verify_preview_bundle` already supports Windows actual
-OpenGL lines, but must require the explicit Windows profile and call this helper
-against the source-bound complete editor log, comparing recomputed identity with
-report identity. Keep historical Linux reports without profile treated only as
-the legacy Linux profile; never implicitly reinterpret Windows as native. Add the
-helper's blob to required context dependencies. Existing native hardware strings
+`operation_preview_adapter.verify_preview_bundle` requires the explicit Windows
+profile and calls the helper against the source-bound complete editor log,
+comparing its complete identity with the report. Legacy Linux receipts without
+a helper dependency retain their previous llvmpipe contract; fresh explicit
+profiles require the helper dependency. Windows is never inferred. Hardware strings
 report a driver/device, not independent attestation of a physical GPU; unknown
 software aliases remain a documented limitation. Pixel decoding/restoration
 checks remain independent of identity and cannot be replaced by a profile label.

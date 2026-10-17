@@ -1,6 +1,9 @@
 # Saved setup reset control and recording proposal
 
-Status: proposal only. No runtime change, checker replay or media qualification.
+Status: new-take controls implemented and validated on Godot4.7.2:12primed
+cells pass,12unprimed cells fail at the required endpoint check. See
+`resume-validation-20261017.md`. The proposal below preserves its rationale;
+no continuous pause/resume or visual qualification is claimed.
 
 ## Observed reset failure and contract
 

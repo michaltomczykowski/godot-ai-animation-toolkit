@@ -1,5 +1,41 @@
 # Agent notes
 
+## Current resume: exact history checks passed, setup capture next (2026-10-17)
+
+Read docs/resume-validation-20261017.md before older entries. Actual Godot4.7.2
+at29d3147 passes5 new parses, synthetic33 and ordinary60 saved setup cases.
+Distinct new-take controls pass12 primed cells and reject12 unprimed cells for
+the expected endpoint loss. Original768 reports and12 reset failures remain
+untouched; no smooth pause/resume claim or physical threshold change.
+
+Fresh visible editor public run history-public-r005 atd33a69d passes12tests,
+0skips,0engine errors. Strict collector derives92 inner cases, all checks pass:
+59preset/library history/save/reopen/native/path cases,16existing library file
+outcomes,11malformed reads,6pose-file cases. These are inner dispatches through
+actual public test_run, not92 external operation invocations. Editor publicly
+quit. Preserve r004's14 failed validator checks; fixes only corrected exact
+WRONG_TYPE, canonical scene path and authored transform-track contracts.
+
+All49 effective FX/edit/preset/library representatives have720frames and complete
+12s video decode each. Independent effective catalog derives47operation keys
+without mismatches. Visual/temporal assessment remains pending; private media
+and XBot stay local. Old transition crop and held-edit failures are preserved.
+
+Saved setup renderer at81d95a0 completes1440frames/8takes/front+side with exact
+prime/evaluation/fresh-skin/framing signals. Original presentation floor was at
+ankle height. d33a69d measures a static rest-sole plane and improves fixed views;
+new saved-recording-r005 queue must validate/capture all3conditions clean/diagnostic.
+Root owns the single native/editor/GPU slot; read its queue.json before launching
+anything. Private runner: E:/GodotAI-toolkit-release-2.0.0/20261014/setup/
+capture_saved_setup_r005.py. If it has not started, no Godot process is active.
+
+Windows preview profile/receipt binding is integrated and25offline controls pass;
+actual two-core Windows render still pending. Linux remains explicitly llvmpipe.
+CI38973858932 at29d3147: alljobs pass except Windows4.2.1 clean ZIP, timing out
+at motion_sequence_history420s. Downloaded exact diagnostics under E:/.../
+ci-29d3147/windows421-artifact; diagnose, do not increase/waive timeout.
+No merge/tag/release; continue docs/release-completion-plan.md and push checkpoints.
+
 ## Current resume: production setup60pass, media queue active (2026-10-16 late)
 
 Read docs/setup-production-first-group.md. Actualsourcec19a25e freshpublic

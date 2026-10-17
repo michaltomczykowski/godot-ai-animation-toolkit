@@ -49,6 +49,7 @@ jobs:
           - tier1_setup_provenance
           - tier1_motion_space
           - tier1_setup_tree_checker
+          - tier1_setup_recording
           - tier1_jump_plan
     steps:
       - name: Checkout toolkit
