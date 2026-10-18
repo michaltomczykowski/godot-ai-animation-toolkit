@@ -1,5 +1,5 @@
 import copy,json,unittest
-from operation_modifier_history_checks import derive,native_checks,verify_event,expected_class
+from operation_modifier_history_checks import derive,native_checks,verify_event,expected_class,expected_refusal_code
 
 def row(op='ik_setup'):
  before={'nodes':{'Peer':{'keep':1}}};generated=copy.deepcopy(before);generated['nodes']['Configured']={'class':'TwoBoneIK3D'};ident={'/Main':1};peer={'keep':1};label='local_'+op+'_base'
@@ -17,6 +17,13 @@ def native(r):
  report={'rows':rows,'comparisons':pairs};e={'kind':'native_saved_output','operation':'animation_rig_modifiers.'+r['op'],'scene':'user://rig_modifier_history.json','route':'native_godot','command':['godot','--headless','--path','project','--script','res://tools/check_rig_modifier_history.gd'],'returncode':0,'stdout':'RIG_MODIFIER_HISTORY_RUNTIME='+json.dumps(report),'stderr':'','execution_ns':3}
  return e,report
 class Controls(unittest.TestCase):
+ def test_known_guard_code_map_and_unknown_locked_refusal(self):
+  requests=[('ik_setup',{'kind':'jacobian'},'OPERATION_UNAVAILABLE'),('look_at_setup',{'forward_axis':'+y','primary_axis':'y'},'INVALID_PARAMS'),('look_at_setup',{'origin_from':'invalid'},'VALUE_OUT_OF_RANGE'),('retarget_setup',{'move_target':False},'INVALID_PARAMS'),('retarget_setup',{'skeleton_path':'/Source','target_path':'/Source'},'INVALID_PARAMS'),('retarget_setup',{'position':False,'rotation':False,'scale':False},'INVALID_PARAMS'),('twist_setup',{'disperse':{'mode':'custom'}},'INVALID_PARAMS'),('spring_setup',{'springs':[{'root_bone':'head'}]},'INVALID_PARAMS')]
+  for i,(op,params,code)in enumerate(requests):
+   for dry in (False,True):
+    r={'single_refusal':True,'id':f'refusal_{i}_{str(dry).lower()}','op':op,'request':dict(params,dry_run=dry)};self.assertEqual(expected_refusal_code(r),code)
+  r=row('retarget_setup');r['mode']='locked';r['refusal']=True
+  self.assertNotIn('typed_errors',derive(r))
  def test_five_operation_actual_schema_positive_controls(self):
   for op in ('ik_setup','look_at_setup','spring_setup','twist_setup','retarget_setup'):
    r=row(op);self.assertTrue(all(v=='pass'for v in derive(r).values()));e,_=native(r);self.assertEqual(native_checks(r,e,{'engine_command':'godot'}),{'playback':'pass','valid_effect':'pass'})
@@ -38,7 +45,7 @@ class Controls(unittest.TestCase):
    if change=='parity':p['comparisons'][0]['native_reference_error']=.001
    e['stdout']='RIG_MODIFIER_HISTORY_RUNTIME='+json.dumps(p);self.assertIn('fail',native_checks(r,e,{'engine_command':'godot'}).values(),change)
  def test_refusals_require_typed_nonmutation_and_no_orphans(self):
-  r={'single_refusal':True,'op':'spring_setup','failed_before':False,'failed_after':False,'before':{'keep':1},'after':{'keep':1},'versions':{'before':1,'after':1,'global_before':1,'global_after':1},'response':{'error':{'code':'OPERATION_UNAVAILABLE'}},'expected_code':'OPERATION_UNAVAILABLE','orphans_before':'[]','orphans_after':'[]','errors':[],'error_count_before':0,'error_count_after':0};self.assertTrue(all(x=='pass'for x in derive(r).values()));r['orphans_after']='[99]';self.assertEqual(derive(r)['typed_errors'],'fail')
+  r={'id':'refusal_8_false','request':{'dry_run':False,'springs':[{'center_from':'node','collisions':['/Caller/A/Collider']}]},'single_refusal':True,'op':'spring_setup','failed_before':False,'failed_after':False,'before':{'keep':1},'after':{'keep':1},'versions':{'before':1,'after':1,'global_before':1,'global_after':1},'response':{'error':{'code':'OPERATION_UNAVAILABLE'}},'expected_code':'OPERATION_UNAVAILABLE','orphans_before':'[]','orphans_after':'[]','errors':[],'error_count_before':0,'error_count_after':0};self.assertTrue(all(x=='pass'for x in derive(r).values()));wrong=copy.deepcopy(r);wrong['response']['error']['code']='NODE_NOT_FOUND';self.assertEqual(derive(wrong)['typed_errors'],'fail');unknown=copy.deepcopy(r);unknown['id']='refusal_99_false';self.assertNotIn('typed_errors',derive(unknown));r['orphans_after']='[99]';self.assertEqual(derive(r)['typed_errors'],'fail')
  def test_span_and_individual_test_binding_not_totals(self):
   r=row();ev={'validator':'rig_modifier_history_v1','driver':'test_rig_modifier_history.gd','route':'public_test_run_inner_dispatch','operation':'animation_rig_modifiers.ik_setup','test_run_begin_id':'begin','row':r};deps=['test_project/tests/test_rig_modifier_history.gd','test_project/tests/operation_history_trace.gd','tools/operation_modifier_history_checks.py','tools/operation_preset_history_checks.py','test_project/tools/check_rig_modifier_history.gd','test_project/tools/modifier_native_reference.gd','tools/mcp_rig_modifier_history.py','tools/mcp_presets_audit.py'];ctx={'dependencies':dict.fromkeys(deps,{})};req={'suite':'rig_modifier_history','verbose':True};starts=[{'id':'begin','request':req,'execution_ns':1}];ends=[{'id':'end','public_tool':'test_run','test_run_begin_id':'begin','request':req,'execution_ns':2,'response':{'results':[{'suite':r['suite'],'test':r['test'],'passed':True,'assertion_count':100}]}}];proof=verify_event(ev,ctx,starts,ends);self.assertNotIn('valid_effect',proof['checks']);self.assertTrue(all(x=='pass'for x in proof['checks'].values()));ends[0]['response']={'passed':9999};self.assertTrue(all(x=='fail'for x in verify_event(ev,ctx,starts,ends)['checks'].values()))
 if __name__=='__main__':unittest.main()

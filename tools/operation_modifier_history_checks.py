@@ -8,6 +8,28 @@ def expected_class(row):
 def digest(v):return isinstance(v,str)and re.fullmatch('[0-9a-f]{64}',v)is not None
 def number(v):return type(v)in(int,float)and math.isfinite(v)
 def status(v):return 'pass'if v else'fail'
+def expected_refusal_code(row):
+ # Bind known guard requests; an arbitrary nonempty error is never proof.
+ # Locked retarget may encounter an earlier instance guard: leave it pending.
+ if not row.get('single_refusal'):return None
+ p=row.get('request',{});op=row.get('op');match=re.fullmatch(r'refusal_(\d+)_(true|false)',row.get('id',''))
+ if not match or p.get('dry_run') is not (match[2]=='true'):return None
+ i=int(match[1])
+ guards=[('ik_setup',p.get('kind')=='jacobian','OPERATION_UNAVAILABLE'),
+ ('look_at_setup',p.get('forward_axis')=='+y'and p.get('primary_axis')=='y','INVALID_PARAMS'),
+ ('look_at_setup',p.get('origin_from')=='invalid','VALUE_OUT_OF_RANGE'),
+ ('retarget_setup',p.get('move_target')is False,'INVALID_PARAMS'),
+ ('retarget_setup',bool(p.get('skeleton_path'))and p.get('target_path')==p.get('skeleton_path'),'INVALID_PARAMS'),
+ ('retarget_setup',all(p.get(k)is False for k in ('position','rotation','scale')),'INVALID_PARAMS'),
+ ('twist_setup',p.get('disperse',{}).get('mode')=='custom','INVALID_PARAMS'),
+ ('spring_setup',p.get('springs')==[{'root_bone':'head'}],'INVALID_PARAMS')]
+ if i<8:
+  expected_op,guard,code=guards[i];return code if op==expected_op and guard else None
+ if i<14 and op=='spring_setup':
+  springs=p.get('springs',[])
+  if len(springs)==1 and springs[0].get('center_from')==('node'if i<11 else'bone')and springs[0].get('collisions'):
+   return 'OPERATION_UNAVAILABLE'
+ return None
 def property_same(a,b):
  # JSON.stringify serializes native Vector3 properties as parenthesized text.
  # Match the existing checker's Vector3.is_equal_approx, not string rounding.
@@ -19,8 +41,10 @@ def derive(row):
  op=row.get('op');assert op in OPS
  clean=row.get('failed_before')is False and row.get('failed_after')is False
  if row.get('single_refusal'):
-  v=row.get('versions',{});code=row.get('response',{}).get('error',{}).get('code');atomic=same(row.get('before'),row.get('after'))and v.get('before')==v.get('after')and v.get('global_before')==v.get('global_after')and row.get('orphans_before')==row.get('orphans_after');typed=clean and isinstance(code,str)and bool(code)and (not row.get('expected_code')or code==row['expected_code']);errors=row.get('errors')==[]and row.get('error_count_before')==row.get('error_count_after')
-  return {k:status(ok)for k,ok in {'typed_errors':typed and atomic,'source_unchanged':clean and atomic,'reported_errors':clean and errors}.items()}
+  v=row.get('versions',{});code=row.get('response',{}).get('error',{}).get('code');expected=expected_refusal_code(row);atomic=same(row.get('before'),row.get('after'))and v.get('before')==v.get('after')and v.get('global_before')==v.get('global_after')and row.get('orphans_before')==row.get('orphans_after');errors=row.get('errors')==[]and row.get('error_count_before')==row.get('error_count_after')
+  checks={'source_unchanged':status(clean and atomic),'reported_errors':status(clean and errors)}
+  if expected is not None:checks['typed_errors']=status(clean and atomic and code==expected and row.get('expected_code')==expected)
+  return checks
  v=row.get('versions',{});base=row.get('before');dry=row.get('dry',{});write=row.get('write',{});refusal=row.get('refusal')is True
  dry_ok=clean and same(base,row.get('after_dry'))and v.get('dry')==v.get('before')and v.get('global_dry')==v.get('global_before')and row.get('orphans_dry')==row.get('orphans_before')
  dry_ok=dry_ok and bool(dry.get('error',{}).get('code'))if refusal else dry_ok and dry.get('data',{}).get('dry_run')is True
@@ -30,7 +54,8 @@ def derive(row):
  errors=clean and row.get('errors')==[]and row.get('errors_before')==row.get('errors_after')
  checks={'dry_run':status(dry_ok),'source_unchanged':status(source),'reported_errors':status(errors)}
  if refusal:
-  atomic=same(base,row.get('generated'))and v.get('write')==v.get('before')and row.get('orphans_write')==row.get('orphans_before');checks['typed_errors']=status(clean and bool(write.get('error',{}).get('code'))and atomic);return checks
+  # No exact locked-instance refusal oracle is emitted for this case.
+  return checks
  history=clean and bool(write.get('data'))and row.get('undo_success')is True and row.get('redo_success')is True and same(base,row.get('undone'))and same(row.get('generated'),row.get('redone'))and not same(base,row.get('generated'))and same(row.get('identities_before'),row.get('identities_undo'))and type(row.get('modifier_identity_do'))is int and row['modifier_identity_do']>0 and row['modifier_identity_do']==row.get('modifier_identity_redo')and v.get('write')==v.get('before',0)+1 and v.get('global_write')==v.get('global_before')
  saved=clean
  for stage,expected in [('do',row.get('generated')),('undo',base),('redo',row.get('redone'))]:
@@ -77,4 +102,6 @@ def verify_event(event,context,begins,support):
   if len(natives)==1:checks.update(native_checks(row,natives[0],context))
  tests=[x for x in end.get('response',{}).get('results',[])if x.get('suite')==row['suite']and x.get('test')==test]
  if len(tests)!=1 or tests[0].get('passed')is not True or tests[0].get('skipped',False)or tests[0].get('assertion_count',0)<row.get('assertion_count',1):checks={k:'fail'for k in checks}
- return {'checks':checks,'public_test_run_case_id':end['id'],'limits':'Exact inner modifier matrix cases and optional source-bound saved/native-reference per-case30/60/120FPS rows. Stacks/live restart/visuals/external invocation remain separate; no suite-total promotion. Missing native batch leaves playback/intended pending; no generic effect flag.'}
+ limits='Exact inner modifier matrix cases and optional source-bound saved/native-reference per-case30/60/120FPS rows. Stacks/live restart/visuals/external invocation remain separate; no suite-total promotion. Missing native batch leaves playback/intended pending; no generic effect flag.'
+ if row.get('refusal')and expected_refusal_code(row)is None:limits+=' typed_errors pending: no exact expected guard code is bound for this refusal.'
+ return {'checks':checks,'public_test_run_case_id':end['id'],'limits':limits}

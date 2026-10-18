@@ -56,3 +56,5 @@ file/shared-resource and Undo identity predicates, not every possible caller
 property. Native initial/property assertions remain source-specific, not artistic
 approval. Offline control reports are synthetic schema controls, not actual
 Godot execution or qualification. Native parse/fresh public replay are pending.
+
+Typed refusal hardening: exact guard/request maps bind Jacobian and supported spring refusals to OPERATION_UNAVAILABLE; invalid look origin to VALUE_OUT_OF_RANGE; known invalid look axes, retarget arrangements/flags, custom twist and leaf spring to INVALID_PARAMS. A different nonempty code fails. Unknown requests and locked-retarget refusal have no typed_errors check and explicitly remain pending.
