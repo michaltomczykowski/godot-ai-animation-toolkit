@@ -1,5 +1,5 @@
 """Strict admission of actual saved graph/rig rendered bundle reports."""
-import hashlib,json,math
+import hashlib,json,math,re
 from pathlib import Path
 BODY=[24,100,1872,760]
 OPERATIONS={'graph':{'state_machine','blend_space','blend_tree','wire','locomotion','one_shot_layer','additive_lean'},'rig':{'pose_to_clip','walk_cycle','idle_breathing','blink','jumping_jack','squat','punch','bake_pose_sequence','pose_apply'}}
@@ -13,12 +13,41 @@ def framing(value,kind):
  if kind=='graph':require(len(points)==6,'unexpected saved graph display polygon')
  require(all(isinstance(p,list)and len(p)==2 and all(finite(x)for x in p)for p in points),'nonfinite projected vertices')
  require(value.get('visible')is True and value.get('finite')is True and value.get('behind_or_clipped_depth')==0,'invisible/behind/depth clipped geometry')
- require(all(24<=x<=1896 and 100<=y<=860 for x,y in points),'projected geometry crosses body/header/caption')
+ require(all(25<=x<=1895 and 101<=y<=859 for x,y in points),'projected geometry crosses body/header/caption')
  xs,ys=zip(*points);bounds=[min(xs),min(ys),max(xs)-min(xs),max(ys)-min(ys)]
  require(bounds[2]>=2 and bounds[3]>=2,'subpixel/unreadable projected geometry')
  require(len(value.get('bounds',[]))==4 and all(finite(x)and abs(x-y)<1e-4 for x,y in zip(value['bounds'],bounds)),'reported bounds differ from actual projected vertices')
  if kind=='rig':require(value.get('bone_count',0)>0 and len(points)==9*value['bone_count']and value.get('skin_scope')=='unskinned_joint_spheres_and_axis_rods_only','unsupported rig body representation')
  return bounds
+
+def scene_clock(row):
+ path=Path(row['scene']['path']);require(sha(path)==row['scene']['sha256'],'clock scene bytes changed')
+ text=path.read_text(encoding='utf-8-sig');name=row['animation']
+ refs=re.findall(r'&"'+re.escape(name)+r'"\s*:\s*SubResource\("([^"\n]+)"\)',text)
+ require(len(refs)==1,'ambiguous saved animation binding')
+ blocks=re.findall(r'\[sub_resource type="Animation" id="'+re.escape(refs[0])+r'"\](.*?)(?=^\[|\Z)',text,re.M|re.S)
+ require(len(blocks)==1,'missing saved Animation resource')
+ def field(key,default):
+  values=re.findall(r'^'+key+r' = ([^\n]+)',blocks[0],re.M)
+  require(len(values)<=1,'duplicate saved clip setting');return float(values[0]) if values else default
+ length=field('length',1.);loop=field('loop_mode',0.)
+ require(finite(length)and length>0 and loop in (0,1,2),'unsupported saved clock')
+ return {'animation':name,'length':length,'loop_mode':int(loop)}
+
+def clock(sample,source,tick,fps):
+ phase=sample.get('phase_s');require(finite(phase),'nonfinite native phase')
+ require(sample.get('assigned_animation')==source['animation'] and sample.get('clip_length')==source['length'] and sample.get('clip_loop_mode')==source['loop_mode'],'selected source clip changed')
+ t=tick/fps;length=source['length'];loop=source['loop_mode'];tol=1e-5
+ if loop==0:
+  candidates=[t] if t<length-tol else [0.,length] if abs(t-length)<=tol else [0.]
+ elif loop==1:
+  candidates=[t%length]
+  if tick>0 and min(t%length,length-t%length)<=tol:candidates=[0.,length]
+ else:
+  part=t%(2*length);candidates=[part if part<=length else 2*length-part]
+ require(any(abs(phase-x)<=tol for x in candidates),'native clip clock stuck/lagged/skipped')
+ if loop or t<length-tol:require(sample.get('playing')is True,'native clip unexpectedly stopped')
+ elif t>length+tol:require(sample.get('playing')is False,'finite saved clip did not stop')
 
 def validate_report(manifest,report,manifest_sha,kind):
  count=7 if kind=='graph'else 9;duration=2 if kind=='graph'else 4
@@ -33,6 +62,7 @@ def validate_report(manifest,report,manifest_sha,kind):
  for run in runs:
   require(run.get('passed')is True and run.get('failures')==[],'failed per-case native run')
   row=next(x for x in manifest['cases']if x['operation']==run['operation']);trace=run.get('trace',[])
+  source=scene_clock(row) if kind=='rig' and row.get('kind')=='clip' else None
   if kind=='rig':require(row.get('kind')==('saved_static_pair'if row['operation']=='pose_apply'else'clip'),'unsupported rig scene/clock kind')
   require(len(trace)==duration*60+1,'incomplete native rendered trace including end boundary')
   for tick,sample in enumerate(trace):
@@ -49,7 +79,9 @@ def validate_report(manifest,report,manifest_sha,kind):
     require(sample.get('skinned_meshes')==0,'skin playback not admitted by unskinned capture')
     require(all(finite(sample.get(k))and sample[k]<=1e-5 for k in ('position_error','rotation_error','scale_error')),'native authored channel mismatch')
     expected_writers=1 if row.get('kind')=='clip'else 0
-    require(sample['expected_writers']==expected_writers and finite(sample.get('phase_s'))and sample['phase_s']>=0,'saved rig clip/static clock contract differs')
+    require(sample['expected_writers']==expected_writers,'saved rig writer contract differs')
+    if source is not None:clock(sample,source,tick,60)
+    else:require(sample.get('phase_s')==0 and sample.get('assigned_animation')=='' and sample.get('playing')is False,'static pair has a clip clock')
     require(sample.get('channels',0)>0 if expected_writers else sample.get('channels')==0,'saved rig channel admission differs')
   if kind=='graph':require(run.get('scene_sha256')==row['scene_sha256'],'graph scene identity differs')
   else:require(run.get('scene_sha256')==row['scene']['sha256']and run.get('before_sha256','')==(row.get('before',{}).get('sha256','')),'rig scene pair identity differs')

@@ -25,10 +25,15 @@ def tools(kind):
  paths=['tools/saved_scene_media_capture.py','tools/saved_media_capture_checks.py','tools/movie_capture_startup.py','tools/saved_effect_media_queue.py','tools/ci_rendered_preview.py','test_project/tools/saved_media_framing.gd','test_project/tools/render_saved_'+kind+'_effects.gd','test_project/tools/saved_'+kind+'_media_native.gd']
  if kind=='rig':paths.append('test_project/tools/saved_graph_media_native.gd')
  return {p:sha(ROOT/p)for p in paths}
+
+def helper_bindings(kind):
+ pairs=[('renderer_sha256','test_project/tools/render_saved_'+kind+'_effects.gd'),('native_helper_sha256','test_project/tools/saved_'+kind+'_media_native.gd'),('framing_helper_sha256','test_project/tools/saved_media_framing.gd')]
+ if kind=='rig':pairs.append(('clip_helper_sha256','test_project/tools/saved_graph_media_native.gd'))
+ return pairs
 def preflight(path,manifest,manifest_hash,kind,dependencies):
- r=read(path);require(r.get('passed')is True and not r.get('failures')and not r.get('engine_errors')and r.get('mode')=='native','native positive preflight failed')
+ r=read(path);require(r.get('passed')is True and r.get('failures')==[] and r.get('engine_errors')==[]and r.get('mode')=='native','native positive preflight failed')
  require(r.get('manifest_sha256')==manifest_hash,'native preflight used another manifest')
- for key,rel in [('renderer_sha256','test_project/tools/render_saved_'+kind+'_effects.gd'),('native_helper_sha256','test_project/tools/saved_'+kind+'_media_native.gd'),('framing_helper_sha256','test_project/tools/saved_media_framing.gd')]:require(r.get(key)==dependencies[rel],'native preflight checker source differs: '+key)
+ for key,rel in helper_bindings(kind):require(r.get(key)==dependencies[rel],'native preflight checker source differs: '+key)
  expected={(x['operation'],t,fps)for x in manifest['cases']for t in (1,2)for fps in (30,60,120)};runs=r.get('runs',[])
  require(len(runs)==len(expected)and {(x.get('operation'),x.get('take'),x.get('fps'))for x in runs}==expected and all(x.get('passed')is True and x.get('failures')==[]for x in runs),'native preflight matrix incomplete')
  log=path.with_suffix('.log');require(log.is_file(),'complete native positive log required');text=log.read_text(encoding='utf-8',errors='replace');validate_editor_log(text);engine_banner(text)
@@ -46,7 +51,7 @@ def capture(args,kind,manifest_path,native_path,runner=subprocess.run):
    def launch(cmd,check=False):return runner(cmd,check=check,stdout=stream,stderr=subprocess.STDOUT)
    startup=run_capture(args.project,1920,1080,folder/'startup.json',command,launch)
   require(startup['passed'],'startup/capture failed');text=log.read_text(encoding='utf-8',errors='replace');validate_editor_log(text);state['actual_engine_banner']=engine_banner(text);r=read(report_path);state['report_proof']=validate_report(manifest,r,digest,kind)
-  for key,rel in [('renderer_sha256','test_project/tools/render_saved_'+kind+'_effects.gd'),('native_helper_sha256','test_project/tools/saved_'+kind+'_media_native.gd'),('framing_helper_sha256','test_project/tools/saved_media_framing.gd')]:require(r.get(key)==dependencies[rel],'actual renderer/helper source changed')
+  for key,rel in helper_bindings(kind):require(r.get(key)==dependencies[rel],'actual renderer/helper source changed')
   require(sha(manifest_path)==digest and dependencies==tools(kind),'manifest/tool changed during capture');verify_scenes(manifest,kind);stage('validating_pngs')
   paths=sorted(frames.glob('frame????????.png'));require([p.name for p in paths]==[f'frame{i:08d}.png'for i in range(expected)],'incomplete/extra actual PNG sequence')
   from PIL import Image

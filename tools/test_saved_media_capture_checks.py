@@ -3,7 +3,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 import subprocess
-from saved_media_capture_checks import framing,validate_report,OPERATIONS
+from saved_media_capture_checks import framing,validate_report,OPERATIONS,sha,clock,scene_clock
+from saved_scene_media_capture import preflight,helper_bindings
+FIXTURE=tempfile.TemporaryDirectory()
+SCENE=Path(FIXTURE.name)/"rig.tscn"
+SCENE.write_text('[gd_scene format=3]\n[sub_resource type="Animation" id="A"]\nloop_mode = 1\n[sub_resource type="AnimationLibrary" id="L"]\n_data = {&"generated": SubResource("A")}\n')
 from saved_scene_media_capture import capture
 
 def geometry(kind):
@@ -16,14 +20,14 @@ def geometry(kind):
 def report(kind):
  duration=2 if kind=='graph'else 4;manifest={'cases':[]};runs=[]
  for op in sorted(OPERATIONS[kind]):
-  manifest['cases'].append({'operation':op,'scene_sha256':'a'*64}if kind=='graph'else{'operation':op,'kind':'saved_static_pair'if op=='pose_apply'else'clip','scene':{'sha256':'a'*64},**({'before':{'sha256':'d'*64}}if op=='pose_apply'else{})})
+  manifest['cases'].append({'operation':op,'scene_sha256':'a'*64}if kind=='graph'else{'operation':op,'kind':'saved_static_pair'if op=='pose_apply'else'clip','scene':{'path':str(SCENE),'sha256':sha(SCENE)},'animation':'generated',**({'before':{'sha256':'d'*64}}if op=='pose_apply'else{})})
   for take in (1,2):
    trace=[]
    for tick in range(duration*60+1):
     s={'time_s':tick/60,'movie_frame':tick<duration*60,'framing':geometry(kind),'ownership':True,'position':[(100*(tick/60-.5) if tick/60<=1.1 else 60+200*(tick/60-1.1)) if 30<tick<90 and op in {'state_machine','blend_space','blend_tree','locomotion'} else 0,-30 if 30<tick<90 and op=='one_shot_layer' else 0],'rotation_rad':.1 if 30<tick<90 and op=='additive_lean' else 0}
-    if kind=='rig':s.update(finite=True,writers=0 if op=='pose_apply'else 1,expected_writers=0 if op=='pose_apply'else 1,native_update_requested=True,fresh_global_pose_error=0,skinned_meshes=0,position_error=0,rotation_error=0,scale_error=0,phase_s=tick/60,channels=0 if op=='pose_apply'else 1,motion=.1)
+    if kind=='rig':s.update(finite=True,writers=0 if op=='pose_apply'else 1,expected_writers=0 if op=='pose_apply'else 1,native_update_requested=True,fresh_global_pose_error=0,skinned_meshes=0,position_error=0,rotation_error=0,scale_error=0,phase_s=0 if op=='pose_apply'else (tick/60)%1,assigned_animation=''if op=='pose_apply'else'generated',clip_length=0 if op=='pose_apply'else 1.,clip_loop_mode=0 if op=='pose_apply'else 1,playing=op!='pose_apply',channels=0 if op=='pose_apply'else 1,motion=.1)
     trace.append(s)
-   runs.append({'operation':op,'take':take,'fps':60,'passed':True,'failures':[],'scene_sha256':'a'*64,'before_sha256':'d'*64 if op=='pose_apply'else'','saved_pair_difference':.1,'trace':trace})
+   runs.append({'operation':op,'take':take,'fps':60,'passed':True,'failures':[],'scene_sha256':sha(SCENE)if kind=='rig'else'a'*64,'before_sha256':'d'*64 if op=='pose_apply'else'','saved_pair_difference':.1,'trace':trace})
  r={'manifest_sha256':'b'*64,'passed':True,'failures':[],'engine_errors':[],'mode':'render','startup_admission':{'width':1920,'height':1080,'stretch':'viewport'},'viewport_sizes':{'logical':[1920,1080],'texture':[1920,1080]},'runs':runs};r['frames'if kind=='graph'else'intended_frames']=len(runs)*duration*60
  return manifest,r
 class Controls(unittest.TestCase):
@@ -58,6 +62,54 @@ class Controls(unittest.TestCase):
    old=r['runs'][0]['trace'][0][key];r['runs'][0]['trace'][0][key]=value
    with self.assertRaises(ValueError,msg=key):validate_report(m,r,'b'*64,'rig')
    r['runs'][0]['trace'][0][key]=old
+ def test_rig_clock_stuck_lag_skip_and_changed_clip_fail(self):
+  m,original=report('rig')
+  for fault in ('stuck','lag','skip','clip','length','loop'):
+   r=copy.deepcopy(original);run=next(x for x in r['runs']if x['operation']=='walk_cycle')
+   if fault=='stuck':
+    for sample in run['trace']:sample['phase_s']=.25
+   else:
+    sample=run['trace'][20]
+    if fault=='lag':sample['phase_s']-=1/60
+    if fault=='skip':sample['phase_s']+=1/60
+    if fault=='clip':sample['assigned_animation']='unrelated'
+    if fault=='length':sample['clip_length']=2.
+    if fault=='loop':sample['clip_loop_mode']=0
+   with self.assertRaises(ValueError,msg=fault):validate_report(m,r,'b'*64,'rig')
+ def test_clock_finite_end_linear_wrap_and_pingpong_conventions(self):
+  for loop in (0,1,2):
+   for tick in range(241):
+    t=tick/60;phase=(t if t<=1 else 0)if loop==0 else t%1 if loop==1 else t%2 if t%2<=1 else 2-t%2
+    clock({'phase_s':phase,'assigned_animation':'generated','clip_length':1.,'clip_loop_mode':loop,'playing':loop!=0 or t<=1},{'animation':'generated','length':1.,'loop_mode':loop},tick,60)
+ def test_clock_metadata_comes_from_exact_saved_scene_bytes(self):
+  with tempfile.TemporaryDirectory()as d:
+   p=Path(d)/'scene.tscn';p.write_text('[gd_scene format=3]\n[sub_resource type="Animation" id="A"]\nlength = 2.5\nloop_mode = 2\n[sub_resource type="AnimationLibrary" id="L"]\n_data = {&"generated": SubResource("A")}\n')
+   row={'scene':{'path':str(p),'sha256':sha(p)},'animation':'generated'}
+   self.assertEqual(scene_clock(row),{'animation':'generated','length':2.5,'loop_mode':2})
+   p.write_text(p.read_text().replace('2.5','3.5'))
+   with self.assertRaises(ValueError):scene_clock(row)
+   row['scene']['sha256']=sha(p);row['animation']='unrelated'
+   with self.assertRaises(ValueError):scene_clock(row)
+ def test_raster_edge_cannot_pass(self):
+  for kind in ('graph','rig'):
+   g=geometry(kind);g['points'][0]=[24,100]
+   with self.assertRaises(ValueError):framing(g,kind)
+ def test_preflight_requires_explicit_empty_error_lists_and_actual_clip_helper(self):
+  dependencies={rel:'a'*64 for _,rel in helper_bindings('rig')};base={'passed':True,'failures':[],'engine_errors':[],'mode':'native','manifest_sha256':'b'*64,'runs':[]}
+  base.update({key:'a'*64 for key,_ in helper_bindings('rig')})
+  with tempfile.TemporaryDirectory()as d:
+   p=Path(d)/'positive.json';p.with_suffix('.log').write_text('Godot Engine v4.7.2.stable.official\n')
+   for fault in ('missing_failures','null_failures','missing_errors','null_errors','missing_clip_helper','changed_clip_helper'):
+    r=copy.deepcopy(base)
+    if fault=='missing_failures':del r['failures']
+    if fault=='null_failures':r['failures']=None
+    if fault=='missing_errors':del r['engine_errors']
+    if fault=='null_errors':r['engine_errors']=None
+    if fault=='missing_clip_helper':del r['clip_helper_sha256']
+    if fault=='changed_clip_helper':r['clip_helper_sha256']='c'*64
+    p.write_text(json.dumps(r))
+    with self.assertRaises(ValueError,msg=fault):preflight(p,{'cases':[]},'b'*64,'rig',dependencies)
+   p.write_text(json.dumps(base));preflight(p,{'cases':[]},'b'*64,'rig',dependencies)
  def test_serial_wrapper_failed_native_capture_preserves_receipt_and_never_encodes(self):
   with tempfile.TemporaryDirectory()as directory:
    root=Path(directory);project=root/'project';project.mkdir();(project/'project.godot').write_text('[application]\nconfig/name="offline"\n');manifest=root/'manifest.json';manifest.write_text(json.dumps({'cases':[{'operation':x,'scene':str(root/'saved.tscn'),'scene_sha256':'a'*64}for x in sorted(OPERATIONS['graph'])]}));args=SimpleNamespace(output=root/'output',project=project,godot=Path('fake-godot'),ffmpeg=Path('fake-ffmpeg'),ffprobe=Path('fake-ffprobe'));commands=[]

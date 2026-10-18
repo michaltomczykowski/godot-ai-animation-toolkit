@@ -82,3 +82,25 @@ skin deformation, pixel occlusion freedom or readable individual overlapping
 joints. Actual independent temporal/pixel assessment follows successful capture.
 Offline controls are synthetic schema/process controls, not native positive
 proof. Root must run parse, real native controls, then the singleGPUqueue.
+
+
+## Admission hardening follow-up
+
+Rig samples now report the actual assigned animation, clip length, loop mode
+and playing state. The offline admission reopens the exact hashed historical
+scene and resolves its unique named Animation resource. Every 60 FPS sample
+must match that source clip and expected native phase. Non-looping clips retain
+the native finite-stop convention (zero position after stopping); exact endpoint
+and linear wrap boundaries allow only zero or the endpoint within 10 microseconds.
+Pingpong uses the reflected phase. Static saved pairs require no selected clip
+or playing clock. Constant, lagged, skipped or changed-clip samples fail.
+These conventions still require actual engine execution; offline controls do
+not establish Godot execution or visual approval.
+
+Projected geometry must stay one pixel inside every body edge to account for
+raster fringe on the actual PRIMITIVE_LINES rods and displayed joint bounds.
+Fixed cameras and saved transforms are unchanged. Both native preflight and
+render receipts include the actual imported graph clip-digest helper hash,
+read from its Script.resource_path in the running project, and compare it to
+the declared producer dependency. Native preflight requires explicit empty
+failures and engine_errors arrays; absent or null fields cannot pass.

@@ -15,7 +15,7 @@ static func projected(points: Array, behind: int, visible: bool, count: int) -> 
 		out.append([point.x,point.y])
 		finite = finite and point.is_finite()
 		minimum = minimum.min(point);maximum=maximum.max(point)
-		fits = fits and point.x>=BODY.position.x and point.y>=BODY.position.y and point.x<=BODY.end.x and point.y<=BODY.end.y
+		fits = fits and point.x>=BODY.position.x+1 and point.y>=BODY.position.y+1 and point.x<=BODY.end.x-1 and point.y<=BODY.end.y-1
 	var extent := maximum-minimum
 	return {"points":out,"point_count":count,"body_rect":[BODY.position.x,BODY.position.y,BODY.size.x,BODY.size.y],"bounds":[minimum.x,minimum.y,extent.x,extent.y],"behind_or_clipped_depth":behind,"visible":visible,"finite":finite,"fits":fits and finite and extent.x>=2 and extent.y>=2}
 static func graph(marker: Polygon2D) -> Dictionary:
