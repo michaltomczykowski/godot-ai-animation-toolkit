@@ -1,5 +1,20 @@
 # Animation Toolkit repair roadmap
 
+## Graph/inspect/modifier evidence integration ready (2026-10-18)
+
+Integrated20operation case-level hooks/adapters with exactknownrefusals and
+independent fixed/native expectations; no producthandler or protectedfixture
+changed.45mixed offline controls and3actual4.7.2parses pass. Freshpublic/native
+verification remains next; no suite-total or visual approval is inferred.
+
+Fresh green233CI audit now proves savedplayback81/81 inallfour cells, closing
+the7previous rawplaybackgaps. Mainbundles each1445cases/102externalsuccesses;
+215failed/refusedinvocations retainedunadjudicated,0failednoninvocationchecks.
+Allrawhashes/context identities preserved separately from currentqualification.
+Broader1800setupnativeplays, familymedia and85old rawintentioncoverage gaps
+remain. Freshr005 willreuse15completedpublicrigcases with exactdependency/
+request/scenechecks. See latestAGENTS andsetup-matrix-receipt-recovery.md.
+
 ## Broader matrix receipt recovery and evidence hooks (2026-10-18)
 
 All233ad02 Windows/Linux CI jobs pass. Independent freshMCP coverage analysis

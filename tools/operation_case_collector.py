@@ -465,6 +465,9 @@ def collect(context_path, traces, root, preview_report=None):
     for event in native_events:
         if event.get('operation') not in EXPECTED_OPERATIONS or event.get('route') != 'native_godot':
             raise ValueError('invalid native operation or route')
+        if 'res://tools/check_rig_modifier_history.gd' in event.get('command', []):
+            # Joined below to exact inner history case/state hashes, not public-call totals.
+            continue
         checks, failures = native_checks(event, context)
         matches = [call for call in public_events
                    if call['operation'] == event['operation'] and call.get('scene') == event.get('scene')
@@ -491,7 +494,9 @@ def collect(context_path, traces, root, preview_report=None):
                       'public_case_ids':proof['public_case_ids'],'dry_case_ids':proof['dry_case_ids'],
                       'failures':proof['failures'],'limits':proof['limits']})
     for event in history_events:
-        if event.get('validator')=='graph_history_v1':
+        if event.get('validator')=='rig_modifier_history_v1':
+            from operation_modifier_history_checks import verify_event
+        elif event.get('validator')=='graph_history_v1':
             from operation_graph_history_checks import verify_event
         elif event.get('validator')=='rig_pose_file_v1':
             from operation_pose_file_checks import verify_event
@@ -504,7 +509,8 @@ def collect(context_path, traces, root, preview_report=None):
         else:
             from operation_history_checks import verify_event
         if event.get('operation') not in EXPECTED_OPERATIONS:raise ValueError('invalid inner history operation')
-        proof=verify_event(event,context,test_begins,support_events)
+        evidence_support = support_events + native_events if event.get('validator')=='rig_modifier_history_v1' else support_events
+        proof=verify_event(event,context,test_begins,evidence_support)
         cases.append({'id':event['id'],'operation':event['operation'],'checks':proof['checks'],
                       'scope':'candidate','route':'public_test_run_inner_dispatch',
                       'raw_event_id':event['id'],'public_test_run_case_id':proof['public_test_run_case_id'],

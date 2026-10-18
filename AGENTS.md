@@ -1,5 +1,27 @@
 # Agent notes
 
+## Current integration: ready for fresh public regression/matrix (2026-10-18)
+
+Graph7, inspect8 and modifier5 raw per-case adapters integrated. Modifiers keep
+unknown/locked typed-code expectations pending; exact known wrong codes fail.
+45mixed offline controls pass. ActualGodot4.7.2 graphhistory, modifierhistory and
+modifiernativechecker parses pass. Freshpublic/native execution stillpending.
+Rootcollector now explicitly binds both graph AND edit fixture Git blobs/hashes.
+
+Fresh233CI audit verifies4cells each1445cases/102externalops, playback81/81
+(all7previous missingkeys nowproved).267rawhashes/cell verified;215refused/failed
+invocationobservations/cell retainedunadjudicated;0failednoninvocationchecks.
+Actualtestedmerge f57eb1b differsPRhead233 andeventmergece9; identitiespreserved.
+Private independent-gap-ci39071962380-r001; no current-source relabel.
+
+Root nextprepares E:/.../run_setup_matrix_r005.py: fresh APPDATA/8125backend,
+public graph+modifier suites and8inspectcalls first; thenresume30groups/120rig
+setupmatrix usingexact15completedr004rows; publicquit beforeANY nativejob.
+Native modifierbatch then30serialsetup reports, strictcollectionafter. Read
+setup/production-r005/execution.json+logs beforelaunchorresuming. All oldreports
+includingWin5/temp retained. No productionmotionchanges. KeeponeGodot slot.
+No merge/tag/release; continue release-completion-plan.md.
+
 ## Resume: broader matrix retained; receipt lock fixed (2026-10-18)
 
 All CI jobs pass for233ad02 (39071962380),3dcb7f8 (39071498802) and5eef8d5.
