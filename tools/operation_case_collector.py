@@ -85,7 +85,8 @@ def prepare(root, core_root, godot, output):
     if not engine_raw.startswith('4.7.2.'):
         raise ValueError('qualification requires actual Godot4.7.2 version output')
     paths = git(root, 'ls-tree', '-r', '--name-only', source, '--',
-                'addons/godot_ai_animation', 'tools', 'test_project/tests', 'test_project/tools').splitlines()
+                'addons/godot_ai_animation', 'tools', 'test_project/tests', 'test_project/tools',
+                'test_project/repair_graph_fixture.tscn', 'test_project/repair_edit_fixture.tscn').splitlines()
     deps = {}
     for rel in paths:
         if rel.endswith('.uid') or not rel.endswith(('.gd','.py','.json','.tscn','.tres','.cfg','.godot')):
@@ -490,7 +491,9 @@ def collect(context_path, traces, root, preview_report=None):
                       'public_case_ids':proof['public_case_ids'],'dry_case_ids':proof['dry_case_ids'],
                       'failures':proof['failures'],'limits':proof['limits']})
     for event in history_events:
-        if event.get('validator')=='rig_pose_file_v1':
+        if event.get('validator')=='graph_history_v1':
+            from operation_graph_history_checks import verify_event
+        elif event.get('validator')=='rig_pose_file_v1':
             from operation_pose_file_checks import verify_event
         elif event.get('validator')=='preset_library_history_v1':
             from operation_preset_history_checks import verify_event

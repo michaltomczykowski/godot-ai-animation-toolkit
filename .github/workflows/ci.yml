@@ -311,6 +311,8 @@ jobs:
       - name: Run isolated metadata and typed registration controls
         shell: bash
         run: python tools/test_core_dependency.py --godot godot
+      - name: Check atomic receipt persistence and Windows sharing locks
+        run: python -m unittest discover -s tools -p 'test_review_receipts.py' -v
 
   clean-install:
     name: Clean ZIP install / ${{ matrix.os }} / core ${{ matrix.core-ref }}

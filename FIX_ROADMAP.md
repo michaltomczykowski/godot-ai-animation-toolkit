@@ -1,5 +1,20 @@
 # Animation Toolkit repair roadmap
 
+## Broader matrix receipt recovery and evidence hooks (2026-10-18)
+
+All233ad02 Windows/Linux CI jobs pass. Independent freshMCP coverage analysis
+is underway. New inspect8 and graph7 case-level evidence hooks are integrated;
+offline checks and actualgraphparse pass, freshpublic execution remains pending.
+No broadsourceinvariance is claimed from one inspected walk timeline.
+
+Expanded setup run retains15passing rig rows (4explicitly reused), then stops
+on Windows atomicreceipt Win5 atnextread-onlyprofile, not a productfailure.
+Receiptwriter now retries only samecompletedrename with boundedWindows5/32
+handling.4controls include realWindowsdelete-sharing;3existing setup controls
+also pass. Original staged/old receipts remain. Fresh r005 reuses exact completed
+requests/scenes/dependencies; see docs/setup-matrix-receipt-recovery.md.
+Full30group native matrix and finalqualification remain. No release yet.
+
 ## Actual two-core Windows ZIP previews pass (2026-10-17 night)
 
 At3dcb7f8, actual GodotAI preview calls pass from clean ZIP installs against

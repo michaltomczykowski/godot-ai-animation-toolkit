@@ -1,5 +1,24 @@
 # Agent notes
 
+## Resume: broader matrix retained; receipt lock fixed (2026-10-18)
+
+All CI jobs pass for233ad02 (39071962380),3dcb7f8 (39071498802) and5eef8d5.
+Four fresh233 MCP bundles downloaded E:/.../ci-233ad02/mcp-cells; independent
+read-only coverage audit in progress. This is not future-source qualification.
+
+production-r004 stopped after3complete groups+3passed rigs in4th (15rows total,
+4reused) on Windows5 atomic route receipt replacement, not an animation failure.
+All originals/temp/calls preserved; no Godot process remains. review_receipts
+now retries only samecompleted rename forWin5/32 (8attempts/1.275s), neverRPC.
+4controls including actualWindowsdelete-sharing lock and3setup controls pass.
+Read docs/setup-matrix-receipt-recovery.md; fresh r005 will reuse exact15rows.
+
+Inspect8hooks integrated451d/c893 (broadinvariancePENDING, strictfinitefixed
+oracles); graph7hooks1c08/1b8 integrated+collectorpatch. ActualgraphGDSparsePASS;
+freshpublic/inner/native execution pending. Modifier5hooks reviewed, integrating.
+No productionaddon/acceptedfixture/threshold changes. Keep one rootGodot slot.
+Continue release-completion-plan.md; no merge/tag/release yet.
+
 ## Actual Windows previews and setup media complete (2026-10-17 night)
 
 Root pushed3dcb7f8, exact Windows cleanZIP preview against released421 AND430
