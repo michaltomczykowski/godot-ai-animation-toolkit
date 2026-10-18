@@ -1,9 +1,12 @@
 extends SceneTree
+const Evidence := preload("res://tools/edit_native_evidence.gd")
+var logger := Evidence.Capture.new()
 
 ## Engine playback assertions for live Godot AI edit audit scenes that need
 ## more than the simple three-sample Character.x checker.
 
 func _initialize() -> void:
+	OS.add_logger(logger)
 	_probe.call_deferred()
 
 
@@ -49,9 +52,11 @@ func _probe() -> void:
 			quit(1)
 			return
 	var results: Array = []
+	var names: Array = []
 	var worst := 0.0
 	for check in checks:
 		var clip_name: String = check[0]
+		if not names.has(clip_name): names.append(clip_name)
 		var at: float = check[1]
 		var target: Node2D = check[2]
 		var axis: String = check[3]
@@ -62,7 +67,9 @@ func _probe() -> void:
 		var measured := target.position.x if axis == "x" else target.position.y
 		worst = maxf(worst, absf(measured - expected))
 		results.append({"clip": clip_name, "time": at, "node": target.name,
-			"axis": axis, "measured": measured, "expected": expected})
+			"axis": axis, "measured": measured, "expected": expected,"assigned_animation":str(player.assigned_animation),"player_position":player.current_animation_position})
+	var raw := Evidence.describe(args[0],fixture,player,names)
+	OS.remove_logger(logger)
 	print("EDIT_REMAINING=" + JSON.stringify({"op": op, "scene": args[0],
-		"samples": results, "worst_error": worst}))
-	quit(0 if worst < 0.25 else 1)
+		"samples": results, "worst_error": worst,"raw":raw,"engine_errors":logger.errors}))
+	quit(0 if worst < 0.25 and logger.errors.is_empty() else 1)
