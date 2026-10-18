@@ -31,11 +31,13 @@ def expected_refusal_code(row):
    return 'OPERATION_UNAVAILABLE'
  return None
 def property_same(a,b):
- # JSON.stringify serializes native Vector3 properties as parenthesized text.
- # Match the existing checker's Vector3.is_equal_approx, not string rounding.
+ # JSON.stringify serializes Vector3/Quaternion properties as tuple text.
+ # Preserve the engine checker's approximate Vector3 and exact Quaternion tests.
  if isinstance(a,str)and isinstance(b,str)and re.fullmatch(r'\([-+0-9.eE, ]+\)',a)and re.fullmatch(r'\([-+0-9.eE, ]+\)',b):
   x=[float(v)for v in a[1:-1].split(',')];y=[float(v)for v in b[1:-1].split(',')]
-  return len(x)==len(y)==3 and all(math.isfinite(i)and math.isfinite(j)and abs(i-j)<=.00001*max(1,abs(i))for i,j in zip(x,y))
+  if len(x)!=len(y)or len(x)not in(3,4)or not all(math.isfinite(i)and math.isfinite(j)for i,j in zip(x,y)):return False
+  if len(x)==4:return x==y
+  return all(i==j or abs(i-j)<.00001*max(1,abs(i))for i,j in zip(x,y))
  return same(a,b)
 def derive(row):
  op=row.get('op');assert op in OPS

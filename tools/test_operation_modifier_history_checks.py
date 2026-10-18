@@ -1,5 +1,5 @@
 import copy,json,unittest
-from operation_modifier_history_checks import derive,native_checks,verify_event,expected_class,expected_refusal_code
+from operation_modifier_history_checks import derive,native_checks,verify_event,expected_class,expected_refusal_code,property_same
 
 def row(op='ik_setup'):
  before={'nodes':{'Peer':{'keep':1}}};generated=copy.deepcopy(before);generated['nodes']['Configured']={'class':'TwoBoneIK3D'};ident={'/Main':1};peer={'keep':1};label='local_'+op+'_base'
@@ -17,6 +17,20 @@ def native(r):
  report={'rows':rows,'comparisons':pairs};e={'kind':'native_saved_output','operation':'animation_rig_modifiers.'+r['op'],'scene':'user://rig_modifier_history.json','route':'native_godot','command':['godot','--headless','--path','project','--script','res://tools/check_rig_modifier_history.gd'],'returncode':0,'stdout':'RIG_MODIFIER_HISTORY_RUNTIME='+json.dumps(report),'stderr':'','execution_ns':3}
  return e,report
 class Controls(unittest.TestCase):
+ def test_actual_quaternion_tuple_and_vector_property_contracts(self):
+  self.assertTrue(property_same('(0, 0, 0, 1)','(0, 0, 0, 1)'))
+  self.assertFalse(property_same('(0, 0, 0, 1)','(0, 0, 0, -1)'))
+  self.assertFalse(property_same('(0, 0, 0, 1)','(0, 0, 0.000001, 1)'))
+  self.assertTrue(property_same('(0, 0, 1)','(0.000001, 0, 1)'))
+  self.assertFalse(property_same('(0, 0, 1)','(0.0001, 0, 1)'))
+  self.assertFalse(property_same('(0, 1)','(0, 1)'))
+  r=row('twist_setup');e,p=native(r)
+  for x in p['rows']:
+   if x['native']:
+    x['native_requested_properties']['saved']['twist_from']='(0, 0, 0, 1)'
+    x['native_requested_properties']['independent_native']['twist_from']='(0, 0, 0, 1)'
+  e['stdout']='RIG_MODIFIER_HISTORY_RUNTIME='+json.dumps(p)
+  self.assertEqual(native_checks(r,e,{'engine_command':'godot'}),{'playback':'pass','valid_effect':'pass'})
  def test_known_guard_code_map_and_unknown_locked_refusal(self):
   requests=[('ik_setup',{'kind':'jacobian'},'OPERATION_UNAVAILABLE'),('look_at_setup',{'forward_axis':'+y','primary_axis':'y'},'INVALID_PARAMS'),('look_at_setup',{'origin_from':'invalid'},'VALUE_OUT_OF_RANGE'),('retarget_setup',{'move_target':False},'INVALID_PARAMS'),('retarget_setup',{'skeleton_path':'/Source','target_path':'/Source'},'INVALID_PARAMS'),('retarget_setup',{'position':False,'rotation':False,'scale':False},'INVALID_PARAMS'),('twist_setup',{'disperse':{'mode':'custom'}},'INVALID_PARAMS'),('spring_setup',{'springs':[{'root_bone':'head'}]},'INVALID_PARAMS')]
   for i,(op,params,code)in enumerate(requests):

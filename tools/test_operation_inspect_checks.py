@@ -10,6 +10,12 @@ RESULTS={'describe':{'clip_count':1,'clips':[{'name':'walk','length':1.0,'track_
  'dry_run':{'dry_run':True,'length_before':1,'length_after':0.5},'help':{'tool_count':1,'tools':[{'ops':[{'name':x} for x in EDIT_OPS]}]}}
 
 class InspectTests(unittest.TestCase):
+ def test_unknown_dry_run_family_is_exact_value_out_of_range(self):
+  event,*_=self.fixture('dry_run')
+  event['row']['typed_error']={'error':'VALUE_OUT_OF_RANGE: Unknown tool missing_family'}
+  self.assertEqual(derive(event['row'])['typed_errors'],'pass')
+  event['row']['typed_error']={'error':'INVALID_PARAMS: wrong code for unknown family'}
+  self.assertEqual(derive(event['row'])['typed_errors'],'fail')
  def fixture(self,op):
   row={'op':op,'scene':SCENE,'request':{'op':op,**CASES[op]},'error_request':{'op':op,**ERROR_CASES[op]},'result':copy.deepcopy(RESULTS[op]),'typed_error':{'error':ERROR_CODES[op]+': test'},'before':copy.deepcopy(WALK),'after':copy.deepcopy(WALK),'open':{'opened':True}}
   event={'validator':'inspect_read_v1','driver':'mcp_inspect_audit.py','operation':'animation_inspect.'+op,'row':row,'checks':derive(row),'execution_ns':10}

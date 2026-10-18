@@ -1,5 +1,19 @@
 # Animation Toolkit repair roadmap
 
+## Actual graph/modifier/public evidence checkpoint (2026-10-18)
+
+PublicGodotAI graph8+modifier15 tests pass0skip; aftereditorquit native828saved,
+276reference and108orderedstackstates pass with0errors, sourcec5c2483. Strict
+137innerrows exposeoneQuaternion-tuple convertererror; correctedwith exact
+four-component comparison, no modifier/physicalthreshold change. Inspect8reads
+exposeonewrongexpectedrefusalcode; exactVALUE_OUT_OF_RANGE map nowmatches source.
+Originalfailedreceipts unchanged.47offlinecontrols pass; freshcandidateCIpending.
+
+Private270tab startupstate is backedup/reset; explicitpublicmainopenprecedes
+readiness. No scene/model changed. Details:
+docs/public-evidence-checkpoint-20261018.md. Broader30group/1800play matrix still
+next;15completedpublicrigrows retained. No merge/tag/release.
+
 ## Graph/inspect/modifier evidence integration ready (2026-10-18)
 
 Integrated20operation case-level hooks/adapters with exactknownrefusals and

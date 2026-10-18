@@ -4,7 +4,7 @@ from operation_snapshot_checks import equivalent, successful, error_code
 
 ERROR_CODES = dict(describe='NODE_NOT_FOUND', timeline='INVALID_PARAMS', audit='NODE_NOT_FOUND',
                    compare='INVALID_PARAMS', stats='NODE_NOT_FOUND', motion_report='INVALID_PARAMS',
-                   dry_run='INVALID_PARAMS', help='VALUE_OUT_OF_RANGE')
+                   dry_run='VALUE_OUT_OF_RANGE', help='VALUE_OUT_OF_RANGE')
 EDIT_OPS = 'retime retarget reverse mirror offset ease_range set_interp trim split_at merge amplitude loop key_edit cleanup smooth resample reduce add_noise overlap layer'.split()
 SCENE = 'res://repair_edit_fixture.tscn'
 PLAYER = '/RepairGraphFixture/AnimationPlayer'

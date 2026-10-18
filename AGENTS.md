@@ -1,5 +1,44 @@
 # Agent notes
 
+## r006 scoped regression finished; body matrix next (2026-10-18)
+
+No Godot process remains after exec57139 native/postcollection. Actualpublic
+graph8+modifier15 tests pass0skip, native828saved/276reference/108stack states
+pass0errors atc5c2483. Strict137inner rows have ONE conversionfailure: Quaternion
+tuple wronglytreatedasVector3. Actualsaved/native `(0,0,0,1)`equal. Parser now
+exactQuaternion4/approxVector3; originalfailure preserved. Inspect8actualreads
+had ONE wrongauditorcodeexpectation: unknowndry_runfamilyreturnsVALUE_OUT_OF_RANGE
+(sourcecontract), notINVALID_PARAMS. Exactmapfixed,47mixedcontrolspass.
+Read docs/public-evidence-checkpoint-20261018.md. OldoperationcasesSHA2eeaffe0...
+andfailedqueue untouched; no fakecurrent-source qualification.
+
+Nextprivate r007 willrun corrected8inspect then30group/120rig publicsetupmatrix
+with15exactcompletedr004rows reused; publicquit then1800serialnativeplays.
+Avoid repeating independentgraph/modifierenginework merelyforbookkeeping; final
+CIexecutesallnewhooks. FX16/edit20workers preparedisolated evidence increments;
+framingworker implementing guardsonpreservedgraph/rigrepresentativemedia.
+RootsingleGodot slot; read actualnewexecution.json beforelaunch. No releaseyet.
+
+## LIVE ROOT SLOT: r006 at frozen c5c2483 (2026-10-18)
+
+SourceHEADc5c248356c33b1277373a8d033e78b0243fc592c must stayfrozen until
+E:/GodotAI-toolkit-release-2.0.0/20261014/setup/production-r006/execution.json
+releases slot. Runner E:/.../run_setup_matrix_r006.py, exec45374; exact421runtime,
+own8125/9625. Publicgraph+modifier suites/8inspect before30setupgroups, then
+publicquit BEFOREserialnative. Code+45controls+3parses pushed; helpersworkers
+remainisolated. Thisnotes-onlyworkingedit doesnot change executiondependencies.
+
+r005 failed ONLYinitial stable-main wait, before anyregression/matrix mutation.
+Editor actuallyrestoredlastold Zuptall scene. Its ownededitorlayout contained270
+open testscenes; originalmetadata backedup/hashrecorded, nowonlymain isrestored.
+Recovery receipt setup/validation-editor-state-recovery-r006.json. Explicitpublic
+scene_openmain nowprecedesstablewait. Nativecorruptcopies get .gdignore toavoid
+intentionalduplicateUID indexing; no originalscene/model/productionfile changed.
+r004 Win5failure+15passedrows unchanged; r006willreuse them afterexactchecks.
+Do not run anotherGodot/editor/capture orcommitHEAD duringr006. Inspect logs,
+not activelywrittenroute.json withlong-livedWindowsreaders. Sharedrenamefix
+nowboundedsurvivesbriefread locks. No merge/tag/release yet.
+
 ## Current integration: ready for fresh public regression/matrix (2026-10-18)
 
 Graph7, inspect8 and modifier5 raw per-case adapters integrated. Modifiers keep
