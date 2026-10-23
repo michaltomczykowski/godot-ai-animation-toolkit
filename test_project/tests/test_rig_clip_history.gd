@@ -9,6 +9,7 @@ const Pose := preload("res://tests/test_rig_pose_history.gd")
 const Clips := preload("res://tests/test_edit_route_history.gd")
 const Playback := preload("res://tests/test_rig_bake_state.gd")
 const Capture := preload("res://tests/test_graph_route_history.gd")
+const Observation := preload("res://tests/rig_history_observation.gd")
 const WRITERS := ["pose_to_clip", "walk_cycle", "idle_breathing", "blink", "jumping_jack", "squat", "punch", "bake_pose_sequence"]
 const ROLES := {"hips": "hips", "spine": "spine", "chest": "chest", "head": "head", "arm_l": "arm_L", "arm_r": "arm_R", "forearm_l": "forearm_L", "forearm_r": "forearm_R", "thigh_l": "thigh_L", "thigh_r": "thigh_R", "shin_l": "shin_L", "shin_r": "shin_R", "foot_l": "foot_L", "foot_r": "foot_R"}
 var _undo: EditorUndoRedoManager
@@ -117,16 +118,21 @@ func _params(op: String, kind: String) -> Dictionary:
 	elif op == "bake_pose_sequence": params.merge({"source_animation": "source/input", "bones": ["hips"], "fps": 4, "scales": true})
 	elif op == "squat": params.bob = 0.2
 	return params
-func _persist(fixture: Node, expected: Dictionary, label: String) -> void:
+func _persist(fixture: Node, expected: Dictionary, label: String) -> Dictionary:
 	var packed := PackedScene.new()
-	assert_eq(packed.pack(EditorInterface.get_edited_scene_root()), OK, label + " pack")
+	var packed_result := packed.pack(EditorInterface.get_edited_scene_root())
+	assert_eq(packed_result, OK, label + " pack")
 	var path := "user://rig_clip_history_%s.tscn" % label
-	assert_eq(ResourceSaver.save(packed, path), OK, label + " save")
+	var save_result := ResourceSaver.save(packed, path)
+	assert_eq(save_result, OK, label + " save")
 	var reopened := (ResourceLoader.load(path, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene).instantiate()
 	var actual := _snapshot(reopened.get_node(str(fixture.name)))
 	assert_true(_pose._same(actual, expected), label + " persisted exact scene " + str(_pose._checks._differences(actual, expected)))
 	reopened.free()
+	return {"path": path, "pack_result": packed_result, "save_result": save_result, "sha256": FileAccess.get_sha256(path), "snapshot": actual}
 func _case(op: String, kind: String, mode: String) -> void:
+	var assertions_before := _assertion_count
+	var failed_before := _failed
 	var root := EditorInterface.get_edited_scene_root()
 	var label := "%s_%s_%s" % [mode, kind, op]
 	var fixture := _seed(kind, mode)
@@ -171,17 +177,28 @@ func _case(op: String, kind: String, mode: String) -> void:
 		for name in original_library.get_animation_list(): original_clips[str(name)] = original_library.get_animation(name)
 	var params := _params(op, kind)
 	params.merge({"player_path": str(player.get_path()), "skeleton_path": str(fixture.get_node("Character/Skeleton").get_path()), "animation_name": "generated", "overwrite": mode == "overwrite"})
+	var witness := func() -> Dictionary: return Observation.state(fixture, _snapshot, history, global_history, func() -> Dictionary: return _playback._player_state(player))
+	var evidence := {"suite": suite_name(), "test": "test_" + mode + "_history", "op": op, "kind": kind, "mode": mode, "variant": "clip", "label": label,
+		"scene": root.scene_file_path, "fixture_path": str(fixture.get_path()), "request": params.duplicate(true), "before": witness.call(), "peer_before": source_expected,
+		"source_path": source_path if peer != null else "", "source_before": Observation.file_hash(source_path) if peer != null else "", "failed_before": failed_before, "assertions_before": assertions_before}
 	var orphans := Node.get_orphan_node_ids()
-	assert_has_key(_call(params.merged({"dry_run": true})), "data", label + " dry")
+	var planned := _call(params.merged({"dry_run": true}))
+	evidence["dry"] = {"response": planned.duplicate(true), "state": witness.call()}
+	assert_has_key(planned, "data", label + " dry")
 	assert_eq(Node.get_orphan_node_ids(), orphans, label + " dry no orphan nodes")
 	assert_true(_pose._same(_snapshot(fixture), baseline), label + " dry exact scene")
 	assert_true(_pose._same(_playback._player_state(player), before_player), label + " dry playback")
-	assert_has_key(_call(params.merged({"player_path": "/Missing"}, true)).get("error", {}), "code", label + " rejected typed")
+	var invalid_request := params.merged({"player_path": "/Missing"}, true)
+	var rejected := _call(invalid_request)
+	evidence["refusal"] = {"request": invalid_request.duplicate(true), "response": rejected.duplicate(true), "state": witness.call()}
+	assert_has_key(rejected.get("error", {}), "code", label + " rejected typed")
 	assert_eq(Node.get_orphan_node_ids(), orphans, label + " rejected no orphan nodes")
 	assert_true(_pose._same(_snapshot(fixture), baseline), label + " rejected exact scene")
 	assert_eq(history.get_version(), version, label + " dry/rejected no history")
 	assert_eq(root.is_editable_instance(fixture), mode == "editable", label + " dry/rejected permissions")
-	assert_has_key(_call(params), "data", label + " write")
+	var made := _call(params)
+	evidence["write"] = {"response": made.duplicate(true), "state": witness.call()}
+	assert_has_key(made, "data", label + " write")
 	# A new scene action discards the previous Redo branch. Its detached bake
 	# outputs/carriers can be freed legitimately; new orphan IDs are still leaks.
 	var after_commit := Node.get_orphan_node_ids()
@@ -214,7 +231,9 @@ func _case(op: String, kind: String, mode: String) -> void:
 	assert_true(_pose._same(_playback._player_state(player), before_player), label + " refused playback")
 	assert_true(_pose._same(_snapshot(fixture), generated), label + " refused exact scene")
 	assert_eq(history.get_version(), version + 1, label + " refusal no action")
-	assert_true(history.undo(), label + " undo")
+	var undone := history.undo()
+	evidence["undo"] = {"success": undone, "state": witness.call()}
+	assert_true(undone, label + " undo")
 	assert_true(_pose._same(_snapshot(fixture), baseline), label + " exact undo")
 	assert_true(_pose._same(_playback._player_state(player), before_player), label + " undo playback")
 	assert_eq(player.has_animation_library(""), original_library != null, label + " original library existence")
@@ -222,22 +241,28 @@ func _case(op: String, kind: String, mode: String) -> void:
 		assert_true(player.get_animation_library("") == original_library, label + " library identity undo")
 		for name in original_clips: assert_true(original_library.get_animation(name) == original_clips[name], label + " clip identity undo " + name)
 	assert_eq(root.is_editable_instance(fixture), mode == "editable", label + " permission undo")
-	_persist(fixture, baseline, label + "_undo")
-	assert_true(history.redo(), label + " redo")
+	evidence["persist_undo"] = _persist(fixture, baseline, label + "_undo")
+	var redone := history.redo()
+	evidence["redo"] = {"success": redone, "state": witness.call()}
+	assert_true(redone, label + " redo")
 	assert_true(player.get_animation("generated") == generated_clip, label + " generated identity redo")
 	assert_true(_pose._same(_snapshot(fixture), generated), label + " exact redo")
 	assert_true(_pose._same(_playback._player_state(player), before_player), label + " redo playback")
-	_persist(fixture, generated, label + "_redo")
+	evidence["persist_redo"] = _persist(fixture, generated, label + "_redo")
 	if peer != null:
+		evidence["peer_after"] = _snapshot(peer)
+		evidence["source_after"] = Observation.file_hash(source_path)
 		assert_true(_pose._same(_snapshot(peer), source_expected), label + " peer isolated")
 		assert_eq(FileAccess.get_file_as_bytes(source_path), source_bytes, label + " source file bytes")
 		var pristine := (ResourceLoader.load(source_path, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene).instantiate()
+		evidence["pristine"] = _snapshot(pristine)
 		assert_true(_pose._same(_snapshot(pristine), source_expected), label + " fresh source isolated")
 		assert_true(player.get_animation_library("") != peer.get_node("Playback/AnimationPlayer").get_animation_library(""), label + " local library isolated")
 		pristine.free()
 		peer.free()
 	assert_eq(_logger.errors.size(), errors, label + " zero engine errors " + str(_logger.errors.slice(errors)))
 	fixture.free()
+	Observation.emit(evidence, _failed, _assertion_count, _logger, errors)
 func _matrix(mode: String) -> void:
 	for op in WRITERS: _case(op, "3d", mode)
 	_case("pose_to_clip", "2d", mode)
