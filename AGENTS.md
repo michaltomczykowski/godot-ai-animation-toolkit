@@ -1,5 +1,42 @@
 # Agent notes
 
+## Resume 23 October: public matrix complete; endpoint gate repaired
+
+No Godot process remains after endpoint controls exec59491. production-r007
+completed all30 public groups/120 saved rig rows, then native first2groups pass
+60 each; third group fails12inplace jumps only because old initial-hip endpoint
+confounds idle phases. CI39118728182 at233562a fully green.
+
+Root checker now uses independently played saved idle at ACTUAL final phase,
+WORLD hips subtraction, unchanged0.1mm limit. Failed group60/60 PASS; native
+controls12positive/72expectednegative PASS,0engine errors. Original failures
+and first misoriented Z-up control preserved. Read docs/setup-endpoint-recovery-20261023.md.
+Next freeze checkpoint and run all30 native groups on exact existing r007 scenes,
+no public regeneration. Read the new queue receipt before any Godot launch.
+
+Isolated pending increments: FX58f3dda, editc13a644, media7dd9473+a4183ff,
+five reads a6a888f, motion/sequence95b751c. Root's rig history observation work
+is retained UNVERIFIED in E:/.../root-rig-history-implementation; do not lose it
+or infer parsed/live status. Integrate reviewed source only after matrix freeze.
+
+## LIVE ROOT SLOT: broader setup r007 (2026-10-18)
+
+HEAD233562a776bf8deac6177cf9b67cbe2ae1efdedf is frozen for
+E:/GodotAI-toolkit-release-2.0.0/20261014/run_setup_matrix_r007.py,
+exec52471. Inspect actual setup/production-r007/execution.json and owned
+processes before any Godot launch or commit. Exact released421 runtime,
+private APPDATA/8125/9625, explicit public main open, eight corrected inspect
+reads, 30 public setup groups/120rig cases (15 exact reusable prior rows),
+then public quit before 1,800 serial native plays. r006 graph/modifier
+regressions already ran; this attempt does not repeat those gates.
+
+Original failed r004-r006 receipts remain intact. Strict final collection
+requires eight derived inspect rows and no failed derived checks. No production
+edits or HEAD changes during the run. Workers' FX16/edit20/framing increments
+are committed in isolated worktrees; root review/integration follows this matrix.
+All current fixes are pushed. CI39118728182 is running at233562a; earlier
+c5c2483 CI failures are being independently audited, not relabeled as passes.
+
 ## r006 scoped regression finished; body matrix next (2026-10-18)
 
 No Godot process remains after exec57139 native/postcollection. Actualpublic

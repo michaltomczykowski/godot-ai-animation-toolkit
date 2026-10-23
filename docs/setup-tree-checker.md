@@ -27,6 +27,13 @@ Without explicit specs the checker selects half walk, walk, midpoint walk/run an
 
 ## Measurements and gates
 
+For stationary in-place jump endpoints, compare the final played hips with an
+independent saved idle clip evaluated at the Tree's actual final idle phase.
+Use world points so rig/ancestor drift is preserved. Initial hips at phase zero
+are not the final idle reference. The clip, phase and finite reference must be
+available; absence fails explicitly. The 0.1mm endpoint limit is unchanged.
+See [the recovery and native corruption results](setup-endpoint-recovery-20261023.md).
+
 The existing saved Tree must bind the requested player and have the same resolved `root_node`. The saved root-motion bindings must agree. Competing mixers are disabled for isolated playback, and exactly one active Tree is required. The saved setup-owned grounder must be present, active, at full influence, directly under the bound Skeleton3D, with the exact saved Player/Tree paths and reported role map. Foreign active modifiers fail ownership instead of being silently disabled. Every sampled pose is captured inside the saved helper's `modification_processed` signal; the checker never installs a replacement helper. Each run reloads the saved scene and verifies its hash.
 
 Contact declarations use the actual read-only Godot `current_position` parameters of contributing animation nodes. A blend declares contact only when all nonzero-weight contributing clips declare it; idle is treated as planted. Missing marker/phase coverage fails. This avoids guessing synchronized phases from requested time or silently accepting zero contact coverage. [Godot exposes these phase parameters](https://github.com/godotengine/godot/blob/4.7-stable/scene/animation/animation_tree.cpp#L40). The checker assumes the existing setup's interpolated1D blend graph and optional OneShot wrapper, rather than supporting arbitrary graph families.

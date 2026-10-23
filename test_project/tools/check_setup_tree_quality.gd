@@ -38,6 +38,8 @@ func _properties(tree: AnimationTree) -> Dictionary:
 	return found
 func _prepare_admission_control(_scene: Node, _row: Dictionary, _rig: Skeleton3D, _tree: AnimationTree, _player: AnimationPlayer) -> void:
 	pass # Overridden only by the disposable corruption harness.
+func _prepare_endpoint_control(_v: Dictionary, _row: Dictionary, _reference: Dictionary) -> void:
+	pass # Overridden only by the disposable endpoint corruption harness.
 func _inert_internal_simulator(candidate: Node) -> bool:
 	# Godot inserts this empty compatibility node internally on scene entry.
 	# A user-owned/child-bearing/simulating/scripted modifier is not exempt.
@@ -279,7 +281,6 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 	for side in ["l","r"]: feet[side]={"active":false,"anchor":Vector3.ZERO,"slide":0.0,"penetration":0.0,"height":0.0,"windows":0,"frames":0,"pole":Vector3.ZERO,"knee_flips":0}
 	var previous: Array[Transform3D] = []
 	for bone in v.rig.get_bone_count(): previous.append(_pose(v,bone))
-	var initial_hip := _point(v,"hips")
 	var controller_speed := float(spec.get("controller_speed_mps",0.0 if v.rooted else speed))
 	if not is_finite(controller_speed): errors.append("Controller speed must be finite")
 	if v.rooted and controller_speed!=0.0: errors.append("Extracted setup cannot also receive controller translation")
@@ -434,10 +435,10 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 		if int(take_contact_frames.l)==0 or int(take_contact_frames.r)==0: errors.append("New-take insufficient contact coverage")
 	if v.signals!=frames+extra_prime_signals: errors.append("Total final-signal count differs from physical frames plus explicit primes")
 	var elapsed := frames*dt
-	var actual: Vector3 = v.owner.global_position-v.initial_owner if v.rooted or not jump else _point(v,"hips")-initial_hip
+	var actual: Vector3 = v.owner.global_position-v.initial_owner
 	var expected: Vector3 = v.forward*(expected_distance if jump else commanded_distance)
-	var endpoint_error := _flat(actual-expected,v.up).length()
-	if endpoint_error>0.0001: errors.append("Graph/controller world endpoint differs from exact requested distance")
+	var endpoint_ready: bool = v.rooted or not jump
+	var endpoint_reference := {}
 	if extraction_error>0.000001: errors.append("In-place graph emits competing root extraction")
 	if unconsumed_actor_change>0.000001: errors.append("Graph or another writer moves the declared owner before its single consumer")
 	if grounded_delta>0.000001: errors.append("Jump root travels during an entirely grounded interval")
@@ -458,26 +459,48 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 		if reference.has("error"):
 			errors.append("Idle recovery reference cannot load: "+str(reference.error))
 		else:
-			var idle_phase := 0.0
+			var idle_phase := NAN
 			for point: Dictionary in points:
-				if point.clip=="idle": idle_phase=float(tree.get(point.phase_path))
+				if point.clip=="idle" and v.properties.has(point.phase_path):
+					var observed: Variant = tree.get(point.phase_path)
+					if observed is float or observed is int: idle_phase=float(observed)
 			var ref_player: AnimationPlayer = reference.player
-			ref_player.active=true
-			ref_player.play("idle",0.0)
-			ref_player.seek(idle_phase,true)
-			ref_player.advance(0.0)
-			var retained: Vector3 = Vector3.ZERO if v.rooted else v.forward*expected_distance
-			for bone in v.rig.get_bone_count():
-				var actual_pose: Transform3D = _pose(v,bone)
-				var reference_pose: Transform3D = reference.rig.get_bone_global_pose(bone)
-				recovery_position=maxf(recovery_position,((v.rig.global_basis*(actual_pose.origin-reference_pose.origin))-retained).length())
-				var rotation := reference_pose.basis.orthonormalized().get_rotation_quaternion().inverse()*actual_pose.basis.orthonormalized().get_rotation_quaternion()
-				recovery_rotation=maxf(recovery_rotation,2.0*atan2(Vector3(rotation.x,rotation.y,rotation.z).length(),absf(rotation.w)))
-			if recovery_position>minf(0.01*float(v.leg),0.01) or recovery_rotation>0.01: errors.append("OneShot does not recover to native idle pose at the actual idle phase")
+			if not is_finite(idle_phase) or idle_phase<0.0 or not ref_player.has_animation("idle") or idle_phase>ref_player.get_animation("idle").length+0.000001:
+				errors.append("Missing or invalid actual idle phase for endpoint/recovery reference")
+			else:
+				ref_player.active=true
+				ref_player.play("idle",0.0)
+				ref_player.seek(idle_phase,true)
+				ref_player.advance(0.0)
+				_prepare_endpoint_control(v,row,reference)
+				reference.rig.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
+				var correct_reference := str(ref_player.assigned_animation)=="idle" and is_finite(ref_player.current_animation_position) and absf(ref_player.current_animation_position-idle_phase)<0.000001
+				if not correct_reference: errors.append("Native idle endpoint reference clip/phase differs from actual graph phase")
+				var retained: Vector3 = Vector3.ZERO if v.rooted else v.forward*expected_distance
+				for bone in v.rig.get_bone_count():
+					var actual_pose: Transform3D = _pose(v,bone)
+					var reference_pose: Transform3D = reference.rig.get_bone_global_pose(bone)
+					recovery_position=maxf(recovery_position,((v.rig.global_basis*(actual_pose.origin-reference_pose.origin))-retained).length())
+					var rotation := reference_pose.basis.orthonormalized().get_rotation_quaternion().inverse()*actual_pose.basis.orthonormalized().get_rotation_quaternion()
+					recovery_rotation=maxf(recovery_rotation,2.0*atan2(Vector3(rotation.x,rotation.y,rotation.z).length(),absf(rotation.w)))
+				if recovery_position>minf(0.01*float(v.leg),0.01) or recovery_rotation>0.01: errors.append("OneShot does not recover to native idle pose at the actual idle phase")
+				if not v.rooted and correct_reference:
+					var hips_world := _point(v,"hips")
+					var idle_world := _point(reference,"hips")
+					endpoint_ready=hips_world.is_finite() and idle_world.is_finite()
+					actual=hips_world-idle_world
+					endpoint_reference={"clip":"idle","phase_s":idle_phase,"clock":"independent_native_player_seek_advance_zero","actual_hips_world":[hips_world.x,hips_world.y,hips_world.z],"idle_hips_world":[idle_world.x,idle_world.y,idle_world.z]}
 			_free(reference)
+	var endpoint_error := _flat(actual-expected,v.up).length() if endpoint_ready else -1.0
+	if not endpoint_ready: errors.append("In-place jump endpoint has no finite same-phase native idle reference")
+	elif endpoint_error>0.0001: errors.append("Graph/controller world endpoint differs from exact requested distance")
 	var yaw_error: float = v.initial_rotation.angle_to(v.owner.global_basis.orthonormalized().get_rotation_quaternion())
 	if yaw_error>0.00001: errors.append("Unexpected actor-yaw ownership")
 	var result := {"id":row.get("id",""),"fps":fps,"spec":spec,"frames":frames,"elapsed_s":elapsed,"leg_length_m":v.leg,"rooted":v.rooted,"endpoint_error_m":endpoint_error,"expected_world_distance_m":expected_distance if jump else commanded_distance,"actual_world_distance_m":_flat(actual,v.up).length(),"controller_speed_mps":controller_speed,"reset_performed":reset_performed,"reset_witness":reset_witness,"takes":takes,"extra_prime_signals":extra_prime_signals,"extraction_error_m":extraction_error,"unconsumed_actor_change_m":unconsumed_actor_change,"grounded_root_delta_world_m":grounded_delta,"jump_capture_duration_s":capture,"terminal_hold_s":hold,"fadein_s":fadein,"fadeout_s":fadeout,"recovery_position_error_m":recovery_position,"recovery_rotation_error_rad":recovery_rotation,"shot_frames":shot_frames,"observed_flight_frames":air_frames,"nonfinite":nonfinite,"max_bone_speed_legs_per_s":max_velocity,"max_bone_angular_speed_rad_s":max_angular_velocity,"feet":feet,"trace":trace,"grounding":v.modifier.diagnostics(),"modification_processed_signals":v.signals,"passed":errors.is_empty(),"failures":errors}
+	result["endpoint_reference"]=endpoint_reference
+	result["endpoint_measurement"]="same-phase native idle hips in world space" if jump and not v.rooted else "translation owner in world space"
+	result["endpoint_reference_available"]=endpoint_ready
+	if not endpoint_ready: result["actual_world_distance_m"]=-1.0
 	_free(v)
 	return result
 func _specs(row: Dictionary) -> Array:
