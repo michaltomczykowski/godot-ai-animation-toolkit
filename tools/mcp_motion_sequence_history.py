@@ -7,6 +7,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import uuid
+from operation_case_collector import record_native_result
 from gate_diagnostics import progress, bounded_run
 from mcp_presets_audit import call
 from motion_sequence_transport_diagnostics import observed_call
@@ -50,6 +51,8 @@ def runtime(args) -> dict:
         result=bounded_run(command,240,args.record,'native_history')
     else:
         result=subprocess.run(command,capture_output=True,text=True,timeout=240,check=False)
+    # One immutable completed batch; adapter joins its rows to exact public cases.
+    record_native_result('animation_sequence.compose','user://motion_sequence_saved_matrix.json',command,result)
     prefix = 'MOTION_SEQUENCE_HISTORY_RUNTIME='
     payload = next((s[len(prefix):] for s in result.stdout.splitlines() if s.startswith(prefix)), '')
     report = json.loads(payload) if payload else {}
