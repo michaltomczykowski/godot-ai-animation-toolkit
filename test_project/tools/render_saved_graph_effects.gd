@@ -1,4 +1,5 @@
 extends SceneTree
+const Framing := preload("saved_media_framing.gd")
 const Native := preload("saved_graph_media_native.gd")
 class Errors extends Logger:
 	var errors: Array[String] = []
@@ -26,6 +27,7 @@ var fps := 60
 var native_only := false
 var control := ""
 var rendering := false
+var startup_admission := {}
 var title: Label
 var details: Label
 
@@ -64,6 +66,8 @@ func _run() -> void:
 		_finish()
 	else:
 		fps=60
+		startup_admission=Framing.startup()
+		if not startup_admission.passed:failures.append("Require1920x1080viewportstretch before MovieMaker startup");_finish();return
 		_setup_display()
 		_start(manifest.cases[0],0)
 		rendering=not view.has("error")
@@ -95,6 +99,7 @@ func _start(row: Dictionary, repetition: int) -> void:
 		marker.polygon=PackedVector2Array([Vector2(-18,0),Vector2(-18,-70),Vector2(10,-70),Vector2(30,-50),Vector2(10,-30),Vector2(18,0)])
 		marker.color=Color(0.15,0.75,0.95)
 		view.target.add_child(marker)
+		view["display_marker"]=marker
 
 func _step(tick: int) -> void:
 	var time := float(tick)/fps
@@ -134,6 +139,10 @@ func _step(tick: int) -> void:
 	var sample := Native.sample(view,time)
 	if not sample.ownership and not current.failures.has("Competing graph/player ownership"):current.failures.append("Competing graph/player ownership")
 	if not view.target.position.is_finite() or not is_finite(view.target.rotation):current.failures.append("Nonfinite native effect")
+	if not native_only:
+		sample["movie_frame"]=tick<2*fps
+		sample["framing"]=Framing.graph(view.display_marker)
+		if not sample.framing.fits:current.failures.append("Projected graph geometry leaves body/header guard")
 	current.trace.append(sample)
 	if not native_only:
 		title.text="SAVED GRAPH | %s | TAKE %d/2 | %.3fs" % [view.row.operation,take+1,time]
@@ -193,6 +202,7 @@ func _finish() -> void:
 	var passed:=runs.size()==expected and failures.is_empty() and logger.errors.is_empty()
 	var report:={"passed":passed,"control":control,"mode":"native" if native_only else "render","runs":runs,"failures":failures,"engine_errors":logger.errors,
 		"manifest_sha256":FileAccess.get_sha256(manifest_path),"renderer_sha256":FileAccess.get_sha256(get_script().resource_path),
+		"startup_admission":startup_admission,"framing_helper_sha256":FileAccess.get_sha256(get_script().resource_path.get_base_dir().path_join("saved_media_framing.gd")),
 		"native_helper_sha256":FileAccess.get_sha256(get_script().resource_path.get_base_dir().path_join("saved_graph_media_native.gd")),
 		"frames":0 if native_only else 7*2*2*60,"fixed_camera":{"position":[100,-40],"zoom":[3,3]},"reset_policy":"Each take instantiates the original hashed scene anew; state-machine saved automatic transition continues; no neutral tail is claimed.","viewport_sizes":{"physical_window":[root.size.x,root.size.y],"logical":[root.get_visible_rect().size.x,root.get_visible_rect().size.y],"texture":[root.get_texture().get_size().x,root.get_texture().get_size().y]},"visual_approval":false,"display_geometry":manifest.get("display_geometry","")}
 	FileAccess.open(report_path,FileAccess.WRITE).store_string(JSON.stringify(report))

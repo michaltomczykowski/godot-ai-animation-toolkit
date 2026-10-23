@@ -232,6 +232,18 @@ jobs:
       - name: Install pinned Godot AI backend
         run: python -m pip install -e .ci/godot-ai
 
+      - name: Reject corrupted operation and saved-media evidence
+        working-directory: tools
+        run: >-
+          python -m unittest
+          test_operation_rig_scene_history_checks
+          test_operation_edit_native_checks
+          test_operation_fx_intention_checks
+          test_operation_bounded_read_checks
+          test_operation_motion_sequence_history_checks
+          test_saved_media_capture_checks
+          test_operation_case_collector -v
+
       - name: Link addons
         run: |
           ln -s "$PWD/.ci/godot-ai/plugin/addons/godot_ai" test_project/addons/godot_ai

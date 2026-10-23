@@ -5,21 +5,31 @@ from __future__ import annotations
 import argparse
 import asyncio
 from datetime import datetime, timezone
+import hashlib
 import json
 import math
 from fixture_copy import copy_scene
 import sys
+import time
 from pathlib import Path
 
 from fastmcp import Client
 from fastmcp.client.transports import StdioTransport
 
 from mcp_presets_audit import call
+from operation_case_collector import record_snapshot_result
 
 
 SKELETON = "/RepairRigFixture/Dummy/Skeleton3D"
 PLAYER = "/RepairRigFixture/AnimationPlayer"
 BONE = "B-upperArm.L"
+
+
+def pose_files(directory: Path) -> dict:
+    return {path.name: {"sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                       "content": json.loads(path.read_text(encoding="utf-8")),
+                       "raw_utf8": path.read_bytes().decode("utf-8")}
+            for path in sorted(directory.glob("*.json"))}
 
 
 async def run(args: argparse.Namespace) -> int:
@@ -56,8 +66,19 @@ async def run(args: argparse.Namespace) -> int:
             {"op": "pose_apply", "skeleton_path": SKELETON, "pose": arm_pose})
         row["save_arm"] = await call(client, "custom_animation_rig",
             {**save_base, "name": "arm"})
+        files_before_list = pose_files(disk_dir)
+        files_before_list_ns = time.perf_counter_ns()
         row["list"] = await call(client, "custom_animation_rig",
             {"op": "pose_list", "directory": pose_dir})
+        files_after_list = pose_files(disk_dir)
+        files_after_list_ns = time.perf_counter_ns()
+        record_snapshot_result("bounded_read_v1", {"operation": "animation_rig.pose_list",
+            "scene": scene, "request": {"op": "pose_list", "directory": pose_dir},
+            "result": row["list"], "files_before": files_before_list, "files_after": files_after_list,
+            "files_before_execution_ns": files_before_list_ns, "files_after_execution_ns": files_after_list_ns,
+            "open": row["open"], "save_requests": [{**save_base, "name": "rest"}, {**save_base, "name": "arm"}],
+            "save_results": [row["save_rest"], row["save_arm"]],
+            "observation_scope": "pose-directory exact bytes/content only; live scene unobserved"})
         blend_base = {"op": "pose_blend", "pose_dir": pose_dir,
                       "from": "rest", "to": "arm", "factor": 0.5}
         row["blend_dry"] = await call(client, "custom_animation_rig",

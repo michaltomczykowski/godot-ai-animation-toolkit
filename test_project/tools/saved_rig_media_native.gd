@@ -10,6 +10,8 @@ static func load_state(row: Dictionary, before: bool, root: Node) -> Dictionary:
 		if node is AnimationPlayer:node.stop()
 	for node in scene.find_children("*","SkeletonModifier3D",true,false):
 		scene.free();return {"error":"Live modifier requires signal-aware existing renderer"}
+	for node in scene.find_children("*","MeshInstance3D",true,false):
+		scene.free();return {"error":"Saved mesh/skin body requires separate signal-and-skin-aware capture; unskinned joints only here"}
 	root.add_child(scene)
 	var rig:=scene.get_node_or_null(row.skeleton) as Skeleton3D
 	if rig==null:scene.free();return {"error":"Missing saved Skeleton3D"}
@@ -36,7 +38,16 @@ static func difference(a: Array,b: Array) -> float:
 		var q:Quaternion=a[i].basis.orthonormalized().get_rotation_quaternion().inverse()*b[i].basis.orthonormalized().get_rotation_quaternion()
 		worst=maxf(worst,2.0*atan2(Vector3(q.x,q.y,q.z).length(),absf(q.w)))
 	return worst
+static func _global_from_local(rig: Skeleton3D, bone: int) -> Transform3D:
+	var parent := rig.get_bone_parent(bone)
+	var local := rig.get_bone_pose(bone) if rig.is_bone_enabled(bone) and not rig.show_rest_only else rig.get_bone_rest(bone)
+	return _global_from_local(rig,parent)*local if parent>=0 else local
 static func evaluate(v: Dictionary) -> Dictionary:
+	# Existing native skeleton update path; no pose corrections or local writes.
+	v.rig.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
+	var freshness := 0.0
+	for bone in v.rig.get_bone_count():
+		freshness=maxf(freshness,difference([v.rig.get_bone_global_pose(bone)],[_global_from_local(v.rig,bone)]))
 	var position_error:=0.0
 	var rotation_error:=0.0
 	var scale_error:=0.0
@@ -69,4 +80,4 @@ static func evaluate(v: Dictionary) -> Dictionary:
 	for bone in v.rig.get_bone_count():
 		var pose: Transform3D=v.rig.global_transform*v.rig.get_bone_global_pose(bone)
 		finite=finite and pose.origin.is_finite() and pose.basis.is_finite()
-	return {"phase_s":phase,"position_error":position_error,"rotation_error":rotation_error,"scale_error":scale_error,"channels":channels,"finite":finite,"writers":active,"expected_writers":expected_writers,"motion":difference(v.initial,poses(v.rig))}
+	return {"assigned_animation":str(v.player.assigned_animation) if v.player!=null else "","clip_length":v.clip.length if v.clip!=null else 0.0,"clip_loop_mode":v.clip.loop_mode if v.clip!=null else 0,"playing":v.player.is_playing() if v.player!=null else false,"native_update_requested":true,"fresh_global_pose_error":freshness,"skinned_meshes":0,"phase_s":phase,"position_error":position_error,"rotation_error":rotation_error,"scale_error":scale_error,"channels":channels,"finite":finite,"writers":active,"expected_writers":expected_writers,"motion":difference(v.initial,poses(v.rig))}

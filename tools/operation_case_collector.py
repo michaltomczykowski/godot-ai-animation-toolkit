@@ -86,10 +86,13 @@ def prepare(root, core_root, godot, output):
         raise ValueError('qualification requires actual Godot4.7.2 version output')
     paths = git(root, 'ls-tree', '-r', '--name-only', source, '--',
                 'addons/godot_ai_animation', 'tools', 'test_project/tests', 'test_project/tools',
-                'test_project/repair_graph_fixture.tscn', 'test_project/repair_edit_fixture.tscn').splitlines()
+                'test_project/repair_graph_fixture.tscn', 'test_project/repair_edit_fixture.tscn',
+                'test_project/repair_fx_fixture.tscn', 'test_project/repair_motion_fixture.tscn',
+                'test_project/repair_rig_fixture.tscn',
+                'test_project/models/human_dummy/HumanCharacterDummy_F.fbx').splitlines()
     deps = {}
     for rel in paths:
-        if rel.endswith('.uid') or not rel.endswith(('.gd','.py','.json','.tscn','.tres','.cfg','.godot')):
+        if rel.endswith('.uid') or (not rel.endswith(('.gd','.py','.json','.tscn','.tres','.cfg','.godot')) and rel not in {'test_project/tests/fixtures/sheet.png','test_project/tests/fixtures/cue.wav','test_project/models/human_dummy/HumanCharacterDummy_F.fbx'}):
             continue
         path = root / rel
         blob = git(root, 'rev-parse', source+':'+rel)
@@ -191,6 +194,10 @@ def record_native_result(operation, scene, command, completed):
 
 def record_snapshot_result(validator,row):
     if not os.environ.get('TOOLKIT_OPERATION_CONTEXT') and not os.environ.get('TOOLKIT_OPERATION_TRACE_DIR'):return
+    if validator=="bounded_read_v1":
+        from operation_bounded_read_checks import derive
+        return _emit("operation_snapshot_assertions", {"operation":row["operation"],
+            "validator":validator,"row":row,"checks":derive(row),"route":"public_godot_ai"})
     if validator=="inspect_read_v1":
         from operation_inspect_checks import derive
         return _emit("operation_snapshot_assertions", {"operation":"animation_inspect."+row["op"],
@@ -248,6 +255,9 @@ def _number(value):
     return isinstance(value, (int,float)) and not isinstance(value,bool) and math.isfinite(value)
 
 def native_checks(event, context):
+    from operation_edit_native_checks import OPS as EDIT_OPS, verify_native as verify_edit_native
+    if event.get('operation','').removeprefix('animation_edit.') in EDIT_OPS and event.get('operation','').startswith('animation_edit.'):
+        return verify_edit_native(event,context)
     from operation_rig_native_checks import OPS, verify_native
     if event.get('operation') in OPS:
         return verify_native(event, context)
@@ -381,6 +391,9 @@ def native_checks(event, context):
 
 def native_origin_matches(event, call):
     """Bind named checker outputs, not merely another successful clip in the scene."""
+    from operation_edit_native_checks import OPS as EDIT_OPS, origin_matches as edit_origin_matches
+    if event.get('operation','').removeprefix('animation_edit.') in EDIT_OPS and event.get('operation','').startswith('animation_edit.'):
+        return edit_origin_matches(event,call)
     from operation_rig_native_checks import OPS, origin_matches
     if event.get('operation') in OPS:
         return origin_matches(event, call)
@@ -484,7 +497,9 @@ def collect(context_path, traces, root, preview_report=None):
                       'raw_event_id':event['id'],'scene':event['scene'],'failures':failures,
                       'limits':'Source-specific native playback checks only; additional FX paths/types when applicable. Native audio playing is an event, not audible-output or visual approval.'})
     for event in snapshot_events:
-        if event.get("validator")=="inspect_read_v1":
+        if event.get("validator")=="bounded_read_v1":
+            from operation_bounded_read_checks import verify_event
+        elif event.get("validator")=="inspect_read_v1":
             from operation_inspect_checks import verify_event
         else:
             from operation_snapshot_checks import verify_event
@@ -494,7 +509,11 @@ def collect(context_path, traces, root, preview_report=None):
                       'public_case_ids':proof['public_case_ids'],'dry_case_ids':proof['dry_case_ids'],
                       'failures':proof['failures'],'limits':proof['limits']})
     for event in history_events:
-        if event.get('validator')=='rig_modifier_history_v1':
+        if event.get('validator')=='motion_sequence_history_v1':
+            from operation_motion_sequence_history_checks import verify_event
+        elif event.get('validator')=='rig_scene_history_v1':
+            from operation_rig_scene_history_checks import verify_event
+        elif event.get('validator')=='rig_modifier_history_v1':
             from operation_modifier_history_checks import verify_event
         elif event.get('validator')=='graph_history_v1':
             from operation_graph_history_checks import verify_event
@@ -504,6 +523,8 @@ def collect(context_path, traces, root, preview_report=None):
             from operation_preset_history_checks import verify_event
         elif event.get('validator')=='library_read_refusal_v1':
             from operation_library_read_checks import verify_event
+        elif event.get('validator')=='fx_intention_history_v1':
+            from operation_fx_intention_checks import verify_event
         elif event.get('validator')=='library_file_v1':
             from operation_library_file_checks import verify_event
         else:

@@ -1,4 +1,5 @@
 extends SceneTree
+const Framing:=preload("saved_media_framing.gd")
 const Native:=preload("saved_rig_media_native.gd")
 const Clips:=preload("saved_graph_media_native.gd")
 class Errors extends Logger:
@@ -22,6 +23,7 @@ var case_index:=0
 var take:=0
 var frame:=0
 var rendering:=false
+var startup_admission:={}
 var meshes:Array=[]
 var lines:MeshInstance3D
 var material:StandardMaterial3D
@@ -55,12 +57,14 @@ func _run()->void:
 					_end()
 		_finish()
 	else:
+		startup_admission=Framing.startup()
+		if not startup_admission.passed:failures.append("Require1920x1080viewportstretch before MovieMaker startup");_finish();return
 		_setup_display();_start(manifest.cases[0],0)
 		if view.has("error"):failures.append(view.error);_finish();return
 		rendering=true
 func _start(row:Dictionary,repetition:int)->void:
 	view=Native.load_state(row,row.kind=="saved_static_pair",root)
-	result={"operation":row.operation,"take":repetition+1,"fps":fps,"trace":[],"failures":[],"max_motion":0.0,"max_channel_error":0.0,"initial_pose_digest":""}
+	result={"operation":row.operation,"take":repetition+1,"fps":fps,"trace":[],"failures":[],"max_motion":0.0,"max_channel_error":0.0,"initial_pose_digest":"","scene_sha256":row.scene.sha256,"before_sha256":row.get("before",{}).get("sha256","")}
 	if view.has("error"):return
 	initial_pair=Native.poses(view.rig)
 	result.initial_pose_digest=var_to_str(initial_pair).sha256_text()
@@ -88,7 +92,13 @@ func _step(tick:int)->void:
 	if sample.has("error"):
 		if not result.failures.has(sample.error):result.failures.append(sample.error)
 		return
+	if not is_finite(float(sample.fresh_global_pose_error)) or float(sample.fresh_global_pose_error)>=0.00001 or int(sample.skinned_meshes)!=0:
+		if not result.failures.has("Unfresh native global pose or unsupported skin"):result.failures.append("Unfresh native global pose or unsupported skin")
 	sample["time_s"]=time
+	if not native_only:
+		sample["movie_frame"]=tick<4*fps
+		sample["framing"]=Framing.rig(view.rig,camera)
+		if not sample.framing.fits:result.failures.append("Projected rig geometry leaves body/header guard")
 	result.trace.append(sample)
 	result.max_motion=maxf(float(result.max_motion),float(sample.motion))
 	var error:=maxf(float(sample.position_error),maxf(float(sample.rotation_error),float(sample.scale_error)))
@@ -166,6 +176,6 @@ func _finish()->void:
 		for second:Dictionary in runs:
 			if second.take==2 and first.operation==second.operation and first.fps==second.fps and (first.trace!=second.trace or first.initial_pose_digest!=second.initial_pose_digest):failures.append("Fresh reset trace mismatch")
 	var passed:=runs.size()==(54 if native_only else 18) and failures.is_empty() and logger.errors.is_empty()
-	FileAccess.open(report_path,FileAccess.WRITE).store_string(JSON.stringify({"passed":passed,"runs":runs,"failures":failures,"engine_errors":logger.errors,"control":control,"manifest_sha256":FileAccess.get_sha256(manifest_path),"renderer_sha256":FileAccess.get_sha256(get_script().resource_path),"native_helper_sha256":FileAccess.get_sha256(get_script().resource_path.get_base_dir().path_join("saved_rig_media_native.gd")),"display_geometry":manifest.get("geometry",""),"viewport_sizes":{"physical_window":[root.size.x,root.size.y],"logical":[root.get_visible_rect().size.x,root.get_visible_rect().size.y],"texture":[root.get_texture().get_size().x,root.get_texture().get_size().y]},"visual_approval":false,"intended_frames":0 if native_only else 9*2*4*60}))
+	FileAccess.open(report_path,FileAccess.WRITE).store_string(JSON.stringify({"passed":passed,"runs":runs,"failures":failures,"engine_errors":logger.errors,"control":control,"manifest_sha256":FileAccess.get_sha256(manifest_path),"renderer_sha256":FileAccess.get_sha256(get_script().resource_path),"clip_helper_sha256":FileAccess.get_sha256(Clips.resource_path),"native_helper_sha256":FileAccess.get_sha256(get_script().resource_path.get_base_dir().path_join("saved_rig_media_native.gd")),"mode":"native" if native_only else "render","startup_admission":startup_admission,"framing_helper_sha256":FileAccess.get_sha256(get_script().resource_path.get_base_dir().path_join("saved_media_framing.gd")),"display_geometry":manifest.get("geometry",""),"viewport_sizes":{"physical_window":[root.size.x,root.size.y],"logical":[root.get_visible_rect().size.x,root.get_visible_rect().size.y],"texture":[root.get_texture().get_size().x,root.get_texture().get_size().y]},"visual_approval":false,"intended_frames":0 if native_only else 9*2*4*60}))
 	OS.remove_logger(logger)
 	print("SAVED_RIG_MEDIA="+JSON.stringify({"passed":passed,"runs":runs.size(),"failures":failures,"engine_errors":logger.errors}));quit(0 if passed else 1)
