@@ -1,5 +1,21 @@
 # Animation Toolkit repair roadmap
 
+## Combined operation evidence parsed (2026-10-24)
+
+Merged prepared rig93/motion-sequence273 history, eight authored rig writers,
+twenty edit intentions, sixteen UI/FX intentions, five bounded reads and saved
+graph/rig capture guards.82 combined offline controls pass. Actual Godot4.7.2
+parses all19 changed scripts; one renderer script-resource access found and
+fixed, original failed log retained. A separate200-sample native metric probe
+confirms exact float32 arithmetic in the strict motion adapter, with unchanged
+thresholds. Production animation generation and approved fixtures unchanged.
+
+See docs/operation-evidence-integration-20261024.md. Fresh public/native CI and
+all30 setup groups/1800plays are next; these prepared observations are not yet
+candidate runtime qualification. Continuous graph/rig/modifier/sequence media,
+remaining independent effect proofs and final release/package gates remain.
+No main merge, tag or release yet.
+
 ## Actual graph/modifier/public evidence checkpoint (2026-10-18)
 
 PublicGodotAI graph8+modifier15 tests pass0skip; aftereditorquit native828saved,

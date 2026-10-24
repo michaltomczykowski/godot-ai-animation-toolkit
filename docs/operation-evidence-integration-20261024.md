@@ -10,8 +10,13 @@ tests. They do not change production animation generation or approved fixtures.
 
 The combined Python corruption controls pass: 82 unittest methods, including
 missing source/hash/clock/value/path, disabled track and false exit-code cases.
-This is offline checker verification. Actual GDScript parsing, public/native
-execution and fresh Windows/Linux CI remain required before qualification.
+This is offline checker verification. All 19 changed GDScripts then parsed in
+actual Godot 4.7.2. The first attempt found a preloaded-script resource property
+access in the rig renderer; the path now resolves relative to the actual running
+script, consistently with its other helper bindings. Private attempts
+`integration-parse-r001` (failed, preserved) and `integration-parse-r002` (all pass)
+retain source hashes and complete logs. Public/native execution and fresh
+Windows/Linux CI remain required before qualification.
 
 ## Native arithmetic correction
 

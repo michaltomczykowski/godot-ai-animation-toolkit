@@ -1,5 +1,27 @@
 # Agent notes
 
+## Current checkpoint, 24 October: operation evidence integrated and parsed
+
+Authoritative resume note; earlier LIVE slot entries below are historical.
+No Godot process remains after integration-parse-r002. Integrated isolated
+repair/rig-history-evidence-20261018 through ee792e1 into repair/toolkit-quality
+(merge7058e1b). All82 combined Python controls pass; all19 changed GDScript
+files parse in actual Godot4.7.2. First parse found an invalid preloaded-script
+resource_path access in saved rig renderer; fixed via actual script directory.
+Both parse attempts remain private. No production generator/fixture changed.
+
+New motion adapter exactly reproduces200 native float32 metric samples instead
+of double arithmetic, retaining original numeric bounds and1e-12 consistency.
+Private native-metric-probe-r001/independent-validation.json; documentation:
+docs/operation-evidence-integration-20261024.md. All new operation hooks still
+need fresh public/native CI; do not infer runtime proof from offline controls.
+
+Precision fix238349d is pushed; previous2613 CI fully green. Next checkpoint
+and push combined sources, freeze newHEAD and run fresh native-matrix-r009:
+30groups/1800plays of exact production-r007 public scenes. Preserve public
+source233562a separately; all613 production dependency hashes must match.
+One local Godot slot. r008 failures and successful scoped controls remain intact.
+
 ## Current checkpoint, 24 October: precision controls qualified
 
 No Godot process is active after exec96732. r008 stopped after18passing groups
