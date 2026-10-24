@@ -110,6 +110,11 @@ func _input(row:Dictionary,source:Skeleton3D,modifier:SkeletonModifier3D)->Array
 		modifier.get_node(modifier.target_node).global_position=origin+source.global_basis*Vector3(0.7,0.4,1.0)
 		modifier.get_node(modifier.target_node).reset_physics_interpolation()
 	return _poses(source)
+# Observation-only virtual hooks. Default preflight clocks and stimuli unchanged.
+func _sample_frames(row:Dictionary,fps:int)->int:return 4*fps if row.op=="spring_setup" else 1
+func _capture_begin(_context:Dictionary):pass
+func _capture_frame(_context:Dictionary):pass
+func _capture_end(_context:Dictionary):pass
 func _take(row:Dictionary,fps:int,active:bool,take:int)->Dictionary:
 	var before:=failures.size()
 	_check(FileAccess.get_sha256(row.scene.path)==row.scene.sha256,row.id+" scene hash")
@@ -152,12 +157,15 @@ func _take(row:Dictionary,fps:int,active:bool,take:int)->Dictionary:
 	if focus.is_empty():
 		for i in mini(6,observed.get_bone_count()):focus.append(i)
 	var baseline:Array=[]
-	var frames:=4*fps if row.op=="spring_setup" else 1
+	var frames:=_sample_frames(row,fps)
+	var capture:={"row":row,"fps":fps,"active":active,"take":take,"scene":scene,"source":source,"observed":observed,"modifier":modifier,"config_sha256":config_before,"frames":frames,"excluded_loading_process_frames":2}
+	await _capture_begin(capture)
 	for tick in frames:
 		var time:=float(tick)/fps
 		_stimulus(row,source,modifier,input,time)
 		if observed!=source:_restore(observed,observed_input)
 		baseline=_poses(observed)
+		var input_source_sha:=var_to_str(_poses(source)).sha256_text()
 		var raw_before:int=sample.raw;var final_before:int=sample.final;var skin_before:int=sample.skin
 		source.advance(1.0/fps);source.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
 		_check(sample.final==final_before+1 and sample.skin>=skin_before+1,row.id+" final/skin signal progression")
@@ -178,9 +186,12 @@ func _take(row:Dictionary,fps:int,active:bool,take:int)->Dictionary:
 		for pose:Transform3D in sample.globals:lo=lo.min(pose.origin);hi=hi.max(pose.origin)
 		var focused:={}
 		for i:int in focus:focused[str(i)]={"name":observed.get_bone_name(i),"input":_stable(baseline[i]),"final":_stable(sample.poses[i]),"world":_stable(sample.globals[i])}
-		trace.append({"active_writers":writers,"focus_poses":focused,"bounds_min":_stable(lo),"bounds_max":_stable(hi),"tick":tick,"time":time,"raw":sample.raw,"final":sample.final,"skin":sample.skin,"effect":effect,"pose_sha256":var_to_str(sample.poses).sha256_text(),"finite":finite})
+		var record:={"raw_before":raw_before,"final_before":final_before,"skin_before":skin_before,"active_writers":writers,"focus_poses":focused,"bounds_min":_stable(lo),"bounds_max":_stable(hi),"tick":tick,"time":time,"raw":sample.raw,"final":sample.final,"skin":sample.skin,"effect":effect,"pose_sha256":var_to_str(sample.poses).sha256_text(),"finite":finite}
+		trace.append(record)
+		await _capture_frame(capture.merged({"record":record,"baseline":baseline,"globals":sample.globals,"signals":sample,"source_input_sha256":input_source_sha},true))
+	await _capture_end(capture)
 	_check(FileAccess.get_sha256(row.scene.path)==row.scene.sha256,row.id+" immutable scene")
-	var result:={"id":row.id,"op":row.op,"fps":fps,"active":active,"take":take,"saved_active":false,"runtime_influence":1.0,"scene_sha256":row.scene.sha256,"config_sha256":config_before,"trace":trace,"final_pose":sample.poses,"failures":failures.slice(before)}
+	var result:={"id":row.id,"op":row.op,"fps":fps,"active":active,"take":take,"saved_active":false,"runtime_influence":1.0,"frames":frames,"excluded_loading_process_frames":2,"scene_sha256":row.scene.sha256,"config_sha256":config_before,"trace":trace,"final_pose":sample.poses,"failures":failures.slice(before)}
 	modifier.modification_processed.disconnect(raw_cb);witness.modification_processed.disconnect(final_cb);source.skeleton_updated.disconnect(skin_cb)
 	scene.free()
 	return result

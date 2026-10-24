@@ -66,10 +66,10 @@ def prepare(repo,bundle,out):
         item=dict(row);item['scene']={'path':target,'sha256':sha(desired)}
         item['native_reused_scope']='saved settings and native history; unchanged spring config effect requires fresh preflight'
         item['original_native_rows']=proof;selected.append(item)
-    helper='test_project/tools/check_saved_modifier_capture.gd'
-    target=project/'tools/check_saved_modifier_capture.gd';target.parent.mkdir(exist_ok=True);shutil.copyfile(repo/helper,target)
-    dependencies=[{'path':'res://tools/check_saved_modifier_capture.gd','sha256':sha(target)}]+[{k:v for k,v in r.items() if k in ('path','sha256')} for r in receipts.values()]
-    (project/'project.godot').write_text('config_version=5\n[application]\nconfig/name="'+NAME+'"\n[rendering]\nrenderer/rendering_method="gl_compatibility"\n',encoding='utf-8')
+    for helper in ('check_saved_modifier_capture.gd','render_saved_modifier_capture.gd','saved_media_framing.gd'):
+        copy_resource('res://tools/'+helper,repo/'test_project/tools'/helper,project/'tools'/helper)
+    dependencies=[{k:v for k,v in r.items() if k in ('path','sha256')} for r in receipts.values()]
+    (project/'project.godot').write_text('config_version=5\n[application]\nconfig/name="'+NAME+'"\n[display]\nwindow/size/viewport_width=1920\nwindow/size/viewport_height=1080\nwindow/stretch/mode="viewport"\nwindow/stretch/aspect="keep"\n[rendering]\nrenderer/rendering_method="gl_compatibility"\n',encoding='utf-8')
     result={'kind':'saved_modifier_capture_manifest','source_public':context['tested_source'],'capture_source':git(repo,'rev-parse','HEAD'),'source_context_sha256':sha(context_path),'source_manifest_sha256':sha(manifests[0]),'native828_sha256':sha(native_path),'engine':context['engine'],'core_commit':context['core_commit'],'bridge':bridge,'cases':selected,'files':receipts,'capture_dependencies':dependencies,'activation':{'saved_active':False,'runtime_active':[False,True],'runtime_influence':1.0},'limitations':'No fresh generation; native828 spring effect used changed force/collider. New preflight keeps unchanged settings and must pass before renderer work.'}
     (project/'modifier-manifest.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
     (out/'preparation.json').write_text(json.dumps({'manifest_sha256':sha(project/'modifier-manifest.json'),'project':str(project),'APPDATA':str(out/'appdata'),'scene_count':5,'production_blob_count':len(bridge),'files':receipts,'engine_pending':True},indent=2),encoding='utf-8')
