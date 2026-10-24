@@ -129,6 +129,10 @@ def derive(row):
   source=source and re.fullmatch('[0-9a-f]{64}',digest) is not None and row.get('source_path')=='user://fx_history_source.tscn' and row.get('source_sha256_after')==digest and bool(row.get('peer_before')) and equivalent(row['peer_before'],row.get('peer_after')) and equivalent(before,row.get('pristine'))
  checks={k:'pass' if clean and v else 'fail' for k,v in [('valid_effect',False if row['op']=='counter' else intention(row)),('reported_errors',errors),('source_unchanged',source)]}
  if row['op']=='counter':checks['valid_effect']='pending' if clean and counter_editor_pending(row) else 'fail'
+ if row['op']=='sprite_frames':
+  # This resource operation creates no Animation tracks: the channel proves its
+  # actual node path, SpriteFrames/AtlasTexture types and exact cell regions.
+  checks['track_paths_types']='pass' if clean and source and intention(row) else 'fail'
  return checks
 
 
@@ -153,4 +157,5 @@ def verify_event(event,context,begins,support):
   proof['checks'].update(native['checks'] if prerequisites else {'valid_effect':'fail','playback':'fail'})
   proof['counter_native']=native
  proof['limits']='Counter editor zero is pending because engine editor_hint suppresses method tracks; only exact saved native counter50 joins semantic/playback evidence. Fixed FX history requests only. Request-derived values sampled on duplicate generated fixture via manual Player; shake bounded noise/settle, SpriteFrames exact resource/cells, audio scheduled stream + playing event. Source covers unrelated clips/non-target whitelisted properties and instanced peer/pristine/packed source; not every Resource property. Case Logger covers synchronous work through cleanup, not future asynchronous errors or full editor session. No audible-output/visual/general-control approval.'
+ if event['row']['op']=='sprite_frames':proof['limits']+=' SpriteFrames track_paths_types covers its fixed node path and observed SpriteFrames/AtlasTexture types and cell regions; it does not claim Animation tracks.'
  return proof
