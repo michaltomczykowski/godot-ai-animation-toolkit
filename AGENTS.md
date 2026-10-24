@@ -1,5 +1,27 @@
 # Agent notes
 
+## LIVE ROOT SLOT: five saved modifier preflight r004 (24 October)
+
+Exec79234, run_modifier_preflight_r004.py and modifier-capture-preflight-r004/
+native-execution-r001.json. Immutable copied project/checker source5e6fb90,
+originalpublicc5c2483, all46productionaddonblobs identical to4d99/current.
+Headless60cells(5ops/3FPS/2fresh/active-inactive), then inertnegativeonlyifpositive
+passes. APPDATAprivate. Checker actual4.7.2parsePASS. No otherlocalenginejob.
+Primarysource changes do not affect the frozen copied project; do not edit its
+files. Renderer deferred until actualunchanged spring/config/effect measurements.
+
+## Completed setup-only history r001, carrier oracle corrected (24 October)
+
+Sourceb0de216/exec73110 finished; editor publiclyquit/noeditor remains. Bothoriginal
+driverspass23.172s/21.578s. Rawdry/history/save checks PASS; path adapter incorrectly
+expectedTYPE_VALUE0 for actualDummy:position TYPE_POSITION_3D1. Narrow correction
+8a967aa matches productionbuilder;2actualrawrows all4checksPASS and28actual-row
+corruptionsreject. Originalfailedstrictreceipt preserved. FreshCIneeded; no
+candidate-source relabel. Newobserver parses; first mixedindentparsefixedb0.
+Currentlocalde61c41 includes optionalpostmortemdiagnostics; temporaryCIcaller
+postmortem needscommit/push and restore none before finalqualification.96focused
+combinedcontrolsPASS. Currentpushed4d99; see pendingcheckpointdocs.
+
 ## Current checkpoint: inspect public witnesses r002 passes (24 October)
 
 Sourceed1d9ad, exec32008 COMPLETE0; no local Godot active. Private

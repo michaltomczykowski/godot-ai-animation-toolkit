@@ -15,7 +15,7 @@ jobs:
   rendered-preview:
     uses: ./.github/workflows/rendered-preview.yml
     with:
-      native_debugger: none
+      native_debugger: postmortem
 
   tier1:
     name: Tier 1 / ${{ matrix.os }} / ${{ matrix.script }}
