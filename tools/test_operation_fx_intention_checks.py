@@ -29,6 +29,7 @@ class FxIntentionTests(unittest.TestCase):
    row['intention']={'resource_class':'SpriteFrames','animation':'generated','playing':False,'fps':12,'loop':True,'cells':[{'class':'AtlasTexture','atlas':'res://tests/fixtures/sheet.png','size':vector(16,16),'region':[i*16,0,16,16],'duration':1} for i in range(4)]}
   else:
    row['intention']={'probe_mode':'duplicate_generated_fixture_manual_player','samples':[{'at':at,'path':path,'actual':copy.deepcopy(value) if value is not None else vector(.1,.2)} for at,path,value in expected_samples(op)]}
+  if op=='counter':row['intention']['samples'][0]['actual']='0'
   if op=='audio_cue':
    row['generated']['clips']['generated']={'tracks':[{'path':'CuePlayer','type':7,'keys':[{'time':0,'start_offset':0,'end_offset':0,'stream':{'resource':'res://tests/fixtures/cue.wav','class':'AudioStreamWAV'}}]}]}
    row['after_probe']=copy.deepcopy(row['generated']);row['redone']=copy.deepcopy(row['generated']);row['persist_redo']['snapshot']=copy.deepcopy(row['generated'])
@@ -42,7 +43,11 @@ class FxIntentionTests(unittest.TestCase):
   for op in CASES:
    for mode in ('new','overwrite','missing_library','instanced'):
     with self.subTest(op=op,mode=mode):
-     row,c,e,b,s=self.fixture(op,mode);self.assertTrue(all(v=='pass' for v in verify_event(e,c,b,s)['checks'].values()))
+     row,c,e,b,s=self.fixture(op,mode);checks=verify_event(e,c,b,s)['checks']
+     if op=='counter':
+      self.assertEqual(checks['valid_effect'],'pending');self.assertEqual(checks['playback'],'pending')
+      self.assertTrue(all(v=='pass' for k,v in checks.items() if k not in ('valid_effect','playback')))
+     else:self.assertTrue(all(v=='pass' for v in checks.values()))
  def test_each_operation_corrupt_intention_rejected(self):
   for op in CASES:
    row,*_=self.fixture(op)

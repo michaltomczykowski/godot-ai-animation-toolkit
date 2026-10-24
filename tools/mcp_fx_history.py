@@ -10,6 +10,7 @@ import sys
 import subprocess
 
 from mcp_fx_audit import CASES
+from operation_case_collector import record_native_result
 
 from fastmcp import Client
 from fastmcp.client.transports import StdioTransport
@@ -45,11 +46,14 @@ async def run(args: argparse.Namespace) -> int:
                 if op == "sprite_frames_stopped":
                     continue
                 scene = f"user://fx_history_{op}_{mode}_redo.tscn"
-                runtime = subprocess.run([
+                command = [
                     args.godot, "--headless", "--path", str(args.project_root),
                     "--script", "res://tools/check_fx_runtime.gd", "--",
                     scene, op, "generated", "FxHistory",
-                ], capture_output=True, text=True, timeout=20, check=False)
+                ]
+                runtime = subprocess.run(command, capture_output=True, text=True, timeout=20, check=False)
+                if op == "counter":
+                    record_native_result("animation_fx.counter",scene,command,runtime)
                 marker = "FX_RUNTIME="
                 report = next((line[len(marker):] for line in runtime.stdout.splitlines()
                                if line.startswith(marker)), "")

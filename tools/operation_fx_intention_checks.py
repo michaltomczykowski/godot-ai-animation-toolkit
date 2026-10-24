@@ -87,6 +87,17 @@ def intention(row):
  return True
 
 
+def counter_editor_pending(row):
+ data=row.get('intention',{})
+ if not isinstance(data,dict):return False
+ samples=data.get('samples',[])
+ if not isinstance(samples,list) or len(samples)!=1 or not isinstance(samples[0],dict):return False
+ return (row.get('op')=='counter' and data.get('probe_mode')=='duplicate_generated_fixture_manual_player'
+  and len(samples)==1 and near(samples[0].get('at'),.50001)
+  and samples[0].get('path')=='ScoreLabel:text' and type(samples[0].get('actual')) is str
+  and samples[0]['actual']=='0')
+
+
 def request_matches(row):
  op=row.get('op');req=row.get('request',{});player=req.get('player_path','')
  if op not in CASES or not player.endswith('/FxHistory/AnimationPlayer'):return False
@@ -116,7 +127,9 @@ def derive(row):
  if row.get('mode')=='instanced':
   digest=row.get('source_sha256_before','')
   source=source and re.fullmatch('[0-9a-f]{64}',digest) is not None and row.get('source_path')=='user://fx_history_source.tscn' and row.get('source_sha256_after')==digest and bool(row.get('peer_before')) and equivalent(row['peer_before'],row.get('peer_after')) and equivalent(before,row.get('pristine'))
- return {k:'pass' if clean and v else 'fail' for k,v in [('valid_effect',intention(row)),('reported_errors',errors),('source_unchanged',source)]}
+ checks={k:'pass' if clean and v else 'fail' for k,v in [('valid_effect',False if row['op']=='counter' else intention(row)),('reported_errors',errors),('source_unchanged',source)]}
+ if row['op']=='counter':checks['valid_effect']='pending' if clean and counter_editor_pending(row) else 'fail'
+ return checks
 
 
 def verify_event(event,context,begins,support):
@@ -133,5 +146,11 @@ def verify_event(event,context,begins,support):
  checks=derive(event['row'])
  if any(v=='fail' for v in proof['checks'].values()):checks={k:'fail' for k in checks}
  proof['checks'].update(checks)
- proof['limits']='Fixed FX history requests only. Request-derived values sampled on duplicate generated fixture via manual Player; shake bounded noise/settle, SpriteFrames exact resource/cells, audio scheduled stream + playing event. Source covers unrelated clips/non-target whitelisted properties and instanced peer/pristine/packed source; not every Resource property. Case Logger covers synchronous work through cleanup, not future asynchronous errors or full editor session. No audible-output/visual/general-control approval.'
+ if event['row']['op']=='counter':
+  from operation_fx_counter_native_checks import verify_native
+  native=verify_native(event,context,support,end)
+  prerequisites=all(value=='pass' for key,value in proof['checks'].items() if key!='valid_effect') and checks['valid_effect']=='pending'
+  proof['checks'].update(native['checks'] if prerequisites else {'valid_effect':'fail','playback':'fail'})
+  proof['counter_native']=native
+ proof['limits']='Counter editor zero is pending because engine editor_hint suppresses method tracks; only exact saved native counter50 joins semantic/playback evidence. Fixed FX history requests only. Request-derived values sampled on duplicate generated fixture via manual Player; shake bounded noise/settle, SpriteFrames exact resource/cells, audio scheduled stream + playing event. Source covers unrelated clips/non-target whitelisted properties and instanced peer/pristine/packed source; not every Resource property. Case Logger covers synchronous work through cleanup, not future asynchronous errors or full editor session. No audible-output/visual/general-control approval.'
  return proof

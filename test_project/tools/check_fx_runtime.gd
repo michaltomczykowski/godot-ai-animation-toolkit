@@ -37,6 +37,7 @@ func _probe() -> void:
 	var clip := args[2] if args.size() > 2 else op
 	var checks: Array = []
 	var failures: Array = []
+	var counter_observation := {}
 	if op.begins_with("sprite_frames"):
 		var sprite := fixture.get_node("SheetSprite") as AnimatedSprite2D
 		if sprite.sprite_frames == null:
@@ -86,8 +87,18 @@ func _probe() -> void:
 						failures.append("played value mismatch: %s" % str(track_path))
 				elif track_type == Animation.TYPE_METHOD:
 					player.callback_mode_method = AnimationMixer.ANIMATION_CALLBACK_MODE_METHOD_IMMEDIATE
+					if op == "counter": player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 					player.play(clip)
-					player.advance(0.5)
+					player.advance(0.50001 if op == "counter" else 0.5)
+					if op == "counter":
+						counter_observation = {"schema": "fx_counter_native_v1", "scene_sha256": FileAccess.get_sha256(args[0]),
+							"checker_sha256": FileAccess.get_sha256("res://tools/check_fx_runtime.gd"), "clip": clip,
+							"player_path": str(fixture.get_path_to(player)), "assigned_animation": str(player.assigned_animation),
+							"method_callback_immediate": player.callback_mode_method == AnimationMixer.ANIMATION_CALLBACK_MODE_METHOD_IMMEDIATE, "manual_clock": player.callback_mode_process == AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL,
+							"advance_seconds": 0.50001, "editor_hint": Engine.is_editor_hint(), "inside_tree": player.is_inside_tree() and target.is_inside_tree(),
+							"target_path": str(fixture.get_path_to(target)), "target_class": target.get_class(), "text": str(target.get("text")),
+							"method_track_type": track_type, "method_track_enabled": animation.track_is_enabled(track_index),
+							"method_track_path": str(track_path), "method_track_key_count": animation.track_get_key_count(track_index)}
 					checks.append({"method_target": str(track_path), "text": str(target.get("text"))})
 					if op == "counter" and str(target.get("text")) == "0":
 						failures.append("counter method track did not change text")
@@ -100,5 +111,5 @@ func _probe() -> void:
 				else:
 					failures.append("unsupported track type %d" % track_type)
 	print("FX_RUNTIME=" + JSON.stringify({"op": op, "scene": args[0],
-		"checks": checks, "failures": failures}))
+		"checks": checks, "failures": failures, "counter_observation": counter_observation}))
 	quit(0 if failures.is_empty() else 1)
