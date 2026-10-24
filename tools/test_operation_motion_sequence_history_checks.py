@@ -1,6 +1,7 @@
 """Offline corruption controls; synthetic rows are not public/native qualification."""
 import copy
 import unittest
+import struct
 import operation_motion_sequence_history_checks as C
 
 
@@ -57,6 +58,22 @@ class Evidence(unittest.TestCase):
         for key in ('versions','write','persist_do','errors'):
             r=row();del r[key]
             with self.assertRaises(ValueError):C.derive(r)
+
+    def test_actual_packed_key_time_shape(self):
+        original={'players':{'AnimationPlayer':{'clips':{'generated':{'tracks':[{'keys':[[.008,17.,1.],[1.2,18.,1.]]}]}}}}}
+        saved=copy.deepcopy(original)
+        for key in saved['players']['AnimationPlayer']['clips']['generated']['tracks'][0]['keys']:
+            key[0]=struct.unpack('f',struct.pack('f',key[0]))[0]
+        self.assertTrue(C.snapshot_same(saved,original))
+        broken=copy.deepcopy(saved)
+        key=broken['players']['AnimationPlayer']['clips']['generated']['tracks'][0]['keys'][0]
+        bits=struct.unpack('I',struct.pack('f',key[0]))[0]
+        key[0]=struct.unpack('f',struct.pack('I',bits+1))[0]
+        self.assertFalse(C.snapshot_same(broken,original))
+        self.assertFalse(C.snapshot_same({'length':.008},{'length':saved['players']['AnimationPlayer']['clips']['generated']['tracks'][0]['keys'][0][0]}))
+        broken=copy.deepcopy(saved)
+        broken['players']['AnimationPlayer']['clips']['generated']['tracks'][0]['keys'][0][1]=17.001
+        self.assertFalse(C.snapshot_same(broken,original))
 
     def test_source_and_public_span(self):
         args=span(row());self.assertEqual(set(C.verify_event(*args)['checks'].values()),{'pass'})

@@ -38,6 +38,22 @@ class Native(unittest.TestCase):
             self.assertEqual('valid_effect' in checks,group!='motion')
             proof=N.verify_event(*batch(p,n));self.assertEqual(set(proof['checks'].values()),{'pass'})
 
+    def test_actual_packed_terminal_schedule(self):
+        p,n=pair('motion','jump')
+        length=1.2;end=N.real32(length)
+        self.assertGreater(end,length)
+        for play in n['plays']:
+            for track in play['actual_tracks']+play['reference_tracks']:track['times']=[0.,end]
+            play['times']=sorted(set([0.,length,end,end*.5]+[k/play['fps'] for k in range(1,math.ceil(length*play['fps']))]))
+            play['pose_samples']=len(play['times']);play['key_samples']=2;play['intermediate_samples']=len(play['times'])-2
+        self.assertEqual(N.derive(p,n)['playback'],'pass')
+        bad=copy.deepcopy(n);bad['plays'][0]['times'].remove(end)
+        self.assertEqual(N.derive(p,bad)['playback'],'fail')
+        bad=copy.deepcopy(n);bad['plays'][0]['times'].append(end+.001)
+        self.assertEqual(N.derive(p,bad)['playback'],'fail')
+        bad=copy.deepcopy(n);bad['plays'][0]['actual_tracks'][0]['times'][-1]=length+.000002
+        self.assertEqual(N.derive(p,bad)['track_paths_types'],'fail')
+
     def test_raw_corruptions(self):
         changes=[lambda n:n['plays'][0]['errors']['rotation'].update(actual=[1.,0.,0.,0.]),lambda n:n['plays'][0]['errors']['root_delta'].update(actual=[1.,0.,0.]),lambda n:n['plays'][0]['actual_tracks'][0].update(bone_index=-1),lambda n:n['plays'][0]['actual_tracks'][0].update(finite_values=False),lambda n:n['plays'][0]['reference_tracks'][0].update(path='Wrong:hips'),lambda n:n['plays'][0].update(times=[0.,1.6]),lambda n:n['plays'][0].update(pose_samples=1),lambda n:n['plays'][0].update(clock='seek_only'),lambda n:n.update(failure_count=1),lambda n:n.update(engine_errors=['real error']),lambda n:n['plays'][0]['actual_tracks'][0].update(normalized=False),lambda n:n['plays'][0]['errors']['rotation'].update(time=999),lambda n:n['plays'][0]['errors']['rotation'].update(path='wrong')]
         for mutate in changes:

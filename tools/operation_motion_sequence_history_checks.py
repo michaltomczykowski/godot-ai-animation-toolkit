@@ -1,6 +1,7 @@
 """Raw273-case history evidence only; native physical/reference effects stay pending."""
 import math
 import re
+import struct
 
 MOTIONS=('walk_cycle','run_cycle','idle_cycle','jump','turn_cycle','strafe_cycle','walk_start','walk_stop','cycle_walk','cycle_run','cycle_idle')
 SEQUENCES=('gap','partial','saved_pose','inline_pose','rooted','self_overwrite')
@@ -22,15 +23,19 @@ def exact(a,b):
     if isinstance(a,list):return len(a)==len(b) and all(exact(x,y) for x,y in zip(a,b))
     return a==b
 
-def snapshot_same(a,b,typed=False):
+def snapshot_same(a,b,typed=False,path=()):
     # Existing engine snapshots use is_equal_approx for typed geometry only.
-    # Resource numeric properties/key times retain exact equality.
-    if number(a) and number(b):return abs(a-b)<max(1e-5,1e-5*abs(a)) if typed else a==b
+    # Saved Animation key times are packed real32; compare only this precise
+    # scalar slot by real32 identity. Other resource numbers remain exact.
+    if number(a) and number(b):
+        if len(path)>=5 and path[-5]=='tracks' and type(path[-4]) is int and path[-3]=='keys' and type(path[-2]) is int and path[-1]==0:
+            return struct.pack('f',a)==struct.pack('f',b)
+        return abs(a-b)<max(1e-5,1e-5*abs(a)) if typed else a==b
     if type(a) is not type(b):return False
     if isinstance(a,dict):
         typed=typed or a.get('type') in ('Vector2','Vector3','Quaternion','Color','Basis','Transform2D','Transform3D')
-        return a.keys()==b.keys() and all(snapshot_same(a[k],b[k],typed) for k in a)
-    if isinstance(a,list):return len(a)==len(b) and all(snapshot_same(x,y,typed) for x,y in zip(a,b))
+        return a.keys()==b.keys() and all(snapshot_same(a[k],b[k],typed,path+(k,)) for k in a)
+    if isinstance(a,list):return len(a)==len(b) and all(snapshot_same(x,y,typed,path+(i,)) for i,(x,y) in enumerate(zip(a,b)))
     return a==b
 
 def identity(row):

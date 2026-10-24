@@ -70,17 +70,18 @@ def derive(public,native):
         a=p.get('actual_tracks');b=p.get('reference_tracks')
         good=tracks(a,length) and tracks(b,length) and len(a)==len(b) and all(x['path']==y['path'] and x['type']==y['type'] for x,y in zip(a,b))
         paths=paths and good
-        schedule=isinstance(times,list) and len(times)>2 and finite_tree(times) and times[0]==0 and times[-1]==length and all(y>x for x,y in zip(times,times[1:]))
+        schedule=isinstance(times,list) and len(times)>2 and finite_tree(times) and times[0]==0 and all(y>x for x,y in zip(times,times[1:]))
         # Existing schedule contains exact FPS ticks plus every output key/midpoint.
         if schedule:
             expected=[k/p['fps'] for k in range(1,math.ceil(length*p['fps']))]+[0.,length]
             if good:
                 for t in a:
                     expected+=t['times']+[(x+y)/2 for x,y in zip(t['times'],t['times'][1:])]
-            def present(x):
-                i=bisect_left(times,x)
-                return any(abs(x-times[j])<=1e-14*max(1.,abs(x)) for j in (i-1,i) if 0<=j<len(times))
-            schedule=all(present(x) for x in expected)
+            def present(x,haystack):
+                i=bisect_left(haystack,x)
+                return any(abs(x-haystack[j])<=1e-14*max(1.,abs(x)) for j in (i-1,i) if 0<=j<len(haystack))
+            expected=sorted(set(expected))
+            schedule=all(present(x,times) for x in expected) and all(present(x,expected) for x in times)
         if p['state']!='undo' and p.get('loop_mode')==0 and good and any(t['type']==1 and t['path']==p.get('root_motion_track') for t in a):required_travel.add((p['state'],p['fps']))
         metrics=p.get('errors',{})
         fields={('position' if t['type']==1 else 'rotation' if t['type']==2 else 'scale') for t in a} if good else set()
