@@ -1,9 +1,13 @@
 extends SceneTree
+const Evidence := preload("res://tools/motion_sequence_native_evidence.gd")
 const Reference := preload("res://tools/motion_sequence_native_reference.gd")
 
 ## Fresh engine playback; no production addon or test scripts are imported.
 const MOTIONS := ["walk_cycle", "run_cycle", "idle_cycle", "jump", "turn_cycle", "strafe_cycle", "walk_start", "walk_stop", "cycle_walk", "cycle_run", "cycle_idle"]
 const SEQUENCES := ["gap", "partial", "saved_pose", "inline_pose", "rooted", "self_overwrite"]
+var native_rows: Array = []
+var current_row: Dictionary = {}
+var failure_count := 0
 var failures: Array = []
 var cases := 0
 var saved_states := 0
@@ -20,6 +24,7 @@ class Capture extends Logger:
 		if type != 1: errors.append(rationale if not rationale.is_empty() else code)
 func _initialize() -> void: _run.call_deferred()
 func _check(ok: bool, label: String) -> void:
+	if not ok: failure_count += 1
 	if not ok and failures.size() < 150: failures.append(label)
 func _load(path: String) -> Node:
 	if not ResourceLoader.exists(path):
@@ -172,6 +177,7 @@ func _travel(row: Dictionary, scene: Node, state: String, fps: int) -> void:
 		travel += player.get_root_motion_position()
 		_check(origin.position.is_equal_approx(position), str(row.id) + state + " extraction has one owner")
 	_check(travel.distance_to(expected) <= 0.0001, str(row.id) + state + " complete native travel at " + str(fps))
+	current_row.travel.append({"state":state,"fps":fps,"length":clip.length,"loop_mode":clip.loop_mode,"actual":Evidence.value(travel),"reference":Evidence.value(expected),"origin_before":Evidence.value(position),"origin_after":Evidence.value(origin.position)})
 	travel_runs += 1
 func _play(row: Dictionary, state: String, fps: int, reference: Animation) -> void:
 	var label := str(row.id) + ":" + state + ":play" + str(fps)
@@ -207,6 +213,8 @@ func _play(row: Dictionary, state: String, fps: int, reference: Animation) -> vo
 		expected.root_motion_local = actual.root_motion_local
 	var animation := actual.get_animation(name)
 	var oracle := expected.get_animation(name)
+	var observed := {"state":state,"fps":fps,"clock":"native_manual_advance","name":name,"length":animation.length,"loop_mode":animation.loop_mode,"root_motion_track":str(actual.root_motion_track),"actual_tracks":Evidence.tracks(actual,animation),"reference_tracks":Evidence.tracks(expected,oracle),"pose_samples":0,"key_samples":0,"intermediate_samples":0,"times":[],"errors":{},"reference_span":{}}
+	var initial_reference := {}
 	_check(animation.get_track_count() == oracle.get_track_count(), label + " complete reference tracks")
 	var actual_targets := _track_targets(actual, animation, label)
 	var expected_targets := _track_targets(expected, oracle, label + ":reference")
@@ -228,10 +236,12 @@ func _play(row: Dictionary, state: String, fps: int, reference: Animation) -> vo
 	_start(expected, name)
 	var previous := 0.0
 	for time in times:
+		observed.times.append(time)
 		if time > 0.0:
 			actual.advance(time - previous)
 			expected.advance(time - previous)
 		previous = time
+		Evidence.observe(observed.errors,"root_delta",actual.get_root_motion_position(),expected.get_root_motion_position(),time)
 		var delta_error := actual.get_root_motion_position().distance_to(expected.get_root_motion_position())
 		worst.root_delta = maxf(worst.root_delta, delta_error)
 		_check(delta_error <= 0.0001, label + " root delta " + str(time))
@@ -244,11 +254,20 @@ func _play(row: Dictionary, state: String, fps: int, reference: Animation) -> vo
 			var difference: Quaternion = a.inverse() * b if kind == Animation.TYPE_ROTATION_3D else Quaternion.IDENTITY
 			var error: float = 2.0 * atan2(Vector3(difference.x, difference.y, difference.z).length(), absf(difference.w)) if kind == Animation.TYPE_ROTATION_3D else a.distance_to(b)
 			var field := "position" if kind == Animation.TYPE_POSITION_3D else "rotation" if kind == Animation.TYPE_ROTATION_3D else "scale"
+			Evidence.observe(observed.errors,field,a,b,time,str(path))
+			if not initial_reference.has(i): initial_reference[i]=b
+			Evidence.observe(observed.reference_span,field,b,initial_reference[i],time,str(path))
+			observed.pose_samples+=1
 			worst[field] = maxf(worst[field], error)
 			_check(error <= (0.001 if field == "rotation" else 0.0001), label + " played " + field + " " + str(time) + " error " + str(error))
 			var at_key: bool = key_marks[i].has(roundi(time * 100000000.0))
-			if at_key: key_samples += 1
-			else: intermediate_samples += 1
+			if at_key:
+				key_samples += 1
+				observed.key_samples+=1
+			else:
+				intermediate_samples += 1
+				observed.intermediate_samples+=1
+	current_row.plays.append(observed)
 	actual_scene.free()
 	expected_scene.free()
 func _run() -> void:
@@ -266,6 +285,10 @@ func _run() -> void:
 		_check(false, "required manifest missing")
 	else:
 		for row in raw.get("cases", []):
+			var errors_before := logger.errors.size()
+			var failures_before := failure_count
+			current_row={"id":row.id,"group":row.group,"variant":row.variant,"mode":row.mode,"fps":row.fps,"params":row.params,"source":Evidence.file(row.source),"reference":Evidence.file(row.reference),"states":{},"plays":[],"travel":[],"thresholds":{"position":0.0001,"rotation":0.001,"scale":0.0001,"root_delta":0.0001}}
+			for state in ["do","undo","redo"]: current_row.states[state]=Evidence.file(row.states.get(state,""))
 			_check(required.has(row.id), "unique required case " + str(row.id))
 			required.erase(row.id)
 			cases += 1
@@ -291,9 +314,12 @@ func _run() -> void:
 						if scene != null:
 							_travel(row, scene, state, fps)
 							scene.free()
+			current_row.failure_count=failure_count-failures_before
+			current_row.engine_errors=logger.errors.slice(errors_before)
+			native_rows.append(current_row)
 	_check(required.is_empty(), "missing required IDs " + str(required.keys()))
 	_check(cases == 273 and saved_states == 819 and playback_runs == 2457, "complete required counts")
 	OS.remove_logger(logger)
 	_check(approximation_samples > 1000 and travel_runs >= 100, "required continuous and single-owner samples")
-	print("MOTION_SEQUENCE_HISTORY_RUNTIME=" + JSON.stringify({"cases": cases, "saved_states": saved_states, "playback_runs": playback_runs, "travel_runs": travel_runs, "key_samples": key_samples, "intermediate_samples": intermediate_samples, "worst": worst, "continuous_approximation": approximation, "approximation_samples": approximation_samples, "manifest_path": ProjectSettings.globalize_path("user://motion_sequence_saved_matrix.json"), "failures": failures, "engine_errors": logger.errors}))
+	print("MOTION_SEQUENCE_HISTORY_RUNTIME=" + JSON.stringify({"cases": cases, "saved_states": saved_states, "playback_runs": playback_runs, "travel_runs": travel_runs, "key_samples": key_samples, "intermediate_samples": intermediate_samples, "worst": worst, "continuous_approximation": approximation, "approximation_samples": approximation_samples, "native_dependencies":{"test_project/tools/check_motion_sequence_history.gd":FileAccess.get_sha256("res://tools/check_motion_sequence_history.gd"),"test_project/tools/motion_sequence_native_reference.gd":FileAccess.get_sha256("res://tools/motion_sequence_native_reference.gd"),"test_project/tools/motion_sequence_native_evidence.gd":FileAccess.get_sha256("res://tools/motion_sequence_native_evidence.gd")},"native_cases":native_rows,"evidence_schema":"motion_sequence_native_v1","manifest_sha256":FileAccess.get_sha256("user://motion_sequence_saved_matrix.json"),"manifest_path": ProjectSettings.globalize_path("user://motion_sequence_saved_matrix.json"), "failures": failures, "engine_errors": logger.errors}))
 	quit(0 if failures.is_empty() and logger.errors.is_empty() else 1)

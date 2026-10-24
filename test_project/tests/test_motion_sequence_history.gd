@@ -6,6 +6,7 @@ const Registry := preload("res://addons/godot_ai/custom_tools/mcp_tool_registry.
 const Context := preload("res://addons/godot_ai_animation/utils/tool_context.gd")
 const Seed := preload("res://tests/test_rig_clip_history.gd")
 const Capture := preload("res://tests/test_graph_route_history.gd")
+const Evidence := preload("res://tests/motion_sequence_history_trace.gd")
 const Saved := preload("res://tests/motion_sequence_saved_matrix.gd")
 const Reference := preload("res://tools/motion_sequence_native_reference.gd")
 const Ops := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
@@ -141,8 +142,11 @@ func _persist(row: Dictionary, state: String, expected: Dictionary, fixture: Nod
 	var reopened := (ResourceLoader.load(path, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene).instantiate()
 	var actual := _snapshot(reopened.get_node("MotionSequenceHistory"))
 	assert_true(_seed._pose._same(actual, expected), row.id + " persisted " + state + " " + str(_seed._pose._checks._differences(actual, expected)))
+	row["persist_" + state] = {"path":path,"sha256":FileAccess.get_sha256(path),"bytes":FileAccess.get_file_as_bytes(path).size(),"snapshot":actual,"matches_expected":_seed._pose._same(actual,expected)}
 	reopened.free()
 func _case(group: String, variant: String, mode: String, fps: int) -> void:
+	var assertions_before := _assertion_count
+	var failed_before := _failed
 	var root := EditorInterface.get_edited_scene_root()
 	var fixture := _seed._seed("3d", mode)
 	fixture.name = "MotionSequenceHistory"
@@ -187,23 +191,50 @@ func _case(group: String, variant: String, mode: String, fps: int) -> void:
 	var errors := _logger.errors.size()
 	var orphan_ids := Node.get_orphan_node_ids()
 	var row := {"id": label, "group": group, "variant": variant, "mode": mode, "fps": fps, "params": params.duplicate(true), "pose_json": _pose_json(), "source": Saved.scene(label, "source"), "states": {}}
+	var evidence := {"suite":"motion_sequence_history","test":_diagnostic_test,"case_id":label,"group":group,"variant":variant,"mode":mode,"fps":fps,"op":params.op,"family":family,"request":params.duplicate(true),"before":baseline,"playback_before":playback,"peer_before":peer_before,"source_path":instance_file if peer != null else "","source_sha256_before":FileAccess.get_sha256(instance_file) if peer != null else "","source_bytes_before":source_bytes.size(),"versions":{"before":version,"global_before":global_version},"errors_before":errors,"failed_before":failed_before,"orphans_before":orphan_ids}
+	evidence.source_scene_path=row.source
+	evidence.source_scene_sha256=FileAccess.get_sha256(row.source)
+	evidence.source_scene_bytes=FileAccess.get_file_as_bytes(row.source).size()
 	var dry := _call(family, params.merged({"dry_run": true}, true))
+	evidence.dry=dry
+	evidence.after_dry=_snapshot(fixture)
+	evidence.playback_dry=_seed._playback._player_state(player)
+	evidence.orphans_dry=Node.get_orphan_node_ids()
+	evidence.versions.dry=history.get_version()
+	evidence.versions.global_dry=global_history.get_version()
 	assert_has_key(dry, "data", label + " dry " + str(dry.get("error", {})))
 	assert_eq(Node.get_orphan_node_ids(), orphan_ids, label + " dry exact orphans")
 	assert_true(_seed._pose._same(_snapshot(fixture), baseline), label + " dry exact scene")
 	assert_true(_seed._pose._same(_seed._playback._player_state(player), playback), label + " dry exact playback")
-	assert_has_key(_call(family, params.merged({"player_path": "/Missing"}, true)).get("error", {}), "code", label + " typed refusal")
+	evidence.invalid_request=params.merged({"player_path":"/Missing"},true)
+	evidence.invalid=_call(family,evidence.invalid_request)
+	evidence.after_error=_snapshot(fixture)
+	evidence.playback_error=_seed._playback._player_state(player)
+	evidence.orphans_error=Node.get_orphan_node_ids()
+	evidence.versions.error=history.get_version()
+	evidence.versions.global_error=global_history.get_version()
+	assert_has_key(evidence.invalid.get("error", {}), "code", label + " typed refusal")
 	assert_eq(Node.get_orphan_node_ids(), orphan_ids, label + " refusal exact orphans")
 	assert_eq(history.get_version(), version, label + " no read/refusal history")
 	var result := _call(family, params)
+	evidence.write=result
+	evidence.versions.write=history.get_version()
+	evidence.versions.global_write=global_history.get_version()
 	assert_has_key(result, "data", label + " write " + str(result.get("error", {})))
 	if not result.has("data"):
+		evidence.failed_after=_failed
+		evidence.assertion_count=_assertion_count-assertions_before
+		Evidence.emit(evidence)
 		if peer != null: peer.free()
 		fixture.free()
 		return
 	for id in Node.get_orphan_node_ids(): assert_true(orphan_ids.has(id), label + " no new orphan " + str(id))
 	row.reported = result.data.duplicate(true)
 	var generated := _snapshot(fixture)
+	evidence.generated=generated
+	evidence.playback_write=_seed._playback._player_state(player)
+	evidence.orphans_write=Node.get_orphan_node_ids()
+	evidence.source_library_identity=player.get_animation_library("source")==named
 	var clip := player.get_animation(params.animation_name)
 	assert_true(clip.get_track_count() > 0, label + " nonempty output")
 	assert_true(_seed._pose._same(generated.children, baseline.children), label + " authored hierarchy unchanged")
@@ -219,22 +250,49 @@ func _case(group: String, variant: String, mode: String, fps: int) -> void:
 	assert_true(reference != null, label + " independent reference")
 	assert_eq(ResourceSaver.save(reference, row.reference), OK, label + " saved reference")
 	_persist(row, "do", generated, fixture)
-	assert_true(history.undo(), label + " native undo")
+	evidence.undo_success=history.undo()
+	evidence.undone=_snapshot(fixture)
+	evidence.playback_undo=_seed._playback._player_state(player)
+	evidence.undo_library_identity=(player.get_animation_library("") if player.has_animation_library("") else null)==library
+	evidence.versions.undo=history.get_version()
+	evidence.versions.global_undo=global_history.get_version()
+	assert_true(evidence.undo_success, label + " native undo")
 	assert_true(_seed._pose._same(_snapshot(fixture), baseline), label + " undo exact " + str(_seed._pose._checks._differences(_snapshot(fixture), baseline)))
 	assert_true(_seed._pose._same(_seed._playback._player_state(player), playback), label + " undo playback")
 	assert_true((player.get_animation_library("") if player.has_animation_library("") else null) == library, label + " undo library identity")
 	assert_eq(root.is_editable_instance(fixture), mode == "editable", label + " undo permission")
 	_persist(row, "undo", baseline, fixture)
-	assert_true(history.redo(), label + " native redo")
+	evidence.redo_success=history.redo()
+	evidence.redone=_snapshot(fixture)
+	evidence.playback_redo=_seed._playback._player_state(player)
+	evidence.redo_clip_identity=player.get_animation(params.animation_name)==clip
+	evidence.versions.redo=history.get_version()
+	evidence.versions.global_redo=global_history.get_version()
+	assert_true(evidence.redo_success, label + " native redo")
 	assert_true(player.get_animation(params.animation_name) == clip, label + " redo output identity")
 	assert_true(_seed._pose._same(_snapshot(fixture), generated), label + " redo exact")
 	assert_true(_seed._pose._same(_seed._playback._player_state(player), playback), label + " redo playback")
 	_persist(row, "redo", generated, fixture)
+	evidence.peer_after=_snapshot(peer) if peer != null else {}
+	evidence.source_bytes_after=FileAccess.get_file_as_bytes(instance_file).size() if peer != null else 0
+	evidence.source_sha256_after=FileAccess.get_sha256(instance_file) if peer != null else ""
+	evidence.source_bytes_unchanged=FileAccess.get_file_as_bytes(instance_file)==source_bytes if peer != null else true
 	if peer != null:
 		assert_true(_seed._pose._same(_snapshot(peer), peer_before), label + " peer immutable")
 		assert_eq(FileAccess.get_file_as_bytes(instance_file), source_bytes, label + " source bytes immutable")
 		peer.free()
 	assert_eq(_logger.errors.size(), errors, label + " no engine errors " + str(_logger.errors.slice(errors)))
+	evidence.persist_do=row.persist_do
+	evidence.persist_undo=row.persist_undo
+	evidence.persist_redo=row.persist_redo
+	evidence.reference_path=row.reference
+	evidence.reference_sha256=FileAccess.get_sha256(row.reference)
+	evidence.errors_after=_logger.errors.size()
+	evidence.errors=_logger.errors.slice(errors)
+	evidence.failed_after=_failed
+	evidence.assertion_count=_assertion_count-assertions_before
+	Evidence.emit(evidence)
+	for stage in ["do","undo","redo"]: row.erase("persist_"+stage)
 	Saved.finish(row)
 	fixture.free()
 func _matrix(group: String, mode: String) -> void:

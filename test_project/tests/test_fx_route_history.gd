@@ -6,6 +6,7 @@ const Ops := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
 const SpecIO := preload("res://addons/godot_ai_animation/spec/spec_io.gd")
 const Context := preload("res://addons/godot_ai_animation/utils/tool_context.gd")
 const HistoryTrace := preload("res://tests/operation_history_trace.gd")
+const Intention := preload("res://tests/fx_intention_probe.gd")
 const FIXTURE := preload("res://repair_fx_fixture.tscn")
 const CASES := {
 	"shake": {"target_path": "Camera2D", "seed": 7},
@@ -27,6 +28,7 @@ const CASES := {
 }
 var _undo: EditorUndoRedoManager
 var _dispatcher
+var _logger: Intention.ErrorCapture
 
 func suite_name() -> String:
 	return "fx_route_history"
@@ -35,9 +37,11 @@ func suite_setup(ctx: Dictionary) -> void:
 	_undo = ctx.undo_redo
 	Context.undo_redo = _undo
 	_dispatcher = Registry.get_instance().get("_dispatcher")
+	_logger = Intention.ErrorCapture.new()
+	OS.add_logger(_logger)
 
 func suite_teardown() -> void:
-	pass
+	OS.remove_logger(_logger)
 
 func _call(params: Dictionary) -> Dictionary:
 	return _dispatcher.call("_dispatch", {"request_id": "fx-history",
@@ -82,7 +86,7 @@ func _snapshot(fixture: Node) -> Dictionary:
 	for child in fixture.get_children():
 		var values := {}
 		for property in child.get_property_list():
-			if str(property.name) in ["position", "scale", "rotation", "modulate", "pivot_offset", "text", "value", "frame", "visible_characters"]:
+			if str(property.name) in ["position", "scale", "rotation", "modulate", "pivot_offset", "text", "value", "frame", "visible_characters", "zoom", "visible_ratio"]:
 				values[str(property.name)] = child.get(property.name)
 		props[str(child.name)] = values
 	var sprite := fixture.get_node("SheetSprite") as AnimatedSprite2D
@@ -94,7 +98,14 @@ func _snapshot(fixture: Node) -> Dictionary:
 				var texture := sprite.sprite_frames.get_frame_texture(name, index)
 				textures.append({"size": texture.get_size(), "duration": sprite.sprite_frames.get_frame_duration(name, index)})
 			frames[str(name)] = {"fps": sprite.sprite_frames.get_animation_speed(name), "loop": sprite.sprite_frames.get_animation_loop(name), "frames": textures}
+	var path := fixture.get_node("PatrolPath") as Path2D
+	var points: Array = []
+	for index in path.curve.get_point_count():
+		points.append({"position": path.curve.get_point_position(index), "in": path.curve.get_point_in(index), "out": path.curve.get_point_out(index)})
+	var player_state := {"root_node": str(player.root_node), "assigned_animation": str(player.assigned_animation),
+		"playing": player.is_playing(), "speed_scale": player.speed_scale, "callback_mode_process": player.callback_mode_process}
 	return {"clips": clips, "props": props, "frames": frames,
+		"path_points": points, "player_state": player_state,
 		"animation": str(sprite.animation), "playing": sprite.is_playing()}
 
 func _own(node: Node, owner_node: Node) -> void:
@@ -127,6 +138,8 @@ func _matrix(mode: String) -> void:
 	for op in CASES:
 		var assertions_before := _assertion_count
 		var failed_before := _failed
+		var error_count := _logger.errors.size()
+		var source_sha256 := ""
 		var fixture := FIXTURE.instantiate()
 		fixture.name = "FxHistory"
 		root_node.add_child(fixture)
@@ -151,6 +164,7 @@ func _matrix(mode: String) -> void:
 			var source := PackedScene.new()
 			source.pack(fixture)
 			ResourceSaver.save(source, "user://fx_history_source.tscn")
+			source_sha256 = FileAccess.get_sha256("user://fx_history_source.tscn")
 			root_node.remove_child(fixture)
 			fixture.free()
 			source = ResourceLoader.load("user://fx_history_source.tscn", "PackedScene", ResourceLoader.CACHE_MODE_IGNORE)
@@ -178,7 +192,11 @@ func _matrix(mode: String) -> void:
 				"missing_library": "test_missing_library_scene_history", "instanced": "test_instanced_player_scene_history"}[mode],
 			"request": params.duplicate(true), "before": baseline,
 			"versions": {"before": version, "global_before": global_version},
-			"failed_before": failed_before, "scene": root_node.scene_file_path}
+			"failed_before": failed_before, "scene": root_node.scene_file_path,
+			"errors_before": error_count, "peer_before": peer_before,
+			"input_files_before": Intention.input_hashes(),
+			"source_sha256_before": source_sha256,
+			"source_path": "user://fx_history_source.tscn" if peer != null else ""}
 		var dry := _call(params.merged({"dry_run": true}))
 		evidence.dry = dry.duplicate(true)
 		evidence.after_dry = _snapshot(fixture)
@@ -199,6 +217,8 @@ func _matrix(mode: String) -> void:
 		assert_has_key(made, "data", op + " write route " + str(made))
 		var generated := _snapshot(fixture)
 		evidence.generated = generated
+		evidence.intention = Intention.observe(fixture, op)
+		evidence.after_probe = _snapshot(fixture)
 		evidence.versions.write = history.get_version()
 		evidence.versions.global_write = global_history.get_version()
 		assert_false(_same(generated, baseline), op + " produces an effect")
@@ -224,14 +244,23 @@ func _matrix(mode: String) -> void:
 		assert_true(_same(evidence.redone, generated), op + " exact redo result")
 		evidence.persist_redo = _persist(root_node, fixture, generated, op + "_" + mode + "_redo")
 		if peer != null:
+			evidence.peer_after = _snapshot(peer)
+			evidence.source_sha256_after = FileAccess.get_sha256("user://fx_history_source.tscn")
+			var pristine := (ResourceLoader.load("user://fx_history_source.tscn", "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene).instantiate()
+			evidence.pristine = _snapshot(pristine)
+			pristine.free()
 			assert_true(_same(_snapshot(peer), peer_before), op + " redo peer unchanged")
 			root_node.remove_child(peer)
 			peer.free()
 		root_node.remove_child(fixture)
 		fixture.free()
+		evidence.input_files_after = Intention.input_hashes()
+		evidence.errors_after = _logger.errors.size()
+		evidence.errors = _logger.errors.slice(error_count)
+		assert_eq(evidence.errors_after, error_count, op + " no case engine errors: " + str(evidence.errors))
 		evidence.failed_after = _failed
 		evidence.assertion_count = _assertion_count - assertions_before
-		HistoryTrace.emit_fx(evidence)
+		HistoryTrace.emit_fx_intention(evidence)
 	print("FX_HISTORY_MATRIX_COMPLETED=" + mode)
 
 func test_registry_has_a_history_case_for_every_fx_operation() -> void:

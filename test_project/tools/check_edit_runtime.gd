@@ -1,4 +1,6 @@
 extends SceneTree
+const Evidence := preload("res://tools/edit_native_evidence.gd")
+var logger := Evidence.Capture.new()
 
 ## Play a saved Godot AI edit and compare the engine-evaluated property.
 
@@ -18,6 +20,7 @@ const EXPECTED := {
 
 
 func _initialize() -> void:
+	OS.add_logger(logger)
 	_probe.call_deferred()
 
 
@@ -38,17 +41,21 @@ func _probe() -> void:
 	var player := fixture.get_node("AnimationPlayer") as AnimationPlayer
 	var clip := player.get_animation("walk")
 	var samples: Array = []
+	var observations: Array = []
 	player.play("walk")
 	for at in [0.0, clip.length * 0.5, clip.length - 0.0001]:
 		player.seek(at, true)
 		player.advance(0.0)
 		samples.append(character.position.x)
+		observations.append({"clip":"walk","time":at,"node":"Character","axis":"x","measured":character.position.x,"assigned_animation":str(player.assigned_animation),"player_position":player.current_animation_position})
 	var expected: Array = EXPECTED[args[1]]
 	var worst := 0.0
 	for index in 3:
 		worst = maxf(worst, absf(float(samples[index]) - float(expected[index])))
+	var raw := Evidence.describe(args[0],fixture,player,["walk"])
+	OS.remove_logger(logger)
 	print("EDIT_RUNTIME=" + JSON.stringify({
-		"op": args[1], "scene": args[0], "length": clip.length,
+		"op": args[1], "scene": args[0], "length": clip.length,"raw":raw,"observations":observations,"engine_errors":logger.errors,
 		"samples": samples, "expected": expected, "worst_error": worst,
 	}))
-	quit(0 if worst < 1.0 else 1)
+	quit(0 if worst < 1.0 and logger.errors.is_empty() else 1)

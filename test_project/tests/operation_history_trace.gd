@@ -6,6 +6,9 @@ extends RefCounted
 static func emit_fx(row: Dictionary) -> void:
 	_emit(row, "animation_fx", "test_fx_route_history.gd", "fx_history_v1")
 
+static func emit_fx_intention(row: Dictionary) -> void:
+	_emit(row, "animation_fx", "test_fx_route_history.gd", "fx_intention_history_v1")
+
 static func emit_edit(row: Dictionary) -> void:
 	_emit(row, "animation_edit", "test_edit_route_history.gd", "edit_history_v1")
 

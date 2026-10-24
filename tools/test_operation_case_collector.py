@@ -142,6 +142,9 @@ class Collector(unittest.TestCase):
                 command=['fixture-godot','--script','res://tools/'+script,'--',scene]
                 if parameterized:command.append(operation.split('.')[1])
                 event={'operation':operation,'scene':scene,'command':command,'returncode':0,'stdout':prefix+json.dumps(payload),'stderr':''}
+                if operation.startswith('animation_edit.'):
+                    with self.assertRaisesRegex(ValueError,'unbound edit native source'):c.native_checks(event,context)
+                    continue # Bare historical metrics cannot bypass the new exact edit adapter.
                 self.assertEqual(c.native_checks(event,context)[0],{'playback':'pass'})
                 bad=dict(event,returncode=1)
                 self.assertEqual(c.native_checks(bad,context)[0],{'playback':'fail'})
@@ -149,6 +152,18 @@ class Collector(unittest.TestCase):
                 self.assertEqual(c.native_checks(bad,context)[0],{'playback':'fail'})
                 bad=dict(event,scene='res://different-scene.tscn')
                 with self.assertRaisesRegex(ValueError,'scene'):c.native_checks(bad,context)
+    def test_edit_dispatch_uses_independent_raw_contract_and_rejects_changed_actual(self):
+        from test_operation_edit_native_checks import event as native_fixture
+        from operation_edit_native_checks import OPS,SIMPLE
+        for op in OPS:
+            event,context=native_fixture(op)
+            checks,_=c.native_checks(event,context)
+            self.assertEqual(checks,{'valid_effect':'pass','playback':'pass','track_paths_types':'pass','reported_errors':'pass'},op)
+            prefix,payload=event['stdout'].split('=',1);raw=json.loads(payload)
+            observations=raw['observations'] if op in SIMPLE else raw['samples']
+            observations[0]['measured']=999
+            event['stdout']=prefix+'='+json.dumps(raw)
+            self.assertEqual(c.native_checks(event,context)[0]['valid_effect'],'fail',op)
     def test_graph_plaintext_is_case_bound_and_read_operation_is_not_producer(self):
         script='verify_saved_graph_playback.gd';scene='res://graph.tscn'
         context={'engine_command':'fixture-godot','dependencies':{'test_project/tools/'+script:{}}}

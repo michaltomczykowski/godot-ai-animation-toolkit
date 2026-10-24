@@ -13,6 +13,7 @@ from fastmcp import Client
 from fastmcp.client.transports import StdioTransport
 
 from mcp_presets_audit import call
+from operation_case_collector import record_snapshot_result
 
 
 SCENE = "res://repair_motion_fixture.tscn"
@@ -50,6 +51,14 @@ async def run(args: argparse.Namespace) -> int:
                 "op": op, **base, "skeleton_path": "/MotionWalk/Missing"})
         after = await call(client, "custom_animation_inspect", {
             "op": "describe", "player_path": PLAYER, "animation_name": CLIP})
+        for op, result in (("rig_profile", profile), ("sample", sample), ("motion_audit", audit)):
+            request = ({"op": op, "skeleton_path": SKELETON, "save": False} if op == "rig_profile" else
+                       {"op": op, **base, **({"samples": 8, "bones": ["B-foot.L", "B-foot.R"]} if op == "sample" else {"samples": 120})})
+            record_snapshot_result("bounded_read_v1", {"operation": "animation_inspect." + op,
+                "scene": SCENE, "request": request, "result": result,
+                "error_request": {"op": op, **base, "skeleton_path": "/MotionWalk/Missing"},
+                "typed_error": typed_errors[op], "before": before, "after": after,
+                "open": opened, "observation_scope": "describe clip equality only; no whole-scene invariant"})
     failures = []
     for name, result in (("open", opened), ("rig_profile", profile),
                          ("sample", sample), ("motion_audit", audit)):

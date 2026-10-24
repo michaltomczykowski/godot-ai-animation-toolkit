@@ -7,6 +7,7 @@ const Checks := preload("res://tests/test_preset_library_history.gd")
 const Capture := preload("res://tests/test_graph_route_history.gd")
 const Ops := preload("res://addons/godot_ai_animation/registry/op_registry.gd")
 const HistoryTrace := preload("res://tests/operation_history_trace.gd")
+const Observation := preload("res://tests/rig_history_observation.gd")
 const DIR := "res://animation_toolkit/rig_history_contracts/"
 var _undo: EditorUndoRedoManager
 var _dispatcher
@@ -135,17 +136,23 @@ func _seed(kind: String) -> Node:
 func _pose(bone: String = "arm_L") -> Dictionary:
 	return {"rest_relative": true, "bones": {bone: {"rotation": {"kind": "quaternion", "z": sin(0.3), "w": cos(0.3)}, "position": {"kind": "vector3", "x": 0.4, "y": -0.3}, "scale": {"kind": "vector3", "x": 1.6, "y": 0.6, "z": 1.3}}}}
 
-func _persist(fixture: Node, expected: Dictionary, label: String) -> void:
+func _persist(fixture: Node, expected: Dictionary, label: String) -> Dictionary:
 	var packed := PackedScene.new()
-	assert_eq(packed.pack(EditorInterface.get_edited_scene_root()), OK, label + " pack")
+	var packed_result := packed.pack(EditorInterface.get_edited_scene_root())
+	assert_eq(packed_result, OK, label + " pack")
 	var path := "user://rig_pose_history_%s.tscn" % label
-	assert_eq(ResourceSaver.save(packed, path), OK, label + " save")
+	var save_result := ResourceSaver.save(packed, path)
+	assert_eq(save_result, OK, label + " save")
 	var reopened := (ResourceLoader.load(path, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene).instantiate()
 	var saved := reopened.get_node(str(fixture.name))
-	assert_true(_same(_snapshot(saved), expected), label + " persisted exact state")
+	var actual := _snapshot(saved)
+	assert_true(_same(actual, expected), label + " persisted exact state")
 	reopened.free()
+	return {"path": path, "pack_result": packed_result, "save_result": save_result, "sha256": FileAccess.get_sha256(path), "snapshot": actual}
 
 func _case(kind: String, mode: String, variant: String) -> void:
+	var assertions_before := _assertion_count
+	var failed_before := _failed
 	var root := EditorInterface.get_edited_scene_root()
 	var fixture := _seed(kind)
 	var peer: Node
@@ -175,13 +182,22 @@ func _case(kind: String, mode: String, variant: String) -> void:
 	var skeleton := fixture.get_node("Skeleton")
 	var params := {"op": "pose_apply", "skeleton_path": str(skeleton.get_path()), "pose": _pose(), "blend": 0.5 if variant in ["blend", "reset_blend"] else 1.0, "reset_first": variant in ["reset", "reset_blend"], "mirror": variant == "mirror"}
 	var label := "%s_%s_%s" % [kind, mode, variant]
+	var witness := func() -> Dictionary: return Observation.state(fixture, _snapshot, history, global_history)
+	var evidence := {"suite": suite_name(), "test": "test_" + mode + "_pose_history", "op": "pose_apply", "kind": kind, "mode": mode, "variant": variant, "label": label,
+		"scene": root.scene_file_path, "fixture_path": str(fixture.get_path()), "request": params.duplicate(true), "before": witness.call(), "peer_before": peer_before,
+		"source_path": source_path if peer != null else "", "source_before": Observation.file_hash(source_path) if peer != null else "", "failed_before": failed_before, "assertions_before": assertions_before}
 	var dry_reply := _call(params.merged({"dry_run": true}))
+	evidence["dry"] = {"response": dry_reply.duplicate(true), "state": witness.call()}
 	assert_has_key(dry_reply, "data", label + " dry " + str(dry_reply))
 	assert_true(_same(_snapshot(fixture), baseline), label + " dry unchanged")
-	assert_has_key(_call(params.merged({"pose": _pose("ghost")}, true)).get("error", {}), "code", label + " absent pose typed refusal")
+	var invalid_request := params.merged({"pose": _pose("ghost")}, true)
+	var rejected := _call(invalid_request)
+	evidence["refusal"] = {"request": invalid_request.duplicate(true), "response": rejected.duplicate(true), "state": witness.call()}
+	assert_has_key(rejected.get("error", {}), "code", label + " absent pose typed refusal")
 	assert_eq(history.get_version(), version, label + " dry/rejected history")
 	assert_true(_same(_snapshot(fixture), baseline), label + " rejected unchanged")
 	var reply := _call(params)
+	evidence["write"] = {"response": reply.duplicate(true), "state": witness.call()}
 	assert_has_key(reply, "data", label + " write " + str(reply))
 	assert_eq(reply.get("data", {}).get("undoable"), true)
 	var generated := _snapshot(fixture)
@@ -189,21 +205,29 @@ func _case(kind: String, mode: String, variant: String) -> void:
 	_check_expected(skeleton, variant, label)
 	assert_eq(history.get_version(), version + 1, label + " one scene action")
 	assert_eq(global_history.get_version(), global_version, label + " zero global actions")
-	assert_true(history.undo(), label + " undo")
+	var undone := history.undo()
+	evidence["undo"] = {"success": undone, "state": witness.call()}
+	assert_true(undone, label + " undo")
 	assert_true(_same(_snapshot(fixture), baseline), label + " exact undo")
 	assert_eq(root.is_editable_instance(fixture), mode == "editable", label + " permissions undo")
-	_persist(fixture, baseline, label + "_undo")
-	assert_true(history.redo(), label + " redo")
+	evidence["persist_undo"] = _persist(fixture, baseline, label + "_undo")
+	var redone := history.redo()
+	evidence["redo"] = {"success": redone, "state": witness.call()}
+	assert_true(redone, label + " redo")
 	assert_true(_same(_snapshot(fixture), generated), label + " exact redo")
-	_persist(fixture, generated, label + "_redo")
+	evidence["persist_redo"] = _persist(fixture, generated, label + "_redo")
 	if peer != null:
+		evidence["peer_after"] = _snapshot(peer)
+		evidence["source_after"] = Observation.file_hash(source_path)
 		assert_true(_same(_snapshot(peer), peer_before), label + " peer unchanged")
 		var pristine := (ResourceLoader.load(source_path, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene).instantiate()
+		evidence["pristine"] = _snapshot(pristine)
 		assert_true(_same(_snapshot(pristine), baseline), label + " source unchanged")
 		pristine.free()
 		peer.free()
 	assert_eq(_logger.errors.size(), errors, label + " zero engine errors " + str(_logger.errors.slice(errors)))
 	fixture.free()
+	Observation.emit(evidence, _failed, _assertion_count, _logger, errors)
 
 func _check_expected(skeleton: Node, variant: String, label: String) -> void:
 	# Independent authored expectations; no PoseMath conversions or handler snapshots.
