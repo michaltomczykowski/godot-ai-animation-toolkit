@@ -69,3 +69,11 @@ Seven new mocked controls plus10existing runner,10adapter,6profile controls pass
 They verify argument/context identity, one exercise attempt, Linux-only opt-in,
 private group ownership including orphan/hung cases, and native fatal rejection.
 No Godot, GDB, backend, GPU or editor process was launched locally.
+
+## Root integration
+
+Manual dispatch on the repair branch returned HTTP404 because this new workflow
+does not exist on the default branch. The existing CI caller temporarily opts
+into GDB for the next PR run instead. This changes diagnostic instrumentation
+only and must return to `none` before final release qualification. No premature
+main merge or default-branch workflow publication is used to enable diagnostics.

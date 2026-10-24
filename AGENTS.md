@@ -21,7 +21,9 @@ Integrated a71ca68 import ownership fix and81a65c8 optionalLinuxGDB diagnostics
 as9a2c928/02338ac.37mocked controls PASS.547CI has nativeLinux421saveabort
 andWindows421preoccupiedports failures; exact logs E:/.../ci-54744b1.
 Other live/ZIP cells stillrunning. Do not call aborttransportinstability or
-retrymutatingRPC. Afterpush dispatch ONE optional rendered-preview GDB run.
+retrymutatingRPC. Manualdispatch404: rendered-preview.yml absentfromdefaultmain.
+NextPRCI temporarily calls reusablepreviewwithgdb; restorecallerinputnone after
+readingdiagnosticartifacts, beforefinalqualification. No defaultmainworkflowedit.
 New read-reference worker owns E:/godot-ai-dev/toolkit-read-reference-20261024,
 isolated547base, noengine. Root owns allactualGodot/capture/CIintegration.
 
