@@ -421,6 +421,9 @@ func rig_pose_to_clip(params: Dictionary) -> Dictionary:
 
 ## List the pose files saved in the project's pose directory.
 func rig_pose_list(params: Dictionary) -> Dictionary:
+	var directory_field := "directory" if params.has("directory") else "pose_dir"
+	if params.has(directory_field) and not params[directory_field] is String:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "'%s' must be a String" % directory_field)
 	var directory := str(params.get("directory", _pose_dir(params)))
 	var entries: Array = []
 	var dir := DirAccess.open(directory)
