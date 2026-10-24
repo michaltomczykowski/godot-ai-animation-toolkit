@@ -9,6 +9,9 @@ import subprocess
 IDS=tuple('local_'+op+'_dummy' for op in ('ik_setup','look_at_setup','twist_setup','spring_setup','retarget_setup'))
 NAME='Toolkit Saved Modifier Preflight'
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def script_uid(path):
+    sidecar=Path(str(path)+".uid")
+    return sidecar if path.suffix==".gd" and sidecar.is_file() else None
 def git(repo,*args):return subprocess.check_output(['git','-C',str(repo),*args],text=True).strip()
 def admit_native(row,report):
     matches=[r for r in report['rows'] if r.get('id')==row['id'] and r.get('state')=='redo' and r.get('native') is False]
@@ -46,6 +49,8 @@ def prepare(repo,bundle,out):
         if virtual in receipts:return
         dst.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(src,dst)
         receipts[virtual]={'path':virtual,'sha256':sha(src),'copied_sha256':sha(dst),'original':str(src)}
+        uid=script_uid(src)
+        if uid is not None:copy_resource(virtual+'.uid',uid,Path(str(dst)+'.uid'))
         if src.suffix not in ('.tscn','.tres'):return
         for path in re.findall(r'\[ext_resource[^\n]*path="([^"]+)"',src.read_text(encoding='utf-8')):
             if path.startswith('user://'):
