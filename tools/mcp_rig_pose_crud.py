@@ -19,6 +19,7 @@ from fastmcp.client.transports import StdioTransport
 from mcp_presets_audit import call
 from remaining_read_witness import witnessed_read
 from operation_case_collector import record_snapshot_result
+from operation_pose_blend_refusal_checks import observe_missing_pose
 
 
 SKELETON = "/RepairRigFixture/Dummy/Skeleton3D"
@@ -110,8 +111,8 @@ async def run(args: argparse.Namespace) -> int:
         row["reopen"] = await call(client, "scene_open", {
             "path": scene, "force_reload": True})
         row["clip_persisted"] = await call(client, "custom_animation_inspect", describe)
-        row["missing_pose"] = await call(client, "custom_animation_rig",
-            {**blend_base, "from": "definitely_missing"})
+        row["missing_pose"] = await observe_missing_pose(client, call, scene, pose_dir,
+            disk_dir, blend_base, row["blend_half"])
     failures = []
     for name, value in row.items():
         if name in ("open", "save_rest", "apply_arm", "save_arm", "list",

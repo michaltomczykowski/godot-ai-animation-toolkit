@@ -1,5 +1,15 @@
 # Agent notes
 
+## Current root checkpoint: pending public three-read execution
+
+Primary05a3dd4 plus integrated pose-blend driver/collector patches, recorder
+timeouts and CI two-channel controls. Combined72 offline tests PASS. No local
+Godot process active. Freeze next committed HEAD for remaining-read public r001:
+direct pose_list_directory suite, original rig pose apply/CRUD and graph_get
+drivers, public quit, then strict collection. Use explicit validation project.
+Copied modifier r006 remains unparsed/unrun; do not claim new runtime evidence.
+All older LIVE entries below are history. Latest pushed d45f834.
+
 ## Current checkpoint: pose_list before-fix failure reproduced and fixed
 
 Exec89015 finished/publicquit atd45f834; no local Godot active. Actual public
