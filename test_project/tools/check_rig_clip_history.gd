@@ -128,7 +128,7 @@ func _case(mode: String, kind: String, op: String, state: String) -> void:
 		for index in clip.get_track_count():
 			var track := clip.track_get_path(index)
 			var target := player.get_node(player.root_node).get_node_or_null(NodePath(track.get_concatenated_names()))
-			_current.tracks.append({"path": str(track), "type": clip.track_get_type(index), "target_class": target.get_class() if target != null else "", "target_relative_to_skeleton": str(skeleton.get_path_to(target)) if target != null else "missing", "bone": str(track.get_concatenated_subnames()), "bone_index": skeleton.find_bone(str(track.get_concatenated_subnames())) if kind == "3d" else -1})
+			_current.tracks.append({"path": str(track), "type": clip.track_get_type(index), "enabled": clip.track_is_enabled(index), "target_class": target.get_class() if target != null else "", "target_relative_to_skeleton": str(skeleton.get_path_to(target)) if target != null else "missing", "bone": str(track.get_concatenated_subnames()), "bone_index": skeleton.find_bone(str(track.get_concatenated_subnames())) if kind == "3d" else -1})
 			if kind == "3d":
 				_check(target == skeleton and skeleton.find_bone(str(track.get_concatenated_subnames())) >= 0 and clip.track_get_type(index) in [Animation.TYPE_ROTATION_3D, Animation.TYPE_POSITION_3D, Animation.TYPE_SCALE_3D], label + " resolved bone track " + str(index))
 			else:

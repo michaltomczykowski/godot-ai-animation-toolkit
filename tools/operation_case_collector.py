@@ -478,8 +478,17 @@ def collect(context_path, traces, root, preview_report=None):
     for event in native_events:
         if event.get('operation') not in EXPECTED_OPERATIONS or event.get('route') != 'native_godot':
             raise ValueError('invalid native operation or route')
-        if 'res://tools/check_rig_modifier_history.gd' in event.get('command', []):
+        if any(script in event.get('command', []) for script in ('res://tools/check_rig_modifier_history.gd','res://tools/check_motion_sequence_history.gd')):
             # Joined below to exact inner history case/state hashes, not public-call totals.
+            continue
+        from operation_rig_clip_native_checks import is_event as rig_clip_event, verify_native as rig_clip_native
+        if rig_clip_event(event):
+            proof=rig_clip_native(event,context,history_events,test_begins,support_events)
+            cases.append({'id':event['id'],'operation':event['operation'],'checks':proof['checks'],
+                          'scope':'candidate','route':'public_output_native_godot','raw_event_id':event['id'],
+                          'public_test_run_case_id':proof['public_test_run_case_id'],
+                          'public_origin_id':proof['public_origin_id'],'scene':event['scene'],
+                          'failures':proof['failures'],'limits':proof['limits']})
             continue
         checks, failures = native_checks(event, context)
         matches = [call for call in public_events
@@ -510,7 +519,7 @@ def collect(context_path, traces, root, preview_report=None):
                       'failures':proof['failures'],'limits':proof['limits']})
     for event in history_events:
         if event.get('validator')=='motion_sequence_history_v1':
-            from operation_motion_sequence_history_checks import verify_event
+            from operation_motion_sequence_native_checks import verify_event
         elif event.get('validator')=='rig_scene_history_v1':
             from operation_rig_scene_history_checks import verify_event
         elif event.get('validator')=='rig_modifier_history_v1':
@@ -530,7 +539,7 @@ def collect(context_path, traces, root, preview_report=None):
         else:
             from operation_history_checks import verify_event
         if event.get('operation') not in EXPECTED_OPERATIONS:raise ValueError('invalid inner history operation')
-        evidence_support = support_events + native_events if event.get('validator')=='rig_modifier_history_v1' else support_events
+        evidence_support = support_events + native_events if event.get('validator') in ('rig_modifier_history_v1','motion_sequence_history_v1') else support_events
         proof=verify_event(event,context,test_begins,evidence_support)
         cases.append({'id':event['id'],'operation':event['operation'],'checks':proof['checks'],
                       'scope':'candidate','route':'public_test_run_inner_dispatch',

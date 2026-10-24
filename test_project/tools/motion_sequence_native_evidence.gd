@@ -27,5 +27,5 @@ static func tracks(player: AnimationPlayer, clip: Animation) -> Array:
 			var v: Variant=clip.track_get_key_value(i,k)
 			finite=finite and v.is_finite()
 			normalized=normalized and (not v is Quaternion or v.is_normalized())
-		rows.append({"path":str(path),"type":clip.track_get_type(i),"target_class":target.get_class() if target!=null else "","bone":str(path.get_subname(0)) if target is Skeleton3D and path.get_subname_count()==1 else "","bone_index":target.find_bone(str(path.get_subname(0))) if target is Skeleton3D and path.get_subname_count()==1 else -1,"subnames":path.get_subname_count(),"times":times,"finite_values":finite,"normalized":normalized})
+		rows.append({"path":str(path),"type":clip.track_get_type(i),"enabled":clip.track_is_enabled(i),"target_class":target.get_class() if target!=null else "","bone":str(path.get_subname(0)) if target is Skeleton3D and path.get_subname_count()==1 else "","bone_index":target.find_bone(str(path.get_subname(0))) if target is Skeleton3D and path.get_subname_count()==1 else -1,"subnames":path.get_subname_count(),"times":times,"finite_values":finite,"normalized":normalized})
 	return rows

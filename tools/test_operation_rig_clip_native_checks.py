@@ -14,7 +14,7 @@ def native_case(op,layout='local',kind='3d',state='redo'):
   rows,times=c.contract(op)
   row['observations']=[{'phase':'authored','at':t,'metric':m,'bone':b,'actual':{'pose':copy.deepcopy(v),'rest':copy.deepcopy(v)} if m=='ankle_rest_distance' else copy.deepcopy(v)} for m,b,t,v in rows]
   row['clocks']=[{'phase':'authored','requested':t,'position':t,'assigned':'generated','speed':1.,'process':2} for t in times]
-  row['tracks']=[{'path':'Skeleton:'+b,'bone':b,'type':ty,'target_class':'Skeleton3D','target_relative_to_skeleton':'.','bone_index':0} for b,ty in sorted(c.REQUIRED[op])]
+  row['tracks']=[{'path':'Skeleton:'+b,'bone':b,'type':ty,'enabled':True,'target_class':'Skeleton3D','target_relative_to_skeleton':'.','bone_index':0} for b,ty in sorted(c.REQUIRED[op])]
   row['clip']={'length':1.,'loop':0,'track_count':len(row['tracks']),'root':'../../Character','root_resolves':True}
  return row
 
@@ -32,6 +32,12 @@ def fixture(op='pose_to_clip',layout='local'):
  return event,context,[origin],[start],[end]
 
 class RigClipNativeTests(unittest.TestCase):
+ def test_disabled_track_and_boolean_exit_do_not_qualify(self):
+  for op in c.WRITERS:
+   row=native_case(op);row['tracks'][0]['enabled']=False
+   self.assertEqual(c.derive(row)['track_paths_types'],'fail',op)
+  args=fixture();args[0]['returncode']=False
+  self.assertEqual(set(c.verify_native(*args)['checks'].values()),{'fail'})
  def test_all_eight_five_layouts(self):
   for op in c.WRITERS:
    for layout in c.LAYOUTS:

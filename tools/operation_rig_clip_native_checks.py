@@ -71,7 +71,7 @@ def derive(case):
  pairs=set()
  for track in tracks:
   bone=track.get('bone');kind=track.get('type');pairs.add((bone,kind))
-  paths=paths and bone in BONES and type(kind) is int and kind in {1,2,3} and track.get('path')=='Skeleton:'+str(bone) and track.get('target_class')=='Skeleton3D' and track.get('target_relative_to_skeleton')=='.' and type(track.get('bone_index')) is int and track['bone_index']>=0
+  paths=paths and bone in BONES and type(kind) is int and kind in {1,2,3} and track.get('enabled') is True and track.get('path')=='Skeleton:'+str(bone) and track.get('target_class')=='Skeleton3D' and track.get('target_relative_to_skeleton')=='.' and type(track.get('bone_index')) is int and track['bone_index']>=0
  paths=paths and REQUIRED[op].issubset(pairs)
  rows=[r for r in case.get('observations',[]) if r.get('phase')=='authored']
  effects=len(rows)==len(wanted)
@@ -120,6 +120,6 @@ def verify_native(event,context,origins,begins,support):
  if not end.get('execution_ns',0)<event.get('execution_ns',0):raise ValueError('rig clip native ran before real public test completion')
  checks=derive(case)
  raw=event.get('stdout','')+'\n'+event.get('stderr','')
- if event.get('returncode')!=0 or report.get('saved_states')!=18 or report.get('failures')!=[] or report.get('engine_errors')!=[] or case.get('failures')!=[] or 'ERROR:' in raw or any(v!='pass' for v in proof['checks'].values()):checks={k:'fail' for k in checks}
+ if type(event.get('returncode')) is not int or event['returncode']!=0 or report.get('saved_states')!=18 or report.get('failures')!=[] or report.get('engine_errors')!=[] or case.get('failures')!=[] or 'ERROR:' in raw or any(v!='pass' for v in proof['checks'].values()):checks={k:'fail' for k in checks}
  return {'checks':checks,'public_test_run_case_id':proof['public_test_run_case_id'],'public_origin_id':origin['id'],'failures':[] if all(v=='pass' for v in checks.values()) else ['actual authored rig clip native/source contract failed'],
  'limits':'Exact fixed synthetic unskinned3D rig clip case at original manual-clock times/thresholds, joined by saved-scene SHA to actual public inner producer. Independent authored quaternion/vector/direction/rest-ankle expectations; no generated-key expected values. This native proof adds no physical grounding, skinning, visual, history, broad source or editor-error approval.'}

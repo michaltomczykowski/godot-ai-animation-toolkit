@@ -241,6 +241,8 @@ jobs:
           test_operation_fx_intention_checks
           test_operation_bounded_read_checks
           test_operation_motion_sequence_history_checks
+          test_operation_motion_sequence_native_checks
+          test_operation_rig_clip_native_checks
           test_saved_media_capture_checks
           test_operation_case_collector -v
 

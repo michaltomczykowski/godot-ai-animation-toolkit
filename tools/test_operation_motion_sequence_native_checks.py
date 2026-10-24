@@ -10,13 +10,14 @@ def pair(group='sequence',variant='gap'):
     p=row(group,variant);p.update(reference_path='user://motion_sequence_'+p['case_id']+'_reference.tres',reference_sha256='a'*64)
     n={k:p[k] for k in ('group','variant','mode','fps')};n.update(id=p['case_id'],params=p['request'],source=dict(path=p['source_scene_path'],sha256=p['source_scene_sha256'],bytes=p['source_scene_bytes']),reference=dict(path=p['reference_path'],sha256=p['reference_sha256'],bytes=300),states={s:{k:p['persist_'+s][k] for k in ('path','sha256','bytes')} for s in ('do','undo','redo')},thresholds=N.THRESHOLDS.copy(),failure_count=0,engine_errors=[],plays=[],travel=[])
     length=p['request']['duration']
-    t=dict(path='Skeleton:hips',type=2,target_class='Skeleton3D',bone='hips',bone_index=0,subnames=1,times=[0.,length],finite_values=True,normalized=True)
+    t=dict(path='Skeleton:hips',type=2,enabled=True,target_class='Skeleton3D',bone='hips',bone_index=0,subnames=1,times=[0.,length],finite_values=True,normalized=True)
     q=[0.,0.,0.,1.];zero=dict(actual=[0.,0.,0.],reference=[0.,0.,0.],error=0.,time=0.,path='')
     for state in ('do','undo','redo'):
         for fps in (30,60,120):
             times=sorted(set([0.,length]+[k/fps for k in range(1,math.ceil(length*fps))]))
             witness=dict(actual=q,reference=q,error=0.,time=0.,path='Skeleton:hips')
             change=dict(actual=[math.sin(.2),0,0,math.cos(.2)],reference=q,error=.4,time=length,path='Skeleton:hips')
+            change['error']=N.error(change['actual'],change['reference'])
             n['plays'].append(dict(state=state,fps=fps,clock='native_manual_advance',length=length,loop_mode=0,root_motion_track='',times=times,actual_tracks=[copy.deepcopy(t)],reference_tracks=[copy.deepcopy(t)],pose_samples=len(times),key_samples=2,intermediate_samples=len(times)-2,errors=dict(rotation=witness,root_delta=copy.deepcopy(zero)),reference_span=dict(rotation=change)))
     return p,n
 
@@ -70,5 +71,21 @@ class Native(unittest.TestCase):
                 d=limit*factor
                 a=[math.sin(d/2),0.,0.,math.cos(d/2)] if field=='rotation' else [d,0.,0.]
                 b=[0.,0.,0.,1.] if field=='rotation' else [0.,0.,0.]
-                self.assertEqual(N.metric(dict(actual=a,reference=b,error=d,time=0.),limit,field=='rotation'),expected)
+                self.assertEqual(N.metric(dict(actual=a,reference=b,error=N.error(a,b),time=0.),limit,field=='rotation'),expected)
+
+    def test_actual_godot_472_float32_witnesses(self):
+        # Separate Godot4.7.2 process: native intermediate rounding is observable.
+        samples=[([.0872310921549797,-.7094796895980835,.14383326470851898],
+                  [.08731839060783386,-.7095475792884827,.14386236667633057],.00011435451597208157),
+                 ([.11432050168514252,.22864100337028503,.34296149015426636,.9038980007171631],
+                  [.11449723690748215,.22874757647514343,.3430388271808624,.9038193225860596],.00046807750786990684)]
+        for a,b,observed in samples:
+            self.assertEqual(N.error(a,b),observed)
+            m=dict(actual=a,reference=b,error=observed,time=0.)
+            self.assertTrue(N.metric(m,1.,len(a)==4))
+            m['error']+=1e-9
+            self.assertFalse(N.metric(m,1.,len(a)==4))
+        for side in ('actual_tracks','reference_tracks'):
+            p,n=pair();n['plays'][0][side][0]['enabled']=False
+            self.assertEqual(N.derive(p,n)['track_paths_types'],'fail')
 if __name__=='__main__':unittest.main()

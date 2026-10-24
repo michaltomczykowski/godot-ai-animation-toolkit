@@ -4,20 +4,35 @@ Motion duplicate references prove playback/path types only, not intended motion.
 import json
 import math
 import re
+import struct
 from functools import lru_cache
 from bisect import bisect_left
 from operation_motion_sequence_history_checks import (verify_event as history_verify, digest, exact, finite_tree, MOTIONS, SEQUENCES)
 DEPENDENCIES=('test_project/tools/check_motion_sequence_history.gd','test_project/tools/motion_sequence_native_reference.gd','test_project/tools/motion_sequence_native_evidence.gd','tools/operation_motion_sequence_native_checks.py','tools/mcp_motion_sequence_history.py')
 THRESHOLDS=dict(position=.0001,rotation=.001,scale=.0001,root_delta=.0001)
 
+def real32(value):
+    """Godot's standard build stores each Vector3/Quaternion operation as real_t."""
+    return struct.unpack('f',struct.pack('f',value))[0]
+
 def error(a,b):
     if not isinstance(a,list) or not isinstance(b,list) or len(a)!=len(b) or len(a) not in (3,4) or not finite_tree([a,b]) or any(type(x) not in (int,float) for x in a+b):raise ValueError('invalid raw native metric values')
-    if len(a)==3:return math.dist(a,b)
-    if any(abs(sum(x*x for x in q)-1)>1e-5 for q in (a,b)):raise ValueError('unnormalized native quaternion')
-    # Native angle of inverse(a)*b, same unchanged quaternion-angle predicate.
-    x,y,z,w=a;u,v,t,s=b
-    q=(-x*s+w*u-y*t+z*v,-y*s+w*v-z*u+x*t,-z*s+w*t-x*v+y*u,w*s+x*u+y*v+z*t)
-    return 2*math.atan2(math.sqrt(sum(x*x for x in q[:3])),abs(q[3]))
+    if len(a)==4 and any(abs(sum(x*x for x in q)-1)>1e-5 for q in (a,b)):raise ValueError('unnormalized native quaternion')
+    # Match the observed standard Godot build's real_t intermediates, including
+    # expression order. Python doubles give a different witness error; the
+    # unchanged native bounds and strict reported-error comparison still apply.
+    add=lambda x,y:real32(x+y)
+    sub=lambda x,y:real32(x-y)
+    mul=lambda x,y:real32(x*y)
+    a,b=([real32(x) for x in values] for values in (a,b))
+    def length(v):return real32(math.sqrt(add(add(mul(v[0],v[0]),mul(v[1],v[1])),mul(v[2],v[2]))))
+    if len(a)==3:return length([sub(x,y) for x,y in zip(a,b)])
+    x,y,z,w=(-a[0],-a[1],-a[2],a[3]);u,v,t,s=b
+    q=(sub(add(add(mul(w,u),mul(x,s)),mul(y,t)),mul(z,v)),
+       sub(add(add(mul(w,v),mul(y,s)),mul(z,u)),mul(x,t)),
+       sub(add(add(mul(w,t),mul(z,s)),mul(x,v)),mul(y,u)),
+       sub(sub(sub(mul(w,s),mul(x,u)),mul(y,v)),mul(z,t)))
+    return 2*math.atan2(length(q),abs(q[3]))
 
 def metric(m,limit,rotation=False):
     if not isinstance(m,dict) or type(m.get('error')) not in (int,float) or not finite_tree(m):return False
@@ -28,7 +43,7 @@ def metric(m,limit,rotation=False):
 def tracks(rows,length):
     if not isinstance(rows,list) or not rows:return False
     for t in rows:
-        if t.get('type') not in (1,2,3) or type(t.get('type')) is not int or t.get('target_class') not in ('Node3D','Skeleton3D') or not isinstance(t.get('path'),str) or not t['path'] or t.get('finite_values') is not True or t.get('normalized') is not True:return False
+        if t.get('type') not in (1,2,3) or type(t.get('type')) is not int or t.get('enabled') is not True or t.get('target_class') not in ('Node3D','Skeleton3D') or not isinstance(t.get('path'),str) or not t['path'] or t.get('finite_values') is not True or t.get('normalized') is not True:return False
         if t['target_class']=='Skeleton3D' and (t.get('subnames')!=1 or not isinstance(t.get('bone'),str) or not t['bone'] or type(t.get('bone_index')) is not int or t['bone_index']<0):return False
         times=t.get('times')
         if not isinstance(times,list) or len(times)<2 or not finite_tree(times) or any(type(x) not in (int,float) for x in times) or any(not 0<=x<=length+.000001 for x in times) or any(b<=a for a,b in zip(times,times[1:])):return False
