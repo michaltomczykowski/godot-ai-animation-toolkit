@@ -14,10 +14,8 @@ env:
 jobs:
   rendered-preview:
     uses: ./.github/workflows/rendered-preview.yml
-    # Temporary release investigation: retain a native stack for the observed
-    # Linux save allocator abort. Restore none before final release qualification.
     with:
-      native_debugger: gdb
+      native_debugger: none
 
   tier1:
     name: Tier 1 / ${{ matrix.os }} / ${{ matrix.script }}
@@ -243,6 +241,7 @@ jobs:
           test_operation_rig_scene_history_checks
           test_operation_edit_native_checks
           test_operation_fx_intention_checks
+          test_operation_fx_counter_native_checks
           test_operation_bounded_read_checks
           test_operation_motion_sequence_history_checks
           test_operation_motion_sequence_native_checks

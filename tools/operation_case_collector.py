@@ -481,6 +481,10 @@ def collect(context_path, traces, root, preview_report=None):
         if any(script in event.get('command', []) for script in ('res://tools/check_rig_modifier_history.gd','res://tools/check_motion_sequence_history.gd')):
             # Joined below to exact inner history case/state hashes, not public-call totals.
             continue
+        from operation_fx_counter_native_checks import is_event as fx_counter_history_event
+        if fx_counter_history_event(event):
+            # Existing saved counter native runs join their exact inner history row below.
+            continue
         from operation_rig_clip_native_checks import is_event as rig_clip_event, verify_native as rig_clip_native
         if rig_clip_event(event):
             proof=rig_clip_native(event,context,history_events,test_begins,support_events)
@@ -548,12 +552,13 @@ def collect(context_path, traces, root, preview_report=None):
         else:
             from operation_history_checks import verify_event
         if event.get('operation') not in EXPECTED_OPERATIONS:raise ValueError('invalid inner history operation')
-        evidence_support = support_events + native_events if event.get('validator') in ('rig_modifier_history_v1','motion_sequence_history_v1') else support_events
+        evidence_support = support_events + native_events if event.get('validator') in ('rig_modifier_history_v1','motion_sequence_history_v1','fx_intention_history_v1') else support_events
         proof=verify_event(event,context,test_begins,evidence_support)
         cases.append({'id':event['id'],'operation':event['operation'],'checks':proof['checks'],
                       'scope':'candidate','route':'public_test_run_inner_dispatch',
                       'raw_event_id':event['id'],'public_test_run_case_id':proof['public_test_run_case_id'],
-                      'mode':event['row']['mode'],'limits':proof['limits']})
+                      'mode':event['row']['mode'],'limits':proof['limits'],
+                      **({'counter_native':proof['counter_native']} if 'counter_native' in proof else {})})
     if preview_report is not None:
         from operation_preview_adapter import validate_preview
         preview=validate_preview(preview_report,context_path,context,public_events+support_events)

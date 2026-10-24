@@ -845,7 +845,7 @@ def inspect_gate(args: argparse.Namespace) -> bool:
         "--core-root", str(args.core_root),
         "--session-hint", args.project.name,
         "--port", str(args.port), "--ws-port", str(args.ws_port),
-    ], capture_output=True, text=True, timeout=45, check=False)
+    ], capture_output=True, text=True, timeout=120, check=False)
     marker = "MCP_INSPECT_AUDIT="
     payload = next((line[len(marker):] for line in audit.stdout.splitlines()
                     if line.startswith(marker)), "")

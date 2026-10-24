@@ -1,5 +1,23 @@
 # Agent notes
 
+## Current checkpoint, 24 October: public read numeric mismatch preserved
+
+No local Godot active after inspect-public-witness-r001/exec36954. Frozen source
+ecbfdcb; all11originalpositive/refusalpairs executedonce via visible4.7.2/core421.
+Both drivers return0 (77.922s/33.938s). Strict collection correctly FAILS only
+sample.valid_effect and motion_audit.valid_effect; independent diagnosis pending.
+Original traces/context/failedreceipt preserved. Preview path presence in this
+private driver used defaultcanonicalproject, so do not claim currentpreviewproof.
+Raw fresh scene/native read references are independent of that file-presence bug.
+
+FX counter binding cherry-picked18aa059 and collector patch applied;125combined
+offlinecontrols pass, checker actual4.7.2parsePASS. No actual newnative50 yet.
+CI caller restorednone after three passingLinux421previews(noabortreproduced).
+Eightread gate now120s for32addedpublichelpers; 3D60s/motion420s unchanged.
+Pending local changes need checkpoint/push after numeric diagnosis; do not hide
+failedreadreceipt or relabel current qualification. See
+docs/public-read-witness-checkpoint-20261024.md.
+
 ## Current checkpoint, 24 October: recordings reviewed; strict evidence gate
 
 Authoritative resume note; all earlier LIVE entries are history. No local Godot
