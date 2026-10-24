@@ -85,3 +85,35 @@ validate all 2400 accepted PNG/native/skin/framing clocks and full encode/decode
 Awaitable observation hooks, process_frame/post_draw freshness and camera fit
 are execution gates, not proven behavior. Native mode must create no display
 nodes. No known measured runtime defect is asserted without root execution.
+
+## Executed bounded inventory (no engine)
+
+Added inventory_saved_motion_audits.py, which verifies every raw JSONL hash
+against the original operation report, checks context and unique event IDs,
+then records candidate generation/save/open joins. It NEVER qualifies an effect.
+Actual Linux421 CI596 output: private ci-596e278-r001/
+motion-audit-inventory-linux421-r001.json. Twelve rows: walk3, cycle3, run6
+(regular+short). Every row has a candidate generation/save/open join, but all
+remain pending: scene_save returns only path/reason/undoable, no persisted SHA;
+scene_open explicitly reports reloaded_from_disk=false; the native audit does
+not attest bytes; all four successful requests omit speed. A response-reported
+resolved speed is not an independent default-speed oracle. Raw full hips/feet
+traces show movement, but do not remedy these identity/request gaps.
+
+Consequently no numeric valid_effect adapter or collector patch was added:
+there is no complete qualifying walk/run/cycle input in this bounded source.
+The smallest extension is to the EXISTING remaining_cycles/audit_saved observers:
+record original saved file SHA immediately after save and immediately before
+actual forced disk reopen; attest the loaded animation/scene against that
+identity; keep exact existing public generation requests unchanged. Record
+unrounded native travel vector in the rig's measured world frame, finite
+nonzero swing/support observations, and independent default-resolution oracle
+from fixed rig/rest/request semantics or an already accepted hash-bound parity
+fixture. Do not derive expected displacement from generated output keys or
+simply promote response.speed. Reuse the existing audit samples, not another
+RPC or animation generation. Numeric partial contact metrics may be emitted as
+scoped observations, but cannot populate whole valid_effect.
+
+Four offline controls pass: forged contact PASS remains pending, modified raw
+hash rejects, wrong context rejects, duplicate event ID rejects. No thresholds,
+requests, production code or collector changed; no engine was launched.
