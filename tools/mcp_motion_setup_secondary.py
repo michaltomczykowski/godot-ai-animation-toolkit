@@ -59,10 +59,12 @@ async def run(args: argparse.Namespace) -> int:
         witness.prepare(folder / "setup_secondary.tscn")
         row["open"] = await call(client, "scene_open", {"path": scene})
         row["before_idle"] = await inspect(client, "idle")
-        row["unreachable_setup"] = await call(client, "custom_animation_motion",
-            {**setup, "speed": 8.0, "run_speed": 10.0})
-        row["after_unreachable"] = await inspect(client, "idle")
         try:
+            await witness.snapshot("before_refusal")
+            row["unreachable_setup"] = await call(client, "custom_animation_motion",
+                {**setup, "speed": 8.0, "run_speed": 10.0})
+            row["after_unreachable"] = await inspect(client, "idle")
+            await witness.snapshot("after_refusal")
             await witness.snapshot("before")
             row["setup_dry"] = await call(client, "custom_animation_motion",
                                            {**setup, "dry_run": True})
@@ -72,7 +74,7 @@ async def run(args: argparse.Namespace) -> int:
             await witness.snapshot("after_write")
             row["setup_only_checkpoint"] = await witness.checkpoint()
         finally:
-            witness.close()
+            await witness.cleanup()
         row["clips_after_setup"] = {name: await inspect(client, name)
                                     for name in ("idle", "walk", "run", "jump", "turn_left")}
         secondary = {"op": "secondary_motion", "player_path": PLAYER,

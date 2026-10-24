@@ -43,7 +43,9 @@ def bound():
 class Controls(unittest.TestCase):
  def test_complete_native_shapes_and_resource_id_reload(self):
   self.assertEqual(set(s.derive(fixture()).values()),{'pass'})
-  self.assertEqual(set(s.verify_event(*bound())['checks'].values()),{'pass'})
+  proof=s.verify_event(*bound())['checks']
+  self.assertEqual({k:proof[k]for k in s.derive(fixture())},s.derive(fixture()))
+  self.assertEqual(proof['typed_errors'],'pending');self.assertEqual(proof['reported_errors'],'pending')
  def test_case_local_mutations_not_hidden_by_suite_pass(self):
   for phase,key in [('after_dry','dry_run'),('undone','undo_redo'),('redone','undo_redo'),('persisted','save_reopen')]:
    rows=fixture();rows[phase]['stored']['nodes']['.']['properties']['foreign']=True

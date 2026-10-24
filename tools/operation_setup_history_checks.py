@@ -3,8 +3,8 @@ from copy import deepcopy
 import math,re,json
 
 PHASES=('before','after_dry','after_write','before_undo','undone','redone','persisted')
-DEPS=('tools/operation_setup_history_checks.py','tools/setup_history_witness.py','tools/mcp_motion_setup_secondary.py','tools/mcp_presets_audit.py','tools/fixture_copy.py','test_project/repair_rig_fixture.tscn','test_project/tests/test_animation_motion.gd','test_project/tests/setup_history_observation.gd','test_project/tests/inspect_read_snapshot.gd','test_project/tests/operation_history_trace.gd')
-LIMITS='Exact setup-only native stored observations before secondary_motion. Dry/history/saved-reload/target path and value-type binding only. typed_errors remains pending; existing refusal controls are not bracketed by this observer. source_unchanged and reported_errors pending: no case-local authoring logger/non-target mask. No requested-effect, playback or visual promotion.'
+DEPS=('tools/operation_setup_source_checks.py','addons/godot_ai_animation/handlers/motion.gd','addons/godot_ai_animation/runtime/setup_grounding.gd','test_project/models/human_dummy/HumanCharacterDummy_F.fbx','tools/operation_setup_history_checks.py','tools/setup_history_witness.py','tools/mcp_motion_setup_secondary.py','tools/mcp_presets_audit.py','tools/fixture_copy.py','test_project/repair_rig_fixture.tscn','test_project/tests/test_animation_motion.gd','test_project/tests/setup_history_observation.gd','test_project/tests/inspect_read_snapshot.gd','test_project/tests/operation_history_trace.gd')
+LIMITS='Exact setup-only native stored observations before secondary_motion. Original dry/history/saved-reload/target path and value-type binding preserved. No requested-effect, playback or visual promotion.'
 
 def require(ok,message):
  if not ok:raise ValueError(message)
@@ -108,11 +108,11 @@ def verify_event(event,context,events,public,begins,support):
  require(marker.get('context_sha256')==event.get('context_sha256')and marker.get('run_id')==context.get('run_id')and bool(context.get('run_id'))and marker.get('operation')=='animation_motion.character_setup','setup marker context mismatch')
  scene=marker.get('scene','');require(re.fullmatch(r'res://repair_motion_audit/[0-9]{8}_[0-9]{6}/setup_secondary\.tscn',scene)is not None,'unknown setup checkpoint scene')
  candidates=[e for e in events if e.get('validator')=='setup_history_v1'and e.get('row',{}).get('marker',{}).get('token')==token]
- require(len(candidates)==len(PHASES),'duplicate/missing setup observation')
+ require(len(candidates)in(len(PHASES),len(PHASES)+2),'duplicate/missing setup observation')
  rows={};spans={};ids=[]
  for item in candidates:
   row=item.get('row',{});phase=row.get('phase');m=row.get('marker',{})
-  require(row.get('mode')=='setup_checkpoint'and phase in PHASES and phase not in rows and {k:v for k,v in m.items()if k!='phase'}=={k:v for k,v in marker.items()if k!='phase'},'setup marker changed')
+  require(row.get('mode')=='setup_checkpoint'and phase in PHASES+('before_refusal','after_refusal') and phase not in rows and {k:v for k,v in m.items()if k!='phase'}=={k:v for k,v in marker.items()if k!='phase'},'setup marker changed')
   require(item.get('operation')=='animation_motion.character_setup'and item.get('driver')=='test_animation_motion.gd'and item.get('route')=='public_test_run_inner_dispatch'and item.get('run_id')==context['run_id']and item.get('context_sha256')==event.get('context_sha256'),'setup observation source/context mismatch')
   test='test_public_setup_bundle_undo_redo'if phase in ('before_undo','undone','redone')else'test_public_setup_evidence_snapshot'
   starts=[b for b in begins if b.get('id')==item.get('test_run_begin_id')];ends=[b for b in support if b.get('public_tool')=='test_run'and b.get('test_run_begin_id')==item.get('test_run_begin_id')]
@@ -135,5 +135,8 @@ def verify_event(event,context,events,public,begins,support):
  require(digest(rows['persisted'].get('scene_sha256')),'saved setup scene hash missing')
  other=[p for p in public if p.get('scene')==scene and write['execution_ns']<p.get('execution_ns',0)<spans['persisted'][1]['execution_ns']and p.get('operation')not in {'animation_motion.character_setup'}]
  require(not other,'another operation contaminated setup-only checkpoint')
- checks=derive(rows)
- return {'checks':checks,'public_test_run_case_id':spans['redone'][1]['id'],'public_case_ids':[dry['id'],write['id']]+ids+[saves[0]['id'],opens[0]['id']],'limits':LIMITS}
+ require(set(PHASES)<=set(rows),'missing original setup phase')
+ checks=derive({p:rows[p]for p in PHASES})
+ from operation_setup_source_checks import verify_extra,LIMITS as SOURCE_LIMITS
+ extra,extra_ids=verify_extra(rows,spans,public,context);checks.update(extra)
+ return {'checks':checks,'public_test_run_case_id':spans['redone'][1]['id'],'public_case_ids':[dry['id'],write['id']]+extra_ids+ids+[saves[0]['id'],opens[0]['id']],'limits':LIMITS+' '+SOURCE_LIMITS}

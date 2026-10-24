@@ -10,7 +10,7 @@ class SetupWitness:
   self.client,self.scene,self.request,self.project=client,scene,request,Path(project)
   self.context=os.environ.get('TOOLKIT_OPERATION_CONTEXT');self.directory=os.environ.get('TOOLKIT_OPERATION_TRACE_DIR')
   if bool(self.context)!=bool(self.directory):raise ValueError('setup witness requires complete trace context')
-  self.enabled=bool(self.context);self.path=None;self.marker=None
+  self.enabled=bool(self.context);self.path=None;self.marker=None;self._error_open=False
  def prepare(self,target):
   if not self.enabled:return
   text=Path(target).read_text(encoding='utf-8-sig');root=self.request['player_path'].strip('/').split('/')[0]
@@ -29,7 +29,10 @@ class SetupWitness:
   else:
    if not self.path.is_file()or json.loads(self.path.read_text()).get('token')!=self.marker['token']:raise RuntimeError('setup marker ownership changed')
    self.marker['phase']=phase;self.path.write_text(json.dumps(self.marker),encoding='utf-8')
-  return await self.helper('test_public_setup_evidence_snapshot')
+  if phase in ('before_refusal','before'):self._error_open=True
+  result=await self.helper('test_public_setup_evidence_snapshot')
+  if phase in ('after_refusal','after_write','cleanup'):self._error_open=False
+  return result
  async def helper(self,test):
   result=await call(self.client,'test_run',{'suite':SUITE,'test_name':test,'verbose':True})
   rows=[r for r in result.get('results',[])if r.get('suite')==SUITE and r.get('test')==test]
@@ -47,9 +50,14 @@ class SetupWitness:
   await self.snapshot('persisted')
   result={'history':history,'save':saved,'reopen':reopened,'scene_copy':str(archive),'scene_sha256':hashlib.sha256(archive.read_bytes()).hexdigest(),'stage':'before_secondary_motion'}
   self.close();return result
+ async def cleanup(self):
+  try:
+   if self.enabled and self.path is not None and self._error_open:await self.snapshot("cleanup")
+  finally:self.close()
  def close(self):
   if self.path is not None:
    # Only remove this instance's marker; no other observer's active state.
    value=json.loads(self.path.read_text())if self.path.exists()else{}
    if value.get('token')==self.marker['token']:self.path.unlink()
    self.path=None
+  self._error_open=False
