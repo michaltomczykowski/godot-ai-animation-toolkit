@@ -1,5 +1,21 @@
 # Agent notes
 
+## Current checkpoint: pose_list before-fix failure reproduced and fixed
+
+Exec89015 finished/publicquit atd45f834; no local Godot active. Actual public
+directory=[] returns invalidsuccess directory"[]"/existsfalse/0poses, while schema
+advertises String. MissingString before/after unchanged. Raw/context/schema at
+pose-directory-before-fix-r001. Narrow3lineguard now40caf8e; selecteddirectory
+orlegacy pose_dir nonString returnsINVALID_PARAMS beforeDirAccess. OtherString
+semantics unchanged. Other production addon blobs untouched; disclose this single
+unusedreadguard when reusing older physical/media source bridges.
+
+Remaining3read hooks e405093 integrated +minimalcollectorpatch/YAML locally;
+4GDScripts actual4.7.2parsePASS,42combinedPythoncontrolsPASS. NewdirecttypedSuite
+andactualpublic3readpairs next. Currentpushedd45f834; localguard/readhooks needpush
+after actualverification. Latest596CI40101187110 fullyPASS(actualmerge505cfe1),
+all4live2014cases0derivedfail,102ops+previewseparate. Crashtimingunresolved.
+
 ## LIVE ROOT SLOT: five saved modifier preflight r004 (24 October)
 
 Exec79234, run_modifier_preflight_r004.py and modifier-capture-preflight-r004/

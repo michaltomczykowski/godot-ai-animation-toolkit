@@ -522,6 +522,16 @@ def collect(context_path, traces, root, preview_report=None):
                       'public_case_ids':proof['public_case_ids'],'dry_case_ids':proof['dry_case_ids'],
                       'failures':proof['failures'],'limits':proof['limits']})
     for event in history_events:
+        if event.get('validator')=='remaining_read_witness_v1':
+            if event.get('row',{}).get('phase')!='end' or event['row'].get('marker',{}).get('stage')!='valid':
+                continue
+            from operation_remaining_read_checks import verify_pair
+            proof=verify_pair(event,context,history_events,public_events,test_begins,support_events)
+            cases.append({'id':event['id'],'operation':event['operation'],'checks':proof['checks'],
+                          'scope':'candidate','route':'public_godot_ai','raw_event_id':event['id'],
+                          'public_case_ids':proof['public_case_ids'],
+                          'public_test_run_case_id':proof['public_test_run_case_id'],'limits':proof['limits']})
+            continue
         if event.get('validator')=='inspect_read_witness_v1':
             if event.get('row',{}).get('phase')!='end' or event['row'].get('marker',{}).get('stage')!='valid':continue
             from operation_read_witness_checks import verify_pair
