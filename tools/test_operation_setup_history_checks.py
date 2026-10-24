@@ -57,6 +57,17 @@ class Controls(unittest.TestCase):
   for key,value in [('time',False),('transition',float('nan')),('value_type','Vector3'),('value',{'type':'Quaternion','x':None,'y':0,'z':0,'w':1})]:
    rows=fixture();rows['persisted']['clips']['walk']['tracks'][0]['keys'][0][key]=value
    self.assertEqual(s.derive(rows)['track_paths_types'],'fail',key)
+ def test_observed_native_carrier_position_3d_contract(self):
+  # Exact carrier metadata shape observed in both public explicit/auto rows.
+  carrier={'path':'Dummy:position','type':1,'enabled':True,'interpolation':1,'node_class':'Node3D','node_path':'Dummy','property':'position','property_type':'Vector3','bone_index':-1,'bone_name':'','keys':[{'time':0.,'transition':1.,'value_type':'Vector3','value':{'type':'Vector3','x':0.,'y':0.,'z':0.}}]}
+  for phase in ('after_write','persisted'):
+   rows=fixture();rows[phase]['clips']['walk']['tracks'].append(copy.deepcopy(carrier))
+   self.assertEqual(s.derive(rows)['track_paths_types'],'pass')
+   for key,value in [('type',0),('type',2),('path','Other:position'),('node_path','Other'),('property','rotation'),('property_type','Quaternion')]:
+    bad=copy.deepcopy(rows);bad[phase]['clips']['walk']['tracks'][-1][key]=value
+    self.assertEqual(s.derive(bad)['track_paths_types'],'fail',(phase,key,value))
+   bad=copy.deepcopy(rows);bad[phase]['clips']['walk']['tracks'][-1]['keys'][0]['value_type']='Quaternion'
+   self.assertEqual(s.derive(bad)['track_paths_types'],'fail')
  def test_every_identity_and_secondary_contamination_blocks(self):
   for fault in ('missing','duplicate','source','context','request','scene','span','skip','secondary','save','reopen','order','phaseorder'):
    e,c,events,public,begins,support=copy.deepcopy(bound())

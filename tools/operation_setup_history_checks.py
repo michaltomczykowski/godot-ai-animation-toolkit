@@ -79,7 +79,7 @@ def tracks_valid(row):
     bones+=1
    elif target=='Node3D':
     # Only the explicit carrier position binding is admitted here.
-    if kind!=0 or prop!='position'or track.get('property_type')!='Vector3'or any(not key_value(k,'Vector3')for k in keys):return False
+    if kind!=1 or prop!='position'or track.get('property_type')!='Vector3'or any(not key_value(k,'Vector3')for k in keys):return False
     if not skeleton.startswith(track['node_path']+'/'):return False
    else:return False
   if bones==0:return False

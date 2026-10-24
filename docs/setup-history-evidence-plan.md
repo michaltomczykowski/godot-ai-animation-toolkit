@@ -60,3 +60,18 @@ contamination, invalid types/bones/nonfinite keys and fake wrapper execution
 that cannot issue authoring calls. Synthetic positives are not engine proof.
 Actual Godot parse, fresh public request/checkpoint and required four cells
 remain pending the root's single editor/native slot.
+
+
+## Actual carrier oracle correction
+
+Fresh public setup witness r001 executed both original explicit-speed and
+omitted-speed modes; three transaction channels passed but the path adapter
+rejected the actual walk/run carrier. Both saved rows report Dummy:position,
+Node3D Dummy, Vector3 property/keys and track type1 (TYPE_POSITION_3D).
+The production bone_animation.gd builds precisely this position_3d track at
+lines399/409-410. The adapter incorrectly expected value type0. Correct only
+this carrier admission to type1; do not accept both types or change generation.
+Original derived failures remain preserved. Added exact observed carrier-shape
+controls reject wrong0/2, path/target/property/value type in both written and
+persisted observations. Actual-row corruption receipts are private; they test
+this oracle on historical raw rows and do not relabel source qualification.
