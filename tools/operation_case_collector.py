@@ -595,8 +595,11 @@ def main():
     report=collect(a.context,a.trace_dir,a.root,a.preview_report)
     with a.output.open('x',encoding='utf-8') as f:
         json.dump(report,f,indent=2)
+    from operation_derived_gate import derived_failures
+    failed_derived=derived_failures(report)
     print(json.dumps({'public_operations':len(report['successful_public_operations']),
-                      'missing':report['missing_successful_public_operations']}))
-    return 0 if a.allow_partial or (not report['missing_successful_public_operations'] and report['core_qualification']=='released') else 2
+                      'missing':report['missing_successful_public_operations'],
+                      'failed_derived_checks':len(failed_derived)}))
+    return 0 if not failed_derived and (a.allow_partial or (not report['missing_successful_public_operations'] and report['core_qualification']=='released')) else 2
 if __name__=='__main__':
     raise SystemExit(main())

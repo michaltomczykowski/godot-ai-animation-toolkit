@@ -246,6 +246,10 @@ jobs:
           test_operation_bounded_read_checks
           test_operation_motion_sequence_history_checks
           test_operation_motion_sequence_native_checks
+          test_motion_progress_compaction
+          test_operation_read_witness_checks
+          test_inspect_numeric_reference
+          test_operation_derived_gate
           test_operation_rig_clip_native_checks
           test_saved_media_capture_checks
           test_operation_case_collector -v

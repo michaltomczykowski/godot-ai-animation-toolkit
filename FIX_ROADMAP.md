@@ -1,5 +1,20 @@
 # Animation Toolkit repair roadmap
 
+## Recordings assessed and explicit evidence failures block CI (2026-10-24)
+
+Full graph1680-frame and rig4320-frame recordings now pass strict decoding,
+source and clock checks. Independent temporal assessments pass their bounded
+graph/synthetic-joint display scope. The rig's original failed receipt remains;
+the saved0.8speed and retained finite endpoint corrected the validator, with
+all original frames retained. No new production animation was generated.
+
+Integrated packed-key/native-schedule evidence corrections, one-write full
+motion progress payloads, eleven inspect witnesses and a strict derived CI gate.
+113 combined offline controls and three actual Godot4.7.2 parses pass. Next:
+fresh public read execution, FX counter native binding, CI diagnostics and
+remaining release audit/install/package gates. See
+`docs/evidence-gate-checkpoint-20261024.md`. No merge/tag/release yet.
+
 ## All setup plays pass; saved recording cleanup repair (2026-10-24)
 
 Completed all30groups/1800native setup plays at54744b1 on exact preserved

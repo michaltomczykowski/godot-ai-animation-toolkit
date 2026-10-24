@@ -1205,6 +1205,7 @@ def run_with_case_collection(args: argparse.Namespace) -> int:
     if args.existing:
         raise ValueError('case collection requires the editor launched by this runner')
     from operation_case_collector import prepare, collect
+    from operation_derived_gate import derived_failures
     output = args.case_output_dir.resolve()
     output.mkdir(parents=True, exist_ok=False)
     root = Path(__file__).resolve().parents[1]
@@ -1226,10 +1227,14 @@ def run_with_case_collection(args: argparse.Namespace) -> int:
         report = collect(context, traces, root)
         with (output / 'operation-case-results.json').open('x', encoding='utf-8') as file:
             json.dump(report, file, indent=2)
+        failed_derived=derived_failures(report)
         print('MCP_OPERATION_COVERAGE=' + json.dumps({
             'successful':len(report['successful_public_operations']),
             'missing':report['missing_successful_public_operations'],
-            'core_qualification':report['core_qualification']}), flush=True)
+            'core_qualification':report['core_qualification'],
+            'failed_derived_checks':len(failed_derived)}), flush=True)
+    if failed_derived:
+        return 1
     if args.require_all_public_operations and (report['missing_successful_public_operations'] or report['core_qualification'] != 'released'):
         return 1
     return result

@@ -1,5 +1,24 @@
 # Agent notes
 
+## Current checkpoint, 24 October: recordings reviewed; strict evidence gate
+
+Authoritative resume note; all earlier LIVE entries are history. No local Godot
+job is active at this checkpoint. Full setup r009 passes30groups/1800plays.
+Saved-media-candidate-r004 graph1680frames passes; rig4320frames readmitted at
+rig-readmission-r001 after source-bound0.8speed/finiteendpoint oracle correction.
+Original failed receipts untouched. Independent graph-visual-assessment-r004-r001
+and rig-visual-assessment-r004-r001 qualify bounded graph/joint displays only.
+No skinning, natural-gait or human-full-watch claims for those synthetic clips.
+
+Local motion packed-time/schedule fixes, compact progress,11read witnesses and
+derived gate integrated;113combinedofflinecontrols pass. Three new read GDScripts
+parse actual4.7.2 (inspect-reference-parse-r001). Fresh public reads next; freeze
+HEAD/dependency hashes during execution and keep one local engine slot.
+FX native counter binding still prepared in isolated worker; do not accept
+editor zero as effect. Latest pushed e6eba7e; subsequent local commits need push.
+GDB caller temporary; read CI40073640070 diagnostics then restore none before
+final candidate qualification. See docs/evidence-gate-checkpoint-20261024.md.
+
 ## Current checkpoint, 24 October: full setup matrix passes; recording repair
 
 Authoritative note; older LIVE entries are history. r009 complete at54744b1:
