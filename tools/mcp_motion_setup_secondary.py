@@ -14,6 +14,7 @@ from fastmcp.client.transports import StdioTransport
 
 from fixture_copy import copy_scene
 from mcp_presets_audit import call
+from setup_history_witness import SetupWitness
 
 
 PLAYER = "/RepairRigFixture/AnimationPlayer"
@@ -46,7 +47,6 @@ async def run(args: argparse.Namespace) -> int:
     row = {"scene": scene, "run_id": run_id}
     async with Client(transport) as client:
         await client.call_tool("session_activate", {"session_id": args.session_hint})
-        row["open"] = await call(client, "scene_open", {"path": scene})
         setup = {"op": "character_setup", "player_path": PLAYER,
                  "skeleton_path": SKELETON, "duration": 1.0,
                  "run_duration": 0.7, "idle_duration": 2.0,
@@ -55,14 +55,24 @@ async def run(args: argparse.Namespace) -> int:
                  "active": False, "samples": 30}
         if args.auto_walk:
             setup.pop("speed")
+        witness = SetupWitness(client, scene, setup, args.project_root)
+        witness.prepare(folder / "setup_secondary.tscn")
+        row["open"] = await call(client, "scene_open", {"path": scene})
         row["before_idle"] = await inspect(client, "idle")
         row["unreachable_setup"] = await call(client, "custom_animation_motion",
             {**setup, "speed": 8.0, "run_speed": 10.0})
         row["after_unreachable"] = await inspect(client, "idle")
-        row["setup_dry"] = await call(client, "custom_animation_motion",
-                                       {**setup, "dry_run": True})
-        row["after_setup_dry"] = await inspect(client, "idle")
-        row["setup_write"] = await call(client, "custom_animation_motion", setup)
+        try:
+            await witness.snapshot("before")
+            row["setup_dry"] = await call(client, "custom_animation_motion",
+                                           {**setup, "dry_run": True})
+            row["after_setup_dry"] = await inspect(client, "idle")
+            await witness.snapshot("after_dry")
+            row["setup_write"] = await call(client, "custom_animation_motion", setup)
+            await witness.snapshot("after_write")
+            row["setup_only_checkpoint"] = await witness.checkpoint()
+        finally:
+            witness.close()
         row["clips_after_setup"] = {name: await inspect(client, name)
                                     for name in ("idle", "walk", "run", "jump", "turn_left")}
         secondary = {"op": "secondary_motion", "player_path": PLAYER,

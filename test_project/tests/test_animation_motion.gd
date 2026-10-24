@@ -221,6 +221,15 @@ func test_jump_undo_redo_restores_written_jump() -> void:
 	_transition_history("jump", "PublicJumpHistory", "quality_jump")
 
 
+func test_public_setup_evidence_snapshot() -> void:
+ var observation := preload("res://tests/setup_history_observation.gd")
+ var value := observation.marker()
+ if value.is_empty():
+  skip("Only an exact public setup checkpoint may activate this observer")
+  return
+ assert_true(str(value.get("phase", "")) in ["before", "after_dry", "after_write", "persisted"], "known setup checkpoint phase")
+ observation.observe(str(value.phase), _undo_redo)
+
 func test_public_setup_bundle_undo_redo() -> void:
 	var scene := EditorInterface.get_edited_scene_root()
 	var marker := scene.get_node_or_null("PublicSetupBundleHistory") if scene != null else null
@@ -254,7 +263,9 @@ func test_public_setup_bundle_undo_redo() -> void:
 	assert_eq(grounder.call("validate_configuration"), "", "external grounder bindings/order are valid")
 	var binding := player.root_motion_track
 	var wiring := [tree.anim_player, tree.root_node, tree.root_motion_track, tree.root_motion_local, tree.active, tree.tree_root]
+	preload("res://tests/setup_history_observation.gd").observe("before_undo", _undo_redo)
 	assert_true(editor_undo(_undo_redo), "one external Undo succeeds")
+	preload("res://tests/setup_history_observation.gd").observe("undone", _undo_redo)
 	for name in names: assert_false(player.has_animation(name), "one Undo removes " + name)
 	assert_true(scene.get_node_or_null(tree_path) == null, "one Undo removes whole tree")
 	assert_true(scene.get_node_or_null(grounder_path) == null, "one Undo removes whole grounding binding")
@@ -263,6 +274,7 @@ func test_public_setup_bundle_undo_redo() -> void:
 	for name in names: remaining.remove_at(remaining.find(name))
 	assert_eq(player.get_animation_list(), remaining, "Undo preserves unrelated clips")
 	assert_true(editor_redo(_undo_redo), "one external Redo succeeds")
+	preload("res://tests/setup_history_observation.gd").observe("redone", _undo_redo)
 	assert_eq(player.get_animation_list(), all_names, "Redo restores whole clip list")
 	for name in names:
 		assert_true(player.has_animation(name), "Redo restores " + name)
