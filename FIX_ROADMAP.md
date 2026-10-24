@@ -1,5 +1,20 @@
 # Animation Toolkit repair roadmap
 
+## Eleven public inspect witnesses pass after reference correction (2026-10-24)
+
+Fresh visible Godot4.7.2/releasedcore4.2.1 run ated1d9ad completes all11original
+positive/refusalpairs once. All11source/error witnesses and both independent
+sample/audit numeric comparisons pass; strict derivedfailures0. Native looping
+clock wraps atlength, while audit travel adds separately interpolated root after
+FK. Correcting the reference preserves every production output and metric bound;
+the earlier failure stays archived. Saved FXcounter native probes pass4layouts
+with actual50/31methodkeys and unchanged inputs. FreshCI source binding remains.
+
+Current fixes pushed through4d99d20; read correction/docs nextcheckpoint. Linux430
+normal CI preview reproduced a native allocator abort atpublicscene_save; cause
+remains open. Postmortem diagnostics, setup-only history evidence and remaining
+modifier/bake/sequence media are the next bounded increments. No release yet.
+
 ## Recordings assessed and explicit evidence failures block CI (2026-10-24)
 
 Full graph1680-frame and rig4320-frame recordings now pass strict decoding,

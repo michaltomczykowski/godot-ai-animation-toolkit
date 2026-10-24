@@ -1,5 +1,19 @@
 # Agent notes
 
+## Current checkpoint: inspect public witnesses r002 passes (24 October)
+
+Sourceed1d9ad, exec32008 COMPLETE0; no local Godot active. Private
+run_inspect_witness_r002.py / inspect-public-witness-r002/execution.json.
+All11positive/refusalpairs executeonce through visible4.7.2/core421; all11bounded
+source/error witnesses PASS, sample/audit independentnumeric bothPASS with
+originalbudgets. Drivers80.172s/33.735s; strictderivedfailures0. Loopclock/root
+order fixed reference only; original r001failure preserved. R002 explicitproject
+root checks actualfourPNGs; this is not a continuous media/artistic review.
+FX native probe4preserved layouts alsoPASStext50/31keys, inputs unchanged; fresh
+public64case/sourcebinding stillneedsCI. NewLinux430 CI4d99 preview abort reproduced
+during publicscene_save; cause unresolved, optionalpostmortemdiagnostics prepared
+isolated. Currentpushed4d99; localed1readfix/docsawaitcheckpoint/push.
+
 ## Current checkpoint, 24 October: public read numeric mismatch preserved
 
 No local Godot active after inspect-public-witness-r001/exec36954. Frozen source

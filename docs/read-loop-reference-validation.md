@@ -8,4 +8,15 @@ No public request, fixture, addon, physical metric budget or report comparison t
 
 Offline validation:9numeric controls and10existing witness/adapter controls pass. New controls cover exact endpoint wrap versus premature/stuck/lag/wrongwrap, wrong root binding/type/index/local/basis/pose source, malformed/nonfinite root vectors, separate hand-calculated .125m root plus .03m local travel, corrupt root endpoint/interior and inert local points. Existing threshold and report corruption controls remain. Python compiles; diff whitespace check passes.
 
-No Godot parse or actual native/public execution was performed. Root must parse the modified GDScript and capture fresh references before admitting either numeric check. In particular, the prior left extension peak-time precision discrepancy is not declared resolved until a fresh extracted-pose-plus-separate-root observation agrees. Private counterfactual arithmetic is diagnosis only, not qualification. No skin, visual or broader native qualification is introduced.
+Worker handoff initially performed no engine execution; private counterfactual
+arithmetic was diagnosis only. Root subsequently parsed the modified helper in
+actual Godot4.7.2, then ran fresh public witnesses at
+`ed1d9ad20170ee56a4e46cbacf42cbb467a10043` with exact released core4.2.1.
+`inspect-public-witness-r002` completes all eleven original positive/refusal pairs
+once, all eleven source/error witnesses pass, and sample/audit independent numeric
+checks both pass without tolerance changes, including the former extension
+peak-time mismatch. The strict collector records no failed derived checks.
+Drivers take80.172seconds and33.735seconds; public quit completes before collection.
+Report SHA256: `459427fca7c73887b84ee36bc74ad2e22db763ab0c77f1098bffd22d264bdff4`.
+The original failed r001 receipt stays intact. This is bounded inspection
+qualification; no skin, continuous visual or broader input claim is introduced.
