@@ -14,6 +14,7 @@ from fastmcp.client.transports import StdioTransport
 
 from mcp_presets_audit import call
 from operation_case_collector import record_snapshot_result
+from inspect_read_witness import witnessed_call
 
 
 SCENE = "res://repair_motion_fixture.tscn"
@@ -34,21 +35,24 @@ async def run(args: argparse.Namespace) -> int:
                 "animation_name": CLIP}
         before = await call(client, "custom_animation_inspect", {
             "op": "describe", "player_path": PLAYER, "animation_name": CLIP})
-        profile = await call(client, "custom_animation_inspect", {
-            "op": "rig_profile", "skeleton_path": SKELETON, "save": False})
-        sample = await call(client, "custom_animation_inspect", {
+        profile, _ = await witnessed_call(client, {
+            "op": "rig_profile", "skeleton_path": SKELETON, "save": False}, SCENE, "valid")
+        sample, _ = await witnessed_call(client, {
             "op": "sample", **base, "samples": 8,
-            "bones": ["B-foot.L", "B-foot.R"]})
-        audit = await call(client, "custom_animation_inspect", {
-            "op": "motion_audit", **base, "samples": 120})
+            "bones": ["B-foot.L", "B-foot.R"]}, SCENE, "valid")
+        audit, _ = await witnessed_call(client, {
+            "op": "motion_audit", **base, "samples": 120}, SCENE, "valid")
         preview = await call(client, "custom_animation_inspect", {
             "op": "preview", **base, "times": [0.0, 0.25, 0.5, 0.75],
             "output_dir": "res://animation_toolkit/previews/repair_inspect",
             "basename": "walk", "overwrite": True})
         typed_errors = {}
         for op in ("rig_profile", "sample", "motion_audit", "preview"):
-            typed_errors[op] = await call(client, "custom_animation_inspect", {
-                "op": op, **base, "skeleton_path": "/MotionWalk/Missing"})
+            error_request = {"op": op, **base, "skeleton_path": "/MotionWalk/Missing"}
+            if op == "preview":
+                typed_errors[op] = await call(client, "custom_animation_inspect", error_request)
+            else:
+                typed_errors[op], _ = await witnessed_call(client, error_request, SCENE, "refusal")
         after = await call(client, "custom_animation_inspect", {
             "op": "describe", "player_path": PLAYER, "animation_name": CLIP})
         for op, result in (("rig_profile", profile), ("sample", sample), ("motion_audit", audit)):

@@ -14,6 +14,7 @@ from fastmcp.client.transports import StdioTransport
 from mcp_presets_audit import call
 from operation_case_collector import record_snapshot_result
 from operation_inspect_checks import derive, ERROR_CODES
+from inspect_read_witness import witnessed_call
 
 
 PLAYER = "/RepairGraphFixture/AnimationPlayer"
@@ -60,13 +61,11 @@ async def run(args: argparse.Namespace) -> int:
         baseline = await call(client, "custom_animation_inspect", {
             "op": "timeline", "player_path": PLAYER, "animation_name": "walk"})
         for op, extras in CASES.items():
-            result = await call(client, "custom_animation_inspect",
-                                {"op": op, **extras})
+            result, _ = await witnessed_call(client, {"op": op, **extras}, SCENE, "valid")
             after = await call(client, "custom_animation_inspect", {
                 "op": "timeline", "player_path": PLAYER,
                 "animation_name": "walk"})
-            bad = await call(client, "custom_animation_inspect", {
-                "op": op, **ERROR_CASES[op]})
+            bad, _ = await witnessed_call(client, {"op": op, **ERROR_CASES[op]}, SCENE, "refusal")
             row = {"op": op, "scene": SCENE, "request": {"op": op, **extras},
                    "error_request": {"op": op, **ERROR_CASES[op]},
                    "result": result, "typed_error": bad, "before": baseline, "after": after,
