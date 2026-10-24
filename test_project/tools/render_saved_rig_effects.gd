@@ -130,7 +130,16 @@ func _process(_delta:float)->bool:
 		if case_index==manifest.cases.size():rendering=false;_finish();return false
 		_start(manifest.cases[case_index],take)
 		if view.has("error"):failures.append(view.error);rendering=false;_finish();return false
-	_step(frame);frame+=1;return false
+	_step(frame);frame+=1
+	if case_index==manifest.cases.size()-1 and take==1 and frame==4*fps:
+		rendering=false
+		RenderingServer.frame_post_draw.connect(_finish_after_last_draw,CONNECT_ONE_SHOT)
+		quit(0)
+	return false
+func _finish_after_last_draw()->void:
+	_step(4*fps)
+	_end()
+	_finish()
 func _setup_display()->void:
 	root.size=Vector2i(1920,1080)
 	root.content_scale_size=Vector2i(1920,1080)

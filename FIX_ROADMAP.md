@@ -1,5 +1,20 @@
 # Animation Toolkit repair roadmap
 
+## All setup plays pass; saved recording cleanup repair (2026-10-24)
+
+Completed all30groups/1800native setup plays at54744b1 on exact preserved
+publicr007scenes. Independent hash/identity/numeric validation passes; unchanged
+contact/ownership/endpoint gates,0engineerrors. Graph42/rig54saved positives and
+negativecontrols also pass. Fullgraphcapture correctly refuses an extra blank
+terminal frame; capture-only cleanup now retains lastgeometry until draw and
+signals quit during process. A minimal actual GPU control confirms3validframes
+versus old4/blanktail. Full60FPSrecapture/assessment remains required.
+
+CleanZIPimport headless activation is suppressed before owned backend startup;
+optionalLinuxGDB diagnostics preserve the unresolved native save abort.37mocked
+controls pass; freshCI pending. Full notes: docs/setup-matrix-complete-20261024.md.
+All original failure artifacts stay local/intact. No main merge/tag/release.
+
 ## Combined operation evidence parsed (2026-10-24)
 
 Merged prepared rig93/motion-sequence273 history, eight authored rig writers,

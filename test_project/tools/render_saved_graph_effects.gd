@@ -178,7 +178,20 @@ func _process(_delta: float) -> bool:
 			failures.append(str(view.error));rendering=false;_finish();return false
 	_step(frame)
 	frame+=1
+	if index==manifest.cases.size()-1 and take==1 and frame==2*fps:
+		# Keep the last accepted target alive through its draw. Quitting from
+		# next _process would write an extra frame after _end frees the target.
+		rendering=false
+		RenderingServer.frame_post_draw.connect(_finish_after_last_draw,CONNECT_ONE_SHOT)
+		# SceneTree must observe quit during process; post-draw alone is too
+		# late for this iteration and would permit another MovieMaker frame.
+		quit(0)
 	return false
+
+func _finish_after_last_draw() -> void:
+	_step(2*fps)
+	_end()
+	_finish()
 
 func _setup_display() -> void:
 	root.size=Vector2i(1920,1080)

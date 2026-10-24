@@ -1,5 +1,30 @@
 # Agent notes
 
+## Current checkpoint, 24 October: full setup matrix passes; recording repair
+
+Authoritative note; older LIVE entries are history. r009 complete at54744b1:
+all30groups/1800plays PASS,613productiondeps exactr007, independent-validation
+PASS; publicsource233562a retained. Worstendpoint1.91um,slide1.02um,
+penetration1.64um,0competingowner,0engineerrors. No Godot currently active.
+
+Saved graph42/rig54nativepositives and allnegativecontrols pass. Fullgraph
+capture r002/recording-r001 rejects1681PNGs vs1680: terminalobjectfreed.
+Originalfailedcapture preserved. Finalprocess now signalsquit; post-draw
+callback observes boundary/cleansup. MinimalactualGPU oldcontrol4framesblank,
+newcontrol3framescyan PASS, movie-terminal-controls-r001/validation.json.
+Failed reduced-rate probes r003 preserved; no full60FPSqualification yet.
+Next prepare fresh saved-media-candidate-r004 from pushed checkpoint, rerun
+native source bindings then fullgraph1680/rig4320PNG capture and review.
+Read its native-execution/recording receipts before launching any engine job.
+
+Integrated a71ca68 import ownership fix and81a65c8 optionalLinuxGDB diagnostics
+as9a2c928/02338ac.37mocked controls PASS.547CI has nativeLinux421saveabort
+andWindows421preoccupiedports failures; exact logs E:/.../ci-54744b1.
+Other live/ZIP cells stillrunning. Do not call aborttransportinstability or
+retrymutatingRPC. Afterpush dispatch ONE optional rendered-preview GDB run.
+New read-reference worker owns E:/godot-ai-dev/toolkit-read-reference-20261024,
+isolated547base, noengine. Root owns allactualGodot/capture/CIintegration.
+
 ## Current checkpoint, 24 October: operation evidence integrated and parsed
 
 Authoritative resume note; earlier LIVE slot entries below are historical.

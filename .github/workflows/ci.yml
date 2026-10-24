@@ -369,7 +369,9 @@ jobs:
           python -m pip install -e .ci/godot-ai
           gh release download "v${{ matrix.core-ref }}" --repo hi-godot/godot-ai --pattern godot-ai-v4-plugin.zip --dir .ci/released-core
       - name: Verify cached-call selection test ordering
-        run: python -m unittest discover -s tools -p 'test_install_selection.py' -v
+        run: |
+          python -m unittest discover -s tools -p 'test_install_selection.py' -v
+          python -m unittest discover -s tools -p 'test_clean_zip_import_ownership.py' -v
       - name: Qualify both enable orders from extracted ZIPs
         run: |
           python tools/clean_zip_install.py --source "$GITHUB_SHA" --zip dist/godot-ai-animation-toolkit-2.0.0.zip --core-root .ci/godot-ai --core-zip .ci/released-core/godot-ai-v4-plugin.zip --core-ref "${{ matrix.core-ref }}" --output clean-install-evidence
