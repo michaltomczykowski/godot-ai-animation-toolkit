@@ -1,5 +1,5 @@
 """Strict admission of actual saved graph/rig rendered bundle reports."""
-import hashlib,json,math,re
+import hashlib,json,math,re,struct
 from pathlib import Path
 BODY=[24,100,1872,760]
 OPERATIONS={'graph':{'state_machine','blend_space','blend_tree','wire','locomotion','one_shot_layer','additive_lean'},'rig':{'pose_to_clip','walk_cycle','idle_breathing','blink','jumping_jack','squat','punch','bake_pose_sequence','pose_apply'}}
@@ -32,14 +32,35 @@ def scene_clock(row):
   require(len(values)<=1,'duplicate saved clip setting');return float(values[0]) if values else default
  length=field('length',1.);loop=field('loop_mode',0.)
  require(finite(length)and length>0 and loop in (0,1,2),'unsupported saved clock')
- return {'animation':name,'length':length,'loop_mode':int(loop)}
+ # The saved history fixture intentionally retains speed_scale=0.8. Resolve
+ # only the exact player used by the source-bound native loader, not a peer.
+ players=[]
+ for header,body in re.findall(r'^\[node ([^\n]+)\]\n(.*?)(?=^\[|\Z)',text,re.M|re.S):
+  def attr(key):
+   values=re.findall(r'(?:^|\s)'+key+r'="([^"\n]*)"',header)
+   require(len(values)<=1,'duplicate saved node attribute');return values[0]if values else None
+  node_name,parent,kind=attr('name'),attr('parent'),attr('type')
+  path='.'if parent is None else node_name if parent=='.'else parent+'/'+str(node_name)
+  if path==row.get('player'):
+   require(kind=='AnimationPlayer','saved clock target is not AnimationPlayer');players.append(body)
+ require(len(players)==1,'missing/ambiguous saved clock player')
+ speeds=re.findall(r'^speed_scale = ([^\n]+)',players[0],re.M)
+ require(len(speeds)<=1,'duplicate saved playback speed')
+ speed=float(speeds[0])if speeds else 1.
+ require(finite(speed)and 0<speed<=3.4028234663852886e38,'unsupported saved playback speed')
+ # AnimationPlayer stores speed_scale as native float32, even though its clock
+ # and GDScript scalar arithmetic are doubles.
+ speed=struct.unpack('f',struct.pack('f',speed))[0]
+ return {'animation':name,'length':length,'loop_mode':int(loop),'speed_scale':speed}
 
 def clock(sample,source,tick,fps):
  phase=sample.get('phase_s');require(finite(phase),'nonfinite native phase')
  require(sample.get('assigned_animation')==source['animation'] and sample.get('clip_length')==source['length'] and sample.get('clip_loop_mode')==source['loop_mode'],'selected source clip changed')
- t=tick/fps;length=source['length'];loop=source['loop_mode'];tol=1e-5
+ t=tick/fps*source.get('speed_scale',1.);length=source['length'];loop=source['loop_mode'];tol=1e-5
  if loop==0:
-  candidates=[t] if t<length-tol else [0.,length] if abs(t-length)<=tol else [0.]
+  # Natural finite playback stops at the retained endpoint. Calling stop()
+  # would reset the clock; the saved-media loader never does that after play.
+  candidates=[min(t,length)]
  elif loop==1:
   candidates=[t%length]
   if tick>0 and min(t%length,length-t%length)<=tol:candidates=[0.,length]

@@ -7,7 +7,7 @@ from saved_media_capture_checks import framing,validate_report,OPERATIONS,sha,cl
 from saved_scene_media_capture import preflight,helper_bindings
 FIXTURE=tempfile.TemporaryDirectory()
 SCENE=Path(FIXTURE.name)/"rig.tscn"
-SCENE.write_text('[gd_scene format=3]\n[sub_resource type="Animation" id="A"]\nloop_mode = 1\n[sub_resource type="AnimationLibrary" id="L"]\n_data = {&"generated": SubResource("A")}\n')
+SCENE.write_text('[gd_scene format=3]\n[sub_resource type="Animation" id="A"]\nloop_mode = 1\n[sub_resource type="AnimationLibrary" id="L"]\n_data = {&"generated": SubResource("A")}\n[node name="Main" type="Node2D"]\n[node name="Anim" type="AnimationPlayer" parent="."]\n')
 from saved_scene_media_capture import capture
 
 def geometry(kind):
@@ -20,7 +20,7 @@ def geometry(kind):
 def report(kind):
  duration=2 if kind=='graph'else 4;manifest={'cases':[]};runs=[]
  for op in sorted(OPERATIONS[kind]):
-  manifest['cases'].append({'operation':op,'scene_sha256':'a'*64}if kind=='graph'else{'operation':op,'kind':'saved_static_pair'if op=='pose_apply'else'clip','scene':{'path':str(SCENE),'sha256':sha(SCENE)},'animation':'generated',**({'before':{'sha256':'d'*64}}if op=='pose_apply'else{})})
+  manifest['cases'].append({'operation':op,'scene_sha256':'a'*64}if kind=='graph'else{'operation':op,'kind':'saved_static_pair'if op=='pose_apply'else'clip','scene':{'path':str(SCENE),'sha256':sha(SCENE)},'animation':'generated','player':'Anim',**({'before':{'sha256':'d'*64}}if op=='pose_apply'else{})})
   for take in (1,2):
    trace=[]
    for tick in range(duration*60+1):
@@ -79,17 +79,33 @@ class Controls(unittest.TestCase):
  def test_clock_finite_end_linear_wrap_and_pingpong_conventions(self):
   for loop in (0,1,2):
    for tick in range(241):
-    t=tick/60;phase=(t if t<=1 else 0)if loop==0 else t%1 if loop==1 else t%2 if t%2<=1 else 2-t%2
+    t=tick/60;phase=min(t,1)if loop==0 else t%1 if loop==1 else t%2 if t%2<=1 else 2-t%2
     clock({'phase_s':phase,'assigned_animation':'generated','clip_length':1.,'clip_loop_mode':loop,'playing':loop!=0 or t<=1},{'animation':'generated','length':1.,'loop_mode':loop},tick,60)
  def test_clock_metadata_comes_from_exact_saved_scene_bytes(self):
   with tempfile.TemporaryDirectory()as d:
-   p=Path(d)/'scene.tscn';p.write_text('[gd_scene format=3]\n[sub_resource type="Animation" id="A"]\nlength = 2.5\nloop_mode = 2\n[sub_resource type="AnimationLibrary" id="L"]\n_data = {&"generated": SubResource("A")}\n')
-   row={'scene':{'path':str(p),'sha256':sha(p)},'animation':'generated'}
-   self.assertEqual(scene_clock(row),{'animation':'generated','length':2.5,'loop_mode':2})
+   p=Path(d)/'scene.tscn';p.write_text('[gd_scene format=3]\n[sub_resource type="Animation" id="A"]\nlength = 2.5\nloop_mode = 2\n[sub_resource type="AnimationLibrary" id="L"]\n_data = {&"generated": SubResource("A")}\n[node name="Main" type="Node2D"]\n[node name="Anim" type="AnimationPlayer" parent="."]\n')
+   row={'scene':{'path':str(p),'sha256':sha(p)},'animation':'generated','player':'Anim'}
+   self.assertEqual(scene_clock(row),{'animation':'generated','length':2.5,'loop_mode':2,'speed_scale':1.})
    p.write_text(p.read_text().replace('2.5','3.5'))
    with self.assertRaises(ValueError):scene_clock(row)
    row['scene']['sha256']=sha(p);row['animation']='unrelated'
    with self.assertRaises(ValueError):scene_clock(row)
+ def test_actual_saved_speed_and_retained_finite_endpoint(self):
+  with tempfile.TemporaryDirectory()as d:
+   p=Path(d)/'scene.tscn';p.write_text('[gd_scene format=3]\n[sub_resource type="Animation" id="A"]\n[sub_resource type="AnimationLibrary" id="L"]\n_data = {&"generated": SubResource("A")}\n[node name="Main" type="Node2D"]\n[node name="Player" type="AnimationPlayer" parent="."]\nspeed_scale = 0.8\n[node name="Peer" type="AnimationPlayer" parent="."]\nspeed_scale = 2.0\n')
+   row={'scene':{'path':str(p),'sha256':sha(p)},'animation':'generated','player':'Player'};s=scene_clock(row)
+   self.assertEqual(s['speed_scale'],.800000011920929)
+   for tick,phase,playing in ((1,.0133333335320155,True),(75,1.,False),(239,1.,False)):
+    sample={'phase_s':phase,'assigned_animation':'generated','clip_length':1.,'clip_loop_mode':0,'playing':playing}
+    clock(sample,s,tick,60)
+    for wrong in (0.,.25,phase+1/60):
+     if wrong==phase:continue
+     with self.assertRaises(ValueError):clock(dict(sample,phase_s=wrong),s,tick,60)
+   for player in ('Missing','Peer'):
+    wrong=dict(row,player=player)
+    if player=='Missing':
+     with self.assertRaises(ValueError):scene_clock(wrong)
+    else:self.assertEqual(scene_clock(wrong)['speed_scale'],2.)
  def test_raster_edge_cannot_pass(self):
   for kind in ('graph','rig'):
    g=geometry(kind);g['points'][0]=[24,100]
