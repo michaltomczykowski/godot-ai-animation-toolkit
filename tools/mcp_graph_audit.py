@@ -14,6 +14,7 @@ from fastmcp import Client
 from fastmcp.client.transports import StdioTransport
 
 from mcp_presets_audit import call
+from remaining_read_witness import witnessed_read
 
 
 PLAYER = "/RepairGraphFixture/AnimationPlayer"
@@ -136,7 +137,8 @@ async def run(args: argparse.Namespace) -> int:
             row["after_dry"] = await hierarchy(client)
             row["graph_after_dry"] = await call(client, "custom_animation_graph", {
                 "op": "graph_get", "tree_path": TREE})
-            row["create"] = await call(client, "custom_animation_graph", case["params"])
+            row["create"] = (await witnessed_read(client, "custom_animation_graph", case["params"], scene, "valid")
+                if op == "graph_get" else await call(client, "custom_animation_graph", case["params"]))
             row["after"] = await hierarchy(client)
             row["save"] = await call(client, "scene_save", {})
             row["reopen"] = await call(client, "scene_open", {
@@ -144,8 +146,8 @@ async def run(args: argparse.Namespace) -> int:
             row["persisted"] = await call(client, "custom_animation_graph", {
                 "op": "graph_get", "tree_path": TREE})
             if op == "graph_get":
-                row["invalid"] = await call(client, "custom_animation_graph", {
-                    "op": "graph_get", "tree_path": "/DefinitelyMissingAnimationTree"})
+                row["invalid"] = await witnessed_read(client, "custom_animation_graph", {
+                    "op": "graph_get", "tree_path": "/DefinitelyMissingAnimationTree"}, scene, "refusal")
             rows.append(row)
     failures = [message for row in rows for message in verify_row(row)]
     print("MCP_GRAPH_AUDIT=" + json.dumps({

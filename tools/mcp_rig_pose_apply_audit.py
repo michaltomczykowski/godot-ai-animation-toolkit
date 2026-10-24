@@ -15,6 +15,7 @@ from fastmcp import Client
 from fastmcp.client.transports import StdioTransport
 
 from mcp_presets_audit import call
+from remaining_read_witness import witnessed_read
 from operation_case_collector import record_snapshot_result
 
 
@@ -61,7 +62,7 @@ async def run(args: argparse.Namespace) -> int:
                                 {**params, "dry_run": True})
         row["after_dry"] = arm_snapshot(await call(client, "custom_animation_rig", inspect))
         row["write"] = await call(client, "custom_animation_rig", params)
-        read_after = await call(client, "custom_animation_rig", inspect)
+        read_after = await witnessed_read(client, "custom_animation_rig", inspect, scene, "valid")
         row["after"] = arm_snapshot(read_after)
         row["save"] = await call(client, "scene_save", {})
         row["reopen"] = await call(client, "scene_open", {
@@ -71,7 +72,7 @@ async def run(args: argparse.Namespace) -> int:
         row["invalid"] = await call(client, "custom_animation_rig",
             {**params, "skeleton_path": "/DefinitelyMissingSkeleton"})
         get_error_request = {"op": "rig_get", "skeleton_path": "/DefinitelyMissingSkeleton"}
-        get_error = await call(client, "custom_animation_rig", get_error_request)
+        get_error = await witnessed_read(client, "custom_animation_rig", get_error_request, scene, "refusal")
         record_snapshot_result("bounded_read_v1", {"operation": "animation_rig.rig_get",
             "scene": scene, "request": inspect, "result": read_after, "persisted_result": read_persisted,
             "error_request": get_error_request, "typed_error": get_error,

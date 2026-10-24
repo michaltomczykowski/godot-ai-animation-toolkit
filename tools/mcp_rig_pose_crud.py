@@ -17,6 +17,7 @@ from fastmcp import Client
 from fastmcp.client.transports import StdioTransport
 
 from mcp_presets_audit import call
+from remaining_read_witness import witnessed_read
 from operation_case_collector import record_snapshot_result
 
 
@@ -68,8 +69,8 @@ async def run(args: argparse.Namespace) -> int:
             {**save_base, "name": "arm"})
         files_before_list = pose_files(disk_dir)
         files_before_list_ns = time.perf_counter_ns()
-        row["list"] = await call(client, "custom_animation_rig",
-            {"op": "pose_list", "directory": pose_dir})
+        row["list"] = await witnessed_read(client, "custom_animation_rig",
+            {"op": "pose_list", "directory": pose_dir}, scene, "valid")
         files_after_list = pose_files(disk_dir)
         files_after_list_ns = time.perf_counter_ns()
         record_snapshot_result("bounded_read_v1", {"operation": "animation_rig.pose_list",
@@ -79,6 +80,10 @@ async def run(args: argparse.Namespace) -> int:
             "open": row["open"], "save_requests": [{**save_base, "name": "rest"}, {**save_base, "name": "arm"}],
             "save_results": [row["save_rest"], row["save_arm"]],
             "observation_scope": "pose-directory exact bytes/content only; live scene unobserved"})
+        row["invalid_list"] = await witnessed_read(client, "custom_animation_rig",
+            {"op": "pose_list", "directory": []}, scene, "refusal")
+        if not row["invalid_list"].get("error", "").startswith("INVALID_PARAMS:"):
+            raise RuntimeError("pose_list invalid directory type lacks exact INVALID_PARAMS")
         blend_base = {"op": "pose_blend", "pose_dir": pose_dir,
                       "from": "rest", "to": "arm", "factor": 0.5}
         row["blend_dry"] = await call(client, "custom_animation_rig",
