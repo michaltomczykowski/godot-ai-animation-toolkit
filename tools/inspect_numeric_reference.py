@@ -26,11 +26,19 @@ def equal(a,b):
 
 def reference_valid(ref,op):
  n=8 if op=='sample' else 120
- if not isinstance(ref,dict) or ref.get('eligible') is not True or ref.get('kind')!='fresh_saved_scene_native_Player' or ref.get('scene')!='res://repair_motion_fixture.tscn' or ref.get('clip')!='repair_probe_walk' or ref.get('samples')!=n or ref.get('root_track_before')!='Dummy:position' or ref.get('root_track_played')!=('Dummy:position' if op=='sample' else ''):return False
+ if not isinstance(ref,dict) or ref.get('eligible') is not True or ref.get('kind')!='fresh_saved_scene_native_Player' or ref.get('scene')!='res://repair_motion_fixture.tscn' or ref.get('clip')!='repair_probe_walk' or ref.get('samples')!=n or ref.get('root_track_before')!='Dummy:position' or ref.get('root_track_played')!='Dummy:position':return False
+ if ref.get('pose_source')!='native_extracted_world_before_root_addition' or type(ref.get('root_index')) is not int or ref['root_index']!=20 or type(ref.get('root_type')) is not int or ref['root_type']!=1 or ref.get('root_local') is not True or not finite(ref.get('clip_length')) or ref['clip_length']!=1 or type(ref.get('clip_loop_mode')) is not int or ref['clip_loop_mode']!=1:return False
+ if not equal(ref.get('root_basis'),[[1,0,0],[0,1,0],[0,0,1]]) or not equal(ref.get('root_start'),[0,0,0]):return False
+ endpoint=ref.get('root_endpoint')
+ if not isinstance(endpoint,list) or len(endpoint)!=3 or not all(finite(v) for v in endpoint):return False
  frames=ref.get('frames',[])
  if len(frames)!=n:return False
  for i,row in enumerate(frames):
-  if not equal(row.get('at'),i/(n-1)) or not equal(row.get('position'),i/(n-1)) or row.get('assigned')!='repair_probe_walk' or type(row.get('process')) is not int or row['process']!=2 or not finite(row.get('speed')) or row['speed']!=1:return False
+  if not equal(row.get('at'),i/(n-1)) or not equal(row.get('position'),0. if i==n-1 else i/(n-1)) or row.get('assigned')!='repair_probe_walk' or type(row.get('process')) is not int or row['process']!=2 or not finite(row.get('speed')) or row['speed']!=1:return False
+  root=row.get('root_sample')
+  if not isinstance(root,list) or len(root)!=3 or not all(finite(v) for v in root):return False
+  if i==0 and not equal(root,ref['root_start']):return False
+  if i==n-1 and not equal(root,endpoint):return False
   points=row.get('points',{})
   if set(points)!=set(BONES) or any(not isinstance(v,list) or len(v)!=3 or not all(finite(x) for x in v) for v in points.values()):return False
  for field in ('up','forward','lateral'):
@@ -97,7 +105,7 @@ def knee(times,hips,knees,feet,leg):
 
 def audit_effect(result,ref):
  if not reference_valid(ref,'motion_audit'):return False
- n=120;times=[i/119 for i in range(n)];frames=ref['frames'];hips=[row['points']['B-hips'] for row in frames];up=ref['up']
+ n=120;times=[i/119 for i in range(n)];frames=[dict(row,points={name:add(point,sub(row['root_sample'],ref['root_start'])) for name,point in row['points'].items()}) for row in ref['frames']];hips=[row['points']['B-hips'] for row in frames];up=ref['up']
  threshold=min(.005,.005*max(ref['legs'].values())/.85)
  heights=[dot(p,up) for p in hips];bob=max(heights)-min(heights);net=flat(hips[0],hips[-1]);path=sum(flat(a,b) for a,b in zip(hips,hips[1:]));in_place=net<.05
  checks={'hip_bob':(bob<=.12,r4(bob),.12)}

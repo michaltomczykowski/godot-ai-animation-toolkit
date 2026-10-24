@@ -12,8 +12,7 @@ static func _strip(node: Node) -> void:
  for child in node.get_children(): _strip(child)
 static func build(marker: Dictionary) -> Dictionary:
  if marker.stage != "valid" or marker.scene != SCENE or marker.request.op not in ["sample", "motion_audit"]: return {"not_applicable": true}
- var audit: bool = marker.request.op == "motion_audit"
- var count := 120 if audit else 8
+ var count := 120 if marker.request.op == "motion_audit" else 8
  var source := ResourceLoader.load(SCENE, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene
  if source == null: return {"failure": "saved reference scene not loaded"}
  var reference := source.instantiate()
@@ -31,7 +30,11 @@ static func build(marker: Dictionary) -> Dictionary:
  var original_root_track := str(player.root_motion_track)
  player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
  player.speed_scale = 1.0
- if audit: player.root_motion_track = NodePath("")
+ var root_index := clip.find_track(player.root_motion_track, Animation.TYPE_POSITION_3D)
+ if root_index != 20 or str(player.root_motion_track) != "Dummy:position" or not player.root_motion_local or clip.loop_mode != Animation.LOOP_LINEAR:
+  reference.free()
+  return {"failure": "authored root binding or loop mode differs"}
+ var root_start: Vector3 = clip.position_track_interpolate(root_index, 0.0)
  var viewport := SubViewport.new()
  viewport.own_world_3d = true
  viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
@@ -66,8 +69,8 @@ static func build(marker: Dictionary) -> Dictionary:
   player.seek(at, true, true)
   var points := {}
   for bone in BONES: points[bone] = _vec((skeleton.global_transform * skeleton.get_bone_global_pose(skeleton.find_bone(bone))).origin)
-  frames.append({"at": at, "position": player.current_animation_position, "assigned": str(player.assigned_animation), "speed": player.speed_scale, "process": player.callback_mode_process, "points": points})
- var output := {"scene": SCENE, "scene_sha256": FileAccess.get_sha256(SCENE), "clip": CLIP, "samples": count, "frames": frames, "eligible": eligible, "kind": "fresh_saved_scene_native_Player", "root_track_before": original_root_track, "root_track_played": str(player.root_motion_track), "up": _vec(up), "forward": _vec(forward), "lateral": _vec(lateral), "legs": legs, "rest_feet": {"l": _vec(rests["B-foot.L"]), "r": _vec(rests["B-foot.R"])}}
+  frames.append({"at": at, "position": player.current_animation_position, "assigned": str(player.assigned_animation), "speed": player.speed_scale, "process": player.callback_mode_process, "points": points, "root_sample": _vec(clip.position_track_interpolate(root_index, at))})
+ var output := {"scene": SCENE, "scene_sha256": FileAccess.get_sha256(SCENE), "clip": CLIP, "samples": count, "frames": frames, "eligible": eligible, "kind": "fresh_saved_scene_native_Player", "pose_source": "native_extracted_world_before_root_addition", "root_index": root_index, "root_type": clip.track_get_type(root_index), "root_local": player.root_motion_local, "root_start": _vec(root_start), "root_endpoint": _vec(clip.position_track_interpolate(root_index, clip.length)), "root_basis": [_vec(skeleton.global_transform.basis.x), _vec(skeleton.global_transform.basis.y), _vec(skeleton.global_transform.basis.z)], "clip_length": clip.length, "clip_loop_mode": clip.loop_mode, "root_track_before": original_root_track, "root_track_played": str(player.root_motion_track), "up": _vec(up), "forward": _vec(forward), "lateral": _vec(lateral), "legs": legs, "rest_feet": {"l": _vec(rests["B-foot.L"]), "r": _vec(rests["B-foot.R"])}}
  player.stop()
  viewport.free()
  return output

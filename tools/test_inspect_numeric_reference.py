@@ -13,8 +13,8 @@ def reference(op='motion_audit',travel=.03):
    side=-.1 if bone.endswith('.R') else .1 if bone.endswith('.L') else 0.
    y=.5 if 'shin' in bone else 0. if 'foot' in bone or 'toe' in bone else 1.
    points[bone]=[n.f(side),y,z]
-  frames.append({'at':t,'position':t,'assigned':'repair_probe_walk','speed':1.,'process':2,'points':points})
- return {'scene':'res://repair_motion_fixture.tscn','scene_sha256':'a'*64,'clip':'repair_probe_walk','kind':'fresh_saved_scene_native_Player','samples':count,'eligible':True,'root_track_before':'Dummy:position','root_track_played':'Dummy:position' if op=='sample' else '', 'up':[0,1,0],'forward':[0,0,1],'lateral':[1,0,0],'legs':{'l':1.,'r':1.},'rest_feet':{'l':[n.f(.1),0,0],'r':[n.f(-.1),0,0]},'frames':frames}
+  frames.append({'at':t,'position':0. if i==count-1 else t,'assigned':'repair_probe_walk','speed':1.,'process':2,'points':points,'root_sample':[0.,0.,0.]})
+ return {'scene':'res://repair_motion_fixture.tscn','scene_sha256':'a'*64,'clip':'repair_probe_walk','kind':'fresh_saved_scene_native_Player','samples':count,'eligible':True,'root_track_before':'Dummy:position','root_track_played':'Dummy:position', 'pose_source':'native_extracted_world_before_root_addition','root_index':20,'root_type':1,'root_local':True,'root_start':[0.,0.,0.],'root_endpoint':[0.,0.,0.],'root_basis':[[1,0,0],[0,1,0],[0,0,1]],'clip_length':1.,'clip_loop_mode':1, 'up':[0,1,0],'forward':[0,0,1],'lateral':[1,0,0],'legs':{'l':1.,'r':1.},'rest_feet':{'l':[n.f(.1),0,0],'r':[n.f(-.1),0,0]},'frames':frames}
 
 def sample_result(ref):
  result=dict(length=1,sample_count=8,times=[i/7 for i in range(8)],contact_threshold=.02,missing_bones=[],bones_truncated=False,undoable=False,bones={},feet={})
@@ -81,4 +81,37 @@ class NumericReferenceTests(unittest.TestCase):
  def test_nonunit_axes_are_not_accepted(self):
   ref=reference();ref['forward']=[0,0,2]
   self.assertFalse(n.reference_valid(ref,'motion_audit'))
+ def test_loop_clock_requires_only_exact_endpoint_wrap(self):
+  for op in ('sample','motion_audit'):
+   good=reference(op);self.assertTrue(n.reference_valid(good,op))
+   for index,value in [(0,.01),(1,0.),(-2,0.),(-1,1.),(-1,.999999),(-1,.01)]:
+    bad=copy.deepcopy(good);bad['frames'][index]['position']=value
+    with self.subTest(op=op,index=index,value=value):self.assertFalse(n.reference_valid(bad,op))
+ def test_root_binding_raw_pose_and_nonfinite_controls(self):
+  for field,value in [('root_index',19),('root_type',0),('root_local',False),('root_track_played',''),('pose_source','actor_translated_world'),('root_basis',[[1,0,0],[0,1,0],[0,0,2]]),('root_start',[0,0,.1]),('clip_loop_mode',0),('clip_length',2.)]:
+   ref=reference();ref[field]=value
+   with self.subTest(field=field):self.assertFalse(n.reference_valid(ref,'motion_audit'))
+  for root in (None,[0,0], [0,0,math.inf],[0,False,0]):
+   ref=reference();ref['frames'][1]['root_sample']=root
+   with self.subTest(root=root):self.assertFalse(n.reference_valid(ref,'motion_audit'))
+ def test_separate_root_translation_has_hand_calculated_world_travel(self):
+  ref=reference();out=audit_result(ref)
+  # Independent linear translation .125m on top of .03m local motion.
+  for row in ref['frames']:row['root_sample']=[0.,0.,n.f(.125*row['at'])]
+  ref['root_endpoint']=[0.,0.,.125]
+  out.update(in_place=False,body_travel=.155,passed=False,failed_checks=2)
+  out['hips'].update(body_travel=.155,body_path=.155,mean_speed=.155,trace=[[0,1,round(.155*i/119,4)] for i in range(120)])
+  for side,x in [('l',.1),('r',-.1)]:
+   out['feet'][side].update(worst_slide=.155,mean_slide=.155,path=.155,windows=[dict(start=0.,end=1.,slide=.155,path=.155)],trace=[[x,0,round(.155*i/119,4)] for i in range(120)])
+  for check in out['checks']:
+   if check['check'].startswith('foot_slide.'):check.update(passed=False,value=.155)
+  self.assertTrue(n.audit_effect(out,ref))
+  for corruption in ('missing','wrong_endpoint','wrong_interior','inert_local'):
+   bad=copy.deepcopy(ref)
+   if corruption=='missing':del bad['frames'][1]['root_sample']
+   elif corruption=='wrong_endpoint':bad['frames'][-1]['root_sample']=[0,0,0]
+   elif corruption=='wrong_interior':bad['frames'][60]['root_sample']=[0,0,.5]
+   else:
+    for row in bad['frames']:row['points']=copy.deepcopy(bad['frames'][0]['points'])
+   with self.subTest(corruption=corruption):self.assertFalse(n.audit_effect(out,bad))
 if __name__=='__main__':unittest.main()
