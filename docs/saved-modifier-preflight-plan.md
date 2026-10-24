@@ -44,3 +44,24 @@ Preparation now copies the subclass/shared evaluator/framing helper and every av
 4. After actual native acceptance only, root calls tools/record_saved_modifier_capture.py with --project/--appdata/--manifest/--native/--godot/--ffmpeg/--ffprobe/--output. It invokes GPU rendering serially, preserves failed receipts/logs, verifies all2400PNG names/dimensions/SHA and native/reference trajectory equivalence, encodes at60FPS and independently fully decodes/ffprobes the40s1920x1080video. Existing shared decode/log utilities are reused. Source APPDATA is passed only to that subprocess; oldr004/r005 and originalr006public files are not written.
 
 Offline controls: three strict report/projection tests (13native stage corruptions plus complete-corner/header/depth/bounds corruptions), one mocked engine-failure receipt test, and three preparation/native-cell/UID tests pass; Python compile/whitespace checks pass. These are source/adapter controls, not a renderer/native/GPU claim. Root must parse and measure the new4s path before capture and independently assess the resulting continuous film. Scope stays technical native joints; no human character-motion quality approval is implied.
+
+
+## Fixed-camera receipt admission hardening
+
+Independent source review found that the renderer recorded fixed_camera but the
+Python admission ignored it. The strict validator now requires finite native
+position/basis vectors, finite positive orthographic size, exact referenced
+preflight SHA and the exact qualified envelope union across all four native
+runs (both fresh takes, active and inactive) for that case. The camera receipt
+must remain identical throughout both active rendered takes. Missing camera,
+position/basis/size corruption, wrong preflight source, altered/incomplete union,
+and within-take or cross-take drift are rejected. Boolean numeric aliases are
+rejected. The supplied native reference is independently admitted before its
+20runs are used. Native conservative projection/body/fringe checks remain as
+implemented; Python does not recompute Godot projection or add numeric tolerance.
+
+This changes only Python receipt admission/tests, not the renderer, evaluation,
+copied project inputs, immutable scenes/configs, clocks or media. New controls
+include a valid union expanded solely by an inactive sample from the other take,
+so an active-only or single-take envelope cannot qualify. Actual GPU capture is
+still root-owned/pending; synthetic render receipts are not pixel evidence.

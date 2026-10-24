@@ -17,6 +17,25 @@ def framing(value):
     require(all(isinstance(p,list) and len(p)==2 and all(finite(x) for x in p) and 25<=p[0]<=1895 and 101<=p[1]<=859 for p in points),'display leaves body/header guard')
     xs,ys=zip(*points);bounds=[min(xs),min(ys),max(xs)-min(xs),max(ys)-min(ys)]
     require(bounds[2]>=2 and bounds[3]>=2 and len(value.get('bounds',[]))==4 and all(abs(x-y)<1e-4 for x,y in zip(bounds,value['bounds'])),'incorrect/unreadable projection bounds')
+def camera_vector(value):
+    return isinstance(value,list) and len(value)==3 and all(finite(x) for x in value)
+
+def envelope_union(reference,case_id):
+    selected=[r for r in reference['runs'] if r['id']==case_id]
+    require(len(selected)==4,'camera envelope needs both native takes/activation controls')
+    envelopes=[s['display_envelope'] for r in selected for s in r['trace']]
+    require(bool(envelopes),'missing qualified camera envelope samples')
+    return {'minimum':[min(e['minimum'][axis] for e in envelopes) for axis in range(3)],
+            'maximum':[max(e['maximum'][axis] for e in envelopes) for axis in range(3)]}
+
+def fixed_camera(value,expected_envelope,reference_sha):
+    require(isinstance(value,dict),'missing fixed camera receipt')
+    require(camera_vector(value.get('position')) and isinstance(value.get('basis'),list) and len(value['basis'])==3 and all(camera_vector(v) for v in value['basis']),'nonfinite/malformed fixed camera position/basis')
+    require(finite(value.get('size')) and value['size']>0,'invalid fixed camera size')
+    require(value.get('preflight_sha256')==reference_sha,'camera uses another native preflight')
+    envelope=value.get('qualified_envelope')
+    require(isinstance(envelope,dict) and set(envelope)=={'minimum','maximum'} and camera_vector(envelope['minimum']) and camera_vector(envelope['maximum']) and envelope==expected_envelope,'camera envelope is not the complete native case/takes/control union')
+
 def validate(report,manifest,manifest_sha,frames=None,reference=None,reference_sha=None):
     require(report.get('passed') is True and report.get('engine_errors')==[] and type(report.get('engine_errors')) is list and report.get('failures')==[] and type(report.get('failures')) is list and report.get('inert_control') is False,'failed/malformed native report')
     require(report.get('manifest_sha256')==manifest_sha and report.get('fps')==60,'manifest/FPS mismatch')
@@ -28,6 +47,11 @@ def validate(report,manifest,manifest_sha,frames=None,reference=None,reference_s
     render=report.get('mode')=='render';require(report.get('mode') in ('native','render'),'unknown report mode')
     if render:require(reference is not None and digest(reference_sha) and report.get('native_preflight_sha256')==reference_sha,'render requires exact native preflight receipt')
     require(report.get('accepted_frames')==(2400 if render else 0),'accepted frame total')
+    if render:
+        require(reference.get('mode')=='native','camera qualification requires native reference mode')
+        validate(reference,manifest,manifest_sha)
+    camera_by_case={}
+    expected_envelopes={case_id:envelope_union(reference,case_id) for case_id in cases} if render else {}
     movie=[]
     for run in runs:
         require(run.get('failures')==[] and run.get('op')==cases[run['id']]['op'] and run.get('scene_sha256')==cases[run['id']]['scene']['sha256'] and run.get('fps')==60 and run.get('frames')==240 and run.get('excluded_loading_process_frames')==2 and run.get('saved_active') is False and run.get('runtime_influence')==1.,'saved activation/source/warmup changed')
@@ -41,6 +65,10 @@ def validate(report,manifest,manifest_sha,frames=None,reference=None,reference_s
             env=s.get('display_envelope',{});require(env.get('vertex_count',0)>0 and len(env.get('minimum',[]))==3 and len(env.get('maximum',[]))==3 and all(finite(x) for x in env['minimum']+env['maximum']) and all(x<=y for x,y in zip(env['minimum'],env['maximum'])),'missing complete native world envelope')
             if not run['active']:require(s.get('effect',1)<.001,'inactive baseline changed')
             if render and run['active']:
+                camera=s.get('fixed_camera')
+                fixed_camera(camera,expected_envelopes[run['id']],reference_sha)
+                if run['id'] in camera_by_case:require(camera==camera_by_case[run['id']],'camera changes within case/across fresh takes')
+                else:camera_by_case[run['id']]=camera
                 movie.append(s);framing(s.get('framing',{}));require(s.get('png_dimensions')==[1920,1080] and s.get('raw_after_draw')==s['raw'] and s.get('final_after_draw')==s['final'] and s.get('skin_after_draw',-1)>=s['skin'],'draw-time mutation or PNG size')
         peer=next(r for r in runs if r['id']==run['id'] and r['active']==run['active'] and r['take']!=run['take'])
         require(peer['final_pose']==run['final_pose'] and peer['config_sha256']==run['config_sha256'],'fresh reset pose/config drift')
