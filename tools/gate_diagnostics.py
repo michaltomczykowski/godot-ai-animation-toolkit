@@ -29,6 +29,36 @@ def progress(args, stage, **payload):
         pending.replace(target)
 
 
+def native_progress_payload(record, payload, report, native_case_id=None):
+    """Preserve one full native JSON payload; repeat only scalars and its identity.
+
+    Caller invokes this only after its unchanged native gate checks succeeded.
+    This diagnostic summary is not per-operation proof or a qualification pass.
+    """
+    counts=('cases','saved_states','playback_runs','travel_runs','key_samples',
+            'intermediate_samples','approximation_samples')
+    if any(type(report.get(key)) is not int for key in counts):
+        raise ValueError('native progress requires actual integer gate counts')
+    if report.get('failures')!=[] or report.get('engine_errors')!=[]:
+        raise ValueError('native errors must not be compacted into a completed gate')
+    raw=payload.encode('utf-8')
+    identity={'sha256':hashlib.sha256(raw).hexdigest(),'bytes':len(raw),
+              'native_case_id':native_case_id}
+    if record:
+        record=Path(record)
+        record.parent.mkdir(parents=True,exist_ok=True)
+        artifact=record.with_suffix('.native-runtime.json')
+        # Never overwrite an earlier full result, including a failed attempt.
+        with artifact.open('xb') as file:file.write(raw)
+        identity['path']=str(artifact)
+    else:
+        identity['path']=None
+    return {**{key:report[key] for key in counts},
+            'evidence_schema':report.get('evidence_schema'),
+            'manifest_sha256':report.get('manifest_sha256'),
+            'failures':[],'engine_errors':[],'full_native_report':identity}
+
+
 def _text(value):
     return value.decode('utf-8',errors='replace') if isinstance(value,bytes) else value or ''
 

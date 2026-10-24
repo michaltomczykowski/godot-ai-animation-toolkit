@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import uuid
 from operation_case_collector import record_native_result
-from gate_diagnostics import progress, bounded_run
+from gate_diagnostics import progress, bounded_run, native_progress_payload
 from mcp_presets_audit import call
 from motion_sequence_transport_diagnostics import observed_call
 from mcp_preset_library_history import valid_suite
@@ -52,7 +52,7 @@ def runtime(args) -> dict:
     else:
         result=subprocess.run(command,capture_output=True,text=True,timeout=240,check=False)
     # One immutable completed batch; adapter joins its rows to exact public cases.
-    record_native_result('animation_sequence.compose','user://motion_sequence_saved_matrix.json',command,result)
+    native_case_id=record_native_result('animation_sequence.compose','user://motion_sequence_saved_matrix.json',command,result)
     prefix = 'MOTION_SEQUENCE_HISTORY_RUNTIME='
     payload = next((s[len(prefix):] for s in result.stdout.splitlines() if s.startswith(prefix)), '')
     report = json.loads(payload) if payload else {}
@@ -64,6 +64,7 @@ def runtime(args) -> dict:
             or report.get('travel_runs', 0) < 100
             or report.get('approximation_samples', 0) < 1000):
         raise RuntimeError('Native history gate failed: ' + (result.stdout + result.stderr)[-7000:])
+    args._native_progress=native_progress_payload(args.record,payload,report,native_case_id)
     return report
 
 async def direct(client, row, phase, args) -> dict:
@@ -144,7 +145,7 @@ async def run(args):
             if not valid_suite(result, expected): raise RuntimeError('Invalid suite ' + name + ': ' + repr(result))
         progress(args,'native_start',suites=suites)
         played = runtime(args)
-        progress(args,'native_completed',suites=suites,runtime=played)
+        progress(args,'native_completed',suites=suites,runtime=args._native_progress)
         manifest = Path(played['manifest_path'])
         rows = {row['id']: row for row in json.loads(manifest.read_text(encoding='utf-8'))['cases']}
         for key in DIRECT_IDS:
