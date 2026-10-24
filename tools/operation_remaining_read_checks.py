@@ -27,7 +27,7 @@ def snapshot_complete(snapshot,marker,context):
  nodes=snapshot.get('nodes',{});resources=snapshot.get('resources',{});files=snapshot.get('files',{})
  if not isinstance(nodes,dict)or not isinstance(resources,dict)or not isinstance(files,dict)or not digest(files.get(marker['scene']))or not all(digest(v)for v in files.values()):return False
  graph=marker['operation']=='animation_graph.graph_get'
- required={'.':'Node2D','Character':'Node2D','OtherCharacter':'Node2D','AnimationPlayer':'AnimationPlayer','AnimationTree':'AnimationTree'}if graph else{'.':'Node3D','Dummy':'Node3D','Dummy/Skeleton3D':'Skeleton3D','AnimationPlayer':'AnimationPlayer'}
+ required={'.':'Node2D','Character':'Node2D','AnimationPlayer':'AnimationPlayer','AnimationTree':'AnimationTree'}if graph else{'.':'Node3D','Dummy':'Node3D','Dummy/Skeleton3D':'Skeleton3D','AnimationPlayer':'AnimationPlayer'}
  if any(nodes.get(path,{}).get('class')!=kind for path,kind in required.items()):return False
  for path,node in nodes.items():
   if type(node.get('id'))is not int or not isinstance(node.get('properties'),dict)or not isinstance(node.get('children'),list)or not isinstance(node.get('class'),str)or not node.get('class'):return False

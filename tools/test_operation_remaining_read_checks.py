@@ -1,5 +1,5 @@
 """Offline corruptions only; synthetic positives do not establish native proof."""
-import asyncio,copy,json,tempfile,unittest
+import asyncio,copy,json,re,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch
 import operation_remaining_read_checks as s
@@ -18,7 +18,7 @@ def fixture(key):
  source='test_project/repair_graph_fixture.tscn'if graph_case else'test_project/repair_rig_fixture.tscn'
  deps=s.BASE+('tools/'+driver,source,'addons/godot_ai_animation/utils/error_codes.gd')+(('addons/godot_ai_animation/handlers/graph.gd','addons/godot_ai_animation/spec/graph_builders.gd')if graph_case else(s.MODEL,'addons/godot_ai_animation/handlers/rig.gd'))
  context={'run_id':'run','dependencies':{p:{'sha256':'d'*64,'git_blob':'e'*40}for p in deps}}
- classes={'.':'Node2D','Character':'Node2D','OtherCharacter':'Node2D','AnimationPlayer':'AnimationPlayer','AnimationTree':'AnimationTree'}if graph_case else{'.':'Node3D','Dummy':'Node3D','Dummy/Skeleton3D':'Skeleton3D','AnimationPlayer':'AnimationPlayer'}
+ classes={'.':'Node2D','Character':'Node2D','AnimationPlayer':'AnimationPlayer','AnimationTree':'AnimationTree'}if graph_case else{'.':'Node3D','Dummy':'Node3D','Dummy/Skeleton3D':'Skeleton3D','AnimationPlayer':'AnimationPlayer'}
  nodes={p:{'id':i,'class':kind,'name':('RepairGraphFixture'if graph_case else'RepairRigFixture')if p=='.'else p.rsplit('/',1)[-1],'properties':{},'children':[]}for i,(p,kind)in enumerate(classes.items(),1)};nodes['.']['children']=[p for p in nodes if p!='.'and'/'not in p]
  if not graph_case:
   nodes['Dummy']['children']=['Skeleton3D'];nodes['Dummy/Skeleton3D']['bones']=[{'name':name,'parent':-1,'rest':{'type':'Transform3D','bytes_sha256':'a'*64},'position':{'type':'Vector3','bytes_sha256':'a'*64},'rotation':{'type':'Quaternion','bytes_sha256':'a'*64},'scale':{'type':'Vector3','bytes_sha256':'a'*64},'enabled':True}for name in s.EXPECTED_BONES]
@@ -46,6 +46,16 @@ def fixture(key):
  return events[1],context,events,public,begins,support
 
 class Controls(unittest.TestCase):
+ def test_graph_hierarchy_matches_committed_fixture_and_authored_tree(self):
+  text=(Path(__file__).resolve().parents[1]/'test_project/repair_graph_fixture.tscn').read_text()
+  actual={name:kind for name,kind in re.findall(r'\[node name="([^"]+)" type="([^"]+)"',text)}
+  self.assertEqual(actual,{'RepairGraphFixture':'Node2D','Character':'Node2D','AnimationPlayer':'AnimationPlayer'})
+  e,c,*_=fixture('animation_graph.graph_get');row=e['row'];nodes=row['before']['nodes']
+  self.assertEqual(set(nodes),{'.','Character','AnimationPlayer','AnimationTree'})
+  self.assertTrue(s.snapshot_complete(row['before'],row['marker'],c))
+  for path in ('Character','AnimationPlayer','AnimationTree'):
+   changed=copy.deepcopy(row['before']);del changed['nodes'][path]
+   self.assertFalse(s.snapshot_complete(changed,row['marker'],c),path)
  def test_literal_pose_directory_from_actual_driver_path(self):
   scene='res://repair_rig_audit/20261024_123456/poses.tscn'
   self.assertEqual(s.fixed('animation_rig.pose_list','valid',scene),{'op':'pose_list','directory':'res://animation_toolkit/repair_audit/rig_poses_20261024_123456'})
