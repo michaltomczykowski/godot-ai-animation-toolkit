@@ -18,6 +18,7 @@ import sys
 import time
 
 from ci_mcp_route import port_open
+from preview_native_debug import launch_command, cleanup_debugger_group
 from preview_renderer_profile import LINUX, PROFILES, validate_environment, validate_renderer_identity
 
 
@@ -65,7 +66,8 @@ def require_error(value, code):
 
 def validate_editor_log(text):
     text = re.sub(r'\x1b\[[0-9;]*m', '', text)
-    if re.search(r'(?m)^\s*(?:SCRIPT )?ERROR:', text):
+    if re.search(r'(?m)^\s*(?:SCRIPT )?ERROR:', text) or re.search(
+            r'double free or corruption|malloc\(\):|free\(\): invalid pointer|Program (?:received|terminated with) signal SIG(?:ABRT|SEGV|BUS)',text):
         raise ValueError('engine/script error in complete editor log')
 
 
@@ -206,8 +208,13 @@ def run(args):
         'display':os.environ.get('DISPLAY'),'renderer':'gl_compatibility',
         'renderer_profile':args.renderer_profile}
     owned=[]
+    debug_process=None
     try:
         validate_environment(args.renderer_profile,sys.platform,os.environ.get('DISPLAY'))
+        debugger=getattr(args,'native_debugger','none')
+        # Validate before spawning anything. Godot/version/context stay unchanged.
+        launch_command([args.godot],debugger)
+        report['native_debugger']={'mode':debugger}
         report['context']=prepare(Path(__file__).resolve().parents[1],args.core_root,args.godot,context)
         report['context_sha256']=digest(context)
         if report['context']['platform'] != ('linux' if args.renderer_profile==LINUX else 'windows'):
@@ -232,7 +239,14 @@ def run(args):
             command=[args.godot,'--editor','--path',str(args.project),'--rendering-method','gl_compatibility',
                 '--rendering-driver','opengl3','--audio-driver','Dummy','res://main.tscn']
             report['editor_command']=command
-            owned.append(subprocess.Popen(command,env=env,stdout=editor_log,stderr=subprocess.STDOUT))
+            actual_command=launch_command(command,debugger)
+            report['editor_launch_command']=actual_command
+            editor=subprocess.Popen(actual_command,env=env,stdout=editor_log,stderr=subprocess.STDOUT,
+                **({'start_new_session':True} if debugger=='gdb' else {}))
+            owned.append(editor)
+            if debugger=='gdb':
+                debug_process=editor
+                report['native_debugger'].update(pid=editor.pid,private_process_group=True)
             asyncio.run(exercise(args,report))
             startup=(args.output/'editor.log').read_text(encoding='utf-8',errors='replace')
             report['renderer_identity']=validate_renderer_identity(
@@ -242,6 +256,17 @@ def run(args):
         report['error']=str(exc)
     finally:
         for process in reversed(owned):
+            if process is debug_process:
+                try:
+                    cleanup=cleanup_debugger_group(process)
+                    report['native_debugger']['cleanup']=cleanup
+                    if cleanup.get('pre_cleanup_returncode') not in (None,0):
+                        report['passed']=False
+                        report.setdefault('secondary_errors',[]).append('native debugger exited abnormally before owned cleanup')
+                except (OSError,subprocess.TimeoutExpired) as exc:
+                    report['passed']=False
+                    report.setdefault('secondary_errors',[]).append('owned debugger cleanup failed: '+str(exc))
+                continue
             if process.poll() is None:
                 process.terminate()
                 try: process.wait(timeout=10)
@@ -273,6 +298,7 @@ def run(args):
 
 if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--native-debugger',choices=('none','gdb'),default=os.environ.get('TOOLKIT_PREVIEW_NATIVE_DEBUGGER','none'))
     parser.add_argument('--renderer-profile',choices=PROFILES,default=LINUX)
     parser.add_argument('--core-root',type=Path,required=True)
     parser.add_argument('--project',type=Path,default=Path('test_project'))
