@@ -1,5 +1,38 @@
 # Agent notes
 
+## Current checkpoint, 24 October: precision controls qualified
+
+No Godot process is active after exec96732. r008 stopped after18passing groups
+and one Heavy/Z-up/120FPS endpoint miss0.10395mm over13.283m. Recorded native
+delta sum is within1.75um; repeatedVector3float32position additions lose102um.
+Checker-only scalar-double observed-delta accumulation fixes formerly failing
+60plays (worst1.91um), unchanged0.1mm limit. Extra writer/parent movement is
+checked before/after consumer evaluation.72positive/48expectednegative precision
+controls and12positive/72negative endpoint controls PASS,0engineerrors.
+Evidence setup/native-precision-recovery-r001, independent-validation.json;
+original failure/control attempts preserved. No product/clip/request change.
+
+Root precision changes await checkpoint/combined integration. Isolated integration
+WT E:/.../root-rig-history-implementation is backed up on origin branch
+repair/rig-history-evidence-20261018 at21b65ae; motion-native cherry bfea26c
+additionally local.64mixed offline controls passed before new native increment.
+All added GDScript still needs actual parse/live checks. Rig-native worker has
+uncommitted prepared sources in toolkit-release-inspect-20261017 (agent usage
+errored); finish/review those explicitly, excluding its stale whole collector.
+Next commit precision, merge isolated sources, parse, push and freeze for all30
+native setup groups; never launch while an actual native queue is active.
+
+## LIVE ROOT SLOT: native setup r008 (23 October)
+
+Frozen HEAD2613e36bc99419541ac0ab8a6d3d41ee4f96902a, pushed.
+Runner E:/GodotAI-toolkit-release-2.0.0/20261014/run_setup_native_matrix_r008.py,
+exec62068. Read setup/native-matrix-r008/execution.json and actual processes
+before any Godot launch or HEAD/source change. This is 30 serial native groups,
+1,800plays of exact already saved r007 scenes. No public editor is needed.
+Original public source233562a is retained; production613dependency hashes match.
+All endpoint controls now complete:12positive and72expectednegative PASS,
+0engine errors; first misoriented control remains preserved separately.
+
 ## Resume 23 October: public matrix complete; endpoint gate repaired
 
 No Godot process remains after endpoint controls exec59491. production-r007

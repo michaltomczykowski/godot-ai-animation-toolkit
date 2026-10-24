@@ -40,6 +40,8 @@ func _prepare_admission_control(_scene: Node, _row: Dictionary, _rig: Skeleton3D
 	pass # Overridden only by the disposable corruption harness.
 func _prepare_endpoint_control(_v: Dictionary, _row: Dictionary, _reference: Dictionary) -> void:
 	pass # Overridden only by the disposable endpoint corruption harness.
+func _prepare_translation_control(_v: Dictionary, _row: Dictionary) -> void:
+	pass # Overridden only by the disposable translation corruption harness.
 func _inert_internal_simulator(candidate: Node) -> bool:
 	# Godot inserts this empty compatibility node internally on scene entry.
 	# A user-owned/child-bearing/simulating/scripted modifier is not exempt.
@@ -311,7 +313,13 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 	var trace: Array = []
 	var frames := ceili(duration*fps)
 	var dt := 1.0/fps
+	# Accumulate observed deltas in scalar doubles. Repeated Vector3 additions
+	# otherwise introduce float32 position drift into this measurement harness.
+	var consumer_start: Vector3 = v.owner.position if v.rooted else v.owner.global_position
+	var consumer_position: Array[float] = [consumer_start.x,consumer_start.y,consumer_start.z]
+	var consumer_last_world: Vector3 = v.owner.global_position
 	for frame in frames:
+		unconsumed_actor_change=maxf(unconsumed_actor_change,v.owner.global_position.distance_to(consumer_last_world))
 		var sample_speed := lerpf(speed,speed_end,(float(frame)+0.5)/frames)
 		if not jump:
 			tree.set(v.speed_parameter,sample_speed)
@@ -375,12 +383,20 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 		unconsumed_actor_change=maxf(unconsumed_actor_change,v.owner.global_position.distance_to(before_owner))
 		var delta := tree.get_root_motion_position()
 		if not delta.is_finite(): nonfinite+=1
-		if v.rooted: v.owner.position+=delta
+		if v.rooted:
+			for axis in 3: consumer_position[axis]+=float(delta[axis])
+			v.owner.position=Vector3(consumer_position[0],consumer_position[1],consumer_position[2])
 		else:
 			extraction_error=maxf(extraction_error,delta.length())
-			if not jump: v.owner.global_position+=v.forward*controller_speed*dt
+			if not jump:
+				var controller_delta: Vector3 = v.forward*controller_speed*dt
+				for axis in 3: consumer_position[axis]+=float(controller_delta[axis])
+				v.owner.global_position=Vector3(consumer_position[0],consumer_position[1],consumer_position[2])
+		consumer_last_world=v.owner.global_position
 		var prior_signals: int = v.signals
 		v.rig.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
+		_prepare_translation_control(v,row)
+		unconsumed_actor_change=maxf(unconsumed_actor_change,v.owner.global_position.distance_to(consumer_last_world))
 		if v.signals!=prior_signals+1: errors.append("Missing per-frame final modification_processed witness")
 		if str(v.modifier.status)!="grounded" or not str(v.modifier.last_error).is_empty() or v.modifier.unreachable>0: errors.append("Grounding runtime diagnostic failure: "+str(v.modifier.diagnostics()))
 		var phase := 0.0
@@ -500,6 +516,10 @@ func _check(row: Dictionary, spec: Dictionary, fps: int) -> Dictionary:
 	result["endpoint_reference"]=endpoint_reference
 	result["endpoint_measurement"]="same-phase native idle hips in world space" if jump and not v.rooted else "translation owner in world space"
 	result["endpoint_reference_available"]=endpoint_ready
+	result["translation_integration"]="observed deltas in scalar doubles; one Vector3 assignment per frame"
+	result["consumer_space"]="owner_parent" if v.rooted else "world"
+	result["consumer_position"]=consumer_position.duplicate()
+	if v.has("control_preparation_signals"): result["control_preparation_signals"]=v.control_preparation_signals
 	if not endpoint_ready: result["actual_world_distance_m"]=-1.0
 	_free(v)
 	return result

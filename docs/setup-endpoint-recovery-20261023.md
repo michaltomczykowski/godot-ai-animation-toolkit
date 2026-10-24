@@ -55,3 +55,38 @@ old report was rewritten as a pass.
 Next: replay all 30 already saved groups serially with this checker. Broader
 native matrix completion, remaining operation evidence and continuous media
 qualification are still required before release.
+
+## 24 October: native consumer precision
+
+The full replay at `2613e36` passed 18 groups (1,080 plays). It stopped in the
+Heavy extracted stationary group on one Z-up run at 120 FPS: endpoint error
+0.10395mm over 13.28343m, against the unchanged 0.1mm limit. All contact, knee,
+grounding and engine-error gates passed. Summing the recorded extraction deltas
+independently gives travel within 1.75µm of the request. Repeated float32 Vector3
+position additions in the harness account for the remaining displacement error.
+
+The single consumer now accumulates observed extraction components in scalar
+doubles, in owner-parent coordinates, and assigns a Vector3 once per frame.
+The controller path separately accumulates its actual per-frame world deltas.
+Neither position comes from the expected endpoint. Accumulators continue across
+explicit new-take resets. Position checks before advancement and after the final
+modifier signal reject an extra writer or parent movement instead of silently
+overwriting it on the next assignment.
+
+The formerly failing group passes all 60 plays; its failing cell is now within
+1.91µm. Actual Godot controls pass 72 positive plays (ordinary, translated/rotated
+parent and explicit new take) and reject 48 owner/parent drift plays. Replaying
+the prior endpoint controls also passes 12 positives and rejects 72 negatives.
+All three logs have zero engine errors. Tolerances and production clips are
+unchanged.
+
+Private evidence: `setup/native-precision-recovery-r001` under the existing
+evidence root. `independent-validation.json` binds all source/report/log hashes.
+The first rotated-parent control preparation attempt is retained: placement
+triggered extra preparation signals and left an old capture. The second attempt
+flushes and reports those preparation signals before the physical clock starts.
+No physical frame or failure report is removed.
+
+The original r008 reports remain intact. The next complete native replay uses
+the corrected consumer; remaining operation adapters still need actual Godot
+parsing, public execution and current-source CI before qualification.

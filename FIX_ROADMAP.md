@@ -4706,6 +4706,12 @@ review branch; no release or media upload is part of this phase.
 2026-10-17 inspect root review: source_unchanged now pending for every partial walk snapshot (changed walk still fails). Describe verifies walk identity/length/track path/type/count; motion seam must be finite nonbool ~=100. 13 adapter controls pass, including Infinity/NaN/wrong identity. Full source invariance remains pending.
 ## 23 October checkpoint: complete setup generation, corrected endpoint audit
 
+24 October follow-up:18native groups/1,080plays pass before one Heavy/Z-up
+120FPS float32-consumer endpoint miss. Checker-only scalar-double accumulation
+of observed deltas passes that60-play group,72positive/48negative precision
+controls and12positive/72negative endpoint controls. No product/threshold/clip
+change. Original failures preserved; see the recovery document's24October section.
+
 All30 public setup groups/120rig cases completed at233562a; CI39118728182 is
 fully green. Saved native replay exposed an in-place jump measurement error:
 initial idle hips were compared with a later idle phase. Same-phase independent
