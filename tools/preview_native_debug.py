@@ -7,6 +7,7 @@ import sys
 
 def launch_command(engine_command, debugger):
     if debugger=='none':return list(engine_command)
+    if debugger=='postmortem' and sys.platform=='linux':return list(engine_command)
     if debugger!='gdb' or sys.platform!='linux':
         raise ValueError('GDB preview diagnostics require explicit gdb on Linux')
     return ['gdb','--batch','--return-child-result',

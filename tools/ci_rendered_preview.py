@@ -19,6 +19,7 @@ import time
 
 from ci_mcp_route import port_open
 from preview_native_debug import launch_command, cleanup_debugger_group
+from preview_postmortem import Postmortem
 from preview_renderer_profile import LINUX, PROFILES, validate_environment, validate_renderer_identity
 
 
@@ -209,6 +210,8 @@ def run(args):
         'renderer_profile':args.renderer_profile}
     owned=[]
     debug_process=None
+    postmortem=None
+    editor=None
     try:
         validate_environment(args.renderer_profile,sys.platform,os.environ.get('DISPLAY'))
         debugger=getattr(args,'native_debugger','none')
@@ -241,9 +244,14 @@ def run(args):
             report['editor_command']=command
             actual_command=launch_command(command,debugger)
             report['editor_launch_command']=actual_command
+            if debugger=='postmortem':
+                postmortem=Postmortem(args.godot,args.output)
+                report['native_debugger']=postmortem.report
             editor=subprocess.Popen(actual_command,env=env,stdout=editor_log,stderr=subprocess.STDOUT,
+                **(postmortem.launch_kwargs() if postmortem else {}),
                 **({'start_new_session':True} if debugger=='gdb' else {}))
             owned.append(editor)
+            if postmortem:postmortem.bind(editor)
             if debugger=='gdb':
                 debug_process=editor
                 report['native_debugger'].update(pid=editor.pid,private_process_group=True)
@@ -254,7 +262,15 @@ def run(args):
             report['passed']=True
     except Exception as exc:
         report['error']=str(exc)
+        if hasattr(exc,'postmortem_report'):report['native_debugger']=exc.postmortem_report
     finally:
+        if postmortem and editor is not None:
+            try:
+                postmortem.collect(editor,failed=bool(report.get("error")))
+                if postmortem.report.get("editor_returncode_before_cleanup") not in (None,0):report["passed"]=False
+            except Exception as exc:
+                report["passed"]=False
+                report.setdefault("secondary_errors",[]).append("postmortem collection failed: "+str(exc))
         for process in reversed(owned):
             if process is debug_process:
                 try:
@@ -267,10 +283,21 @@ def run(args):
                     report['passed']=False
                     report.setdefault('secondary_errors',[]).append('owned debugger cleanup failed: '+str(exc))
                 continue
-            if process.poll() is None:
-                process.terminate()
-                try: process.wait(timeout=10)
-                except subprocess.TimeoutExpired: process.kill(); process.wait(timeout=5)
+            try:
+                if process.poll() is None:
+                    process.terminate()
+                    try: process.wait(timeout=10)
+                    except subprocess.TimeoutExpired: process.kill(); process.wait(timeout=5)
+            except (OSError,subprocess.TimeoutExpired) as exc:
+                report['passed']=False
+                report.setdefault('secondary_errors',[]).append('owned process cleanup failed: '+str(exc))
+        if postmortem:
+            try:
+                report["native_debugger"]=postmortem.close()
+                if postmortem.report.get('cleanup_errors'):report['passed']=False
+            except Exception as exc:
+                report["passed"]=False
+                report.setdefault("secondary_errors",[]).append("postmortem owned cleanup failed: "+str(exc))
         # Preserve partial images on failure too; they are diagnostic artifacts,
         # never inferred successful frames.
         image_dir=args.project/'rendered_preview_pngs'
@@ -298,7 +325,7 @@ def run(args):
 
 if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--native-debugger',choices=('none','gdb'),default=os.environ.get('TOOLKIT_PREVIEW_NATIVE_DEBUGGER','none'))
+    parser.add_argument('--native-debugger',choices=('none','gdb','postmortem'),default=os.environ.get('TOOLKIT_PREVIEW_NATIVE_DEBUGGER','none'))
     parser.add_argument('--renderer-profile',choices=PROFILES,default=LINUX)
     parser.add_argument('--core-root',type=Path,required=True)
     parser.add_argument('--project',type=Path,default=Path('test_project'))
