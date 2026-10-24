@@ -9,6 +9,7 @@ import sys
 from fastmcp import Client
 from fastmcp.client.transports import StdioTransport
 from mcp_presets_audit import call
+from operation_case_collector import record_native_result
 from mcp_preset_library_history import valid_suite, progress
 
 EXPECTED = {'test_local_history': 441, 'test_overwrite_history': 450,
@@ -35,9 +36,13 @@ async def run(args: argparse.Namespace) -> int:
     if passed:
         for layout in ('local', 'overwrite', 'missing_library', 'instanced', 'editable'):
             progress(args,'native_start',layout=layout)
-            runtime = subprocess.run([args.godot, '--headless', '--path', str(args.project_root),
-                '--script', 'res://tools/check_rig_clip_history.gd', '--', layout],
+            command = [args.godot, '--headless', '--path', str(args.project_root),
+                '--script', 'res://tools/check_rig_clip_history.gd', '--', layout]
+            runtime = subprocess.run(command,
                 capture_output=True, text=True, timeout=45, check=False)
+            for op in ('pose_to_clip', 'walk_cycle', 'idle_breathing', 'blink', 'jumping_jack', 'squat', 'punch', 'bake_pose_sequence'):
+                record_native_result('animation_rig.' + op,
+                    f'user://rig_clip_history_{layout}_3d_{op}_redo.tscn', command, runtime)
             marker = 'RIG_CLIP_HISTORY_RUNTIME='
             payload = next((line[len(marker):] for line in runtime.stdout.splitlines() if line.startswith(marker)), '')
             report = json.loads(payload) if payload else {}
