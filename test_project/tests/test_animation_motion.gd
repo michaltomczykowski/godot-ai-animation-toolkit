@@ -222,13 +222,13 @@ func test_jump_undo_redo_restores_written_jump() -> void:
 
 
 func test_public_setup_evidence_snapshot() -> void:
- var observation := preload("res://tests/setup_history_observation.gd")
- var value := observation.marker()
- if value.is_empty():
-  skip("Only an exact public setup checkpoint may activate this observer")
-  return
- assert_true(str(value.get("phase", "")) in ["before", "after_dry", "after_write", "persisted"], "known setup checkpoint phase")
- observation.observe(str(value.phase), _undo_redo)
+	var observation := preload("res://tests/setup_history_observation.gd")
+	var value := observation.marker()
+	if value.is_empty():
+		skip("Only an exact public setup checkpoint may activate this observer")
+		return
+	assert_true(str(value.get("phase", "")) in ["before", "after_dry", "after_write", "persisted"], "known setup checkpoint phase")
+	observation.observe(str(value.phase), _undo_redo)
 
 func test_public_setup_bundle_undo_redo() -> void:
 	var scene := EditorInterface.get_edited_scene_root()

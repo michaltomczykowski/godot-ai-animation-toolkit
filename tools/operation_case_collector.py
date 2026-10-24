@@ -531,6 +531,16 @@ def collect(context_path, traces, root, preview_report=None):
                           'public_case_ids':proof['public_case_ids'],
                           'public_test_run_case_id':proof['public_test_run_case_id'],'limits':proof['limits']})
             continue
+        if event.get('validator')=='setup_history_v1':
+            if event.get('row',{}).get('phase')!='persisted':
+                continue
+            from operation_setup_history_checks import verify_event as verify_setup
+            proof=verify_setup(event,context,history_events,public_events,test_begins,support_events)
+            cases.append({'id':event['id'],'operation':event['operation'],'checks':proof['checks'],
+                          'scope':'candidate','route':'public_test_run_inner_dispatch',
+                          'raw_event_id':event['id'],'public_test_run_case_id':proof['public_test_run_case_id'],
+                          'public_case_ids':proof['public_case_ids'],'mode':'setup_checkpoint','limits':proof['limits']})
+            continue
         if event.get('validator')=='motion_sequence_history_v1':
             from operation_motion_sequence_native_checks import verify_event
         elif event.get('validator')=='rig_scene_history_v1':
