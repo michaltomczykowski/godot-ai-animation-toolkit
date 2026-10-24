@@ -63,6 +63,16 @@ def unpack_safe(archive: Path, destination: Path) -> None:
                 raise ValueError('Unsafe core ZIP entry: ' + item.filename)
         z.extractall(destination)
 
+def import_then_public_route(godot: str, project: Path, command: list[str]):
+    # Import must not activate a plugin-owned backend. The later public-route
+    # harness owns its backend/editor and opts into headless activation itself.
+    # Remove inherited opt-ins as well as avoiding a new one here.
+    env = os.environ.copy()
+    env.pop('GODOT_AI_ALLOW_HEADLESS', None)
+    subprocess.run([godot, '--headless', '--path', str(project), '--import'], check=True, env=env)
+    return subprocess.run(command, capture_output=True, text=True, env=env)
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--source', required=True)
@@ -144,12 +154,9 @@ def main() -> None:
         text = text[:start] + 'enabled=PackedStringArray(' + ', '.join('"res://addons/' + x + '/plugin.cfg"' for x in plugins + ['clean_install_probe']) + ')' + text[end:]
         cfg.write_text(text)
         from ci_mcp_route import godot_executable
-        env = os.environ.copy()
-        env['GODOT_AI_ALLOW_HEADLESS'] = '1'
-        subprocess.run([godot_executable(a.godot), '--headless', '--path', str(project), '--import'], check=True, env=env)
         log = a.output / (order + '-editor.log')
         command = [sys.executable, str(repo / 'tools/ci_mcp_route.py'), '--project', str(project), '--core-root', str(a.core_root.resolve()), '--godot', a.godot, '--log', str(log), '--install-selection', '--port', str(a.port), '--ws-port', str(a.ws_port)]
-        run = subprocess.run(command, capture_output=True, text=True, env=env)
+        run = import_then_public_route(godot_executable(a.godot), project, command)
         (a.output / (order + '-route.log')).write_text(run.stdout + run.stderr)
         if run.returncode or 'CLEAN_INSTALL_SELECTION_PASS=10/8' not in log.read_text(errors='replace'):
             raise RuntimeError('Clean install failed: ' + order + '\n' + run.stdout[-3000:] + run.stderr[-1000:])
