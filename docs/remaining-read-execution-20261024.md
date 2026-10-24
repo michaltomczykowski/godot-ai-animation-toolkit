@@ -44,3 +44,24 @@ four-second native preflight passed20 cells /4,800 observations with zero errors
 and no admitted movie frames. Native report SHA256:
 `80c41e4d77397e2564eb62a0d0850679db9d1ba01e5bd13daf8a766f90517eb3`.
 Capture and independent visual assessment remain pending.
+
+## Fresh read execution passes
+
+`remaining-read-public-witness-r002` freezes `793e56b6beab9477f4ef20e16d798fc7c44561b8`
+and starts a fresh visible4.7.2 editor with released core4.2.1. The direct suite
+again passes68 assertions. All three original drivers pass, the editor quits
+through the public route, and strict collection reports zero derived failures.
+Each of rig_get, pose_list and graph_get now has passing same-call source,
+reported-error and typed-error evidence. Graph_get also passes independent
+authored-topology evidence; pose_blend passes its missing-file atomic refusal.
+These are bounded cases, not proof of every possible request or visual quality.
+The original r001 pending/failing completeness receipt remains unchanged.
+
+Operation report SHA256:
+`2839805a60da9149b73df534b64c865ada45c17e9f97a8a0977f732370d69bb3`.
+
+The saved modifier source bridge explicitly identifies45 unchanged production
+blobs and the sole three-line pose_list guard change. The copied runtime loads
+existing modifier scenes and never invokes pose_list; it does not qualify that
+new guard. Bridge SHA256:
+`ec8974270078f68e243d2b6cc933953508c67369f3df4096f6b1cd422cefe5b0`.

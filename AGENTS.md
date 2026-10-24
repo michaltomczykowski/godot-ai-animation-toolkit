@@ -1,5 +1,17 @@
 # Agent notes
 
+## Current root checkpoint: remaining public reads pass
+
+R002 at793e56b complete/publicquit, exec28278done; no localGodotactive. Direct68
+assertsPASS,3originaldriversPASS,all3readsource/error/typePASS,graph_effectPASS,
+poseBlendtypedPASS,0derivedfailures. ReportSHA2839805a60da9149b73df534b64c865ada45
+c17e9f97a8a0977f732370d69bb3. R001pendinggraphphantomOtherCharacter preserved;
+reference nowactualcommittedfixture4nodes. Modifier r006 import/parse/native4s
+20cells4800samplesPASS; capture waits narrowcameraadmissionfromreleaseworker.
+CI d45LinuxbothcoresactualSIGABRTcorescaptured; strippedofficialbinarymatches,
+no subsystemcause. Docs/FIX_ROADMAP updated; latestpushedstilld45f834, pushnext.
+EarlierLIVE entries below are history. Workers isolated; root enginequeue only.
+
 ## Current root checkpoint: pending public three-read execution
 
 Primary05a3dd4 plus integrated pose-blend driver/collector patches, recorder

@@ -1,5 +1,26 @@
 # Animation Toolkit repair roadmap
 
+## Remaining reads verified; native crash stacks captured (2026-10-24)
+
+Fresh visible4.7.2 /releasedcore4.2.1 at793e56b passes the selected rig_get,
+pose_list and graph_get positive/refusal pairs through Godot AI. Direct selected
+directory controls pass68 assertions; strict derived failures0. Graph topology
+and pose-blend missing-file atomic refusal pass. The original graph reference
+mistake/pending receipt is preserved; only the fixture hierarchy oracle changed.
+See docs/remaining-read-execution-20261024.md for source/report hashes and limits.
+
+Five-modifier copied r006 imports/parses and passes20 native4s cells /4800
+observations with unchanged saved settings; continuous capture is next. Root
+review adds camera-constancy admission before recording. Motion default-effect
+linkage and character_setup source/error/type witnesses are being completed.
+
+CI at pushed d45f834 reproduced Linux4.2.1 and4.3.0 scene-save SIGABRT and captured
+exact owned native core stacks. Raw cores were deleted and kernel settings
+restored. Both stacks match the official4.7.2 binary, but stripped Godot addresses
+cannot establish a subsystem cause. This remains an open release blocker; no
+crash fix, full release qualification, main merge or publication is claimed.
+Current checkpoint supersedes the older pushed-source statements below.
+
 ## Eleven public inspect witnesses pass after reference correction (2026-10-24)
 
 Fresh visible Godot4.7.2/releasedcore4.2.1 run ated1d9ad completes all11original
