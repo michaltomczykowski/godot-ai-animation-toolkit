@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[node name="RepairChainFixture" type="Node3D" unique_id=73379179]
+
+[node name="ArmatureRoot" type="Node3D" parent="." unique_id=1533903646]
+
+[node name="Shoulder" type="Node3D" parent="ArmatureRoot" unique_id=1695195949]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+
+[node name="Elbow" type="Node3D" parent="ArmatureRoot/Shoulder" unique_id=1896908004]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, 0, 0)

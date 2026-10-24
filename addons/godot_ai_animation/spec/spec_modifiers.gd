@@ -180,8 +180,16 @@ static func offset(spec: Dictionary, delta: float, wrap: bool) -> Dictionary:
 			marker["time"] = fposmod(float(marker.get("time", 0.0)) + delta, length)
 		return out
 	for track in out.tracks:
+		var source_keys: Array = track.get("keys", [])
+		var hold: Dictionary = {}
+		if delta > 0.0 and ClipSpec.is_value_type(int(track.get("type", -1))) \
+				and not source_keys.is_empty():
+			hold = (source_keys[0] as Dictionary).duplicate(true)
+			hold["time"] = 0.0
 		for key in track.keys:
 			key["time"] = maxf(0.0, float(key.get("time", 0.0)) + delta)
+		if not hold.is_empty() and float((track.keys as Array)[0].get("time", 0.0)) > 0.0:
+			(track.keys as Array).push_front(hold)
 	for marker in out.markers:
 		marker["time"] = maxf(0.0, float(marker.get("time", 0.0)) + delta)
 	return ClipSpec.normalize(out)
@@ -379,7 +387,23 @@ static func merge(specs: Array, gap: float) -> Dictionary:
 				target = ClipSpec.clone({"t": track}).t
 				target["keys"] = []
 				out.tracks.append(target)
-			for key in track.get("keys", []):
+			var incoming_keys: Array = track.get("keys", [])
+			if existing >= 0 and ClipSpec.is_value_type(type) \
+					and not (target.keys as Array).is_empty() and not incoming_keys.is_empty():
+				var previous: Dictionary = target.keys[(target.keys as Array).size() - 1]
+				var incoming_time := cursor + float((incoming_keys[0] as Dictionary).get("time", 0.0))
+				var previous_time := float(previous.get("time", 0.0))
+				if not ClipSpec.values_equal(previous.get("value"), (incoming_keys[0] as Dictionary).get("value"), 0.00001):
+					var span := incoming_time - previous_time
+					if span > 0.000001:
+						var hold: Dictionary = previous.duplicate(true)
+						hold["time"] = incoming_time - minf(0.0001, span * 0.5)
+						target.keys.append(hold)
+					elif is_equal_approx(span, 0.0):
+						var prior_time := float(target.keys[(target.keys as Array).size() - 2].get("time", 0.0)) \
+							if (target.keys as Array).size() >= 2 else 0.0
+						previous["time"] = incoming_time - minf(0.0001, maxf((incoming_time - prior_time) * 0.5, 0.000001))
+			for key in incoming_keys:
 				var shifted: Dictionary = key.duplicate(true)
 				shifted["time"] = float(key.get("time", 0.0)) + cursor
 				target.keys.append(shifted)

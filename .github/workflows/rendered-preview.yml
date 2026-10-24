@@ -1,0 +1,74 @@
+name: Rendered preview
+
+on:
+  workflow_call:
+    inputs:
+      native_debugger:
+        type: string
+        default: none
+        description: Optional Linux native abort diagnostics (none, gdb or postmortem)
+  workflow_dispatch:
+    inputs:
+      native_debugger:
+        type: choice
+        options: [none, gdb, postmortem]
+        default: none
+        description: Optional Linux native abort diagnostics
+
+jobs:
+  linux-rendered-preview:
+    name: Rendered preview / Linux / core ${{ matrix.core-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {core-version: '4.2.1', core-sha: 'bfc264200584ea5823f18356acb164781f57796d'}
+          - {core-version: '4.3.0', core-sha: 'b82b5c519b1b17228f70d8effce1626f391bd1dd'}
+    env:
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      GALLIUM_DRIVER: llvmpipe
+      TOOLKIT_PREVIEW_NATIVE_DEBUGGER: ${{ inputs.native_debugger || 'none' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: hi-godot/godot-ai
+          ref: ${{ matrix.core-sha }}
+          path: .ci/godot-ai
+      - uses: chickensoft-games/setup-godot@c233594225991af5aec714e52457cc76d6df8fa2
+        with:
+          version: '4.7.2'
+          use-dotnet: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install backend and software renderer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xauth libgl1-mesa-dri mesa-utils mesa-vulkan-drivers libvulkan1
+          python -m pip install -e .ci/godot-ai Pillow==11.3.0
+      - name: Install optional Linux native debugger
+        if: inputs.native_debugger == 'gdb' || inputs.native_debugger == 'postmortem'
+        run: sudo apt-get install -y gdb
+      - name: Link addons and import public fixtures
+        run: |
+          ln -s "$PWD/.ci/godot-ai/plugin/addons/godot_ai" test_project/addons/godot_ai
+          ln -s "$PWD/addons/godot_ai_animation" test_project/addons/godot_ai_animation
+          godot --headless --path test_project --rendering-method gl_compatibility --rendering-driver opengl3 --import
+      - name: Unit controls
+        run: |
+          python -m unittest discover -s tools -p test_ci_rendered_preview.py -v
+          python -m unittest discover -s tools -p test_preview_native_debug.py -v
+          python -m unittest discover -s tools -p test_preview_postmortem.py -v
+      - name: Actual rendered editor and public preview calls
+        run: |
+          xvfb-run -a -s '-screen 0 1280x1024x24 +extension GLX' sh -c 'glxinfo -B; python tools/ci_rendered_preview.py --renderer-profile linux-mesa-llvmpipe --core-root .ci/godot-ai'
+      - name: Preserve exact calls, renderer logs, restoration snapshots and PNGs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendered-preview-linux-core-${{ matrix.core-version }}
+          path: rendered-preview-artifacts
+          if-no-files-found: error

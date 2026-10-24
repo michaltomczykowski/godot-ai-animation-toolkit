@@ -341,6 +341,9 @@ func test_wave_builds_one_track_per_target() -> void:
 	var anim := _fetch_anim(player_path, "wave")
 	assert_eq(anim.get_track_count(), 3, "one track per target")
 	assert_eq(anim.loop_mode, Animation.LOOP_LINEAR)
+	for index in 3:
+		assert_eq(str(anim.track_get_path(index)), "WaveItem%d:position" % index,
+			"wave tracks must animate each target's position")
 	var first = anim.track_get_key_value(0, 0)
 	var second = anim.track_get_key_value(1, 0)
 	assert_false((first as Vector2).is_equal_approx(second as Vector2), "targets are phase-shifted")
@@ -475,6 +478,78 @@ func test_sprite_frames_assigns_resource() -> void:
 	_teardown(sprite_rig)
 
 
+func test_sprite_frames_dry_run_and_play_false_are_noninvasive() -> void:
+	if not ResourceLoader.exists(SHEET):
+		skip("fixture sheet.png is not imported")
+		return
+	var animated := AnimatedSprite2D.new()
+	var rig := _rig("SheetDry", animated)
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var params := {
+		"op": "sprite_frames", "sprite_path": rig.target_path,
+		"texture": SHEET, "hframes": 4, "vframes": 1,
+		"animation_name": "idle", "play": false,
+	}
+	var dry := _handler.run(params.merged({"dry_run": true}), null)
+	assert_has_key(dry, "data")
+	assert_true(animated.sprite_frames == null, "dry run must not assign SpriteFrames")
+	assert_false(animated.is_playing(), "dry run must not start playback")
+	var made := _handler.run(params, null)
+	assert_has_key(made, "data")
+	assert_true(animated.sprite_frames != null, "write assigns SpriteFrames")
+	assert_false(animated.is_playing(), "play=false must leave the sprite stopped")
+	assert_true(editor_undo(_undo_redo), "one undo restores the old resource")
+	assert_true(animated.sprite_frames == null, "undo removes the generated SpriteFrames")
+	assert_true(editor_redo(_undo_redo), "redo reapplies the resource")
+	assert_false(animated.is_playing(), "redo respects play=false")
+	_teardown(rig)
+
+
+func test_sprite_frames_undo_restores_selected_clip_and_playback_position() -> void:
+	if not ResourceLoader.exists(SHEET):
+		skip("fixture sheet.png is not imported")
+		return
+	for was_playing in [true, false]:
+		var animated := AnimatedSprite2D.new()
+		var rig := _rig("SheetRestore%s" % str(was_playing), animated)
+		if rig.has("error"):
+			skip(rig.error)
+			return
+		var original := SpriteFrames.new()
+		original.add_animation("prior_walk")
+		for index in 3:
+			original.add_frame("prior_walk", load(SHEET))
+		animated.sprite_frames = original
+		animated.speed_scale = 1.5
+		animated.play("prior_walk", 0.75)
+		if not was_playing:
+			animated.pause()
+		animated.set_frame_and_progress(2, 0.4)
+		var made := _handler.run({
+			"op": "sprite_frames", "sprite_path": rig.target_path,
+			"texture": SHEET, "hframes": 4, "vframes": 1,
+			"animation_name": "replacement", "play": false,
+		}, null)
+		assert_has_key(made, "data")
+		assert_eq(animated.animation, StringName("replacement"),
+			"play=false selects the generated animation")
+		assert_true(editor_undo(_undo_redo), "undo restores the prior sprite state")
+		assert_true(animated.sprite_frames == original, "undo restores the original resource")
+		assert_eq(animated.animation, StringName("prior_walk"), "undo restores the selected clip")
+		assert_eq(animated.frame, 2, "undo restores the frame")
+		assert_true(absf(animated.frame_progress - 0.4) < 0.0001, "undo restores frame progress")
+		assert_eq(animated.is_playing(), was_playing, "undo restores playing or paused state")
+		if was_playing:
+			assert_true(absf(animated.get_playing_speed() - 1.125) < 0.0001,
+				"undo restores custom playback speed")
+		assert_true(editor_redo(_undo_redo), "redo reapplies the generated animation")
+		assert_eq(animated.animation, StringName("replacement"), "redo selects the generated clip")
+		assert_false(animated.is_playing(), "redo respects play=false")
+		_teardown(rig)
+
+
 func test_audio_cue_builds_audio_track() -> void:
 	if not ResourceLoader.exists(CUE):
 		skip("fixture cue.wav is not imported")
@@ -530,3 +605,121 @@ func test_registry_matches_fx_schema() -> void:
 			assert_true(info.schema.properties.has(param), "%s declares param %s" % [descriptor.name, param])
 	assert_true(str(info.description).length() <= OpRegistry.MAX_DESCRIPTION_CHARS,
 		"the fx description fits the custom-tool cap")
+
+func test_hit_flash_default_contrast_native_restore_history_and_persistence() -> void:
+	for index in 4:
+		var rect := ColorRect.new()
+		rect.color = Color(0.3,0.2,0.2,1)
+		rect.modulate = [Color.WHITE,Color(0.1,0.2,0.3,1),Color(1,1,1,0),Color.WHITE][index]
+		var baseline := rect.modulate
+		var intrinsic := rect.color
+		var rig := _rig("Contrast"+str(index),rect)
+		if rig.has("error"):
+			skip(rig.error)
+			return
+		var player := ValueCodec.resolve_scene_path(rig.player_path,EditorInterface.get_edited_scene_root()) as AnimationPlayer
+		var params := {"op":"hit_flash","player_path":rig.player_path,"target_path":rig.target_path,"animation_name":"contrast"}
+		if index==3: params.color="#ff0000"
+		var dry := _handler.run(params.merged({"dry_run":true}),null)
+		assert_has_key(dry,"data")
+		assert_false(player.has_animation("contrast"),"Default contrast dry run writes no clip")
+		assert_eq(rect.modulate,baseline,"Dry run preserves modulation")
+		var result := _handler.run(params,null)
+		assert_has_key(result,"data")
+		if not result.has("data"):
+			_teardown(rig)
+			continue
+		assert_eq(result.data.color_mode,"explicit" if index==3 else "automatic_contrast")
+		var animation := player.get_animation("contrast")
+		var pulse: Color = animation.track_get_key_value(0,1)
+		assert_false(pulse.is_equal_approx(baseline),"Default/explicit pulse actually differs")
+		player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+		player.play("contrast")
+		player.seek(animation.length*0.5,true)
+		assert_true(rect.modulate.is_equal_approx(pulse),"Native AnimationPlayer reaches pulse")
+		player.seek(animation.length,true)
+		assert_true(rect.modulate.is_equal_approx(baseline),"Native AnimationPlayer restores baseline")
+		player.stop()
+		assert_eq(rect.color,intrinsic,"Intrinsic ColorRect color is untouched")
+		var path := "user://hit_flash_contrast_%d.tres" % index
+		assert_eq(ResourceSaver.save(animation,path),OK,"Actual resource saves")
+		var reopened := ResourceLoader.load(path,"Animation",ResourceLoader.CACHE_MODE_IGNORE) as Animation
+		assert_true((reopened.track_get_key_value(0,1) as Color).is_equal_approx(pulse),"Saved/reopened pulse persists")
+		assert_true((reopened.track_get_key_value(0,2) as Color).is_equal_approx(baseline),"Saved/reopened restoration persists")
+		assert_true(editor_undo(_undo_redo),"Actual undo succeeds")
+		assert_false(player.has_animation("contrast"),"Undo removes contrast clip")
+		assert_true(editor_redo(_undo_redo),"Actual redo succeeds")
+		assert_true(player.has_animation("contrast"),"Redo restores contrast clip")
+		_teardown(rig)
+
+func test_hit_flash_explicit_no_change_and_transparent_endpoints_refuse_atomically() -> void:
+	for baseline in [Color.WHITE,Color(0.1,0.2,0.3,0)]:
+		var rect := ColorRect.new()
+		rect.modulate=baseline
+		var rig := _rig("NoChange",rect)
+		if rig.has("error"):
+			skip(rig.error)
+			return
+		var scene := EditorInterface.get_edited_scene_root()
+		var player := ValueCodec.resolve_scene_path(rig.player_path,scene) as AnimationPlayer
+		var history := _undo_redo.get_history_undo_redo(_undo_redo.get_object_history_id(scene))
+		var version := history.get_version()
+		var libraries := player.get_animation_library_list()
+		for pulse in [baseline,Color(1,0,0,0) if baseline.a==0 else baseline]:
+			for dry in [true,false]:
+				var result := _handler.run({"op":"hit_flash","player_path":rig.player_path,"target_path":rig.target_path,
+					"animation_name":"refused","color":pulse,"dry_run":dry},null)
+				assert_is_error(result,ErrorCodes.OPERATION_UNAVAILABLE)
+				assert_eq(history.get_version(),version,"Refusal creates no undo action")
+				assert_eq(player.get_animation_library_list(),libraries,"Refusal creates no library")
+				assert_false(player.has_animation("refused"),"Refusal creates no clip")
+				assert_eq(rect.modulate,baseline,"Refusal preserves target")
+		_teardown(rig)
+
+func test_proven_inert_numeric_text_and_spring_requests_refuse_atomically() -> void:
+	var cases := [
+		{"op":"damage_bar","target":ProgressBar.new(),"params":{}},
+		{"op":"progress_fill","target":ProgressBar.new(),"params":{},"baseline":1.0},
+		{"op":"damage_bar","target":ProgressBar.new(),"params":{"from":20.0,"to":20.0}},
+		{"op":"progress_fill","target":ProgressBar.new(),"params":{"from":20.0,"to":20.0}},
+		{"op":"counter","target":Label.new(),"params":{"from":1.0,"to":1.0}},
+		{"op":"counter","target":Label.new(),"params":{"from":0.1,"to":0.2,"format":"%d"}},
+		{"op":"counter","target":Label.new(),"params":{"from":0.0,"to":100.0,"format":"fixed"}},
+		{"op":"spring","target":Node2D.new(),"params":{"offset":{"x":0.0,"y":0.0}}},
+		{"op":"spring","target":Node3D.new(),"params":{"offset":{"x":0.0,"y":0.0,"z":0.0}}},
+	]
+	for row: Dictionary in cases:
+		if row.has("baseline"): row.target.value=row.baseline
+		var rig := _rig("Inert"+str(cases.find(row)),row.target)
+		if rig.has("error"):
+			skip(rig.error)
+			return
+		var scene := EditorInterface.get_edited_scene_root()
+		var player := ValueCodec.resolve_scene_path(rig.player_path,scene) as AnimationPlayer
+		var history := _undo_redo.get_history_undo_redo(_undo_redo.get_object_history_id(scene))
+		var version := history.get_version()
+		var libraries := player.get_animation_library_list()
+		var children := scene.get_child_count()
+		var baseline: Variant = row.target.get("value") if row.target is ProgressBar else row.target.text if row.target is Label else row.target.position
+		var params := {"op":row.op,"player_path":rig.player_path,"target_path":rig.target_path,"animation_name":"inert_control"}
+		params.merge(row.params,true)
+		for dry in [true,false]:
+			var refusal := _handler.run(params.merged({"dry_run":dry}),null)
+			assert_is_error(refusal,ErrorCodes.OPERATION_UNAVAILABLE)
+			assert_eq(history.get_version(),version,"Inert request creates no undo action")
+			assert_eq(player.get_animation_library_list(),libraries,"Inert request allocates no library")
+			assert_false(player.has_animation("inert_control"),"Inert request creates no clip")
+			assert_eq(scene.get_child_count(),children,"Inert request adds no nodes")
+			var after: Variant = row.target.get("value") if row.target is ProgressBar else row.target.text if row.target is Label else row.target.position
+			assert_eq(after,baseline,"Inert request leaves target unchanged")
+		if row.op=="spring": params.offset={"x":10.0,"y":0.0,"z":0.0}
+		elif row.op=="counter": params.merge({"from":0.0,"to":100.0,"format":"%d"},true)
+		else: params.merge({"from":0.0,"to":10.0},true)
+		assert_has_key(_handler.run(params.merged({"dry_run":true}),null),"data","Noninert dry control remains supported")
+		var written := _handler.run(params,null)
+		assert_has_key(written,"data","Noninert write control remains supported")
+		if written.has("data"):
+			var clip := player.get_animation("inert_control")
+			assert_true(clip.track_get_key_count(0)>1,"Noninert control has actual animation keys")
+			assert_true(str(clip.track_get_key_value(0,0))!=str(clip.track_get_key_value(0,clip.track_get_key_count(0)-1)),"Noninert control endpoints differ")
+		_teardown(rig)
