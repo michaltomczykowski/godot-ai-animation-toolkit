@@ -20,9 +20,13 @@ class AuditGateTests(unittest.TestCase):
         paths = subprocess.check_output(["git", "ls-tree", "-r", "--name-only", source, "addons/godot_ai_animation"], cwd=self.root, text=True).splitlines()
         artifact = Path(directory) / "synthetic-test-report.json"
         artifact.write_text(json.dumps({"cases": [{"id": row["key"] + "::synthetic", "operation": row["key"], "checks": {n: "pass" for n in required_checks(row["effect_kind"])}} for row in self.doc["operations"]]}))
+        media = Path(directory) / "synthetic-media.bin"
+        media.write_bytes(b"Structural placeholder only; not visual approval.\n")
+        media_digest = hashlib.sha256(media.read_bytes()).hexdigest()
         assessment = Path(directory) / "synthetic-assessments.json"
-        assessment.write_text(json.dumps({"assessments": [{"operation": row["key"], "case_ids": [row["key"] + "::synthetic"], "status": "pass", "reviewer_type": "independent", "human_approved": False, "continuous_media": True, "method": "Synthetic structure test only", "media": [{"kind": "video", "sha256": "a" * 64}], "findings": ["Synthetic structure test; never release evidence"]} for row in self.doc["operations"]]}))
+        assessment.write_text(json.dumps({"assessments": [{"operation": row["key"], "case_ids": [row["key"] + "::synthetic"], "status": "pass", "reviewer_type": "independent", "human_approved": False, "continuous_media": True, "method": "Synthetic structure test only", "media": [{"kind": "video", "path": media.name, "sha256": media_digest}], "findings": ["Synthetic structure test; never release evidence"]} for row in self.doc["operations"]]}))
         artifacts = [{"role": "operation_case_results", "path": artifact.name, "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest()}, {"role": "independent_assessment", "path": assessment.name, "sha256": hashlib.sha256(assessment.read_bytes()).hexdigest()}]
+        artifacts.append({"role": "assessment_media", "path": media.name, "sha256": media_digest})
         dependency = "test_project/tools/export_operation_audit.gd"
         compatibility = []
         records = {}
@@ -121,16 +125,64 @@ class AuditGateTests(unittest.TestCase):
             root = Path(directory)
             artifact = root / "assessment.json"
             key = "animation_fx.shake"
-            entry = {"operation": key, "case_ids": ["case1"], "status": "pass", "reviewer_type": "independent", "human_approved": False, "continuous_media": True, "method": "Synthetic temporal fixture", "media": [{"kind": "video", "sha256": "a" * 64}], "findings": ["Synthetic observation"]}
+            media = root / "structural-media.bin"
+            media.write_bytes(b"Not a movie; structural test only.")
+            media_digest = hashlib.sha256(media.read_bytes()).hexdigest()
+            entry = {"operation": key, "case_ids": ["case1"], "status": "pass", "reviewer_type": "independent", "human_approved": False, "continuous_media": True, "method": "Synthetic temporal fixture", "media": [{"kind": "video", "path": media.name, "sha256": media_digest}], "findings": ["Synthetic observation"]}
             def check(value):
                 artifact.write_text(json.dumps({"assessments": [value]}))
                 record = {"operation_key": key, "case_ids": ["case1"], "artifacts": [{"role": "independent_assessment", "path": artifact.name, "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest()}]}
+                record["artifacts"].append({"role": "assessment_media", "path": media.name, "sha256": media_digest})
                 return operation_binding_errors(record, key, "visual_review", root)
             self.assertEqual(check(entry), [])
             for field, value in [("operation", "animation_fx.pendulum"), ("media", []), ("findings", True), ("method", ""), ("status", "partial"), ("human_approved", True)]:
                 broken = copy.deepcopy(entry)
                 broken[field] = value
                 self.assertTrue(check(broken), field)
+
+    def test_assessment_media_requires_real_confined_manifest_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            media = root / "placeholder.bin"
+            media.write_bytes(b"Synthetic structural bytes; not visual evidence")
+            digest = hashlib.sha256(media.read_bytes()).hexdigest()
+            key = "animation_fx.shake"
+            entry = {"operation": key, "case_ids": ["selected/take1", "selected/take2"],
+                     "status": "pass", "reviewer_type": "independent", "human_approved": False,
+                     "continuous_media": True, "method": "Structural test only", "findings": ["Not approval"],
+                     "media": [{"kind": "video", "path": media.name, "sha256": digest}]}
+            def check(value, binding=True):
+                report = root / "assessment.json"
+                report.write_text(json.dumps({"assessments": [value]}))
+                artifacts = [{"role": "independent_assessment", "path": report.name,
+                              "sha256": hashlib.sha256(report.read_bytes()).hexdigest()}]
+                if binding:
+                    artifacts.append({"role": "assessment_media", "path": media.name, "sha256": digest})
+                return operation_binding_errors({"operation_key": key,
+                    "case_ids": ["selected/take1", "selected/take2"], "artifacts": artifacts}, key, "visual_review", root)
+            self.assertEqual(check(entry), [])
+            self.assertTrue(check(entry, binding=False))
+            for field, value in [("path", None), ("path", "missing.bin"), ("path", "../placeholder.bin"),
+                                 ("path", str(media.resolve())), ("path", "C:/private/movie.mp4"),
+                                 ("sha256", "0" * 64)]:
+                broken = copy.deepcopy(entry)
+                broken["media"][0][field] = value
+                self.assertTrue(check(broken), (field, value))
+            other = root / "other.bin"
+            other.write_bytes(media.read_bytes())
+            broken = copy.deepcopy(entry)
+            broken["media"][0]["path"] = other.name
+            self.assertTrue(check(broken))  # Same bytes at an unmanifested path.
+            for field, value in [("operation", "animation_fx.wave"),
+                                 ("case_ids", ["superseded/take1", "superseded/take2"]),
+                                 ("case_ids", ["selected/take1"])]:
+                broken = copy.deepcopy(entry)
+                broken[field] = value
+                self.assertTrue(check(broken), (field, value))
+            media.write_bytes(b"Changed after assessment")
+            self.assertTrue(check(entry))
+            media.unlink()
+            self.assertTrue(check(entry))
 
     def test_inventory_accepts_honest_pending(self):
         self.assertEqual(validate_inventory(self.doc), [])

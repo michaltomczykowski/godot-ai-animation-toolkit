@@ -113,6 +113,14 @@ def operation_binding_errors(evidence, key, check_name, receipt_dir):
                 continue
             if not isinstance(media, list) or not media or any(not isinstance(m, dict) or not isinstance(m.get("sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", m["sha256"]) for m in media):
                 continue
+            # Media identities must resolve to actual portable files and the same
+            # path/hash in this evidence record, not merely look like SHA256s.
+            if any(not artifact_is_valid(m, receipt_dir) or not any(
+                isinstance(a, dict) and a.get("path") == m.get("path")
+                and a.get("sha256") == m.get("sha256")
+                for a in evidence.get("artifacts", [])
+            ) for m in media):
+                continue
             if key not in STATIC_VISUAL_OPERATIONS and (assessment.get("continuous_media") is not True or not any(m.get("kind") == "video" for m in media)):
                 continue
             valid = True
