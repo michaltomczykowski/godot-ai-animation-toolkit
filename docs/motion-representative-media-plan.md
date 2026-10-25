@@ -199,3 +199,23 @@ route/guard SHA and actual expected ownership-error reason for each negative.
 10 offline test methods PASS, including nonempty command arguments, both root
 ownership mappings and forged/missing control witnesses. No engine was launched.
 Fresh r003 staging requires the integrated admission script's exact Git blob.
+
+### Proven inert imported players (26 October)
+
+Preserve r003/right-native-r001 positive failure. Root's actual4.7.2 read-only
+mixer-diagnostic.json SHA028410397d4570593762fb6f01f5e3b418be067a7ef025c76d3dede35580dfcf
+shows Dummy/AnimationPlayer (Untitled) and XBot/AnimationPlayer (Take001,
+mixamo_com) active but assigned='',autoplay='',playing=false. Synthetic rigs
+have no foreign mixer. Saved text contains no active/assigned/autoplay override;
+the foreign players come from imported model resources.
+
+Admission now exempts ONLY a scriptless native AnimationPlayer with empty
+assigned/autoplay and not playing. It records path/class/active/scripted/root,
+selected status, animation list and all playback fields before normalization.
+Active Trees, assigned/autoplay/playing foreign Players and potential modifiers
+still refuse. Additional actual-native controls cover inert imported-like Player
+acceptance and assigned/autoplay/playing rejection using references to existing
+libraries, never generating keys or applying a pose. Python independently checks
+these raw states and errors. 11 offline test methods PASS, including the actual
+root diagnostic states and each unsafe mutation. New r004 staging follows root
+integration; no worker engine or production animation changes.

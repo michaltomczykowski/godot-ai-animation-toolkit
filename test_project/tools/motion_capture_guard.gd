@@ -9,7 +9,7 @@ static func all_nodes(node: Node) -> Array[Node]:
 		for child in nodes[offset].get_children(true): nodes.append(child)
 		offset += 1
 	return nodes
-static func admit(row: Dictionary, control: String = "") -> Array[String]:
+static func admit(row: Dictionary, control: String = "", diagnostics: Dictionary = {}) -> Array[String]:
 	var errors: Array[String] = []
 	if digest(row.scene) != row.scene_sha256: errors.append("Saved scene digest changed")
 	var packed := load(row.scene) as PackedScene
@@ -28,10 +28,29 @@ static func admit(row: Dictionary, control: String = "") -> Array[String]:
 		var foreign := SkeletonModifier3D.new()
 		foreign.active = true
 		rig.add_child(foreign)
+	if control in ["inert_player", "assigned_player", "autoplay_player", "playing_player"]:
+		var foreign := AnimationPlayer.new()
+		foreign.name = "AdmissionControlPlayer"
+		foreign.active = true
+		scene.add_child(foreign)
+		if control != "inert_player":
+			for library_name in player.get_animation_library_list(): foreign.add_animation_library(library_name,player.get_animation_library(library_name))
+			if control == "assigned_player": foreign.assigned_animation = row.params.animation_name
+			if control == "autoplay_player": foreign.autoplay = row.params.animation_name
+			if control == "playing_player": foreign.play(row.params.animation_name)
 	if control == "wrong_root_track": player.root_motion_track = NodePath("Missing:position")
+	diagnostics["mixers"] = []
 	for node in all_nodes(scene):
 		var mixer := node as AnimationMixer
-		if mixer != null and mixer != player and mixer.active: errors.append("Foreign active mixer before normalization")
+		if mixer == null: continue
+		var other_player := mixer as AnimationPlayer
+		var state := {"path":str(scene.get_path_to(mixer)),"class":mixer.get_class(),"active":mixer.active,"selected":mixer==player,"scripted":mixer.get_script()!=null,"root_node":str(mixer.root_node)}
+		if other_player != null:
+			state.merge({"assigned":str(other_player.assigned_animation),"autoplay":str(other_player.autoplay),"playing":other_player.is_playing(),"animations":Array(other_player.get_animation_list())})
+		var inert := other_player != null and mixer.get_script() == null and other_player.assigned_animation.is_empty() and other_player.autoplay.is_empty() and not other_player.is_playing()
+		state["inert_unassigned_native_player"] = inert
+		diagnostics.mixers.append(state)
+		if mixer != player and mixer.active and not inert: errors.append("Foreign active mixer before normalization")
 	for node in all_nodes(scene):
 		var modifier := node as SkeletonModifier3D
 		if modifier == null or not modifier.active: continue

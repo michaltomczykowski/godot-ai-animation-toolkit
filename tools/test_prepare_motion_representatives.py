@@ -1,7 +1,7 @@
 import copy,json,tempfile,unittest
 from pathlib import Path
 from PIL import Image
-from prepare_motion_representatives import validate_render,quoted_resource_paths,admission_arguments,validate_admission,ADMISSION_CONTROLS
+from prepare_motion_representatives import validate_render,quoted_resource_paths,admission_arguments,validate_admission,ADMISSION_CONTROLS,inert_native_player
 
 class WitnessControls(unittest.TestCase):
     def report(self,jump):
@@ -50,8 +50,18 @@ class ResourcePathControls(unittest.TestCase):
 
 class AdmissionMappingControls(unittest.TestCase):
     def report(self,control,extracted):
-        reasons={'foreign_tree':'Foreign active mixer before normalization','active_modifier':'Active modifier before normalization','wrong_root_track':'Saved extraction binding missing' if extracted else 'Unextracted clip has extraction owner'}
-        return dict(passed=True,control=control,effective_control='' if control=='positive' else control,route_sha256='route',script_sha256='guard',rows=[dict(id=i,errors=[] if control=='positive' else [reasons[control]]) for i in ('dummy','xbot','short','zup_tall')])
+        reasons={'foreign_tree':'Foreign active mixer before normalization','assigned_player':'Foreign active mixer before normalization','autoplay_player':'Foreign active mixer before normalization','playing_player':'Foreign active mixer before normalization','active_modifier':'Active modifier before normalization','wrong_root_track':'Saved extraction binding missing' if extracted else 'Unextracted clip has extraction owner'}
+        state=dict(path='AnimationPlayer',class_='AnimationPlayer',active=True,selected=True,scripted=False,assigned='',autoplay='',playing=False,inert_unassigned_native_player=True)
+        state['class']=state.pop('class_')
+        return dict(passed=True,control=control,effective_control='' if control=='positive' else control,route_sha256='route',script_sha256='guard',rows=[dict(id=i,errors=[] if control in ('positive','inert_player') else [reasons[control]],writer_diagnostics=dict(mixers=[copy.deepcopy(state)])) for i in ('dummy','xbot','short','zup_tall')])
+    def test_actual_imported_idle_states_and_unsafe_variants(self):
+        for path,animations in [('Dummy/AnimationPlayer',['Untitled']),('XBot/AnimationPlayer',['Take 001','mixamo_com'])]:
+            state=dict(path=path,active=True,scripted=False,assigned='',autoplay='',playing=False,animations=animations)
+            state['class']='AnimationPlayer'
+            self.assertTrue(inert_native_player(state))
+            for update in ({'scripted':True},{'assigned':'Untitled'},{'autoplay':'Untitled'},{'playing':True},{'class':'AnimationTree'}):
+                self.assertFalse(inert_native_player(dict(state,**update)))
+            incomplete=dict(state);incomplete.pop('playing');self.assertFalse(inert_native_player(incomplete))
     def test_explicit_nonempty_cli_and_effective_mapping(self):
         for control in ADMISSION_CONTROLS:
             args=admission_arguments('route.json','report.json',control)

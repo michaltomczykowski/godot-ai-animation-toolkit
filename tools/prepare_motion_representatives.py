@@ -8,19 +8,27 @@ from review_receipts import write_json
 
 SELECTED={'right-strafe':'strafe/candidate-r001/right/responsive','stationary-jump':'jump/candidate-r002/stationary/responsive-in-place'}
 TOOLS=['render_character_quality.gd','render_strafe_quality.gd','render_jump_quality.gd','character_quality_native.gd','motion_capture_guard.gd','check_motion_capture_admission.gd','check_strafe_quality.gd','check_jump_quality.gd','check_run_quality.gd']
-ADMISSION_CONTROLS=('positive','foreign_tree','active_modifier','wrong_root_track')
+ADMISSION_CONTROLS=('positive','inert_player','foreign_tree','assigned_player','autoplay_player','playing_player','active_modifier','wrong_root_track')
 def admission_arguments(route,report,control):
     if control not in ADMISSION_CONTROLS:raise ValueError('Unknown admission control')
     return ['--script','res://tools/check_motion_capture_admission.gd','--',str(route),str(report),control]
+def inert_native_player(state):
+    return (state.get('class')=='AnimationPlayer' and state.get('scripted') is False
+            and state.get('assigned')=='' and state.get('autoplay')=='' and state.get('playing') is False)
 def validate_admission(report,control,route_sha,guard_sha,extracted):
     if control not in ADMISSION_CONTROLS:raise ValueError('Unknown admission control')
     if report.get('passed') is not True or report.get('control')!=control or report.get('effective_control')!=('' if control=='positive' else control) or report.get('route_sha256')!=route_sha or report.get('script_sha256')!=guard_sha:raise ValueError('Wrong admission control identity')
     rows=report.get('rows',[])
     if [r.get('id') for r in rows]!=['dummy','xbot','short','zup_tall']:raise ValueError('Missing admission rig controls')
-    reason={'foreign_tree':'Foreign active mixer before normalization','active_modifier':'Active modifier before normalization','wrong_root_track':'Saved extraction binding missing' if extracted else 'Unextracted clip has extraction owner'}.get(control)
+    reason={'foreign_tree':'Foreign active mixer before normalization','assigned_player':'Foreign active mixer before normalization','autoplay_player':'Foreign active mixer before normalization','playing_player':'Foreign active mixer before normalization','active_modifier':'Active modifier before normalization','wrong_root_track':'Saved extraction binding missing' if extracted else 'Unextracted clip has extraction owner'}.get(control)
     for row in rows:
         errors=row.get('errors')
-        if not isinstance(errors,list) or (errors!=[] if control=='positive' else reason not in errors):raise ValueError('Admission control did not observe expected ownership condition')
+        if not isinstance(errors,list) or (errors!=[] if control in ('positive','inert_player') else reason not in errors):raise ValueError('Admission control did not observe expected ownership condition')
+        mixers=row.get('writer_diagnostics',{}).get('mixers',[])
+        if not mixers or len([v for v in mixers if v.get('selected') is True])!=1:raise ValueError('Missing actual saved writer diagnostics')
+        for value in mixers:
+            if not isinstance(value.get('path'),str) or not value['path'] or type(value.get('active')) is not bool or type(value.get('scripted')) is not bool or value.get('inert_unassigned_native_player') is not inert_native_player(value):raise ValueError('Invalid inert writer diagnosis')
+            if value['active'] and not value.get('selected') and not inert_native_player(value) and 'Foreign active mixer before normalization' not in errors:raise ValueError('Potential writer was silently admitted')
 
 def quoted_resource_paths(text):
     """Decode complete quoted Variant strings; never split a path on spaces."""
