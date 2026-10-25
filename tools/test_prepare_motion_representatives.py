@@ -1,7 +1,7 @@
 import copy,json,tempfile,unittest
 from pathlib import Path
 from PIL import Image
-from prepare_motion_representatives import validate_render
+from prepare_motion_representatives import validate_render,quoted_resource_paths
 
 class WitnessControls(unittest.TestCase):
     def report(self,jump):
@@ -29,4 +29,24 @@ class WitnessControls(unittest.TestCase):
             (p/'000000.png').unlink()
             with self.assertRaisesRegex(ValueError,'schedule'):validate_render(self.report(False),'binding',True,False,p)
 
+class ResourcePathControls(unittest.TestCase):
+    def test_actual_spaced_path_and_import_array(self):
+        expected='res://models/x_bot/X Bot.fbx'
+        text='[ext_resource type="PackedScene" path="'+expected+'" id="1"]\nsource_file="'+expected+'"\ndest_files=["res://.godot/imported/X Bot.fbx-123.scn"]'
+        self.assertEqual(quoted_resource_paths(text),[expected,'res://.godot/imported/X Bot.fbx-123.scn'])
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);asset=root/expected.removeprefix('res://');asset.parent.mkdir(parents=True);asset.write_bytes(b'exact spaced asset')
+            self.assertEqual((root/quoted_resource_paths(text)[0].removeprefix('res://')).read_bytes(),b'exact spaced asset')
+            self.assertFalse((root/'models/x_bot/X').exists())
+    def test_escaped_quote_backslash_and_unicode(self):
+        expected=['res://folder/a "quoted" name.tres','res://folder/back\\slash.tres','res://folder/za\u017c\u00f3\u0142\u0107.tres']
+        text='paths=['+','.join(json.dumps(value,ensure_ascii=True) for value in expected)+']'
+        self.assertEqual(quoted_resource_paths(text),expected)
+    def test_bad_escape_and_truncated_string_refuse(self):
+        for text in ('path="res://broken',r'path="res://bad\q.tres"'):
+            with self.subTest(text=text),self.assertRaises(ValueError):quoted_resource_paths(text)
+    def test_unquoted_or_nonresource_text_not_invented(self):
+        self.assertEqual(quoted_resource_paths('res://unquoted path="uid://123" id="resource"'),[])
+
 if __name__=='__main__':unittest.main()
+

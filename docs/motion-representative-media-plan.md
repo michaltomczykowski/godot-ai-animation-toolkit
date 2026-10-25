@@ -167,3 +167,15 @@ Root integration adds durable execution/command checkpoints before launch,
 streamed engine logs and bounded native120s/render900s/encode300s/decode180s
 processes. The direct Godot executable is used, avoiding console-wrapper child
 ownership. These are capture controls, not animation timing or physics limits.
+
+### Spaced dependency path preparation repair (26 October)
+
+Preserve failed motion-representatives-r001. A whitespace-based path scan had
+truncated the actual private model path models/x_bot/X Bot.fbx. Preparation now
+reads/decode complete quoted resource strings, retaining spaces and JSON-compatible
+escaped quotes/backslashes/Unicode; invalid escapes and unterminated quotes refuse
+rather than silently omit/truncate dependencies. Source requests, scenes,
+producer/capture identities and native/capture controls are unchanged. Root's
+durable process receipts and bounded timeouts fromddd1959 are retained.
+Seven offline test methods PASS; actual saved XBot scene extracts its complete
+spaced model path. New r002 staging follows from this committed fix; no engine.

@@ -8,6 +8,18 @@ from review_receipts import write_json
 
 SELECTED={'right-strafe':'strafe/candidate-r001/right/responsive','stationary-jump':'jump/candidate-r002/stationary/responsive-in-place'}
 TOOLS=['render_character_quality.gd','render_strafe_quality.gd','render_jump_quality.gd','character_quality_native.gd','motion_capture_guard.gd','check_motion_capture_admission.gd','check_strafe_quality.gd','check_jump_quality.gd','check_run_quality.gd']
+def quoted_resource_paths(text):
+    """Decode complete quoted Variant strings; never split a path on spaces."""
+    pattern=r'"(?:\\.|[^"\\])*"'
+    matches=list(re.finditer(pattern,text))
+    if '"' in re.sub(pattern,'',text):raise ValueError('Unterminated quoted resource string')
+    paths=[]
+    for match in matches:
+        try:value=json.loads(match.group())
+        except json.JSONDecodeError as error:raise ValueError('Invalid/unsupported resource string escape') from error
+        if value.startswith('res://') and value not in paths:paths.append(value)
+    return paths
+
 def sha(p):
     h=hashlib.sha256()
     with Path(p).open('rb') as f:
@@ -45,7 +57,7 @@ def prepare(repo,project,evidence,output):
             if not path.is_file():raise ValueError('Saved dependency missing: '+str(path))
             seen.add(str(path));bound.append(dict(path=str(path),sha256=sha(path)))
             if path.suffix in ('.tscn','.tres','.import'):
-                for virtual in re.findall(r'res://[^"\s]+',path.read_text(encoding='utf-8')):
+                for virtual in quoted_resource_paths(path.read_text(encoding='utf-8')):
                     dependency(project/virtual.removeprefix('res://'))
             elif path.suffix in ('.fbx','.glb','.gltf') and Path(str(path)+'.import').is_file():dependency(Path(str(path)+'.import'))
         for row in route['cases']:dependency(project/row['scene'].removeprefix('res://'))
