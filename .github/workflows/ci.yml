@@ -247,6 +247,8 @@ jobs:
           test_operation_bounded_read_checks
           test_operation_motion_sequence_history_checks
           test_operation_motion_sequence_native_checks
+          test_motion_saved_observer
+          test_operation_saved_motion_checks
           test_motion_progress_compaction
           test_operation_read_witness_checks
           test_operation_remaining_read_checks

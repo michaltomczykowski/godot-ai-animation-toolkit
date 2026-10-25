@@ -514,6 +514,16 @@ def collect(context_path, traces, root, preview_report=None):
                       'raw_event_id':event['id'],'scene':event['scene'],'failures':failures,
                       'limits':'Source-specific native playback checks only; additional FX paths/types when applicable. Native audio playing is an event, not audible-output or visual approval.'})
     for event in snapshot_events:
+        if event.get('validator')=='motion_saved_file_v1':
+            continue
+        if event.get('validator')=='motion_saved_audit_v1':
+            from operation_saved_motion_checks import verify_event
+            proof=verify_event(event,context,public_events,support_events,snapshot_events)
+            cases.append({'id':event['id'],'operation':event['operation'],'checks':proof['checks'],
+                          'scope':'candidate','route':'public_godot_ai','raw_event_id':event['id'],
+                          'public_case_ids':proof['public_case_ids'],'dry_case_ids':[],
+                          'failures':proof['failures'],'limits':proof['limits']})
+            continue
         if event.get("validator")=="pose_blend_refusal_v1":
             from operation_pose_blend_refusal_checks import verify_event
         elif event.get("validator")=="bounded_read_v1":
