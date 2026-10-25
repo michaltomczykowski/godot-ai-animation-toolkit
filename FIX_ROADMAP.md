@@ -1,5 +1,22 @@
 # Animation Toolkit repair roadmap
 
+## Private spring cache defect isolated; Linux race measured (2026-10-26)
+
+New unchanged-source bake8 playback checks expose a real initialization defect
+hidden by the prior synchronous reference: requested spring settings survive
+serialization, but private per-joint caches still contain engine defaults when
+baking begins. A24-cell actual-engine control distinguishes warmed native,
+immediate native and productionSandbox startup. Six of eight case families pass;
+the two spring families fail original parity limits. No bounds or old outputs
+were replaced. See docs/bake-cache-diagnosis-20261026.md; repair is in progress.
+
+The optional Linux watch reproduced the native abort and confirmed unsynchronized
+documentation queue accesses. Allocator error precedes the recorded main stores;
+no particular corrupting write is proved. Ordinary CI debugger mode is restored
+to none. No supported public rendered-route barrier or toolkit-only race fix has
+been found. Exact-source evidence and limits:
+docs/doc-loader-watch-assessment-20261026.md. No merge/tag/release yet.
+
 ## Default gait witnesses and current bake matrix pass (2026-10-26)
 
 The completed25October run at pushed26a35eb passes all nine default translating

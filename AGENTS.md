@@ -2,6 +2,33 @@
 
 ## Current root checkpoint: gait and fresh bake complete (26 October)
 
+### Newer26October checkpoint: two actual repair findings
+
+No local Godot active after r003 native/cache diagnostics. Primary f98d41e
+includes observation-only bake8 evaluator, retarget unchanged cached-skin proof,
+actual Tree clock guards and direct/sandbox startup cache control. Root phases
+at bake-eight-current-preflight-r002/r003 preserve original failures. R0038case
+32runs has zero observation/engine errors; six case families pass parity, BOTH
+spring families fail (.009168/.011149rad), both fresh takes exact. R00324cell
+cache causal control shows actual stored .7/.3/.1/.02 settings but synchronous
+joint cache1/0/0/.1; warmed native joints have requested values. Tight source and
+exact productionSandbox copies match WRONG saved bake; warmed original differs.
+Release worker implements deterministic native private cache initialization;
+no product fix or GPU approval yet. Details:docs/bake-cache-diagnosis-20261026.md.
+
+Linux watch40243257753/abf reproduced430SIGABRT with loader and main accesses to
+same docs queue; independent d40d3f1/b513013 assessment says allocator message
+PRECEDES observed main stores, no exact corrupting write proved.421completed
+handoff is normal, not a race. No supported public rendered docs barrier found.
+Caller now RESTORED native_debugger:none (watch defaultfalse). Custom engine
+control plan remains separate from official4.7.2 qualification. No race fix.
+
+Motion representative prep r001 stopped before engine because path regex cut
+X Bot.fbx atspace; partial output preserved. Worker repairs extractor/stagesNEW
+r002. No motion capture yet. Operation worker implements minimal idle/turn
+independent effect observers; seven-gap plan retains other parameter-oracle
+limits. Latest actual pushed abf8ea2; commit/push current checkpoint next.
+
 Authoritative resume note; older LIVE entries below are historical. No local
 Godot process remains. Source26a35eb2dc7106cdd951b4771f9ec8c3971861bc is pushed.
 Private gait-bake-public-r001/execution.json is COMPLETE/public quit, not live:
@@ -19,8 +46,8 @@ CI40173858488 at26a finished SUCCESS; independent exact-source/raw four-cell
 audit is assigned to inspect_evidence. This does not prove the intermittent
 Linux allocator crash fixed. Optional74a0c708 doc-loader GDB watch integrated;
 35 combined controls and exact official ELF preflight pass. CI caller is
-temporarily native_debugger:gdb/doc_loader_watch:true for one remote diagnostic.
-Restore native_debugger:none/doc_loader_watch:false before normal qualification. Motion
+temporarily native_debugger:gdb/doc_loader_watch:true for one remote diagnostic
+(now restored by the newer checkpoint above). Motion
 worker resumes two missing saved representative films; release worker resumes
 eight-case bake evaluator using fresh public receipt above. Workers isolated,
 no engine launch; root owns the single engine queue. Usage-limit interruptions
