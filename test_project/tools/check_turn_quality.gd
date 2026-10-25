@@ -1,5 +1,6 @@
 extends SceneTree
 ## Independent saved engine playback. No generator math, IK or applied poses.
+const InputIdentity := preload("res://tools/motion_physical_input_identity.gd")
 const Native := preload("res://tools/character_quality_native.gd")
 var logger := Native.CaptureErrors.new()
 var control := ""
@@ -42,8 +43,10 @@ func _contact(row: Dictionary, v: Dictionary, side: String) -> bool:
 
 func _measure(row: Dictionary, fps: int, mode: String) -> Dictionary:
 	row = row.duplicate(true)
+	var input_identity := InputIdentity.begin(row)
 	var v := Native.load_case(row, root)
 	if v.has("error"): return {"thresholds_pass": false, "failures": [v.error]}
+	InputIdentity.loaded(input_identity, row, v)
 	if not control.is_empty(): _inject_control(row, v)
 	v.rest_world_bases = {}
 	for role: String in v.indices:
@@ -180,11 +183,18 @@ func _measure(row: Dictionary, fps: int, mode: String) -> Dictionary:
 		if int(f.flips) > 0: failures.append(side + ": knee pole flip")
 		if endpoint_error > 0.001 * float(v.leg) or foot_heading_error > 0.001: failures.append(side + ": unfinished foot recovery")
 		if int(f.contact_frames) == 0: failures.append(side + ": no contact evidence")
+	var settled_headings := {}
+	for role in ["hips", "chest", "head"]:
+		if v.indices.has(role): settled_headings[role] = Native.values(_heading(v, role))
 	var result := {"id": row.id, "fps": fps, "mode": mode, "frames": frames,
+		"source_world_up": Native.values(v.up), "source_world_forward": Native.values(v.forward), "rest_left_offset": Native.values(left_offset),
+		"settled_headings": settled_headings, "max_motion_m": max_motion, "extracted_root_distance_m": root_position.length(), "extracted_root_angle_rad": root_rotation.angle_to(Quaternion.IDENTITY),
+		"actor_distance_m": v.body.global_position.distance_to(v.initial_body), "actor_angle_rad": v.body.global_basis.get_rotation_quaternion().angle_to(initial_actor_rotation),
 		"leg_length_m": v.leg, "heading_error_rad": heading_error,
 		"max_pose_step_m": max_pose_step, "max_angle_step_rad": max_angle_step,
 		"nonfinite": nonfinite, "feet": metrics, "trace": trace, "pivot_checks": pivot_checks,
 		"failures": failures, "thresholds_pass": failures.is_empty()}
+	result["input_identity"] = InputIdentity.finish(input_identity)
 	v.scene.free()
 	return result
 
@@ -235,6 +245,11 @@ func _inject_control(row: Dictionary, v: Dictionary) -> void:
 
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
+	var selected_id := InputIdentity.selector(args)
+	if selected_id == "INVALID":
+		quit(1)
+		return
+	if not selected_id.is_empty(): args.remove_at(args.find("case_id=" + selected_id))
 	if args.size() < 2 or args.size() > 3:
 		quit(1)
 		return
@@ -244,12 +259,17 @@ func _run() -> void:
 		return
 	var route: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(args[0]))
 	var runs: Array = []
-	for row: Dictionary in route.cases:
+	var selected := InputIdentity.select(route.cases, selected_id)
+	if not selected_id.is_empty() and selected.size() != 1:
+		quit(1)
+		return
+	for row: Dictionary in selected:
 		for mode in ["player", "tree"]:
 			for fps in [30, 60, 120]: runs.append(_measure(row, fps, mode))
-	var passed := runs.size() == 24 and logger.errors.is_empty()
+	var passed := runs.size() == (24 if selected_id.is_empty() else 6) and logger.errors.is_empty()
 	for run: Dictionary in runs: passed = passed and bool(run.thresholds_pass)
 	var report := {"source_head": route.source_head, "revision": route.revision,
+		"case_selection": selected_id, "route_sha256": FileAccess.get_sha256(args[0]), "checker_sha256": FileAccess.get_sha256(get_script().resource_path), "native_helper_sha256": FileAccess.get_sha256("res://tools/character_quality_native.gd"), "input_identity_helper_sha256": FileAccess.get_sha256("res://tools/motion_physical_input_identity.gd"),
 		"runs": runs, "engine_errors": logger.errors, "passed": passed, "control": control,
 		"contract": "Saved Player/Tree world-space ankle/heading checks at actual FPS. Rest ankle plane is not sole collision; hip is not COM. Numerical pass does not approve visuals."}
 	FileAccess.open(args[1], FileAccess.WRITE).store_string(JSON.stringify(report))

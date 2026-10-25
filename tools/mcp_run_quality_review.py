@@ -33,11 +33,19 @@ def motion_invocation(operation: str, entry_point: str) -> dict:
     return {"op": "cycle", "preset": CYCLE_PRESETS[operation]}
 
 
+def selected_rigs(operation, rig_id=None):
+    if rig_id is None:return RIGS
+    if operation not in ('idle_cycle','turn_cycle') or rig_id!='dummy':
+        raise ValueError('Explicit single-rig intent scope supports idle/turn dummy only')
+    return tuple(row for row in RIGS if row[0]==rig_id)
+
+
 def save(path: Path, report: dict) -> None:
     write_json(path, report)
 
 
 async def run(args: argparse.Namespace) -> int:
+    rigs = selected_rigs(args.operation,getattr(args,"rig_id",None))
     invocation = motion_invocation(args.operation, args.entry_point)
     motion = args.operation.removesuffix("_cycle")
     transition = args.operation in ("walk_start", "walk_stop")
@@ -84,9 +92,9 @@ async def run(args: argparse.Namespace) -> int:
                           "invocation_kind": "explicit prototype" if recipes else "ordinary call",
                           "connection": connection, "created_utc": progress["created_utc"],
                           "tooling_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-                          "cases": [], "failures": [], "passed": False}
+                          "case_selection": getattr(args,"rig_id",None), "cases": [], "failures": [], "passed": False}
                 save(record, report)
-                for rig_id, label, fixture, scene_root, rig_path, player_path, synthetic in RIGS:
+                for rig_id, label, fixture, scene_root, rig_path, player_path, synthetic in rigs:
                     target = scene_folder / f"{style}_{root_mode}_{rig_id}.tscn"
                     copy_scene(args.project_root / fixture, target)
                     if external_history:
@@ -207,7 +215,7 @@ async def run(args: argparse.Namespace) -> int:
                     report["failures"].extend(problems)
                     save(record, report)
                     print(f"Preserved {style}/{root_mode}/{rig_id}: {'PASS' if row['passed'] else 'FAIL'}", flush=True)
-                report["passed"] = len(report["cases"]) == 4 and not report["failures"]
+                report["passed"] = len(report["cases"]) == len(rigs) and not report["failures"]
                 save(record, report)
                 progress["reports"].append(str(record))
                 progress["failures"].extend(f"{style}/{root_mode}: {x}" for x in report["failures"])
@@ -228,6 +236,7 @@ if __name__ == "__main__":
     p.add_argument("--ws-port", type=int, default=9500)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--phase", choices=("baseline", "prototype", "candidate"), default="baseline")
+    p.add_argument("--rig-id",choices=("dummy",),help="Explicit idle/turn-only intent case; default remains four rigs")
     p.add_argument("--operation", choices=("walk_cycle", "run_cycle", "idle_cycle", "walk_start", "walk_stop", "turn_cycle", "strafe_cycle", "jump"), default="run_cycle")
     p.add_argument("--entry-point", choices=("dedicated", "cycle"), default="dedicated")
     p.add_argument("--direction", choices=("left", "right"))

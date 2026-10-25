@@ -1,6 +1,7 @@
 extends SceneTree
 
 ## Independent saved-scene standing playback. No generator or bone-pose writes.
+const InputIdentity := preload("res://tools/motion_physical_input_identity.gd")
 const Native := preload("res://tools/character_quality_native.gd")
 var logger := Native.CaptureErrors.new()
 
@@ -95,8 +96,10 @@ func _seam_probe(view: Dictionary) -> Dictionary:
 	return {"spacing_s": step, "bones": rows, "failures": failures}
 
 func _check(row: Dictionary, fps: int, mode: String, baseline: bool, negative: bool) -> Dictionary:
+	var input_identity := InputIdentity.begin(row)
 	var v := Native.load_case(row, root)
 	if v.has("error"): return {"thresholds_pass": false, "failures": [v.error]}
+	InputIdentity.loaded(input_identity, row, v)
 	v.animation_name = row.params.animation_name
 	var reference := Native.load_case(row, root)
 	if reference.has("error"):
@@ -243,12 +246,13 @@ func _check(row: Dictionary, fps: int, mode: String, baseline: bool, negative: b
 		"max_actor_distance_m": root_distance, "max_extracted_root_delta_m": max_root_delta,
 		"max_reference_position_error_m": max_reference.x, "max_reference_rotation_error_rad": max_reference.y,
 		"crossed_loop_seams": seams, "max_pose_step_m": max_step.x, "max_rotation_step_rad": max_step.y,
-		"max_seam_step_m": seam_step.x, "max_seam_rotation_step_rad": seam_step.y, "seam_velocity_probe": seam_probe,
+		"max_interior_step_m": interior_step.x, "max_interior_rotation_step_rad": interior_step.y, "max_seam_step_m": seam_step.x, "max_seam_rotation_step_rad": seam_step.y, "seam_velocity_probe": seam_probe,
 		"nonfinite": nonfinite, "generation_clamp_metadata_known": clamp_known,
 		"generation_reach_clamped": row.write.get("clamped", null), "active_mixers": active_mixers,
 		"feet": foot_metrics, "arms": arms, "trace": trace, "path_errors": path_errors,
 		"failures": errors, "thresholds_pass": errors.is_empty(),
 		"candidate_quality_pass": errors.is_empty() and clamp_known, "negative_actor_drift": negative}
+	result["input_identity"] = InputIdentity.finish(input_identity)
 	v.scene.free()
 	if negative_parent != null: negative_parent.free()
 	reference.scene.free()
@@ -256,6 +260,11 @@ func _check(row: Dictionary, fps: int, mode: String, baseline: bool, negative: b
 
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
+	var selected_id := InputIdentity.selector(args)
+	if selected_id == "INVALID":
+		quit(1)
+		return
+	if not selected_id.is_empty(): args.remove_at(args.find("case_id=" + selected_id))
 	if args.size() < 2:
 		quit(1)
 		return
@@ -265,7 +274,11 @@ func _run() -> void:
 	var modes: Array = ["player"] if baseline else ["player", "tree"]
 	var results: Array = []
 	var failures: Array = []
-	for row: Dictionary in manifest.cases:
+	var selected := InputIdentity.select(manifest.cases, selected_id)
+	if not selected_id.is_empty() and selected.size() != 1:
+		quit(1)
+		return
+	for row: Dictionary in selected:
 		if not row.get("passed", false):
 			failures.append(str(row.id) + ": invalid public route")
 			continue
@@ -275,8 +288,9 @@ func _run() -> void:
 				results.append(result)
 				if not result.get("thresholds_pass", false): failures.append("%s/%s/%s: %s" % [row.id, fps, mode, str(result.get("failures", ["Invalid check result"]))])
 	var report := {"source_head": manifest.source_head, "revision": manifest.revision, "baseline": baseline,
+		"case_selection": selected_id, "route_sha256": FileAccess.get_sha256(args[0]), "checker_sha256": FileAccess.get_sha256(get_script().resource_path), "native_helper_sha256": FileAccess.get_sha256("res://tools/character_quality_native.gd"), "input_identity_helper_sha256": FileAccess.get_sha256("res://tools/motion_physical_input_identity.gd"),
 		"runs": results, "failures": failures, "engine_errors": logger.errors,
-		"passed": results.size() == 4 * 3 * modes.size() and failures.is_empty() and logger.errors.is_empty(),
+		"passed": results.size() == (4 if selected_id.is_empty() else 1) * 3 * modes.size() and failures.is_empty() and logger.errors.is_empty(),
 		"measurement_contract": "Independent saved engine playback; bilateral expected standing support and measured world-space rest-ankle contact. No gait markers or actor translation consumer. Missing generation clamp metadata stays unknown and prevents candidate approval. Rest ankle targets are not skinned sole collision; numerical checks do not approve visual quality."}
 	FileAccess.open(args[1], FileAccess.WRITE).store_string(JSON.stringify(report))
 	OS.remove_logger(logger)
