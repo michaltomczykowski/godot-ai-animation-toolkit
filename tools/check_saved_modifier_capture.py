@@ -54,6 +54,7 @@ def validate(report,manifest,manifest_sha,frames=None,reference=None,reference_s
     expected_envelopes={case_id:envelope_union(reference,case_id) for case_id in cases} if render else {}
     movie=[]
     for run in runs:
+        require(type(run.get('excluded_reset_process_frames')) is int and run['excluded_reset_process_frames']==(1 if run.get('op')=='spring_setup' else 0),'missing/wrong pre-sample deferred reset barrier')
         require(run.get('failures')==[] and run.get('op')==cases[run['id']]['op'] and run.get('scene_sha256')==cases[run['id']]['scene']['sha256'] and run.get('fps')==60 and run.get('frames')==240 and run.get('excluded_loading_process_frames')==2 and run.get('saved_active') is False and run.get('runtime_influence')==1.,'saved activation/source/warmup changed')
         require(len(run.get('trace',[]))==240 and digest(run.get('config_sha256')),'missing native frame/config observations')
         if run['active']:require(max(s.get('effect',0) for s in run['trace'])>.001,'inert active modifier')

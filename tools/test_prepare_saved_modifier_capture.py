@@ -2,8 +2,13 @@ import copy
 import unittest
 import tempfile
 from pathlib import Path
-from prepare_saved_modifier_capture import admit_native,script_uid
+from prepare_saved_modifier_capture import admit_native,script_uid,admit_production_blob,READ_GUARD_BRIDGE
 class Admission(unittest.TestCase):
+    def test_only_exact_unused_pose_list_guard_bridge_is_admitted(self):
+        self.assertFalse(admit_production_blob('any.gd','a'*40,'a'*40))
+        self.assertTrue(admit_production_blob('addons/godot_ai_animation/handlers/rig.gd',*READ_GUARD_BRIDGE))
+        for path,old,new in [('other.gd',*READ_GUARD_BRIDGE),('addons/godot_ai_animation/handlers/rig.gd',READ_GUARD_BRIDGE[0],'0'*40),('addons/godot_ai_animation/handlers/rig.gd','0'*40,READ_GUARD_BRIDGE[1])]:
+            with self.assertRaises(ValueError):admit_production_blob(path,old,new)
     def test_exact_uid_sidecar_when_present(self):
         with tempfile.TemporaryDirectory() as folder:
             script=Path(folder)/'dependency.gd';script.write_text('extends Node')

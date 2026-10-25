@@ -8,6 +8,11 @@ import shutil
 import subprocess
 IDS=tuple('local_'+op+'_dummy' for op in ('ik_setup','look_at_setup','twist_setup','spring_setup','retarget_setup'))
 NAME='Toolkit Saved Modifier Preflight'
+READ_GUARD_BRIDGE=('36e4188a575968a65c8ae87c0bb2c48c6fe9221f','fac58350c44e535afa6fc29e702cd093b934e84f')
+def admit_production_blob(path,original,current):
+    if original==current:return False
+    if path=='addons/godot_ai_animation/handlers/rig.gd' and (original,current)==READ_GUARD_BRIDGE:return True
+    raise ValueError('production dependency changed: '+path)
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def script_uid(path):
     sidecar=Path(str(path)+".uid")
@@ -29,8 +34,9 @@ def prepare(repo,bundle,out):
     for rel,d in context['dependencies'].items():
         if rel.startswith('addons/godot_ai_animation/'):
             p=repo/rel
-            if git(repo,'hash-object','--path',rel,str(p))!=d['git_blob']:raise ValueError('production dependency changed: '+rel)
-            bridge[rel]={'git_blob':d['git_blob'],'original_checkout_sha256':d['sha256'],'capture_checkout_sha256':sha(p)}
+            blob=git(repo,'hash-object','--path',rel,str(p))
+            changed=admit_production_blob(rel,d['git_blob'],blob)
+            bridge[rel]={'git_blob':d['git_blob'],'capture_git_blob':blob,'original_checkout_sha256':d['sha256'],'capture_checkout_sha256':sha(p),'bridge_reason':'Exact selected-directory String guard; handler is not loaded by copied modifier scenes' if changed else 'identical production blob'}
     manifests=list((bundle/'appdata/Godot/app_userdata').glob('*/rig_modifier_history.json'))
     if len(manifests)!=1 or sha(manifests[0])!=native['manifest_sha256']:raise ValueError('source saved manifest identity missing')
     src_app=manifests[0].parent;source=json.loads(manifests[0].read_text())
@@ -68,6 +74,7 @@ def prepare(repo,bundle,out):
         item['original_native_rows']=proof;selected.append(item)
     for helper in ('check_saved_modifier_capture.gd','render_saved_modifier_capture.gd','saved_media_framing.gd'):
         copy_resource('res://tools/'+helper,repo/'test_project/tools'/helper,project/'tools'/helper)
+    if 'res://addons/godot_ai_animation/handlers/rig.gd' in receipts and any(v['git_blob']!=v['capture_git_blob'] for v in bridge.values()):raise ValueError('changed read handler must not be loaded by modifier capture')
     dependencies=[{k:v for k,v in r.items() if k in ('path','sha256')} for r in receipts.values()]
     (project/'project.godot').write_text('config_version=5\n[application]\nconfig/name="'+NAME+'"\n[display]\nwindow/size/viewport_width=1920\nwindow/size/viewport_height=1080\nwindow/stretch/mode="viewport"\nwindow/stretch/aspect="keep"\n[rendering]\nrenderer/rendering_method="gl_compatibility"\n',encoding='utf-8')
     result={'kind':'saved_modifier_capture_manifest','source_public':context['tested_source'],'capture_source':git(repo,'rev-parse','HEAD'),'source_context_sha256':sha(context_path),'source_manifest_sha256':sha(manifests[0]),'native828_sha256':sha(native_path),'engine':context['engine'],'core_commit':context['core_commit'],'bridge':bridge,'cases':selected,'files':receipts,'capture_dependencies':dependencies,'activation':{'saved_active':False,'runtime_active':[False,True],'runtime_influence':1.0},'limitations':'No fresh generation; native828 spring effect used changed force/collider. New preflight keeps unchanged settings and must pass before renderer work.'}

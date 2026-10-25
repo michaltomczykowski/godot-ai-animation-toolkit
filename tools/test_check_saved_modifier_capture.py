@@ -14,7 +14,7 @@ def fixture():
                 for i in range(240):
                     raw=i+1 if active else 0
                     trace.append(dict(tick=i,time=i/60,input_time_s=i/60,native_elapsed_s=(i+1)/60,raw_before=i if active else 0,raw=raw,final_before=i,final=i+1,skin_before=i,skin=i+1,active_writers=['mod','witness'] if active else ['witness'],finite=True,effect=.1 if active else 0.,pose_sha256='d'*64,source_input_pose_sha256='e'*64,focus_poses={'bone':{'name':'hand','final':[0.,0.,0.]}},bounds_min=[0,0,0],bounds_max=[1,1,1],display_envelope=dict(minimum=[0,0,0],maximum=[1,1,1],vertex_count=9)))
-                report['runs'].append(dict(id=case['id'],op=case['op'],fps=60,frames=240,active=active,take=take,saved_active=False,runtime_influence=1.,scene_sha256='b'*64,config_sha256='f'*64,excluded_loading_process_frames=2,trace=trace,final_pose=[1],failures=[]))
+                report['runs'].append(dict(id=case['id'],op=case['op'],fps=60,frames=240,active=active,take=take,saved_active=False,runtime_influence=1.,scene_sha256='b'*64,config_sha256='f'*64,excluded_loading_process_frames=2,excluded_reset_process_frames=1 if case['op']=='spring_setup' else 0,trace=trace,final_pose=[1],failures=[]))
     return report,manifest
 
 def rendered_fixture():
@@ -30,6 +30,11 @@ def rendered_fixture():
             number+=1
     return report,manifest,reference
 class Controls(unittest.TestCase):
+    def test_reset_barrier_is_explicit_and_only_before_spring_samples(self):
+        for op in OPS:
+            r,m=fixture();run=next(v for v in r['runs'] if v['op']==op)
+            run['excluded_reset_process_frames']=0 if op=='spring_setup' else 1
+            with self.assertRaisesRegex(ValueError,'reset barrier'):validate(r,m,'c'*64)
     def test_native_positive(self):
         r,m=fixture();self.assertEqual(validate(r,m,'c'*64)['native_samples'],4800)
     def test_qualified_native_corruptions(self):

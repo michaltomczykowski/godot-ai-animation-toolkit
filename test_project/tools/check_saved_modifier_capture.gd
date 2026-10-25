@@ -148,7 +148,12 @@ func _take(row:Dictionary,fps:int,active:bool,take:int)->Dictionary:
 	witness.modification_processed.connect(final_cb)
 	source.skeleton_updated.connect(skin_cb)
 	modifier.active=active and not inert_control;modifier.influence=1.0
-	if modifier is SpringBoneSimulator3D:modifier.reset()
+	var reset_process_frames:=0
+	if modifier is SpringBoneSimulator3D:
+		modifier.reset()
+		# reset() queues _update_joints(true); settle it before the sampled clock.
+		await process_frame
+		reset_process_frames=1
 	var trace:Array=[]
 	var focus:Array=[]
 	for name in ["B-upperArm.L","B-forearm.L","B-hand.L","B-spine","B-chest","B-head"]:
@@ -191,7 +196,7 @@ func _take(row:Dictionary,fps:int,active:bool,take:int)->Dictionary:
 		await _capture_frame(capture.merged({"record":record,"baseline":baseline,"globals":sample.globals,"signals":sample,"source_input_sha256":input_source_sha},true))
 	await _capture_end(capture)
 	_check(FileAccess.get_sha256(row.scene.path)==row.scene.sha256,row.id+" immutable scene")
-	var result:={"id":row.id,"op":row.op,"fps":fps,"active":active,"take":take,"saved_active":false,"runtime_influence":1.0,"frames":frames,"excluded_loading_process_frames":2,"scene_sha256":row.scene.sha256,"config_sha256":config_before,"trace":trace,"final_pose":sample.poses,"failures":failures.slice(before)}
+	var result:={"id":row.id,"op":row.op,"fps":fps,"active":active,"take":take,"saved_active":false,"runtime_influence":1.0,"frames":frames,"excluded_loading_process_frames":2,"excluded_reset_process_frames":reset_process_frames,"scene_sha256":row.scene.sha256,"config_sha256":config_before,"trace":trace,"final_pose":sample.poses,"failures":failures.slice(before)}
 	modifier.modification_processed.disconnect(raw_cb);witness.modification_processed.disconnect(final_cb);source.skeleton_updated.disconnect(skin_cb)
 	scene.free()
 	return result
