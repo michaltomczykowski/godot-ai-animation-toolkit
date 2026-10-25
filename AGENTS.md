@@ -1,5 +1,29 @@
 # Agent notes
 
+## Current root checkpoint: gait and fresh bake complete (26 October)
+
+Authoritative resume note; older LIVE entries below are historical. No local
+Godot process remains. Source26a35eb2dc7106cdd951b4771f9ec8c3971861bc is pushed.
+Private gait-bake-public-r001/execution.json is COMPLETE/public quit, not live:
+three default writers and nine 30/60/120 audits pass; all nine scoped gait
+valid_effect rows pass. Existing bake driver passes six suites,201 cases,
+603 saved/402 played states,10764 key/10362 intermediate samples,zero failures
+or engine errors. Four direct calls before and after actual core reload pass.
+Strict derived failures0; operation report SHA256
+779a70d427258337a7c725dca6cc339aac124712d84f58ffa64700d9598d4d2b.
+See docs/gait-and-bake-checkpoint-20261026.md. Current scope-only adapter repair
+leaves valid in-place/run-without-flight audits pending rather than failed;
+11 focused controls pass. Old26a receipts are not relabeled as new-source runs.
+
+CI40173858488 at26a finished SUCCESS; independent exact-source/raw four-cell
+audit is assigned to inspect_evidence. This does not prove the intermittent
+Linux allocator crash fixed. Root is reviewing optional74a0c708 doc-loader GDB
+watch; final normal qualification must restore native_debugger:none. Motion
+worker resumes two missing saved representative films; release worker resumes
+eight-case bake evaluator using fresh public receipt above. Workers isolated,
+no engine launch; root owns the single engine queue. Usage-limit interruptions
+left no partial local engine run. Current work needs checkpoint commit/push.
+
 ## Current root checkpoint: setup/rig public r002 COMPLETE
 
 Frozen3d91ade public r002 complete/quit, exec63637done. Bothsetupdriverspass29.625/

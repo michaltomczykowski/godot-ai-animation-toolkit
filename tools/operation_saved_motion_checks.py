@@ -20,6 +20,10 @@ def derive(row):
     op = request['op']
     if op not in ('walk_cycle', 'run_cycle', 'cycle') or (op=='cycle' and request.get('preset')!='walk') or 'speed' in request:
         return {}
+    if request.get('root_motion', False) is False or (op=='run_cycle' and params.get('motion_kind')=='gait'):
+        # Valid in-place recipes and audits without run flight checks are outside
+        # this translating/flight-qualified witness, rather than failed effects.
+        return {}
     require(request.get('root_motion') is True, 'default locomotion requires translating recipe')
     require(params.get('samples') in (31,61,121) and observed.get('sample_count')==params['samples'], 'sample clock mismatch')
     require(params.get('max_slide')==.016 and number(observed.get('length')) and observed['length']>0, 'audit configuration mismatch')

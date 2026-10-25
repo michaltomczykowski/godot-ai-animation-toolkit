@@ -1,5 +1,23 @@
 # Animation Toolkit repair roadmap
 
+## Default gait witnesses and current bake matrix pass (2026-10-26)
+
+The completed25October run at pushed26a35eb passes all nine default translating
+walk/run/walk-alias effect observations at30/60/120FPS through real Godot AI.
+Saved bytes, actual forced disk reload, public call order and native world
+contacts are bound explicitly. The existing201-case bake matrix also passes:
+603saved/402played states, six public suites and direct calls across core reload.
+Strict derived failures0. Details and exact report identity:
+docs/gait-and-bake-checkpoint-20261026.md.
+
+A narrow evidence-scope correction keeps valid in-place recipes and run audits
+without flight checks pending; qualifying translating/flight limits are intact.
+Eleven focused controls pass. These new code changes do not relabel the26a run.
+CI40173858488 is green; independent raw/source audit is in progress. A green run
+does not establish a fix for the intermittent Linux documentation-loader crash.
+Remaining representative motion/bake/workflow media and final portable,
+installation and publication gates continue. No merge, tag or release yet.
+
 ## Modifier film assessed; setup and rig intent verified (2026-10-25)
 
 Five native modifiers now have a complete40-second/two-take technical recording,

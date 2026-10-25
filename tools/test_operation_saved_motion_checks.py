@@ -22,6 +22,22 @@ class CriteriaControls(unittest.TestCase):
         row=sample(); row['saved']['request']['speed']=1.; self.assertEqual(derive(row),{})
     def test_other_families_pending(self):
         row=sample(); row['saved']['request']['op']='idle_cycle'; self.assertEqual(derive(row),{})
+    def test_in_place_requests_pending(self):
+        for op in ('walk_cycle','run_cycle','cycle'):
+            for explicit in (True,False):
+                row=sample(op)
+                if explicit: row['saved']['request']['root_motion']=False
+                else: row['saved']['request'].pop('root_motion')
+                with self.subTest(op=op,explicit=explicit): self.assertEqual(derive(row),{})
+    def test_run_without_flight_gate_pending(self):
+        row=sample('run_cycle'); row['audit_request']['motion_kind']='gait'
+        row['audit_response']['motion_kind']='gait'; row['audit_response'].pop('flight')
+        row['audit_response']['checks']=[v for v in row['audit_response']['checks'] if not v['check'].startswith('run_')]
+        self.assertEqual(derive(row),{})
+    def test_invalid_scope_still_rejected(self):
+        for change in (lambda r:r['saved']['request'].update(root_motion='true'),lambda r:r['audit_request'].update(motion_kind='unknown')):
+            row=sample('run_cycle'); change(row)
+            with self.subTest(change=change),self.assertRaises(ValueError): derive(row)
     def test_corruptions(self):
         mutations=[lambda r:r['audit_response'].update(body_travel=.1),lambda r:r['audit_response'].update(body_travel=True),lambda r:r['audit_response'].update(body_travel=float('nan')),lambda r:r['audit_response'].update(in_place=True),lambda r:r['audit_response']['feet'].pop('l'),lambda r:r['audit_response']['feet']['l'].update(trace=[[0,0,0]]*31),lambda r:r['audit_response']['feet']['r'].update(contact_time=0),lambda r:r['audit_response']['support'].update(trace=[dict(state='both')]*31),lambda r:r['audit_response']['checks'][0].update(budget=.13),lambda r:r['audit_response']['checks'][1].update(value=.02),lambda r:r['audit_response']['checks'][1].update(budget=.02),lambda r:r['audit_response'].update(sample_count=30),lambda r:r['audit_response']['checks'].append(copy.deepcopy(r['audit_response']['checks'][0]))]
         for change in mutations:
