@@ -3,6 +3,7 @@ extends RefCounted
 
 const Sandbox := preload("res://addons/godot_ai_animation/utils/evaluation_sandbox.gd")
 const Errors := preload("res://addons/godot_ai_animation/utils/error_codes.gd")
+const SpringCache := preload("res://addons/godot_ai_animation/utils/spring_bake_cache.gd")
 const RootMotion := preload("res://addons/godot_ai_animation/utils/bake_root_motion.gd")
 const SUPPORTED := ["TwoBoneIK3D", "CCDIK3D", "FABRIK3D", "SplineIK3D", "LookAtModifier3D", "BoneTwistDisperser3D", "RetargetModifier3D", "SpringBoneSimulator3D"]
 const GROUNDING_PATH := "res://addons/godot_ai_animation/runtime/setup_grounding.gd"
@@ -148,7 +149,10 @@ func open(scene_root: Node, source_skeleton: Skeleton3D, source_player: Animatio
 		if not configuration.is_empty(): return _fail("private setup grounding configuration: " + configuration)
 	for rig in rigs:
 		for child in rig.get_children():
-			if child is SpringBoneSimulator3D and child.active: child.reset()
+			if child is SpringBoneSimulator3D and child.active:
+				var cache_problem:=SpringCache.prime(child)
+				if not cache_problem.is_empty():return _fail(cache_problem)
+				child.reset()
 	return {"ok": true}
 
 func _retarget_rigs(rig: Skeleton3D, needed: Dictionary) -> void:
@@ -186,6 +190,8 @@ func sample(delta: float, time: float) -> Dictionary:
 			if guarded_modifiers.has(child): return _fail("%s at t=%.6f" % [guarded_modifiers[child], time])
 			if child is LookAtModifier3D and (rig.find_bone(child.bone_name) < 0 or child.get_node_or_null(child.target_node) == null): return _fail("invalid look-at wiring rig=%s t=%.6f" % [rig.name, time])
 			if child is SpringBoneSimulator3D:
+				var cache_problem:=SpringCache.prime(child)
+				if not cache_problem.is_empty():return _fail(cache_problem+" at t=%.6f"%time)
 				for i in child.get_setting_count():
 					if child.get_center_from(i) != SpringBoneSimulator3D.CENTER_FROM_WORLD_ORIGIN and not child.get_children().filter(func(node): return node is SpringBoneCollision3D).is_empty():
 						return _fail("relative spring center with collisions rig=%s t=%.6f" % [rig.name, time])

@@ -91,11 +91,18 @@ func _native(row: Dictionary, intermediate: bool = false) -> Array:
 	var body := scene.get_node(row.movement_owner) as Node3D
 	var tree := scene.get_node(row.tree) as AnimationTree if not str(row.tree).is_empty() else null
 	var mixer: AnimationMixer = tree if tree != null else player
+	var native_modifiers:Array=[]
 	for configuration in row.get("modifiers", []):
 		var old := scene.get_node(configuration.path) as SkeletonModifier3D
 		var native := Native.replace(configuration, old.get_parent(), old)
 		native.influence = float(configuration.params.get("influence", 1))
-		Native.finish(native)
+		native_modifiers.append(native)
+	# Independent oracle waits for the engine itself to propagate declared
+	# Spring global settings/curves. Do not use the production cache helper.
+	if native_modifiers.any(func(modifier):return modifier is SpringBoneSimulator3D):
+		await process_frame
+		await process_frame
+	for native in native_modifiers:Native.finish(native)
 	var witness := FinalPose.new()
 	rig.add_child(witness)
 	player.speed_scale = 1
@@ -227,9 +234,9 @@ func _run() -> void:
 	for row in rows:
 		_check(required.has(row.id) and not found.has(row.id), "unexpected/duplicate case " + row.id)
 		found[row.id] = true
-		var reference := _native(row)
+		var reference:Array = await _native(row)
 		_check(reference.size() == _times(row.params).size(), row.id + " native samples present")
-		var native_intermediate := _native(row, true)
+		var native_intermediate:Array = await _native(row, true)
 		_check(native_intermediate.size() == reference.size() * 2 - 1, row.id + " native intermediate samples present")
 		for i in reference.size() - 1:
 			if native_intermediate.size() <= i * 2 + 1: break
