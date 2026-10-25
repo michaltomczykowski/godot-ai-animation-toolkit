@@ -72,3 +72,15 @@ Pure verification (venv Python):
 Actual GDScript parse and released-core public execution remain pending and are
 owned by root. This increment prepares three source/error/refusal channels; it
 does not qualify current raw receipts, motion effects, native playback or visuals.
+
+## Integration correction before fresh execution
+
+Actual historical stored snapshots name the root Player's default library slot
+`libraries/`. The first mask removed `libraries`, so it retained authored target
+resources and falsely reported source differences. The corrected mask removes
+only the exact default slot and independently requires its native resource alias,
+AnimationLibrary class and five-clip set. Other library properties remain outside
+the mask and are rejected if changed. A real-shaped control checks wrong alias,
+class, extra library and missing clip. Both preserved historical source predicates
+now pass; these diagnostic rechecks do not relabel old reports or qualify the new
+logger/refusal observer.33 combined source/history/collector controls pass.

@@ -46,3 +46,15 @@ remains unchanged. This addresses premature cancellation, not the separate Linux
 scene-save SIGABRT. That crash remains open and the native diagnostic mode is
 still temporary. Exact timelines and hashes remain private under
 `ci-8319413-r001/live-budget-diagnosis-r001`.
+
+## Full repaired capture result
+
+Copied project r007 at `eacc767` imports and parses, then passes20 native cells /
+4,800 observations. Native SHA256:
+`0665585de072a49c504d0f89d10f2d529cc4e9cf58614cbbc43850b9fe14b619`.
+Its fresh recording passes all2,400 exact native/frame/camera comparisons with
+zero engine errors. Encoding and independent full decoding pass40seconds at
+1920×1080 /60FPS. MP4 SHA256:
+`adae86958870ae7da338bdf23b925245f8e385c9cd572017cdf5a2c731c521bd`.
+Independent visual assessment is still pending; technical capture completion
+does not approve natural character movement. Both old failed attempts remain.

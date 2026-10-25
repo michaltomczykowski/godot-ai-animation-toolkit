@@ -19,7 +19,7 @@ def projection(row, after):
   nodes['.']['children']=[x for x in nodes['.']['children']if x!='AnimationTree']
   nodes[SKELETON]['children']=[x for x in nodes[SKELETON]['children']if x!='SetupGrounding']
  player=nodes[PLAYER]
- for key in ('libraries','root_motion_track','root_motion_local'):player['properties'].pop(key,None)
+ for key in ('libraries','libraries/','root_motion_track','root_motion_local'):player['properties'].pop(key,None)
  for key in ('libraries','clips'):player.pop(key,None)
  return state
 
@@ -36,6 +36,8 @@ def source_preserved(rows,context):
   state=row['stored'];require(set(state['nodes'])==set(nodes)|set(ADDED),'unexpected added/removed node')
   require(set(row['clips'])==expected,'generated clip set differs from fixed setup request')
   props=state['nodes'][PLAYER]['properties']
+  player=state['nodes'][PLAYER];library=props.get('libraries/',{})
+  require(set(player.get('libraries',{}))=={''} and library==player['libraries'][''] and set(library)=={'resource_id'} and state['resources'].get(library['resource_id'],{}).get('class')=='AnimationLibrary' and set(player.get('clips',{}))==expected,'default library native alias/type/clip set differs')
   require(props.get('root_motion_track')=={'type':'NodePath','value':'Dummy:position'} and props.get('root_motion_local')is True,'root motion ownership differs')
   require(equal(semantic(projection(row,True)),baseline),'non-target stored source differs')
   if phase!='persisted':

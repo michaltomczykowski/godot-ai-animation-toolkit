@@ -16,6 +16,10 @@ def source_rows():
    state=row['stored'];state['nodes'][source.SKELETON]['children'].append('SetupGrounding')
    state['nodes'][source.SKELETON+'/SetupGrounding']={'id':22,'class':'SkeletonModifier3D','properties':{},'children':[]}
    player['properties'].update(root_motion_track={'type':'NodePath','value':'Dummy:position'},root_motion_local=True)
+   state['resources']['setup-library']={'class':'AnimationLibrary','path':'','properties':{}}
+   player['properties']['libraries/']={'resource_id':'setup-library'}
+   player['libraries']={'':{'resource_id':'setup-library'}}
+   player['clips']={name:{} for name in row['clips']}
  return rows
 
 
@@ -37,6 +41,15 @@ def full_bound():
 
 
 class Controls(unittest.TestCase):
+ def test_native_default_library_slot_is_target_but_other_libraries_are_not(self):
+  rows=source_rows();self.assertTrue(source.source_preserved(rows,full_bound()[1]))
+  for fault in ('alias','class','other_library','clips'):
+   rows=source_rows();state=rows['after_write']['stored'];player=state['nodes']['AnimationPlayer']
+   if fault=='alias':player['properties']['libraries/']={'resource_id':'wrong'}
+   elif fault=='class':state['resources']['setup-library']['class']='Resource'
+   elif fault=='other_library':player['properties']['libraries/extra']={'resource_id':'setup-library'}
+   else:player['clips'].pop('walk')
+   with self.assertRaises(ValueError,msg=fault):source.source_preserved(rows,full_bound()[1])
  def test_complete_new_source_and_error_contract(self):
   proof=history.verify_event(*full_bound());self.assertEqual(set(proof['checks'].values()),{'pass'});self.assertIn('refusal',proof['public_case_ids'])
   self.assertIn('not the entire editor session',proof['limits'])

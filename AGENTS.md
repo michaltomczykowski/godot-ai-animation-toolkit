@@ -1,5 +1,19 @@
 # Agent notes
 
+## Current root checkpoint: r007 complete film; setup/rig public next
+
+25Oct: r007capturecomplete2400frames40s60FPS1080,exactnative/camera/PNG checksPASS,
+fulldecodePASS,engine0/errors0. MP4SHAadae86958870ae7da338bdf23b925245f8e385c9cd
+572017cdf5a2c731c521bd. Releaseworker independentlyassessingprivatefilm now.
+Native20cells4800samplesSHA0665585d...b619. Originalr0062098interruption/r002
+springmismatch bothpreserved. Resetqueuecontrol16runs256samples causalPASS;
+sharedpre-samplebarriernonewpose/config/threshold changes. Lastpushed eacc767.
+Rootnewsetupsource maskcorrectactuallibraries/ alias (33controlsPASS); bothold
+actualsourcepredicatesPASSdiagnosticonly. 2GDSactualparsePASS. Committhenfreeze
+HEAD/runprivate run_setup_history_witness_r002.py (2setup7channels +2rigintent
+localsuites), publicquit thenstrictcollect. Noenginecurrently. Workersisolated.
+EarlierLIVE entries below are history.
+
 ## Current root recovery: 25 October modifier recapture
 
 No engine/recorder survived usage interruption. r006/recording-r001 has2098of2400
