@@ -1,5 +1,23 @@
 # Animation Toolkit repair roadmap
 
+## Modifier film assessed; setup and rig intent verified (2026-10-25)
+
+Five native modifiers now have a complete40-second/two-take technical recording,
+exact native/frame/camera identity checks, full decode and independent ordered
+visual assessment. A real deferred-reset scheduling mismatch was reproduced and
+fixed in the capture evaluator; old failed captures remain. No production pose,
+saved modifier configuration or comparison bound changed.
+
+Fresh visible4.7.2 /releasedcore4.2.1 at3d91ade passes both seven-channel setup
+checkpoints and local rig-history suites (260+147 assertions). Scoped native
+pose-apply and chain create/append intent checks pass; strict derived failures0.
+See docs/setup-rig-and-modifier-checkpoint-20261025.md for hashes and limitations.
+
+The outer Windows CI job budget is35minutes after measured cumulative25-minute
+cancellations; every inner gate remains unchanged. Linux scene-save SIGABRT is
+still unresolved. Default gait evidence, remaining workflow media and final
+portable/install/release gates continue. No main merge, tag or release yet.
+
 ## Remaining reads verified; native crash stacks captured (2026-10-24)
 
 Fresh visible4.7.2 /releasedcore4.2.1 at793e56b passes the selected rig_get,

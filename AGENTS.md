@@ -1,5 +1,18 @@
 # Agent notes
 
+## Current root checkpoint: setup/rig public r002 COMPLETE
+
+Frozen3d91ade public r002 complete/quit, exec63637done. Bothsetupdriverspass29.625/
+31.157s, each7channelsPASS. Riglocal260/147assertsPASS; poseapply1/chain2effect
+casesPASS, otherintentvariantspending. Strictderivedfailures0. ReportSHA688a328d
+aac0c8fed44204a0abef5db02e28c7f3165070394c418017ceb61108. Noengineactive.
+R007modifierfilmindependentlyassessed atmodifier-temporal-assessment-r007-r004:
+2400frames/fullnativeexact/fulldecode/160orderedvideoimagesPASStechnicalonly.
+Docs/FIX_ROADMAPupdated. Lastpushed eacc767; current3d91pluscheckpointdocslocal.
+Next integrate19c6d34mediafileidentityguard/test15; motionworkerfixingactualcore
+forcedreopencontract beforeca859gaitadapterintegration. Releaseworkerprepares8
+bakeworkflowcasesisolated,noengine. OldLIVE below historical.
+
 ## Current root checkpoint: r007 complete film; setup/rig public next
 
 25Oct: r007capturecomplete2400frames40s60FPS1080,exactnative/camera/PNG checksPASS,
