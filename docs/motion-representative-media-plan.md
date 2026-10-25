@@ -162,3 +162,8 @@ engine/editor/GPU invocation. Actual GDScript parse, admission, native, detached
 skin snapshot/freshness and framing probes remain PENDING root execution. Probe
 may expose camera/skin issues; retain and fix those measured failures before a
 full capture. No animation-source/golden changes are part of this increment.
+
+Root integration adds durable execution/command checkpoints before launch,
+streamed engine logs and bounded native120s/render900s/encode300s/decode180s
+processes. The direct Godot executable is used, avoiding console-wrapper child
+ownership. These are capture controls, not animation timing or physics limits.

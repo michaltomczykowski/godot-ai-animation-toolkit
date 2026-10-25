@@ -4,6 +4,7 @@ from pathlib import Path
 from movie_capture_startup import run_capture
 from ci_rendered_preview import validate_editor_log
 from compose_character_quality import compose
+from review_receipts import write_json
 
 SELECTED={'right-strafe':'strafe/candidate-r001/right/responsive','stationary-jump':'jump/candidate-r002/stationary/responsive-in-place'}
 TOOLS=['render_character_quality.gd','render_strafe_quality.gd','render_jump_quality.gd','character_quality_native.gd','motion_capture_guard.gd','check_motion_capture_admission.gd','check_strafe_quality.gd','check_jump_quality.gd','check_run_quality.gd']
@@ -96,11 +97,13 @@ def execute(a):
     if sha(item['route'])!=binding['route_sha256']:raise ValueError('Frozen route changed')
     a.output.mkdir(parents=True,exist_ok=False)
     state=dict(kind='two_saved_motion_execution',case=a.case,phase=a.phase,preparation_sha256=sha(a.preparation),binding_sha256=sha(item['binding']),recorder_sha256=sha(__file__),commands=[],visual_approval=False)
+    put(a.output/'execution.json',dict(state,stage='prepared'))
     try:
         def launch(command,name,startup=False):
             with (a.output/(name+'.log')).open('x') as log:
-                def runner(cmd,**kw):return subprocess.run(cmd,stdout=log,stderr=subprocess.STDOUT,**kw)
+                def runner(cmd,**kw):return subprocess.run(cmd,stdout=log,stderr=subprocess.STDOUT,timeout=900 if startup else 120,**kw)
                 state['commands'].append(command)
+                write_json(a.output/'execution.json',dict(state,stage='running'))
                 if startup:
                     result=run_capture(project,1920,1080,a.output/(name+'-startup.json'),command,runner)
                     if result.get('passed') is not True:raise ValueError('Capture startup/process failed')
@@ -141,7 +144,7 @@ def execute(a):
         state['passed']=True
     except Exception as error:
         state.update(passed=False,error=str(error));raise
-    finally:put(a.output/'execution.json',state)
+    finally:write_json(a.output/'execution.json',dict(state,stage='complete'))
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);sub=p.add_subparsers(dest='action',required=True)

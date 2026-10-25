@@ -38,11 +38,11 @@ def compose(folder: Path, mode: str, ffmpeg: Path) -> dict:
                "-i", str(frames_dir / "%06d.png"), "-frames:v", str(frame_total), "-an",
                "-c:v", "libx264", "-threads", "2", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
                "-movflags", "+faststart", str(video)]
-    subprocess.run(command, check=True)
+    subprocess.run(command, check=True, timeout=300)
     # Independently decode the produced MP4, not just the encoder's return code.
     probe = subprocess.run([str(ffmpeg), "-hide_banner", "-nostats", "-i", str(video),
                             "-map", "0:v:0", "-an", "-f", "null", "-", "-progress", "pipe:1"],
-                           check=True, capture_output=True, text=True)
+                           check=True, capture_output=True, text=True, timeout=180)
     metadata = [line.strip() for line in probe.stderr.splitlines() if "Video:" in line or "Duration:" in line]
     frame_counts = re.findall(r"^frame=(\d+)$", probe.stdout, re.M)
     times = re.findall(r"^out_time_us=(\d+)$", probe.stdout, re.M)
