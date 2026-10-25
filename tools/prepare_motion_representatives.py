@@ -8,6 +8,20 @@ from review_receipts import write_json
 
 SELECTED={'right-strafe':'strafe/candidate-r001/right/responsive','stationary-jump':'jump/candidate-r002/stationary/responsive-in-place'}
 TOOLS=['render_character_quality.gd','render_strafe_quality.gd','render_jump_quality.gd','character_quality_native.gd','motion_capture_guard.gd','check_motion_capture_admission.gd','check_strafe_quality.gd','check_jump_quality.gd','check_run_quality.gd']
+ADMISSION_CONTROLS=('positive','foreign_tree','active_modifier','wrong_root_track')
+def admission_arguments(route,report,control):
+    if control not in ADMISSION_CONTROLS:raise ValueError('Unknown admission control')
+    return ['--script','res://tools/check_motion_capture_admission.gd','--',str(route),str(report),control]
+def validate_admission(report,control,route_sha,guard_sha,extracted):
+    if control not in ADMISSION_CONTROLS:raise ValueError('Unknown admission control')
+    if report.get('passed') is not True or report.get('control')!=control or report.get('effective_control')!=('' if control=='positive' else control) or report.get('route_sha256')!=route_sha or report.get('script_sha256')!=guard_sha:raise ValueError('Wrong admission control identity')
+    rows=report.get('rows',[])
+    if [r.get('id') for r in rows]!=['dummy','xbot','short','zup_tall']:raise ValueError('Missing admission rig controls')
+    reason={'foreign_tree':'Foreign active mixer before normalization','active_modifier':'Active modifier before normalization','wrong_root_track':'Saved extraction binding missing' if extracted else 'Unextracted clip has extraction owner'}.get(control)
+    for row in rows:
+        errors=row.get('errors')
+        if not isinstance(errors,list) or (errors!=[] if control=='positive' else reason not in errors):raise ValueError('Admission control did not observe expected ownership condition')
+
 def quoted_resource_paths(text):
     """Decode complete quoted Variant strings; never split a path on spaces."""
     pattern=r'"(?:\\.|[^"\\])*"'
@@ -132,10 +146,10 @@ def execute(a):
             state.setdefault('logs',[]).append(dict(path=str(a.output/(name+'.log')),sha256=sha(a.output/(name+'.log'))))
         base=[str(a.godot),'--path',str(project)]
         if a.phase=='native':
-            for control in ('','foreign_tree','active_modifier','wrong_root_track'):
-                report=a.output/('admission-'+(control or 'positive')+'.json')
-                launch(base[:1]+['--headless']+base[1:]+['--script','res://tools/check_motion_capture_admission.gd','--',item['route'],str(report),control],'admission-'+(control or 'positive'))
-                if json.loads(report.read_text()).get('passed') is not True:raise ValueError('Admission control failed')
+            for control in ADMISSION_CONTROLS:
+                report=a.output/('admission-'+control+'.json')
+                launch(base[:1]+['--headless']+base[1:]+admission_arguments(item['route'],report,control),'admission-'+control)
+                validate_admission(json.loads(report.read_text()),control,binding['route_sha256'],sha(project/'tools/motion_capture_guard.gd'),a.case=='right-strafe')
             script='check_strafe_quality.gd' if a.case=='right-strafe' else 'check_jump_quality.gd';report=a.output/'native.json'
             launch(base[:1]+['--headless']+base[1:]+['--script','res://tools/'+script,'--',item['route'],str(report)],'physical')
             data=json.loads(report.read_text())

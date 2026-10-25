@@ -187,3 +187,15 @@ helper bytes against committed capture Git blobs through repository attributes,
 then records ACTUAL runtime SHA separately from source-checkout SHA. Any semantic
 source change still refuses; runtime guards continue exact-byte verification.
 The empty r002 attempt is preserved; successful fresh staging uses r002/ready.
+
+### Explicit positive admission control (26 October)
+
+Preserve r002/ready/right-native-r001 failure. Godot drops a trailing empty user
+argument; the observer now passes literal positive, and GDScript maps it to the
+unmodified admission path. Only the four named controls are accepted; omitted/
+unknown controls fail closed with a diagnostic report when an output path is
+available. Python validates requested/effective control, exact four rig IDs,
+route/guard SHA and actual expected ownership-error reason for each negative.
+10 offline test methods PASS, including nonempty command arguments, both root
+ownership mappings and forged/missing control witnesses. No engine was launched.
+Fresh r003 staging requires the integrated admission script's exact Git blob.
