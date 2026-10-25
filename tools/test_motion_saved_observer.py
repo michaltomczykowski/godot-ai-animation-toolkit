@@ -1,5 +1,6 @@
 """File-identity controls; no MCP or engine calls."""
 import json
+import asyncio
 from pathlib import Path
 import tempfile
 import unittest
@@ -30,5 +31,27 @@ class FileControls(unittest.TestCase):
             saved=observer.saved_witness(path,'res://walk_cycle.tscn',{'op':'walk_cycle'},{})
             path.write_bytes(b'changed')
             self.assertNotEqual(saved['scene_sha256'],observer.sha(path))
+
+class NavigationControls(unittest.TestCase):
+    def run_case(self, responses):
+        calls=[]
+        async def call(client, tool, request):
+            calls.append((tool,request))
+            return responses[len(calls)-1]
+        try:return asyncio.run(observer.open_saved(call,None,'res://one.tscn')),calls
+        except ValueError:return 'refused',calls
+    def test_current_reloads_once(self):
+        result,calls=self.run_case([dict(path='res://one.tscn',reloaded_from_disk=True)])
+        self.assertEqual(len(calls),1);self.assertIsNone(result[1])
+    def test_other_tab_navigates_then_reloads_once(self):
+        nav=dict(path='res://one.tscn',reloaded_from_disk=False)
+        result,calls=self.run_case([nav,dict(path='res://one.tscn',reloaded_from_disk=True)])
+        self.assertEqual(len(calls),2);self.assertEqual(result[1],nav)
+    def test_error_unknown_wrong_path_not_retried(self):
+        for response in (dict(error='fail'),dict(path='res://one.tscn'),dict(path='res://wrong.tscn',reloaded_from_disk=False)):
+            result,calls=self.run_case([response]);self.assertEqual(result,'refused');self.assertEqual(len(calls),1)
+    def test_second_false_or_error_not_retried(self):
+        for response in (dict(error='fail'),dict(path='res://one.tscn',reloaded_from_disk=False)):
+            result,calls=self.run_case([dict(path='res://one.tscn',reloaded_from_disk=False),response]);self.assertEqual(result,'refused');self.assertEqual(len(calls),2)
 
 if __name__=='__main__':unittest.main()

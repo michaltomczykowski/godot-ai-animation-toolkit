@@ -69,13 +69,24 @@ def derive(row):
 def verify_event(event, context, public_events, support_events, snapshot_events):
     row=event['row']; saved=row['saved']; request=saved['request']; operation='animation_motion.'+request['op']
     require(event.get('operation')==operation and event.get('validator')=='motion_saved_audit_v1', 'wrong observer operation')
-    for dep in DEPS: require(dep in context['dependencies'], 'missing dependency '+dep)
+    def hex_value(value, size):
+        return isinstance(value,str) and len(value)==size and all(c in '0123456789abcdef' for c in value)
+    require(isinstance(context.get('run_id'),str) and bool(context['run_id']), 'missing actual run ID')
+    require(hex_value(event.get('context_sha256'),64), 'invalid context digest')
+    for dep in DEPS:
+        identity=context.get('dependencies',{}).get(dep,{})
+        require(hex_value(identity.get('git_blob'),40) and hex_value(identity.get('sha256'),64), 'missing/invalid dependency '+dep)
+    def metadata(value, kind):
+        require(value.get('schema_version')==1 and value.get('kind')==kind and value.get('route')=='public_godot_ai', 'wrong trace metadata')
+        require(value.get('context_sha256')==event['context_sha256'] and value.get('run_id')==context['run_id'], 'foreign trace identity')
+        require(isinstance(value.get('id'),str) and bool(value['id']) and type(value.get('time_ns')) is int, 'missing event identity')
+    metadata(event,'operation_snapshot_assertions')
     require(saved.get('context_sha256')==event['context_sha256'], 'foreign saved context')
     digest=saved.get('scene_sha256'); require(isinstance(digest,str) and len(digest)==64 and all(c in '0123456789abcdef' for c in digest), 'invalid saved digest')
     require(digest==row.get('before_sha256')==row.get('after_sha256'), 'saved bytes changed')
     save_rows=[v for v in snapshot_events if v.get('id')==saved.get('save_witness_id')]
     require(len(save_rows)==1, 'missing saved witness')
-    witness=save_rows[0]; expected=dict(saved); expected.pop('save_witness_id')
+    witness=save_rows[0]; metadata(witness,'operation_snapshot_assertions'); require(witness.get('operation')==operation, 'foreign saved operation'); expected=dict(saved); expected.pop('save_witness_id')
     require(witness.get('validator')=='motion_saved_file_v1' and witness.get('row')==expected and witness.get('driver')=='mcp_motion_remaining_cycles.py', 'wrong saved witness')
     require(event.get('driver')=='mcp_motion_audit_saved.py', 'wrong audit driver')
     scene=saved['scene']
@@ -87,9 +98,16 @@ def verify_event(event, context, public_events, support_events, snapshot_events)
     generation=exact(public_events,lambda v: v.get('driver')=='mcp_motion_remaining_cycles.py' and v.get('operation')==operation and v.get('scene')==scene and v.get('request')==request and not v.get('response',{}).get('error'),'generation binding ambiguous')
     save=exact(support_events,lambda v: v.get('driver')=='mcp_motion_remaining_cycles.py' and v.get('public_tool')=='scene_save' and v.get('scene')==scene and v.get('response')==saved['save_response'],'save binding ambiguous')
     opened=exact(support_events,lambda v: v.get('driver')=='mcp_motion_audit_saved.py' and v.get('public_tool')=='scene_open' and v.get('request')=={'path':scene,'force_reload':True} and v.get('response')==row['opened'] and witness['time_ns']<v['time_ns']<event['time_ns'],'forced disk open binding ambiguous')
-    require(row['opened'].get('reloaded_from_disk') is True and not row['opened'].get('error'), 'not disk reopened')
+    require(row['opened'].get('path')==scene and row['opened'].get('reloaded_from_disk') is True and not row['opened'].get('error'), 'not disk reopened')
     audit=exact(public_events,lambda v: v.get('driver')=='mcp_motion_audit_saved.py' and v.get('operation')=='animation_inspect.motion_audit' and v.get('scene')==scene and v.get('request')==row['audit_request'] and v.get('response')==row['audit_response'] and opened['time_ns']<v['time_ns']<event['time_ns'],'audit binding ambiguous')
     require(generation['time_ns']<save['time_ns']<witness['time_ns']<opened['time_ns']<audit['time_ns'], 'invalid witness order')
+    for value,kind in ((generation,'public_operation_call'),(save,'public_support_call'),(opened,'public_support_call'),(audit,'public_operation_call')): metadata(value,kind)
+    navigation=row.get('navigation')
+    if navigation is not None:
+        require(navigation.get('reloaded_from_disk') is False and navigation.get('path')==scene and not navigation.get('error'), 'invalid prior navigation')
+        nav=exact(support_events,lambda v: v.get('driver')=='mcp_motion_audit_saved.py' and v.get('public_tool')=='scene_open' and v.get('request')=={'path':scene,'force_reload':True} and v.get('response')==navigation and witness['time_ns']<v['time_ns']<opened['time_ns'],'navigation binding ambiguous')
+        metadata(nav,'public_support_call')
+    require(len([v for v in support_events if v.get('driver')=='mcp_motion_audit_saved.py' and v.get('public_tool')=='scene_open' and v.get('request',{}).get('path')==scene and witness['time_ns']<v['time_ns']<audit['time_ns']])==(2 if navigation is not None else 1), 'unexpected reload/navigation span')
     require(not any(v.get('scene')==scene and save['time_ns']<v['time_ns']<audit['time_ns'] and not v.get('operation','').startswith('animation_inspect.') and not v.get('request',{}).get('dry_run') and not v.get('response',{}).get('error') for v in public_events), 'intervening successful writer')
     for key in ('player_path','skeleton_path','animation_name'): require(request[key]==row['audit_request'][key]==row['audit_response'][key], 'target mismatch')
     return dict(checks=derive(row), public_case_ids=[generation['id'],audit['id']], dry_case_ids=[], failures=[], limits=LIMITS)

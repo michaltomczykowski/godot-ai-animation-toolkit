@@ -39,20 +39,37 @@ class BindingControls(unittest.TestCase):
         row=sample(); request=row['saved']['request']; request.update(player_path='/R/P',skeleton_path='/R/S',animation_name='walk_cycle')
         row['audit_request'].update(player_path='/R/P',skeleton_path='/R/S',animation_name='walk_cycle')
         row['audit_response'].update(player_path='/R/P',skeleton_path='/R/S',animation_name='walk_cycle')
-        saved=row['saved']; saved.update(scene='res://run/one.tscn',scene_sha256='a'*64,context_sha256='ctx',save_witness_id='w',save_command=['python','mcp_motion_remaining_cycles.py'],save_response={'path':'res://run/one.tscn'})
-        row.update(audit_command=['python','mcp_motion_audit_saved.py','--run-id','run'],before_sha256='a'*64,after_sha256='a'*64,opened=dict(reloaded_from_disk=True))
+        saved=row['saved']; saved.update(scene='res://run/one.tscn',scene_sha256='a'*64,context_sha256='c'*64,save_witness_id='w',save_command=['python','mcp_motion_remaining_cycles.py'],save_response={'path':'res://run/one.tscn'})
+        row.update(audit_command=['python','mcp_motion_audit_saved.py','--run-id','run'],before_sha256='a'*64,after_sha256='a'*64,opened=dict(path='res://run/one.tscn',reloaded_from_disk=True))
         witness=dict(id='w',time_ns=3,validator='motion_saved_file_v1',driver='mcp_motion_remaining_cycles.py',row={k:v for k,v in saved.items() if k!='save_witness_id'})
-        event=dict(id='e',time_ns=6,validator='motion_saved_audit_v1',driver='mcp_motion_audit_saved.py',operation='animation_motion.walk_cycle',context_sha256='ctx',row=row)
+        event=dict(id='e',time_ns=6,validator='motion_saved_audit_v1',driver='mcp_motion_audit_saved.py',operation='animation_motion.walk_cycle',context_sha256='c'*64,row=row)
         public=[dict(id='g',time_ns=1,driver='mcp_motion_remaining_cycles.py',operation=event['operation'],scene=saved['scene'],request=copy.deepcopy(request),response={}),dict(id='a',time_ns=5,driver='mcp_motion_audit_saved.py',operation='animation_inspect.motion_audit',scene=saved['scene'],request=copy.deepcopy(row['audit_request']),response=copy.deepcopy(row['audit_response']))]
         support=[dict(time_ns=2,driver='mcp_motion_remaining_cycles.py',public_tool='scene_save',scene=saved['scene'],response=copy.deepcopy(saved['save_response'])),dict(time_ns=4,driver='mcp_motion_audit_saved.py',public_tool='scene_open',request=dict(path=saved['scene'],force_reload=True),response=copy.deepcopy(row['opened']))]
-        return event,dict(dependencies={k:{} for k in DEPS}),public,support,[witness]
+        context=dict(run_id='actual-run',dependencies={k:dict(git_blob='d'*40,sha256='e'*64) for k in DEPS})
+        for value,kind in [(event,'operation_snapshot_assertions'),(witness,'operation_snapshot_assertions')]+[(v,'public_operation_call') for v in public]+[(v,'public_support_call') for v in support]:
+            value.update(schema_version=1,kind=kind,route='public_godot_ai',run_id='actual-run',context_sha256='c'*64)
+            value.setdefault('id','support:'+str(value['time_ns']))
+        witness['operation']=event['operation']
+        return event,context,public,support,[witness]
     def test_exact_binding(self):
         from operation_saved_motion_checks import verify_event
         self.assertEqual(verify_event(*self.bound())['checks'],{'valid_effect':'pass'})
     def test_binding_corruptions(self):
         from operation_saved_motion_checks import verify_event
-        for change in (lambda a:a[0]['row'].update(before_sha256='b'*64),lambda a:a[0]['row']['saved'].update(context_sha256='other'),lambda a:a[0]['row']['opened'].update(reloaded_from_disk=False),lambda a:a[2][0].update(scene='res://other.tscn'),lambda a:a[2][1]['response'].update(body_travel=999),lambda a:a[4].clear(),lambda a:a[1]['dependencies'].clear(),lambda a:a[3][1].update(time_ns=0)):
+        for change in (lambda a:a[0]['row'].update(before_sha256='b'*64),lambda a:a[0]['row']['saved'].update(context_sha256='other'),lambda a:a[0]['row']['opened'].update(reloaded_from_disk=False),lambda a:a[2][0].update(scene='res://other.tscn'),lambda a:a[2][1]['response'].update(body_travel=999),lambda a:a[4].clear(),lambda a:a[1]['dependencies'].clear(),lambda a:a[3][1].update(time_ns=0),lambda a:a[2][0].update(context_sha256='f'*64),lambda a:a[2][1].update(run_id='foreign'),lambda a:a[3][0].update(route='fabricated'),lambda a:a[4][0].update(kind='other'),lambda a:a[1]['dependencies'].update({next(iter(a[1]['dependencies'])):{}})):
             args=list(self.bound());change(args)
             with self.subTest(change=change),self.assertRaises(ValueError):verify_event(*args)
+
+
+    def test_other_tab_navigation_bound(self):
+        from operation_saved_motion_checks import verify_event
+        args=list(self.bound()); nav=copy.deepcopy(args[3][1]);nav.update(id='nav',time_ns=3.5);nav['time_ns']=35
+        # Use integer native wall-clock units for all fixtures.
+        for value in [args[0],*args[2],*args[3],*args[4]]:value['time_ns']*=10
+        nav['response']['reloaded_from_disk']=False
+        args[0]['row']['navigation']=copy.deepcopy(nav['response']);args[3].append(nav)
+        self.assertEqual(verify_event(*args)['checks'],{'valid_effect':'pass'})
+        args[3].pop()
+        with self.assertRaises(ValueError):verify_event(*args)
 
 if __name__=='__main__': unittest.main()

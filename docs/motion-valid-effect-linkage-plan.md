@@ -159,3 +159,18 @@ save/audit interpreter+argv and validates audit run-id/driver identity. File
 receipt cannot overwrite an earlier receipt; local path must resolve declared
 res:// scene. The old CI596 report is not amended or qualified. Public forced
 reopen and fresh source-context collection remain pending root execution.
+
+### Core421 tab navigation correction (25 October)
+
+Released core421 scene_open only sets reloaded_from_disk=true when a forced
+request targets the already-current tab. The observer now preserves its first
+forced open response: true means one-call completion; explicit false on a
+successful matching-path response permits ONE further forced reload after that
+navigation. Error, unknown reload state, wrong path, or second false/error
+refuses without another call. Generation and native audit counts are unchanged.
+The receipt binds the initial navigation where required and the unique actual
+forced-load event. Trace metadata validates schema/kind/route/run/context on
+all local IDs; source dependencies require real SHA256/git-blob identities.
+15 offline test methods PASS, including both tab paths, no error/unknown retry,
+missing navigation, forged context/run/route/kind and dependency identities.
+Actual root-owned public execution remains pending.

@@ -12,7 +12,7 @@ from fastmcp import Client
 from fastmcp.client.transports import StdioTransport
 
 from mcp_presets_audit import call
-from motion_saved_observer import sha, read_witness, audit_witness
+from motion_saved_observer import sha, read_witness, audit_witness, open_saved
 
 
 OPS = ("walk_cycle", "idle_cycle", "cycle", "run_cycle", "jump", "turn_cycle",
@@ -35,7 +35,7 @@ async def run(args: argparse.Namespace) -> int:
             local_scene = args.project_root / scene.removeprefix("res://")
             witness = read_witness(local_scene)
             before_sha = sha(local_scene)
-            opened = await call(client, "scene_open", {"path": scene, "force_reload": True})
+            opened, navigation = await open_saved(call, client, scene)
             for fps in (30, 60, 120):
                 params = {
                     "op": "motion_audit", "player_path": player,
@@ -51,7 +51,7 @@ async def run(args: argparse.Namespace) -> int:
                     params["contact_threshold"] = args.contact_threshold
                 sample_before_sha = sha(local_scene)
                 result = await call(client, "custom_animation_inspect", params)
-                identity = audit_witness(witness, sample_before_sha, sha(local_scene), opened, params, result)
+                identity = audit_witness(witness, sample_before_sha, sha(local_scene), opened, params, result, navigation)
                 feet = result.get("feet", {})
                 support = result.get("support", {})
                 rows.append({"op": op, "fps": fps, "scene": scene,
