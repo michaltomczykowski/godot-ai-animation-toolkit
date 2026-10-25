@@ -50,10 +50,14 @@ def prepare(repo,bundle,out):
    refs=re.findall(r'\[ext_resource[^\n]*path="([^"]+)"',src.read_text())
    if set(refs)-{'res://'+external}:raise ValueError('unexpected scene dependency')
    shutil.copyfile(src,dst);files[virtual]={'original':str(src),'sha256':sha(src),'copied_sha256':sha(dst)}
- helpers=['test_project/tools/'+name for name in ('check_saved_bake_capture.gd','check_rig_bake_restoration.gd','modifier_native_reference.gd')]
- for rel in [external,*helpers]:
+ helpers=['test_project/tools/'+name for name in ('check_saved_bake_capture.gd','check_bake_spring_cache_diagnostic.gd','check_rig_bake_restoration.gd','modifier_native_reference.gd')]
+ production=[external,'addons/godot_ai_animation/utils/evaluation_sandbox.gd','addons/godot_ai_animation/utils/error_codes.gd']
+ for rel in production:
+  blob=subprocess.check_output(['git','-C',str(repo),'rev-parse',SOURCE+':'+rel],text=True).strip()
+  if c['dependencies'].get(rel,{}).get('git_blob')!=blob:raise ValueError('unbound diagnostic production helper')
+ for rel in [*production,*helpers]:
   virtual='res://'+rel.removeprefix('test_project/');dst=project/virtual[6:];dst.parent.mkdir(parents=True,exist_ok=True)
-  dst.write_bytes(subprocess.check_output(['git','-C',str(repo),'show',SOURCE+':'+rel])if rel==external else(repo/rel).read_bytes());files[virtual]={'sha256':sha(dst),'origin':SOURCE if rel==external else str(repo/rel)}
+  dst.write_bytes(subprocess.check_output(['git','-C',str(repo),'show',SOURCE+':'+rel])if rel in production else(repo/rel).read_bytes());files[virtual]={'sha256':sha(dst),'origin':SOURCE if rel in production else str(repo/rel)}
   sidecar=Path(str(repo/rel)+'.uid')
   if sidecar.is_file():shutil.copyfile(sidecar,Path(str(dst)+'.uid'))
  (project/'project.godot').write_text('config_version=5\n[application]\nconfig/name="'+NAME+'"\n[display]\nwindow/size/viewport_width=1920\nwindow/size/viewport_height=1080\nwindow/stretch/mode="viewport"\n[rendering]\nrenderer/rendering_method="gl_compatibility"\n')

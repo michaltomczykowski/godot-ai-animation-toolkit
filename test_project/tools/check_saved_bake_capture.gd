@@ -33,6 +33,20 @@ func _tree_clock(tree:AnimationTree)->Dictionary:
 		if value is AnimationNodeStateMachinePlayback:out[key]={"current_node":str(value.get_current_node()),"current_play_position":value.get_current_play_position()}
 		elif value is float or value is int or value is bool or value is String:out[key]=value
 	return out
+func _loading_frames()->int:return 2
+func _open_scene(path:String):return _load(path)
+func _close_scene(scene:Node)->void:scene.free()
+func _spring_snapshot(scene:Node)->Array:
+	var out:Array=[]
+	for spring in scene.find_children("*","SpringBoneSimulator3D",true,false):
+		var settings:Array=[]
+		for setting in spring.get_setting_count():
+			var joints:Array=[]
+			for joint in spring.get_joint_count(setting):
+				joints.append({"bone":spring.get_joint_bone_name(setting,joint),"stiffness":spring.get_joint_stiffness(setting,joint),"drag":spring.get_joint_drag(setting,joint),"gravity":spring.get_joint_gravity(setting,joint),"radius":spring.get_joint_radius(setting,joint)})
+			settings.append({"stiffness":spring.get_stiffness(setting),"drag":spring.get_drag(setting),"gravity":spring.get_gravity(setting),"radius":spring.get_radius(setting),"individual_config":spring.is_config_individual(setting),"joints":joints})
+		out.append({"path":str(scene.get_path_to(spring)),"active":spring.active,"influence":spring.influence,"settings":settings})
+	return out
 func _capture_begin(_view:Dictionary):pass
 func _capture_sample(_view:Dictionary,_sample:Dictionary):pass
 func _capture_end(_view:Dictionary):pass
@@ -40,10 +54,10 @@ func _replay(row:Dictionary,side:String,take:int,paced:bool,flush:bool)->Diction
 	var before:=failures.size()
 	var virtual:String=row.source if side=="source" else row.states.redo
 	_check(FileAccess.get_sha256(virtual)==media_manifest.files[virtual].sha256,row.id+" immutable scene before")
-	var scene:=_load(virtual)
+	var scene:Node=await _open_scene(virtual)
 	if scene==null:return {}
-	await process_frame
-	await process_frame
+	for frame in _loading_frames():await process_frame
+	var loaded_spring:=_spring_snapshot(scene)
 	var rig:=scene.get_node(row.skeleton) as Skeleton3D
 	var body:=scene.get_node(row.movement_owner) as Node3D
 	var player:=scene.get_node(row.source_player if side=="source" else row.output) as AnimationPlayer
@@ -128,15 +142,15 @@ func _replay(row:Dictionary,side:String,take:int,paced:bool,flush:bool)->Diction
 			_check(state.skin_pose.size()==candidate.get_bone_count(),row.id+" skin bone count")
 			for i in mini(state.skin_pose.size(),candidate.get_bone_count()):_difference(state.pose.local[i],state.skin_pose[i],row.id+" final/skin "+key)
 			per_rig[str(scene.get_path_to(candidate))]={"final_before":last_final,"skin_before":last_skin,"final":state.final,"skin":state.skin,"pose":state.pose.duplicate(true),"skin_pose":state.skin_pose.duplicate(true),"skin_fresh":skin_fresh,"skin_cached_unchanged":cached_equal}
-		var sample:={"time":time,"delta":delta,"event_cursor":cursor,"body":_body(body),"body_world":body.global_transform,"selected_pose":observations[str(rig.get_path())].pose.local.duplicate(true),"required":per_rig,"extraction":extraction,"consumer_count":consumed,"root_track":str(mixer.root_motion_track),"root_motion_local":mixer.root_motion_local,"assigned_animation":str(player.assigned_animation),"player_position":player.current_animation_position if not player.current_animation.is_empty() else null,"current_animation":str(player.current_animation),"tree_clock":_tree_clock(tree)}
+		var sample:={"time":time,"delta":delta,"event_cursor":cursor,"body":_body(body),"body_world":body.global_transform,"selected_pose":observations[str(rig.get_path())].pose.local.duplicate(true),"required":per_rig,"extraction":extraction,"consumer_count":consumed,"root_track":str(mixer.root_motion_track),"root_motion_local":mixer.root_motion_local,"assigned_animation":str(player.assigned_animation),"player_position":player.current_animation_position if not player.current_animation.is_empty() else null,"current_animation":str(player.current_animation),"tree_clock":_tree_clock(tree),"spring_cache":_spring_snapshot(scene)}
 		trace.append(sample)
 		await _capture_sample(view,sample)
 		if paced:await process_frame
 		previous=float(time)
 	await _capture_end(view)
 	_check(FileAccess.get_sha256(virtual)==media_manifest.files[virtual].sha256,row.id+" immutable scene after")
-	var result:={"id":row.id,"side":side,"take":take,"paced":paced,"flush":flush,"excluded_loading_process_frames":2,"excluded_reset_process_frames":1 if flush and has_spring else 0,"saved_modifiers":saved_modifiers,"authored_duration":row.params.duration,"trace":_stable(trace),"failures":failures.slice(before)}
-	scene.free()
+	var result:={"id":row.id,"side":side,"take":take,"paced":paced,"flush":flush,"excluded_loading_process_frames":_loading_frames(),"loaded_spring_cache":loaded_spring,"excluded_reset_process_frames":1 if flush and has_spring else 0,"saved_modifiers":saved_modifiers,"authored_duration":row.params.duration,"trace":_stable(trace),"failures":failures.slice(before)}
+	_close_scene(scene)
 	return result
 func _run()->void:
 	var args:=OS.get_cmdline_user_args()
