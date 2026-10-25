@@ -12,6 +12,7 @@ from fastmcp import Client
 from fastmcp.client.transports import StdioTransport
 
 from mcp_presets_audit import call
+from motion_saved_observer import sha, read_witness, audit_witness
 
 
 OPS = ("walk_cycle", "idle_cycle", "cycle", "run_cycle", "jump", "turn_cycle",
@@ -31,7 +32,10 @@ async def run(args: argparse.Namespace) -> int:
         await client.call_tool("session_activate", {"session_id": args.session_hint})
         for op in args.ops or OPS:
             scene = f"res://repair_motion_audit/{args.run_id}/{op}.tscn"
-            opened = await call(client, "scene_open", {"path": scene})
+            local_scene = args.project_root / scene.removeprefix("res://")
+            witness = read_witness(local_scene)
+            before_sha = sha(local_scene)
+            opened = await call(client, "scene_open", {"path": scene, "force_reload": True})
             for fps in (30, 60, 120):
                 params = {
                     "op": "motion_audit", "player_path": player,
@@ -45,11 +49,15 @@ async def run(args: argparse.Namespace) -> int:
                     "max_slide": args.max_slide}
                 if args.contact_threshold is not None:
                     params["contact_threshold"] = args.contact_threshold
+                sample_before_sha = sha(local_scene)
                 result = await call(client, "custom_animation_inspect", params)
+                identity = audit_witness(witness, sample_before_sha, sha(local_scene), opened, params, result)
                 feet = result.get("feet", {})
                 support = result.get("support", {})
                 rows.append({"op": op, "fps": fps, "scene": scene,
                     "open_error": opened.get("error"), "error": result.get("error"),
+                    "identity_error": (None if witness["scene_sha256"] == before_sha == identity["before_sha256"] == identity["after_sha256"]
+                        and opened.get("reloaded_from_disk") is True else "Saved bytes/reopen identity failed"),
                     "passed": result.get("passed"),
                     "failed_checks": result.get("failed_checks", []),
                     "body_travel": result.get("body_travel"),
@@ -69,7 +77,7 @@ async def run(args: argparse.Namespace) -> int:
                          "windows")}
                         for side, foot in feet.items()}})
     print("MCP_MOTION_SAVED_AUDIT=" + json.dumps(rows, sort_keys=True))
-    failed = [row for row in rows if row["open_error"] or row["error"]
+    failed = [row for row in rows if row["open_error"] or row["identity_error"] or row["error"]
               or row["passed"] is not True or row["failed_checks"]]
     print("MCP_MOTION_SAVED_AUDIT_SUMMARY=" + json.dumps({
         "rows": len(rows), "failed": len(failed),
@@ -85,6 +93,7 @@ def main() -> int:
     parser.add_argument("--port", type=int, required=True)
     parser.add_argument("--ws-port", type=int, required=True)
     parser.add_argument("--run-id", required=True)
+    parser.add_argument("--project-root", type=Path, default=Path.cwd() / "test_project")
     parser.add_argument("--rig", choices=("dummy", "xbot"), default="dummy")
     parser.add_argument("--run-flight-gate", action="store_true",
                         help="Grade run_cycle with simultaneous flight and leg reach checks")

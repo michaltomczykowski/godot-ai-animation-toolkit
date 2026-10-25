@@ -14,6 +14,7 @@ from fastmcp.client.transports import StdioTransport
 
 from fixture_copy import copy_scene
 from mcp_presets_audit import call
+from motion_saved_observer import saved_witness
 
 
 SKELETON = "/RepairRigFixture/Dummy/Skeleton3D"
@@ -123,6 +124,8 @@ async def run(args: argparse.Namespace) -> int:
             row["write"] = await call(client, "custom_animation_motion", params)
             row["after"] = await inspect(client, op, player)
             row["save"] = await call(client, "scene_save", {})
+            if not row["save"].get("error"):
+                row["saved_identity"] = saved_witness(folder / f"{op}.tscn", scene, params, row["save"])
             row["reopen"] = await call(client, "scene_open", {
                 "path": scene, "force_reload": True})
             row["persisted"] = await inspect(client, op, player)

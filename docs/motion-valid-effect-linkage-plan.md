@@ -117,3 +117,45 @@ scoped observations, but cannot populate whole valid_effect.
 Four offline controls pass: forged contact PASS remains pending, modified raw
 hash rejects, wrong context rejects, duplicate event ID rejects. No thresholds,
 requests, production code or collector changed; no engine was launched.
+
+## Approved observer implementation phase
+
+Extend only existing save/audit drivers. Immediately hash saved bytes, emit a
+source-bound saved snapshot, persist its immutable per-scene receipt; before
+existing audit open rehash, force_reload the SAME open, then rehash after audit.
+No generation request or audit count changes. The strict adapter binds exact
+public generation/save/open/audit rows plus save witness/context/dependencies.
+Default-speed walk/run/walk-cycle scope: >0.1m existing motion_gate body travel,
+both-foot observed swing and support, original contact/penetration/knee/bob
+limits; run additionally existing flight/reach predicates. Explicit speed is
+pending. Rounded values on an ambiguous threshold boundary stay pending/fail,
+never obtain a looser budget. Idle and other families are outside this adapter.
+No exact default speed, visual quality or all parameter semantics claim.
+
+Implementation prepared (no public execution): motion_saved_observer.py emits
+save-byte and audit-byte observations using the existing source-bound trace;
+remaining_cycles writes an immutable scene-sidecar receipt after its existing
+save. audit_saved requires it, checks bytes immediately before existing forced
+open and before/after each existing audit, without new audit calls. CI minimal
+patch passes the explicit validation project to both existing audit invocations.
+The standalone adapter checks exact generation/save/open/audit snapshots,
+producer drivers/order/targets, no intervening successful writer, required
+source dependencies and immutable scene digest. It independently requires raw
+hip net displacement >0.1m and finite nonconstant foot samples plus each foot's
+support AND swing states, in addition to original contact/run limits. Rounded
+raw observations retain the original comparisons; no budget loosening.
+
+Seven offline test methods cover three supported recipes, explicit-speed/other
+family pending, 16 numeric/contact/clock mutations and eight identity/source/
+byte/order corruptions. Actual CI596 twelve old numeric rows satisfy these
+bounded predicates; they remain UNQUALIFIED because old identity is missing.
+New save/reopen/trace path needs actual root-owned public CI execution. No
+collector or CI primary file was edited: integration is the small patch
+saved-motion-observer-integration.patch against the current root file contents.
+
+Final offline validation: 10 test methods PASS (seven strict adapter methods,
+three file identity methods); Python compilation PASS. Observer captures exact
+save/audit interpreter+argv and validates audit run-id/driver identity. File
+receipt cannot overwrite an earlier receipt; local path must resolve declared
+res:// scene. The old CI596 report is not amended or qualified. Public forced
+reopen and fresh source-context collection remain pending root execution.
