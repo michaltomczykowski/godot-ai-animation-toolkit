@@ -227,7 +227,7 @@ func test_public_setup_evidence_snapshot() -> void:
 	if value.is_empty():
 		skip("Only an exact public setup checkpoint may activate this observer")
 		return
-	assert_true(str(value.get("phase", "")) in ["before", "after_dry", "after_write", "persisted"], "known setup checkpoint phase")
+	assert_true(str(value.get("phase", "")) in ["before_refusal", "after_refusal", "before", "after_dry", "after_write", "persisted", "cleanup"], "known setup checkpoint phase")
 	observation.observe(str(value.phase), _undo_redo)
 
 func test_public_setup_bundle_undo_redo() -> void:

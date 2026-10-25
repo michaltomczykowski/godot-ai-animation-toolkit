@@ -250,6 +250,7 @@ jobs:
           test_operation_remaining_read_checks
           test_two_evidence_channels
           test_operation_setup_history_checks
+          test_operation_setup_source_checks
           test_inspect_numeric_reference
           test_operation_derived_gate
           test_operation_rig_clip_native_checks
