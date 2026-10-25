@@ -32,6 +32,11 @@ def fake_gdb():
 
 
 class Controls(unittest.TestCase):
+ def test_path_executable_lookup_for_inspection_only(self):
+  with tempfile.TemporaryDirectory()as d:
+   path=Path(d)/'godot';raw=elf();path.write_bytes(raw)
+   with patch.object(helper.shutil,'which',return_value=str(path))as lookup,patch.object(helper,'EXPECTED_SHA256',hashlib.sha256(raw).hexdigest()):
+    self.assertEqual(helper.check_binary('godot'),hashlib.sha256(raw).hexdigest());lookup.assert_called_once_with('godot')
  def test_active_window_thread_identity_and_loader_quota_does_not_hide_other_writers(self):
   m,g=fake_gdb();entry=g.breakpoints[0];entry.stop();m.log('size_write');self.assertFalse(m.state.counts)
   g.memory['flag']=0

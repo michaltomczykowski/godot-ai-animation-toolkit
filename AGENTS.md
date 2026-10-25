@@ -17,12 +17,15 @@ leaves valid in-place/run-without-flight audits pending rather than failed;
 
 CI40173858488 at26a finished SUCCESS; independent exact-source/raw four-cell
 audit is assigned to inspect_evidence. This does not prove the intermittent
-Linux allocator crash fixed. Root is reviewing optional74a0c708 doc-loader GDB
-watch; final normal qualification must restore native_debugger:none. Motion
+Linux allocator crash fixed. Optional74a0c708 doc-loader GDB watch integrated;
+35 combined controls and exact official ELF preflight pass. CI caller is
+temporarily native_debugger:gdb/doc_loader_watch:true for one remote diagnostic.
+Restore native_debugger:none/doc_loader_watch:false before normal qualification. Motion
 worker resumes two missing saved representative films; release worker resumes
 eight-case bake evaluator using fresh public receipt above. Workers isolated,
 no engine launch; root owns the single engine queue. Usage-limit interruptions
-left no partial local engine run. Current work needs checkpoint commit/push.
+left no partial local engine run. Current work needs checkpoint commit/push;
+5ab5c65 scope/docs,24874eb media plan,d7839b5 watch helper plus integration.
 
 ## Current root checkpoint: setup/rig public r002 COMPLETE
 

@@ -15,7 +15,9 @@ jobs:
   rendered-preview:
     uses: ./.github/workflows/rendered-preview.yml
     with:
-      native_debugger: postmortem
+      # Temporary diagnostic attempt. Restore none/false before qualification.
+      native_debugger: gdb
+      doc_loader_watch: true
 
   tier1:
     name: Tier 1 / ${{ matrix.os }} / ${{ matrix.script }}

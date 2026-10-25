@@ -1,12 +1,12 @@
 """Fail-closed opt-in launch attachment; never changes Godot/public arguments."""
-import hashlib,json,struct,sys
+import hashlib,json,shutil,struct,sys
 from pathlib import Path
 
 EXPECTED_SHA256='8d106cbe6144c2dc7e881d61d2429c1a8a76e6b22ef48bd5e48dcf934953f71e'
 SITES={0x1cb7900:bytes.fromhex('4157'),0x1cb7992:bytes.fromhex('c6052fef2f0700'),0x1cb7855:bytes.fromhex('e8268f7502')}
 
 def check_binary(path):
- raw=Path(path).read_bytes()
+ raw=Path(shutil.which(str(path)) or path).read_bytes()
  if hashlib.sha256(raw).hexdigest()!=EXPECTED_SHA256:raise ValueError('doc watch requires exact official Linux ELF SHA256')
  if raw[:6]!=b'\x7fELF\x02\x01' or struct.unpack_from('<HH',raw,16)!=(2,62):raise ValueError('doc watch requires x86_64 little-endian ET_EXEC')
  offset=struct.unpack_from('<Q',raw,32)[0];stride,count=struct.unpack_from('<HH',raw,54)

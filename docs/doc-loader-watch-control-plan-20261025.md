@@ -89,3 +89,13 @@ https://github.com/godotengine/godot/blob/ed1daf0bf001b61586d9930840f2f1394092c0
 https://github.com/godotengine/godot/blob/ed1daf0bf001b61586d9930840f2f1394092c079/editor/doc/editor_help.cpp
 https://github.com/godotengine/godot/blob/ed1daf0bf001b61586d9930840f2f1394092c079/editor/doc/editor_help.h
 https://github.com/godotengine/godot/blob/ed1daf0bf001b61586d9930840f2f1394092c079/main/main.cpp
+
+## Root integration26October
+
+Applied the optional runner patch. Binary inspection resolves an executable
+name through PATH without changing the original engine command. Added a real
+lookup control; seven watch controls and seven existing GDB ownership controls
+pass. Workflow input defaults remain none/false. The primary CI caller is
+temporarily gdb/true for one explicit remote measurement because the reusable
+workflow is not registered for independent dispatch on main. Restore none/false
+before final normal qualification. No product or readiness change is included.
