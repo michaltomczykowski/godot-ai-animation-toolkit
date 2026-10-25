@@ -179,3 +179,11 @@ producer/capture identities and native/capture controls are unchanged. Root's
 durable process receipts and bounded timeouts fromddd1959 are retained.
 Seven offline test methods PASS; actual saved XBot scene extracts its complete
 spaced model path. New r002 staging follows from this committed fix; no engine.
+
+Preparation r002 first stopped before any engine because the new worktree uses
+CRLF while three unchanged primary helpers use LF. Exact Git blob comparison
+confirmed the source is identical. The preparation bridge now verifies project
+helper bytes against committed capture Git blobs through repository attributes,
+then records ACTUAL runtime SHA separately from source-checkout SHA. Any semantic
+source change still refuses; runtime guards continue exact-byte verification.
+The empty r002 attempt is preserved; successful fresh staging uses r002/ready.

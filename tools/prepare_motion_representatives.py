@@ -31,7 +31,13 @@ def prepare(repo,project,evidence,output):
     output.mkdir(parents=True,exist_ok=False)
     head=subprocess.check_output(['git','-C',str(repo),'rev-parse','HEAD'],text=True).strip()
     manifest={'kind':'two_saved_motion_representatives','capture_source':head,'project':str(project.resolve()),'cases':{}}
-    files=[dict(path=str((project/'tools'/name).resolve()),sha256=sha(repo/'test_project/tools'/name)) for name in TOOLS]
+    files=[]
+    for name in TOOLS:
+        rel='test_project/tools/'+name;actual=(project/'tools'/name).resolve()
+        expected_blob=subprocess.check_output(['git','-C',str(repo),'rev-parse',head+':'+rel],text=True).strip()
+        actual_blob=subprocess.check_output(['git','-C',str(repo),'hash-object','--path',rel,str(actual)],text=True).strip()
+        if actual_blob!=expected_blob:raise ValueError('Project tool differs from committed capture blob: '+rel)
+        files.append(dict(path=str(actual),sha256=sha(actual),source_git_blob=expected_blob,source_checkout_sha256=sha(repo/rel)))
     files += [dict(path=str((repo/'tools'/name).resolve()),sha256=sha(repo/'tools'/name)) for name in ('prepare_motion_representatives.py','compose_character_quality.py','movie_capture_startup.py','ci_rendered_preview.py')]
     for f in files:
         if sha(f['path'])!=f['sha256']:raise ValueError('Project tool differs from capture source')
