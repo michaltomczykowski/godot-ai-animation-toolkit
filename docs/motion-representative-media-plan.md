@@ -94,3 +94,71 @@ cross-mode visual promotion is justified.
 - Existing left/forward assessments, broader native matrices, historical approvals
   and any new scoped recommendations remain separate. No all-style/human-approval
   claim and no uploads of private X Bot assets/media.
+
+## Two-route capture implementation phase (26 October)
+
+Prepare immutable hashes/commands only; renderer guards are observation-only.
+Before normalization, admit exact saved Player/roles/translation binding and
+reject competing active mixers/modifiers (retain scriptless empty internal
+physical simulator exemption). Existing full physical checker supplies effect
+preflight, with missing-root/writer mutation controls. Capture guard after draw
+checks native skin-update freshness, one manual writer, complete displayed mesh
+AABB projection including cylinder thickness. Skinned mesh snapshot is a detached
+baked ArrayMesh for bounds only, never installed or posed; nonzero blend shapes
+refuse because this API ignores them. Native frames/deltas/schedules unchanged.
+A probe runs the same full timeline/guards but saves only sparse frames; complete
+capture keeps every1440PNG and uses existing independent full decode composition.
+
+## Prepared root-owned commands
+
+After integrating this increment (no source/project tools copy before that), use
+an unused output directory. Existing project tools are a junction to primary;
+preparation verifies exact renderer/helper bytes and captures current HEAD.
+
+```powershell
+$Repo = 'G:/godot-ai-dev/godot-ai-animation-toolkit'
+$Evidence = 'E:/GodotAI-toolkit-release-2.0.0/20261014'
+$Prepared = "$Evidence/motion-representatives-r001"
+python "$Repo/tools/prepare_motion_representatives.py" prepare --repo $Repo --project "$Evidence/validation" --evidence $Evidence --output $Prepared
+# $Godot and $Ffmpeg are the already qualified local executable paths.
+python "$Repo/tools/prepare_motion_representatives.py" run --preparation "$Prepared/preparation.json" --case right-strafe --phase native --godot $Godot --output "$Prepared/right-native-r001"
+python "$Repo/tools/prepare_motion_representatives.py" run --preparation "$Prepared/preparation.json" --case right-strafe --phase probe --native "$Prepared/right-native-r001" --godot $Godot --output "$Prepared/right-probe-r001"
+python "$Repo/tools/prepare_motion_representatives.py" run --preparation "$Prepared/preparation.json" --case right-strafe --phase capture --native "$Prepared/right-native-r001" --probe "$Prepared/right-probe-r001" --godot $Godot --ffmpeg $Ffmpeg --mode clean --output "$Prepared/right-clean-r001"
+```
+
+Then diagnostic with a NEW output directory; repeat the same three-phase path
+using case stationary-jump. No new animation/public generation happens. The
+native phase runs original full physical checker24plays plus saved-admission
+positive and three negative potential-writer/binding controls per route. Every
+process is serial and logged; errors/non4.7.2/changed inputs refuse.
+
+Probe runs exactly the original full1440-frame native timeline and both views,
+but saves16strafe/24jump PNGs. Capture saves1440. Existing complete-image checking,
+H264 encoding and independent full MP4 decode are reused. Render witnesses bind
+exact original route/scene/producer, capture dependencies and bytes, per-view
+native clock/actor/extraction/hips/head/hands/feet, skin before/after counts,
+full skin/rod/sphere bounds, and exact second jump take reset. Fresh native and
+successful framing-probe receipts are required before full capture. All original
+files/receipts remain untouched; failed attempts retain partial PNGs/logs/state.
+
+Optional actual framing negative: in a NEW owned control binding JSON, copy the
+prepared capture-binding and add framing_control="cropped_camera"; invoke the
+same renderer directly with the control binding as fourth user argument and
+"probe" fifth. Expect nonzero, guard-failure.json, and a cropped-geometry error.
+Only the camera size changes; no saved pose/key/config is touched. Never feed
+this deliberately failed control into positive composition.
+
+Skinned bounds API contract: Godot's detached
+[bake_mesh_from_current_skeleton_pose](https://docs.godotengine.org/en/4.6/classes/class_meshinstance3d.html#class-meshinstance3d-method-bake-mesh-from-current-skeleton-pose)
+returns current skin geometry, ignores blend shapes and stalls for GPU readback.
+The guard therefore refuses nonzero blend shapes, never assigns the returned
+ArrayMesh, and records actual displayed AABB corners including rod thickness.
+Ground/grid/background are presentation context, excluded from body fit. Actual
+PNG1920x1080 and all displayed body/diagnostic geometry stay within panel margins.
+
+Offline: three test methods PASS, two exact probe schedules plus13raw-witness
+mutations and missing/wrong-size PNG controls; Python compilation PASS. No worker
+engine/editor/GPU invocation. Actual GDScript parse, admission, native, detached
+skin snapshot/freshness and framing probes remain PENDING root execution. Probe
+may expose camera/skin issues; retain and fix those measured failures before a
+full capture. No animation-source/golden changes are part of this increment.
