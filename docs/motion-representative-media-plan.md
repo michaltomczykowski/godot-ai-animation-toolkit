@@ -219,3 +219,24 @@ libraries, never generating keys or applying a pose. Python independently checks
 these raw states and errors. 11 offline test methods PASS, including the actual
 root diagnostic states and each unsafe mutation. New r004 staging follows root
 integration; no worker engine or production animation changes.
+
+### Selected-clip root binding admission (26 October)
+
+Preserve r004 right-native-r001 PASS (eight admission controls+24physical plays)
+and stationary-native-r001 failure. Root's saved XBot quality_jump has a dormant
+XBot:position extraction property from other walk clips; selected jump only has
+a hips position track. Mere property presence is not active extraction ownership.
+
+Admission now always resolves any nonempty property node, records raw property
+and actual matching selected3Dtracks (index/path/type/enabled/keys), and derives
+enabled/keyed counts. Extraction requires an enabled keyed selected matching
+track; no-extraction rejects enabled selected matches but permits a valid dormant
+property. Nothing clears or edits saved properties. Invalid Missing remains a
+negative in both modes. Two native in-memory controls use a new dormant carrier
+(no keys) and selecting an existing track path; no clip/key/pose changes. Python
+independently derives the same binding conditions from raw metadata and requires
+the exact reported errors. Twelve offline test methods PASS, covering actual
+XBot dormant state, enabled/disabled matches, invalid target and forged counts.
+New guard bindings require fresh selected-case native receipts; prior successful
+right evidence remains preserved, not reused under a changed binding identity.
+No worker engine or animation/product changes.

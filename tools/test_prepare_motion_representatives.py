@@ -1,7 +1,7 @@
 import copy,json,tempfile,unittest
 from pathlib import Path
 from PIL import Image
-from prepare_motion_representatives import validate_render,quoted_resource_paths,admission_arguments,validate_admission,ADMISSION_CONTROLS,inert_native_player
+from prepare_motion_representatives import validate_render,quoted_resource_paths,admission_arguments,validate_admission,ADMISSION_CONTROLS,inert_native_player,root_binding_errors
 
 class WitnessControls(unittest.TestCase):
     def report(self,jump):
@@ -50,10 +50,31 @@ class ResourcePathControls(unittest.TestCase):
 
 class AdmissionMappingControls(unittest.TestCase):
     def report(self,control,extracted):
-        reasons={'foreign_tree':'Foreign active mixer before normalization','assigned_player':'Foreign active mixer before normalization','autoplay_player':'Foreign active mixer before normalization','playing_player':'Foreign active mixer before normalization','active_modifier':'Active modifier before normalization','wrong_root_track':'Saved extraction binding missing' if extracted else 'Unextracted clip has extraction owner'}
+        reasons={'foreign_tree':'Foreign active mixer before normalization','assigned_player':'Foreign active mixer before normalization','autoplay_player':'Foreign active mixer before normalization','playing_player':'Foreign active mixer before normalization','active_modifier':'Active modifier before normalization'}
         state=dict(path='AnimationPlayer',class_='AnimationPlayer',active=True,selected=True,scripted=False,assigned='',autoplay='',playing=False,inert_unassigned_native_player=True)
         state['class']=state.pop('class_')
-        return dict(passed=True,control=control,effective_control='' if control=='positive' else control,route_sha256='route',script_sha256='guard',rows=[dict(id=i,errors=[] if control in ('positive','inert_player') else [reasons[control]],writer_diagnostics=dict(mixers=[copy.deepcopy(state)])) for i in ('dummy','xbot','short','zup_tall')])
+        matching=extracted or control=='selected_track_binding'
+        if control in ('wrong_root_track','dormant_binding'):matching=False
+        prop='Actor:position' if matching else ''
+        if control=='wrong_root_track':prop='Missing:position'
+        if control=='dormant_binding':prop='Dormant:position'
+        binding=dict(property=prop,node_resolved=control!='wrong_root_track',requested_extraction=extracted,matching_tracks=[dict(index=0,type=1,path=prop,enabled=True,keys=2)] if matching else [],enabled_matches=int(matching),enabled_keyed_matches=int(matching))
+        errors=sorted(root_binding_errors(binding,extracted))
+        if control in reasons:errors.append(reasons[control])
+        return dict(passed=True,control=control,effective_control='' if control=='positive' else control,route_sha256='route',script_sha256='guard',rows=[dict(id=i,errors=list(errors),writer_diagnostics=dict(mixers=[copy.deepcopy(state)],root_binding=copy.deepcopy(binding))) for i in ('dummy','xbot','short','zup_tall')])
+    def test_actual_dormant_xbot_and_enabled_disabled_track_rules(self):
+        dormant=dict(property='XBot:position',node_resolved=True,requested_extraction=False,matching_tracks=[],enabled_matches=0,enabled_keyed_matches=0)
+        self.assertEqual(root_binding_errors(dormant,False),set())
+        for enabled in (False,True):
+            track=dict(index=1,type=1,path='XBot:position',enabled=enabled,keys=3)
+            value=dict(dormant,matching_tracks=[track],enabled_matches=int(enabled),enabled_keyed_matches=int(enabled))
+            self.assertEqual(bool(root_binding_errors(value,False)),enabled)
+            value['requested_extraction']=True
+            self.assertEqual(bool(root_binding_errors(value,True)),not enabled)
+        bad=dict(dormant,node_resolved=False)
+        self.assertIn('Saved root-motion property node does not resolve',root_binding_errors(bad,False))
+        forged=dict(dormant,enabled_matches=1)
+        with self.assertRaises(ValueError):root_binding_errors(forged,False)
     def test_actual_imported_idle_states_and_unsafe_variants(self):
         for path,animations in [('Dummy/AnimationPlayer',['Untitled']),('XBot/AnimationPlayer',['Take 001','mixamo_com'])]:
             state=dict(path=path,active=True,scripted=False,assigned='',autoplay='',playing=False,animations=animations)

@@ -59,12 +59,36 @@ static func admit(row: Dictionary, control: String = "", diagnostics: Dictionary
 		errors.append("Active modifier before normalization")
 	for role in row.roles:
 		if rig.find_bone(row.roles[role]) < 0: errors.append("Saved bone role missing")
-	if not player.has_animation(row.params.animation_name): errors.append("Saved clip missing")
+	var clip := player.get_animation(row.params.animation_name) if player.has_animation(row.params.animation_name) else null
+	if clip == null: errors.append("Saved clip missing")
+	var owner := player.get_node_or_null(player.root_node)
+	if control == "dormant_binding" and owner != null:
+		var carrier := Node3D.new()
+		carrier.name = "AdmissionDormantCarrier"
+		owner.add_child(carrier)
+		player.root_motion_track = NodePath("AdmissionDormantCarrier:position")
+	if control == "selected_track_binding" and clip != null and not bool(row.params.root_motion):
+		for index in clip.get_track_count():
+			if clip.track_is_enabled(index) and clip.track_get_type(index) in [Animation.TYPE_POSITION_3D, Animation.TYPE_ROTATION_3D, Animation.TYPE_SCALE_3D]:
+				player.root_motion_track = clip.track_get_path(index)
+				break
+	var root_path := player.root_motion_track
+	var resolved := root_path.is_empty() or (owner != null and owner.get_node_or_null(NodePath(root_path.get_concatenated_names())) != null)
+	var matching: Array = []
+	var enabled := 0
+	var keyed := 0
+	if clip != null and not root_path.is_empty():
+		for index in clip.get_track_count():
+			if clip.track_get_path(index) == root_path and clip.track_get_type(index) in [Animation.TYPE_POSITION_3D, Animation.TYPE_ROTATION_3D, Animation.TYPE_SCALE_3D]:
+				matching.append({"index":index,"type":clip.track_get_type(index),"path":str(clip.track_get_path(index)),"enabled":clip.track_is_enabled(index),"keys":clip.track_get_key_count(index)})
+				if clip.track_is_enabled(index):
+					enabled += 1
+					if clip.track_get_key_count(index) > 0: keyed += 1
+	diagnostics["root_binding"] = {"property":str(root_path),"node_resolved":resolved,"matching_tracks":matching,"enabled_matches":enabled,"enabled_keyed_matches":keyed,"requested_extraction":bool(row.params.root_motion)}
+	if not resolved: errors.append("Saved root-motion property node does not resolve")
 	if bool(row.params.root_motion):
-		var owner := player.get_node_or_null(player.root_node)
-		var path := NodePath(player.root_motion_track.get_concatenated_names())
-		if player.root_motion_track.is_empty() or owner == null or owner.get_node_or_null(path) == null: errors.append("Saved extraction binding missing")
-	elif not player.root_motion_track.is_empty(): errors.append("Unextracted clip has extraction owner")
+		if root_path.is_empty() or keyed == 0: errors.append("Extracted clip lacks an enabled selected root track")
+	elif enabled > 0: errors.append("Unextracted clip has an enabled selected root track")
 	scene.free()
 	return errors
 static func attach(v: Dictionary) -> void:
