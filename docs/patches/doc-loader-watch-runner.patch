@@ -1,0 +1,43 @@
+--- a/tools/ci_rendered_preview.py
++++ b/tools/ci_rendered_preview.py
+@@ -218,6 +218,11 @@
+         # Validate before spawning anything. Godot/version/context stay unchanged.
+         launch_command([args.godot],debugger)
+         report['native_debugger']={'mode':debugger}
++        watch=getattr(args,'doc_loader_watch',False)
++        if watch:
++            from preview_doc_watch import check_binary
++            if sys.platform!='linux' or debugger!='gdb':raise ValueError('doc watch requires explicit Linux GDB mode')
++            check_binary(args.godot)
+         report['context']=prepare(Path(__file__).resolve().parents[1],args.core_root,args.godot,context)
+         report['context_sha256']=digest(context)
+         if report['context']['platform'] != ('linux' if args.renderer_profile==LINUX else 'windows'):
+@@ -243,6 +248,10 @@
+                 '--rendering-driver','opengl3','--audio-driver','Dummy','res://main.tscn']
+             report['editor_command']=command
+             actual_command=launch_command(command,debugger)
++            if watch:
++                from preview_doc_watch import attach
++                actual_command,watch_identity=attach(actual_command,command,debugger,args.output)
++                report['native_debugger']['doc_loader_watch']=watch_identity
+             report['editor_launch_command']=actual_command
+             if debugger=='postmortem':
+                 postmortem=Postmortem(args.godot,args.output)
+@@ -309,6 +318,9 @@
+             try:
+                 complete_log=(args.output/'editor.log').read_text(encoding='utf-8',errors='replace')
+                 validate_editor_log(complete_log)
++                if getattr(args,'doc_loader_watch',False):
++                    from preview_doc_watch import validate_log
++                    report['doc_loader_watch_result']=validate_log(complete_log)
+                 if report.get('context'):
+                     report['renderer_identity']=validate_renderer_identity(
+                         args.renderer_profile,report['context']['platform'],complete_log)
+@@ -325,6 +337,7 @@
+ 
+ if __name__ == '__main__':
+     parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--doc-loader-watch',action='store_true',help='diagnostic only: exact official Linux doc-vector watch under explicit GDB')
+     parser.add_argument('--native-debugger',choices=('none','gdb','postmortem'),default=os.environ.get('TOOLKIT_PREVIEW_NATIVE_DEBUGGER','none'))
+     parser.add_argument('--renderer-profile',choices=PROFILES,default=LINUX)
+     parser.add_argument('--core-root',type=Path,required=True)
