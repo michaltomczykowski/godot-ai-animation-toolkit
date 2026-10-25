@@ -1,7 +1,6 @@
 """Pure numeric and binding corruptions, not actual Godot execution proof."""
 from copy import deepcopy
-import importlib.util,math,sys,types,unittest
-from pathlib import Path
+import math,unittest
 import operation_rig_intent_checks as intent
 import operation_rig_scene_history_checks as history
 from test_operation_rig_scene_history_checks import fixture
@@ -25,22 +24,8 @@ def numeric_row(op='pose_apply',mode='local',variant=None):
 
 
 def integrated():
- # Apply only the committed minimal patch in memory. No shared source mutation.
- text=Path(history.__file__).read_text();lines=Path('docs/patches/rig-two-intent-history-adapter.patch').read_text().splitlines()
- hunks=[];old=[];new=[]
- for line in lines:
-  if line.startswith(('---','+++')):continue
-  if line.startswith('@@'):
-   if old:hunks.append(('\n'.join(old)+'\n','\n'.join(new)+'\n'))
-   old=[];new=[]
-  elif line.startswith(' '):old.append(line[1:]);new.append(line[1:])
-  elif line.startswith('-'):old.append(line[1:])
-  elif line.startswith('+'):new.append(line[1:])
- if old:hunks.append(('\n'.join(old)+'\n','\n'.join(new)+'\n'))
- for a,b in hunks:
-  if text.count(a)!=1:raise ValueError('integration patch no longer exact')
-  text=text.replace(a,b)
- module=types.ModuleType('integrated_rig_history');exec(compile(text,history.__file__,'exec'),module.__dict__);return module
+ # Exercise the integrated adapter directly; no cwd-dependent patch simulation.
+ return history
 
 
 def bound(row):

@@ -5,7 +5,7 @@ import re
 
 WRITERS = {'pose_to_clip','walk_cycle','idle_breathing','blink','jumping_jack','squat','punch','bake_pose_sequence'}
 OPS = WRITERS | {'pose_apply','rig_chain'}
-DEPENDENCIES = ('test_project/tests/rig_history_observation.gd',
+DEPENDENCIES = ('tools/operation_rig_intent_checks.py','test_project/tests/rig_history_observation.gd',
  'test_project/tests/operation_history_trace.gd','test_project/tests/test_rig_pose_history.gd',
  'test_project/tests/test_rig_chain_history.gd','test_project/tests/test_rig_clip_history.gd',
  'test_project/tests/test_preset_library_history.gd','test_project/tests/test_edit_route_history.gd',
@@ -139,6 +139,10 @@ def verify_event(event,context,begins,support):
     start,end=starts[0],ends[0];request=start.get('request',{})
     if request!=end.get('request') or request.get('suite')!=row['suite'] or request.get('verbose') is not True or start.get('execution_ns',0)>=end.get('execution_ns',0) or start.get('scene')!=row.get('scene') or end.get('scene')!=row['scene'] or type(event.get('time_ns')) is not int or not start.get('time_ns',0)<=event['time_ns']<=end.get('time_ns',0):raise ValueError('rig public request/scene/order mismatch')
     checks=derive(row)
+    intent_limits=''
+    if row['op'] in {'pose_apply','rig_chain'}:
+        from operation_rig_intent_checks import effect,LIMITS as intent_limits
+        checks['valid_effect']=effect(row) if all(v=='pass' for v in checks.values()) else 'fail'
     matches=[v for v in end.get('response',{}).get('results',[]) if v.get('suite')==row['suite'] and v.get('test')==row['test']]
     if len(matches)!=1 or matches[0].get('passed') is not True or matches[0].get('skipped',False) or type(matches[0].get('assertion_count')) is not int or matches[0]['assertion_count']<row['assertion_count']:checks={k:'fail' for k in checks}
-    return {'checks':checks,'public_test_run_case_id':end['id'],'limits':'Existing fixed rig case inner dispatch: exact dry/refusal/history/saved reload, synchronous post-seed logger errors, observed authored rest/hierarchy/non-target clips and peer/source invariants. Native playback, full requested effect, allocation identities and visual quality remain separate gates.'}
+    return {'checks':checks,'public_test_run_case_id':end['id'],'limits':'Existing fixed rig case inner dispatch: exact dry/refusal/history/saved reload, synchronous post-seed logger errors, observed authored rest/hierarchy/non-target clips and peer/source invariants. Native playback, full requested effect, allocation identities and visual quality remain separate gates. '+intent_limits}

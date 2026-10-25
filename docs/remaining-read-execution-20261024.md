@@ -78,3 +78,16 @@ The recorder now streams engine stdout/stderr directly to its log file instead
 of retaining it only in the parent process's memory. The timeout control proves
 that earlier native output survives a failure. Eight camera/recorder controls
 pass. A new recording directory is required for the complete fresh capture.
+
+Recording r002 finished all2,400 frames with engine exit0 and an empty native
+error list, but strict trajectory equivalence rejected its spring result. Only
+the two active spring takes differ from headless preflight; the first differing
+pose is tick1. All other cases, input signatures and declared clocks match.
+The failed report/PNGs/log remain preserved and no MP4 was admitted or encoded.
+The cause is under investigation; comparison limits are unchanged.
+
+The setup source/error/refusal observer and independent pose_apply/rig_chain
+numeric intent checks are integrated for fresh public qualification.43 focused
+Python controls pass. The rig integration tests now exercise the actual adapter
+directly, replacing the isolated worker's temporary in-memory patch simulation.
+Historical9 passing intent shapes are not relabelled as current-source proof.

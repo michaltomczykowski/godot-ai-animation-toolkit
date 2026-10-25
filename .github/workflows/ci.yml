@@ -239,6 +239,7 @@ jobs:
         run: >-
           python -m unittest
           test_operation_rig_scene_history_checks
+          test_operation_rig_intent_checks
           test_operation_edit_native_checks
           test_operation_fx_intention_checks
           test_operation_fx_counter_native_checks
