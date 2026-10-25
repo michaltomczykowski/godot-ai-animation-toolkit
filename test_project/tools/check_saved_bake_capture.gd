@@ -23,6 +23,16 @@ func _final_signal(rig:Skeleton3D,state:Dictionary)->void:
 	state.final+=1;state.pose=_observation(rig)
 func _skin_signal(rig:Skeleton3D,state:Dictionary)->void:
 	state.skin+=1;state.skin_pose=_poses(rig)
+func _tree_clock(tree:AnimationTree)->Dictionary:
+	var out:={}
+	if tree==null:return out
+	for property in tree.get_property_list():
+		var key:=str(property.name)
+		if not key.begins_with("parameters/"):continue
+		var value:Variant=tree.get(key)
+		if value is AnimationNodeStateMachinePlayback:out[key]={"current_node":str(value.get_current_node()),"current_play_position":value.get_current_play_position()}
+		elif value is float or value is int or value is bool or value is String:out[key]=value
+	return out
 func _capture_begin(_view:Dictionary):pass
 func _capture_sample(_view:Dictionary,_sample:Dictionary):pass
 func _capture_end(_view:Dictionary):pass
@@ -111,11 +121,14 @@ func _replay(row:Dictionary,side:String,take:int,paced:bool,flush:bool)->Diction
 			var key:=str(candidate.get_path());var state:Dictionary=observations[key]
 			var last_final:int=state.final;var last_skin:int=state.skin
 			candidate.advance(delta);candidate.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
-			_check(state.final==last_final+1 and state.skin>=last_skin+1,row.id+" required final/skin "+key)
+			_check(state.final==last_final+1 and state.skin>=last_skin,row.id+" required final/skin "+key)
+			var skin_fresh:bool=state.skin>last_skin
+			var cached_equal:bool=not skin_fresh and state.skin>0 and var_to_str(state.pose.local)==var_to_str(state.skin_pose)
+			_check(skin_fresh or cached_equal,row.id+" stale changed skin "+key)
 			_check(state.skin_pose.size()==candidate.get_bone_count(),row.id+" skin bone count")
 			for i in mini(state.skin_pose.size(),candidate.get_bone_count()):_difference(state.pose.local[i],state.skin_pose[i],row.id+" final/skin "+key)
-			per_rig[str(scene.get_path_to(candidate))]={"final_before":last_final,"skin_before":last_skin,"final":state.final,"skin":state.skin,"pose":state.pose.duplicate(true)}
-		var sample:={"time":time,"delta":delta,"event_cursor":cursor,"body":_body(body),"body_world":body.global_transform,"selected_pose":observations[str(rig.get_path())].pose.local.duplicate(true),"required":per_rig,"extraction":extraction,"consumer_count":consumed,"root_track":str(mixer.root_motion_track),"root_motion_local":mixer.root_motion_local,"assigned_animation":str(player.assigned_animation),"player_position":player.current_animation_position}
+			per_rig[str(scene.get_path_to(candidate))]={"final_before":last_final,"skin_before":last_skin,"final":state.final,"skin":state.skin,"pose":state.pose.duplicate(true),"skin_pose":state.skin_pose.duplicate(true),"skin_fresh":skin_fresh,"skin_cached_unchanged":cached_equal}
+		var sample:={"time":time,"delta":delta,"event_cursor":cursor,"body":_body(body),"body_world":body.global_transform,"selected_pose":observations[str(rig.get_path())].pose.local.duplicate(true),"required":per_rig,"extraction":extraction,"consumer_count":consumed,"root_track":str(mixer.root_motion_track),"root_motion_local":mixer.root_motion_local,"assigned_animation":str(player.assigned_animation),"player_position":player.current_animation_position if not player.current_animation.is_empty() else null,"current_animation":str(player.current_animation),"tree_clock":_tree_clock(tree)}
 		trace.append(sample)
 		await _capture_sample(view,sample)
 		if paced:await process_frame

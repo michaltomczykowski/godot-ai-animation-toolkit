@@ -42,7 +42,10 @@ def compare(report,manifest,manifest_sha):
     require(isinstance(sample.get('required'),dict)and sample['required'],'required rig witnesses missing')
     require(row['skeleton']in sample['required'],'selected rig final witness missing')
     if key=='modifier_retarget_1_60':require(row['modifiers'][0]['path'].rsplit('/',1)[0]in sample['required'],'retarget source rig witness missing')
-    for witness in sample['required'].values():require(isinstance(witness.get('final'),int)and witness['final']==witness.get('final_before',-2)+1 and isinstance(witness.get('skin'),int)and witness['skin']>=witness.get('skin_before',10**9)+1 and witness.get('pose',{}).get('local'),'final/skin freshness missing')
+    for witness in sample['required'].values():
+     require(isinstance(witness.get('final'),int)and witness['final']==witness.get('final_before',-2)+1 and isinstance(witness.get('skin'),int)and witness['skin']>=witness.get('skin_before',10**9)and witness.get('pose',{}).get('local'),'final/skin freshness missing')
+     fresh=witness['skin']>witness['skin_before'];cached=not fresh and witness['skin']>0 and witness.get('skin_pose')==witness['pose']['local']
+     require(witness.get('skin_fresh')is fresh and witness.get('skin_cached_unchanged')is cached and(fresh or cached),'stale changed skin')
    errors=[pose_error(x,y)for x,y in zip(u['selected_pose'],v['selected_pose'])]+[pose_error(u['body'],v['body'])]
    for error in errors:
     for channel,value in error.items():worst[channel]=max(worst[channel],value)

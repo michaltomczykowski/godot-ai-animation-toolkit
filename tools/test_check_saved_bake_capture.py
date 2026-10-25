@@ -7,7 +7,7 @@ def fixture():
  for row in m['cases']:
   for take in (0,1):
    for side in ('source','redo'):
-    trace=[{'time':t,'body':copy.deepcopy(POSE),'selected_pose':[copy.deepcopy(POSE)],'required':{'selected':{'final_before':i,'skin_before':i,'final':i+1,'skin':i+1,'pose':{'local':[copy.deepcopy(POSE)]}}}}for i,t in enumerate(times(row['params']))]
+    trace=[{'time':t,'body':copy.deepcopy(POSE),'selected_pose':[copy.deepcopy(POSE)],'required':{'selected':{'final_before':i,'skin_before':i,'final':i+1,'skin':i+1,'pose':{'local':[copy.deepcopy(POSE)]},'skin_pose':[copy.deepcopy(POSE)],'skin_fresh':True,'skin_cached_unchanged':False}}}for i,t in enumerate(times(row['params']))]
     if row['id']=='modifier_retarget_1_60':
      for sample in trace:sample['required']['source']=copy.deepcopy(sample['required']['selected'])
     r['runs'].append({'id':row['id'],'side':side,'take':take,'paced':False,'flush':False,'failures':[],'trace':trace})
@@ -20,7 +20,7 @@ class Controls(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'retarget source'):compare(r,m,'a'*64)
  def test_missing_receiver_skin_not_admitted(self):
   r,m=fixture();r['runs'][0]['trace'][0]['required']['selected']['skin']=0
-  with self.assertRaisesRegex(ValueError,'freshness'):compare(r,m,'a'*64)
+  with self.assertRaisesRegex(ValueError,'freshness|skin'):compare(r,m,'a'*64)
  def test_skipped_key_not_admitted(self):
   r,m=fixture();r['runs'][0]['trace'].pop(2)
   with self.assertRaisesRegex(ValueError,'samples'):compare(r,m,'a'*64)
@@ -37,4 +37,9 @@ class Controls(unittest.TestCase):
  def test_fresh_reset_difference_is_reported(self):
   r,m=fixture();r['runs'][2]['trace'][0]['body']['p'][0]=.000001
   self.assertFalse(compare(r,m,'a'*64)['fresh_take_pass'])
+ def test_exact_cached_skin_allowed_only_if_observed_equal(self):
+  r,m=fixture();w=r['runs'][0]['trace'][1]['required']['selected'];w.update(skin=w['skin_before'],skin_fresh=False,skin_cached_unchanged=True)
+  self.assertTrue(compare(r,m,'a'*64)['parity_pass'])
+  w['skin_pose'][0]['p'][0]=.000001
+  with self.assertRaisesRegex(ValueError,'stale changed skin'):compare(r,m,'a'*64)
 if __name__=='__main__':unittest.main()
