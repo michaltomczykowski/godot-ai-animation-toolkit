@@ -113,3 +113,11 @@ $env:TOOLKIT_OPERATION_TRACE_DIR = "$intentRoot/traces"
 These two selected cases do not close all parameter cells or four OS/core cells.
 Any actual parse/runtime failure remains evidence to repair, not permission to
 relax physical bounds. The other five operation plans above remain pending.
+
+
+Archive admission check after implementation: inspected all four actual
+ci-26a35eb-r001/mcp-editor-* artifact trees (not only CI596). Each has zero
+.tscn/.scn/.zip/.pck files, so exact user:// history saved scenes cannot be
+recovered from those downloaded artifacts. Source/do/redo hashes and numeric
+reports remain useful identities, but not substitute scene bytes for replay.
+Fresh selected public cases are therefore the bounded necessary execution path.
