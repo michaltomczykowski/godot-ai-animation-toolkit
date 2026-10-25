@@ -1,5 +1,15 @@
 # Agent notes
 
+## Current root recovery: 25 October modifier recapture
+
+No engine/recorder survived usage interruption. r006/recording-r001 has2098of2400
+frames, no render report/engine log/video; preserveunchanged, separate recovery
+inventory in progress(exec97220). Not acceptedmedia. Native r0064s4800PASSintact.
+Root streamsengine output now (8camera/recordercontrolsPASS), must startNEWr002.
+Primarycb8cce0camera admission plus logpatch; latestpush8319413. Workers resumed
+isolated motion/pose valid_effect work; ead2setupchannels stillneedsintegration.
+No local engine until root queues r002. EarlierLIVE entries are history.
+
 ## Current root checkpoint: remaining public reads pass
 
 R002 at793e56b complete/publicquit, exec28278done; no localGodotactive. Direct68

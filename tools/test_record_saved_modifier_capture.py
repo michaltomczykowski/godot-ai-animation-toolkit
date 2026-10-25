@@ -12,9 +12,10 @@ class Receipt(unittest.TestCase):
             args=SimpleNamespace(output=base/'output',manifest=m,native=n,project=base,appdata=base/'appdata',godot=Path('never-launched'),ffmpeg=Path('never-encoded'),ffprobe=Path('never-probed'))
             calls=[]
             def expire(command,**kwargs):
-                calls.append(kwargs);raise TimeoutExpired(command,kwargs['timeout'])
+                calls.append(kwargs);kwargs['stdout'].write('native output before timeout\n');kwargs['stdout'].flush();raise TimeoutExpired(command,kwargs['timeout'])
             with self.assertRaises(TimeoutExpired):capture(args,runner=expire)
             receipt=json.loads((args.output/'recording.json').read_text());self.assertEqual(receipt['state'],'failed_preserved');self.assertIn('TimeoutExpired',receipt['error']);self.assertEqual(calls[0]['timeout'],900);self.assertEqual(len(calls),1)
+            self.assertEqual((args.output/'engine.log').read_text(),'native output before timeout\n')
     def test_engine_failure_preserves_receipt_without_launch(self):
         with tempfile.TemporaryDirectory() as folder:
             base=Path(folder);report,manifest=fixture();m=base/'manifest.json';m.write_text(json.dumps(manifest));report['manifest_sha256']=sha(m);n=base/'native.json';n.write_text(json.dumps(report))

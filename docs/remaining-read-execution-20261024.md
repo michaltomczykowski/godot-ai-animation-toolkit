@@ -65,3 +65,16 @@ blobs and the sole three-line pose_list guard change. The copied runtime loads
 existing modifier scenes and never invokes pose_list; it does not qualify that
 new guard. Bridge SHA256:
 `ec8974270078f68e243d2b6cc933953508c67369f3df4096f6b1cd422cefe5b0`.
+
+## Capture recovery, 25 October
+
+After the usage interruption, no recorder or Godot process remained. Recording
+r001 contains exactly frames0 through2097, with no completed render report,
+engine log or MP4. Its original receipt still says capturing. A separate
+`interruption-recovery-r001.json` inventories the partial files; the cause is
+unknown. It is not admitted as completed media and is never resumed or spliced.
+
+The recorder now streams engine stdout/stderr directly to its log file instead
+of retaining it only in the parent process's memory. The timeout control proves
+that earlier native output survives a failure. Eight camera/recorder controls
+pass. A new recording directory is required for the complete fresh capture.

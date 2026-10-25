@@ -16,11 +16,13 @@ def capture(a,runner=subprocess.run):
         command=[str(a.godot),'--path',str(a.project.resolve()),'--rendering-method','gl_compatibility','--rendering-driver','opengl3','--script','res://tools/render_saved_modifier_capture.gd','--',str(a.manifest.resolve()),str(report_path.resolve()),'render',str(a.native.resolve()),str(frames.resolve())]
         state['command']=command;stage('capturing_exact_native_frames')
         env=dict(os.environ,APPDATA=str(a.appdata.resolve()))
-        done=runner(command,env=env,capture_output=True,text=True,check=False,timeout=900)
-        (a.output/'engine.log').write_text(done.stdout+done.stderr,encoding='utf-8')
+        # Keep engine output durable even if this parent is interrupted mid-capture.
+        with (a.output/'engine.log').open('x',encoding='utf-8') as engine_log:
+            done=runner(command,env=env,stdout=engine_log,stderr=subprocess.STDOUT,text=True,check=False,timeout=900)
+        engine_output=(a.output/'engine.log').read_text(encoding='utf-8')
         state['engine_exit']=done.returncode;state['engine_log_sha256']=sha(a.output/'engine.log')
         if done.returncode:raise ValueError('native renderer nonzero exit')
-        validate_editor_log(done.stdout+done.stderr)
+        validate_editor_log(engine_output)
         report=json.loads(report_path.read_text());validate(report,manifest,sha(a.manifest),frames,reference,sha(a.native))
         state['report_sha256']=sha(report_path);stage('all2400_pngs_admitted')
         video=a.output/'saved-five-modifiers.mp4'
