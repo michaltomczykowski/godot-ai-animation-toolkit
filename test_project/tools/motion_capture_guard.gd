@@ -72,7 +72,7 @@ static func frame(v: Dictionary) -> Dictionary:
 			if mesh.get_skin_reference() == null:
 				push_error("Declared skin has no registered native skeleton")
 				continue
-			for shape in mesh.mesh.get_blend_shape_count():
+			for shape in mesh.get_blend_shape_count():
 				if not is_zero_approx(mesh.get_blend_shape_value(shape)):
 					push_error("Bounds snapshot does not support nonzero blend shapes")
 			var snapshot := mesh.bake_mesh_from_current_skeleton_pose()
@@ -103,3 +103,4 @@ static func frame(v: Dictionary) -> Dictionary:
 	if not fresh: push_error("No fresh native skin update for accepted frame")
 	if not v.player.active or v.player.callback_mode_process != AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL: push_error("Capture manual Player ownership changed")
 	return result
+
