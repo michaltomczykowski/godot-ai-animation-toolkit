@@ -1,5 +1,16 @@
 # Animation Toolkit repair roadmap
 
+## Phase1 local correctness gate complete (2026-10-26)
+
+21Spring regressions pass; fresh actual Godot AI public201case bake matrix passes
+all603saved/402played states and eight direct calls around core reload. Eight
+unchanged-source pairs/two fresh takes all16comparisons pass original limits,
+including both formerly failing Spring families. Original failures preserved.
+See docs/spring-bake-repair-20261026.md for exact source, control findings and
+receipt hashes. Added native regression to cross-platform CI; final release
+qualification remains pending. Phase2 Linux blocker unchanged; proceed with
+independent phase3 selected idle/turn intent checks. No release yet.
+
 ## Spring native regression passes (2026-10-26)
 
 Phase1 remains active. Source7e1db27 passes21native cases at30/60/120FPS,

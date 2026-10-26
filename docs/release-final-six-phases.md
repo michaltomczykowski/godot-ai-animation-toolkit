@@ -6,9 +6,9 @@ active execution order under release-completion-plan.md.
 
 | Phase | State | Completion gate |
 | --- | --- | --- |
-|1.Spring bake correctness|active|21native regressions; stale-cache negative; fresh201public matrix; eight unchanged-source pairs pass.|
+|1.Spring bake correctness|complete, Windows gate|21native regressions; stale-cache negative; fresh201public matrix; eight unchanged-source pairs pass. Final cross-platform qualification remains phase6.|
 |2.Linux stability|blocked|Supported repair passes official4.7.2 public save/render flows; patched-engine experiments stay separate.|
-|3.Seven motion effect checks|pending|Bound independent idle,turn,jump,strafe,start,stop,setup intent; no response/output-curve oracle.|
+|3.Seven motion effect checks|active|Bound independent idle,turn,jump,strafe,start,stop,setup intent; no response/output-curve oracle.|
 |4.Remaining recordings|pending|Two Responsive motion reps,bake8,remaining sequence/secondary/static pairs; full decode and independent assessment.|
 |5.Candidate audit/package|pending|103operation applicable checks; exact source/media bindings; docs and immutable ZIP complete.|
 |6.Qualify/merge/publish|pending|Four-cell final matrix,ZIP/UI/reload/workflows,verified main,tag/assets/download checksum pass.|
@@ -32,6 +32,16 @@ active execution order under release-completion-plan.md.
 all21cases with zero measured pose difference/engine errors. Raw scheduling
 control and original failures preserved; see spring-bake-repair-20261026.md.
 Step5 remains pending; no phase closure from isolated native tests alone.
+
+Later26October: step5 also passes. Public sourceb5928a0, six suites,201cases,
+603saved/402played states, four direct calls before and after core reload,
+zero engine/derived failures. Eight original-source/output pairs, two fresh
+takes each, all16comparisons pass unchanged limits. Native source reset now
+forces the engine's deferred dirty flag through unchanged public mutable-axes
+setter before native reset; no configuration value or source pose is changed.
+See spring-bake-repair-20261026.md for exact identities/failures retained.
+Phase1 local gate complete. Phase2 remains blocked; proceed with independent
+phase3 idle/turn execution. Linux support and publication remain gated.
 
 1.Save the current committed work and collector integration as an explicit WIP
   checkpoint. No release qualification is claimed for the local Spring helper.

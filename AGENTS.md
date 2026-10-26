@@ -1,5 +1,22 @@
 # Agent notes
 
+## Authoritative phase1 complete, 26 October 15:10UTC
+
+No local Godot active. Producerb5928a083b40dffa5e8d90969907a6bd8bd2464f is current
+tested source; production addons identical7e1. Spring native21PASS/zeroerrors,
+fresh spring-bake-public-r002 COMPLETE67.03s/six suites/201cases/603saved402played/
+8directbefore-aftercoreReload/strictderived0; publicquit complete. R001public
+failure preserved. Native reset-reference control independently reapplies
+unchanged mutable-bone-axes before reset, no cache formula/pose write. Three
+controls before51fail, restoreinputs51fail(no inputchanges), resetforcePASS.
+Eight unchanged saved-source pairs at bake-eight-current-preflight-r004:
+32runs/16comparisons/16fresh-takechecks allPASS, maxrotation9.089e-7rad.
+Docs:spring-bake-repair-20261026.md has complete receipt hashes. Phase1 local
+gate complete; Linux phase2 remains blocked/publication gated. Next phase3:
+execute prepared selected dummy Responsive idle/left180turn public routes and
+six native Player/Tree/FPS checks each. No regeneration of accepted media.
+At mostoneworker; root enginequeue. Older checkpoints below historical.
+
 ## Authoritative Spring checkpoint, 26 October 15:00UTC
 
 Phase1 only. Source7e1db276a06699b60661234d954b3da78e63e012 passes all21
