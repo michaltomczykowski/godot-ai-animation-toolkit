@@ -2,6 +2,7 @@ extends SceneTree
 
 ## Saved engine playback only. No motion specs, IK or hand-applied bone poses.
 const Native := preload("res://tools/character_quality_native.gd")
+const InputIdentity := preload("res://tools/motion_physical_input_identity.gd")
 var logger := Native.CaptureErrors.new()
 var control := ""
 
@@ -40,9 +41,13 @@ func _tree(view: Dictionary, name: String) -> AnimationMixer:
 
 func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 	row = row.duplicate(true)
+	var input_identity := InputIdentity.begin(row)
+	if FileAccess.get_sha256(str(row.scene)) != str(row.get("scene_sha256", "")):
+		return {"thresholds_pass": false, "failures": ["Saved scene hash mismatch"]}
 	var v := Native.load_case(row, root)
 	if v.has("error"):
 		return {"thresholds_pass": false, "failures": [v.error]}
+	InputIdentity.loaded(input_identity, row, v)
 	v.animation_name = row.params.animation_name
 	if not control.is_empty(): _inject_control(row, v)
 	var reference := Native.load_case(row, root)
@@ -247,6 +252,9 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 			"max_declared_contact_height_m": f.contact_height, "knee_pole_flips": f.flips,
 			"declared_contact_frames": f.declared_frames, "observed_contact_band_frames": f.observed_frames, "contact_windows": f.contacts}
 	var result := {"id": row.id, "fps": fps, "mixer": mode, "root_mode": "extracted" if extracted else "in_place_actor_driver",
+		"source_world_up": Native.values(v.up), "source_world_forward": Native.values(v.forward), "source_world_left": Native.values(anatomical_left),
+		"rest_left_foot_world": Native.values(Native.rest(v.rig, v.roles, "foot_l")), "rest_right_foot_world": Native.values(Native.rest(v.rig, v.roles, "foot_r")),
+		"loop_mode": clip.loop_mode,
 		"actor_translation_owner": "extracted track target" if extracted else "unanimated gameplay parent outside the visual mixer subtree",
 		"frames": 6 * fps + 1, "dt": dt, "leg_length_m": leg, "period_s": clip.length,
 		"slide_limit_m": slide_limit, "penetration_limit_m": 0.01 * leg,
@@ -263,6 +271,7 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 		"path_errors": path_errors, "marker_errors": marker_errors, "failures": errors, "thresholds_pass": errors.is_empty()}
 	for side in arms: arms[side].erase("wrist_initial")
 	result["arms"] = arms
+	result["input_identity"] = InputIdentity.finish(input_identity)
 	v.scene.free()
 	if driver != null: driver.free()
 	reference.scene.free()
@@ -326,7 +335,12 @@ func _inject_control(row: Dictionary, v: Dictionary) -> void:
 
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
-	if args.size() < 2:
+	var selected_id := InputIdentity.selector(args)
+	if selected_id == "INVALID":
+		quit(1)
+		return
+	if not selected_id.is_empty(): args.remove_at(args.find("case_id=" + selected_id))
+	if args.size() < 2 or args.size() > 4:
 		quit(1)
 		return
 	var manifest: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(args[0]))
@@ -337,7 +351,11 @@ func _run() -> void:
 	var modes: Array = ["player"] if args.size() > 2 and args[2] == "baseline" else ["player", "tree"]
 	var results: Array = []
 	var failures: Array = []
-	for row: Dictionary in manifest.cases:
+	var selected := InputIdentity.select(manifest.cases, selected_id)
+	if not selected_id.is_empty() and selected.size() != 1:
+		quit(1)
+		return
+	for row: Dictionary in selected:
 		if not row.get("passed", false):
 			failures.append(str(row.id) + ": invalid public route")
 			continue
@@ -346,8 +364,9 @@ func _run() -> void:
 				var result := _check(row, fps, mode)
 				results.append(result)
 				if not result.get("thresholds_pass", false): failures.append("%s/%s/%s: %s" % [row.id, fps, mode, str(result.get("failures", ["Invalid check result"]))])
-	var expected := 4 * 3 * modes.size()
+	var expected := (4 if selected_id.is_empty() else 1) * 3 * modes.size()
 	var report := {"source_head": manifest.source_head, "revision": manifest.revision,
+		"case_selection": selected_id, "input_identity_helper_sha256": FileAccess.get_sha256("res://tools/motion_physical_input_identity.gd"),
 		"control": control,
 		"route_sha256": FileAccess.get_sha256(args[0]),
 		"checker_sha256": FileAccess.get_sha256("res://tools/check_strafe_quality.gd"),

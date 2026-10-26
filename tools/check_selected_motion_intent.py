@@ -1,4 +1,4 @@
-"""Replay one existing selected idle/turn route; root owns engine scheduling."""
+"""Replay one existing selected idle/turn/jump/strafe route; root owns engine scheduling."""
 import argparse,hashlib,json,os,subprocess
 from pathlib import Path
 from operation_idle_turn_intent_checks import SCRIPTS,fixed_request,need
@@ -11,7 +11,7 @@ def command_for(godot,project,route,report,operation):
 
 def run(args):
  need(bool(os.environ.get('TOOLKIT_OPERATION_CONTEXT'))and bool(os.environ.get('TOOLKIT_OPERATION_TRACE_DIR')),'exact source trace context required before native launch')
- route_bytes=args.route.read_bytes();route=json.loads(route_bytes.decode('utf-8-sig'));op=route.get('operation');need(op in SCRIPTS,'only idle/turn supported')
+ route_bytes=args.route.read_bytes();route=json.loads(route_bytes.decode('utf-8-sig'));op=route.get('operation');need(op in SCRIPTS,'only idle/turn/jump/strafe supported')
  need(route.get('case_selection')=='dummy'and len(route.get('cases',[]))==1 and route.get('passed')is True,'requires completed explicit dummy public route')
  context=json.loads(Path(os.environ['TOOLKIT_OPERATION_CONTEXT']).read_text(encoding='utf-8'))
  need(route.get('source_head')==context.get('tested_source')and str(args.godot)==context.get('engine_command'),'public route/context/engine identity differs before replay')

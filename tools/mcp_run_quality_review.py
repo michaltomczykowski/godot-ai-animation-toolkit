@@ -10,6 +10,7 @@ import asyncio
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
 from pathlib import Path
 import subprocess
 from uuid import uuid4
@@ -35,9 +36,20 @@ def motion_invocation(operation: str, entry_point: str) -> dict:
 
 def selected_rigs(operation, rig_id=None):
     if rig_id is None:return RIGS
-    if operation not in ('idle_cycle','turn_cycle') or rig_id!='dummy':
-        raise ValueError('Explicit single-rig intent scope supports idle/turn dummy only')
+    if operation not in ('idle_cycle','turn_cycle','jump','strafe_cycle','walk_start','walk_stop') or rig_id!='dummy':
+        raise ValueError('Explicit single-rig intent scope supports idle/turn/jump/strafe/start/stop dummy only')
     return tuple(row for row in RIGS if row[0]==rig_id)
+
+
+def metric_inputs(operation, height=None, speed=None):
+    result = {}
+    for field, value, supported in (("height", height, operation == "jump"),
+                                    ("speed", speed, operation == "strafe_cycle")):
+        if value is not None:
+            if not supported or type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
+                raise ValueError(f"{field} requires its supported operation and a finite positive value")
+            result[field] = value
+    return result
 
 
 def save(path: Path, report: dict) -> None:
@@ -52,6 +64,7 @@ async def run(args: argparse.Namespace) -> int:
     turn = args.operation == "turn_cycle"
     lateral = args.operation == "strafe_cycle"
     jump = args.operation == "jump"
+    metrics = metric_inputs(args.operation, getattr(args, "height", None), getattr(args, "speed", None))
     external_history = transition or turn or lateral or jump or args.phase == "candidate"
     if args.allow_reach_refusals and (not transition or args.phase != "prototype"):
         raise ValueError("Reach refusal receipts are only valid for explicit transition prototypes")
@@ -124,6 +137,7 @@ async def run(args: argparse.Namespace) -> int:
                         if not jump:
                             raise ValueError("distance is only a jump review control")
                         params["distance"] = args.distance
+                    params.update(metrics)
                     if recipes:
                         params["overrides"] = recipes[style]
                         report["recipe_sha256"] = hashlib.sha256(args.recipes.read_bytes()).hexdigest()
@@ -236,13 +250,15 @@ if __name__ == "__main__":
     p.add_argument("--ws-port", type=int, default=9500)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--phase", choices=("baseline", "prototype", "candidate"), default="baseline")
-    p.add_argument("--rig-id",choices=("dummy",),help="Explicit idle/turn-only intent case; default remains four rigs")
+    p.add_argument("--rig-id",choices=("dummy",),help="Explicit idle/turn/jump/strafe/start/stop intent case; default remains four rigs")
     p.add_argument("--operation", choices=("walk_cycle", "run_cycle", "idle_cycle", "walk_start", "walk_stop", "turn_cycle", "strafe_cycle", "jump"), default="run_cycle")
     p.add_argument("--entry-point", choices=("dedicated", "cycle"), default="dedicated")
     p.add_argument("--direction", choices=("left", "right"))
     p.add_argument("--angle", type=float, help="Requested turn angle; omit for ordinary 90 degrees")
     p.add_argument("--steps", type=int, help="Requested turn steps; use two for a 180-degree turn")
     p.add_argument("--distance", type=float, help="Requested forward jump travel in metres; omit for stationary jump")
+    p.add_argument("--height", type=float, help="Explicit jump height in world metres; omit for ordinary rig-scaled default")
+    p.add_argument("--speed", type=float, help="Explicit strafe speed in world metres per second; omit for ordinary default")
     p.add_argument("--recipes", type=Path, help="Explicit prototype recipes; final candidates use ordinary defaults")
     p.add_argument("--duration", type=float, help="Explicit prototype period; ordinary calls omit duration")
     p.add_argument("--samples", type=float, help="Explicit prototype authoring density; ordinary calls omit samples")

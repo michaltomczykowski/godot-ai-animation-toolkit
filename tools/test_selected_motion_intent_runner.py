@@ -10,8 +10,10 @@ from mcp_run_quality_review import selected_rigs
 class Controls(unittest.TestCase):
  def test_public_selector_retains_all_four_by_default_and_changes_no_request(self):
   self.assertEqual([r[0]for r in selected_rigs('idle_cycle')],['dummy','xbot','short','zup_tall'])
-  self.assertEqual([r[0]for r in selected_rigs('turn_cycle','dummy')],['dummy'])
-  for op,rig in [('jump','dummy'),('idle_cycle','xbot'),('idle_cycle','bad')]:
+  for op in ('idle_cycle','turn_cycle','jump','strafe_cycle','walk_start','walk_stop'):
+   self.assertEqual([r[0]for r in selected_rigs(op,'dummy')],['dummy'])
+   self.assertEqual([r[0]for r in selected_rigs(op)],['dummy','xbot','short','zup_tall'])
+  for op,rig in [('run_cycle','dummy'),('idle_cycle','xbot'),('idle_cycle','bad')]:
    with self.assertRaises(ValueError):selected_rigs(op,rig)
  def test_actual_completed_native_result_and_bytes_preserved_once(self):
   with tempfile.TemporaryDirectory()as d:
@@ -33,4 +35,21 @@ class Controls(unittest.TestCase):
   with patch.dict(os.environ,{},clear=True),patch.object(runner.subprocess,'run')as run:
    with self.assertRaises(ValueError):runner.run(SimpleNamespace())
    run.assert_not_called()
+ def test_new_jump_strafe_processes_keep_exact_six_clock_selector_and_record_raw_bytes(self):
+  for op in ('jump','strafe_cycle'):
+   with self.subTest(op=op),tempfile.TemporaryDirectory()as d:
+    root=Path(d);e,*_=bound(op);route=root/'route.json';route.write_bytes(bytes.fromhex(e['row']['route_bytes_hex']));ctx=root/'context.json';ctx.write_text(json.dumps({'tested_source':'d'*40,'engine_command':'official-godot'}));args=SimpleNamespace(route=route,output=root/'attempt',godot='official-godot',project_root=root)
+    def execute(command,**kwargs):
+     self.assertEqual(command[-1],'case_id=dummy');self.assertEqual(command[5],'res://tools/'+runner.SCRIPTS[op]);self.assertEqual(len(command),10)
+     (args.output/'native.json').write_bytes(bytes.fromhex(e['row']['report_bytes_hex']))
+     return SimpleNamespace(returncode=0,stdout='actual process output',stderr='')
+    with patch.dict(os.environ,TOOLKIT_OPERATION_CONTEXT=str(ctx),TOOLKIT_OPERATION_TRACE_DIR='trace'),patch.object(runner.subprocess,'run',side_effect=execute)as run,patch.object(runner,'record_native_result',return_value='native-id'),patch.object(runner,'record_snapshot_result')as snapshot:
+     self.assertEqual(runner.run(args),0);run.assert_called_once();snapshot.assert_called_once();self.assertEqual(snapshot.call_args.args[0],'idle_turn_physical_v1');self.assertEqual(snapshot.call_args.args[1]['operation'],'animation_motion.'+op)
+ def test_wrong_explicit_metrics_reject_before_native_process(self):
+  for op,field in (('jump','height'),('strafe_cycle','speed')):
+   with self.subTest(op=op),tempfile.TemporaryDirectory()as d:
+    root=Path(d);e,*_=bound(op);route_data=json.loads(bytes.fromhex(e['row']['route_bytes_hex']));route_data['cases'][0]['params'][field]=.9;route=root/'route.json';route.write_text(json.dumps(route_data));ctx=root/'context.json';ctx.write_text(json.dumps({'tested_source':'d'*40,'engine_command':'official-godot'}));args=SimpleNamespace(route=route,output=root/'attempt',godot='official-godot',project_root=root)
+    with patch.dict(os.environ,TOOLKIT_OPERATION_CONTEXT=str(ctx),TOOLKIT_OPERATION_TRACE_DIR='trace'),patch.object(runner.subprocess,'run')as run:
+     with self.assertRaisesRegex(ValueError,'exact ordinary public request'):runner.run(args)
+     run.assert_not_called();self.assertFalse(args.output.exists())
 if __name__=='__main__':unittest.main()

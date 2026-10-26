@@ -1,15 +1,18 @@
 extends "res://tools/check_run_quality.gd"
 
+const InputIdentity := preload("res://tools/motion_physical_input_identity.gd")
 var control := ""
 
 ## One-shot saved playback. An unextracted forward jump owns skeletal travel,
 ## so it must not also receive controller translation.
 func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
+	var input_identity := InputIdentity.begin(row)
 	if not row.get("passed", false): return {"thresholds_pass": false, "failures": ["Invalid public route"]}
 	if FileAccess.get_sha256(str(row.scene)) != str(row.get("scene_sha256", "")):
 		return {"thresholds_pass": false, "failures": ["Saved scene hash mismatch"]}
 	var v := Native.load_case(row, root)
 	if v.has("error"): return {"thresholds_pass": false, "failures": [v.error]}
+	InputIdentity.loaded(input_identity, row, v)
 	v.animation_name = row.params.animation_name
 	if not control.is_empty(): _inject_control(v)
 	var mixer := _tree(v, mode)
@@ -19,6 +22,12 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 	var leg := float(v.leg)
 	var extracted := bool(row.params.root_motion) and absf(float(row.write.distance)) > 0.000001
 	var first_hip := Native.point(v, "hips")
+	# Observe the saved authoring clock, independently of response sample counts.
+	var hip_position_key_times: Array = []
+	for track in clip.get_track_count():
+		var path := clip.track_get_path(track)
+		if clip.track_get_type(track) == Animation.TYPE_POSITION_3D and path.get_subname_count() == 1 and str(path.get_subname(0)) == str(v.roles.hips):
+			for key in clip.track_get_key_count(track): hip_position_key_times.append(clip.track_get_key_time(track, key))
 	var takeoff := clip.get_marker_time("takeoff") if clip.has_marker("takeoff") else -1.0
 	var landing := clip.get_marker_time("land") if clip.has_marker("land") else -1.0
 	if takeoff < 0.0 or landing <= takeoff: errors.append("Missing or unordered jump event markers")
@@ -95,6 +104,8 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 			if first_air < 0.0: first_air = time
 			last_air = time
 		var hip_height: float = (Native.point(v, "hips") - first_hip).dot(v.up)
+		sample["hip_height_m"] = hip_height
+		sample["hip"] = Native.values(Native.point(v, "hips"))
 		if hip_height > peak_height:
 			peak_height = hip_height
 			peak_time = time
@@ -156,6 +167,11 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 		metrics[side] = {"slide_m": f.slide, "penetration_m": f.penetration, "contact_height_m": f.contact_height,
 			"knee_flips": f.flips, "maximum_lift_m": f.max_lift, "contact_frames": f.frames}
 	var result := {"id": row.id, "fps": fps, "mixer": mode, "frames": frames, "leg_length_m": leg,
+		"clip_length_s": clip.length, "hip_position_key_times_s": hip_position_key_times,
+		"source_world_up": Native.values(v.up), "source_world_forward": Native.values(v.forward),
+		"takeoff_marker_s": takeoff, "landing_marker_s": landing, "loop_mode": clip.loop_mode,
+		"generation_reach_evaluated": row.write.get("reach_evaluated", false), "generation_reach_clamped": row.write.get("clamped", false),
+		"max_motion_m": max_motion,
 		"actor_translation_owner": "extracted carrier" if extracted else "skeletal clip only; no controller translation",
 		"root_error_m": root_error, "grounded_root_delta_m": ground_root_motion, "unexpected_extraction_m": zero_extraction,
 		"observed_flight_frames": air_frames, "first_observed_air_s": first_air, "last_observed_air_s": last_air,
@@ -164,6 +180,7 @@ func _check(row: Dictionary, fps: int, mode: String) -> Dictionary:
 		"final_pose_position_error_m": recovery_position, "final_pose_rotation_error_rad": recovery_rotation, "nonfinite": nonfinite, "max_pose_step_m": max_step,
 		"max_bone_speed_legs_per_s": max_step * fps / leg, "max_bone_angular_speed_rad_s": max_angular_velocity,
 		"worst_pose_step": worst_step, "feet": metrics, "trace": trace, "failures": errors, "thresholds_pass": errors.is_empty()}
+	result["input_identity"] = InputIdentity.finish(input_identity)
 	v.scene.free()
 	return result
 
@@ -235,7 +252,12 @@ func _inject_control(v: Dictionary) -> void:
 
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
-	if args.size() < 2:
+	var selected_id := InputIdentity.selector(args)
+	if selected_id == "INVALID":
+		quit(1)
+		return
+	if not selected_id.is_empty(): args.remove_at(args.find("case_id=" + selected_id))
+	if args.size() < 2 or args.size() > 3:
 		quit(1)
 		return
 	var manifest: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(args[0]))
@@ -245,7 +267,11 @@ func _run() -> void:
 		return
 	var runs: Array = []
 	var failures: Array = []
-	for row: Dictionary in manifest.cases:
+	var selected := InputIdentity.select(manifest.cases, selected_id)
+	if not selected_id.is_empty() and selected.size() != 1:
+		quit(1)
+		return
+	for row: Dictionary in selected:
 		for fps in [30, 60, 120]:
 			for mode in ["player", "tree"]:
 				var result := _check(row, fps, mode)
@@ -254,7 +280,7 @@ func _run() -> void:
 	# Report sampling convergence without replacing the absolute 10 leg/s gate.
 	# A sampled maximum may rise at finer FPS; never average away a failing spike.
 	var convergence: Array = []
-	for row: Dictionary in manifest.cases:
+	for row: Dictionary in selected:
 		for mode in ["player", "tree"]:
 			var speeds := {}
 			for run: Dictionary in runs:
@@ -264,10 +290,11 @@ func _run() -> void:
 				convergence.append({"id": row.id, "mixer": mode, "speeds_legs_per_s": speeds,
 					"relative_60_120_difference": absf(float(speeds["120"]) - float(speeds["60"])) / maxf(0.001, float(speeds["120"]))})
 	var report := {"velocity_sampling_convergence": convergence, "source_head": manifest.source_head, "revision": manifest.revision, "control": control, "runs": runs,
+		"case_selection": selected_id, "input_identity_helper_sha256": FileAccess.get_sha256("res://tools/motion_physical_input_identity.gd"),
 		"route_sha256": FileAccess.get_sha256(args[0]), "checker_sha256": FileAccess.get_sha256(get_script().resource_path),
 		"native_helper_sha256": FileAccess.get_sha256("res://tools/character_quality_native.gd"),
 		"base_checker_sha256": FileAccess.get_sha256("res://tools/check_run_quality.gd"),
-		"failures": failures, "engine_errors": logger.errors, "passed": runs.size() == 24 and failures.is_empty() and logger.errors.is_empty(),
+		"failures": failures, "engine_errors": logger.errors, "passed": runs.size() == (24 if selected_id.is_empty() else 6) and failures.is_empty() and logger.errors.is_empty(),
 		"measurement_contract": "Saved Player/Tree one-shot at actual FPS. World ankle-plane contact/flight, marker timing and single translation owner; no synthesized poses. Not sole collision or visual approval."}
 	FileAccess.open(args[1], FileAccess.WRITE).store_string(JSON.stringify(report))
 	OS.remove_logger(logger)
