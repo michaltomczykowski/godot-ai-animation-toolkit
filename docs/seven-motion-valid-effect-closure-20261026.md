@@ -1,5 +1,64 @@
 # Seven remaining motion valid-effect gaps
 
+## Execution checkpoint,26October
+
+Two scoped operation gaps now close: idle_cycle and turn_cycle. Five remain:
+jump,strafe_cycle,walk_start,walk_stop,character_setup. This does not close all
+parameter combinations or final platform/core qualification.
+
+Producer3ce0d509b836f2db606b7ba94f3c6b1f1eb02568, official4.7.2/Windows,
+released Godot AI4.2.1. Private motion-intent-idle-turn-r002 is complete; both
+ordinary public dummy Responsive extracted routes pass generation,dry/history,
+save and actual forced disk reload. Native playback: six Player/Tree/FPS runs
+per operation; idle3786samples and turn720samples, zero engine errors. Independent
+adapter checks actual stationary/noninert idle/contact/seams, requested left180
+heading and90-degree intermediate stage. Both valid_effect rows pass; strict
+derived failures0. Public editor quit; no engine job remains.
+
+Original r001 is preserved: both public/native routes pass but collection rejects
+idle timestamps. The adapter incorrectly expected turn's `t`; existing idle trace
+uses `time`. Fixed field selection by operation; no clock tolerance, generator,
+physical budget or native output changed. Ten focused controls pass, including
+wrong operation-specific timestamp rejection. R002 is a fresh exact-source run;
+the failed original is not relabeled after the adapter change.
+
+| R002 receipt | SHA256 |
+| --- | --- |
+|operation-case-results.json|8c757c5f52910e74cbb9389a95aff829ec02c3c13a38bb22317e8fc484be03cf|
+|idle-native/native.json|d627904f7a427b46c69d5eeca08ee8612b31998231160de81195f468ba3de2c4|
+|turn-native/native.json|1a3e501ff289430fcd2bc4d7e3df6c8a935d46919ba69cd4ec59d958a8bcdd29|
+
+### Next bounded implementation: jump and strafe
+
+Use explicit ordinary bundled-dummy requests so expected quantities come from
+input: stationary jump height0.2m and left strafe speed0.1m/s, extracted carrier.
+Responsive style/default timing; no curve/key/recipe edits. Validate the supported
+public aliases and reach before invocation; typed refusal remains failure to
+qualify this positive case, not permission to substitute output metadata.
+
+1. Add narrowly scoped height/speed inputs and dummy selection to the existing
+   public review driver, preserving default four-rig behavior and all other ops.
+2. Add existing read-only scene/rig/request/hash attestation and selected six-run
+   mode to the two native checkers. Preserve their full default matrix and all
+   contact,flight,reach,knee,continuity,ownership and interpolation bounds.
+3. Bind played jump apex to requested0.2m; recompute ballistic flight span with
+   world gravity9.81 from the request and compare actual observed flight/peak
+   timing. Establish sample/authoring interpolation tolerance from actual clocks;
+   returned height/apex metadata is never the expected effect oracle.
+4. Bind measured world displacement over the native six-second strafe replay to
+   requested0.1m/s and anatomical left from measured rig frame. Expected travel
+   is0.6m; verify signed direction/forward drift and continuous actual trajectory,
+   not only endpoint length or reported speed. Keep native contact checks.
+5. Reuse existing exact public/context/native event joins. Add controls for wrong
+   input height/speed, mirrored direction, tiny hop, delayed apex, doubled travel,
+   missing clocks/feet and changed scene bytes. Execute a fresh public save/reload
+   and native run, then collect source-bound observations before claiming closure.
+
+These are remaining implementation steps, not completed proof. Start/stop need
+accepted hash-bound idle/walk endpoints plus independent travel expectations;
+setup needs the existing original request/scene/group/dependency bridge. Linux
+publication remains blocked independently of this motion work.
+
 Plan saved before implementation. Source audit: CI26a35eb actual checkout
 86661e7b31e4043ce520ccb82eff5f80be067f45. Only seven operation-level effect
 channels remain; invocation/source/history/path/playback/visual are separate.

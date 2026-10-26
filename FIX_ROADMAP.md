@@ -1,5 +1,15 @@
 # Animation Toolkit repair roadmap
 
+## Phase3: idle and turn effect joins complete (2026-10-26)
+
+Fresh3ce0d50 public/native runs close scoped idle_cycle and turn_cycle effect
+gaps: six Player/Tree/FPS clocks each,4506played samples, zero engine/derived
+failures. Original failed timestamp-adapter attempt retained; corrected adapter
+uses actual idle `time` and turn `t`, unchanged numerical limits. Five effect
+gaps remain. docs/seven-motion-valid-effect-closure-20261026.md records hashes,
+scope and next explicit jump-height/strafe-speed implementation plan. Phase1
+local gate complete; Linux blocker and later release gates remain unchanged.
+
 ## Phase1 local correctness gate complete (2026-10-26)
 
 21Spring regressions pass; fresh actual Godot AI public201case bake matrix passes

@@ -1,5 +1,23 @@
 # Agent notes
 
+## Authoritative next resume: phase3 two scoped effects complete
+
+26October15:17UTC, no local engine active. motion-intent-idle-turn-r002 COMPLETE
+at3ce0d509b836f2db606b7ba94f3c6b1f1eb02568: actual released421 public idle/left180
+turn dummy Responsive extracted cases, six native Player/Tree/FPS each, idle3786
+andturn720samples, zero engine/derived failures, one valid_effect row perop.
+Publicquit complete. R001collection failed actual idle `time` vs adapter `t`;
+original preserved,3ce fixes adapter only, ten controlsPASS; fresh r002 qualifies.
+Docs/seven-motion-valid-effect-closure-20261026.md has exact receipt hashes and
+next bounded jump0.2m/leftstrafe0.1m/s implementation plan. Five effect gaps remain;
+do not claim allseven or fullphase3 complete. Next implement selected explicit
+jump/strafe request/native identity/independent effect joins, then actual public
+execution; no output metadata as expected oracle. Keep defaults/full matrices.
+Phase1 local21+public201+unchanged8 gate complete (older checkpoint below).
+Phase2 officialLinux crash remains blocked/publication gated; phases4–6 pending.
+Oneworkstream/atmostonefocusedworker; root owns engine. Push checkpoint and verify
+origin before ending. Never push divergent main, merge/tag/release unqualified.
+
 ## Authoritative phase1 complete, 26 October 15:10UTC
 
 No local Godot active. Producerb5928a083b40dffa5e8d90969907a6bd8bd2464f is current

@@ -71,6 +71,11 @@ defaults. Start/stop require accepted idle/walk endpoint references and an
 independent travel expectation; setup requires actual request/graph/scene joins.
 Scope only the cases actually verified, not all parameter combinations.
 
+26October execution: selected idle/turn public/native joins now pass at3ce0d50.
+Two of seven scoped motion effect gaps closed; five pending. Next explicit
+jump-height and strafe-speed request bindings are planned in
+seven-motion-valid-effect-closure-20261026.md. No phase3 completion claim.
+
 Phase4 runs native admission,framing probe,continuous capture,full decode and
 independent assessment in that order. Reuse existing saved outputs and eligible
 sequence footage. Static evidence is allowed only for static effects. Private
