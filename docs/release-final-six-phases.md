@@ -28,6 +28,11 @@ active execution order under release-completion-plan.md.
 
 ## Phase1 next steps
 
+26October checkpoint: steps1–4 now complete. Native regression at7e1db27 passes
+all21cases with zero measured pose difference/engine errors. Raw scheduling
+control and original failures preserved; see spring-bake-repair-20261026.md.
+Step5 remains pending; no phase closure from isolated native tests alone.
+
 1.Save the current committed work and collector integration as an explicit WIP
   checkpoint. No release qualification is claimed for the local Spring helper.
 2.Reduce the failed regression to individual settings/custom axis at60FPS,

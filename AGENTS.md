@@ -1,5 +1,20 @@
 # Agent notes
 
+## Authoritative Spring checkpoint, 26 October 15:00UTC
+
+Phase1 only. Source7e1db276a06699b60661234d954b3da78e63e012 passes all21
+native Spring axis/curve/individual/animated-setting/FPS regressions, zero pose
+difference and engine errors, unchanged source and stale-cache negative PASS.
+Private spring-cache-repair-r003 preserves copied source, hashes, raw report,
+PID receipts/logs. R00121fail and R00215pass/6ALLfail remain unchanged.
+Raw individual60 schedule control proves old oracle solved twice per tick;
+adfd002 uses one explicit solve and independently engine-evaluated settings.
+Actual engine reset defers simulation_dirty; unchanged ALL never marked it.
+7e1 initializes once using public joint-axis setter, preserving per-tick momentum.
+Next: fresh public201 history/reload matrix through released421, then unchanged
+saved-source8 comparison. No Phase1 closure or release approval yet. Linux
+official4.7.2 publication blocker unchanged. Older checkpoints below historical.
+
 ## Authoritative resume: six-phase plan,26October
 
 No local Godot job active at14:42UTC. Latest remote f115a02 passed CI40244369434;

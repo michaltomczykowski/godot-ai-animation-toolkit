@@ -1,5 +1,14 @@
 # Animation Toolkit repair roadmap
 
+## Spring native regression passes (2026-10-26)
+
+Phase1 remains active. Source7e1db27 passes21native cases at30/60/120FPS,
+zero measured pose differences and engine errors; unprimed controls still fail.
+Corrected the double-solve reference schedule, then initialized private Verlet
+state once before synchronous reset. No authored nodes or thresholds changed.
+Details:docs/spring-bake-repair-20261026.md. Next fresh public201 history/reload
+matrix and eight unchanged-source comparisons. Linux/publication gates remain.
+
 ## Six-phase finish plan adopted (2026-10-26)
 
 Active plan:docs/release-final-six-phases.md. Phase1Spring correctness is active;
