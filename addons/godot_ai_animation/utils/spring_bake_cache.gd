@@ -4,7 +4,7 @@ extends RefCounted
 ## synchronous bake copies cannot await that queue or mutate author nodes.
 ## Mirror _update_joints using public setters, retaining the authored mode.
 ## Call only inside a synchronous private evaluation, after mixer updates.
-static func prime(spring:SpringBoneSimulator3D)->String:
+static func prime(spring:SpringBoneSimulator3D,initialize:bool=false)->String:
 	for setting in spring.get_setting_count():
 		var count:=spring.get_joint_count(setting)
 		if count<1:return "spring joint chain is unavailable"
@@ -13,6 +13,7 @@ static func prime(spring:SpringBoneSimulator3D)->String:
 				for field in ["radius","stiffness","drag","gravity"]:
 					if not is_finite(float(spring.call("get_joint_"+field,setting,joint))):return "nonfinite individual spring "+field
 				if not spring.get_joint_gravity_direction(setting,joint).is_finite():return "nonfinite individual spring gravity direction"
+				if initialize:spring.set_joint_rotation_axis(setting,joint,spring.get_joint_rotation_axis(setting,joint))
 			continue
 		var values:Array=[]
 		var direction:=spring.get_gravity_direction(setting)
@@ -43,9 +44,10 @@ static func prime(spring:SpringBoneSimulator3D)->String:
 		for joint in count:
 			for field in values[joint]:spring.call("set_joint_"+field,setting,joint,values[joint][field])
 			spring.set_joint_gravity_direction(setting,joint,direction)
-			# Axis setters mark simulation_dirty: avoid resetting momentum when
-			# unchanged. A genuinely changed authored axis does require reset.
-			if spring.get_joint_rotation_axis(setting,joint)!=axis:spring.set_joint_rotation_axis(setting,joint,axis)
+			# reset() defers marking simulation_dirty; this public setter marks
+			# it immediately, even for unchanged ALL. Initialize once at open,
+			# never each sample: that would discard the Verlet momentum.
+			if initialize or spring.get_joint_rotation_axis(setting,joint)!=axis:spring.set_joint_rotation_axis(setting,joint,axis)
 			if axis==SkeletonModifier3D.ROTATION_AXIS_CUSTOM and spring.get_joint_rotation_axis_vector(setting,joint)!=axis_vector:spring.set_joint_rotation_axis_vector(setting,joint,axis_vector)
 		spring.set_individual_config(setting,false)
 	return ""

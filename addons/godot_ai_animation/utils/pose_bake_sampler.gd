@@ -150,7 +150,7 @@ func open(scene_root: Node, source_skeleton: Skeleton3D, source_player: Animatio
 	for rig in rigs:
 		for child in rig.get_children():
 			if child is SpringBoneSimulator3D and child.active:
-				var cache_problem:=SpringCache.prime(child)
+				var cache_problem:=SpringCache.prime(child,true)
 				if not cache_problem.is_empty():return _fail(cache_problem)
 				child.reset()
 	return {"ok": true}
