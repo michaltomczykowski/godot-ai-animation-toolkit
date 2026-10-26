@@ -170,6 +170,11 @@ jobs:
           set -o pipefail
           godot --headless --path test_project --editor 2>&1 | tee editor.log
 
+      - name: Compare synchronous Spring bakes with native configuration
+        run: |
+          set -o pipefail
+          godot --headless --path test_project --script res://tools/check_spring_bake_cache.gd -- "$PWD/spring-bake-native.json" 2>&1 | tee spring-bake-native.log
+
       - name: Fail on parse errors
         if: always()
         run: |
@@ -190,7 +195,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: editor-${{ matrix.os }}-${{ matrix.core-ref }}
-          path: editor.log
+          path: |
+            editor.log
+            spring-bake-native.log
+            spring-bake-native.json
 
   mcp-route:
     name: Live MCP route / ${{ matrix.os }} / core ${{ matrix.core-ref }}

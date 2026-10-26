@@ -83,6 +83,12 @@ func _difference(a: Dictionary, b: Dictionary, label: String) -> void:
 		worst[channel] = maxf(worst[channel], errors[channel])
 		_check(is_finite(errors[channel]) and errors[channel] <= (0.001 if channel == "rotation" else 0.0001), label + " " + channel + " error=" + str(errors[channel]))
 func _body(body: Node3D) -> Dictionary: return {"p": body.position, "q": body.quaternion, "s": body.scale}
+func _reset_spring(spring:SpringBoneSimulator3D)->void:
+	# Native reset defers marking simulation_dirty. Reapply this unchanged
+	# public setting to mark it immediately before the requested synchronous
+	# reset. No joint-cache formula or production helper enters the oracle.
+	spring.set_mutable_bone_axes(spring.are_bone_axes_mutable())
+	spring.reset()
 func _native(row: Dictionary, intermediate: bool = false) -> Array:
 	var scene := _load(row.source)
 	if scene == null: return []
@@ -148,7 +154,7 @@ func _native(row: Dictionary, intermediate: bool = false) -> Array:
 		if time == 0:
 			for candidate in required:
 				for child in candidate.get_children():
-					if child is SpringBoneSimulator3D and child.active: child.reset()
+					if child is SpringBoneSimulator3D and child.active: _reset_spring(child)
 		var count := witness.count
 		for candidate in required:
 			candidate.advance(time - previous)

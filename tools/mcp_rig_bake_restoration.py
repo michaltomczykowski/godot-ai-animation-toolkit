@@ -50,6 +50,16 @@ def runtime(args: argparse.Namespace) -> dict:
     prefix = 'RIG_BAKE_RESTORATION_RUNTIME='
     payload = next((s[len(prefix):] for s in result.stdout.splitlines() if s.startswith(prefix)), '')
     report = json.loads(payload) if payload else {}
+    if args.record:
+        # Preserve complete native diagnostics before validating. The error's
+        # bounded tail cannot retain all failing cases or the full raw report.
+        log = args.record.with_name(args.record.stem + '-native.log')
+        with log.open('x', encoding='utf-8') as stream:
+            stream.write(result.stdout + '\n' + result.stderr)
+        if payload:
+            raw = args.record.with_name(args.record.stem + '-native.json')
+            with raw.open('x', encoding='utf-8') as stream:
+                json.dump(report, stream, indent=2)
     if (result.returncode or 'ERROR:' in result.stdout + result.stderr
             or report.get('cases') != 201 or report.get('saved_states') != 603
             or report.get('played_states') != 402 or report.get('failures') != []

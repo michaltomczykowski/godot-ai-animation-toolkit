@@ -128,7 +128,7 @@ func _replay(row:Dictionary,side:String,take:int,paced:bool,flush:bool)->Diction
 		if time==0:
 			for candidate in required:
 				for child in candidate.get_children():
-					if child is SpringBoneSimulator3D and child.active:child.reset()
+					if child is SpringBoneSimulator3D and child.active:_reset_spring(child)
 			if flush and has_spring:await process_frame
 		var per_rig:={}
 		for candidate in required:
@@ -149,7 +149,7 @@ func _replay(row:Dictionary,side:String,take:int,paced:bool,flush:bool)->Diction
 		previous=float(time)
 	await _capture_end(view)
 	_check(FileAccess.get_sha256(virtual)==media_manifest.files[virtual].sha256,row.id+" immutable scene after")
-	var result:={"id":row.id,"side":side,"take":take,"paced":paced,"flush":flush,"excluded_loading_process_frames":_loading_frames(),"loaded_spring_cache":loaded_spring,"excluded_reset_process_frames":1 if flush and has_spring else 0,"saved_modifiers":saved_modifiers,"authored_duration":row.params.duration,"trace":_stable(trace),"failures":failures.slice(before)}
+	var result:={"id":row.id,"side":side,"take":take,"paced":paced,"flush":flush,"spring_reset_contract":"same_mutable_axes_value_then_native_reset","excluded_loading_process_frames":_loading_frames(),"loaded_spring_cache":loaded_spring,"excluded_reset_process_frames":1 if flush and has_spring else 0,"saved_modifiers":saved_modifiers,"authored_duration":row.params.duration,"trace":_stable(trace),"failures":failures.slice(before)}
 	_close_scene(scene)
 	return result
 func _run()->void:
