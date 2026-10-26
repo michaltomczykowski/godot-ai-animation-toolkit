@@ -65,6 +65,7 @@ class BindingControls(unittest.TestCase):
         for value,kind in [(event,'operation_snapshot_assertions'),(witness,'operation_snapshot_assertions')]+[(v,'public_operation_call') for v in public]+[(v,'public_support_call') for v in support]:
             value.update(schema_version=1,kind=kind,route='public_godot_ai',run_id='actual-run',context_sha256='c'*64)
             value.setdefault('id','support:'+str(value['time_ns']))
+            value['execution_ns']=value['time_ns']
         witness['operation']=event['operation']
         return event,context,public,support,[witness]
     def test_exact_binding(self):
@@ -72,16 +73,26 @@ class BindingControls(unittest.TestCase):
         self.assertEqual(verify_event(*self.bound())['checks'],{'valid_effect':'pass'})
     def test_binding_corruptions(self):
         from operation_saved_motion_checks import verify_event
-        for change in (lambda a:a[0]['row'].update(before_sha256='b'*64),lambda a:a[0]['row']['saved'].update(context_sha256='other'),lambda a:a[0]['row']['opened'].update(reloaded_from_disk=False),lambda a:a[2][0].update(scene='res://other.tscn'),lambda a:a[2][1]['response'].update(body_travel=999),lambda a:a[4].clear(),lambda a:a[1]['dependencies'].clear(),lambda a:a[3][1].update(time_ns=0),lambda a:a[2][0].update(context_sha256='f'*64),lambda a:a[2][1].update(run_id='foreign'),lambda a:a[3][0].update(route='fabricated'),lambda a:a[4][0].update(kind='other'),lambda a:a[1]['dependencies'].update({next(iter(a[1]['dependencies'])):{}})):
+        for change in (lambda a:a[0]['row'].update(before_sha256='b'*64),lambda a:a[0]['row']['saved'].update(context_sha256='other'),lambda a:a[0]['row']['opened'].update(reloaded_from_disk=False),lambda a:a[2][0].update(scene='res://other.tscn'),lambda a:a[2][1]['response'].update(body_travel=999),lambda a:a[4].clear(),lambda a:a[1]['dependencies'].clear(),lambda a:a[3][1].update(execution_ns=0),lambda a:a[2][0].update(context_sha256='f'*64),lambda a:a[2][1].update(run_id='foreign'),lambda a:a[3][0].update(route='fabricated'),lambda a:a[4][0].update(kind='other'),lambda a:a[1]['dependencies'].update({next(iter(a[1]['dependencies'])):{}})):
             args=list(self.bound());change(args)
             with self.subTest(change=change),self.assertRaises(ValueError):verify_event(*args)
 
 
+    def test_equal_or_reversed_wall_clock_keeps_monotonic_binding(self):
+        from operation_saved_motion_checks import verify_event
+        args=list(self.bound())
+        args[0]['time_ns']=args[2][1]['time_ns']
+        self.assertEqual(verify_event(*args)['checks'],{'valid_effect':'pass'})
+        for value in [args[0],*args[2],*args[3],*args[4]]:value['time_ns']=1
+        self.assertEqual(verify_event(*args)['checks'],{'valid_effect':'pass'})
+        args[2][1]['execution_ns']=args[3][1]['execution_ns']
+        with self.assertRaises(ValueError):verify_event(*args)
+
     def test_other_tab_navigation_bound(self):
         from operation_saved_motion_checks import verify_event
-        args=list(self.bound()); nav=copy.deepcopy(args[3][1]);nav.update(id='nav',time_ns=3.5);nav['time_ns']=35
-        # Use integer native wall-clock units for all fixtures.
-        for value in [args[0],*args[2],*args[3],*args[4]]:value['time_ns']*=10
+        args=list(self.bound()); nav=copy.deepcopy(args[3][1]);nav.update(id='nav',time_ns=3.5);nav['time_ns']=35;nav['execution_ns']=35
+        # Use integer monotonic units for all fixtures.
+        for value in [args[0],*args[2],*args[3],*args[4]]:value['time_ns']*=10;value['execution_ns']*=10
         nav['response']['reloaded_from_disk']=False
         args[0]['row']['navigation']=copy.deepcopy(nav['response']);args[3].append(nav)
         self.assertEqual(verify_event(*args)['checks'],{'valid_effect':'pass'})

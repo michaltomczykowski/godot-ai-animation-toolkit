@@ -1,5 +1,27 @@
 # Agent notes
 
+## Authoritative current work,26October16:20UTC
+
+No local Godot active. Primary8bd58b4 has actual motion-intent-four-r002 COMPLETE:
+jump0.2/leftstrafe0.1/start/stop public4routes,24nativeplays4398samples,
+strictderived0/4valid_effect PASS. R001allphysicalPASS failedcollector missing
+transitionnativewhitelist andstrafeframeoverstricttoeorthogonality, preserved;
+root8bd fixes those+control. Prior idle/turnPASS; sixofseven scoped effects done.
+Oneworker /root/jump_strafe_intent active in E:/godot-ai-dev/toolkit-jump-strafe-intent-20261026.
+Its e147 jump/strafe integrated4461b15; now owns NEW setupbridge/auditor only.
+Setup originalc19 public ->r004/r007reuse233->native54744: all613deps chain equal;
+current44toolkit/567core same,two changes rig.pose_list guard+Spring bake only.
+Butoldnative1800 lacksmodel/restfingerprint; workerprepares3currentFPSplays on
+exact saved dummy existingquality_specs, no engine/newgen. Rootlaunch only.
+
+Rootdirty monotonicmotionadapter+tests: actual CI40346567647 head e70/merge44d
+Win430 collection fails audit binding ambiguous. Rawpublic audit andsnapshot
+time_ns equal1793027583914539200 butexecution_ns301822869900<301823712900.
+Useexecution_ns allintervals;12controlsPASS, all30originalbindingsnowPASS(12effect)
+diagnosticonly no source relabel. docs/saved-motion-monotonic-binding-20261026.md.
+Commit/push checkpoint next. Phase1complete; phase3lastsetupjoin; phase2Linux
+blocked; phases4–6pending. Oneactiveworkstream/oneworker/rootenginequeue.
+
 ## Authoritative next resume: phase3 two scoped effects complete
 
 26October15:17UTC, no local engine active. motion-intent-idle-turn-r002 COMPLETE

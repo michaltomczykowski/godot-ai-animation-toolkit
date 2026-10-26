@@ -1,5 +1,38 @@
 # Seven remaining motion valid-effect gaps
 
+## Four more scoped joins pass,26October16:20UTC
+
+Fresh producer8bd58b4, official4.7.2/Windows/released Godot AI4.2.1,
+private motion-intent-four-r002 completes public jump0.2m,leftstrafe0.1m/s,
+Responsive start and stop. All four public generation/dry/history/save/forced
+reopen routes pass. Six Player/Tree/FPS clocks per operation,4398played samples,
+zero engine/derived failures; one valid_effect row per operation passes.
+Start/stop use exact separately accepted9188ffa walk/idle scene hashes, native
+full-walk-cycle extraction and half-steady-speed action travel, plus original
+endpoint/continuation/contact/ownership/hold checks. No output-root oracle.
+
+Original r001 physical runs all pass but collection fails: the new transition
+native event needed its bound-report whitelist entry. Diagnostic replay also
+finds real dummy ankle/toe directions differ from exact orthogonality by1.13e-5;
+the adapter now validates ankle-derived left and nondegenerate forward frame,
+retaining original forward/up drift and contact limits. One dedicated toe-splay
+control added;38combined intent controls pass. No production animation changed.
+
+| R002 receipt | SHA256 |
+| --- | --- |
+|operation-case-results.json|4343d298e235095c8c2c916258c0dd4257f74b8a55ee782e689576a32a694d55|
+|jump-native/native.json|258d6616e69eeaae37a3eafd5144e860c345b48687d92254b62c4ce723d1aafb|
+|strafe-native/native.json|bb35eb12d47fe8e458371848654a62d86b6d0be083d5ad089f8a33802020f619|
+|start-native/native.json|053920729f887e24bf5280c841994abb806434410e73eee40db6de300839a4ca|
+|stop-native/native.json|a8f2fdc539f22e5d68db2c4a8ec53dadc35f3cb899b084322eac950d4b5c8bda|
+
+Six of seven scoped effect gaps close. Character setup still needs a model/rest
+identity join: old1800play reports lack FBX/rest fingerprints. Its saved dummy
+scene/request/source chain is being audited; a minimal three-FPS current-model
+replay can close the missing identity without repeating the entire matrix.
+Original public producer is c19a25e, later233562a reuses its scene; native54744b1
+is separate. Preserve all identities instead of attributing generation to reuse.
+
 ## Execution checkpoint,26October
 
 Two scoped operation gaps now close: idle_cycle and turn_cycle. Five remain:

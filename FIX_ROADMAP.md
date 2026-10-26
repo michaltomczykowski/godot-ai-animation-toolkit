@@ -1,5 +1,17 @@
 # Animation Toolkit repair roadmap
 
+## Phase3: six scoped effects pass (2026-10-26)
+
+Fresh8bd58b4 four-operation actual Godot AI run passes jump,strafe,start,stop
+public routes and24native Player/Tree/FPS plays (4398samples), strictderived0.
+Together with prior idle/turn, six of seven effect gaps close. Character setup
+needs only the missing model/rest identity join on existing saved output;
+original1800plays/source chain preserved. Details/hashes in
+docs/seven-motion-valid-effect-closure-20261026.md. Also repaired Windows CI
+motion ordering: equal wall timestamps rejected a correctly ordered audit;
+monotonic intervals bind all30original observations,12controlsPASS. Fresh CI
+qualification still required; Linux blocker and recordings/package remain.
+
 ## Phase3: idle and turn effect joins complete (2026-10-26)
 
 Fresh3ce0d50 public/native runs close scoped idle_cycle and turn_cycle effect
