@@ -7,7 +7,7 @@ from compose_character_quality import compose
 from review_receipts import write_json
 
 SELECTED={'right-strafe':'strafe/candidate-r001/right/responsive','stationary-jump':'jump/candidate-r002/stationary/responsive-in-place'}
-TOOLS=['render_character_quality.gd','render_strafe_quality.gd','render_jump_quality.gd','character_quality_native.gd','motion_capture_guard.gd','check_motion_capture_admission.gd','check_strafe_quality.gd','check_jump_quality.gd','check_run_quality.gd']
+TOOLS=['render_character_quality.gd','render_strafe_quality.gd','render_jump_quality.gd','character_quality_native.gd','motion_capture_guard.gd','check_motion_capture_admission.gd','check_strafe_quality.gd','check_jump_quality.gd','check_run_quality.gd','motion_physical_input_identity.gd']
 ADMISSION_CONTROLS=('positive','inert_player','dormant_binding','selected_track_binding','foreign_tree','assigned_player','autoplay_player','playing_player','active_modifier','wrong_root_track')
 def admission_arguments(route,report,control):
     if control not in ADMISSION_CONTROLS:raise ValueError('Unknown admission control')
