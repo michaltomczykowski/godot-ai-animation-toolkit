@@ -45,7 +45,10 @@ func _fixture(axis:int,individual:bool,animated:bool)->Dictionary:
 	var clip:=Animation.new();clip.length=1
 	var track:=clip.add_track(Animation.TYPE_ROTATION_3D);clip.track_set_path(track,"Skeleton:bone0");clip.track_insert_key(track,0,Quaternion.IDENTITY);clip.track_insert_key(track,1,Quaternion(Vector3.FORWARD,.5))
 	if animated:
-		track=clip.add_track(Animation.TYPE_VALUE);clip.track_set_path(track,"Skeleton/Spring:settings/0/stiffness/value");clip.track_insert_key(track,0,.7);clip.track_insert_key(track,.2,1.1)
+		for field in ["stiffness","drag","gravity","radius"]:
+			track=clip.add_track(Animation.TYPE_VALUE);clip.track_set_path(track,"Skeleton/Spring:settings/0/"+field+"/value")
+			clip.track_insert_key(track,0,{"stiffness":.7,"drag":.3,"gravity":.1,"radius":.02}[field])
+			clip.track_insert_key(track,.2,{"stiffness":1.1,"drag":.5,"gravity":.15,"radius":.03}[field])
 	var library:=AnimationLibrary.new();library.add_animation("input",clip);player.add_animation_library("",library)
 	return {"root":node,"rig":rig,"spring":spring,"player":player}
 func _error(a:Array,b:Array)->Dictionary:
@@ -74,10 +77,33 @@ func _stale_trajectory(author:Dictionary,fps:int)->Array:
 		out.append(witness.poses.duplicate(true))
 	private.close()
 	return out
+func _native_animated_configuration(axis:int,fps:int)->Array:
+	# This rig supplies only engine-computed configuration, never expected poses.
+	# Its frame callbacks may solve, so finish this lookup before reference reset.
+	var configuration:=_fixture(axis,false,true)
+	await process_frame
+	await process_frame
+	configuration.player.playback_auto_capture=false
+	configuration.player.play("input");configuration.player.advance(0)
+	var result:Array=[]
+	for tick in int(ceil(.2*fps))+1:
+		var time:=minf(float(tick)/fps,.2);var delta:=0.0 if tick==0 else time-minf(float(tick-1)/fps,.2)
+		if delta>0:configuration.player.advance(delta)
+		await process_frame
+		var joints:Array=[]
+		for joint in configuration.spring.get_joint_count(0):
+			var fields:={}
+			for field in ["stiffness","drag","gravity","radius"]:fields[field]=configuration.spring.call("get_joint_"+field,0,joint)
+			joints.append(fields)
+		result.append(joints)
+	configuration.root.free()
+	return result
 func _case(axis:int,individual:bool,animated:bool,fps:int):
 	var author:=_fixture(axis,individual,animated);var reference:=_fixture(axis,individual,animated)
+	var witness:=Witness.new();reference.rig.add_child(witness)
 	await process_frame
 	await process_frame
+	var configuration:Array=await _native_animated_configuration(axis,fps) if animated else []
 	var author_before:=var_to_str(author.rig.get_bone_pose(0))
 	var source_setting:float=author.spring.get_stiffness(0)
 	var evaluator:=Sampler.new();var opened:Dictionary=evaluator.open(author.root,author.rig,author.player,"input")
@@ -91,25 +117,40 @@ func _case(axis:int,individual:bool,animated:bool,fps:int):
 		_check(private_spring.get_joint_rotation_axis_vector(0,joint)==reference.spring.get_joint_rotation_axis_vector(0,joint),"independent rotation axis vector")
 	# Complete every private sample without yielding, exactly as public bake.
 	var private_samples:Array=[]
+	var private_ticks:={"raw":0}
+	private_spring.modification_processed.connect(func():private_ticks.raw+=1)
 	for tick in int(ceil(.2*fps))+1:
 		var time:=minf(float(tick)/fps,.2);var delta:=0.0 if tick==0 else time-minf(float(tick-1)/fps,.2)
+		var prior:int=private_ticks.raw
 		var sample:Dictionary=evaluator.sample(delta,time)
 		_check(sample.has("poses"),"private sample "+str(sample.get("error",{})))
+		_check(private_ticks.raw==prior+1,"one private Spring evaluation per sample")
+		if animated:
+			for joint in private_spring.get_joint_count(0):
+				for field in configuration[tick][joint]:_check(private_spring.call("get_joint_"+field,0,joint)==configuration[tick][joint][field],"animated native joint cache "+field)
 		private_samples.append(sample.get("poses",[]).duplicate(true))
 	evaluator.close()
 	var stale:Array=_stale_trajectory(author,fps)
 	var stale_worst:=0.0
-	var witness:=Witness.new();reference.rig.add_child(witness)
-	reference.player.active=true;reference.player.play("input");reference.player.advance(0);reference.spring.reset()
-	await process_frame
+	# Apply separately engine-evaluated animated configuration using native joint
+	# setters. No production helper or duplicated curve formula enters the oracle.
+	if animated:reference.spring.set_individual_config(0,true)
+	reference.player.active=true;reference.player.playback_auto_capture=false
+	reference.player.play("input");reference.player.advance(0);reference.spring.reset()
+	var reference_ticks:={"raw":0}
+	reference.spring.modification_processed.connect(func():reference_ticks.raw+=1)
 	var worst:={"position":0.0,"rotation":0.0,"scale":0.0}
 	for tick in int(ceil(.2*fps))+1:
 		var time:=minf(float(tick)/fps,.2);var delta:=0.0 if tick==0 else time-minf(float(tick-1)/fps,.2)
-		reference.player.advance(delta)
-		# Let the real engine apply global curves/animated settings; all motion
-		# clocks remain manual. Production helper is never used on this rig.
-		await process_frame
+		if delta>0:reference.player.advance(delta)
+		if animated:
+			for joint in reference.spring.get_joint_count(0):
+				for field in configuration[tick][joint]:reference.spring.call("set_joint_"+field,0,joint,configuration[tick][joint][field])
+		var prior:int=reference_ticks.raw
+		# No frame yield: deferred dirty-skeleton callbacks would add a second
+		# simulation step before the explicit notification, even in manual mode.
 		reference.rig.advance(delta);reference.rig.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
+		_check(reference_ticks.raw==prior+1,"one reference Spring evaluation per sample")
 		var errors:=_error(private_samples[tick],witness.poses)
 		if tick<stale.size():stale_worst=maxf(stale_worst,float(_error(stale[tick],witness.poses).rotation))
 		for field in errors:worst[field]=maxf(worst[field],errors[field])
@@ -117,7 +158,7 @@ func _case(axis:int,individual:bool,animated:bool,fps:int):
 	_check(author.spring.is_config_individual(0)==individual and author.spring.get_stiffness(0)==source_setting and var_to_str(author.rig.get_bone_pose(0))==author_before,"author source unchanged")
 	if axis==SkeletonModifier3D.ROTATION_AXIS_ALL and not individual and not animated:_check(stale_worst>.001,"unprimed negative control must reproduce wrong curve fps="+str(fps))
 	author.root.free();reference.root.free()
-	rows.append({"axis":axis,"individual":individual,"animated":animated,"fps":fps,"worst":worst,"unprimed_control_rotation_error":stale_worst})
+	rows.append({"axis":axis,"individual":individual,"animated":animated,"fps":fps,"worst":worst,"unprimed_control_rotation_error":stale_worst,"private_steps":private_ticks.raw,"reference_steps":reference_ticks.raw,"native_configuration_frames":configuration.size()})
 func _single_joint_curve_refusal():
 	var author:=_fixture(SkeletonModifier3D.ROTATION_AXIS_ALL,false,false)
 	author.spring.set_end_bone_name(0,"bone0")
