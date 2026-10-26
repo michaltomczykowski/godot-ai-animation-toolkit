@@ -38,6 +38,14 @@ def physical_report(op):
    runs.append(r)
  return dict(runs=runs,engine_errors=[],passed=True)
 
+class AnatomicalFrameControls(unittest.TestCase):
+ def test_small_rest_toe_splay_is_valid_but_parallel_frame_is_not(self):
+  r=physical_report('strafe_cycle')
+  for run in r['runs']:run['source_world_forward']=[-.000014,0.,math.sqrt(1-.000014**2)]
+  self.assertEqual(s.numeric('strafe_cycle',r),{'valid_effect':'pass'})
+  r['runs'][0]['source_world_forward']=[1.,0.,0.]
+  with self.assertRaisesRegex(ValueError,'anatomical left'):s.numeric('strafe_cycle',r)
+
 
 def bound(op):
  from test_operation_idle_turn_intent_checks import bound as existing_bound

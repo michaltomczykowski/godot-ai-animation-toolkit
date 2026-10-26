@@ -118,7 +118,10 @@ def strafe_numeric(r):
  left=r.get('source_world_left');a,b=r.get('rest_left_foot_world'),r.get('rest_right_foot_world')
  need(vec(left)and abs(dot(left,left)-1)<1e-5 and vec(a)and vec(b),'missing anatomical strafe frame')
  offset=minus(a,b);offset=[v-up[i]*dot(offset,up)for i,v in enumerate(offset)];gap=length(offset)
- need(gap>1e-6 and length(minus(left,[v/gap for v in offset]))<1e-5 and abs(dot(left,forward))<1e-5,'strafe anatomical left differs from measured feet')
+ # Rest toes need not be exactly orthogonal to the bilateral ankle line.
+ # Verify left against ankles and a nondegenerate anatomical forward frame;
+ # keep the original measured forward/up travel-drift limits below.
+ need(gap>1e-6 and length(minus(left,[v/gap for v in offset]))<1e-5 and abs(dot(cross(up,left),forward))>.99,'strafe anatomical left differs from measured feet')
  speed=fixed_request('strafe_cycle')['speed'];dt=1/fps;okay=r['frames']==6*fps+1
  okay=okay and number(r.get('period_s'))and abs(r['period_s']-1)<1e-5 and type(r.get('loop_mode'))is int and r['loop_mode']==1 and r.get('root_mode')=='extracted'
  signed=[]

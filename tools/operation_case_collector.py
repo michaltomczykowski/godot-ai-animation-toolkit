@@ -500,8 +500,9 @@ def collect(context_path, traces, root, preview_report=None):
                           'public_origin_id':proof['public_origin_id'],'scene':event['scene'],
                           'failures':proof['failures'],'limits':proof['limits']})
             continue
-        if event.get('driver')=='check_selected_motion_intent.py':
-            linked=[s for s in snapshot_events if s.get('validator')=='idle_turn_physical_v1' and s.get('row',{}).get('native_case_id')==event['id'] and s.get('operation')==event.get('operation')]
+        if event.get('driver') in ('check_selected_motion_intent.py','check_selected_transition_intent.py'):
+            validator='transition_physical_v1'if event['driver']=='check_selected_transition_intent.py'else'idle_turn_physical_v1'
+            linked=[s for s in snapshot_events if s.get('validator')==validator and s.get('row',{}).get('native_case_id')==event['id'] and s.get('operation')==event.get('operation')]
             if len(linked)!=1:raise ValueError('selected physical native event lacks unique bound report')
             continue
         checks, failures = native_checks(event, context)
