@@ -39,20 +39,21 @@ def numeric(op,report):
   leg=r.get('leg_length_m');need(number(leg)and leg>0,'missing physical rig scale')
   need(type(r['fps'])is int and type(r.get('frames'))is int and r['frames']>2,'invalid native clock type')
   trace=r.get('trace');need(isinstance(trace,list)and len(trace)==r['frames'],'missing native trace')
-  need(all(number(x.get('t'))and abs(x['t']-i/r['fps'])<1e-5 for i,x in enumerate(trace)),'native trace clock differs')
+  clock='time'if op=='idle_cycle'else't'
+  need(all(number(x.get(clock))and abs(x[clock]-i/r['fps'])<1e-5 for i,x in enumerate(trace)),'native trace clock differs')
   okay=okay and r.get('nonfinite')==0 and type(r.get('nonfinite'))is int and r.get('failures')==[] and r.get('thresholds_pass')is True
   feet=r.get('feet');need(isinstance(feet,dict)and set(feet)=={'l','r'},'missing bilateral physical feet')
   if op=='idle_cycle':
    okay=okay and type(r.get('active_mixers'))is int and r['active_mixers']==1 and r.get('active_root_position_track')is False and r.get('path_errors')==[] and r.get('generation_clamp_metadata_known')is True and r.get('generation_reach_clamped')is False
    okay=okay and bounded(r.get('max_actor_distance_m'),.0001)and bounded(r.get('max_extracted_root_delta_m'),.0001)and type(r.get('crossed_loop_seams'))is int and r['crossed_loop_seams']>=2
-   period=r.get('period_s');need(number(period)and period>0 and number(r.get('duration_s'))and abs(r['duration_s']-trace[-1]['t'])<1e-5,'missing actual idle period/duration')
-   okay=okay and trace[-1]['t']>=2*period-1e-5 and r['crossed_loop_seams']==math.floor((trace[-1]['t']+1e-5)/period)
+   period=r.get('period_s');need(number(period)and period>0 and number(r.get('duration_s'))and abs(r['duration_s']-trace[-1]['time'])<1e-5,'missing actual idle period/duration')
+   okay=okay and trace[-1]['time']>=2*period-1e-5 and r['crossed_loop_seams']==math.floor((trace[-1]['time']+1e-5)/period)
    step=r.get('max_pose_step_m');rotation=r.get('max_rotation_step_rad');need(number(step)and number(rotation),'missing noninert idle observation')
    okay=okay and step>=0 and rotation>=0 and(step>1e-6 or rotation>1e-6)
    a,b=r.get('max_interior_step_m'),r.get('max_interior_rotation_step_rad');need(number(a)and a>=0 and number(b)and b>=0,'missing interior seam observations')
    okay=okay and bounded(r.get('max_seam_step_m'),1.5*a+.001*leg)and bounded(r.get('max_seam_rotation_step_rad'),1.5*b+.002)
    okay=okay and bounded(r.get('max_reference_position_error_m'),.001*leg)and bounded(r.get('max_reference_rotation_error_rad'),.0001)
-   interior=max((b['t']-a['t']for a,b in zip(trace,trace[1:])),default=0);okay=okay and abs(interior-1/r['fps'])<1e-5
+   interior=max((b['time']-a['time']for a,b in zip(trace,trace[1:])),default=0);okay=okay and abs(interior-1/r['fps'])<1e-5
    # Existing seam acceleration limits, recomputed from raw per-bone observations.
    probe=r.get('seam_velocity_probe',{});need(isinstance(probe.get('bones'),list)and probe['bones'],'missing independent seam probe')
    for bone in probe['bones']:

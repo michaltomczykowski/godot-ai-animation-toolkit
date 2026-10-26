@@ -8,7 +8,7 @@ def report(op):
  for fps in (30,60,120):
   for mode in ('player','tree'):
    duration=.3 if op=='idle_cycle'else 1.;frames=round(duration*fps)+1
-   r={'id':'dummy','fps':fps,'mixer'if op=='idle_cycle'else'mode':mode,'frames':frames,'leg_length_m':1.,'nonfinite':0,'failures':[],'thresholds_pass':True,'trace':[{'t':i/fps}for i in range(frames)]}
+   r={'id':'dummy','fps':fps,'mixer'if op=='idle_cycle'else'mode':mode,'frames':frames,'leg_length_m':1.,'nonfinite':0,'failures':[],'thresholds_pass':True,'trace':[{'time'if op=='idle_cycle'else't':i/fps}for i in range(frames)]}
    if op=='idle_cycle':
     r.update(active_mixers=1,active_root_position_track=False,path_errors=[],generation_clamp_metadata_known=True,generation_reach_clamped=False,max_actor_distance_m=0.,max_extracted_root_delta_m=0.,crossed_loop_seams=3,period_s=.1,duration_s=.3,max_pose_step_m=.001,max_rotation_step_rad=.002,max_reference_position_error_m=0.,max_reference_rotation_error_rad=0.,max_interior_step_m=.001,max_interior_rotation_step_rad=.002,max_seam_step_m=.001,max_seam_rotation_step_rad=.002,seam_velocity_probe={'bones':[{'fastest_interior_rotation_step_rad':.001,'position_step_jump_m':.001,'rotation_step_jump_rad':.001}]},feet={side:dict(max_standing_slide_m=.001,max_rest_ankle_target_penetration_m=0.,max_standing_height_error_m=0.,knee_pole_flips=0,expected_standing_frames=frames,observed_contact_band_frames=frames)for side in('l','r')})
    else:
@@ -36,6 +36,11 @@ def bound(op):
 
 
 class Controls(unittest.TestCase):
+ def test_native_clock_field_is_operation_specific(self):
+  for op in s.SCRIPTS:
+   r=report(op);clock='time'if op=='idle_cycle'else't';foreign='t'if op=='idle_cycle'else'time'
+   r['runs'][0]['trace'][0][foreign]=r['runs'][0]['trace'][0].pop(clock)
+   with self.subTest(op=op),self.assertRaisesRegex(ValueError,'trace clock'):s.numeric(op,r)
  def test_two_exact_six_clock_contracts_and_bound_public_sources(self):
   for op in s.SCRIPTS:
    self.assertEqual(s.numeric(op,report(op)),{'valid_effect':'pass'});self.assertEqual(s.verify_event(*bound(op))['checks'],{'valid_effect':'pass'})
