@@ -3,6 +3,7 @@ extends SceneTree
 ## Independent one-shot playback and joins to separately saved approved clips.
 ## No production motion sampler, IK, or bone-pose writes are used here.
 const Native := preload("res://tools/character_quality_native.gd")
+const InputIdentity := preload("res://tools/motion_physical_input_identity.gd")
 var logger := Native.CaptureErrors.new()
 
 ## Position-only extraction is expressed in the carrier owner's parent frame.
@@ -117,7 +118,9 @@ func _join(v: Dictionary, other_row: Dictionary, edge: float, phase: float, ente
 		"max_rotation_step_jump_rad": worst.y, "spacing_s": dt, "bones": bones}
 
 func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionary, fps: int, mode: String, baseline: bool) -> Dictionary:
+	var input_identity:=InputIdentity.begin(row)
 	var v := Native.load_case(row, root)
+	InputIdentity.loaded(input_identity,row,v)
 	v.animation_name = row.params.animation_name
 	var clip: Animation = v.clip
 	var leg: float = v.leg
@@ -129,6 +132,18 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 	var phase := float(row.write.get("phase", row.params.get("phase", 0.0)))
 	var gait_join := _join(v, walk, 0.0 if stopping else action_duration, phase, stopping, dt)
 	var idle_join := _join(v, idle, action_duration if stopping else 0.0, 0.0, not stopping, dt)
+	# A separately saved accepted walk supplies steady travel, never this
+	# transition's output keys or returned speed/distance metadata.
+	var accepted:=Native.load_case(walk,root)
+	var accepted_identity:=InputIdentity.begin(walk)
+	InputIdentity.loaded(accepted_identity,walk,accepted)
+	var cycle_start:Vector3=accepted.body.global_position
+	for frame in 120:Native.advance(accepted,float(accepted.clip.length)/120.0)
+	var accepted_cycle:Vector3=accepted.body.global_position-cycle_start
+	var accepted_period:float=accepted.clip.length
+	var accepted_forward:Vector3=accepted.forward
+	accepted_identity=InputIdentity.finish(accepted_identity)
+	accepted.scene.free()
 	v.player.stop()
 	v.player.play(v.animation_name, 0.0, 1.0)
 	v.player.advance(0.0)
@@ -338,6 +353,12 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 		"hold_position_error_m": hold_error.x, "hold_rotation_error_rad": hold_error.y, "gait_join": gait_join,
 		"idle_join": idle_join, "feet": metrics, "trace": trace, "path_errors": path_errors,
 		"failures": errors, "thresholds_pass": errors.is_empty()}
+	result["input_identity"]=InputIdentity.finish(input_identity)
+	result["accepted_walk_identity"]=accepted_identity
+	result["accepted_walk_cycle_world"]=Native.values(accepted_cycle)
+	result["accepted_walk_period_s"]=accepted_period
+	result["source_world_forward"]=Native.values(accepted_forward)
+	result["actual_world_travel"]=Native.values(travel)
 	v.scene.free()
 	if driver != null: driver.free()
 	reference.scene.free()
@@ -346,6 +367,9 @@ func _check(row: Dictionary, pair: Dictionary, walk: Dictionary, idle: Dictionar
 
 func _run() -> void:
 	var args := OS.get_cmdline_user_args()
+	var selected_id:=InputIdentity.selector(args)
+	if selected_id=="INVALID":quit(1);return
+	if not selected_id.is_empty():args.remove_at(args.find("case_id="+selected_id))
 	if args.size() == 4 and args[0] == "--self-check":
 		var controls: Array = []
 		for path in [args[1], args[2]]:
@@ -379,15 +403,19 @@ func _run() -> void:
 	for i in 4: inputs.append(JSON.parse_string(FileAccess.get_file_as_string(args[i])))
 	var results: Array = []
 	var failures: Array = []
-	for row: Dictionary in inputs[0].cases:
+	var selected:=InputIdentity.select(inputs[0].cases,selected_id)
+	if not selected_id.is_empty() and selected.size()!=1:quit(1);return
+	for row: Dictionary in selected:
 		for fps in [30, 60, 120]:
 			for mode in ["player", "tree"]:
 				var result := _check(row, _find(inputs[1], row.id), _find(inputs[2], row.id), _find(inputs[3], row.id), fps, mode, inputs[0].phase == "baseline")
 				results.append(result)
 				if not result.thresholds_pass: failures.append("%s/%s/%s: %s" % [row.id, fps, mode, str(result.failures)])
 	var expected_cases := int(inputs[0].get("expected_case_count", 4)) if inputs[0].phase == "prototype" else 4
+	if not selected_id.is_empty():expected_cases=1
 	var report := {"source_head": inputs[0].source_head, "revision": inputs[0].revision, "runs": results,
-		"failures": failures, "engine_errors": logger.errors, "passed": inputs[0].cases.size() == expected_cases and results.size() == expected_cases * 6 and failures.is_empty() and logger.errors.is_empty(),
+		"case_selection":selected_id,"route_sha256":FileAccess.get_sha256(args[0]),"walk_route_sha256":FileAccess.get_sha256(args[2]),"idle_route_sha256":FileAccess.get_sha256(args[3]),"checker_sha256":FileAccess.get_sha256(get_script().resource_path),"native_helper_sha256":FileAccess.get_sha256("res://tools/character_quality_native.gd"),"input_identity_helper_sha256":FileAccess.get_sha256("res://tools/motion_physical_input_identity.gd"),
+		"failures": failures, "engine_errors": logger.errors, "passed": selected.size() == expected_cases and results.size() == expected_cases * 6 and failures.is_empty() and logger.errors.is_empty(),
 		"measurement_contract": "Independent played reference endpoint and same-interval continuation errors; raw boundary curvature retained. Declared stance slide/height and observed ankle-band motion are distinct; ankle band is not sole collision. Root uses reported in-place schedule; paired track only for old baseline. Numerical checks do not approve visual quality."}
 	FileAccess.open(args[4], FileAccess.WRITE).store_string(JSON.stringify(report))
 	OS.remove_logger(logger)

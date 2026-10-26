@@ -194,7 +194,7 @@ def record_native_result(operation, scene, command, completed):
 
 def record_snapshot_result(validator,row):
     if not os.environ.get('TOOLKIT_OPERATION_CONTEXT') and not os.environ.get('TOOLKIT_OPERATION_TRACE_DIR'):return
-    if validator=="idle_turn_physical_v1":
+    if validator in ("idle_turn_physical_v1","transition_physical_v1"):
         return _emit("operation_snapshot_assertions", {"operation":row["operation"],"validator":validator,"row":row,"route":"public_godot_ai"})
     if validator=="pose_blend_refusal_v1":
         from operation_pose_blend_refusal_checks import derive
@@ -532,6 +532,11 @@ def collect(context_path, traces, root, preview_report=None):
             continue
         if event.get("validator")=="idle_turn_physical_v1":
             from operation_idle_turn_intent_checks import verify_event
+            proof=verify_event(event,context,public_events,native_events,support_events)
+            cases.append({'id':event['id'],'operation':event['operation'],'checks':proof['checks'],'scope':'candidate','route':'public_output_native_godot','raw_event_id':event['id'],'public_case_ids':proof['public_case_ids'],'limits':proof['limits']})
+            continue
+        if event.get("validator")=="transition_physical_v1":
+            from operation_transition_intent_checks import verify_event
             proof=verify_event(event,context,public_events,native_events,support_events)
             cases.append({'id':event['id'],'operation':event['operation'],'checks':proof['checks'],'scope':'candidate','route':'public_output_native_godot','raw_event_id':event['id'],'public_case_ids':proof['public_case_ids'],'limits':proof['limits']})
             continue
