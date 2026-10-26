@@ -8,8 +8,8 @@ active execution order under release-completion-plan.md.
 | --- | --- | --- |
 |1.Spring bake correctness|complete, Windows gate|21native regressions; stale-cache negative; fresh201public matrix; eight unchanged-source pairs pass. Final cross-platform qualification remains phase6.|
 |2.Linux stability|blocked|Supported repair passes official4.7.2 public save/render flows; patched-engine experiments stay separate.|
-|3.Seven motion effect checks|active|Bound independent idle,turn,jump,strafe,start,stop,setup intent; no response/output-curve oracle.|
-|4.Remaining recordings|pending|Two Responsive motion reps,bake8,remaining sequence/secondary/static pairs; full decode and independent assessment.|
+|3.Seven motion effect checks|complete, scoped local gates|All seven independent intent joins pass; final candidate/source/compatibility assembly remains phase5–6.|
+|4.Remaining recordings|active|Two Responsive motion reps,bake8,remaining sequence/secondary/static pairs; full decode and independent assessment.|
 |5.Candidate audit/package|pending|103operation applicable checks; exact source/media bindings; docs and immutable ZIP complete.|
 |6.Qualify/merge/publish|pending|Four-cell final matrix,ZIP/UI/reload/workflows,verified main,tag/assets/download checksum pass.|
 
@@ -75,6 +75,11 @@ Scope only the cases actually verified, not all parameter combinations.
 Two of seven scoped motion effect gaps closed; five pending. Next explicit
 jump-height and strafe-speed request bindings are planned in
 seven-motion-valid-effect-closure-20261026.md. No phase3 completion claim.
+
+Later26October: jump/strafe/start/stop four-operation public/native gate passes
+at8bd58b4; setup three-clock fresh-model saved-scene replay passes atae35dd4.
+All seven scoped intent gaps close. Preserve original source/reuse/native
+identities; full candidate qualification is still separate. Phase4 now active.
 
 Phase4 runs native admission,framing probe,continuous capture,full decode and
 independent assessment in that order. Reuse existing saved outputs and eligible

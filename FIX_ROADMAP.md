@@ -1,5 +1,14 @@
 # Animation Toolkit repair roadmap
 
+## Phase3 scoped motion intent complete (2026-10-26)
+
+All seven scoped motion-effect gaps now pass. The final setup check atae35dd4
+uses three FPS plays of the unchanged saved dummy scene after a fresh official
+model import, preserving all historical source/reuse identities and old rig-hash
+limitations. Original1800play matrix remains untouched. Phase4 recordings and
+independent assessments are active next; Linux stability, candidate audit/package
+and final qualification/publication remain required. No release approval yet.
+
 ## Phase3: six scoped effects pass (2026-10-26)
 
 Fresh8bd58b4 four-operation actual Godot AI run passes jump,strafe,start,stop

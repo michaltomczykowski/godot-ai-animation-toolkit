@@ -1,5 +1,24 @@
 # Agent notes
 
+## Authoritative phase3 complete; phase4 next,26October16:28UTC
+
+No local Godot active. Currentae35dd4 integrates09e1130setupauditor+fresh3play
+runner. Actual setup/intent-three-play-r001 COMPLETE/valid_effectPASS: fresh
+official4.7.2 FBX import, unchanged savedscene/checker,3FPSplays, rawmodel/cache/
+helper/scene before-after identities stable. Originalc19public->r004/r007reuse->
+547native preserved; old1800 matrix's missingrigfingerprint staysdisclosed.
+Togetherwith8bd58b4four-op r002 and3ceidleturn: all7scoped motion effectsPASS.
+Phase3localgateCOMPLETE; update/push checkpoint thenphase4recordingsactive.
+Rootmonotonic savedmotionfix alreadyf3c12fa pushed;actualWin430failedCIe70/44d
+all30rawbindingsnowpassdiagnosticonly,12controlsPASS;freshCIneeded.
+Phase4 first integrate4613f49 from E:/toolkit-motion-paths-20261026: permits
+XBotjump dormant root_motion_track only when selectedclip hasno matching enabled
+3Dtrack; priorr004right-native24playsPASS/stationaryXBotguardFAILpreserved.
+Then NEWmotion-representatives-r005 prepare/native/probe/capture/decode/review.
+Oldr001-r004immutable; no acceptedclip changes. Rootengine/renderqueue only.
+Atmostoneworker; /root/jump_strafe_intent may inventory remaining sequence/
+secondary/static media (noengines). Linuxphase2blocked;5–6pending;no release.
+
 ## Authoritative current work,26October16:20UTC
 
 No local Godot active. Primary8bd58b4 has actual motion-intent-four-r002 COMPLETE:
