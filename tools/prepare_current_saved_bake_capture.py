@@ -4,9 +4,11 @@ from pathlib import Path
 from prepare_saved_bake_capture import IDS,NAME,user_relative,sha,read
 SOURCE='26a35eb2dc7106cdd951b4771f9ec8c3971861bc'
 DRIVER='mcp_rig_bake_restoration.py'
-def admit(bundle):
+def admit(bundle,source=SOURCE):
+
+ if not isinstance(source,str)or not re.fullmatch('[0-9a-f]{40}',source):raise ValueError('explicit full producer commit required')
  c=read(bundle/'operation-context.json');r=read(bundle/'bake-restoration.json');e=read(bundle/'execution.json');n=r.get('runtime',{})
- if c.get('tested_source')!=SOURCE or e.get('source')!=SOURCE or e.get('stage')!='complete':raise ValueError('current complete source required')
+ if c.get('tested_source')!=source or e.get('source')!=source or e.get('stage')!='complete':raise ValueError('current complete source required')
  if r.get('passed') is not True or n.get('failures')!=[] or n.get('engine_errors')!=[] or [n.get(k)for k in ('cases','saved_states','played_states')]!=[201,603,402]:raise ValueError('complete actual native201 required')
  drivers=[v for v in e.get('drivers',[])if v.get('driver')==DRIVER]
  if len(drivers)!=1 or drivers[0].get('returncode')!=0:raise ValueError('executed bake driver missing')
@@ -37,11 +39,11 @@ def admit(bundle):
   selected.append(row)
  return c,r,manifest,selected,witnesses
 
-def prepare(repo,bundle,out):
+def prepare(repo,bundle,out,source=SOURCE):
  if out.exists():raise ValueError('preserve earlier preparation')
- c,r,m,rows,witnesses=admit(bundle)
+ c,r,m,rows,witnesses=admit(bundle,source)
  external='addons/godot_ai_animation/utils/retarget_pose_restore.gd'
- blob=subprocess.check_output(['git','-C',str(repo),'rev-parse',SOURCE+':'+external],text=True).strip()
+ blob=subprocess.check_output(['git','-C',str(repo),'rev-parse',source+':'+external],text=True).strip()
  if c['dependencies'].get(external,{}).get('git_blob')!=blob:raise ValueError('producer helper dependency missing')
  project=out/'project';app=out/'appdata/Godot/app_userdata'/NAME;project.mkdir(parents=True);app.mkdir(parents=True);files={}
  for row in rows:
@@ -53,16 +55,16 @@ def prepare(repo,bundle,out):
  helpers=['test_project/tools/'+name for name in ('check_saved_bake_capture.gd','check_bake_spring_cache_diagnostic.gd','check_rig_bake_restoration.gd','modifier_native_reference.gd')]
  production=[external,'addons/godot_ai_animation/utils/evaluation_sandbox.gd','addons/godot_ai_animation/utils/error_codes.gd']
  for rel in production:
-  blob=subprocess.check_output(['git','-C',str(repo),'rev-parse',SOURCE+':'+rel],text=True).strip()
+  blob=subprocess.check_output(['git','-C',str(repo),'rev-parse',source+':'+rel],text=True).strip()
   if c['dependencies'].get(rel,{}).get('git_blob')!=blob:raise ValueError('unbound diagnostic production helper')
  for rel in [*production,*helpers]:
   virtual='res://'+rel.removeprefix('test_project/');dst=project/virtual[6:];dst.parent.mkdir(parents=True,exist_ok=True)
-  dst.write_bytes(subprocess.check_output(['git','-C',str(repo),'show',SOURCE+':'+rel])if rel in production else(repo/rel).read_bytes());files[virtual]={'sha256':sha(dst),'origin':SOURCE if rel in production else str(repo/rel)}
+  dst.write_bytes(subprocess.check_output(['git','-C',str(repo),'show',source+':'+rel])if rel in production else(repo/rel).read_bytes());files[virtual]={'sha256':sha(dst),'origin':source if rel in production else str(repo/rel)}
   sidecar=Path(str(repo/rel)+'.uid')
   if sidecar.is_file():shutil.copyfile(sidecar,Path(str(dst)+'.uid'))
  (project/'project.godot').write_text('config_version=5\n[application]\nconfig/name="'+NAME+'"\n[display]\nwindow/size/viewport_width=1920\nwindow/size/viewport_height=1080\nwindow/stretch/mode="viewport"\n[rendering]\nrenderer/rendering_method="gl_compatibility"\n')
  receipts={str(f.relative_to(bundle)):sha(f)for f in [bundle/'operation-context.json',bundle/'bake-restoration.json',bundle/'execution.json',m,*sorted((bundle/'public-calls').glob('*.jsonl'))]}
- result={'kind':'saved_current_bake_eight_manifest','state':'current_public_inputs_staged_native_capture_pending','source_public':SOURCE,'capture_source':subprocess.check_output(['git','-C',str(repo),'rev-parse','HEAD'],text=True).strip(),'context':c,'source_receipts':receipts,'public_suite_witnesses':witnesses,'cases':rows,'files':files,'runtime_receipt':r['runtime'],'scope':'Exact current saved inputs; suite witness is not new per-case parity/schedule admission. No media qualification.'}
+ result={'kind':'saved_current_bake_eight_manifest','state':'current_public_inputs_staged_native_capture_pending','source_public':source,'capture_source':subprocess.check_output(['git','-C',str(repo),'rev-parse','HEAD'],text=True).strip(),'context':c,'source_receipts':receipts,'public_suite_witnesses':witnesses,'cases':rows,'files':files,'runtime_receipt':r['runtime'],'scope':'Exact current saved inputs; suite witness is not new per-case parity/schedule admission. No media qualification.'}
  (project/'bake-manifest.json').write_text(json.dumps(result,indent=2));(out/'preparation.json').write_text(json.dumps({'state':result['state'],'manifest_sha256':sha(project/'bake-manifest.json'),'project':str(project),'APPDATA':str(out/'appdata')},indent=2));return result
 if __name__=='__main__':
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--repo',required=True,type=Path);p.add_argument('--bundle',required=True,type=Path);p.add_argument('--output',required=True,type=Path);a=p.parse_args();r=prepare(a.repo.resolve(),a.bundle.resolve(),a.output.resolve());print(json.dumps({'state':r['state'],'cases':len(r['cases'])}))
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--repo',required=True,type=Path);p.add_argument('--bundle',required=True,type=Path);p.add_argument('--output',required=True,type=Path);p.add_argument('--producer-source',default=SOURCE);a=p.parse_args();r=prepare(a.repo.resolve(),a.bundle.resolve(),a.output.resolve(),a.producer_source);print(json.dumps({'state':r['state'],'cases':len(r['cases'])}))

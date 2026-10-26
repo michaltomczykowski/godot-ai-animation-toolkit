@@ -4,6 +4,10 @@ from unittest.mock import patch
 import prepare_current_saved_bake_capture as p
 BUNDLE=Path(r'E:/GodotAI-toolkit-release-2.0.0/20261014/gait-bake-public-r001')
 class ActualAnchorControls(unittest.TestCase):
+ def test_explicit_producer_must_match_both_bound_receipts(self):
+  self.assertEqual(len(p.admit(BUNDLE,p.SOURCE)[3]),8)
+  for source in ('0'*40,'main',p.SOURCE[:7],None):
+   with self.subTest(source=source),self.assertRaises(ValueError):p.admit(BUNDLE,source)
  def test_actual_anchor_exact_eight(self):
   c,r,m,rows,w=p.admit(BUNDLE);self.assertEqual(tuple(v['id']for v in rows),p.IDS);self.assertEqual(len(w),6);self.assertEqual(c['tested_source'],p.SOURCE)
  def test_wrong_source_missing_errors_and_suite_response_rejected(self):
