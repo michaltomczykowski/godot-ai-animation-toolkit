@@ -1,5 +1,9 @@
 # Finish the toolkit repairs and publish v2.0.0
 
+Active26October execution order and phase status:
+[Final six-phase plan](release-final-six-phases.md). Original acceptance gates
+below remain authoritative; the newer plan orders the remaining work.
+
 Approved for implementation on 2026-10-14. Starting source: clean/pushed
 `95a75903261c650b3ba6d704e2cc5f70ca1c458a`, `repair/toolkit-quality`, draft PR #1.
 

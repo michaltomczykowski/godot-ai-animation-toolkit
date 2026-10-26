@@ -194,6 +194,8 @@ def record_native_result(operation, scene, command, completed):
 
 def record_snapshot_result(validator,row):
     if not os.environ.get('TOOLKIT_OPERATION_CONTEXT') and not os.environ.get('TOOLKIT_OPERATION_TRACE_DIR'):return
+    if validator=="idle_turn_physical_v1":
+        return _emit("operation_snapshot_assertions", {"operation":row["operation"],"validator":validator,"row":row,"route":"public_godot_ai"})
     if validator=="pose_blend_refusal_v1":
         from operation_pose_blend_refusal_checks import derive
         return _emit("operation_snapshot_assertions", {"operation":row["operation"],
@@ -498,6 +500,10 @@ def collect(context_path, traces, root, preview_report=None):
                           'public_origin_id':proof['public_origin_id'],'scene':event['scene'],
                           'failures':proof['failures'],'limits':proof['limits']})
             continue
+        if event.get('driver')=='check_selected_motion_intent.py':
+            linked=[s for s in snapshot_events if s.get('validator')=='idle_turn_physical_v1' and s.get('row',{}).get('native_case_id')==event['id'] and s.get('operation')==event.get('operation')]
+            if len(linked)!=1:raise ValueError('selected physical native event lacks unique bound report')
+            continue
         checks, failures = native_checks(event, context)
         matches = [call for call in public_events
                    if call['operation'] == event['operation'] and call.get('scene') == event.get('scene')
@@ -523,6 +529,11 @@ def collect(context_path, traces, root, preview_report=None):
                           'scope':'candidate','route':'public_godot_ai','raw_event_id':event['id'],
                           'public_case_ids':proof['public_case_ids'],'dry_case_ids':[],
                           'failures':proof['failures'],'limits':proof['limits']})
+            continue
+        if event.get("validator")=="idle_turn_physical_v1":
+            from operation_idle_turn_intent_checks import verify_event
+            proof=verify_event(event,context,public_events,native_events,support_events)
+            cases.append({'id':event['id'],'operation':event['operation'],'checks':proof['checks'],'scope':'candidate','route':'public_output_native_godot','raw_event_id':event['id'],'public_case_ids':proof['public_case_ids'],'limits':proof['limits']})
             continue
         if event.get("validator")=="pose_blend_refusal_v1":
             from operation_pose_blend_refusal_checks import verify_event

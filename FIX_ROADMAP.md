@@ -1,5 +1,19 @@
 # Animation Toolkit repair roadmap
 
+## Six-phase finish plan adopted (2026-10-26)
+
+Active plan:docs/release-final-six-phases.md. Phase1Spring correctness is active;
+Linux official-engine stability remains a publication blocker. Motion intent,
+recordings,103operation audit/package,and final qualification/publication are
+pending. Work is sequential with at most one focused worker.
+
+The local Spring helper passes initial native-cache assertions but its21-case
+trajectory regression still fails, including the individual-setting bypass.
+Original failed source/observations are preserved in spring-cache-repair-r001.
+Next isolate reference reset/witness/process timing before editing curves or
+claiming a completed repair. Latest remote f115a02 has green CI, which does not
+qualify the newer local helper. Current source is an explicit WIP checkpoint.
+
 ## Private spring cache defect isolated; Linux race measured (2026-10-26)
 
 New unchanged-source bake8 playback checks expose a real initialization defect

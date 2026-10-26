@@ -1,5 +1,32 @@
 # Agent notes
 
+## Authoritative resume: six-phase plan,26October
+
+No local Godot job active at14:42UTC. Latest remote f115a02 passed CI40244369434;
+local93f190f contains subsequent WIP including Spring helper f638f33. The only
+dirty file is reviewed idle/turn collector integration (25pure controls PASS).
+Save/push this checkpoint before further phase1 work. No main merge/tag/release.
+
+Plan:docs/release-final-six-phases.md. One workstream/at most one worker; no
+parallel motion/portable/engine implementation. User explicitly retained full
+Windows/Linux official4.7.2 publication gates. Phase1 active; Linux blocked;
+remaining four phases pending. Older entries below are historical checkpoints.
+
+Actual Spring repair r001 atc70ece7 parsed, initial cache/gravity/axis assertions
+PASS, but ALL21trajectory comparisons FAIL, no engine errors. Individual-mode
+case bypassing helper also fails, so native reference schedule must be isolated
+before more product changes. Immutable private spring-cache-repair-r001 has
+source.zip/preparation/native.json/logs/execution. Prior r0038case comparison
+passes six families but fails both Spring families; cached-vs-warmed startup
+control proves original settings1/0/0/.1 defaults defect. No bake/GPU approval.
+
+Recovered worker commit06da3fe (not yet integrated) adds raw schedule diagnostic
+in bakeWT; inspect then run focused individual60 control in NEW copied project.
+Do not restart any previous failed/unknown mutation. Motion work paused: actual
+r004right native24plays+admission PASS, stationaryXBot dormant root property
+guard FAIL. Worker4613f49 fixes selected-track binding, NOT integrated/run yet.
+Portable worker partial WT on26a may exist; preserve,do not resume in parallel.
+
 ## Current root checkpoint: gait and fresh bake complete (26 October)
 
 ### Newer26October checkpoint: two actual repair findings
