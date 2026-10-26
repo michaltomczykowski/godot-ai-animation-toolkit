@@ -10,6 +10,11 @@ def fixture():
     runs.append(dict(axis=axis,individual=individual,animated=animated,fps=fps,strategy=strategy,trace=trace))
  return {'kind':'spring_bake_raw_schedule_diagnostic','passed_observations':True,'engine_errors':[],'failures':[],'runs':runs}
 class Controls(unittest.TestCase):
+ def test_selected_individual_requires_only_exact_seven_schedules(self):
+  r=fixture();r['case_selection']='individual60';r['runs']=[v for v in r['runs']if(v['axis'],v['individual'],v['animated'],v['fps'])==(4,True,False,60)]
+  self.assertEqual(len(summarize(r)['comparisons']),6)
+  r['runs'].append(copy.deepcopy(r['runs'][0]))
+  with self.assertRaises(ValueError):summarize(r)
  def test_complete_shape(self):self.assertEqual(len(summarize(fixture())['comparisons']),54)
  def test_missing_or_duplicate_cells_refused(self):
   for change in ('missing','duplicate'):

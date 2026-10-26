@@ -8,10 +8,12 @@ def pose(v):return {'p':v['position'],'q':v['rotation'],'s':v['scale']}
 def solve_changes(before,after):return {k:after.get(k,0)-before.get(k,0)for k in ('raw','final','skin')}
 def summarize(report):
  require(report.get('kind')=='spring_bake_raw_schedule_diagnostic'and report.get('passed_observations')is True and report.get('failures')==[]and report.get('engine_errors')==[],'raw observation failure')
- expected={(axis,individual,animated,fps,strategy)for axis,individual,animated in ((3,False,False),(4,True,False),(3,False,True))for fps in (30,60,120)for strategy in STRATEGIES};index={}
+ selection=report.get('case_selection','full');require(selection in ('full','individual60'),'unknown diagnostic selection')
+ cases=((4,True,False,60),)if selection=='individual60'else tuple((axis,individual,animated,fps)for axis,individual,animated in ((3,False,False),(4,True,False),(3,False,True))for fps in (30,60,120))
+ expected={(*case,strategy)for case in cases for strategy in STRATEGIES};index={}
  for r in report['runs']:
   key=(*identity(r),r['strategy']);require(key in expected and key not in index,'foreign/duplicate run');index[key]=r
- require(set(index)==expected,'incomplete63run diagnostic');comparisons=[];notifications=[]
+ require(set(index)==expected,'incomplete selected diagnostic');comparisons=[];notifications=[]
  for key,r in index.items():
   trace=r['trace'];require(len(trace)==math.ceil(.2*r['fps'])+1,'missing tick');require(all(abs(x['time']-min(i/r['fps'],.2))<1e-12 for i,x in enumerate(trace)),'changed manual clock')
   changes=[]

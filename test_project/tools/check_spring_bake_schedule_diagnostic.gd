@@ -102,14 +102,16 @@ func _reference(axis:int,individual:bool,animated:bool,fps:int,strategy:String):
 	observed_runs.append({"axis":axis,"individual":individual,"animated":animated,"fps":fps,"strategy":strategy,"process_disabled":disabled,"reset_state":reset_state,"post_reset_wait":post_reset_wait,"loaded_cache":reset_cache,"trace":trace})
 func _run():
 	var args:=OS.get_cmdline_user_args()
-	if args.size()!=1 or FileAccess.file_exists(args[0]):push_error("exclusive new report required");quit(1);return
-	for fps in [30,60,120]:
-		for kind in ["global","individual","animated"]:
+	if args.size() not in [1,2] or FileAccess.file_exists(args[0]):push_error("exclusive new report required");quit(1);return
+	var selection:=str(args[1]) if args.size()==2 else "full"
+	if selection not in ["full","individual60"]:push_error("unknown schedule diagnostic selection");quit(1);return
+	for fps in ([60] if selection=="individual60" else [30,60,120]):
+		for kind in (["individual"] if selection=="individual60" else ["global","individual","animated"]):
 			var individual:bool=kind=="individual";var animated:bool=kind=="animated"
 			var axis:int=SkeletonModifier3D.ROTATION_AXIS_CUSTOM if individual else SkeletonModifier3D.ROTATION_AXIS_ALL
 			await _private(axis,individual,animated,fps,false)
 			await _private(axis,individual,animated,fps,true)
 			for strategy in ["tight-inherited","tight-disabled","paced-after-inherited","original-before-inherited","original-before-disabled"]:await _reference(axis,individual,animated,fps,strategy)
-	var report:={"kind":"spring_bake_raw_schedule_diagnostic","runs":_stable(observed_runs),"failures":failures,"engine_errors":logger.errors,"passed_observations":failures.is_empty() and logger.errors.is_empty(),"scope":"Raw63run startup/process/pacing measurements; not regression or product parity approval.","script_sha256":FileAccess.get_sha256("res://tools/check_spring_bake_schedule_diagnostic.gd"),"fixture_sha256":FileAccess.get_sha256("res://tools/check_spring_bake_cache.gd"),"sampler_sha256":FileAccess.get_sha256("res://addons/godot_ai_animation/utils/pose_bake_sampler.gd"),"cache_helper_sha256":FileAccess.get_sha256("res://addons/godot_ai_animation/utils/spring_bake_cache.gd")}
+	var report:={"kind":"spring_bake_raw_schedule_diagnostic","case_selection":selection,"runs":_stable(observed_runs),"failures":failures,"engine_errors":logger.errors,"passed_observations":failures.is_empty() and logger.errors.is_empty(),"scope":"Raw selected startup/process/pacing measurements; not regression or product parity approval.","script_sha256":FileAccess.get_sha256("res://tools/check_spring_bake_schedule_diagnostic.gd"),"fixture_sha256":FileAccess.get_sha256("res://tools/check_spring_bake_cache.gd"),"sampler_sha256":FileAccess.get_sha256("res://addons/godot_ai_animation/utils/pose_bake_sampler.gd"),"cache_helper_sha256":FileAccess.get_sha256("res://addons/godot_ai_animation/utils/spring_bake_cache.gd")}
 	var file:=FileAccess.open(args[0],FileAccess.WRITE);file.store_string(JSON.stringify(report));file.close();OS.remove_logger(logger)
 	quit(0 if report.passed_observations else 1)
