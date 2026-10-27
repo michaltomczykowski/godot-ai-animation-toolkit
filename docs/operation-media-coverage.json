@@ -5298,7 +5298,14 @@
           "status": "historical_dependency_bound"
         }
       ],
-      "capture_focus": "Native saved effect through public output, with readable temporal change; apply scene-specific runtime controls for graphs/modifiers."
+      "capture_focus": "Native saved effect through public output, with readable temporal change; apply scene-specific runtime controls for graphs/modifiers.",
+      "current_checkpoint_20261027": {
+        "document": "docs/bake-eight-temporal-assessment-20261027.md",
+        "assessment_sha256": "fd63284c9b07c2622f27115e0cc9d7c34f64f2d34836a0f0657cd314e396b2ad",
+        "state": "scoped_temporal_assessed",
+        "next_action": "Eight exact source/redo technical pairs accepted; prior pose-list media scope retained; candidate bridge remains.",
+        "candidate_qualified": false
+      }
     },
     {
       "key": "animation_motion.walk_cycle",
@@ -6007,7 +6014,14 @@
       "state": "existing_temporal_technical_media",
       "next_action": "Bind unchanged saved-scene/native-effect parity and inspect continuous footage; existing technical media has stated scope limits.",
       "media_checker_dependencies": [],
-      "capture_focus": "Native saved effect through public output, with readable temporal change; apply scene-specific runtime controls for graphs/modifiers."
+      "capture_focus": "Native saved effect through public output, with readable temporal change; apply scene-specific runtime controls for graphs/modifiers.",
+      "current_checkpoint_20261027": {
+        "document": "docs/motion-representatives-temporal-assessment-20261027.md",
+        "assessment_sha256": "9cd9efe81da333d503e4d9fa96d3c93167941c7c11b68dc8ed8a0478312ba9a0",
+        "state": "scoped_temporal_assessed",
+        "next_action": "In-place Responsive saved representative accepted; final candidate bridge remains.",
+        "candidate_qualified": false
+      }
     },
     {
       "key": "animation_motion.turn_cycle",
@@ -6194,7 +6208,14 @@
       "state": "continuous_footage_missing",
       "next_action": "Capture representative saved native effect through root-owned queue; reuse scene after resolving external resource dependencies.",
       "media_checker_dependencies": [],
-      "capture_focus": "Native saved effect through public output, with readable temporal change; apply scene-specific runtime controls for graphs/modifiers."
+      "capture_focus": "Native saved effect through public output, with readable temporal change; apply scene-specific runtime controls for graphs/modifiers.",
+      "current_checkpoint_20261027": {
+        "document": "docs/motion-representatives-temporal-assessment-20261027.md",
+        "assessment_sha256": "9cd9efe81da333d503e4d9fa96d3c93167941c7c11b68dc8ed8a0478312ba9a0",
+        "state": "scoped_temporal_assessed",
+        "next_action": "Right Responsive saved representative accepted; one6s take perrig, final candidate bridge remains.",
+        "candidate_qualified": false
+      }
     },
     {
       "key": "animation_motion.walk_start",
@@ -6972,7 +6993,14 @@
           "status": "historical_dependency_bound"
         }
       ],
-      "capture_focus": "Native saved effect through public output, with readable temporal change; apply scene-specific runtime controls for graphs/modifiers."
+      "capture_focus": "Native saved effect through public output, with readable temporal change; apply scene-specific runtime controls for graphs/modifiers.",
+      "current_checkpoint_20261027": {
+        "document": "docs/sequence-media-assessment-20261027.md",
+        "assessment_sha256": "9034763047c8fc23506a45ea3fc139996ba7ebb8182dc4fcfe3bb3788fab6a24",
+        "state": "tracked_temporal_assessed_fixed_supplement_pending",
+        "next_action": "Both88s films accepted with tracked camera limitation;22s fixed dummy capture/decode complete, assessment pending.",
+        "candidate_qualified": false
+      }
     }
   ],
   "preserved_turn_pack": {
@@ -7733,5 +7761,19 @@
         "frame-20.png": "f5cc0b5ba33ad2e9c41ba6ab2ec05035365f294c8bc6940b0a69204dc372fef4"
       }
     }
-  ]
+  ],
+  "phase4_checkpoint_20261027": {
+    "state": "active",
+    "accepted_motion_films": 4,
+    "accepted_bake_cases": 8,
+    "tracked_sequence_films": 2,
+    "fixed_sequence_supplement": "capture/decode complete; assessment pending",
+    "remaining_new_cases": [
+      "secondary_branches_local_60",
+      "3d_local_create",
+      "3d_local_append"
+    ],
+    "candidate_qualification": "pending exact source assembly and final matrix",
+    "linux_publication": "blocked"
+  }
 }

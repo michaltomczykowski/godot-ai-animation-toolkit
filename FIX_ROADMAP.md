@@ -1,5 +1,18 @@
 # Animation Toolkit repair roadmap
 
+## Phase4 recordings progress (2026-10-27)
+
+Four motion movies and the eight-case bake comparison now pass full decode and
+independent scoped temporal assessments. The two preserved88s sequence movies
+pass current24play saved-scene admission, fresh decode and bounded visual review;
+their translation-following cameras remain disclosed. A new fixed-camera dummy
+supplement is captured/decoded (22s), pending independent review. Three remaining
+technical cases (secondary branches, chain create/append) are being implemented
+for native/framing/capture admission. See docs/phase4-capture-checkpoint-20261027.md
+and docs/sequence-media-assessment-20261027.md. Phase4 remains active. Linux crash
+and the new CI clean-install timeout remain unresolved; exact candidate package/
+final qualification/merge/publication have not been completed.
+
 ## Phase3 scoped motion intent complete (2026-10-26)
 
 All seven scoped motion-effect gaps now pass. The final setup check atae35dd4

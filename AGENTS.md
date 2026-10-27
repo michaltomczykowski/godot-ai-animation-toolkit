@@ -1,5 +1,28 @@
 # Agent notes
 
+## Authoritative phase4,27October09:50UTC
+
+Primary9f9792c, docs/operation-media-coverage.json dirtycheckpoint. Enginequeuefree.
+Fourmotionfilms motion-representatives-r005 complete5760frames/fulldecode/independent
+520image66sheet technicalACCEPT;5524f93doc. Bake8currentr002 all776native/render
+samplesEXACT,16pairs+16freshtakesPASS;2808frame46.8sfilm+214image27sheet independent
+ACCEPT; a8e5940doc. Originalr001badmesh/logpin andr002Pythonpostprocessfailure
+retained; admitread-only verifieschild0/cleanup/allinputs/native; noengine rerun.
+Sequenceold88sfilms current24nativePASS;rawreportexactold;2moviesfreshdecode5280each
++128image16sheet roottechnicalACCEPT with FOLLOW-camera limitation,9f9792cdoc.
+Newfixedcamera dummy supplement script1511/f9f: probe-r00216PNG andfull-r0021320PNG
+PASS;2fresh11stakes/2640viewtraces/fixedcameras/resetexact. Encoded1320/22s1080p60
+full decodePASS SHA82a1ad58128e9eadcaf9b4f2047ebfd7988218f8433805e2470909cbd77d5185.
+Actual52decodedimages7sheets atsequence-fixed-video-assessment-r001; independent
+reviewpending(workeraskedafterimplementation). Capture/extractscriptsprivateE20261014.
+Onlyworkerjump_strafe_intent in E:/godot-ai-dev/toolkit-jump-strafe-intent-20261026
+implements remaining3case native/render runner offline (secondarybranches+static
+chaincreate/append), noengines. Rootmustintegrate,runpreflight/probe/capture/decode.
+Atmostoneworker; rootenginequeue. Phase4active,5–6pending, Linuxphase2blocked.
+CI40476911144/head9c52 SUCCESS;thisisnotheapcrashfix. Prior49fcLinux421cleanZIP
+failed120sPythonmodifierallocationgateaftereditortest_runOK, retainedartifact
+ci-49fc16a-clean-linux-421;separatetimeoutneedsdiagnosisbeforequal. No merge/tag/release.
+
 ## Authoritative phase4 resume,27October
 
 Pushed9c52e03. motion-representatives-r005 native10controls+24plays eachPASS;
