@@ -42,6 +42,7 @@ func _start() -> void:
 		var image_report := {"kind": "remaining_saved_images", "binding_sha256": report.binding_sha256, "size": [960, 1080], "images": images, "failures": failures, "engine_errors": logger.values, "passed": report.passed}
 		FileAccess.open(capture_output.path_join("render.json"), FileAccess.WRITE).store_string(JSON.stringify(image_report))
 	print("REMAINING_SAVED=" + JSON.stringify({"passed": report.passed, "runs": remaining_runs.size(), "images": images.size()}))
+	OS.remove_logger(logger)
 	quit(0 if report.passed else 1)
 
 func _setup_remaining_views() -> void:
