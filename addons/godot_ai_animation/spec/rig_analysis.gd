@@ -29,6 +29,9 @@ const OPTIONAL_ROLES := [
 const _SIDED_BRANCHES := [
 	{"role": "thigh", "keywords": ["thigh", "upperleg", "upleg"]},
 	{"role": "shin", "keywords": ["shin", "calf", "lowerleg"]},
+	# Mixamo calls the lower leg simply LeftLeg/RightLeg; the thigh branch above
+	# captures UpLeg first, so this fallback can classify the remaining bone.
+	{"role": "shin", "keywords": ["leg"]},
 	{"role": "forearm", "keywords": ["forearm"], "pairs": [["arm", "fore"]]},
 	{"role": "arm", "keywords": ["upperarm"]},
 	{"role": "shoulder", "keywords": ["shoulder", "clavicle"]},
@@ -451,6 +454,14 @@ static func _frame_forward(skeleton: Skeleton3D, roles: Dictionary, up: Vector3)
 		direction -= up * direction.dot(up)
 		if direction.length_squared() > 0.000001:
 			return direction.normalized()
+	# Without toe roles, use hip separation to avoid guessing forward along the
+	# same axis as lateral. Keep the conventional -Z forward on a Y-up rig.
+	var left := skeleton.find_bone(str(roles.get("thigh_l", "")))
+	var right := skeleton.find_bone(str(roles.get("thigh_r", "")))
+	if left >= 0 and right >= 0:
+		var across := skeleton.get_bone_global_rest(left).origin - skeleton.get_bone_global_rest(right).origin
+		across -= up * across.dot(up)
+		if across.length_squared() > 0.000001: return up.cross(across).normalized()
 	return _perpendicular(up)
 
 
@@ -495,7 +506,9 @@ static func _perpendicular(axis: Vector3, other: Vector3 = Vector3.ZERO) -> Vect
 		return Vector3.RIGHT
 	direction = direction.normalized()
 	if not other.is_zero_approx():
-		direction = (direction - other * other.dot(direction)).normalized()
+		direction = direction - other * other.dot(direction)
+		if direction.length_squared() < 0.000001: direction = axis.cross(other)
+		direction = direction.normalized()
 	return direction
 
 
@@ -589,6 +602,43 @@ static func foot_slide(times: Array, positions: Array, threshold: float = 0.02,
 	out["contact_time"] = contact_time
 	out["mean"] = total_net / contact_time if contact_time > 0.0 else 0.0
 	return out
+
+
+## Detect abrupt changes in the knee's bend direction during played motion.
+## Ignore nearly straight samples: their bend direction is numerically
+## undefined, but compare the next clearly bent pose with the previous one.
+static func knee_pole_report(times: Array, hips: Array, knees: Array,
+		ankles: Array, leg_length: float) -> Dictionary:
+	var report := {"flips": 0, "max_angle_degrees": 0.0,
+		"worst_time": 0.0, "valid_samples": 0}
+	if times.size() != hips.size() or times.size() != knees.size() \
+			or times.size() != ankles.size():
+		return report
+	var previous := Vector3.ZERO
+	var min_bend := maxf(0.02 * leg_length, 0.001)
+	for index in times.size():
+		var hip: Vector3 = hips[index]
+		var knee: Vector3 = knees[index]
+		var ankle: Vector3 = ankles[index]
+		var axis := ankle - hip
+		if axis.length_squared() < 0.000001:
+			continue
+		axis = axis.normalized()
+		var bend := knee - hip
+		bend -= axis * bend.dot(axis)
+		if bend.length() < min_bend:
+			continue
+		var pole := bend.normalized()
+		report["valid_samples"] = int(report.valid_samples) + 1
+		if not previous.is_zero_approx():
+			var angle := rad_to_deg(previous.angle_to(pole))
+			if angle > float(report.max_angle_degrees):
+				report["max_angle_degrees"] = angle
+				report["worst_time"] = float(times[index])
+			if angle > 90.0:
+				report["flips"] = int(report.flips) + 1
+		previous = pole
+	return report
 
 
 static func _slide_window(end: float, start: float, anchor: Vector3, last: Vector3,

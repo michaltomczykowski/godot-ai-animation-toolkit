@@ -1,0 +1,170 @@
+{
+  "comparison_head": "a383e9531d9115ea9292c29b6ffa189444c503fd",
+  "changed_existing_motion_functions": [
+    "run",
+    "motion_character_setup"
+  ],
+  "only_setup_and_entry_cleanup": true,
+  "protected_tracked_files": [
+    {
+      "path": "test_project/repair_chain_modes_fixture.tscn",
+      "git_blob": "d458b9ce59625df5552557501a1be91c87abc44a",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/repair_edit_fixture.tscn",
+      "git_blob": "6b271d16c24d35941ccf4de9803de22bdc8ae007",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/repair_fx_fixture.tscn",
+      "git_blob": "f6a5f7d094b6c261aab513da5b9f49a377a5582b",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/repair_graph_fixture.tscn",
+      "git_blob": "37e38cc013e7e56dde674843e7527a64fc715a38",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/repair_motion_fixture.tscn",
+      "git_blob": "b221377236356488d41e7c11dca5dd3d277c123a",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/repair_presets_fixture.tscn",
+      "git_blob": "7142c3928ceed0a2cba87bdfa5e4093b9fb8c310",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/repair_retarget_fixture.tscn",
+      "git_blob": "ddedb298bb9df944f54e24a360ea1f45661c255b",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/repair_rig_fixture.tscn",
+      "git_blob": "0a10ab371be8d40e39d6f9f54d2288dd1176f643",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/repair_run_fixture.tscn",
+      "git_blob": "2bef4f5c9ce0152504b40641d7db881d93589798",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/repair_sequence_fixture.tscn",
+      "git_blob": "e75410d2a93384d903baf87bc0078e5b57f8e4ed",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/repair_synthetic_short.tscn",
+      "git_blob": "e0b8842425744f915ba01a953682f8d75895572f",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/repair_synthetic_zup_tall.tscn",
+      "git_blob": "2bae7bd2d3ec296e5c7bfea386b7895a17069e42",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/tests/fixtures/IDLE_GOLDENS.md",
+      "git_blob": "73dfd0f98578c68d98643bbba532bcc53ea7d491",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/tests/fixtures/RUN_GOLDENS.md",
+      "git_blob": "e08e68a9b304d75a2a981b77e8265db7664b753f",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/tests/fixtures/WALK_GOLDENS.md",
+      "git_blob": "2c3f86950d066d5ab3fd0b1f181529113a0c90f1",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/tests/fixtures/cue.wav",
+      "git_blob": "b5c87282bc79c7a8f7f978c648ed4c31e8df2651",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/tests/fixtures/golden_idle.json",
+      "git_blob": "e23d34fa775691328f58b5fc8b95037e1f197766",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/tests/fixtures/golden_idle_responsive_v2.json",
+      "git_blob": "e0d53badf536ec9724849e5a47b8ece83bf755fb",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/tests/fixtures/golden_idle_v2_provenance.json",
+      "git_blob": "b34dcd5aea9caaa366f59e4a140451dcf4d33d8e",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/tests/fixtures/golden_run.json",
+      "git_blob": "83c4361c90fc83b61fee905b255c6aa80575a081",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/tests/fixtures/golden_run_responsive_v2.json",
+      "git_blob": "02fc7a44b5a0923fd46b7e7a05f4ecbff05eadbf",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/tests/fixtures/golden_run_v2_provenance.json",
+      "git_blob": "a230070abac3d67563390d7a63dd0e284f03e6e3",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/tests/fixtures/golden_spec_walk.json",
+      "git_blob": "89f7e8a1c6aa8e78fe385f3a2a5ff94c9d519550",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/tests/fixtures/golden_spec_walk_responsive_v2.json",
+      "git_blob": "929a14a8b95147e223c0b83e30c81ca94316d683",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/tests/fixtures/golden_walk.json",
+      "git_blob": "3e4ac0182f60903de198698f4dea4f7567a75809",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/tests/fixtures/golden_walk_responsive_v2.json",
+      "git_blob": "47ba0274e302db5b460a963ba41bb768a64fd861",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/tests/fixtures/golden_walk_v2_provenance.json",
+      "git_blob": "f8d1745e3c20681bd7fad6f40d72e831b7132aae",
+      "unchanged": true
+    },
+    {
+      "path": "test_project/tests/fixtures/sheet.png",
+      "git_blob": "311f3c4758adb50de79e2ebc009142bab6625a22",
+      "unchanged": true
+    }
+  ],
+  "all_protected_unchanged": true,
+  "standalone_prepare_sha256": "7d01fe9f96a5b09110e721431d669ce17ef989283b90ccdc6e6e3b0738af726a",
+  "note": "Source comparison only. Native/editor/public/saved production qualification pending. Does not compare this older isolated base with later root generator repairs.",
+  "unchanged_generator_sources": [
+    {
+      "path": "addons/godot_ai_animation/spec/motion_specs.gd",
+      "git_blob": "cc3cb2799a72a308e19561be82f3ea913083d5b0",
+      "unchanged": true
+    },
+    {
+      "path": "addons/godot_ai_animation/spec/motion_drivers.gd",
+      "git_blob": "9a93517bb54186d4f7ba1bd491bc29acbd8aa90f",
+      "unchanged": true
+    },
+    {
+      "path": "addons/godot_ai_animation/handlers/bone_animation.gd",
+      "git_blob": "e8de223ac6e5966fc00d6e1453302cdd36a5156e",
+      "unchanged": true
+    }
+  ]
+}

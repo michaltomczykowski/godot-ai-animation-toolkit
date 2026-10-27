@@ -1,0 +1,39 @@
+--- a/tools/operation_case_collector.py
++++ b/tools/operation_case_collector.py
+@@ -514,6 +514,16 @@
+                       'raw_event_id':event['id'],'scene':event['scene'],'failures':failures,
+                       'limits':'Source-specific native playback checks only; additional FX paths/types when applicable. Native audio playing is an event, not audible-output or visual approval.'})
+     for event in snapshot_events:
++        if event.get('validator')=='motion_saved_file_v1':
++            continue
++        if event.get('validator')=='motion_saved_audit_v1':
++            from operation_saved_motion_checks import verify_event
++            proof=verify_event(event,context,public_events,support_events,snapshot_events)
++            cases.append({'id':event['id'],'operation':event['operation'],'checks':proof['checks'],
++                          'scope':'candidate','route':'public_godot_ai','raw_event_id':event['id'],
++                          'public_case_ids':proof['public_case_ids'],'dry_case_ids':[],
++                          'failures':proof['failures'],'limits':proof['limits']})
++            continue
+         if event.get("validator")=="pose_blend_refusal_v1":
+             from operation_pose_blend_refusal_checks import verify_event
+         elif event.get("validator")=="bounded_read_v1":
+--- a/tools/ci_mcp_route.py
++++ b/tools/ci_mcp_route.py
+@@ -90,7 +90,7 @@
+         return False
+     audit = subprocess.run([
+         sys.executable, str(Path(__file__).with_name("mcp_motion_audit_saved.py")),
+-        *common, "--run-id", result["run_id"],
++        *common, "--project-root", str(args.project), "--run-id", result["run_id"],
+         "--ops", *ops, "--max-slide", "0.016", "--run-flight-gate",
+     ], capture_output=True, text=True, timeout=90, check=False)
+     summary = next((line for line in audit.stdout.splitlines()
+@@ -174,7 +174,7 @@
+         return False
+     audit = subprocess.run([
+         sys.executable, str(Path(__file__).with_name("mcp_motion_audit_saved.py")),
+-        *common, "--run-id", result["run_id"], "--ops", "run_cycle",
++        *common, "--project-root", str(args.project), "--run-id", result["run_id"], "--ops", "run_cycle",
+         "--run-flight-gate", "--max-slide", "0.016",
+     ], capture_output=True, text=True, timeout=90, check=False)
+     audit_marker = "MCP_MOTION_SAVED_AUDIT="

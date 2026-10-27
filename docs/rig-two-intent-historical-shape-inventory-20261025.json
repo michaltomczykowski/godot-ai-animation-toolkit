@@ -1,0 +1,442 @@
+{
+  "method": "Offline exploratory predicates on historical raw shapes only. New adapter source was not present in this run; not candidate qualification. Original raw untouched.",
+  "historical_pr_head": "596e278",
+  "rows": [
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664095993:1",
+      "label": "3d_editable_apply",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pass",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664095993.jsonl",
+      "raw_sha256": "f4015a0bb008bea156035753f03ef17a168d4194239df073534bbbd2fb264d78",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664107987:1",
+      "label": "3d_editable_blend",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664107987.jsonl",
+      "raw_sha256": "514a8aba671589cee3abd955bd0cd059b8ad36f0f7e8ea3b5c44e27a645dc9e0",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664119663:1",
+      "label": "3d_editable_reset",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664119663.jsonl",
+      "raw_sha256": "e5e6274145c439a09d911302b01796396b16bfdaf537031e342fc60d70a0643a",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664131139:1",
+      "label": "3d_editable_reset_blend",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664131139.jsonl",
+      "raw_sha256": "f665181c6990a7c12ce7a939b78dff35df8e32b9be59201eafd586cb189dba48",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664142954:1",
+      "label": "3d_editable_mirror",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664142954.jsonl",
+      "raw_sha256": "1c4c30efe0cddc2f4663f7567be2785f6a3a598181280c5b7b02150e3d959300",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664154642:1",
+      "label": "2d_editable_apply",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664154642.jsonl",
+      "raw_sha256": "75bb27c7628ca33d9d70fac694efa88ba93c3d4110ab1dbb6de842348bbae78a",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664165505:1",
+      "label": "2d_editable_blend",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664165505.jsonl",
+      "raw_sha256": "57486ee367bd578a0be0425f4d65311c6a29c4dceed0220b26dffce7c6be5ed7",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664176387:1",
+      "label": "2d_editable_reset",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664176387.jsonl",
+      "raw_sha256": "7d501d51006eb1a642ec4f3370ff2f79a79e5343311c37316e3f6c118fbb75c1",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664187196:1",
+      "label": "2d_editable_reset_blend",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664187196.jsonl",
+      "raw_sha256": "480a1390c37961b2e802aa78f2798eecc049cff4d98f87bdac15a15b9abd0c77",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664197990:1",
+      "label": "2d_editable_mirror",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664197990.jsonl",
+      "raw_sha256": "435eb1440b0e7d93385094c56040d09440eb01d16d028bbe7a448c8a2e3da9be",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664207294:1",
+      "label": "3d_local_apply",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pass",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664207294.jsonl",
+      "raw_sha256": "0a38274ca917635a7b03817e536de2beb772c204937667fec1d13606a8883814",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664216667:1",
+      "label": "3d_local_blend",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664216667.jsonl",
+      "raw_sha256": "ccae6a5c806e0446a8844e8ad74c92cf3e4f529c99e38f2b8c0f632d177e2412",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664225910:1",
+      "label": "3d_local_reset",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664225910.jsonl",
+      "raw_sha256": "5180deea0eb9f3e70eac1009cb0a97e228be8ee67b7dcfa96962601aef0661bc",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664235127:1",
+      "label": "3d_local_reset_blend",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664235127.jsonl",
+      "raw_sha256": "d66c200b5802364973c90c1ad9edb33802541b4f099b73ad74d59d00f170a1c3",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664244510:1",
+      "label": "3d_local_mirror",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664244510.jsonl",
+      "raw_sha256": "c9188bc1d0451ccacff779d4a9f49d3d2c3a3e20904777f5003831265ac0fc14",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664254064:1",
+      "label": "2d_local_apply",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664254064.jsonl",
+      "raw_sha256": "758608fcd2001b24a52f87eb1f67c859bdfc63efd66cf0e84091fb77f05dd9a9",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664262903:1",
+      "label": "2d_local_blend",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664262903.jsonl",
+      "raw_sha256": "23e7ab6634ecb779933762331bb746774cb3cf7747d520136beee6be5a1d6580",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664271950:1",
+      "label": "2d_local_reset",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664271950.jsonl",
+      "raw_sha256": "b65246c7ecad4ed88b6e5f3dcc774fa8b69b6f6a11e16ed3b46618b18ed93bb5",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664280864:1",
+      "label": "2d_local_reset_blend",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664280864.jsonl",
+      "raw_sha256": "060262228c7cd74f89e29599234ff12639a29adb83a6b504e1857bd794fc0f7a",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664289925:1",
+      "label": "2d_local_mirror",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664289925.jsonl",
+      "raw_sha256": "0e5c2590c3055eb3b6883ff0b86a729045847188c4504240757214d89ce6fc75",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664300441:1",
+      "label": "3d_locked_apply",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pass",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664300441.jsonl",
+      "raw_sha256": "642cacf4d67d5120102e126d6af8d8569ea396b1f3da5ae6cfc5cc54d4f4b153",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664311836:1",
+      "label": "3d_locked_blend",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664311836.jsonl",
+      "raw_sha256": "2433209e88881aa0a9fc0cd32d3dea0a0ad2fb41e1a604e34b0c0fdff73fbf13",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664323401:1",
+      "label": "3d_locked_reset",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664323401.jsonl",
+      "raw_sha256": "bd4ce6489dc227139b178ac8bf2a891e137f8b73a5abd25dd6b5379fe08e39f2",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664334943:1",
+      "label": "3d_locked_reset_blend",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664334943.jsonl",
+      "raw_sha256": "a4c36adec39218b31f8b51160989b6a31ab34db95d2644b24ac76576b6879229",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664346513:1",
+      "label": "3d_locked_mirror",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664346513.jsonl",
+      "raw_sha256": "fe70a01e81e4aab71113787e861171c2fc0c594672792609075f1a36757dbd21",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664358064:1",
+      "label": "2d_locked_apply",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664358064.jsonl",
+      "raw_sha256": "4827f690f10769d0971aa03af6559a8e0f4b71cc0df105fd112b67a0abe50158",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664368880:1",
+      "label": "2d_locked_blend",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664368880.jsonl",
+      "raw_sha256": "26bf609ad13e6566f580b142e77f3aa152c3469d27153e05b36bcf0f6429d39f",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664379819:1",
+      "label": "2d_locked_reset",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664379819.jsonl",
+      "raw_sha256": "603edb753f4e968d832f70e21c7313cd38cb4f2f203a7b6418d5346edb63316a",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664390848:1",
+      "label": "2d_locked_reset_blend",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664390848.jsonl",
+      "raw_sha256": "82e483f4103574405d2e3e31a255d555d2c28918a4278e307e328a0b8821cae9",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664401828:1",
+      "label": "2d_locked_mirror",
+      "operation": "animation_rig.pose_apply",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-664401828.jsonl",
+      "raw_sha256": "498bd7bc4933f1a02b25234d2fbb951d2d9af6360007dbf6893a6264b74917dc",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:2"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-665896601:1",
+      "label": "3d_editable_create",
+      "operation": "animation_rig.rig_chain",
+      "predicate_result": "pass",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-665896601.jsonl",
+      "raw_sha256": "d4ace23c85675e4275ddd77f1e82956fcbbd2a9fe4573ac7a8be7151f16383f3",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:4"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-665917408:1",
+      "label": "3d_editable_append",
+      "operation": "animation_rig.rig_chain",
+      "predicate_result": "pass",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-665917408.jsonl",
+      "raw_sha256": "d0874384170ad6243c8ac95afbfe852ac87c289b89972d7082a5e7e9f1ef63ae",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:4"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-665939034:1",
+      "label": "3d_editable_subtree",
+      "operation": "animation_rig.rig_chain",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-665939034.jsonl",
+      "raw_sha256": "26bfab93e94b6dbe1d3935a8f4d096951120474ac61abf22a4c367c1e4a99209",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:4"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-665962720:1",
+      "label": "2d_editable_create",
+      "operation": "animation_rig.rig_chain",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-665962720.jsonl",
+      "raw_sha256": "adaacdb65bab480fc436ce9e52fecf4d41875564f8906c136f54612a0f044cb5",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:4"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-665983814:1",
+      "label": "2d_editable_append",
+      "operation": "animation_rig.rig_chain",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-665983814.jsonl",
+      "raw_sha256": "d808ad2ee14bfbd0c65991c07e40c2c8459bf594005d34a0158022ae88cd98e8",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:4"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666004913:1",
+      "label": "2d_editable_subtree",
+      "operation": "animation_rig.rig_chain",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666004913.jsonl",
+      "raw_sha256": "59129c74c6efba0e837eea3c27ec4c76473d95b12499e62969310a1d07bceeb3",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:4"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666024724:1",
+      "label": "3d_local_create",
+      "operation": "animation_rig.rig_chain",
+      "predicate_result": "pass",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666024724.jsonl",
+      "raw_sha256": "bd01ce1f6e543e4318f8836011e0581e65763836b5f787feb64a8f8ab4ec45ae",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:4"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666043684:1",
+      "label": "3d_local_append",
+      "operation": "animation_rig.rig_chain",
+      "predicate_result": "pass",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666043684.jsonl",
+      "raw_sha256": "8bda35e25e9710e2797a2b9dd9b58f380a48876e65f9ecdaf9fd358c90881048",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:4"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666062504:1",
+      "label": "3d_local_subtree",
+      "operation": "animation_rig.rig_chain",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666062504.jsonl",
+      "raw_sha256": "06f3abf87c8d5fd4113383ba0fb0bcc80f6525adaa1ffa8fb4c407b312dad762",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:4"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666081830:1",
+      "label": "2d_local_create",
+      "operation": "animation_rig.rig_chain",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666081830.jsonl",
+      "raw_sha256": "82daacaa1f9afe0e4f376c49778618c5573d8169bce72d5705ebbf4abbea1f0b",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:4"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666099132:1",
+      "label": "2d_local_append",
+      "operation": "animation_rig.rig_chain",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666099132.jsonl",
+      "raw_sha256": "b2ddef8c8c226af3317f11cfcca01a785c8bdde0e7d81fa235e92d5f27949b67",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:4"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666116979:1",
+      "label": "2d_local_subtree",
+      "operation": "animation_rig.rig_chain",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666116979.jsonl",
+      "raw_sha256": "581c969ce44ceb2f98c84a537f8d2f47d8d3c520d24e358dee935ee54d669778",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:4"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666136526:1",
+      "label": "3d_locked_create",
+      "operation": "animation_rig.rig_chain",
+      "predicate_result": "pass",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666136526.jsonl",
+      "raw_sha256": "b22b35345e613ceb17ddee4ad46f2fd3455a4b721bb01be0ce13b00867c4da0d",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:4"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666156758:1",
+      "label": "3d_locked_append",
+      "operation": "animation_rig.rig_chain",
+      "predicate_result": "pass",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666156758.jsonl",
+      "raw_sha256": "cf0888bd62ecf65ee6592975207a601ee5cba1820b4b61443080c45ade5137a5",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:4"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666177312:1",
+      "label": "3d_locked_subtree",
+      "operation": "animation_rig.rig_chain",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666177312.jsonl",
+      "raw_sha256": "b3f923daa5008c3b21d4eb4e3f33731ce92230460ebfeb16c61cda8f9754f1be",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:4"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666197878:1",
+      "label": "2d_locked_create",
+      "operation": "animation_rig.rig_chain",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666197878.jsonl",
+      "raw_sha256": "1493c48c7f06820992d155a6b1b24e92b6cec3cef2d9c2e58aa0a7028dfacfa4",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:4"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666216820:1",
+      "label": "2d_locked_append",
+      "operation": "animation_rig.rig_chain",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666216820.jsonl",
+      "raw_sha256": "d8a74f8f1099478a3010f5bd153f18e7e4fc1895a4895f43faab2574258ecbfb",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:4"
+    },
+    {
+      "id": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666236502:1",
+      "label": "2d_locked_subtree",
+      "operation": "animation_rig.rig_chain",
+      "predicate_result": "pending",
+      "raw_file": "c0edb9977dd0453eb5abb16679725f87-editor-3533-666236502.jsonl",
+      "raw_sha256": "1d53b1efd1f587d5b8f05cd94d47f681ef28f39c996a8d1a0d23c82d71535e63",
+      "public_test_run_begin_id": "c0edb9977dd0453eb5abb16679725f87-ea4b22966fad47889035e5f833d22546:4"
+    }
+  ],
+  "context_sha256": "33227706b46579ff0bfab1e9e4396740dbc1c138574dd57fd24e85ff66e46f04",
+  "tested_source": "505cfe195c0687e5cb4a0ad91440faf789b83ba6",
+  "engine_version": null,
+  "core": null
+}

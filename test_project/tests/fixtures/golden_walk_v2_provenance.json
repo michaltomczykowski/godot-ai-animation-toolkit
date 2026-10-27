@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "fixture_epoch": "v2-responsive",
+  "approved_animation_source": "056cc8d19d9821086346816345e1c4feab0041dd",
+  "approval_commit": "e0e558d4c64c6d9fcb3618fc38c8ad779e15caa9",
+  "review_revision": "walk-default-styles-r005",
+  "feedback": "they look very good",
+  "recording_contract": "Explicit ANIMATION_TOOLKIT_RECORD_GOLDENS=1 locally; normal and CI tests cannot create missing fixtures.",
+  "hash_contract": "Repository hashes normalize CRLF to LF; Windows file hashes preserve bytes at migration.",
+  "editor_walk_params": {
+    "op": "walk_cycle",
+    "duration": 1.0,
+    "loop_mode": "linear",
+    "sampling": "omitted (60/s)",
+    "style": "omitted (Responsive)",
+    "rig": "bundled HumanCharacterDummy_F.fbx"
+  },
+  "synthetic_spec_params": {
+    "leg_length_m": 0.85,
+    "duration": 1.0,
+    "samples": 12,
+    "style": "default (Responsive)",
+    "scope": "independent raw spec arithmetic; not humanoid visual evidence"
+  },
+  "fixtures": {
+    "golden_walk.json": {
+      "repository_sha256": "644553ded7f9ede761cb418c76aab44539c0d5ddeb619decfe030c32b22c21a1",
+      "windows_file_sha256": "644553ded7f9ede761cb418c76aab44539c0d5ddeb619decfe030c32b22c21a1",
+      "track_count": 20,
+      "key_counts": [
+        25
+      ],
+      "scale": 2048,
+      "tolerance": 2,
+      "godot": "4.7.2"
+    },
+    "golden_spec_walk.json": {
+      "repository_sha256": "556ebad5a6c9def1d17b364d55b1b860e38200b002b7718d9198fda090fe8f53",
+      "windows_file_sha256": "556ebad5a6c9def1d17b364d55b1b860e38200b002b7718d9198fda090fe8f53",
+      "track_count": 10,
+      "key_counts": [
+        13
+      ],
+      "scale": 2048,
+      "tolerance": 2,
+      "godot": "4.7.2"
+    },
+    "golden_run.json": {
+      "repository_sha256": "7b834fc54604f0bf9a0002ec83fc7de965739b1f693ac071b9fc3ecb14f2d54d",
+      "windows_file_sha256": "7b834fc54604f0bf9a0002ec83fc7de965739b1f693ac071b9fc3ecb14f2d54d",
+      "track_count": 20,
+      "key_counts": [
+        25
+      ],
+      "scale": 2048,
+      "tolerance": 2,
+      "godot": "4.7.2"
+    },
+    "golden_idle.json": {
+      "repository_sha256": "cf78066dcf236600428896b0db25711ac0ed63c62fa1068da333fa79d67375e8",
+      "windows_file_sha256": "cf78066dcf236600428896b0db25711ac0ed63c62fa1068da333fa79d67375e8",
+      "track_count": 18,
+      "key_counts": [
+        9
+      ],
+      "scale": 2048,
+      "tolerance": 2,
+      "godot": "4.7.2"
+    },
+    "golden_walk_responsive_v2.json": {
+      "repository_sha256": "0d5a9fa7158fe2a0ab2895fcb40f43a19395757ae2c65075d43a5f068b48749a",
+      "windows_file_sha256": "0d5a9fa7158fe2a0ab2895fcb40f43a19395757ae2c65075d43a5f068b48749a",
+      "track_count": 38,
+      "key_counts": [
+        61
+      ],
+      "scale": 2048,
+      "tolerance": 2,
+      "godot": "4.7.2"
+    },
+    "golden_spec_walk_responsive_v2.json": {
+      "repository_sha256": "25ba740313886e61636691665ed33290e04845d5021b82b4c93456c91e47af12",
+      "windows_file_sha256": "25ba740313886e61636691665ed33290e04845d5021b82b4c93456c91e47af12",
+      "track_count": 10,
+      "key_counts": [
+        13
+      ],
+      "scale": 2048,
+      "tolerance": 2,
+      "godot": "4.7.2"
+    }
+  }
+}

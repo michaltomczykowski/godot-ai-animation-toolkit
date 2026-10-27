@@ -1,0 +1,13 @@
+--- a/tools/operation_case_collector.py
++++ b/tools/operation_case_collector.py
+@@ -496,7 +496,9 @@
+                       'public_case_ids':proof['public_case_ids'],'dry_case_ids':proof['dry_case_ids'],
+                       'failures':proof['failures'],'limits':proof['limits']})
+     for event in history_events:
+-        if event.get('validator')=='rig_modifier_history_v1':
++        if event.get('validator')=='rig_scene_history_v1':
++            from operation_rig_scene_history_checks import verify_event
++        elif event.get('validator')=='rig_modifier_history_v1':
+             from operation_modifier_history_checks import verify_event
+         elif event.get('validator')=='graph_history_v1':
+             from operation_graph_history_checks import verify_event

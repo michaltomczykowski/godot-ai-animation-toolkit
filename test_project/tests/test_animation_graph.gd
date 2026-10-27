@@ -148,7 +148,9 @@ func test_state_machine_creates_tree_and_parameters() -> void:
 	var machine := tree.tree_root as AnimationNodeStateMachine
 	assert_true(machine.has_node(StringName("idle")) and machine.has_node(StringName("walk")),
 		"both states exist")
-	assert_eq(machine.get_transition_count(), 2)
+	assert_eq(machine.get_transition_count(), 3)
+	assert_eq(str(machine.get_transition_from(2)), "Start")
+	assert_eq(str(machine.get_transition_to(2)), "idle")
 	assert_true(_has_param_ending(result.data.parameters, "/playback"), "a playback parameter is exposed")
 	assert_true(_has_param_ending(result.data.parameters, "conditions/walking"),
 		"the condition is exposed as a parameter (%s)" % str(result.data.parameters))
@@ -254,7 +256,7 @@ func test_blend_tree_nested() -> void:
 			"inputs": [{"type": "blend2", "inputs": [
 				{"type": "animation", "animation": "idle"},
 				{"type": "animation", "animation": "walk"},
-			]}],
+			]}, {"type": "animation", "animation": "run"}],
 		},
 	}, null)
 	assert_has_key(result, "data")
@@ -262,12 +264,54 @@ func test_blend_tree_nested() -> void:
 	assert_true(tree != null, "the root is a blend tree")
 	assert_true(tree.has_node(StringName("OneShot")) and tree.has_node(StringName("Blend2")),
 		"both nodes exist (%s)" % str(tree.get_node_list()))
-	assert_eq(int(result.data.node_count), 4)
+	assert_eq(int(result.data.node_count), 5)
 	assert_true(_has_param_ending(result.data.parameters, "/request"), "the one-shot request parameter is exposed")
 	_teardown(rig)
 
 
 # --- wire / graph_get ------------------------------------------------------
+
+func test_wire_tree_creation_undo_redo() -> void:
+	var rig := _rig("GraphWireUndo")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var created := _handler.run({"op": "wire", "player_path": rig.player_path}, null)
+	assert_has_key(created, "data")
+	assert_true(_find_tree() != null, "wire created the tree")
+	assert_true(editor_undo(_undo_redo), "undo removes the wire-created tree")
+	assert_true(_find_tree() == null, "the wire-created tree is gone after undo")
+	assert_true(editor_redo(_undo_redo), "redo restores the wire-created tree")
+	assert_true(_find_tree() != null, "the wire-created tree is back after redo")
+	_teardown(rig)
+
+
+func test_wire_parameter_undo_redo_restores_value_and_active_flag() -> void:
+	var rig := _rig("GraphWireParamUndo")
+	if rig.has("error"):
+		skip(rig.error)
+		return
+	var built := _handler.run(_sm_params(rig), null)
+	assert_has_key(built, "data")
+	var tree := _find_tree()
+	var condition_path := "parameters/conditions/walking"
+	assert_false(tree.active, "the baseline tree is inactive")
+	assert_false(bool(tree.get(condition_path)), "the baseline walking condition is false")
+	var wired := _handler.run({
+		"op": "wire", "player_path": rig.player_path,
+		"active": true, "parameter_path": condition_path, "parameter_value": true,
+	}, null)
+	assert_has_key(wired, "data")
+	assert_true(tree.active and bool(tree.get(condition_path)),
+		"wire activates the tree and sets walking")
+	assert_true(editor_undo(_undo_redo), "undo restores the previous wire state")
+	assert_false(tree.active, "undo restores inactive")
+	assert_false(bool(tree.get(condition_path)), "undo restores walking=false")
+	assert_true(editor_redo(_undo_redo), "redo reapplies the wire state")
+	assert_true(tree.active and bool(tree.get(condition_path)),
+		"redo restores active and walking=true")
+	tree.active = false
+	_teardown(rig)
 
 func test_graph_ops_never_build_on_another_players_tree() -> void:
 	# With a player named and no tree of its own, the lookup used to return the
@@ -406,7 +450,7 @@ func test_graph_get_dumps_and_flags() -> void:
 	assert_has_key(dump, "data")
 	assert_eq(str(dump.data.root.type), "state_machine")
 	assert_eq(int(dump.data.root.state_count), 2)
-	assert_eq(int(dump.data.root.transition_count), 2)
+	assert_eq(int(dump.data.root.transition_count), 3)
 	assert_true((dump.data.animations as Array).has("idle"), "referenced clips are listed")
 	var healthy_codes := _codes(dump.data.issues)
 	assert_true(healthy_codes.is_empty() or healthy_codes == ["inactive_tree"],
@@ -452,13 +496,13 @@ func test_locomotion_blend_space_and_state_machine() -> void:
 	}, null)
 	assert_has_key(machine, "data")
 	assert_eq(str(machine.data.mode), "state_machine")
-	assert_eq(int(machine.data.transition_count), 4)
+	assert_eq(int(machine.data.transition_count), 5)
 	var root_machine := _find_tree().tree_root as AnimationNodeStateMachine
 	var auto_modes := 0
 	for index in root_machine.get_transition_count():
 		if root_machine.get_transition(index).advance_mode == AnimationNodeStateMachineTransition.ADVANCE_MODE_AUTO:
 			auto_modes += 1
-	assert_eq(auto_modes, 4,
+	assert_eq(auto_modes, 5,
 		"condition transitions must be AUTO: Godot only evaluates conditions in auto mode")
 	assert_true((machine.data.conditions as Array).has("walking") and (machine.data.conditions as Array).has("running"),
 		"the walking/running conditions exist")
@@ -483,6 +527,7 @@ func test_one_shot_layer_wraps_the_root() -> void:
 	assert_true(tree != null, "the root becomes a blend tree")
 	assert_true(tree.has_node(StringName("Base")) and tree.has_node(StringName("OneShot")),
 		"the base and the shot exist (%s)" % str(tree.get_node_list()))
+	assert_false(tree.has_node(&"Blend2"), "OneShot itself blends the base and shot")
 	var shot := tree.get_node(StringName("OneShot")) as AnimationNodeOneShot
 	assert_true(shot != null and is_equal_approx(shot.fadeout_time, 0.25), "the shot keeps its fade settings")
 	assert_true(_has_param_ending(result.data.parameters, "/request"), "the request parameter is exposed")
