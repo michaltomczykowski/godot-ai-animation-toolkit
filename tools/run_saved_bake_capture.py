@@ -90,11 +90,15 @@ def validate_images(images, manifest, folder, binding_sha):
     expected = [(r['id'], side, take, i, t) for r in manifest['cases'] for take in (0, 1) for side in ('source', 'redo') for i, t in enumerate(times(r['params']))]
     rows = images.get('images', [])
     require(len(rows) == len(expected), 'missing rendered samples')
+    cameras_by_case = {}
     for row, key in zip(rows, expected):
         require((row.get('id'), row.get('side'), row.get('take'), row.get('sample'), row.get('time')) == key and row.get('no_simulation_advance') is True, 'wrong rendered sample/clock')
         name = '%s-%s-%d-%03d.png' % key[:4]
         require(row.get('name') == name and sha(folder/name) == row.get('sha256'), 'PNG identity mismatch')
         require(len(row.get('bounds', [])) == 2 and all(len(b) == 4 and all(type(x) in (int, float) and math.isfinite(x) for x in b) and 12 <= b[0] <= b[2] <= 948 and 12 <= b[1] <= b[3] <= 528 for b in row['bounds']), 'invalid rendered bounds')
+        actual_cameras = row.get('camera_states')
+        require(isinstance(actual_cameras, list) and len(actual_cameras) == 2, 'actual cameras missing')
+        require(actual_cameras == cameras_by_case.setdefault(row['id'], actual_cameras), 'fixed camera drift across source/redo/takes')
         with Image.open(folder/name) as im:
             require(im.size == (960, 1080), 'actual PNG dimensions')
             im.verify()

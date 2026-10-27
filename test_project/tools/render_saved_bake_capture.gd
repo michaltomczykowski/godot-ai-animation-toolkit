@@ -126,6 +126,7 @@ func _capture_sample(view: Dictionary, sample: Dictionary):
 			points.append(pose.origin + pose.basis.x.normalized() * 0.15)
 			points.append(pose.origin + pose.basis.z.normalized() * 0.15)
 	var bounds: Array = []
+	var camera_states: Array = []
 	for camera: Camera3D in cameras:
 		var low := Vector2(INF, INF); var high := Vector2(-INF, -INF)
 		for point: Vector3 in points:
@@ -133,8 +134,10 @@ func _capture_sample(view: Dictionary, sample: Dictionary):
 			_check(depth > camera.near + 0.01 and depth < camera.far - 0.01, "capture depth")
 			var pixel := camera.unproject_position(point)
 			low = low.min(pixel); high = high.max(pixel)
-		_check(low.x >= 12 and low.y >= 12 and high.x <= 948 and high.y <= 528, "capture conservative bounds")
-		bounds.append([low.x, low.y, high.x, high.y])
+		var fringe := 0.008 * 540.0 / camera.size + 2.0
+		_check(low.x >= 12 + fringe and low.y >= 12 + fringe and high.x <= 948 - fringe and high.y <= 528 - fringe, "capture conservative bounds")
+		bounds.append([low.x - fringe, low.y - fringe, high.x + fringe, high.y + fringe])
+		camera_states.append({"transform": _stable(camera.global_transform), "size": camera.size, "near": camera.near, "far": camera.far})
 	var before := _snapshot(view)
 	var process_before := Engine.get_process_frames()
 	var physics_before := Engine.get_physics_frames()
@@ -148,7 +151,8 @@ func _capture_sample(view: Dictionary, sample: Dictionary):
 	var name := "%s-%s-%d-%03d.png" % [view.row.id, view.side, view.take, sample_index]
 	_check(not FileAccess.file_exists(capture_output.path_join(name)), "exclusive capture PNG")
 	_check(image.save_png(capture_output.path_join(name)) == OK, "capture PNG write")
-	images.append({"id": view.row.id, "side": view.side, "take": view.take, "sample": sample_index, "time": sample.time, "delta": sample.delta, "name": name, "sha256": FileAccess.get_sha256(capture_output.path_join(name)), "bounds": bounds, "no_simulation_advance": before == _snapshot(view) and process_before == Engine.get_process_frames() and physics_before == Engine.get_physics_frames()})
+	_check(camera_states == [{"transform": _stable(cameras[0].global_transform), "size": cameras[0].size, "near": cameras[0].near, "far": cameras[0].far}, {"transform": _stable(cameras[1].global_transform), "size": cameras[1].size, "near": cameras[1].near, "far": cameras[1].far}], "draw changed fixed cameras")
+	images.append({"id": view.row.id, "side": view.side, "take": view.take, "sample": sample_index, "time": sample.time, "delta": sample.delta, "name": name, "sha256": FileAccess.get_sha256(capture_output.path_join(name)), "bounds": bounds, "camera_states": camera_states, "no_simulation_advance": before == _snapshot(view) and process_before == Engine.get_process_frames() and physics_before == Engine.get_physics_frames()})
 	sample_index += 1
 
 func _capture_end(_view: Dictionary):
