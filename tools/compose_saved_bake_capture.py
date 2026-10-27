@@ -58,8 +58,12 @@ def compose(capture, output, ffmpeg):
     command = [str(ffmpeg), '-hide_banner', '-loglevel', 'error', '-n', '-framerate', '60', '-i', str(frames/'%06d.png'), '-frames:v', str(len(schedule)), '-an', '-c:v', 'libx264', '-threads', '2', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', str(video)]
     state = dict(kind='saved_bake_pair_media', capture_execution_sha256=sha(capture/'execution.json'), capture_binding_sha256=execution['binding_sha256'], original_public_source=binding['source_public'], capture_source=binding['capture_source'], frames=len(schedule), size=[1920, 1080], fps=60, cases=cases, schedule=schedule, encode_command=command, visual_approval=False, human_approved=False, presentation='Every evaluated native sample repeated for six 60FPS frames; last sample held thirty additional frames. No simulation steps during repetition. Native intervals may be unequal near events.', scope='Technical unskinned source versus baked redo, two fixed cameras and two fresh takes. No natural character-motion or human full-watch claim.')
     write_json(output/'media.json', {**state, 'stage':'encoding', 'passed':False})
-    subprocess.run(command, check=True, timeout=300)
-    decoded = subprocess.run([str(ffmpeg), '-hide_banner', '-nostats', '-i', str(video), '-map', '0:v:0', '-an', '-f', 'null', '-', '-progress', 'pipe:1'], capture_output=True, text=True, check=True, timeout=180)
+    try:
+        subprocess.run(command, check=True, timeout=300)
+        decoded = subprocess.run([str(ffmpeg), '-hide_banner', '-nostats', '-i', str(video), '-map', '0:v:0', '-an', '-f', 'null', '-', '-progress', 'pipe:1'], capture_output=True, text=True, check=True, timeout=180)
+    except BaseException as error:
+        write_json(output/'media.json', {**state, 'stage':'failed', 'passed':False, 'error':str(error)})
+        raise
     (output/'decode.log').write_text(decoded.stderr+decoded.stdout, encoding='utf-8')
     counts = re.findall(r'^frame=(\d+)$', decoded.stdout, re.M)
     duration = re.findall(r'^out_time_us=(\d+)$', decoded.stdout, re.M)

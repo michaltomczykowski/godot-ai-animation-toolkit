@@ -162,6 +162,7 @@ def run(a):
             require(sha(f['path']) == f['sha256'], 'capture changed bound resource')
         manifest = read(project/'bake-manifest.json')
         rendered = read(a.output/'render-native.json')
+        require(sha(binding['original_native']) == binding['native_sha256'], 'original native report changed during capture')
         native = read(Path(binding['original_native']))
         state['comparison'] = compare(rendered, manifest, binding['manifest_sha256'])
         require(state['comparison']['parity_pass'] and state['comparison']['fresh_take_pass'], 'rendered parity/freshness failed')
