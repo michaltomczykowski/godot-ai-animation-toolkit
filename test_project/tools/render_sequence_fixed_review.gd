@@ -38,7 +38,11 @@ func _run() -> void:
 	var selected: Array = route.cases.filter(func(row): return row.id == "dummy")
 	if selected.size() != 1 or not logger.errors.is_empty(): quit(1); return
 	var row: Dictionary = selected[0]
-	for error in CaptureGuard.admit(row): push_error(error)
+	# compose requests have no locomotion root_motion Boolean. This capture
+	# explicitly requires the saved extracted carrier; never edit the route.
+	var admission_row: Dictionary = row.duplicate(true)
+	admission_row.params["root_motion"] = true
+	for error in CaptureGuard.admit(admission_row): push_error(error)
 	if not logger.errors.is_empty(): quit(1); return
 	output = args[1]; diagnostic = false
 	DirAccess.make_dir_recursive_absolute(output)
