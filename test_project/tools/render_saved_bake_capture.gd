@@ -78,7 +78,9 @@ func _line(node: MeshInstance3D, start: Vector3, end: Vector3) -> void:
 	var offset := end - start
 	node.visible = offset.length() > 0.000001
 	if node.visible:
-		node.global_transform = Transform3D(Basis(Quaternion(Vector3.UP, offset.normalized())).scaled(Vector3(1, offset.length(), 1)), (start + end) * 0.5)
+		var rotation := Basis(Quaternion(Vector3.UP, offset.normalized()))
+		# Scale the cylinder's local Y column, not world rows after rotation.
+		node.global_transform = Transform3D(Basis(rotation.x, rotation.y * offset.length(), rotation.z), (start + end) * 0.5)
 		node.force_update_transform()
 
 func _capture_begin(view: Dictionary):
@@ -125,6 +127,16 @@ func _capture_sample(view: Dictionary, sample: Dictionary):
 			points.append(pose.origin)
 			points.append(pose.origin + pose.basis.x.normalized() * 0.15)
 			points.append(pose.origin + pose.basis.z.normalized() * 0.15)
+	# Check actual raster geometry, not only intended segment endpoints.
+	points.clear()
+	for rods: Array in meshes.values():
+		for set_of_rods: Array in rods:
+			for rod: MeshInstance3D in set_of_rods:
+				if not rod.visible: continue
+				var box := rod.get_aabb()
+				for x in 2:
+					for y in 2:
+						for z in 2: points.append(rod.global_transform * (box.position + box.size * Vector3(x, y, z)))
 	var bounds: Array = []
 	var camera_states: Array = []
 	for camera: Camera3D in cameras:

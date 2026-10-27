@@ -122,7 +122,8 @@ def prepare(repo, preflight, output):
         require(sha(path) == identity['sha256'], 'changed admitted native input: '+virtual)
     output.mkdir(parents=True)
     shutil.copytree(source_project, output/'project', ignore=shutil.ignore_patterns('.godot', 'override.cfg'))
-    shutil.copytree(preflight/'appdata', output/'appdata')
+    # Runtime log bytes are outputs, never dependencies of saved scenes.
+    shutil.copytree(preflight/'appdata', output/'appdata', ignore=shutil.ignore_patterns('logs'))
     renderer = repo/'test_project/tools/render_saved_bake_capture.gd'
     head = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True).strip()
     renderer_blob = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', head+':test_project/tools/'+renderer.name], text=True).strip()
