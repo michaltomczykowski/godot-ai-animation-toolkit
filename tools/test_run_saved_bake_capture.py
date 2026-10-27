@@ -1,8 +1,11 @@
 import copy
+import json
+from pathlib import Path
+import tempfile
 import unittest
 
 from check_saved_bake_capture import times
-from run_saved_bake_capture import cameras, same_traces
+from run_saved_bake_capture import admit, cameras, same_traces, sha
 from test_check_saved_bake_capture import fixture
 
 
@@ -54,6 +57,23 @@ class CaptureControls(unittest.TestCase):
         self.assertEqual(schedule[-1], .205)
         self.assertIn(.07, schedule)
         self.assertTrue(any(abs(t-.06996) < 1e-12 for t in schedule))
+
+    def test_recovery_cannot_admit_failed_child_cleanup_or_foreign_command(self):
+        for mutation in ('exit', 'cleanup', 'command', 'binding'):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
+                out = Path(directory)
+                (out/'capture-binding.json').write_text('{}')
+                execution = dict(stage='complete', binding_sha256=sha(out/'capture-binding.json'), command=['official-engine'])
+                process = dict(state='exited', returncode=0, command=['official-engine'])
+                startup = dict(passed=True, cleanup='owned_override_removed', command=['official-engine'])
+                if mutation == 'exit': process['returncode'] = 1
+                if mutation == 'cleanup': startup['cleanup'] = 'changed_override_preserved'
+                if mutation == 'command': process['command'] = ['foreign-engine']
+                if mutation == 'binding': execution['binding_sha256'] = 'changed'
+                for name, value in [('execution', execution), ('process', process), ('startup', startup)]:
+                    (out/(name+'.json')).write_text(json.dumps(value))
+                with self.assertRaisesRegex(ValueError, 'engine|startup|bound'):
+                    admit(out)
 
 
 if __name__ == '__main__': unittest.main()

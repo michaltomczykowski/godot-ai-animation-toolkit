@@ -8,21 +8,19 @@ import subprocess
 
 from PIL import Image, ImageDraw, ImageFont
 from check_saved_bake_capture import compare, times
-from run_saved_bake_capture import read, require, same_traces, validate_images
-from prepare_saved_bake_capture import sha
+from run_saved_bake_capture import admit, read, require, same_traces, sha, validate_images
 from review_receipts import write_json
 
 
 def compose(capture, output, ffmpeg):
     require(not output.exists(), 'preserve previous composition')
     execution = read(capture/'execution.json')
-    require(execution.get('passed') is True and execution.get('stage') == 'complete' and execution.get('native_trace_exact') is True, 'completed exact native/render capture required')
+    admission = admit(capture)
     binding = read(capture/'capture-binding.json')
     require(sha(capture/'capture-binding.json') == execution['binding_sha256'] and sha(binding['original_native']) == binding['native_sha256'], 'capture/native binding changed')
     manifest = read(capture/'project/bake-manifest.json')
     rendered = read(capture/'render-native.json')
-    admission = compare(rendered, manifest, binding['manifest_sha256'])
-    require(admission['parity_pass'] and admission['fresh_take_pass'], 'parity/fresh-take mismatch')
+    require(admission['comparison']['parity_pass'] and admission['comparison']['fresh_take_pass'], 'parity/fresh-take mismatch')
     same_traces(read(Path(binding['original_native'])), rendered)
     images = validate_images(read(capture/'samples/render.json'), manifest, capture/'samples', execution['binding_sha256'])
     index = {(r['id'], r['side'], r['take'], r['sample']):r for r in images}
@@ -56,7 +54,7 @@ def compose(capture, output, ffmpeg):
             cases.append(dict(id=row['id'], take=take, first_frame=start, frames=len(schedule)-start, authored_duration=row['params']['duration'], native_samples=len(ticks)))
     video = output/'saved-bake-eight-source-redo.mp4'
     command = [str(ffmpeg), '-hide_banner', '-loglevel', 'error', '-n', '-framerate', '60', '-i', str(frames/'%06d.png'), '-frames:v', str(len(schedule)), '-an', '-c:v', 'libx264', '-threads', '2', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', str(video)]
-    state = dict(kind='saved_bake_pair_media', capture_execution_sha256=sha(capture/'execution.json'), capture_binding_sha256=execution['binding_sha256'], original_public_source=binding['source_public'], capture_source=binding['capture_source'], frames=len(schedule), size=[1920, 1080], fps=60, cases=cases, schedule=schedule, encode_command=command, visual_approval=False, human_approved=False, presentation='Every evaluated native sample repeated for six 60FPS frames; last sample held thirty additional frames. No simulation steps during repetition. Native intervals may be unequal near events.', scope='Technical unskinned source versus baked redo, two fixed cameras and two fresh takes. No natural character-motion or human full-watch claim.')
+    state = dict(kind='saved_bake_pair_media', capture_execution_sha256=sha(capture/'execution.json'), current_native_admission=admission, capture_binding_sha256=execution['binding_sha256'], original_public_source=binding['source_public'], capture_source=binding['capture_source'], frames=len(schedule), size=[1920, 1080], fps=60, cases=cases, schedule=schedule, encode_command=command, visual_approval=False, human_approved=False, presentation='Every evaluated native sample repeated for six 60FPS frames; last sample held thirty additional frames. No simulation steps during repetition. Native intervals may be unequal near events.', scope='Technical unskinned source versus baked redo, two fixed cameras and two fresh takes. No natural character-motion or human full-watch claim.')
     write_json(output/'media.json', {**state, 'stage':'encoding', 'passed':False})
     try:
         subprocess.run(command, check=True, timeout=300)
