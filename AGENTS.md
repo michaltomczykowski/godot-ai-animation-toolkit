@@ -1,5 +1,19 @@
 # Agent notes
 
+## Authoritative phase4 resume,27October
+
+Pushed9c52e03. motion-representatives-r005 native10controls+24plays eachPASS;
+bothprobesPASS. right-clean-r001 complete1440/24s1080p60/fulldecode;
+right-diagnostic-r001 running in exclusive rootenginequeue. Next jump clean+
+diagnostic, then independent decoded temporal assessment. Stationaryjump means
+distance0,heightdummy.4701m; probe0/1.5/2.983 missesflight.
+New render_saved_bake_capture/run_saved_bake_capture offline15controlsPASS,
+actualparse/runtimepending. Sharednativeunchanged; synchronouszero-stepdraw
+state/clockguards+exactnative trace. Stagefrombake-eight-current-preflight-r004;
+composition/decode/reviewpending. Workerjump_strafe_intent onlysequence/secondary/
+staticstaging,noengines. Linuxphase2blocked; phases5–6pending,no release.
+Details docs/phase4-capture-checkpoint-20261027.md.
+
 ## Authoritative phase3 complete; phase4 next,26October16:28UTC
 
 No local Godot active. Currentae35dd4 integrates09e1130setupauditor+fresh3play

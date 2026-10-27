@@ -32,10 +32,9 @@ func _start() -> void:
 	for index in 2:
 		var port := SubViewport.new()
 		port.size = Vector2i(960, 540)
-		port.own_world_3d = index == 0
+		port.world_3d = World3D.new() if index == 0 else ports[0].world_3d
 		port.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 		root.add_child(port)
-		if index == 1: port.world_3d = ports[0].world_3d
 		ports.append(port)
 		var texture := TextureRect.new()
 		texture.texture = port.get_texture()
@@ -98,8 +97,8 @@ func _capture_begin(view: Dictionary):
 		for bone in rig.get_bone_count():
 			rods.append([_rod(Color(0.2, 0.85, 0.95)), _rod(Color(1, 0.3, 0.3)), _rod(Color(0.35, 0.55, 1))])
 		meshes[str(view.scene.get_path_to(rig))] = rods
-	# Initial UI/viewport work occurs before the shared reset and time-zero solve.
-	await process_frame
+	# No yield after witness attachment/player start: even a zero-delta deferred
+	# skeleton notification would change the native witness and solver schedule.
 
 func _snapshot(view: Dictionary) -> String:
 	var state: Array = [_body(view.body), _tree_clock(view.mixer if view.mixer is AnimationTree else null)]
