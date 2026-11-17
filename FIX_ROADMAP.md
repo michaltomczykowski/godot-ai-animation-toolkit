@@ -1,5 +1,17 @@
 # Animation Toolkit repair roadmap
 
+## Independent visual review and Linux controls (2026-11-17)
+
+All 47 operations in the effects, edit, preset and library corpus now have
+independent assessments of their exact public saved cases. The dummy jump
+and right strafe each reproduced all 360 reviewed character and ground
+frames. The audit has nine remaining visual operations.
+
+Stock, unpatched and mutex-patched Godot all passed the paired preview.
+Six additional official 4.7.2 trials passed. The watcher again observed a
+main-thread append during documentation regeneration, and that trial
+completed successfully. The intermittent allocator abort remains open.
+
 ## Rig visual audit and Linux replay (2026-11-17)
 
 Every advertised operation has machine-check coverage on the four released

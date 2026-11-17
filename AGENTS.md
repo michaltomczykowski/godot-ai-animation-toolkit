@@ -19,6 +19,16 @@ Linux-authored graph and rig receipts match the reviewed movies on fixed
 Windows playback. The dummy setup also has an admitted visual binding.
 Use `case-gap-ledger-with-exact-setup-visual-r014.json`. There are 58
 distinct visual gaps.
+The newer `case-gap-ledger-with-first-effect-and-exact-motion-visual-r017.json`
+adds ten independently reviewed edits and the exact dummy jump and strafe
+replays. It leaves 46 distinct visual gaps. Check the remaining effect
+batches under private `independent-effect-review-20261117-r001`. The fresh
+motion inputs use `motion-visual-public-a0acf2d-r002` and its isolated project.
+The full effects batch is independently reviewed and admitted in
+`case-gap-ledger-with-effects-and-exact-motion-visual-r022.json`.
+It leaves nine distinct gaps. The seven ordinary motion videos are in
+`remaining-motion-exact-captures-r001`. The fresh secondary and chain
+routes use `remaining-technical-public-a0acf2d-r001`.
 The Linux motion inputs are run `44148286646` and the setup inputs are
 `44148826193`. The capture checkpoint lists the complete private visual
 review packet. Visual qualification and official crash stability are open.
@@ -47,6 +57,10 @@ isolation changed the capability path. The diagnostic preview harness now
 forwards the capability location. The stock preview preflight passed in
 `44169897306` and the next baseline source build started. The stock
 allocator abort remains open.
+The stock, unpatched and patched variants in `44169897306` all passed
+with identical preview images. All six stock cold trials in `44180084862`
+passed. In one watched trial, the main thread appended to the shared
+queue while the loader window was open. Keep stock stability unresolved.
 
 ## Latest active capture queue, November 17
 

@@ -78,6 +78,38 @@ effect corpus, ten motion operations and rig chain.
 Ledger SHA-256:
 `bfa8eeb97182019846b806a6556def2d16ba932b49b2b776f45a87a96114ae18`.
 
+The first independent effect batch reviewed ten edit operations across
+both takes of each exact candidate film. It confirmed the actual wrap
+boundaries and the loop edit's ping-pong playback. The saved cases and
+records passed the operation binding validator. The independent review
+SHA-256 is `32c1ef8799f59badfecdff376869eac3b4916a204c22386821d029dc7e630601`.
+
+Fresh Windows 4.2.1 Godot AI calls generated, saved and reopened the same
+default stationary jump and right strafe on the bundled dummy. Both
+fixed-camera captures matched all 360 character and ground frames from
+their previous independent reviews. The candidate provenance retains
+the current source labels, and the staged videos contain only the
+losslessly extracted six-second dummy segments. The motion evidence
+SHA-256 is `0f02a851d7c4b60eb670e07ec2c6d97aab4e3c5f6bd5335f00267ff80c348f00`.
+The original combined generation attempt stopped at the walk review
+driver's baseline guard. The saved jump and strafe cases were recovered
+and verified from their own complete public traces.
+
+`case-gap-ledger-with-first-effect-and-exact-motion-visual-r017.json`
+leaves 46 distinct visual operations. Ledger SHA-256:
+`f9df62dcbf3214f70120ed580749ea3ddf7c506aae00b927c26f57558c5f9321`.
+
+All 49 effect, edit, preset and library captures now have independent
+assessments for 47 operations. The reviewer full-decoded 35,280 frames,
+inspected both takes and measured the applicable motion, widget, camera,
+or audio behavior. The two split presentations retain both videos and
+share their actual public case ID. Aggregate review SHA-256
+`d66b82e5cfb5e2358f81fc248606ad70a1b8ae4794c55c8ff0a3bd00a9ecae0e`.
+`case-gap-ledger-with-effects-and-exact-motion-visual-r022.json`
+passed all operation binding checks and leaves nine distinct visual
+operations. Ledger SHA-256:
+`013c69c298149dd2e077926756f17b8cc3f3d919986c7cb62f0f48199e289f34`.
+
 Linux run `44161331573` completed the public suites but failed while
 collecting the results. Its exporter tried to import a helper added after
 the frozen `a0acf2d` checkout. The corrected exporter passed the local
@@ -164,6 +196,20 @@ passed in `44169897306`, and the new baseline build started. The earlier
 paired result remains inconclusive for the allocator abort.
 Official Linux clean ZIP jobs in `44132486656` passed on both cores.
 The native Linux crash and its official-engine gate remain open.
+
+Paired run `44169897306` completed on the pinned 4.7.2 source. Stock,
+unpatched and locked engines all passed the real public save and rendered
+preview, with four identical image hashes per variant. The allocator abort
+did not occur. Six fresh stock trials on core 4.3.0 in `44180084862` also
+passed. Three used postmortem capture and three used the documentation
+queue watch. All three watches saw regeneration complete. One captured
+a main-thread size write with 307 entries, capacity 315 and readiness
+false in the same loader window. Its earlier observed stack matches the
+document append path. That run saved and rendered without a native abort.
+Private combined summary SHA-256
+`027c81f4c87ed4b6430d0bf36013b34200610dc83d74b731091a14f6e7d4a295`.
+The patch has a passing workload control. The release instability is still
+open because the observed crash has no verified stock-engine fix.
 
 Windows 4.2.1 live routes ran out of time after editor replies in
 `44124264572` (pose-list refusal witness within pose CRUD) and
