@@ -1,5 +1,26 @@
 # Animation Toolkit repair roadmap
 
+## Capture recovery and Linux control (2026-11-17)
+
+Phase 4's 47-case queue is complete after a Windows checkpoint recovery.
+The updated queue and review planner are in `61ed3b3`. All 47 recordings
+pass native playback and full decode. Review of both takes identified two
+presentation gaps. The completed stagger and retarget follow-ups show
+separate target effects without changing the saved scenes or animation.
+
+Phase 2's official Linux jobs in run `44121185902` passed both cores and
+enable orders. The ZIP, checkout and log hashes were verified. The four
+allocation runs returned in 3.84–4.39 s. The separate native abort is still
+open. Diagnostic run `44126929152` builds baseline and locked-queue Godot
+4.7.2 from the same engine revision, then replays the public preview on
+both. This is an isolated engine experiment outside the release branch.
+
+Phase 5's evidence ledger has 82 pending visual operation bindings. The
+current effect capture work targets 47 of them. The other 35 cover graphs,
+rendered preview, character motion and setup, rigs, modifiers, and sequence
+compose. Prior assessments retain their original producer identities.
+See [current capture checkpoint](docs/effect-visual-current-capture-20261117.md).
+
 ## Release preparation checkpoint (2026-11-17)
 
 Hold before merge, tag, or publication for the user's final instructions.

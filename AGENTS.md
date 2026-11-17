@@ -2,6 +2,13 @@
 
 ## Latest active capture queue, November 17
 
+The 47-case queue and its stagger and retarget follow-ups are complete.
+The current capture document lists the combined receipt, sampled findings
+and decoded pixel checks. The separate paired Linux source-build run
+`44126929152` is diagnostic. Recheck it and the official Linux runs before
+changing the release status. The operation qualification receipt is still
+pending.
+
 Read private `effect-predraw-remaining-resume-r003/queue.json` before any
 new capture. The previous queue failed a Windows checkpoint replacement
 after six complete videos. The resume validated those six receipts and

@@ -1,5 +1,41 @@
 # Current public effect recording checkpoint
 
+## Completed batch and sampled visual review
+
+All **47 of 47** pre-draw captures now have native playback receipts and
+720-frame, 12-second full decodes. The combined receipt follows the
+preserved six-case prefix into the resumed 41-case queue. It verifies
+every MP4 and native report against the same original plan and case order.
+The two corrected pilots also pass, for 49 representatives of 47 operations.
+
+The overview samples from both takes of every video were reviewed. The
+clips show the expected changed behavior, or intentionally preserve their
+reference behavior for edits such as resample, cleanup, and reduce. The
+nearest-interpolation representative holds the initial value because its
+only other key sits at the loop boundary. Its reference moves and the
+native trace verifies the interpolation and hold. The audio cue also
+passes checks on the native WAV and on audio decoded from the final MP4.
+
+Two pairs needed clearer presentation. Stagger's saved controls overlap.
+Separately spaced display markers show a 12-frame (0.2 s) fade delay in
+both takes. Retarget's original and destination use identical geometry.
+Colored display markers show the original moving in undo and the
+destination moving in redo. The observed displacement agrees with the
+native trace within 0.34 px. Both follow-ups use the original saved
+scene bytes and tracks, and each video passes full decode.
+
+| Private receipt | SHA-256 |
+| --- | --- |
+| `effect-predraw-remaining-resume-r003/combined-capture-binding-r001.json` | `a1233d3218d891dc17c01cd1634d8c13447c57a4e623e8ac0b81fe625013d1ac` |
+| `effect-review-notes-through46-r001.json` (initial presentation) | `951895bbee4563dd3ebd04e0b669df1636b8da3bd59976e43829c38dbb62272d` |
+| `effect-stagger-visibility-r001/decoded-stagger-delay-r001.json` | `1e6fd00a6a5b2cb9d71f3ad37a17f564085d6524d2bca55213a0a850a9318cf1` |
+| `effect-retarget-visibility-r001/decoded-retarget-ownership-r001.json` | `b24d927c59b39838709736098945e82dd25d6b7bb347cb7e5471da4eb6dbbd8a` |
+
+These are sampled visual findings bound to the full recorded clips. The
+independent release assessment and final audit receipt are still required.
+The current effect batch targets 47 of 82 visual operation bindings. The
+other 35 lie in graph, preview, motion, rig, modifier, and sequence work.
+
 ## Resume after Windows checkpoint contention
 
 The 47-case queue completed and fully decoded six videos. Case 06 also
@@ -11,7 +47,7 @@ revalidates the completed prefix against the same plan, and preserves the
 original case indices and evidence. The temporal review planner can read
 the resumed entries, including native observations from a reused capture.
 
-Read `effect-predraw-remaining-resume-r003/queue.json` for the active
+Read `effect-predraw-remaining-resume-r003/queue.json` for the final
 status. It revalidated the six original receipts and encoded and decoded
 the saved case 06 without rerendering. The original failed checkpoint and
 all source frames are retained under `effect-predraw-remaining-r002`.
@@ -77,6 +113,15 @@ thread joins run outside the lock. The patch applies cleanly. Compiler
 and runtime results remain pending under the separate engine identity.
 Patch SHA-256:
 `0378c9c898b32606d19547cd076a63b2800763ac4ff3c7e74fb0f7a717c71001`.
+
+[Paired Linux run 44126929152](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/44126929152)
+builds the exact same engine revision before and after applying the patch,
+then exercises the public preview in separate cold-start projects. It is
+outside the repair branch and leaves the official binary gate intact.
+[Official Linux CI run 44121185902](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/44121185902)
+passed clean install on both cores and enable orders. The extracted ZIP,
+source and log hashes matched. The allocation checks returned in
+3.84–4.39 seconds without reproducing the earlier timeout.
 
 ## Corrected take boundary
 

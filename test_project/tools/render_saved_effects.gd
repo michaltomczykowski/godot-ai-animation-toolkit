@@ -131,6 +131,10 @@ func _start() -> void:
 	_caption.max_lines_visible = 6
 	_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_caption.text = _case.operation + "    UNDO reference (left) / REDO result (right)\nDisplay-only cyan markers; native camera + static grid for shake/zoom, fixed framing otherwise.\nPer-frame playback values are in the native observation receipt."
+	if _case.operation == "animation_presets.stagger":
+		_caption.text += "\nStagger markers are spaced apart in target order to show each fade."
+	elif _case.operation == "animation_edit.retarget":
+		_caption.text += "\nCyan marks the original target. Orange marks the destination target."
 	root.add_child(_caption)
 	RenderingServer.frame_pre_draw.connect(_observe_draw_frame)
 
@@ -166,6 +170,14 @@ func _load_scene(viewport: SubViewport, state: String) -> void:
 			var marker := Polygon2D.new()
 			marker.polygon = PackedVector2Array([Vector2(-12,-12),Vector2(12,-12),Vector2(12,12),Vector2(-12,12)])
 			marker.color = Color(0.2,0.8,0.9,0.7)
+			if _case.operation == "animation_presets.stagger":
+				var target_index := targets.find(str(child.name))
+				if target_index >= 0:
+					# The saved controls overlap. Separate their markers without changing the controls.
+					marker.position.x = 36.0 * target_index
+			elif _case.operation == "animation_edit.retarget" and targets.size() >= 2 and str(child.name) == str(targets[1]):
+				marker.position.y = 42.0
+				marker.color = Color(0.95, 0.55, 0.2, 0.7)
 			child.add_child(marker) # Display-only child follows real saved transform.
 	for child in fixture.get_children():
 		if child is Node3D and str(child.name) in targets:
