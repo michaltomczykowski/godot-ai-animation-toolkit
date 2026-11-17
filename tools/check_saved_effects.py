@@ -10,6 +10,22 @@ from saved_effect_contracts import is_nearest_hold
 
 CAPTURE_SIZE = [1400, 800]
 
+def take_reset_failures(case, report):
+    """Enforce an exact seam for captures that bind observed frames to the draw."""
+    order = report.get('take_reset_order')
+    if order is None and not case.get('require_draw_aligned_reset'):
+        return []
+    boundary = round(case['fps'] * case['take_seconds'])
+    frames = round(case['fps'] * case['seconds'])
+    rows = report.get('samples', [])
+    if (order != 'before_sample_and_draw' or report.get('take_reset_frame') != boundary + 1
+            or not 0 < boundary < frames or len(rows) != frames
+            or any(row.get('frame') != i + 1 or row.get('take') != (1 if i < boundary else 2)
+                   for i, row in enumerate(rows))):
+        return ['take reset does not precede observation at the exact frame boundary']
+    return []
+
+
 def capture_failures(report, frames_dir=None, expected_frames=None):
     failures = []
     geometry = report.get('capture_geometry', {})
@@ -108,6 +124,7 @@ def showcase_rect_failures(case,samples):
 
 def check(case, report):
     failures = capture_failures(report)
+    failures.extend(take_reset_failures(case, report))
     if case.get('operation')=='animation_edit.set_interp' and case.get('variant')=='set_interp' and not case.get('require_progression',True) and not is_nearest_hold(case):
         failures.append('held nearest representative lacks its exact contract')
     if report.get('operation') != case['operation'] or report.get('case_id') != case['id']:

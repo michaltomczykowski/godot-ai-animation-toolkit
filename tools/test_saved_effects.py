@@ -30,6 +30,14 @@ class NativeObservations(unittest.TestCase):
             case,report=self.fixture()
             report['samples'][index]['presentation'][1]['canvas_transform']=[1,0,0,1,0,0]
             self.assertFalse(check(case,report)['native_observation_pass'])
+    def test_draw_aligned_capture_requires_exact_take_boundary(self):
+        case,report=self.fixture()
+        case['require_draw_aligned_reset']=True
+        self.assertFalse(check(case,report)['native_observation_pass'])
+        report.update(take_reset_order='before_sample_and_draw',take_reset_frame=361)
+        self.assertTrue(check(case,report)['native_observation_pass'])
+        report['samples'][360]['take']=1
+        self.assertFalse(check(case,report)['native_observation_pass'])
     def test_real_target_and_independent_endpoint_required(self):
         case, report=self.fixture()
         self.assertTrue(check(case, report)['native_observation_pass'])

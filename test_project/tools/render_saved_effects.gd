@@ -13,6 +13,7 @@ var _different := false
 var _caption: Label
 var _viewports: Array[SubViewport] = []
 var _second_take := false
+var _reset_at_frame := 0
 var _resource_checks := {}
 var _plan_sha := ""
 var _max_delta_error := 0.0
@@ -319,6 +320,22 @@ func _process(delta: float) -> bool:
 		quit(1)
 		return false
 	_max_delta_error = maxf(_max_delta_error, absf(delta - 1.0 / float(_case.fps)))
+	# Movie Maker draws after this callback. Reset before sampling/captioning
+	# the next take, at its exact integer frame boundary.
+	if not _second_take and _frames == roundi(float(_case.fps) * float(_case.take_seconds)):
+		_second_take = true
+		_reset_at_frame = _frames + 1
+		for viewport in _viewports:
+			for child in viewport.get_children():
+				viewport.remove_child(child)
+				child.queue_free()
+		_fixtures.clear()
+		_last = [{}, {}]
+		_load_scene(_viewports[0], "undo")
+		_load_scene(_viewports[1], "redo")
+		if _fixtures.size() != 2:
+			quit(1)
+			return false
 	_elapsed += delta
 	_frames += 1
 	var states := [_state(_fixtures[0]), _state(_fixtures[1])]
@@ -330,23 +347,14 @@ func _process(delta: float) -> bool:
 	if _frames % 1 == 0:
 		_samples.append({"frame": _frames, "time": _elapsed, "take": 2 if _second_take else 1, "states": states, "presentation": _presentation_states(), "players": [_player_times(_fixtures[0], "undo"), _player_times(_fixtures[1], "redo")]})
 	_caption.text = _case.operation + "  UNDO (left) / REDO (right)  t=%.2f\nDisplay-only cyan markers; camera presentation: %s. Native property changes: %s\n50-unit static calibration grid for native camera cases. Audio output proof remains separate.\nUNDO %s\nREDO %s" % [_elapsed, _camera_presentation(), str(_changes), _target_text(states[0]), _target_text(states[1])]
-	if not _second_take and _elapsed >= float(_case.take_seconds):
-		_second_take = true
-		for viewport in _viewports:
-			for child in viewport.get_children():
-				viewport.remove_child(child)
-				child.queue_free()
-		_fixtures.clear()
-		_last = [{}, {}]
-		_load_scene(_viewports[0], "undo")
-		_load_scene(_viewports[1], "redo")
-	if _elapsed >= float(_case.seconds):
+	if _frames >= roundi(float(_case.fps) * float(_case.seconds)):
 		var report := {"schema_version": 1, "operation": _case.operation,
 			"case_id": _case.id, "header_rect": [12, 8, 1376, 170], "startup_capture": _startup_capture, "capture_geometry": _capture_geometry, "runtime_failures": _runtime_failures, "engine_errors": _logger.errors,
 			"camera_presentation": _camera_presentation(), "native_camera_states": _camera_states(), "scenes": _case.scenes, "dependencies_verified": _resource_checks, "samples": _samples,
 			"native_changed_frames": _changes, "observed_difference": _different,
 			"frames": _frames, "playback_contracts": _playback_contracts(), "elapsed": _elapsed, "plan_sha256": _plan_sha, "renderer_sha256": _renderer_sha, "max_delta_error": _max_delta_error, "engine": Engine.get_version_info(),
 			"status": "failed_engine_or_runtime" if not _logger.errors.is_empty() or not _runtime_failures.is_empty() else "observation_only", "semantic_effect_check": "pending",
+			"take_reset_order": "before_sample_and_draw", "take_reset_frame": _reset_at_frame,
 			"continuous_visual_assessment": "pending", "audio_output": "pending" if _case.audio_output_required else "not_applicable",
 			"limits": "Difference/progression are observations, not semantic correctness or visual approval. Native camera plus static50-unit calibration grid for shake/zoom; other cameras disabled for stable framing; unrelated CanvasItems hidden; unkeyed bar/panel display extents 220x50; Control/Node2D cyan polygons and Node3D rigid cube/camera/light are display-only; showcase fixed0.45 scale with every canvas Control bounded each frame;3D silhouette remains visual assessment; markers are display-only children. Both clones re-instantiated for take2. SpriteFrames explicitly played for review (saved play=false remains documented)."}
 		var file := FileAccess.open(_output, FileAccess.WRITE)
