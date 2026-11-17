@@ -214,7 +214,7 @@ def attach_saved_visual(inventory, tested_source, tested_tree, candidate_tree, b
                 if row['key'].startswith(f'animation_{kind}.') and 'visual_review' in required_checks(row['effect_kind'])}
     records = load(receipt)['records']
     keys = {record['operation_key'] for record in records}
-    valid_keys = keys == expected if kind == 'graph' else keys <= expected & RIG_RECORDING_OPERATIONS
+    valid_keys = keys <= expected & RIG_RECORDING_OPERATIONS if kind == 'rig' else keys == expected
     if not keys or len(records) != len(keys) or not valid_keys:
         raise ValueError(f'{kind} review has unexpected operation coverage')
     for record in records:
@@ -389,7 +389,8 @@ def attach_setup_effect(inventory, tested_source, tested_tree, blobs, cells, rep
 
 
 def audit(repo, source, directories, preview_directories=(), motion_directory=None, setup_replay=None,
-          preview_visual=None, graph_cases=None, graph_visual=None, rig_cases=None, rig_visual=None):
+          preview_visual=None, graph_cases=None, graph_visual=None, rig_cases=None, rig_visual=None,
+          modifier_cases=None, modifier_visual=None):
     source = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', source + '^{commit}'], text=True).strip()
     inventory = json.loads(subprocess.check_output(['git', '-C', str(repo), 'show', source + ':docs/operation-audit.json']))
     errors = validate_inventory(inventory)
@@ -405,7 +406,8 @@ def audit(repo, source, directories, preview_directories=(), motion_directory=No
     setup_replays = (setup_replay,) if isinstance(setup_replay, Path) else setup_replay or ()
     extras = [*motion_directories, *(replay.parent for replay in setup_replays)]
     visual_inputs = []
-    for kind, directories_arg, receipts_arg in (('graph', graph_cases, graph_visual), ('rig', rig_cases, rig_visual)):
+    for kind, directories_arg, receipts_arg in (('graph', graph_cases, graph_visual), ('rig', rig_cases, rig_visual),
+                                                ('rig_modifiers', modifier_cases, modifier_visual)):
         case_directories = (directories_arg,) if isinstance(directories_arg, Path) else directories_arg or ()
         receipts = (receipts_arg,) if isinstance(receipts_arg, Path) else receipts_arg or ()
         if len(case_directories) != len(receipts):
@@ -454,6 +456,8 @@ def main():
     parser.add_argument('--graph-visual', type=Path, action='append', help='Independent recordings in graph case directory order')
     parser.add_argument('--rig-cases', type=Path, action='append', help='Fresh public rig history evidence, once per cell')
     parser.add_argument('--rig-visual', type=Path, action='append', help='Independent recordings in rig case directory order')
+    parser.add_argument('--modifier-cases', type=Path, action='append', help='Fresh public modifier history evidence, once per cell')
+    parser.add_argument('--modifier-visual', type=Path, action='append', help='Independent recordings in modifier case directory order')
     parser.add_argument('--motion-effects', type=Path, action='append',
                         help='Exact-source six-effect supplement, once per platform/core cell')
     parser.add_argument('--setup-effect', type=Path, action='append',
@@ -463,7 +467,8 @@ def main():
     if args.output.exists():
         parser.error('Exclusive output already exists')
     result = audit(args.repo, args.source, args.cell, args.preview, args.motion_effects, args.setup_effect,
-                   args.preview_visual, args.graph_cases, args.graph_visual, args.rig_cases, args.rig_visual)
+                   args.preview_visual, args.graph_cases, args.graph_visual, args.rig_cases, args.rig_visual,
+                   args.modifier_cases, args.modifier_visual)
     with args.output.open('x', encoding='utf-8') as stream:
         json.dump(result, stream, indent=2)
     print('CASE_LEDGER_ADMITTED cells=4 operations=103 production_blobs_equal=%s qualification=pending' % result['production_blobs_equal'])

@@ -49,6 +49,16 @@ operations, five modifiers, rig chain and sequence compose.
 Ledger SHA-256:
 `6d13fd3a8194e495f64d74e8089059e2d0a3bf51e4290dbe24f164c1fcbc6a29`.
 
+`case-gap-ledger-with-exact-modifier-visual-r010.json` adds the five
+Windows 4.2.1 modifier bindings. The fresh public-call report SHA-256 is
+`3aa8d2b002b53f8e73996ed2d285c935b985138945c0b2a79fbd41c87c2fb3a8`.
+The exact current scenes passed native evaluation and all 2,400 frame
+and timestamp comparisons against the independently assessed movie.
+The scoped evidence SHA-256 is
+`8da4a097a3a183d65a857fcfb15a50a30320d5b472bc8ab32d57fbd1adda464b`.
+The ledger leaves 60 distinct visual operations pending. Its SHA-256 is
+`dede49ed00ae6b5d0ba1f0704f2e5f5bcf0982a1fbd014eefb0ce454503432f3`.
+
 Linux run `44161331573` completed the public suites but failed while
 collecting the results. Its exporter tried to import a helper added after
 the frozen `a0acf2d` checkout. The corrected exporter passed the local

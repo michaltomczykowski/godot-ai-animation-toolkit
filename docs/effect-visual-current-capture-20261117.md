@@ -75,6 +75,19 @@ run `44161718158` returned 16 scoped public cases and all 32 exact scene
 files from each released core. The Linux inputs await capture or a
 separate equivalence review. No Linux visual binding was added by the export.
 
+## Exact modifier replay
+
+Five fresh Windows 4.2.1 cases from `rig_modifier_history` ran at `a0acf2d`.
+The intake verifies the actual public request, dispatch, and all saved
+history states. The historical request comparison ignores the generated
+editor node ID. Native and render inputs use the fresh literal values and
+their original hashes. Two staging attempts remain preserved after a
+generated-path comparison and a tuple-unpacking failure. The third stage
+passed preflight, rendered 2,400 frames and passed a full 40-second decode.
+The five reviewed frame ranges match every archived PNG, decoded frame
+and timestamp. These bindings cover the synthetic rig with the same
+declared runtime activation and stimulus as the original review.
+
 ## Completed batch and sampled visual review
 
 All **47 of 47** pre-draw captures now have native playback receipts and

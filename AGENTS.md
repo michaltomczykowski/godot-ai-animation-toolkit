@@ -9,6 +9,11 @@ both Windows cells after full decoded equivalence. Both cells have 65
 remaining visual bindings. Both Linux cells have 81. Official Linux run
 `44161718158` passed the graph and rig public suites and exported exact
 visual inputs. They are downloaded in `ci-44161718158-linux-visual-r001`.
+The newer `case-gap-ledger-with-exact-modifier-visual-r010.json` binds
+five Windows 4.2.1 modifiers after exact matching footage. There are 60
+distinct visual operation gaps. The bundled dummy sequence replay and all
+six native plays passed. Its fixed-camera capture is in
+`sequence-dummy-exact-a0acf2d-r001` for equivalence verification.
 The Linux motion inputs are run `44148286646` and the setup inputs are
 `44148826193`. The capture checkpoint lists the complete private visual
 review packet. Visual qualification and official crash stability are open.
