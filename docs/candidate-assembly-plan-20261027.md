@@ -49,6 +49,21 @@ install orders get distinct receipts. Local diagnostic unit tests, Python
 compilation, and diff checks pass. Inspect the next failed job's progress
 and timeout metadata before changing runtime behavior.
 
+## Native editor abort
+
+Godot issue [#124603](https://github.com/godotengine/godot/issues/124603)
+reports the same two documentation queue writers and allocator abort on the
+official 4.7.2 Linux binary. The report was archived without a linked patch;
+the reporter's smaller fixture did not reproduce their original crash.
+Our actual public fixture and debugger evidence are recorded separately in
+doc-loader-watch-assessment-20261026.md.
+
+The repair PR now runs a separate official-binary postmortem pass for both
+released Godot AI cores. The normal preview jobs and the release gate keep
+their existing inputs. The diagnostic pass captures bounded debugger text if
+the editor aborts and deletes the raw core. A passing diagnostic run cannot
+establish that the intermittent crash is fixed.
+
 Use CI 40477883598 (PR head f75c32457dc64057e60f32bc7e61498c32ae420b).
 Download the four live-route bundles, two rendered-preview bundles, four clean
 ZIP bundles and package manifest to an exclusive private directory. Preserve

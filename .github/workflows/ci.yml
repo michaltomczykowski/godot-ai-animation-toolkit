@@ -17,6 +17,13 @@ jobs:
     with:
       native_debugger: none
 
+  # Diagnostic job only. The normal qualification keeps its default launch.
+  linux-preview-postmortem:
+    if: github.event_name == 'pull_request' && github.head_ref == 'repair/toolkit-quality'
+    uses: ./.github/workflows/rendered-preview.yml
+    with:
+      native_debugger: postmortem
+
   tier1:
     name: Tier 1 / ${{ matrix.os }} / ${{ matrix.script }}
     runs-on: ${{ matrix.os }}

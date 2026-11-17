@@ -79,6 +79,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: rendered-preview-linux-core-${{ matrix.core-version }}
+          name: rendered-preview-linux-core-${{ matrix.core-version }}${{ inputs.native_debugger == 'postmortem' && '-postmortem' || '' }}
           path: rendered-preview-artifacts
           if-no-files-found: error
