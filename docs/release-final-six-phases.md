@@ -9,8 +9,8 @@ active execution order under release-completion-plan.md.
 |1.Spring bake correctness|complete, Windows gate|21native regressions; stale-cache negative; fresh201public matrix; eight unchanged-source pairs pass. Final cross-platform qualification remains phase6.|
 |2.Linux stability|blocked|Supported repair passes official4.7.2 public save/render flows; patched-engine experiments stay separate.|
 |3.Seven motion effect checks|complete, scoped local gates|All seven independent intent joins pass; final candidate/source/compatibility assembly remains phase5–6.|
-|4.Remaining recordings|active|Two Responsive motion reps,bake8,remaining sequence/secondary/static pairs; full decode and independent assessment.|
-|5.Candidate audit/package|pending|103operation applicable checks; exact source/media bindings; docs and immutable ZIP complete.|
+|4.Remaining recordings|complete|Independent visual assessments cover all applicable operations. The final three exact cases were decoded in full.|
+|5.Candidate audit/package|complete at `cf0ed51`|103-operation candidate audit and immutable 2.0.0 ZIP both pass. The approved Linux release hold remains in effect.|
 |6.Qualify/merge/publish|pending|Four-cell final matrix,ZIP/UI/reload/workflows,verified main,tag/assets/download checksum pass.|
 
 ## Execution limits

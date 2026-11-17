@@ -26,9 +26,18 @@ batches under private `independent-effect-review-20261117-r001`. The fresh
 motion inputs use `motion-visual-public-a0acf2d-r002` and its isolated project.
 The full effects batch is independently reviewed and admitted in
 `case-gap-ledger-with-effects-and-exact-motion-visual-r022.json`.
-It leaves nine distinct gaps. The seven ordinary motion videos are in
-`remaining-motion-exact-captures-r001`. The fresh secondary and chain
-routes use `remaining-technical-public-a0acf2d-r001`.
+After seven further independent dummy motion reviews, use
+`ci-f75c324-r001/case-gap-ledger-through-seven-motion-visual-r023.json`.
+Secondary motion and both chain cases now pass independent review of the
+exact public saves. Use `case-gap-ledger-through-all-operation-visuals-r024.json`
+and `candidate-operation-qualification-r001/operation-qualification.json`.
+All 103 candidate operations pass the release audit checker. Retain the r001
+technical collection failure and the r002 encoding launch failure. The
+resumed encoding used the same 1,680 prepared frames. Candidate ZIP and
+manifest are in `immutable-toolkit-candidate-cf0ed51-r001`. The release
+workflow still expects the private qualification artifacts in the public
+checkout path `docs/release-qualification`. Preserve the same checker and
+the media privacy requirement when staging phase 6.
 The Linux motion inputs are run `44148286646` and the setup inputs are
 `44148826193`. The capture checkpoint lists the complete private visual
 review packet. Visual qualification and official crash stability are open.
@@ -64,12 +73,12 @@ queue while the loader window was open. Keep stock stability unresolved.
 
 ## Latest active capture queue, November 17
 
-The 47-case queue and its stagger and retarget follow-ups are complete.
-The current capture document lists the combined receipt, sampled findings
-and decoded pixel checks. The active paired Linux source-build run
-`44158710552` is diagnostic. Recheck it and the official Linux runs before
-changing the release status. The operation qualification receipt is still
-pending.
+The 47-operation effects queue and its follow-ups are complete. The current
+capture document lists the combined receipt and decoded checks. The paired
+Linux build passed in `44169897306`. All six loaded stock trials in
+`44183083682` passed. The verified report and editor/backend hashes are in
+`ci-44183083682-official-loaded-r001/verified-results.json`. The original
+stock Linux crash still has no verified repair. Keep the release hold.
 
 Read private `effect-predraw-remaining-resume-r003/queue.json` before any
 new capture. The previous queue failed a Windows checkpoint replacement

@@ -5,12 +5,19 @@
 All 47 operations in the effects, edit, preset and library corpus now have
 independent assessments of their exact public saved cases. The dummy jump
 and right strafe each reproduced all 360 reviewed character and ground
-frames. The audit has nine remaining visual operations.
+frames. Seven additional dummy motion captures passed independent review
+from their exact public saved cases. Secondary motion and rig chain then
+passed independent review of the exact saved secondary, create-chain and
+append-chain cases. The portable audit passes all 103 operations, and the
+immutable 2.0.0 candidate ZIP passes the committed-byte and version checks.
 
 Stock, unpatched and mutex-patched Godot all passed the paired preview.
 Six additional official 4.7.2 trials passed. The watcher again observed a
 main-thread append during documentation regeneration, and that trial
-completed successfully. The intermittent allocator abort remains open.
+completed successfully. All six stock trials in `44183083682` passed under
+CPU load, with three trials per released core. Every trial reported the same
+four image hashes and preserved its editor and backend logs. The intermittent
+editor crash remains open. The experimental engine build is diagnostic.
 
 ## Rig visual audit and Linux replay (2026-11-17)
 

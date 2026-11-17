@@ -110,6 +110,51 @@ passed all operation binding checks and leaves nine distinct visual
 operations. Ledger SHA-256:
 `013c69c298149dd2e077926756f17b8cc3f3d919986c7cb62f0f48199e289f34`.
 
+Seven additional exact public dummy saves passed independent front and side
+playback review across 2,520 frames. The dedicated turn and the `cycle`
+turn alias generated separate public cases and saves with identical videos.
+The revised ledger `case-gap-ledger-through-seven-motion-visual-r023.json`
+has SHA-256 `625deeac51a5075ff3ec6fce41e9ebd5f86537572780962186021e295f3e301f`.
+The independent review aggregate is pinned at SHA-256
+`9ecf58f9331cb75d3d86fc5d0f82ca036379010985f04b75ccd8231c9e9164a4`.
+The private 103-operation draft validator returned exactly two pending
+visual checks, for secondary motion and rig chain. Draft SHA-256
+`709678d6f81fecec516099928bfced5dcc75e8ff13008086b9a36c04c18b4129`.
+Their fresh histories at `a0acf2d` cover secondary motion, chain creation
+and chain append using the public `test_run` path. The r002 raw report
+has SHA-256 `574fecaed347e376a1f844564cbcbbdad0a495af0f7b864d56684451f043b6f2`.
+The isolated native check passed for the copied saved scenes. The first
+encoder launch failed before encoding on a Windows path escape. The resume
+verified and reused all 1,680 composed frames. Independent full decode and
+review passed the unskinned secondary hand-axis motion and the static chain
+create and append comparisons in both views and both takes. The review
+SHA-256 is `df455ceb3e02778ebff4268e6f2159d22a1cf2505bfff6000df945bfda00dd03`.
+The final ledger `case-gap-ledger-through-all-operation-visuals-r024.json`
+has SHA-256 `df0ddaf4208340c5c459395e24981eaba5e85d4cdc71546accbe9e688e5d0368`.
+Every applicable operation has at least one admitted visual case. The
+requirements for public invocation and machine effects still cover all four
+platform/core cells.
+
+The private `candidate-operation-qualification-r001` directory contains the
+complete 103-operation receipt, its artifacts, and copies of all raw reports
+and traces from the machine bundles. The validator reports zero errors at
+`cf0ed51` against addon bytes tested at `a0acf2d`. The receipt SHA-256 is
+`8780a5f44798b25b14d7ecd82597efa4dd828905cc7f9dcbd9eb70f9486b1b67`.
+The unchanged release CLI emitted `RELEASE_AUDIT_PASS` and generated the
+derived audit with SHA-256
+`f18b0d469be524b5863547216c385ae119120a52e86ae58d1ee73d631d0c28c4`.
+The immutable candidate ZIP at `cf0ed51` passed version, CRC, path and
+committed-byte checks across all 96 entries. Its SHA-256 is
+`2614a3c24177272a1a62c23b54e08d262c9406ebe379747c27f730ce5ee2ca13`.
+The operation audit and package checks are complete. Phase 6 remains gated
+on a verified repair for the official Linux build and final qualification.
+The GitHub release gate currently runs the same CLI against
+`docs/release-qualification`, which is absent from the public repository.
+The private bundle contains the reviewed recordings. Before merge and tag,
+the release workflow needs a trusted way to validate those exact bytes while
+honoring the requirement to keep the media private. The local CLI pass and
+its digest alone do not satisfy the current hosted workflow.
+
 Linux run `44161331573` completed the public suites but failed while
 collecting the results. Its exporter tried to import a helper added after
 the frozen `a0acf2d` checkout. The corrected exporter passed the local
@@ -208,8 +253,14 @@ false in the same loader window. Its earlier observed stack matches the
 document append path. That run saved and rendered without a native abort.
 Private combined summary SHA-256
 `027c81f4c87ed4b6430d0bf36013b34200610dc83d74b731091a14f6e7d4a295`.
-The patch has a passing workload control. The release instability is still
-open because the observed crash has no verified stock-engine fix.
+The patch has a passing workload control. Separate run `44183083682` used
+official 4.7.2 and three cold trials per released core under bounded CPU
+load, a condition reported with the original crash. Every trial passed the
+same real public save and rendered preview. Each reported the same four
+image hashes. The private summary verified the twelve complete log hashes,
+stock executable identity and postmortem results. Summary SHA-256
+`339f7acc04b328fc08c8ab69561cf37de47c18bdf2c20cb2628f8cbebd4b1b1d`.
+The observed crash still has no verified repair on official Godot 4.7.2.
 
 Windows 4.2.1 live routes ran out of time after editor replies in
 `44124264572` (pose-list refusal witness within pose CRUD) and
@@ -221,9 +272,8 @@ records establish the observed stages and leave the transport cause open.
 The rig helpers now report call, transport, and native stages. The outer
 90-second limits and success checks remain in force.
 
-This implements phase 5 of release-final-six-phases.md. Phase 4's final
-three-case independent assessment is finishing separately. Publication remains
-blocked by unresolved Linux instability; a green CI run does not close it.
+Phases 4 and 5 of release-final-six-phases.md are complete. Publication
+remains blocked by the unresolved stock Linux editor crash.
 
 ## 1. Admit the latest completed four-cell evidence
 
