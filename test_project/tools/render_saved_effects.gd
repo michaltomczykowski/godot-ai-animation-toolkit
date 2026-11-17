@@ -342,6 +342,10 @@ func _process(delta: float) -> bool:
 			return false
 	_elapsed += delta
 	_frames += 1
+	# Request exit before the iteration's draw, which still runs for this
+	# last frame. A quit from the signal is too late and adds a movie frame.
+	if _frames >= roundi(float(_case.fps) * float(_case.seconds)):
+		quit(1 if not _logger.errors.is_empty() or not _runtime_failures.is_empty() else 0)
 	return false
 
 func _observe_draw_frame() -> void:
@@ -356,7 +360,7 @@ func _observe_draw_frame() -> void:
 	_last = states
 	_different = _different or states[0] != states[1]
 	_samples.append({"frame": _frames, "time": _elapsed, "take": 2 if _second_take else 1, "states": states, "presentation": _presentation_states(), "players": [_player_times(_fixtures[0], "undo"), _player_times(_fixtures[1], "redo")]})
-	if _frames >= roundi(float(_case.fps) * float(_case.seconds)):
+	if _frames == roundi(float(_case.fps) * float(_case.seconds)):
 		var report := {"schema_version": 1, "operation": _case.operation,
 			"case_id": _case.id, "header_rect": [12, 8, 1376, 170], "startup_capture": _startup_capture, "capture_geometry": _capture_geometry, "runtime_failures": _runtime_failures, "engine_errors": _logger.errors,
 			"camera_presentation": _camera_presentation(), "native_camera_states": _camera_states(), "scenes": _case.scenes, "dependencies_verified": _resource_checks, "samples": _samples,
@@ -373,4 +377,6 @@ func _observe_draw_frame() -> void:
 			quit(1)
 			return
 		file.store_string(JSON.stringify(report, "  "))
-		quit(1 if not _logger.errors.is_empty() or not _runtime_failures.is_empty() else 0)
+		file.close()
+		if not _logger.errors.is_empty() or not _runtime_failures.is_empty():
+			quit(1)
