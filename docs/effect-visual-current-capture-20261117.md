@@ -75,6 +75,12 @@ run `44161718158` returned 16 scoped public cases and all 32 exact scene
 files from each released core. The Linux inputs await capture or a
 separate equivalence review. No Linux visual binding was added by the export.
 
+The subsequent fixed Windows playback of the Linux-authored saved
+scenes passed all 96 native plays per core. Both cores reproduced all
+1,680 reviewed graph and 4,320 reviewed rig source PNGs and decoded
+frame and timestamp records. The four-cell ledger joins the results to
+each Linux public authoring case and retains the Windows renderer identity.
+
 ## Exact modifier replay
 
 Five fresh Windows 4.2.1 cases from `rig_modifier_history` ran at `a0acf2d`.
@@ -115,6 +121,31 @@ Private `exact-edit-temporal-pixels-r002/decoded-temporal-witnesses.json`
 SHA-256 `8113c77f1a2ba1b676719c588a775f8260f3445eb6917c844941d5a5a628d01c`.
 The ten comparisons await a scoped independent assessment of the fresh
 recordings.
+
+The current damage bar and progress-fill movies also match the expected
+integer fill width on all 1,440 decoded frames. The witness uses Godot
+4.7.2's four-pixel default fill margin and rounds the proportional
+remainder. Both widgets visibly reset at the second take. The typewriter
+and counter each have 360 byte-identical source
+PNG pairs across fresh takes. In the decoded videos, the typewriter reveals
+and holds the full phrase and the counter visibly moves from 0 to 100 and
+resets. Source text regions provide stable endpoints alongside the native
+values. The private widget proof is
+`visual-ui-decoded-frame-probes-r001/drawn-widget-effects.json`, SHA-256
+`762ccc326afd1c2831f01bdf53e4237aa7ff5122472cbb68c1ac9f04c4d0338a`.
+These widget checks also await independent assessment for the fresh films.
+
+## Bundled dummy setup replay
+
+The original public Windows 4.2.1 half-idle/half-walk setup was rendered
+with the fixed front and side views and the same native solver observer.
+The isolated run selects only the bundled dummy. All 360 PNGs match
+the original independently reviewed dummy segment. The admitted video
+is a lossless copy of those six seconds from the reviewed movie and
+matches the exact decoded pixels and timestamps. The visual binding uses
+the same public case as the existing independent three-clock effect check.
+Private `setup-dummy-exact-visual-staging-r001/setup-visual-evidence-records.json`
+SHA-256 `64073f7f451f822de776161b03310a7cfde99c63bb034596e255518ea228affe`.
 
 ## Completed batch and sampled visual review
 

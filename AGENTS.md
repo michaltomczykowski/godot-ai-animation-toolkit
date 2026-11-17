@@ -15,8 +15,10 @@ sequence plays passed, and all 1,320 frames match the independently reviewed
 movie. The ledger leaves 59 distinct visual operation gaps. Ten fresh edit
 films have full decoded pixel witnesses
 under `exact-edit-temporal-pixels-r002` and await independent assessment.
-Linux-authored graph/rig receipts are replaying serially on Windows under
-`linux-visual-repro-a0acf2d-4.2.1-r001` and the corresponding 4.3.0 folder.
+Linux-authored graph and rig receipts match the reviewed movies on fixed
+Windows playback. The dummy setup also has an admitted visual binding.
+Use `case-gap-ledger-with-exact-setup-visual-r013.json`. There are 58
+distinct visual gaps.
 The Linux motion inputs are run `44148286646` and the setup inputs are
 `44148826193`. The capture checkpoint lists the complete private visual
 review packet. Visual qualification and official crash stability are open.
@@ -38,6 +40,12 @@ Use the static preview join in
 one visual operation across all four cells. The required release receipt
 is still pending. The roadmap and candidate assembly record Windows
 route timeouts and their new stage diagnostics.
+
+The two variants in `44158710552` compiled and reached editor readiness.
+Both attach subprocesses closed before the first public call after XDG
+isolation changed the capability path. The diagnostic preview harness now
+forwards the capability location. Check `44169897306` for the stock preview before
+the next two source builds. The stock allocator abort remains open.
 
 ## Latest active capture queue, November 17
 

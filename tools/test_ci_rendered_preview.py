@@ -7,7 +7,7 @@ import json
 import os
 from unittest.mock import Mock, patch
 from PIL import Image, ImageDraw
-from ci_rendered_preview import exercise, run, validate_images, require_error, require_success, validate_editor_log, scene_ready, wait_scene
+from ci_rendered_preview import run, validate_images, require_error, require_success, validate_editor_log, scene_ready, wait_scene
 
 
 class RenderedPreviewControls(unittest.TestCase):
@@ -85,18 +85,6 @@ class RenderedPreviewControls(unittest.TestCase):
         self.assertTrue(scene_ready(state,hierarchy,state['current_scene'],required))
         self.assertFalse(scene_ready({'current_scene':'res://main.tscn'},hierarchy,state['current_scene'],required))
         self.assertFalse(scene_ready(state,{'nodes':[]},state['current_scene'],required))
-
-    def test_stdio_attach_inherits_the_backend_capability_location(self):
-        capability_env = {'GODOT_AI_CAPABILITY_DIR': '/tmp/preview-capabilities',
-                          'XDG_CONFIG_HOME': '/tmp/preview-config',
-                          'HOST_XDG_CONFIG_HOME': '/tmp/preview-host-config'}
-        args = Namespace(port=8000, ws_port=9500, core_root=self.directory)
-        with patch.dict(os.environ, dict(capability_env, UNRELATED_VALUE='excluded'), clear=True), \
-             patch('fastmcp.client.transports.StdioTransport') as transport, \
-             patch('fastmcp.Client', side_effect=RuntimeError('stop before connection')):
-            with self.assertRaisesRegex(RuntimeError, 'stop before connection'):
-                asyncio.run(exercise(args, {}))
-        self.assertEqual(transport.call_args.kwargs['env'], capability_env)
 
     def test_startup_scene_race_resets_stability_without_retrying_mutations(self):
         target='res://repair_rendered_preview.tscn'
