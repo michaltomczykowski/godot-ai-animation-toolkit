@@ -19,6 +19,9 @@ jobs:
       PATCH_SHA: 0378c9c898b32606d19547cd076a63b2800763ac4ff3c7e74fb0f7a717c71001
       LIBGL_ALWAYS_SOFTWARE: '1'
       GALLIUM_DRIVER: llvmpipe
+      # The preview uses OpenGL and no baked lightmaps. Both diagnostic
+      # builds omit the optional Embree-backed module that failed to link.
+      GODOT_BUILD_PROFILE: 'platform=linuxbsd target=editor arch=x86_64 production=no debug_symbols=yes module_raycast_enabled=no'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -52,7 +55,8 @@ jobs:
           printf '%s  %s\n' "$PATCH_SHA" "$patch_file" | sha256sum --check
           git -C .ci/godot apply --check "$patch_file"
           cd .ci/godot
-          scons platform=linuxbsd target=editor arch=x86_64 production=no debug_symbols=yes -j3
+          read -ra build_args <<< "$GODOT_BUILD_PROFILE"
+          scons "${build_args[@]}" -j3
           mkdir -p "$RUNNER_TEMP/engine-control"
           cp bin/godot.linuxbsd.editor.x86_64 "$RUNNER_TEMP/engine-control/godot-baseline"
       - name: Patched build at the same revision
@@ -60,7 +64,8 @@ jobs:
           patch_file="$PWD/diagnostics/godot-4.7.2-doc-queue.patch"
           cd .ci/godot
           git apply "$patch_file"
-          scons platform=linuxbsd target=editor arch=x86_64 production=no debug_symbols=yes -j3
+          read -ra build_args <<< "$GODOT_BUILD_PROFILE"
+          scons "${build_args[@]}" -j3
           cp bin/godot.linuxbsd.editor.x86_64 "$RUNNER_TEMP/engine-control/godot-locked"
           for engine in "$RUNNER_TEMP/engine-control"/godot-*; do
             sha256sum "$engine"
