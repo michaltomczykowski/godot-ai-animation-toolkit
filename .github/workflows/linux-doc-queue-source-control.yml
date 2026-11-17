@@ -6,6 +6,8 @@ on:
     paths:
       - .github/workflows/linux-doc-queue-source-control.yml
       - diagnostics/godot-4.7.2-doc-queue.patch
+      - diagnostics/replay-doc-queue-preview.sh
+      - tools/ci_rendered_preview.py
 
 permissions:
   contents: read
@@ -41,6 +43,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: chickensoft-games/setup-godot@c233594225991af5aec714e52457cc76d6df8fa2
+        with:
+          version: '4.7.2'
+          use-dotnet: false
       - name: Install build and preview dependencies
         run: |
           sudo apt-get update
@@ -49,6 +55,8 @@ jobs:
             libpulse-dev libudev-dev libwayland-dev wayland-protocols xvfb xauth mesa-utils \
             libgl1-mesa-dri mesa-vulkan-drivers libvulkan1
           python -m pip install SCons==4.9.1 Pillow==11.3.0 -e .ci/godot-ai
+      - name: Verify renderer and isolated attach with official Godot before building
+        run: bash diagnostics/replay-doc-queue-preview.sh stock "$(command -v godot)"
       - name: Verify source and baseline build
         run: |
           test "$(git -C .ci/godot rev-parse HEAD)" = "$ENGINE_SHA"
@@ -77,31 +85,8 @@ jobs:
           status=0
           for variant in baseline locked; do
             engine="$RUNNER_TEMP/engine-control/godot-$variant"
-            project="$RUNNER_TEMP/preview-$variant"
-            export XDG_CONFIG_HOME="$RUNNER_TEMP/preview-config-$variant"
-            export XDG_DATA_HOME="$RUNNER_TEMP/preview-data-$variant"
-            export XDG_CACHE_HOME="$RUNNER_TEMP/preview-cache-$variant"
-            mkdir -p "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME"
-            cp -a test_project "$project"
-            ln -s "$PWD/.ci/godot-ai/plugin/addons/godot_ai" "$project/addons/godot_ai"
-            ln -s "$PWD/addons/godot_ai_animation" "$project/addons/godot_ai_animation"
-            if ! "$engine" --headless --path "$project" --rendering-method gl_compatibility --rendering-driver opengl3 --import; then
-              echo "EXPERIMENT_IMPORT_FAILED variant=$variant"
+            if ! bash diagnostics/replay-doc-queue-preview.sh "$variant" "$engine"; then
               status=1
-              continue
-            fi
-            rm -f "$project/.godot/editor/editor_script_doc_cache.res"
-            output="$RUNNER_TEMP/preview-results-$variant"
-            if xvfb-run -a -s '-screen 0 1280x1024x24 +extension GLX' \
-                python tools/ci_rendered_preview.py --renderer-profile linux-mesa-llvmpipe \
-                --core-root .ci/godot-ai --project "$project" --output "$output" --godot "$engine"; then
-              echo "EXPERIMENT_PREVIEW_PASSED variant=$variant"
-            else
-              echo "EXPERIMENT_PREVIEW_FAILED variant=$variant"
-              status=1
-            fi
-            if test -f "$output/editor.log"; then
-              cat "$output/editor.log"
             fi
           done
           exit "$status"
