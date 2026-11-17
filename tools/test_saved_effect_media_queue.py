@@ -73,4 +73,34 @@ class QueueControls(unittest.TestCase):
         with self.assertRaises(ValueError): queue.media_metadata({'streams':[{'codec_type':'video','width':1152,'height':648,'avg_frame_rate':'60/1'}]},self.case)
 
 
+    def test_resume_preserves_verified_prefix_and_skips_completed_case(self):
+        previous=self.args.output
+        second=dict(self.case,id='animation_fx.audio_cue:second')
+        self.plan.write_text(json.dumps({'kind':'saved_effect_render_plan','cases':[self.case,second]}))
+        self.args.reuse=['0='+str(self.capture),'1='+str(self.capture)]
+        def fail_second(command,**kwargs):
+            if 'case01' in str(command):
+                raise subprocess.CalledProcessError(3,command)
+            return self.runner(command,**kwargs)
+        with patch.object(queue,'verify_inputs'),patch.object(queue,'validate_capture',return_value=self.identity):
+            self.assertEqual(queue.run(self.args,fail_second),1)
+            old=queue.sha(previous/'queue.json')
+            self.args.resume_from=previous
+            self.args.output=self.root/'resumed'
+            self.args.reuse=['1='+str(self.capture)]
+            self.commands.clear()
+            self.assertEqual(queue.run(self.args,self.runner),0)
+            self.assertTrue(all('case00' not in str(cmd) for cmd in self.commands))
+            new=queue.read(self.args.output/'queue.json')
+            self.assertEqual(new['first_plan_case'],1)
+            self.assertEqual(new['preserved_prefix']['sha256'],old)
+            self.assertEqual(new['cases'][0]['index'],1)
+            self.assertEqual(queue.sha(previous/'queue.json'),old)
+            (previous/'case00/native-comparison.mp4').write_bytes(b'changed')
+            self.args.output=self.root/'corrupted-resume'
+            with self.assertRaisesRegex(ValueError,'Previous complete media differs'):
+                queue.run(self.args,self.runner)
+            self.assertFalse(self.args.output.exists())
+
+
 if __name__=='__main__': unittest.main()

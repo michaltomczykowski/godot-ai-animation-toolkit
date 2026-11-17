@@ -17,17 +17,13 @@ from fractions import Fraction
 from check_saved_effects import check, capture_failures
 from ci_rendered_preview import validate_editor_log
 from movie_capture_startup import run_capture, override_bytes
+from review_receipts import write_json as durable
 
 ROOT=Path(__file__).resolve().parents[1]
 
 def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def read(path): return json.loads(Path(path).read_text(encoding='utf-8-sig'))
 
-def durable(path,value):
-    temporary=path.with_suffix(path.suffix+'.tmp')
-    with temporary.open('w',encoding='utf-8') as stream:
-        json.dump(value,stream,indent=2);stream.flush();os.fsync(stream.fileno())
-    os.replace(temporary,path)
 
 def verify_inputs(plan,project,repo=ROOT):
     if plan.get('kind')!='saved_effect_render_plan' or not plan.get('cases'): raise ValueError('invalid immutable plan')
@@ -87,15 +83,55 @@ def media_metadata(value,case):
         raise ValueError('encoded video dimensions/FPS differ from capture')
     if bool(audios)!=bool(case.get('audio_output_required')): raise ValueError('encoded audio stream ownership mismatch')
 
+def preserved_prefix(previous, plan, plan_sha):
+    """Revalidate an immutable complete prefix of a failed, inactive queue."""
+    checkpoint_path=previous/'queue.json'
+    if (previous/'queue.lock').exists():
+        raise ValueError('Previous capture queue is still locked')
+    checkpoint=read(checkpoint_path)
+    if (checkpoint.get('status')!='failed_preserved' or checkpoint.get('plan_sha256')!=plan_sha
+            or checkpoint.get('first_plan_case',0)!=0):
+        raise ValueError('Expected an inactive failed queue for the same full plan')
+    rows=checkpoint['cases']
+    if not 0 < len(rows) < len(plan['cases']):
+        raise ValueError('Expected a nonempty incomplete captured prefix')
+    for i,closed in enumerate(rows):
+        folder=previous/f'case{i:02d}'
+        path=folder/'media-receipt.json'
+        case=plan['cases'][i]
+        if (closed['index']!=i or closed['case_id']!=case['id']
+                or Path(closed['receipt']).resolve()!=path.resolve() or sha(path)!=closed['sha256']):
+            raise ValueError('Previous complete receipt differs from its checkpoint')
+        receipt=read(path)
+        if (receipt['plan_sha256']!=plan_sha or receipt['case_id']!=case['id']
+                or receipt['operation']!=case['operation']
+                or receipt['full_decode']['frames']!=case['fps']*case['seconds']
+                or abs(receipt['full_decode']['duration_s']-case['seconds'])>1/case['fps']+.001
+                or sha(folder/'native-comparison.mp4')!=receipt['video_sha256']):
+            raise ValueError('Previous complete media differs from the bound case')
+        media_metadata(receipt,case)
+        if validate_capture(case,Path(receipt['capture_folder']),plan_sha)!=receipt['capture_identity']:
+            raise ValueError('Previous complete capture changed')
+    return {'checkpoint':str(checkpoint_path), 'sha256':sha(checkpoint_path), 'cases':rows}
+
+
 def run(args,runner=subprocess.run):
     plan_path=args.plan.resolve();project=args.project.resolve();output=args.output.resolve()
     plan=read(plan_path);plan_sha=sha(plan_path)
     verify_inputs(plan,project)
     reused={int(item.split('=',1)[0]):Path(item.split('=',1)[1]).resolve() for item in args.reuse}
+    previous=getattr(args,'resume_from',None)
+    if previous and output.exists():
+        raise ValueError('Resume requires a fresh output directory')
+    prefix=preserved_prefix(previous.resolve(),plan,plan_sha) if previous else None
+    first=len(prefix['cases']) if prefix else 0
+    if any(i < first or i >= len(plan['cases']) for i in reused):
+        raise ValueError('Reuse index is outside the work range')
     output.mkdir(parents=True,exist_ok=True)
     lock=output/'queue.lock'
     with lock.open('x') as stream: stream.write(str(os.getpid()))
     state={'schema_version':1,'plan':str(plan_path),'plan_sha256':plan_sha,'status':'starting','cases':[],
+        'first_plan_case':first,'preserved_prefix':prefix,
         'visual_review':'pending','audio_output_review':'pending','qualification':'pending'}
     producers={name:sha(Path(__file__).with_name(name)) for name in
         ('saved_effect_media_queue.py','check_saved_effects.py','movie_capture_startup.py')}
@@ -105,7 +141,7 @@ def run(args,runner=subprocess.run):
         state.update(status=name,current_case=index);durable(checkpoint,state)
     try:
         durable(checkpoint,state)
-        for index,case in enumerate(plan['cases']):
+        for index,case in enumerate(plan['cases'][first:],first):
             verify_inputs(plan,project)
             if sha(plan_path)!=plan_sha: raise ValueError('immutable plan changed during queue')
             folder=output/f'case{index:02d}'
@@ -176,4 +212,5 @@ if __name__=='__main__':
     p.add_argument('--output',type=Path,required=True);p.add_argument('--godot',required=True)
     p.add_argument('--ffmpeg',required=True);p.add_argument('--ffprobe',required=True)
     p.add_argument('--reuse',action='append',default=[],metavar='INDEX=DIR')
+    p.add_argument('--resume-from',type=Path,help='Validate an inactive failed queue and write remaining cases to a fresh output')
     raise SystemExit(run(p.parse_args()))

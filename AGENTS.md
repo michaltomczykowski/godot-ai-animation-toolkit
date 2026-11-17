@@ -2,15 +2,20 @@
 
 ## Latest active capture queue, November 17
 
+Read private `effect-predraw-remaining-resume-r003/queue.json` before any
+new capture. The previous queue failed a Windows checkpoint replacement
+after six complete videos. The resume validated those six receipts and
+encoded case 06 from its retained 720 frames. Original indices and files
+are preserved. Follow the current capture document for review progress.
+
 Do not restart the old reset-aligned queue. It stopped after 17 completed
 films because native SceneTree observation preceded SpriteFrames' idle
 update and disagreed with the drawn atlas cell. 1a1cf04/014f362 move
 observation to RenderingServer.frame_pre_draw and request final quit
 before that draw. Failed 721-frame probe retained. Corrected two-case
 pilot effect-predraw-probe-r002 passes and the full encoded-pixel SpriteFrames
-audit reduces 144 mismatches to zero of 720. Current queue private
-effect-predraw-remaining-r002 uses capture-plan-predraw-remaining-r002.json,
-read queue.json before any other GPU launch. See effect-visual-current-
+audit reduces 144 mismatches to zero of 720. Both pre-draw queues use
+capture-plan-predraw-remaining-r002.json. See effect-visual-current-
 capture-20261117.md for details, preliminary analysis, and audio proof.
 No release confirmation while the audit and Linux stability remain open.
 

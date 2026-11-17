@@ -51,7 +51,8 @@ def prepare(queue, plan, limit=None, offset=0):
     result = []
     end = offset+limit if limit is not None else None
     completed = checkpoint['cases'][offset:end]
-    for index, closed in enumerate(completed, offset):
+    first = checkpoint.get('first_plan_case', 0)
+    for index, closed in enumerate(completed, first+offset):
         folder = queue / f'case{index:02d}'
         receipt_file = folder / 'media-receipt.json'
         if (closed['index'] != index or Path(closed['receipt']).resolve() != receipt_file.resolve()
@@ -64,7 +65,7 @@ def prepare(queue, plan, limit=None, offset=0):
                 or receipt['operation'] != case['operation']):
             raise ValueError('Captured operation or plan does not match')
         video = folder / 'native-comparison.mp4'
-        native_path = folder / 'capture/native-observations.json'
+        native_path = Path(receipt['capture_folder']) / 'native-observations.json'
         if (sha(video) != receipt['video_sha256']
                 or sha(native_path) != receipt['capture_identity']['native_report_sha256']):
             raise ValueError('Captured video or native observations changed')
@@ -89,7 +90,7 @@ def prepare(queue, plan, limit=None, offset=0):
                        'observation_phase': native.get('observation_phase', 'legacy_scene_tree_process'),
                        'visual_status': 'pending_review'})
     return {'kind': 'saved_effect_review_plan', 'capture_plan_sha256': checkpoint['plan_sha256'],
-            'queue_status_at_read': checkpoint['status'], 'first_queue_case': offset, 'cases': result,
+            'queue_status_at_read': checkpoint['status'], 'first_queue_case': first+offset, 'cases': result,
             'scope': 'Selection schedule only; video extraction and visual assessment are separate.'}
 
 

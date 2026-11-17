@@ -1,5 +1,27 @@
 # Current public effect recording checkpoint
 
+## Resume after Windows checkpoint contention
+
+The 47-case queue completed and fully decoded six videos. Case 06 also
+captured all 720 frames and removed its owned viewport override. Windows
+denied the atomic checkpoint replacement before encoding case 06.
+The queue now uses the shared durable JSON writer, which retries bounded
+Windows sharing violations. `--resume-from` starts a fresh output,
+revalidates the completed prefix against the same plan, and preserves the
+original case indices and evidence. The temporal review planner can read
+the resumed entries, including native observations from a reused capture.
+
+Read `effect-predraw-remaining-resume-r003/queue.json` for the active
+status. It revalidated the six original receipts and encoded and decoded
+the saved case 06 without rerendering. The original failed checkpoint and
+all source frames are retained under `effect-predraw-remaining-r002`.
+
+The first four corrected videos yielded 230 selected decoded frames.
+Both takes' overview samples show the shake offset and recovery, the zoom
+accent and settling grid, the hit flash contrast and restoration, and the
+typewriter reset and progressive reveal. These are observations from
+encoded frames. Full temporal review and the operation audit remain open.
+
 ## Viewport pre-draw observation
 
 The reset-aligned batch reached 17 completed cases. Decoded comparisons
@@ -46,6 +68,15 @@ Receipts: `case12/audio-native-verify-r001.json` and
 Latest archived CI preview checkout `a8c3157`: both ordinary Linux
 preview bundles pass the exact dependency gate and both postmortem jobs
 report no crash. That does not close the intermittent native abort.
+
+Private `linux-doc-queue-source-control-r001` contains a synchronization
+experiment against exact Godot source `ed1daf0bf001b61586d9930840f2f1394092c079`.
+Its queue lock covers pending document add/remove mutations, reset, drain,
+and readiness publication. Script loads, documentation retrieval and
+thread joins run outside the lock. The patch applies cleanly. Compiler
+and runtime results remain pending under the separate engine identity.
+Patch SHA-256:
+`0378c9c898b32606d19547cd076a63b2800763ac4ff3c7e74fb0f7a717c71001`.
 
 ## Corrected take boundary
 
