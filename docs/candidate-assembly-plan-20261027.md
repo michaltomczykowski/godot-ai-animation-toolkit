@@ -120,6 +120,20 @@ dependencies; keep them pending until current case/output parity is shown.
 This indexes existing assessments without changing their limits or granting
 candidate visual passes.
 
+Direct saved-scene byte comparison found no exact undo/redo hash pair across
+780 current observations for the 49 historical representatives. A second
+comparison used the actual original inner-case IDs and public test-run links,
+retaining raw history identities. It matched 21 representatives across 20
+operations to current Windows 4.2.1 cases by exact request parameters
+(removing only the editor-owned path prefix) and complete recorded saved
+undo/redo snapshots. The initial comparison omitted inner dispatch cases
+because it required invocation and saved playback in the same report row;
+the corrected scan links the separate outer test-run and inner history rows.
+Private `effect-visual-structural-parity-r002.json` SHA-256
+`f8c94c3718de5dd5018bcd76c29efd3a1006568e2a571c463a2d61f1b10209a6`.
+Treat those 20 operations as candidates for the remaining rendering and
+external asset parity checks. The result does not grant visual qualification.
+
 ## Linux timeout diagnosis
 
 Run 40359394495, Linux clean ZIP with core 4.2.1, reached the editor's
