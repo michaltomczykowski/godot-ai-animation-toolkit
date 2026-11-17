@@ -36,6 +36,19 @@ independent release assessment and final audit receipt are still required.
 The current effect batch targets 47 of 82 visual operation bindings. The
 other 35 lie in graph, preview, motion, rig, modifier, and sequence work.
 
+Static preview is now staged as the first of those 35 bindings. The four
+audited `a0acf2d` calls and their four independently reviewed predecessors
+pass the strict preview bundle adapter. For each Windows/Linux and
+4.2.1/4.3.0 pair, the requested times, inputs, and all four PNG bytes
+match. The staging receipt retains the historical review and the newer
+case IDs and passes the release checker's operation binding validator.
+It is private and covers only the static preview operation.
+
+| Private receipt | SHA-256 |
+| --- | --- |
+| `static-preview-review-media-equivalence-r001.json` | `b62d85ccfe4dfea80f5572125223b071df132b3fbf7d4499894574d6c6909169` |
+| `preview-visual-receipt-staging-r002/preview-visual-evidence-record.json` | `4f24fd050d8200b536485d4ad053f9dc79e9ac15b7746c5b2e5bde9051190859` |
+
 ## Resume after Windows checkpoint contention
 
 The 47-case queue completed and fully decoded six videos. Case 06 also

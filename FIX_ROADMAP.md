@@ -19,6 +19,9 @@ Phase 5's evidence ledger has 82 pending visual operation bindings. The
 current effect capture work targets 47 of them. The other 35 cover graphs,
 rendered preview, character motion and setup, rigs, modifiers, and sequence
 compose. Prior assessments retain their original producer identities.
+The static preview visual binding is staged privately for all four cells.
+All 16 audited PNGs match the independently reviewed bytes exactly, and
+the new case mapping passes the operation binding validator.
 See [current capture checkpoint](docs/effect-visual-current-capture-20261117.md).
 
 ## Release preparation checkpoint (2026-11-17)
