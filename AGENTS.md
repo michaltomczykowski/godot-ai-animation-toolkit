@@ -1,5 +1,21 @@
 # Agent notes
 
+## Resume November 17
+
+Both live MCPs respond after Codex restart. Interactive validation now uses
+Godot AI 4.4.2; restore/recreate the pinned 4.2.1 validation installation for
+release testing, and retain 4.3.0 as the other required cell. The original
+4.2.1 checkout was not modified; the junction backup is under validation/.godot.
+Do not treat the interactive 4.4.2 result as qualification.
+
+Final three-case movie full decode passed (1,680 frames / 28 seconds).
+Private remaining-three-video-assessment-r001 has 60 decoded frames and
+eight sheets; independent review still needs a saved receipt. Fixed-camera
+sequence assessment is committed. Phase 5 raw CI admission passed for all
+four cells; next admit separate preview, motion and assessment receipts by
+source and case, then run the blocking qualification gate. See
+docs/candidate-assembly-plan-20261027.md. Linux stability remains unresolved.
+
 ## Authoritative phase4,27October09:50UTC
 
 Primary9f9792c, docs/operation-media-coverage.json dirtycheckpoint. Enginequeuefree.
