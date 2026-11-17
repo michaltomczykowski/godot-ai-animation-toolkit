@@ -86,7 +86,7 @@ def stage_setup(root, project, godot, context):
     route = root / 'setup-public/responsive-extracted-stationary-no-turn/route.json'
     original = load(route)
     case, = original['cases']
-    if original['source_head'] != source or not original['passed'] or case['id'] != 'dummy' or case['request'] != REQUEST:
+    if original['source_head'] != source or not case['passed'] or case['id'] != 'dummy' or case['request'] != REQUEST:
         raise ValueError('Expected a completed dummy setup')
     scene = case['scene']
     relative = scene.removeprefix('res://')
@@ -236,6 +236,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     for key in ('audit', 'core', 'output', 'godot'):
         parser.add_argument('--' + key, type=Path, required=True)
+    parser.add_argument('--setup-only', action='store_true')
     args = parser.parse_args()
     audit, core, output, godot = (path.resolve() for path in (args.audit, args.core, args.output, args.godot))
     sys.path.insert(0, str(audit / 'tools'))
@@ -249,7 +250,7 @@ if __name__ == '__main__':
     checked([str(godot), '--headless', '--path', str(project), '--import'], output / 'import.log', 140)
     references = Path(__file__).resolve().parent / 'transition-references'
     failures = {}
-    for phase in ('motion', 'setup'):
+    for phase in (('setup',) if args.setup_only else ('motion', 'setup')):
         try:
             replay(audit, core, godot, output / phase, references, setup=phase == 'setup')
         except Exception as error:

@@ -1,4 +1,4 @@
-name: Official Linux motion-effect evidence
+name: Official Linux setup-effect evidence
 
 on:
   push:
@@ -39,11 +39,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Run seven selected effects over the released public route
+      - name: Run the remaining setup effect over the released public route
         run: |
           python -m pip install -e .ci/godot-ai
           python diagnostics/replay_linux_motion_effects.py --audit .ci/audit \
-            --core .ci/godot-ai --output motion-evidence --godot "$(command -v godot)"
+            --core .ci/godot-ai --output motion-evidence --godot "$(command -v godot)" --setup-only
       - uses: actions/upload-artifact@v4
         if: always()
         with:
