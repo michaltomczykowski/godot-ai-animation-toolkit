@@ -8,7 +8,7 @@ import subprocess
 import time
 
 
-def progress(args, stage, **payload):
+def progress(args, stage, *, marker='MOTION_SEQUENCE_PROGRESS', **payload):
     now=time.perf_counter()
     if not hasattr(args,'_gate_started'):
         args._gate_started=now
@@ -18,7 +18,7 @@ def progress(args, stage, **payload):
     args._gate_progress.update(payload)
     args._gate_progress['stage']=stage
     args._gate_progress['events'].append(event)
-    print('MOTION_SEQUENCE_PROGRESS='+json.dumps(event,sort_keys=True),flush=True)
+    print(marker+'='+json.dumps(event,sort_keys=True),flush=True)
     record=getattr(args,'record',None)
     if record:
         record=Path(record)

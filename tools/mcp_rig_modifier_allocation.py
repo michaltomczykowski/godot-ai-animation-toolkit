@@ -10,6 +10,7 @@ from fastmcp import Client
 from fastmcp.client.transports import StdioTransport
 from mcp_presets_audit import call
 from mcp_preset_library_history import valid_suite
+from gate_diagnostics import bounded_run, progress
 
 EXPECTED = {
     'test_ik_allocation': 234,
@@ -23,18 +24,32 @@ EXPECTED = {
 }
 
 async def run(args: argparse.Namespace) -> int:
+    def stage(name, **details):
+        progress(args, name, marker='RIG_MODIFIER_ALLOCATION_PROGRESS', **details)
+
+    stage('attach_start')
     transport = StdioTransport(sys.executable, ['-m', 'godot_ai', 'attach', '--port', str(args.port),
         '--ws-port', str(args.ws_port)], cwd=str(args.core_root), keep_alive=False)
     async with Client(transport) as client:
+        stage('session_activate_start')
         await client.call_tool('session_activate', {'session_id': args.session_hint})
+        stage('scene_open_start')
         await call(client, 'scene_open', {'path': 'res://main.tscn'})
+        stage('test_run_start')
         suite = await call(client, 'test_run', {'suite': 'rig_modifier_allocation', 'verbose': True})
+        stage('test_run_returned_client_close_start')
+    stage('client_closed')
     passed = valid_suite(suite, EXPECTED)
     report = {}
     diagnostics = ''
     if passed:
-        runtime = subprocess.run([args.godot, '--headless', '--path', str(args.project_root),
-            '--script', 'res://tools/check_rig_modifier_origin.gd'], capture_output=True, text=True, timeout=45, check=False)
+        stage('native_start')
+        command = [args.godot, '--headless', '--path', str(args.project_root),
+                   '--script', 'res://tools/check_rig_modifier_origin.gd']
+        record = getattr(args, 'record', None)
+        runtime = (bounded_run(command, 45, record, 'modifier_origin') if record else
+                   subprocess.run(command, capture_output=True, text=True, timeout=45, check=False))
+        stage('native_returned', native_returncode=runtime.returncode)
         marker = 'RIG_MODIFIER_ORIGIN_RUNTIME='
         payload = next((line[len(marker):] for line in runtime.stdout.splitlines() if line.startswith(marker)), '')
         report = json.loads(payload) if payload else {}
@@ -52,5 +67,6 @@ def main() -> int:
     parser.add_argument('--session-hint', required=True)
     parser.add_argument('--port', type=int, required=True)
     parser.add_argument('--ws-port', type=int, required=True)
+    parser.add_argument('--record', type=Path)
     return asyncio.run(run(parser.parse_args()))
 if __name__ == '__main__': raise SystemExit(main())

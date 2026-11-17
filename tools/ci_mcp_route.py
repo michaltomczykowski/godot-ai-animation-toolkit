@@ -630,12 +630,16 @@ def rig_clip_history_gate(args: argparse.Namespace) -> bool:
 
 
 def rig_modifier_allocation_gate(args: argparse.Namespace) -> bool:
-    check = subprocess.run([
+    root = (args.case_output_dir.resolve() if getattr(args, "case_output_dir", None)
+            else Path(args.log).resolve().parent)
+    record = root / "gate-diagnostics" / (Path(args.log).stem + "-modifier-allocation-" + uuid.uuid4().hex + ".json")
+    check = bounded_run([
         sys.executable, str(Path(__file__).with_name("mcp_rig_modifier_allocation.py")),
         "--core-root", str(args.core_root), "--project-root", str(args.project),
         "--session-hint", args.project.name, "--port", str(args.port),
         "--ws-port", str(args.ws_port), "--godot", godot_executable(args.godot),
-    ], capture_output=True, text=True, timeout=120, check=False)
+        "--record", str(record),
+    ], 120, record, 'rig_modifier_allocation')
     marker = "MCP_RIG_MODIFIER_ALLOCATION="
     payload = next((line[len(marker):] for line in check.stdout.splitlines() if line.startswith(marker)), "")
     report = json.loads(payload) if payload else {}
