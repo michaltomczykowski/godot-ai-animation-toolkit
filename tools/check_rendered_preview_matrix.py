@@ -10,8 +10,8 @@ CORES={'4.2.1':'bfc264200584ea5823f18356acb164781f57796d',
        '4.3.0':'b82b5c519b1b17228f70d8effce1626f391bd1dd'}
 
 
-def verify_identity(context, source, core, blobs):
-    if (context.get('tested_source') != source or context.get('platform') != 'linux'
+def verify_identity(context, source, core, blobs, *, platform='linux'):
+    if (context.get('tested_source') != source or context.get('platform') != platform
             or context.get('core_version') != core or context.get('core_commit') != CORES[core]
             or context.get('core_qualification') != 'released'
             or not str(context.get('engine','')).startswith('4.7.2.')):

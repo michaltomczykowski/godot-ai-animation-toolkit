@@ -1,5 +1,17 @@
 # Animation Toolkit repair roadmap
 
+## Release preparation checkpoint (2026-11-17)
+
+Hold before merge, tag, or publication for the user's final instructions.
+Both instrumented Linux clean installs pass on official Godot 4.7.2 with
+Godot AI 4.2.1 and 4.3.0 in both enable orders. The previous allocation
+timeout did not recur, and the separate intermittent editor crash remains
+unresolved. All 103 operations have public invocation evidence in the
+reproducible four-cell staging ledger; seven motion-effect joins and 82
+visual bindings remain pending in that ledger. Existing scoped proof stays
+separate until source, case and media identities are bound.
+See [candidate assembly](docs/candidate-assembly-plan-20261027.md).
+
 ## Phase4 recordings progress (2026-10-27)
 
 Four motion movies and the eight-case bake comparison now pass full decode and

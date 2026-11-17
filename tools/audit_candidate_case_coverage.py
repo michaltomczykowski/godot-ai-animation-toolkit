@@ -1,12 +1,15 @@
 """Admit four raw CI cells and report operation/check gaps; never qualify a release."""
 from __future__ import annotations
 import argparse
+from collections import Counter
 import hashlib
 import json
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import subprocess
 
 from check_release_audit import CORES, required_checks, validate_inventory
+from check_rendered_preview_matrix import verify_identity
+from operation_dependencies import source_blobs
 from validate_release_package import read_blobs
 
 
@@ -109,7 +112,51 @@ def admit_cell(directory, inventory, tested_tree, blobs):
             'operations': coverage}
 
 
-def audit(repo, source, directories):
+def attach_rendered_previews(repo, tested_source, cells, directories):
+    """Bind actual positive public preview cases without changing other checks."""
+    from operation_preview_adapter import verify_preview_bundle
+
+    expected = {(row['platform'], row['core_version']): row for row in cells}
+    bindings = {}
+    dependencies = source_blobs(repo, tested_source)
+    for directory in directories:
+        result = verify_preview_bundle(directory)
+        context, proof = result['context'], result['proof']
+        key = (context.get('platform'), context.get('core_version'))
+        if key not in expected or key in bindings:
+            raise ValueError('Unexpected or duplicate rendered preview cell')
+        verify_identity(context, tested_source, key[1], dependencies, platform=key[0])
+        if context['engine'] != expected[key]['engine']:
+            raise ValueError('Rendered preview engine differs from live-route engine')
+        # The adapter enforces the non-dry, successful public request/response,
+        # in addition to its declared machine checks. It does not assess visuals.
+        checks = {'mcp_invocation': 'pass', **proof['checks']}
+        if checks != {name: 'pass' for name in required_checks('render') - {'visual_review'}}:
+            raise ValueError('Unexpected rendered preview check coverage')
+        bindings[key] = {
+            'case_id': proof['public_case_id'],
+            'checks': checks,
+            'directory': str(directory.resolve()),
+            'context_sha256': sha(directory / 'context.json'),
+            'artifacts': proof['artifacts'],
+            'traces': {p.relative_to(directory).as_posix(): sha(p)
+                       for p in sorted((directory / 'traces').glob('*.jsonl'))},
+        }
+    if set(bindings) != set(expected):
+        raise ValueError('Require one rendered preview bundle per live-route cell')
+    for key, row in expected.items():
+        bound = bindings[key]
+        item = row['operations']['animation_inspect.preview']
+        for check in bound['checks']:
+            passing = item['checks'][check]['pass']
+            if bound['case_id'] not in passing:
+                passing.append(bound['case_id'])
+        item['missing_passing_checks'] = [check for check in item['missing_passing_checks']
+                                          if check not in bound['checks']]
+        item['rendered_preview'] = bound
+
+
+def audit(repo, source, directories, preview_directories=()):
     source = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', source + '^{commit}'], text=True).strip()
     inventory = json.loads(subprocess.check_output(['git', '-C', str(repo), 'show', source + ':docs/operation-audit.json']))
     errors = validate_inventory(inventory)
@@ -128,13 +175,18 @@ def audit(repo, source, directories):
     actual = [(c['platform'], c['core_version']) for c in cells]
     if len(actual) != 4 or set(actual) != {(p, c) for p in ('windows', 'linux') for c in CORES}:
         raise ValueError('Four distinct released-core/platform cells required')
+    if preview_directories:
+        attach_rendered_previews(repo, tested_source, cells, preview_directories)
+    for cell in cells:
+        cell['required_gaps'] = dict(Counter(
+            check for item in cell['operations'].values() for check in item['missing_passing_checks']))
     production = {p for p in set(tested_tree) | set(candidate_tree) if p.startswith('addons/godot_ai_animation/')}
     changes = [p for p in sorted(production) if tested_tree.get(p) != candidate_tree.get(p)]
     return {'schema_version': 1, 'kind': 'admitted_candidate_case_gap_ledger',
             'candidate_source': source, 'tested_source': tested_source, 'production_changes': changes,
             'production_blobs_equal': not changes, 'cells': cells,
             'qualification': 'pending', 'release_approved': False,
-            'scope': 'Raw CI check-to-case presence only. Refusals/failures retained; no cross-cell folding, visual/source bridge or release approval.'}
+            'scope': 'Raw CI and optional exact-source preview check-to-case presence only. Refusals/failures retained; no cross-cell folding, visual/source bridge or release approval.'}
 
 
 def main():
@@ -142,11 +194,13 @@ def main():
     parser.add_argument('--repo', type=Path, required=True)
     parser.add_argument('--source', required=True)
     parser.add_argument('--cell', type=Path, action='append', required=True)
+    parser.add_argument('--preview', type=Path, action='append', default=[],
+                        help='Optional exact-source bundle; if supplied, require all four cells')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     if args.output.exists():
         parser.error('Exclusive output already exists')
-    result = audit(args.repo, args.source, args.cell)
+    result = audit(args.repo, args.source, args.cell, args.preview)
     with args.output.open('x', encoding='utf-8') as stream:
         json.dump(result, stream, indent=2)
     print('CASE_LEDGER_ADMITTED cells=4 operations=103 production_blobs_equal=%s qualification=pending' % result['production_blobs_equal'])

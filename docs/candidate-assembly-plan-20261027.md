@@ -69,6 +69,14 @@ valid-effect joins and 82 visual-review bindings per cell remain pending in
 this ledger. These are missing bindings, not 89 reported failures. The
 historical motion scope and static preview assessment remain separate inputs.
 
+The same preview join is now available as `--preview` (one bundle for each
+of four cells) in the coverage auditor. It refuses missing, duplicate or
+foreign-source previews before mutating the ledger. The reproducible rerun
+`case-gap-ledger-with-preview-r002.json` has SHA-256
+`9ed3fca5125c38abac01ef477e3e2021b30c2c0b9eea86bb68042c3069500598`.
+Tested with all four actual bundles, 20 related unit tests, and three negative
+controls on the actual archive inputs. No visual check is inferred here.
+
 ## Linux timeout diagnosis
 
 Run 40359394495, Linux clean ZIP with core 4.2.1, reached the editor's
@@ -91,6 +99,15 @@ enable orders at actual checkout `644fffd509300a60f353f647a3ccef174cb9f56f`.
 All four route logs include the allocation-gate pass and all four editor log
 hashes match the clean-install receipts. This was the run before adding the
 allocation progress capture, so it does not identify the original stall.
+
+In instrumented run 44106189254 both Linux core versions pass clean ZIP
+installation in both enable orders at actual checkout
+`1b5b2829ee559b9410fb67fae905343436d7bcb0`. Editor log hashes matched all four
+receipt entries. Allocation reached native return at 5.66/5.54 seconds for
+4.2.1 and 4.92/4.97 seconds for 4.3.0 (core first / toolkit first).
+Raw archives are retained privately in `ci-3c0dd2b-linux421-r001` and
+`ci-3c0dd2b-linux430-r001`. This demonstrates the checkpoints work and the
+allocation gate can pass on both cores. No stall recurred to localize.
 
 ## Native editor abort
 
