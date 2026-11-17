@@ -38,6 +38,13 @@ class NativeObservations(unittest.TestCase):
         self.assertTrue(check(case,report)['native_observation_pass'])
         report['samples'][360]['take']=1
         self.assertFalse(check(case,report)['native_observation_pass'])
+    def test_predraw_capture_refuses_earlier_observation_phase(self):
+        case,report=self.fixture()
+        case['require_predraw_observation']=True
+        report['observation_phase']='scene_tree_process'
+        self.assertFalse(check(case,report)['native_observation_pass'])
+        report['observation_phase']='rendering_server_frame_pre_draw'
+        self.assertTrue(check(case,report)['native_observation_pass'])
     def test_real_target_and_independent_endpoint_required(self):
         case, report=self.fixture()
         self.assertTrue(check(case, report)['native_observation_pass'])

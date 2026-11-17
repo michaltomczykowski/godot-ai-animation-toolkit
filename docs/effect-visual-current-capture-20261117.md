@@ -1,5 +1,52 @@
 # Current public effect recording checkpoint
 
+## Viewport pre-draw observation
+
+The reset-aligned batch reached 17 completed cases. Decoded comparisons
+showed that SpriteFrames still advanced during the nodes' idle processing
+after the SceneTree sample. The old sprite report disagrees with the
+actual captured image at 144 of 720 frame indices, including frames 4,
+359, and 719. Stop receipt:
+`effect-reset-aligned-remaining-r001/capture-stopped-for-predraw-alignment.json`.
+The old batch was stopped after the owned override was removed; prior
+recordings and the just-captured case remain diagnostic evidence.
+
+The renderer now observes via [RenderingServer.frame_pre_draw](https://docs.godotengine.org/en/4.7/classes/class_renderingserver.html#class-renderingserver-signal-frame-pre-draw),
+after node processing and before viewport update. It keeps a static
+in-video heading and stores exact frame/state alignment in the receipt.
+The first probe logged 721 frames because requesting exit from pre-draw
+was too late for Movie Maker. That failure is preserved. The correction
+requests exit from SceneTree on the final iteration while still sampling
+and drawing that iteration.
+
+Fresh `effect-predraw-probe-r002` damage bar and SpriteFrames each pass
+720-frame capture and full decode. The independent palette oracle maps a
+pixel from each source PNG and decoded MP4 frame to its saved sprite
+cell: 144 mismatches for the prior renderer, **zero across all 720
+corrected frames**. Proof SHA-256:
+`2b7a129a6938732d28b32c504cc3bbb55473bdd0e277add72b0db4c5f0ff4a35`.
+The generator and original saved outputs were unchanged.
+
+The new 47-case queue is `effect-predraw-remaining-r001`, with
+`capture-plan-predraw-remaining-r002.json` from
+`effect-public-a0acf2d-r002`. Both strict observation flags are enabled.
+The renderer source for these captures is `014f362`. Read its queue
+checkpoint before starting another renderer. Image review remains separate.
+
+The mid-stage review has 698 decoded frames for 12 operations. It is
+retained as review/diagnosis of the old capture path. Separately, the
+start-of-take audio cue passes both raw PCM and audio decoded from the
+previous batch's actual MP4, at 0.020 s and 6.025 s. The first decoded WAV
+format was WAVE_FORMAT_EXTENSIBLE and rejected by Python 3.11's built-in
+parser; the saved 16-bit PCM decode passes unchanged waveform, timing,
+duration, sound-level and clipping limits. No listening approval claimed.
+Receipts: `case12/audio-native-verify-r001.json` and
+`case12/audio-decoded-verify-r002.json` in the reset-aligned queue.
+
+Latest archived CI preview checkout `a8c3157`: both ordinary Linux
+preview bundles pass the exact dependency gate and both postmortem jobs
+report no crash. That does not close the intermittent native abort.
+
 ## Corrected take boundary
 
 The ordered review of the first five clips found a one-frame mismatch in

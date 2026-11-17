@@ -1,5 +1,19 @@
 # Agent notes
 
+## Latest active capture queue, November 17
+
+Do not restart the old reset-aligned queue. It stopped after 17 completed
+films because native SceneTree observation preceded SpriteFrames' idle
+update and disagreed with the drawn atlas cell. 1a1cf04/014f362 move
+observation to RenderingServer.frame_pre_draw and request final quit
+before that draw. Failed 721-frame probe retained. Corrected two-case
+pilot effect-predraw-probe-r002 passes and the full encoded-pixel SpriteFrames
+audit reduces 144 mismatches to zero of 720. Current queue private
+effect-predraw-remaining-r001 uses capture-plan-predraw-remaining-r002.json,
+read queue.json before any other GPU launch. See effect-visual-current-
+capture-20261117.md for details, preliminary analysis, and audio proof.
+No release confirmation while the audit and Linux stability remain open.
+
 ## Active effect capture queue, November 17
 
 Before starting another Godot/render process, read private
