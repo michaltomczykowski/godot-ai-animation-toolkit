@@ -9,7 +9,7 @@ observation to RenderingServer.frame_pre_draw and request final quit
 before that draw. Failed 721-frame probe retained. Corrected two-case
 pilot effect-predraw-probe-r002 passes and the full encoded-pixel SpriteFrames
 audit reduces 144 mismatches to zero of 720. Current queue private
-effect-predraw-remaining-r001 uses capture-plan-predraw-remaining-r002.json,
+effect-predraw-remaining-r002 uses capture-plan-predraw-remaining-r002.json,
 read queue.json before any other GPU launch. See effect-visual-current-
 capture-20261117.md for details, preliminary analysis, and audio proof.
 No release confirmation while the audit and Linux stability remain open.

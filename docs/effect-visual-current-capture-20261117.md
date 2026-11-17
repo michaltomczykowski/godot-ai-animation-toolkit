@@ -27,7 +27,7 @@ corrected frames**. Proof SHA-256:
 `2b7a129a6938732d28b32c504cc3bbb55473bdd0e277add72b0db4c5f0ff4a35`.
 The generator and original saved outputs were unchanged.
 
-The new 47-case queue is `effect-predraw-remaining-r001`, with
+The new 47-case queue is `effect-predraw-remaining-r002`, with
 `capture-plan-predraw-remaining-r002.json` from
 `effect-public-a0acf2d-r002`. Both strict observation flags are enabled.
 The renderer source for these captures is `014f362`. Read its queue
