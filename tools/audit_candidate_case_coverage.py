@@ -208,11 +208,13 @@ def attach_motion_effects(inventory, tested_source, tested_tree, blobs, cells, d
                ('platform', 'core_version', 'core_commit', 'engine'))]
     if len(matches) != 1:
         raise ValueError('Motion supplement is outside the released matrix')
+    target = matches[0]
+    if 'motion_effect_supplement' in target:
+        raise ValueError('Duplicate motion supplement for the same released cell')
     observed = {k: item['checks'].get('valid_effect', {}).get('pass', [])
                 for k, item in supplement['operations'].items()}
     if {k for k, values in observed.items() if values} != MOTION_EFFECT_KEYS:
         raise ValueError('Motion supplement does not bind the six intended effects')
-    target = matches[0]
     for key in sorted(MOTION_EFFECT_KEYS):
         item = target['operations'][key]
         values = item['checks']['valid_effect']['pass']
@@ -303,6 +305,8 @@ def attach_setup_effect(inventory, tested_source, tested_tree, blobs, cells, rep
     if len(matched) != 1:
         raise ValueError('Setup supplement is outside the released matrix')
     target = matched[0]['operations'][key]
+    if 'setup_effect_supplement' in target:
+        raise ValueError('Duplicate setup supplement for the same released cell')
     target['checks']['valid_effect']['pass'].append(case_id)
     target['missing_passing_checks'] = [n for n in target['missing_passing_checks'] if n != 'valid_effect']
     target['setup_effect_supplement'] = {
@@ -325,7 +329,9 @@ def audit(repo, source, directories, preview_directories=(), motion_directory=No
     tested_source = tested.pop()
     tested_tree, candidate_tree = tree(repo, tested_source), tree(repo, source)
     deps = set()
-    extras = [p for p in (motion_directory, setup_replay.parent if setup_replay else None) if p]
+    motion_directories = (motion_directory,) if isinstance(motion_directory, Path) else motion_directory or ()
+    setup_replays = (setup_replay,) if isinstance(setup_replay, Path) else setup_replay or ()
+    extras = [*motion_directories, *(replay.parent for replay in setup_replays)]
     for p in [*directories, *extras]:
         deps.update(b['git_blob'] for b in load(p / 'operation-context.json')['dependencies'].values())
     blobs = read_blobs(repo, sorted(deps))
@@ -337,10 +343,10 @@ def audit(repo, source, directories, preview_directories=(), motion_directory=No
         attach_rendered_previews(repo, tested_source, cells, preview_directories)
     if preview_visual:
         attach_preview_visual(cells, tested_source, tested_tree, candidate_tree, preview_visual)
-    if motion_directory:
-        attach_motion_effects(inventory, tested_source, tested_tree, blobs, cells, motion_directory)
-    if setup_replay:
-        attach_setup_effect(inventory, tested_source, tested_tree, blobs, cells, setup_replay)
+    for directory in motion_directories:
+        attach_motion_effects(inventory, tested_source, tested_tree, blobs, cells, directory)
+    for replay in setup_replays:
+        attach_setup_effect(inventory, tested_source, tested_tree, blobs, cells, replay)
     for cell in cells:
         cell['required_gaps'] = dict(Counter(
             check for item in cell['operations'].values() for check in item['missing_passing_checks']))
@@ -361,8 +367,10 @@ def main():
     parser.add_argument('--preview', type=Path, action='append', default=[],
                         help='Optional exact-source bundle; if supplied, require all four cells')
     parser.add_argument('--preview-visual', type=Path, help='Independent PNG assessment bound to the four preview cases')
-    parser.add_argument('--motion-effects', type=Path, help='Exact-source six-effect supplement')
-    parser.add_argument('--setup-effect', type=Path, help='Exact-source fixed-speed setup replay')
+    parser.add_argument('--motion-effects', type=Path, action='append',
+                        help='Exact-source six-effect supplement, once per platform/core cell')
+    parser.add_argument('--setup-effect', type=Path, action='append',
+                        help='Exact-source fixed-speed setup replay, once per platform/core cell')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     if args.output.exists():

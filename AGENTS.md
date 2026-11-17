@@ -2,6 +2,12 @@
 
 ## Linux diagnostic and 103-operation audit follow-up
 
+Both Windows cells now have all machine checks. Use
+`ci-f75c324-r001/case-gap-ledger-with-both-windows-motion-r004.json`.
+Its Windows 4.3.0 inputs are the fresh motion directory and dummy setup
+receipt recorded in the candidate assembly plan. Each Linux cell still
+has seven missing machine-effect bindings. Visual qualification is open.
+
 Run `44126929152` failed to link Embree in the baseline. Check retry
 `44142755538` on diagnostics/godot-4.7.2-doc-queue. Both builds use the
 same raycast-disabled profile. The custom build never qualifies the

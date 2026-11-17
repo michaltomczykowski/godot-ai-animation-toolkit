@@ -1,5 +1,45 @@
 # Candidate audit and package: execution plan
 
+## Both Windows machine-effect ledgers complete
+
+Fresh public Godot AI 4.3.0 calls at audited source `a0acf2d` produced the
+six missing Windows dummy motion cases. Idle, turn, jump, strafe, start,
+and stop passed Player and Tree replays at 30/60/120 FPS. The first
+transition replay stopped before playback because the two pinned
+walk and idle files were absent in the isolated project. The resumed
+replay copied the exact archived bytes and reused the six original Godot
+AI outputs. The failed attempt and its logs remain in
+`motion-intent-six-a0acf2d-win430-r001`. The successful case report SHA-256
+is `9c24cac99b85c276dc593fdd130b955cdd3a9ac05d02660719179e3c4ae22993`.
+
+The Windows 4.3.0 setup operation also passed for the bundled dummy. Its
+full rig driver stopped after the dummy because the clean project lacked
+the private X Bot fixture. The completed dummy call, save, and forced
+reopen were admitted from the original trace. Its exact saved scene
+passed the three fixed-speed native plays. The scoped result is
+`setup-intent-a0acf2d-win430-r001/explicit-blend-r001/setup-valid-effect.json`
+with SHA-256
+`a92ec88dd02cfadf6683c28376ac51ec92bfbbd24463825d2e5d08108a7c7ed9`.
+The full-rig attempt remains failed and the dummy-only result stays scoped.
+
+The auditor accepts one `--motion-effects` and one `--setup-effect` per
+platform and released core. It rejects a duplicate cell. The real
+`ci-f75c324-r001/case-gap-ledger-with-both-windows-motion-r004.json` has
+SHA-256 `5a525dff163f9647627960775f4cc5455341dce160747f6b9182c46eb5dabaeb`.
+Both Windows cells now meet all machine-check requirements for 103
+operations. Each Linux cell still has seven missing machine-effect
+bindings. All four have 81 remaining visual operation bindings.
+
+The isolated Windows 4.2.1 transport comparison at `130f3fc` used the
+unchanged pose CRUD and bake-state assertions. Stdio attach passed in
+20.09 s and 9.80 s. Direct HTTP passed in a fresh editor in 14.27 s and
+5.88 s. The local tests did not reproduce either hosted timeout. Private
+`windows-rig-transport-control-r001/execution.json` SHA-256:
+`0f752493cabc670a56fa52b1cc1c0f5f55d7c688acead4769a65734930764729`.
+Official CI `44126626014` passed the exact archived four-cell clean ZIP
+matrix using both enable orders. A local package at `130f3fc` separately
+passed the 96-entry source, ZIP CRC and checksum checks.
+
 ## November 17 audit and CI follow-up
 
 The four-cell ledger now accepts `--preview-visual` with the private

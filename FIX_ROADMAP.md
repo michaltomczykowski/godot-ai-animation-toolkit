@@ -1,5 +1,15 @@
 # Animation Toolkit repair roadmap
 
+## Windows machine-effect audit (2026-11-17)
+
+The seven missing Windows Godot AI 4.3.0 effects now pass on the audited
+source. Both Windows cells have complete machine coverage for all 103
+operations. The private ledger retains seven missing effect bindings in
+each Linux cell and 81 visual bindings in each of the four cells. Both
+local transports pass the focused rig controls. The latest official
+Linux runs pass, and the paired crash experiment remains in progress.
+See [the execution details and receipts](docs/candidate-assembly-plan-20261027.md).
+
 ## Linux build restart and audit admission (2026-11-17)
 
 The first paired Linux run failed to link unpatched Godot at Embree AVX2

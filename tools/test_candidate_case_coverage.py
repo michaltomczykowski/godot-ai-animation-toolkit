@@ -105,6 +105,12 @@ class MotionSupplementJoin(unittest.TestCase):
             self.assertNotIn('motion_effect_supplement', linux)
             self.assertEqual({tuple(row['missing_passing_checks']) for row in linux['operations'].values()},
                              {('valid_effect', 'visual_review')})
+            with self.assertRaisesRegex(ValueError, 'Duplicate motion supplement'):
+                attach_motion_effects({}, 'same-source', {}, {}, [windows, linux], Path('duplicate'))
+            sample['platform'] = 'linux'
+            attach_motion_effects({}, 'same-source', {}, {}, [windows, linux], Path('another-cell'))
+            self.assertEqual({tuple(row['missing_passing_checks']) for row in linux['operations'].values()},
+                             {('visual_review',)})
             sample['tested_source'] = 'different-source'
             with self.assertRaisesRegex(ValueError, 'foreign source'):
                 attach_motion_effects({}, 'same-source', {}, {}, [windows, linux], Path('archive'))
