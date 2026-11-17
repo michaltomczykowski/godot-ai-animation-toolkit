@@ -97,9 +97,13 @@ async def exercise(args, report):
     from mcp_presets_audit import payload
     from operation_case_collector import record_public_call
     from fixture_copy import copy_scene
+    # MCP filters the inherited environment. The attach client must resolve
+    # the same capability directory as the backend and editor.
+    capability_env = {name: os.environ[name] for name in
+                      ('GODOT_AI_CAPABILITY_DIR', 'XDG_CONFIG_HOME', 'HOST_XDG_CONFIG_HOME') if name in os.environ}
     transport = StdioTransport(sys.executable, ['-m','godot_ai','attach',
         '--port',str(args.port),'--ws-port',str(args.ws_port)],
-        cwd=str(args.core_root), keep_alive=False)
+        cwd=str(args.core_root), env=capability_env, keep_alive=False)
     async with Client(transport, timeout=90) as client:
         async def call(name, params):
             try:
