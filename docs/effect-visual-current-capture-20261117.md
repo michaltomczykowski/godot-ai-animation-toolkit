@@ -1,5 +1,31 @@
 # Current public effect recording checkpoint
 
+## Exact case-to-video review packet
+
+Private `effect-visual-review-packet-r001.json` binds all 49 comparisons
+for 47 operations to the original Godot AI inner history case, outer
+public call, saved undo and redo scene bytes, native playback, and
+fully decoded video. The packet rechecks native playback and persisted
+scene hashes. It retains the original presentations for stagger and
+retarget and points to the corrected videos with their per-frame pixel
+proofs. The editor-only counter observation remains pending in the
+original history report. The packet includes the separately captured
+native playback instead of changing the original result.
+
+Packet SHA-256:
+`a43273536c247b38cd60a2b716cf079d571c9fe00a1ad8e6d08b3cd401ee5e9b`.
+Independent assessment and qualification are pending.
+
+The next graph batch uses seven fresh saved public 4.2.1 cases from
+`graph-public-a0acf2d-r001`. Their scene bytes differ from the original
+reviewed graph captures. The new manifest binds each public history case,
+outer public call and saved scene pair. Its SHA-256 is
+`04a4b0e57531b77f34b7b997f0e127d70778aa33532cd84f36d7c93e1581fa6d`.
+The exact-scene native preflight passed all 42 plays. No-effect,
+competing-player and wrong-scene-hash controls behaved as expected.
+The new recording checkpoint is
+`graph-exact-a0acf2d-capture-r001/graph/receipt.json`.
+
 ## Completed batch and sampled visual review
 
 All **47 of 47** pre-draw captures now have native playback receipts and

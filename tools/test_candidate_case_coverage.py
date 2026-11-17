@@ -7,7 +7,10 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from audit_candidate_case_coverage import MOTION_EFFECT_KEYS, admit_cell, attach_motion_effects, attach_preview_visual, confined, sha
+from audit_candidate_case_coverage import (
+    MOTION_EFFECT_KEYS, admit_cell, attach_motion_effects, attach_preview_visual, confined,
+    setup_input_digests, sha,
+)
 from check_release_audit import CORES
 
 
@@ -177,6 +180,35 @@ class PreviewVisualJoin(unittest.TestCase):
             self.attach()
         self.assertTrue(all(not cell['operations'][self.operation]['checks']['visual_review']['pass']
                             for cell in self.cells))
+
+
+class PortableSetupInputs(unittest.TestCase):
+    def test_checks_copied_bytes_and_the_original_context(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            scene = 'res://mortared/dummy.tscn'
+            names = ('mortared/dummy.tscn', 'models/human_dummy/HumanCharacterDummy_F.fbx',
+                     'tools/check_setup_tree_quality.gd', 'addons/godot_ai_animation/runtime/setup_grounding.gd',
+                     'addons/godot_ai_animation/spec/motion_space.gd')
+            digests, dependencies = {}, {}
+            for name in names:
+                relative = 'inputs/' + name
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(name)
+                key = name if name.startswith('addons/') else 'test_project/' + name
+                digests[relative] = sha(path)
+                dependencies[key] = {'sha256': sha(path)}
+            inputs = {'path_base': 'replay', 'paths': digests}
+            self.assertEqual(setup_input_digests(root, inputs, scene, dependencies),
+                             [digests['inputs/mortared/dummy.tscn']])
+            checker = root / 'inputs/tools/check_setup_tree_quality.gd'
+            checker.write_text('wrong checker')
+            with self.assertRaisesRegex(ValueError, 'physical inputs changed'):
+                setup_input_digests(root, inputs, scene, dependencies)
+            digests['inputs/tools/check_setup_tree_quality.gd'] = sha(checker)
+            with self.assertRaisesRegex(ValueError, 'tested context'):
+                setup_input_digests(root, inputs, scene, dependencies)
 
 
 if __name__ == '__main__': unittest.main()

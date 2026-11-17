@@ -229,6 +229,33 @@ def attach_motion_effects(inventory, tested_source, tested_tree, blobs, cells, d
     }
 
 
+def setup_input_digests(replay, inputs, scene, dependencies):
+    pinned = inputs['paths']
+    base = inputs.get('path_base')
+    if base == 'replay':
+        relative_scene = 'inputs/' + scene.removeprefix('res://')
+        expected = {relative_scene, 'inputs/models/human_dummy/HumanCharacterDummy_F.fbx',
+                    'inputs/tools/check_setup_tree_quality.gd',
+                    'inputs/addons/godot_ai_animation/runtime/setup_grounding.gd',
+                    'inputs/addons/godot_ai_animation/spec/motion_space.gd'}
+        if set(pinned) != expected:
+            raise ValueError('Unexpected portable setup inputs')
+        for name in expected - {relative_scene}:
+            path = name.removeprefix('inputs/')
+            dependency = path if path.startswith('addons/') else 'test_project/' + path
+            if dependencies.get(dependency, {}).get('sha256') != pinned[name]:
+                raise ValueError('Portable setup input differs from the tested context: ' + path)
+        paths = {name: confined(replay, name) for name in pinned}
+    elif base is None:
+        paths = {name: Path(name) for name in pinned}
+    else:
+        raise ValueError('Unknown setup input path base')
+    if len(paths) != 5 or any(sha(path) != pinned[name] for name, path in paths.items()):
+        raise ValueError('Setup replay physical inputs changed')
+    tail = '/' + scene.removeprefix('res://')
+    return [pinned[name] for name, path in paths.items() if path.as_posix().endswith(tail)]
+
+
 def attach_setup_effect(inventory, tested_source, tested_tree, blobs, cells, replay):
     """Bind a fixed desired-speed replay to the actual saved public setup case."""
     from audit_setup_intent_bridge import REQUEST, SPEC, verify_numeric
@@ -265,11 +292,7 @@ def attach_setup_effect(inventory, tested_source, tested_tree, blobs, cells, rep
             or len(native.get('runs', [])) != 3
             or case_id not in supplement['operations'][key]['checks']['mcp_invocation']['pass']):
         raise ValueError('Setup replay must join exactly one real dummy setup and three native clocks')
-    pinned = inputs['paths']
-    if len(pinned) != 5 or any(sha(Path(path)) != digest for path, digest in pinned.items()):
-        raise ValueError('Setup replay physical inputs changed')
-    scene_tail = '/' + rows[0]['scene'].removeprefix('res://')
-    if [d for p, d in pinned.items() if Path(p).as_posix().endswith(scene_tail)] != [rows[0]['scene_sha256']]:
+    if setup_input_digests(replay, inputs, rows[0]['scene'], context['dependencies']) != [rows[0]['scene_sha256']]:
         raise ValueError('Setup replay scene does not match the pinned saved output')
     ordered = inputs.get('raw_case_ids', [])
     if len(ordered) != 4 or len(set(ordered)) != 4 or ordered[1] != case_id:

@@ -2,6 +2,12 @@
 
 ## Linux diagnostic and 103-operation audit follow-up
 
+All four cells now have the machine-effect joins. Use
+`ci-f75c324-r001/case-gap-ledger-all-machine-effects-r006.json`.
+The Linux motion inputs are run `44148286646` and the setup inputs are
+`44148826193`. The capture checkpoint lists the complete private visual
+review packet. Visual qualification and official crash stability are open.
+
 Both Windows cells now have all machine checks. Use
 `ci-f75c324-r001/case-gap-ledger-with-both-windows-motion-r004.json`.
 Its Windows 4.3.0 inputs are the fresh motion directory and dummy setup

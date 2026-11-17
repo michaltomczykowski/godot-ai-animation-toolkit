@@ -1,5 +1,30 @@
 # Candidate audit and package: execution plan
 
+## Four-cell machine evidence complete
+
+Official Linux 4.7.2 covered all seven missing scoped dummy effects for
+both Godot AI 4.2.1 and 4.3.0. The hosted runners checked out audited
+source `a0acf2d`. The six motion receipts from `44148286646` passed the
+unchanged Player and Tree checks at 30/60/120 FPS. Their lookup uses the
+same two exact saved walk and idle inputs as the Windows replays. The
+remaining fixed-speed setup results come from `44148826193`, where the
+dummy's public write, save and forced reopen and all three native clocks
+passed. The separate first run and setup wrapper failure are preserved.
+The audit calls use authenticated MCP HTTP. The normal stdio route and
+the official renderer jobs remain separate compatibility checks.
+
+Portable setup receipts confine their five physical inputs to the
+downloaded replay directory and compare the four implementation and
+fixture hashes against the original execution context. The offline
+auditor verified the actual downloaded files and admitted all 14 Linux
+effects. The resulting four-cell machine ledger is
+`ci-f75c324-r001/case-gap-ledger-all-machine-effects-r006.json`, SHA-256
+`3500c869de1355ba751ce7481ffe79964863c968feb4f5d4a74cb001b28be094`.
+All 103 operations have their required machine checks across all four
+cells of this audited source. Each cell retains 81 pending visual
+bindings. The native crash investigation and final qualification remain
+open.
+
 ## Both Windows machine-effect ledgers complete
 
 Fresh public Godot AI 4.3.0 calls at audited source `a0acf2d` produced the

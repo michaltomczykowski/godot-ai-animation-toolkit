@@ -1,5 +1,15 @@
 # Animation Toolkit repair roadmap
 
+## All four cells have machine-check coverage (2026-11-17)
+
+Both official Linux cores now have the seven scoped effect checks.
+The combined four-cell ledger has all machine checks for the 103
+operations. It retains 81 outstanding visual bindings per cell. The
+47-operation visual packet binds 49 existing comparisons to exact public
+and media inputs for independent assessment. The paired Linux engine
+build `44142755538` is still diagnostic. It remains separate from the
+official-engine release gate.
+
 ## Windows machine-effect audit (2026-11-17)
 
 The seven missing Windows Godot AI 4.3.0 effects now pass on the audited
