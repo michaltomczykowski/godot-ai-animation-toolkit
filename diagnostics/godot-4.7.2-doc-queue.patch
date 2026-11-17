@@ -1,0 +1,131 @@
+--- a/editor/doc/editor_help.h
++++ b/editor/doc/editor_help.h
+@@ -30,6 +30,7 @@
+ 
+ #pragma once
+ 
++#include "core/os/mutex.h"
+ #include "core/os/thread.h"
+ #include "editor/doc/doc_tools.h"
+ #include "editor/plugins/editor_plugin.h"
+@@ -191,6 +192,7 @@
+ 	inline static Thread worker_thread;
+ 	inline static Thread loader_thread; // Only load scripts here to avoid deadlocking with main thread.
+ 
++	inline static Mutex _postponed_docs_mutex;
+ 	inline static SafeFlag _script_docs_loaded = SafeFlag(false);
+ 	inline static LocalVector<DocData::ClassDoc> _docs_to_add;
+ 	inline static LocalVector<String> _docs_to_remove;
+--- a/editor/doc/editor_help.cpp
++++ b/editor/doc/editor_help.cpp
+@@ -2976,18 +2976,24 @@
+ }
+ 
+ void EditorHelp::add_doc(const DocData::ClassDoc &p_class_doc) {
+-	if (!_script_docs_loaded.is_set()) {
+-		_docs_to_add.push_back(p_class_doc);
+-		return;
++	{
++		MutexLock lock(_postponed_docs_mutex);
++		if (!_script_docs_loaded.is_set()) {
++			_docs_to_add.push_back(p_class_doc);
++			return;
++		}
+ 	}
+ 
+ 	get_doc_data()->add_doc(p_class_doc);
+ }
+ 
+ void EditorHelp::remove_doc(const String &p_class_name) {
+-	if (!_script_docs_loaded.is_set()) {
+-		_docs_to_remove.push_back(p_class_name);
+-		return;
++	{
++		MutexLock lock(_postponed_docs_mutex);
++		if (!_script_docs_loaded.is_set()) {
++			_docs_to_remove.push_back(p_class_name);
++			return;
++		}
+ 	}
+ 
+ 	DocTools *dt = get_doc_data();
+@@ -2997,9 +3003,12 @@
+ }
+ 
+ void EditorHelp::remove_script_doc_by_path(const String &p_path) {
+-	if (!_script_docs_loaded.is_set()) {
+-		_docs_to_remove_by_path.push_back(p_path);
+-		return;
++	{
++		MutexLock lock(_postponed_docs_mutex);
++		if (!_script_docs_loaded.is_set()) {
++			_docs_to_remove_by_path.push_back(p_path);
++			return;
++		}
+ 	}
+ 	get_doc_data()->remove_script_doc_by_path(p_path);
+ }
+@@ -3120,6 +3129,8 @@
+ }
+ 
+ void EditorHelp::_process_postponed_docs() {
++	// Only DocTools map operations below; do not hold this across a load or join.
++	MutexLock lock(_postponed_docs_mutex);
+ 	for (const String &class_name : _docs_to_remove) {
+ 		doc->remove_doc(class_name);
+ 	}
+@@ -3132,6 +3143,7 @@
+ 	_docs_to_add.clear();
+ 	_docs_to_remove.clear();
+ 	_docs_to_remove_by_path.clear();
++	_script_docs_loaded.set();
+ }
+ 
+ void EditorHelp::_load_script_doc_cache_thread(void *p_udata) {
+@@ -3151,9 +3163,6 @@
+ 		doc->add_doc(DocData::ClassDoc::from_dict(dict));
+ 	}
+ 
+-	// Protect from race condition in other threads reading / this thread writing to _docs_to_add/remove/etc.
+-	_script_docs_loaded.set();
+-
+ 	// Deal with docs likely added from EditorFileSystem's scans while the cache was loading in EditorHelp::worker_thread.
+ 	_process_postponed_docs();
+ 
+@@ -3182,7 +3191,6 @@
+ void EditorHelp::_finish_regen_script_doc_thread(void *p_udata) {
+ 	loader_thread.wait_to_finish();
+ 	_process_postponed_docs();
+-	_script_docs_loaded.set();
+ 
+ 	OS::get_singleton()->benchmark_end_measure("EditorHelp", "Generate Script Documentation");
+ }
+@@ -3193,12 +3201,14 @@
+ 	OS::get_singleton()->benchmark_begin_measure("EditorHelp", "Generate Script Documentation");
+ 
+ 	EditorFileSystemDirectory *dir = static_cast<EditorFileSystemDirectory *>(p_udata);
+-	_script_docs_loaded.set_to(false);
+-
+-	// Ignore changes from filesystem scan since script docs will be now.
+-	_docs_to_add.clear();
+-	_docs_to_remove.clear();
+-	_docs_to_remove_by_path.clear();
++	{
++		MutexLock lock(_postponed_docs_mutex);
++		_script_docs_loaded.set_to(false);
++		// A full regeneration supersedes queued filesystem scan changes.
++		_docs_to_add.clear();
++		_docs_to_remove.clear();
++		_docs_to_remove_by_path.clear();
++	}
+ 
+ 	_reload_scripts_documentation(dir);
+ 
+@@ -3218,6 +3228,7 @@
+ 			Ref<Script> scr = ResourceLoader::load(p_dir->get_file_path(i));
+ 			if (scr.is_valid()) {
+ 				for (const DocData::ClassDoc &cd : scr->get_documentation()) {
++					MutexLock lock(_postponed_docs_mutex);
+ 					_docs_to_add.push_back(cd);
+ 				}
+ 			}
