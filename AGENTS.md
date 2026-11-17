@@ -1,5 +1,19 @@
 # Agent notes
 
+## Active effect capture queue, November 17
+
+Before starting another Godot/render process, read private
+effect-reset-aligned-remaining-r001/queue.json. The older queue was stopped
+after case 9 native process cleanup, diagnostic files retained. Review
+proved an old sample-before-reset/video-after-reset mismatch. 2de9823 fixes
+the renderer and requires integer frame evidence. Both corrected pilot
+movies pass native/full decode and actual decoded video/native seam parity.
+Fresh 47-case queue uses the same 49 hash-bound public saved pairs
+(producer a0acf2d) from effect-public-a0acf2d-r002, renderer 2de9823.
+Read docs/effect-visual-current-capture-20261117.md for receipts. Preserve
+the user's final instruction: no confirmation prompt until qualified,
+no merge, tag or publication without explicit confirmation.
+
 ## Current release staging, November 17
 
 Do not merge/tag/publish until qualified and the user explicitly confirms.

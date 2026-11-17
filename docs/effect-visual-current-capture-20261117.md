@@ -1,5 +1,39 @@
 # Current public effect recording checkpoint
 
+## Corrected take boundary
+
+The ordered review of the first five clips found a one-frame mismatch in
+the old Movie Maker renderer. On zero-based frame 360, the damage bar
+video had already reset to 80%, while the native row and caption still
+described the prior 30% hold. The progress bar showed the same mismatch.
+The callback sampled and captioned the current take, then rebuilt the
+clones before Movie Maker drew that frame.
+
+Commit `2de9823` resets the clones at an integer frame boundary before
+sampling and drawing the new take. The checker requires the explicit reset
+metadata and exact first/second take frame counts for new capture plans.
+The review planner marks older traces as having an unbound reset frame.
+Seventeen focused unit controls pass.
+
+The old queue was stopped after the owned viewport override was cleaned
+up; nine encoded cases and one unfinished case are retained with a stop
+receipt. Corrected damage/progress bar probes each pass 720-frame capture
+and full 12-second decode. The actual decoded body is held at frame 359
+and reset at frame 360, matching the fixed trace. The old and new videos
+were each checked against independent baseline/held image observations.
+Verification SHA-256:
+`8c938d07aff46843c5314a3c96e8513213835e78d6fb4c23f0637cd555c1742c`.
+
+The replacement queue is `effect-reset-aligned-remaining-r001` with
+47 additional cases. Its plan under `effect-public-a0acf2d-r002` is
+`capture-plan-reset-aligned-remaining-r001.json`, SHA-256
+`3a67c982d02001a2a19ef0410b3101c79fe8181d64121104f6c6d1e026461967`.
+The saved producer remains `a0acf2d`; only the capture source changed.
+Use the replacement queue for review. The old files below are diagnostic
+history and have not been overwritten.
+
+## Original intake and pilot
+
 The exact audited checkout `a0acf2d26449cefb8e8e831bfd8248d048604a26`
 ran the actual Godot AI 4.2.1 editor route in a fresh isolated Windows project
 on Godot 4.7.2. Edit, FX, and preset/library history passed. The first attempt
