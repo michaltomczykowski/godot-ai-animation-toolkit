@@ -130,8 +130,9 @@ func _start() -> void:
 	_caption.clip_contents = true
 	_caption.max_lines_visible = 6
 	_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_caption.text = _case.operation + "    UNDO reference (left) / REDO result (right)\nDisplay-only cyan markers; native camera + static grid for shake/zoom, fixed framing otherwise. Audio output NOT qualified."
+	_caption.text = _case.operation + "    UNDO reference (left) / REDO result (right)\nDisplay-only cyan markers; native camera + static grid for shake/zoom, fixed framing otherwise.\nPer-frame playback values are in the native observation receipt."
 	root.add_child(_caption)
+	RenderingServer.frame_pre_draw.connect(_observe_draw_frame)
 
 func _load_scene(viewport: SubViewport, state: String) -> void:
 	var packed := load(_case.scenes[state].path) as PackedScene
@@ -320,8 +321,11 @@ func _process(delta: float) -> bool:
 		quit(1)
 		return false
 	_max_delta_error = maxf(_max_delta_error, absf(delta - 1.0 / float(_case.fps)))
-	# Movie Maker draws after this callback. Reset before sampling/captioning
-	# the next take, at its exact integer frame boundary.
+	if _samples.size() != _frames:
+		push_error("Previous Movie Maker frame has no pre-draw observation")
+		quit(1)
+		return false
+	# Reset the clone before the next take's node processing and viewport draw.
 	if not _second_take and _frames == roundi(float(_case.fps) * float(_case.take_seconds)):
 		_second_take = true
 		_reset_at_frame = _frames + 1
@@ -338,15 +342,20 @@ func _process(delta: float) -> bool:
 			return false
 	_elapsed += delta
 	_frames += 1
+	return false
+
+func _observe_draw_frame() -> void:
+	# SceneTree._process runs before the nodes' idle animation ticks. The
+	# viewport uses their updated state, so read it immediately before draw.
+	if _frames == _samples.size() or _fixtures.size() != 2:
+		return
 	var states := [_state(_fixtures[0]), _state(_fixtures[1])]
 	for i in 2:
 		if not _last[i].is_empty() and states[i] != _last[i]:
 			_changes[i] += 1
 	_last = states
 	_different = _different or states[0] != states[1]
-	if _frames % 1 == 0:
-		_samples.append({"frame": _frames, "time": _elapsed, "take": 2 if _second_take else 1, "states": states, "presentation": _presentation_states(), "players": [_player_times(_fixtures[0], "undo"), _player_times(_fixtures[1], "redo")]})
-	_caption.text = _case.operation + "  UNDO (left) / REDO (right)  t=%.2f\nDisplay-only cyan markers; camera presentation: %s. Native property changes: %s\n50-unit static calibration grid for native camera cases. Audio output proof remains separate.\nUNDO %s\nREDO %s" % [_elapsed, _camera_presentation(), str(_changes), _target_text(states[0]), _target_text(states[1])]
+	_samples.append({"frame": _frames, "time": _elapsed, "take": 2 if _second_take else 1, "states": states, "presentation": _presentation_states(), "players": [_player_times(_fixtures[0], "undo"), _player_times(_fixtures[1], "redo")]})
 	if _frames >= roundi(float(_case.fps) * float(_case.seconds)):
 		var report := {"schema_version": 1, "operation": _case.operation,
 			"case_id": _case.id, "header_rect": [12, 8, 1376, 170], "startup_capture": _startup_capture, "capture_geometry": _capture_geometry, "runtime_failures": _runtime_failures, "engine_errors": _logger.errors,
@@ -355,15 +364,13 @@ func _process(delta: float) -> bool:
 			"frames": _frames, "playback_contracts": _playback_contracts(), "elapsed": _elapsed, "plan_sha256": _plan_sha, "renderer_sha256": _renderer_sha, "max_delta_error": _max_delta_error, "engine": Engine.get_version_info(),
 			"status": "failed_engine_or_runtime" if not _logger.errors.is_empty() or not _runtime_failures.is_empty() else "observation_only", "semantic_effect_check": "pending",
 			"take_reset_order": "before_sample_and_draw", "take_reset_frame": _reset_at_frame,
+			"observation_phase": "rendering_server_frame_pre_draw",
 			"continuous_visual_assessment": "pending", "audio_output": "pending" if _case.audio_output_required else "not_applicable",
 			"limits": "Difference/progression are observations, not semantic correctness or visual approval. Native camera plus static50-unit calibration grid for shake/zoom; other cameras disabled for stable framing; unrelated CanvasItems hidden; unkeyed bar/panel display extents 220x50; Control/Node2D cyan polygons and Node3D rigid cube/camera/light are display-only; showcase fixed0.45 scale with every canvas Control bounded each frame;3D silhouette remains visual assessment; markers are display-only children. Both clones re-instantiated for take2. SpriteFrames explicitly played for review (saved play=false remains documented)."}
 		var file := FileAccess.open(_output, FileAccess.WRITE)
+		if file == null:
+			push_error("Cannot write pre-draw observation receipt")
+			quit(1)
+			return
 		file.store_string(JSON.stringify(report, "  "))
 		quit(1 if not _logger.errors.is_empty() or not _runtime_failures.is_empty() else 0)
-	return false
-
-func _target_text(state: Dictionary) -> String:
-	var out := {}
-	for target in _case.targets:
-		out[target] = state.get(target, {})
-	return JSON.stringify(out)

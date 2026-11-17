@@ -125,6 +125,8 @@ def showcase_rect_failures(case,samples):
 def check(case, report):
     failures = capture_failures(report)
     failures.extend(take_reset_failures(case, report))
+    if case.get('require_predraw_observation') and report.get('observation_phase') != 'rendering_server_frame_pre_draw':
+        failures.append('native observation is not bound to the viewport pre-draw signal')
     if case.get('operation')=='animation_edit.set_interp' and case.get('variant')=='set_interp' and not case.get('require_progression',True) and not is_nearest_hold(case):
         failures.append('held nearest representative lacks its exact contract')
     if report.get('operation') != case['operation'] or report.get('case_id') != case['id']:

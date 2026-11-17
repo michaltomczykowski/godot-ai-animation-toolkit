@@ -5,6 +5,7 @@ import json
 import math
 from pathlib import Path
 from audit_candidate_case_coverage import load, sha
+from check_saved_effects import take_reset_failures
 
 
 def frame_selection(samples, fps):
@@ -42,16 +43,15 @@ def frame_selection(samples, fps):
     return [result[i] for i in sorted(result)]
 
 
-def prepare(queue, plan, limit=None):
+def prepare(queue, plan, limit=None, offset=0):
     checkpoint = load(queue / 'queue.json')
     if sha(plan) != checkpoint['plan_sha256']:
         raise ValueError('Capture plan hash differs from the active receipt')
     cases = load(plan)['cases']
     result = []
-    completed = checkpoint['cases']
-    if limit is not None:
-        completed = completed[:limit]
-    for index, closed in enumerate(completed):
+    end = offset+limit if limit is not None else None
+    completed = checkpoint['cases'][offset:end]
+    for index, closed in enumerate(completed, offset):
         folder = queue / f'case{index:02d}'
         receipt_file = folder / 'media-receipt.json'
         if (closed['index'] != index or Path(closed['receipt']).resolve() != receipt_file.resolve()
@@ -69,13 +69,15 @@ def prepare(queue, plan, limit=None):
                 or sha(native_path) != receipt['capture_identity']['native_report_sha256']):
             raise ValueError('Captured video or native observations changed')
         native = load(native_path)
+        if case.get('require_predraw_observation') and native.get('observation_phase') != 'rendering_server_frame_pre_draw':
+            raise ValueError('Expected actual viewport pre-draw observations')
         fps, duration = case['fps'], case['seconds']
         if (native['plan_sha256'] != receipt['plan_sha256'] or native['case_id'] != case['id']
                 or native['scenes'] != case['scenes'] or native['dependencies_verified'] != case['dependencies']
                 or native['engine_errors'] or native['runtime_failures']
                 or not receipt['capture_identity']['native_check']['native_observation_pass']
                 or native['frames'] != len(native['samples']) or native['frames'] != fps * duration
-                or receipt['full_decode']['frames'] != fps * duration
+                or receipt['full_decode']['frames'] != fps * duration or take_reset_failures(case, native)
                 or abs(receipt['full_decode']['duration_s'] - duration) > 1/fps + .001):
             raise ValueError('Native observation or decoded frame count is incomplete')
         result.append({'case_id': case['id'], 'operation': case['operation'],
@@ -84,9 +86,10 @@ def prepare(queue, plan, limit=None):
                        'native_sha256': receipt['capture_identity']['native_report_sha256'],
                        'samples': frame_selection(native['samples'], fps),
                        'take_reset_order': native.get('take_reset_order', 'legacy_reset_frame_unbound'),
+                       'observation_phase': native.get('observation_phase', 'legacy_scene_tree_process'),
                        'visual_status': 'pending_review'})
     return {'kind': 'saved_effect_review_plan', 'capture_plan_sha256': checkpoint['plan_sha256'],
-            'queue_status_at_read': checkpoint['status'], 'cases': result,
+            'queue_status_at_read': checkpoint['status'], 'first_queue_case': offset, 'cases': result,
             'scope': 'Selection schedule only; video extraction and visual assessment are separate.'}
 
 
@@ -96,10 +99,13 @@ def main():
     parser.add_argument('--plan', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--limit', type=int)
+    parser.add_argument('--offset', type=int, default=0, help='Skip the already prepared prefix')
     a = parser.parse_args()
     if a.limit is not None and a.limit <= 0:
         parser.error('--limit must be positive')
-    result = prepare(a.queue, a.plan, a.limit)
+    if a.offset < 0:
+        parser.error('--offset must be nonnegative')
+    result = prepare(a.queue, a.plan, a.limit, a.offset)
     if not result['cases']:
         parser.error('No complete captures to review')
     with a.output.open('x', encoding='utf-8') as stream:
