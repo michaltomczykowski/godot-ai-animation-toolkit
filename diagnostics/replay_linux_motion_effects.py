@@ -1,10 +1,13 @@
 """Run the scoped physical audit on one released Linux Godot AI core."""
 import argparse
 import asyncio
+from functools import partial
+import hashlib
 import json
 import os
 from pathlib import Path
 import shutil
+import runpy
 import subprocess
 import sys
 import time
@@ -17,6 +20,25 @@ def load(path):
 def save(path, value):
     with path.open('x', encoding='utf-8') as stream:
         json.dump(value, stream, indent=2)
+
+
+def sha(path):
+    with path.open('rb') as stream:
+        return hashlib.file_digest(stream, 'sha256').hexdigest()
+
+
+def use_authenticated_http():
+    import mcp_rig_modifier_ui_history as route
+    from fastmcp.client.transports import StreamableHttpTransport
+    from godot_ai.attach.ensure import BackendEnsurer
+    from godot_ai.attach.proxy import _http_client_factory
+
+    def transport(*args, **kwargs):
+        endpoint = BackendEnsurer(8000, 9500)
+        return StreamableHttpTransport(endpoint.mcp_url,
+            httpx_client_factory=partial(_http_client_factory, endpoint.http_capability))
+
+    route.StdioTransport = transport
 
 
 def checked(command, logfile, timeout):
@@ -58,7 +80,6 @@ def only_dummy_setup(arguments):
 
 
 def stage_setup(root, project, godot, context):
-    from audit_candidate_case_coverage import sha
     from audit_setup_intent_bridge import REQUEST, SPEC, verify_numeric
 
     source = context['tested_source']
@@ -142,7 +163,6 @@ def replay(audit, core, godot, root, references, setup=False):
             target = project / scene.removeprefix('res://')
             target.parent.mkdir(parents=True)
             shutil.copyfile(references / (kind + '.tscn'), target)
-            from audit_candidate_case_coverage import sha
             if sha(target) != digest:
                 raise ValueError('Pinned transition input differs')
     owned = []
@@ -171,7 +191,7 @@ def replay(audit, core, godot, root, references, setup=False):
                     'walk_start': [], 'walk_stop': [],
                 }
                 for op, extra in operations.items():
-                    checked([sys.executable, str(audit / 'tools/mcp_run_quality_review.py'), '--repo', str(audit),
+                    checked([sys.executable, __file__, '--motion', str(audit / 'tools/mcp_run_quality_review.py'), '--repo', str(audit),
                              '--core-root', str(core), '--project-root', str(project), '--phase', 'candidate',
                              '--operation', op, '--styles', 'responsive', '--root-modes', 'extracted',
                              '--rig-id', 'dummy', '--revision', 'linux-intent-' + op, '--output', str(root / op),
@@ -201,10 +221,17 @@ def replay(audit, core, godot, root, references, setup=False):
 
 
 if __name__ == '__main__':
+    if len(sys.argv) > 1 and sys.argv[1] == '--motion':
+        driver = Path(sys.argv[2])
+        sys.path.insert(0, str(driver.parent))
+        use_authenticated_http()
+        sys.argv = [str(driver), *sys.argv[3:]]
+        runpy.run_path(str(driver), run_name='__main__')
     if len(sys.argv) > 1 and sys.argv[1] == '--setup':
         names = ('repo', 'core_root', 'project_root', 'output')
         arguments = dict(zip(names, map(Path, sys.argv[2:]), strict=True))
         sys.path.insert(0, str(arguments['repo'] / 'tools'))
+        use_authenticated_http()
         raise SystemExit(only_dummy_setup(arguments))
     parser = argparse.ArgumentParser(description=__doc__)
     for key in ('audit', 'core', 'output', 'godot'):
@@ -212,6 +239,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     audit, core, output, godot = (path.resolve() for path in (args.audit, args.core, args.output, args.godot))
     sys.path.insert(0, str(audit / 'tools'))
+    use_authenticated_http()
     output.mkdir(exist_ok=False)
     project = audit / 'test_project'
     (project / 'addons/godot_ai').symlink_to(core / 'plugin/addons/godot_ai', target_is_directory=True)
