@@ -1,5 +1,52 @@
 # Animation Toolkit repair roadmap
 
+## Compatibility and release audit checkpoint (2026-11-18)
+
+Draft PR #1 at `fa92fb6` against `5e13a6c` completed 60 jobs successfully
+in [run 44187385094](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/44187385094).
+Both release-only jobs were skipped on that run. The artifacts identify
+the tested merge commit as `e7f19bb10558050e7ff0c4ba778bb732daa58f22`.
+The validators passed all four clean ZIP installation cells, both stock
+Linux rendered-preview receipts, and the exact 96-entry ZIP. All eight
+installation cases logged public route, core reload and disabled cached-call
+checks. The hosted ZIP SHA-256 is
+`72cc677c5a94d3423d99590ced2f8abe409cf367bf7c0e8c08834898ad02ac55`.
+It and the earlier immutable local ZIP both validated against their respective
+committed sources. The 103-operation checker also passed locally at `fa92fb6`.
+
+The Windows 4.2.1 toolkit-first timeout in
+[run 44181538081](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/44181538081)
+stopped at the first `test_run` await. The core dispatcher logs
+`run_tests -> ok` before the connection serializes the result and sends it
+over the WebSocket. The client reached neither `suite_returned` nor
+`transport_exit_start`. Backend socket resets also occur in passing runs.
+The next Windows 4.2.1 toolkit-first case returned the suite in 5.05 seconds
+and completed transport teardown 11.53 seconds after driver start.
+The earlier delivery stall remains unlocalized. Windows clean-install CI
+now opts into released-backend HTTP access logs to observe response status
+on recurrence. The 120-second budget and public calls still apply.
+
+Both official Godot 4.7.2 Linux preview runs passed the real scene save,
+pixel and source restoration checks. The earlier allocator abort remains a
+release blocker. Pinned engine source confirms script documentation can be
+updated from the editor filesystem and regenerated on a loader thread.
+The documentation queue remains the leading suspect. The original failure
+has no supported repair, and the
+[upstream report](https://github.com/godotengine/godot/issues/124603) is archived.
+
+GitHub dispatches the exact audit checker in a private repository on a
+single-job workstation runner. It reads the evidence and historical producer
+commit locally and emits a receipt with the candidate Git tree, pass count,
+audit digest and private run ID. A maintainer transfers the successful
+receipt into the public repository variable `TOOLKIT_RELEASE_AUDIT`.
+The review PR, main and tag gates require the same tree. Each public run
+checks its own clean-install receipts and official rendered previews.
+Recordings and raw checker logs stay on the workstation.
+
+Recheck the review head and main base with
+`gh pr view 1 --json isDraft,headRefOid,baseRefOid,statusCheckRollup`.
+Resolve official Linux stability before requesting release approval.
+
 ## Independent visual review and Linux controls (2026-11-17)
 
 All 47 operations in the effects, edit, preset and library corpus now have

@@ -403,6 +403,10 @@ jobs:
           python -m unittest discover -s tools -p 'test_install_selection.py' -v
           python -m unittest discover -s tools -p 'test_clean_zip_import_ownership.py' -v
       - name: Qualify both enable orders from extracted ZIPs
+        env:
+          # Windows timeout diagnostics from the released backend. This logs
+          # HTTP status lines without dumping request or response bodies.
+          GODOT_AI_HTTP_ACCESS_LOG: ${{ runner.os == 'Windows' && '1' || '0' }}
         run: |
           python tools/clean_zip_install.py --source "$GITHUB_SHA" --zip dist/godot-ai-animation-toolkit-2.0.0.zip --core-root .ci/godot-ai --core-zip .ci/released-core/godot-ai-v4-plugin.zip --core-ref "${{ matrix.core-ref }}" --output clean-install-evidence
       - uses: actions/upload-artifact@v4
@@ -418,10 +422,58 @@ jobs:
             clean-install-evidence/clean-install-receipt.json
             clean-install-evidence/gate-diagnostics/**
 
+  private-release-audit:
+    name: Private operation audit receipt
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+      github.head_ref == 'repair/toolkit-quality')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Require the private workflow's approval of the exact candidate tree
+        env:
+          AUDIT_RECEIPT: ${{ vars.TOOLKIT_RELEASE_AUDIT }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import re
+          import subprocess
+
+          tree = subprocess.check_output(
+              ["git", "rev-parse", "HEAD^{tree}"], text=True
+          ).strip()
+          try:
+              receipt = json.loads(os.environ["AUDIT_RECEIPT"])
+          except ValueError:
+              raise SystemExit("Missing or malformed private operation audit receipt")
+          if (
+              not isinstance(receipt, dict)
+              or receipt.get("schema_version") != 1
+              or receipt.get("tree") != tree
+              or receipt.get("operations") != 103
+              or not re.fullmatch(r"[0-9a-f]{40}", str(receipt.get("source", "")))
+              or not re.fullmatch(r"[0-9a-f]{64}", str(receipt.get("qualification_sha256", "")))
+              or not re.fullmatch(r"[1-9][0-9]*", str(receipt.get("workflow_run", "")))
+          ):
+              raise SystemExit("Private operation audit receipt does not qualify this Git tree")
+          print(f"103 operations qualified in private workflow run {receipt['workflow_run']} for tree {tree}")
+          PY
+
   release-gate:
-    # Repair PRs may retain honest pending evidence. Main and tags must close it.
-    if: github.event_name == 'push'
-    needs: [tier1, editor-suite, mcp-route, version-check, package, clean-install, dependency-controls, rendered-preview]
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+      github.head_ref == 'repair/toolkit-quality')
+    needs: [tier1, editor-suite, mcp-route, version-check, package, clean-install, dependency-controls, rendered-preview, private-release-audit]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -434,8 +486,12 @@ jobs:
         run: python -m pip install Pillow==11.3.0
       - uses: actions/download-artifact@v4
         with:
-          pattern: rendered-preview-linux-core-*
-          path: rendered-preview-matrix
+          name: rendered-preview-linux-core-4.2.1
+          path: rendered-preview-matrix/rendered-preview-linux-core-4.2.1
+      - uses: actions/download-artifact@v4
+        with:
+          name: rendered-preview-linux-core-4.3.0
+          path: rendered-preview-matrix/rendered-preview-linux-core-4.3.0
       - name: Verify both exact-run rendered preview receipts
         run: python tools/check_rendered_preview_matrix.py --source "$GITHUB_SHA" --receipts rendered-preview-matrix
       - uses: actions/download-artifact@v4
@@ -448,8 +504,6 @@ jobs:
           path: dist
       - name: Verify exact-source installation matrix
         run: python tools/check_install_matrix.py --source "$GITHUB_SHA" --receipts release-matrix --package dist/godot-ai-animation-toolkit-2.0.0.zip.manifest.json
-      - name: Require complete exact-source operation qualification
-        run: python tools/check_release_audit.py --source "$GITHUB_SHA" --receipt-dir docs/release-qualification
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')

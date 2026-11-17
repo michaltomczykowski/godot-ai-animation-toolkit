@@ -1,5 +1,23 @@
 # Agent notes
 
+## November 18 release checkpoint
+
+Use the latest entry in FIX_ROADMAP.md. CI 44187385094 completed with all
+60 executed jobs passing. The exact install matrix, package and both stock
+preview receipts passed local validation from ci-44187385094-final-compat-r001.
+The Windows 4.2.1 timeout occurs before the public client records a suite
+response. The dispatcher log precedes WebSocket delivery. Keep the original
+failure and use the Windows backend access logs on recurrence.
+
+The audit workflow is in the private godot-ai-animation-toolkit-qualification
+repository. Use an ephemeral local runner with TOOLKIT_LOCAL_REPO,
+TOOLKIT_LOCAL_AUDIT_DIR and TOOLKIT_LOCAL_AUDIT_LOGS. Dispatch with
+`gh workflow run release-audit.yml --repo michaltomczykowski/godot-ai-animation-toolkit-qualification --ref main -f candidate=<full-commit>`.
+Transfer TOOLKIT_RELEASE_AUDIT only from the successful private run for the
+exact reviewed tree. Keep private media and raw diagnostics local. The
+official Linux crash remains open. Keep the PR draft and hold merge, tag
+and publication until the release qualifies and the user explicitly approves.
+
 ## Linux diagnostic and 103-operation audit follow-up
 
 All four cells now have the machine-effect joins. Use
