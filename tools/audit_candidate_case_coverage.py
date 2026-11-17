@@ -195,6 +195,44 @@ def attach_preview_visual(cells, tested_source, tested_tree, candidate_tree, rec
         item['preview_visual'] = {'receipt': str(receipt.resolve()), 'sha256': sha(receipt)}
 
 
+def attach_graph_visual(inventory, tested_source, tested_tree, candidate_tree, blobs, cells, directory, receipt):
+    """Admit the reviewed saved graph set only in its observed platform/core cell."""
+    source = admit_cell(directory, inventory, tested_tree, blobs)
+    if source['tested_source'] != tested_source or source['non_invocation_failures']:
+        raise ValueError('Graph visual source differs or has derived failures')
+    fields = ('platform', 'core_version', 'core_commit', 'engine')
+    matched = [cell for cell in cells if all(cell[field] == source[field] for field in fields)]
+    if len(matched) != 1:
+        raise ValueError('Graph visuals are outside the released matrix')
+    expected = {row['key'] for row in inventory['operations']
+                if row['key'].startswith('animation_graph.') and 'visual_review' in required_checks(row['effect_kind'])}
+    records = load(receipt)['records']
+    if len(records) != len(expected) or {record['operation_key'] for record in records} != expected:
+        raise ValueError('Graph review does not cover the expected operation set')
+    for record in records:
+        op = record['operation_key']
+        ids = record.get('case_ids', [])
+        dependencies = record.get('dependencies', {})
+        checks = source['operations'][op]['checks']
+        if (record.get('tested_source') != tested_source or record.get('scope') != 'candidate'
+                or record.get('engine') != '4.7.2' or len(ids) != 1 or not dependencies
+                or any(tested_tree.get(path) != blob or candidate_tree.get(path) != blob
+                       for path, blob in dependencies.items())
+                or any(ids[0] not in checks[name]['pass'] for name in ('undo_redo', 'save_reopen', 'source_unchanged'))):
+            raise ValueError('Graph visual case, source or dependencies differ: ' + op)
+        if not all(artifact_is_valid(artifact, receipt.parent) for artifact in record['artifacts']):
+            raise ValueError('Graph visual artifact is missing or changed')
+        errors = operation_binding_errors(record, op, 'visual_review', receipt.parent)
+        if errors:
+            raise ValueError('; '.join(errors))
+    for record in records:
+        item = matched[0]['operations'][record['operation_key']]
+        item['checks']['visual_review']['pass'].extend(record['case_ids'])
+        item['missing_passing_checks'].remove('visual_review')
+        item['graph_visual'] = {'receipt': str(receipt.resolve()), 'sha256': sha(receipt),
+                                'graph_case_report_sha256': source['report_sha256']}
+
+
 MOTION_EFFECT_KEYS = frozenset('animation_motion.' + name for name in (
     'idle_cycle', 'turn_cycle', 'jump', 'strafe_cycle', 'walk_start', 'walk_stop'))
 
@@ -340,7 +378,7 @@ def attach_setup_effect(inventory, tested_source, tested_tree, blobs, cells, rep
 
 
 def audit(repo, source, directories, preview_directories=(), motion_directory=None, setup_replay=None,
-          preview_visual=None):
+          preview_visual=None, graph_cases=None, graph_visual=None):
     source = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', source + '^{commit}'], text=True).strip()
     inventory = json.loads(subprocess.check_output(['git', '-C', str(repo), 'show', source + ':docs/operation-audit.json']))
     errors = validate_inventory(inventory)
@@ -354,7 +392,11 @@ def audit(repo, source, directories, preview_directories=(), motion_directory=No
     deps = set()
     motion_directories = (motion_directory,) if isinstance(motion_directory, Path) else motion_directory or ()
     setup_replays = (setup_replay,) if isinstance(setup_replay, Path) else setup_replay or ()
+    if bool(graph_cases) != bool(graph_visual):
+        raise ValueError('Graph visual evidence requires a public case directory and visual receipt')
     extras = [*motion_directories, *(replay.parent for replay in setup_replays)]
+    if graph_cases:
+        extras.append(graph_cases)
     for p in [*directories, *extras]:
         deps.update(b['git_blob'] for b in load(p / 'operation-context.json')['dependencies'].values())
     blobs = read_blobs(repo, sorted(deps))
@@ -366,6 +408,8 @@ def audit(repo, source, directories, preview_directories=(), motion_directory=No
         attach_rendered_previews(repo, tested_source, cells, preview_directories)
     if preview_visual:
         attach_preview_visual(cells, tested_source, tested_tree, candidate_tree, preview_visual)
+    if graph_visual:
+        attach_graph_visual(inventory, tested_source, tested_tree, candidate_tree, blobs, cells, graph_cases, graph_visual)
     for directory in motion_directories:
         attach_motion_effects(inventory, tested_source, tested_tree, blobs, cells, directory)
     for replay in setup_replays:
@@ -379,7 +423,7 @@ def audit(repo, source, directories, preview_directories=(), motion_directory=No
             'candidate_source': source, 'tested_source': tested_source, 'production_changes': changes,
             'production_blobs_equal': not changes, 'cells': cells,
             'qualification': 'pending', 'release_approved': False,
-            'scope': 'Raw CI and optional exact-source preview, motion and static preview assessment bindings. Refusals/failures retained. Qualification remains pending.'}
+            'scope': 'Raw CI and optional exact-source preview, motion and visual assessment bindings. Refusals/failures retained. Qualification remains pending.'}
 
 
 def main():
@@ -390,6 +434,8 @@ def main():
     parser.add_argument('--preview', type=Path, action='append', default=[],
                         help='Optional exact-source bundle; if supplied, require all four cells')
     parser.add_argument('--preview-visual', type=Path, help='Independent PNG assessment bound to the four preview cases')
+    parser.add_argument('--graph-cases', type=Path, help='Fresh public graph history evidence')
+    parser.add_argument('--graph-visual', type=Path, help='Independent recordings bound to the fresh graph cases')
     parser.add_argument('--motion-effects', type=Path, action='append',
                         help='Exact-source six-effect supplement, once per platform/core cell')
     parser.add_argument('--setup-effect', type=Path, action='append',
@@ -399,7 +445,7 @@ def main():
     if args.output.exists():
         parser.error('Exclusive output already exists')
     result = audit(args.repo, args.source, args.cell, args.preview, args.motion_effects, args.setup_effect,
-                   args.preview_visual)
+                   args.preview_visual, args.graph_cases, args.graph_visual)
     with args.output.open('x', encoding='utf-8') as stream:
         json.dump(result, stream, indent=2)
     print('CASE_LEDGER_ADMITTED cells=4 operations=103 production_blobs_equal=%s qualification=pending' % result['production_blobs_equal'])

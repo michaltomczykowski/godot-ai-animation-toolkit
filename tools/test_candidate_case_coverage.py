@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from audit_candidate_case_coverage import (
-    MOTION_EFFECT_KEYS, admit_cell, attach_motion_effects, attach_preview_visual, confined,
+    MOTION_EFFECT_KEYS, admit_cell, attach_graph_visual, attach_motion_effects, attach_preview_visual, confined,
     setup_input_digests, sha,
 )
 from check_release_audit import CORES
@@ -209,6 +209,37 @@ class PortableSetupInputs(unittest.TestCase):
             digests['inputs/tools/check_setup_tree_quality.gd'] = sha(checker)
             with self.assertRaisesRegex(ValueError, 'tested context'):
                 setup_input_digests(root, inputs, scene, dependencies)
+
+
+class GraphVisualJoin(unittest.TestCase):
+    def test_rejects_a_foreign_saved_case_and_attaches_only_in_its_own_cell(self):
+        operation = 'animation_graph.wire'
+        inventory = {'operations': [{'key': operation, 'effect_kind': 'scene_structure'}]}
+        with tempfile.TemporaryDirectory() as folder:
+            receipt = Path(folder) / 'review.json'
+            record = {'operation_key': operation, 'case_ids': ['foreign'], 'tested_source': 'same',
+                      'scope': 'candidate', 'engine': '4.7.2', 'dependencies': {'graph.gd': 'blob'},
+                      'artifacts': []}
+            windows = {'platform': 'windows', 'core_version': '4.2.1',
+                       'core_commit': CORES['4.2.1'], 'engine': 'official'}
+            public_checks = {check: {'pass': ['actual-case']}
+                             for check in ('undo_redo', 'save_reopen', 'source_unchanged')}
+            source = dict(windows, tested_source='same', non_invocation_failures=[],
+                          report_sha256='report', operations={operation: {'checks': public_checks}})
+            cells = [dict(windows, platform=os, operations={operation: {
+                'checks': {'visual_review': {'pass': []}}, 'missing_passing_checks': ['visual_review']
+            }}) for os in ('windows', 'linux')]
+            tree = record['dependencies']
+            with patch('audit_candidate_case_coverage.admit_cell', return_value=source), \
+                 patch('audit_candidate_case_coverage.operation_binding_errors', return_value=[]):
+                receipt.write_text(json.dumps({'records': [record]}))
+                with self.assertRaisesRegex(ValueError, 'case, source or dependencies'):
+                    attach_graph_visual(inventory, 'same', tree, tree, {}, cells, Path(folder), receipt)
+                record['case_ids'] = ['actual-case']
+                receipt.write_text(json.dumps({'records': [record]}))
+                attach_graph_visual(inventory, 'same', tree, tree, {}, cells, Path(folder), receipt)
+            self.assertEqual(cells[0]['operations'][operation]['checks']['visual_review']['pass'], ['actual-case'])
+            self.assertEqual(cells[1]['operations'][operation]['missing_passing_checks'], ['visual_review'])
 
 
 if __name__ == '__main__': unittest.main()

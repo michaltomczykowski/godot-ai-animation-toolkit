@@ -26,6 +26,17 @@ competing-player and wrong-scene-hash controls behaved as expected.
 The new recording checkpoint is
 `graph-exact-a0acf2d-capture-r001/graph/receipt.json`.
 
+The new 28-second graph movie passed full decode. All 1,680 source PNG
+hashes and every decoded frame and its timestamp match the previously
+independently assessed graph movie. The original saved scene hashes and
+review IDs retain their historical identities. The new manifest supplies
+the fresh history and public call IDs. The seven visual bindings passed
+the operation validator and were admitted only to Windows/core 4.2.1.
+Private `graph-exact-visual-staging-r001/graph-visual-evidence-records.json`
+SHA-256 `eef5597e58e50dc26350db515b7dec35cd836a97411bc2ff7064b68099fd08af`.
+The 49 effect/edit/preset/library files have different encoded hashes
+from their historical counterparts. Their prepared packet stays pending.
+
 ## Completed batch and sampled visual review
 
 All **47 of 47** pre-draw captures now have native playback receipts and

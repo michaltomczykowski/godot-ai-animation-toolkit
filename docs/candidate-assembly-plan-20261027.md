@@ -25,6 +25,14 @@ cells of this audited source. Each cell retains 81 pending visual
 bindings. The native crash investigation and final qualification remain
 open.
 
+The newer `case-gap-ledger-with-exact-graph-visual-r007.json` admits seven
+independent graph visuals only to Windows/core 4.2.1. The complete
+decoded video and timestamps match the previously reviewed graph movie.
+The machine checks and raw identity requirements remain in force.
+This cell now has 74 pending visual bindings. The other three have 81.
+The four-cell candidate machine checks remain complete. Ledger SHA-256:
+`b307a612391f57383b2cfa10e0630cca8ec80a6485249b111588d4a4e402c30f`.
+
 ## Both Windows machine-effect ledgers complete
 
 Fresh public Godot AI 4.3.0 calls at audited source `a0acf2d` produced the
