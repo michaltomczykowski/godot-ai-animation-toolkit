@@ -18,6 +18,7 @@ import time
 import uuid
 from contextlib import contextmanager
 from check_release_audit import EXPECTED_OPERATIONS, CORES
+from operation_dependencies import source_blobs
 
 _context_cache = None
 _trace_file = None
@@ -84,18 +85,9 @@ def prepare(root, core_root, godot, output):
     engine_raw = engine.stdout.strip()
     if not engine_raw.startswith('4.7.2.'):
         raise ValueError('qualification requires actual Godot4.7.2 version output')
-    paths = git(root, 'ls-tree', '-r', '--name-only', source, '--',
-                'addons/godot_ai_animation', 'tools', 'test_project/tests', 'test_project/tools',
-                'test_project/repair_graph_fixture.tscn', 'test_project/repair_edit_fixture.tscn',
-                'test_project/repair_fx_fixture.tscn', 'test_project/repair_motion_fixture.tscn',
-                'test_project/repair_rig_fixture.tscn',
-                'test_project/models/human_dummy/HumanCharacterDummy_F.fbx').splitlines()
     deps = {}
-    for rel in paths:
-        if rel.endswith('.uid') or (not rel.endswith(('.gd','.py','.json','.tscn','.tres','.cfg','.godot')) and rel not in {'test_project/tests/fixtures/sheet.png','test_project/tests/fixtures/cue.wav','test_project/models/human_dummy/HumanCharacterDummy_F.fbx'}):
-            continue
+    for rel, blob in source_blobs(root, source).items():
         path = root / rel
-        blob = git(root, 'rev-parse', source+':'+rel)
         if not path.is_file() or git(root, 'hash-object', '--path', rel, str(path)) != blob:
             raise ValueError('tested source differs from committed dependency: '+rel)
         deps[rel] = {'git_blob':blob, 'sha256':sha(path)}

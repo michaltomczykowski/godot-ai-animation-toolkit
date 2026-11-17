@@ -53,6 +53,22 @@ only by the later Spring helper UID; the other four effects and fresh setup
 executor have equal addon Git blobs. Original source identities remain
 unchanged, and none of these older receipts is relabeled candidate evidence.
 
+The full release-side preview checker was also run against both archived Linux
+bundles. It initially rejected both: its expected dependency scope omitted
+five scene fixtures plus the dummy model, sprite sheet and audio fixture that
+the actual producer records. The producer and verifier now use one Git
+dependency selector. Exact dependency-set/blob comparison remains mandatory.
+The actual two-bundle check passes with the fix; 30 targeted controls pass.
+
+Private `ci-f75c324-r001/case-gap-ledger-with-preview-r001.json`
+(SHA-256 `c833a5a65a891aef5f0147dae26ca97e25edfba2dd87e99b31777c4152e9a400`)
+adds the four verified same-source preview cases to the relevant cells, with
+context and trace hashes. All 103 operations now have passing public case
+coverage in each cell, and 96 have all required machine checks. Seven
+valid-effect joins and 82 visual-review bindings per cell remain pending in
+this ledger. These are missing bindings, not 89 reported failures. The
+historical motion scope and static preview assessment remain separate inputs.
+
 ## Linux timeout diagnosis
 
 Run 40359394495, Linux clean ZIP with core 4.2.1, reached the editor's

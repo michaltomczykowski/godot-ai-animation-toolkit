@@ -4,24 +4,10 @@ import argparse
 import json
 from pathlib import Path
 import subprocess
+from operation_dependencies import source_blobs
 
 CORES={'4.2.1':'bfc264200584ea5823f18356acb164781f57796d',
        '4.3.0':'b82b5c519b1b17228f70d8effce1626f391bd1dd'}
-
-
-def source_blobs(repo, source):
-    output=subprocess.check_output(['git','ls-tree','-rz',source,'--',
-        'addons/godot_ai_animation','tools','test_project/tests','test_project/tools'],cwd=repo)
-    blobs={}
-    for row in output.split(b'\0'):
-        if not row: continue
-        meta,path=row.split(b'\t',1)
-        rel=path.decode()
-        if rel.endswith('.uid') or Path(rel).suffix not in ('.gd','.py','.json','.tscn','.tres','.cfg','.godot'): continue
-        mode,kind,blob=meta.decode().split()
-        if kind != 'blob' or mode=='120000': raise ValueError('nonregular dependency '+rel)
-        blobs[rel]=blob
-    return blobs
 
 
 def verify_identity(context, source, core, blobs):
