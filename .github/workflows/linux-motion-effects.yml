@@ -1,0 +1,52 @@
+name: Official Linux motion-effect evidence
+
+on:
+  push:
+    branches: [diagnostics/linux-motion-effects]
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {core: '4.2.1', sha: bfc264200584ea5823f18356acb164781f57796d}
+          - {core: '4.3.0', sha: b82b5c519b1b17228f70d8effce1626f391bd1dd}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: a0acf2d26449cefb8e8e831bfd8248d048604a26
+          path: .ci/audit
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: hi-godot/godot-ai
+          ref: ${{ matrix.sha }}
+          path: .ci/godot-ai
+          persist-credentials: false
+      - uses: chickensoft-games/setup-godot@c233594225991af5aec714e52457cc76d6df8fa2
+        with:
+          version: '4.7.2'
+          use-dotnet: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run seven selected effects over the released public route
+        run: |
+          python -m pip install -e .ci/godot-ai
+          python diagnostics/replay_linux_motion_effects.py --audit .ci/audit \
+            --core .ci/godot-ai --output motion-evidence --godot "$(command -v godot)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-motion-effects-core-${{ matrix.core }}
+          path: motion-evidence
+          if-no-files-found: error

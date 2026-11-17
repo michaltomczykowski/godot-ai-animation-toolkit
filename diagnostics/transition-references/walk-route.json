@@ -1,0 +1,44 @@
+{
+  "source_head": "9188ffa22e756213ae48e88d359b5918c0b2c384",
+  "operation": "walk_cycle",
+  "passed": true,
+  "cases": [
+    {
+      "id": "dummy",
+      "scene": "res://repair_walk_quality/95f43a6eb93e42eaa73440b6411d239a/responsive_extracted_dummy.tscn",
+      "scene_sha256": "769c02c337510d5503cec7ec9a963bb0bed2a8559e97d15d510327cb19b4ed9f",
+      "fixture_sha256": "973b1343ec8fd11ed262444bad17de526f9fc2be73b105f87db7989a20d5341e",
+      "roles": {
+        "arm_l": "B-upperArm.L",
+        "arm_r": "B-upperArm.R",
+        "chest": "B-chest",
+        "foot_l": "B-foot.L",
+        "foot_r": "B-foot.R",
+        "forearm_l": "B-forearm.L",
+        "forearm_r": "B-forearm.R",
+        "hand_l": "B-hand.L",
+        "hand_r": "B-hand.R",
+        "head": "B-head",
+        "hips": "B-hips",
+        "shin_l": "B-shin.L",
+        "shin_r": "B-shin.R",
+        "shoulder_l": "B-shoulder.L",
+        "shoulder_r": "B-shoulder.R",
+        "spine": "B-spine",
+        "thigh_l": "B-thigh.L",
+        "thigh_r": "B-thigh.R",
+        "toe_l": "B-toe.L",
+        "toe_r": "B-toe.R"
+      },
+      "skeleton": "Dummy/Skeleton3D",
+      "player": "AnimationPlayer",
+      "params": {
+        "op": "walk_cycle",
+        "player_path": "/RepairRigFixture/AnimationPlayer",
+        "skeleton_path": "/RepairRigFixture/Dummy/Skeleton3D",
+        "animation_name": "quality_walk",
+        "root_motion": true
+      }
+    }
+  ]
+}
