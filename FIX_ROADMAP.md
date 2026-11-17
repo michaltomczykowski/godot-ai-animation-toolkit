@@ -1,5 +1,22 @@
 # Animation Toolkit repair roadmap
 
+## Rig visual audit and Linux replay (2026-11-17)
+
+Every advertised operation has machine-check coverage on the four released
+platform/core combinations. The gap ledger now binds seven graph and nine
+rig visuals to fresh saved public cases at `a0acf2d`. The exact reviewed
+rig movie and fresh Windows 4.2.1 movie match every PNG, decoded frame and
+timestamp. The release checker requires public invocation in all four cells
+and an applicable candidate visual assessment for each operation requiring
+one. The per-cell ledger independently tracks where each assessment applies.
+
+Both engines compiled in `44142755538`. The preview did not pass because
+the runner lacked Mesa Vulkan support. The corrected paired run
+`44158710552` has matching renderer dependencies and isolated XDG paths.
+The stock 4.7.2 crash diagnosis remains open. A separate official Linux
+workflow `44161718158` collects exact saved graph and rig scenes from
+both released cores for visual review. See the [candidate assembly notes](docs/candidate-assembly-plan-20261027.md).
+
 ## All four cells have machine-check coverage (2026-11-17)
 
 Both official Linux cores now have the seven scoped effect checks.

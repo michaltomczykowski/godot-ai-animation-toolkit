@@ -40,6 +40,23 @@ The remaining cells have 81 each. All machine coverage is still present.
 Ledger SHA-256:
 `068f7bae42c544742c4f6583c214753cea8259bf4c762c7f87a1d7c274572d32`.
 
+`case-gap-ledger-with-both-windows-graph-rig-visual-r009.json` adds the
+seven graph and nine rig checks from Windows 4.3.0. All 6,000 decoded frames
+and timestamps match their independent review. Each Windows cell has 65
+pending visual bindings and each Linux cell has 81. The remaining unique
+visual operations consist of the 47-case effect corpus, eleven motion
+operations, five modifiers, rig chain and sequence compose.
+Ledger SHA-256:
+`6d13fd3a8194e495f64d74e8089059e2d0a3bf51e4290dbe24f164c1fcbc6a29`.
+
+Linux run `44161331573` completed the public suites but failed while
+collecting the results. Its exporter tried to import a helper added after
+the frozen `a0acf2d` checkout. The corrected exporter passed the local
+32-file admission check with only the frozen tool path available. Its
+hosted rerun `44161718158` passed both released cores and returned the
+32 exact synthetic scene files per cell, together with the raw trace and
+receipts. These results await visual assessment.
+
 ## Both Windows machine-effect ledgers complete
 
 Fresh public Godot AI 4.3.0 calls at audited source `a0acf2d` produced the

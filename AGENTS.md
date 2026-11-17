@@ -3,11 +3,12 @@
 ## Linux diagnostic and 103-operation audit follow-up
 
 All four cells now have the machine-effect joins. Use
-`ci-f75c324-r001/case-gap-ledger-with-exact-rig-visual-r008.json`.
+`ci-f75c324-r001/case-gap-ledger-with-both-windows-graph-rig-visual-r009.json`.
 Seven graph and nine rig operations have independent visual bindings in
-Windows 4.2.1 after full decoded equivalence. That cell has 65 remaining
-visual bindings. The other cells each have 81. Fresh Windows 4.3.0 public
-rig and graph inputs are staged by `run_rig_graph_public_win430_r001.py`.
+both Windows cells after full decoded equivalence. Both cells have 65
+remaining visual bindings. Both Linux cells have 81. Official Linux run
+`44161718158` passed the graph and rig public suites and exported exact
+visual inputs. They are downloaded in `ci-44161718158-linux-visual-r001`.
 The Linux motion inputs are run `44148286646` and the setup inputs are
 `44148826193`. The capture checkpoint lists the complete private visual
 review packet. Visual qualification and official crash stability are open.

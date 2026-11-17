@@ -269,6 +269,8 @@ class SavedVisualJoin(unittest.TestCase):
                         attach_saved_visual(inventory, 'same', deps, deps, {}, [cell], root, receipt, 'rig')
                     continue
                 attach_saved_visual(inventory, 'same', deps, deps, {}, [cell], root, receipt, 'rig')
+                with self.assertRaisesRegex(ValueError, 'Duplicate rig visual review'):
+                    attach_saved_visual(inventory, 'same', deps, deps, {}, [cell], root, receipt, 'rig')
             self.assertEqual(cell['operations'][allowed]['checks']['visual_review']['pass'], [allowed + '-case'])
             for operation in (pending, outside):
                 self.assertEqual(cell['operations'][operation]['missing_passing_checks'], ['visual_review'])

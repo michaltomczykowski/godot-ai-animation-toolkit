@@ -64,6 +64,17 @@ Windows 4.2.1 now has 65 remaining visual bindings. The other three cells
 have 81 each. The 47-operation effect packet remains pending independent
 assessment.
 
+Windows 4.3.0 then ran the same 16 public graph and rig cases in its own
+editor. All 96 native plays passed. All 6,000 source PNGs and the corresponding
+decoded frames and timestamps match the reviewed material. The graph and
+rig receipt SHA-256 values are
+`64c814c1d544df4baa6ed3305d08e4a0661a8587d790b16130dbe26aa0019ea5` and
+`92f7897abe85e88a0ee1f1a69e770da57ceda2063f2e5411fdbd9f62d8f7fdbb`.
+Both Windows cells now have 65 remaining visual bindings. Official Linux
+run `44161718158` returned 16 scoped public cases and all 32 exact scene
+files from each released core. The Linux inputs await capture or a
+separate equivalence review. No Linux visual binding was added by the export.
+
 ## Completed batch and sampled visual review
 
 All **47 of 47** pre-draw captures now have native playback receipts and

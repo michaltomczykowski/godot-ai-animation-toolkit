@@ -222,6 +222,9 @@ def attach_saved_visual(inventory, tested_source, tested_tree, candidate_tree, b
         ids = record.get('case_ids', [])
         dependencies = record.get('dependencies', {})
         checks = source['operations'][op]['checks']
+        target = matched[0]['operations'][op]
+        if 'visual_review' not in target['missing_passing_checks']:
+            raise ValueError(f'Duplicate {kind} visual review in this cell: ' + op)
         if (record.get('tested_source') != tested_source or record.get('scope') != 'candidate'
                 or record.get('engine') != '4.7.2' or len(ids) != 1 or not dependencies
                 or any(tested_tree.get(path) != blob or candidate_tree.get(path) != blob
@@ -400,13 +403,15 @@ def audit(repo, source, directories, preview_directories=(), motion_directory=No
     deps = set()
     motion_directories = (motion_directory,) if isinstance(motion_directory, Path) else motion_directory or ()
     setup_replays = (setup_replay,) if isinstance(setup_replay, Path) else setup_replay or ()
-    visual_inputs = {'graph': (graph_cases, graph_visual), 'rig': (rig_cases, rig_visual)}
     extras = [*motion_directories, *(replay.parent for replay in setup_replays)]
-    for kind, (directory, receipt) in visual_inputs.items():
-        if bool(directory) != bool(receipt):
+    visual_inputs = []
+    for kind, directories_arg, receipts_arg in (('graph', graph_cases, graph_visual), ('rig', rig_cases, rig_visual)):
+        case_directories = (directories_arg,) if isinstance(directories_arg, Path) else directories_arg or ()
+        receipts = (receipts_arg,) if isinstance(receipts_arg, Path) else receipts_arg or ()
+        if len(case_directories) != len(receipts):
             raise ValueError(f'{kind} visual evidence requires a public case directory and visual receipt')
-        if directory:
-            extras.append(directory)
+        extras.extend(case_directories)
+        visual_inputs.extend((kind, directory, receipt) for directory, receipt in zip(case_directories, receipts))
     for p in [*directories, *extras]:
         deps.update(b['git_blob'] for b in load(p / 'operation-context.json')['dependencies'].values())
     blobs = read_blobs(repo, sorted(deps))
@@ -418,10 +423,9 @@ def audit(repo, source, directories, preview_directories=(), motion_directory=No
         attach_rendered_previews(repo, tested_source, cells, preview_directories)
     if preview_visual:
         attach_preview_visual(cells, tested_source, tested_tree, candidate_tree, preview_visual)
-    for kind, (directory, receipt) in visual_inputs.items():
-        if receipt:
-            attach_saved_visual(inventory, tested_source, tested_tree, candidate_tree, blobs, cells,
-                                directory, receipt, kind)
+    for kind, directory, receipt in visual_inputs:
+        attach_saved_visual(inventory, tested_source, tested_tree, candidate_tree, blobs, cells,
+                            directory, receipt, kind)
     for directory in motion_directories:
         attach_motion_effects(inventory, tested_source, tested_tree, blobs, cells, directory)
     for replay in setup_replays:
@@ -446,10 +450,10 @@ def main():
     parser.add_argument('--preview', type=Path, action='append', default=[],
                         help='Optional exact-source bundle; if supplied, require all four cells')
     parser.add_argument('--preview-visual', type=Path, help='Independent PNG assessment bound to the four preview cases')
-    parser.add_argument('--graph-cases', type=Path, help='Fresh public graph history evidence')
-    parser.add_argument('--graph-visual', type=Path, help='Independent recordings bound to the fresh graph cases')
-    parser.add_argument('--rig-cases', type=Path, help='Fresh public rig history evidence')
-    parser.add_argument('--rig-visual', type=Path, help='Independent recordings bound to the fresh rig cases')
+    parser.add_argument('--graph-cases', type=Path, action='append', help='Fresh public graph history evidence, once per cell')
+    parser.add_argument('--graph-visual', type=Path, action='append', help='Independent recordings in graph case directory order')
+    parser.add_argument('--rig-cases', type=Path, action='append', help='Fresh public rig history evidence, once per cell')
+    parser.add_argument('--rig-visual', type=Path, action='append', help='Independent recordings in rig case directory order')
     parser.add_argument('--motion-effects', type=Path, action='append',
                         help='Exact-source six-effect supplement, once per platform/core cell')
     parser.add_argument('--setup-effect', type=Path, action='append',
