@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 import subprocess
 import time
+from review_receipts import write_json
 
 
 def progress(args, stage, *, marker='MOTION_SEQUENCE_PROGRESS', **payload):
@@ -24,9 +25,7 @@ def progress(args, stage, *, marker='MOTION_SEQUENCE_PROGRESS', **payload):
         record=Path(record)
         record.parent.mkdir(parents=True,exist_ok=True)
         target=record.with_suffix('.progress.json')
-        pending=record.with_suffix('.progress.pending')
-        pending.write_text(json.dumps(args._gate_progress,indent=2),encoding='utf-8')
-        pending.replace(target)
+        write_json(target, args._gate_progress)
 
 
 def native_progress_payload(record, payload, report, native_case_id=None):

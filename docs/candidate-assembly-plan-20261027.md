@@ -1,5 +1,36 @@
 # Candidate audit and package: execution plan
 
+## November 17 audit and CI follow-up
+
+The four-cell ledger now accepts `--preview-visual` with the private
+`preview-visual-receipt-staging-r002/preview-visual-evidence-record.json`.
+The join requires all four actual public preview bundles, the four exact
+case IDs, matching tested and candidate dependency blobs, and all 16 PNG
+hashes in the independent assessment. Negative controls reject a foreign
+case and changed media. The actual rerun, `ci-f75c324-r001/case-gap-ledger-with-static-preview-r001.json`,
+preserves all 2,049 case rows per cell and identical production blobs.
+SHA-256:
+`47575363502fedc7c0bf12afb67d2c998b67e31708610c75600558007570050f`.
+The pending visual count is now 81 per cell. Windows 4.2.1 has no remaining
+machine effect gap. Each other cell still has seven motion effect gaps.
+
+The first paired Godot source run `44126929152` reached the linker and
+failed on Embree AVX2 symbols, before the changed code or preview ran.
+The retry `44142755538` uses one shared build profile for baseline and
+locked variants, omitting the optional Embree-backed raycast module.
+Official Linux clean ZIP jobs in `44132486656` passed on both cores.
+The native Linux crash and its official-engine gate remain open.
+
+Windows 4.2.1 live routes ran out of time after editor replies in
+`44124264572` (pose-list refusal witness within pose CRUD) and
+`44132486656` (bake state). The former left an incomplete trace span.
+The latter retains a partial report with 102 successful operations.
+Windows 4.3.0 clean install `44131561408` stopped at the preset/library
+client await even though the editor logged `run_tests -> ok`. These
+records establish the observed stages and leave the transport cause open.
+The rig helpers now report call, transport, and native stages. The outer
+90-second limits and success checks remain in force.
+
 This implements phase 5 of release-final-six-phases.md. Phase 4's final
 three-case independent assessment is finishing separately. Publication remains
 blocked by unresolved Linux instability; a green CI run does not close it.

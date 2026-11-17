@@ -1,5 +1,16 @@
 # Agent notes
 
+## Linux diagnostic and 103-operation audit follow-up
+
+Run `44126929152` failed to link Embree in the baseline. Check retry
+`44142755538` on diagnostics/godot-4.7.2-doc-queue. Both builds use the
+same raycast-disabled profile. The custom build never qualifies the
+official-engine stability gate. Use the new static preview join in
+`ci-f75c324-r001/case-gap-ledger-with-static-preview-r001.json`. It binds
+one visual operation across all four cells. The required release receipt
+is still pending. The roadmap and candidate assembly record Windows
+route timeouts and their new stage diagnostics.
+
 ## Latest active capture queue, November 17
 
 The 47-case queue and its stagger and retarget follow-ups are complete.

@@ -550,12 +550,14 @@ def rig_pose_history_gate(args: argparse.Namespace) -> bool:
 
 
 def rig_bake_state_gate(args: argparse.Namespace) -> bool:
-    check = subprocess.run([
+    record = rig_audit_record(args, 'rig_bake_state')
+    check = bounded_run([
         sys.executable, str(Path(__file__).with_name("mcp_rig_bake_state.py")),
         "--core-root", str(args.core_root), "--project-root", str(args.project),
         "--session-hint", args.project.name, "--port", str(args.port),
         "--ws-port", str(args.ws_port), "--godot", godot_executable(args.godot),
-    ], capture_output=True, text=True, timeout=90, check=False)
+        "--record", str(record),
+    ], 90, record, 'rig_bake_state')
     marker = "MCP_RIG_BAKE_STATE="
     payload = next((line[len(marker):] for line in check.stdout.splitlines() if line.startswith(marker)), "")
     report = json.loads(payload) if payload else {}
@@ -935,6 +937,12 @@ def sequence_playback_gate(args: argparse.Namespace) -> bool:
     return True
 
 
+def rig_audit_record(args: argparse.Namespace, label: str) -> Path:
+    root = (args.case_output_dir.resolve() if getattr(args, "case_output_dir", None)
+            else Path(args.log).resolve().parent)
+    return root / "gate-diagnostics" / f"{label}-{uuid.uuid4().hex}.json"
+
+
 def rig_playback_gate(args: argparse.Namespace) -> bool:
     """Exercise all rig operations through the live route and saved playback."""
     common = ["--core-root", str(args.core_root),
@@ -950,9 +958,11 @@ def rig_playback_gate(args: argparse.Namespace) -> bool:
     )
     results = {}
     for script, marker, label in audits:
-        audit = subprocess.run([
-            sys.executable, str(Path(__file__).with_name(script)), *common,
-        ], capture_output=True, text=True, timeout=90, check=False)
+        record = rig_audit_record(args, label)
+        command = [sys.executable, str(Path(__file__).with_name(script)), *common]
+        if label == "pose_crud":
+            command.extend(["--record", str(record)])
+        audit = bounded_run(command, 90, record, label)
         payload = next((line[len(marker):] for line in audit.stdout.splitlines()
                         if line.startswith(marker)), "")
         if audit.returncode or not payload:
@@ -1222,21 +1232,33 @@ def run_with_case_collection(args: argparse.Namespace) -> int:
     os.environ[names[0]] = str(context)
     os.environ[names[1]] = str(traces)
     report = None
+    result = None
     try:
         result = run(args)
     finally:
         for name, value in previous.items():
             if value is None: os.environ.pop(name, None)
             else: os.environ[name] = value
-        report = collect(context, traces, root)
-        with (output / 'operation-case-results.json').open('x', encoding='utf-8') as file:
-            json.dump(report, file, indent=2)
-        failed_derived=derived_failures(report)
-        print('MCP_OPERATION_COVERAGE=' + json.dumps({
-            'successful':len(report['successful_public_operations']),
-            'missing':report['missing_successful_public_operations'],
-            'core_qualification':report['core_qualification'],
-            'failed_derived_checks':len(failed_derived)}), flush=True)
+        try:
+            report = collect(context, traces, root)
+        except Exception as error:
+            # A timed-out route can leave half a begin/end pair. Keep the raw
+            # traces and the route's failure visible alongside the collector error.
+            with (output / 'operation-collection-failure.json').open('x', encoding='utf-8') as file:
+                json.dump({'route_returncode': result, 'collector_error': str(error)}, file, indent=2)
+            if result == 0:
+                raise
+        if report is not None:
+            with (output / 'operation-case-results.json').open('x', encoding='utf-8') as file:
+                json.dump(report, file, indent=2)
+    if report is None:
+        return result
+    failed_derived=derived_failures(report)
+    print('MCP_OPERATION_COVERAGE=' + json.dumps({
+        'successful':len(report['successful_public_operations']),
+        'missing':report['missing_successful_public_operations'],
+        'core_qualification':report['core_qualification'],
+        'failed_derived_checks':len(failed_derived)}), flush=True)
     if failed_derived:
         return 1
     if args.require_all_public_operations and (report['missing_successful_public_operations'] or report['core_qualification'] != 'released'):

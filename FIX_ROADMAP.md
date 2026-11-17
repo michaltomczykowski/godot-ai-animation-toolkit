@@ -1,5 +1,26 @@
 # Animation Toolkit repair roadmap
 
+## Linux build restart and audit admission (2026-11-17)
+
+The first paired Linux run failed to link unpatched Godot at Embree AVX2
+symbols. Neither engine reached runtime. Run `44142755538` retries the
+same pinned source and patch with the optional raycast module disabled
+for both controls. Both official Linux clean installs pass in CI
+`44132486656`. The intermittent native abort remains open.
+
+Recent Windows routes reached different deadlines in preset history,
+pose CRUD, and bake state. The editor logs show replies emitted in all
+three. The existing deadlines remain. The live-route harness now records
+phases and partial streams when a rig gate times out, and a subsequent
+collector error preserves the raw traces without superseding the route
+failure. See [candidate assembly](docs/candidate-assembly-plan-20261027.md).
+
+The 103-operation ledger now consumes and revalidates the independent static
+preview evidence. It admits the same four case IDs and all 16 image hashes
+only after validating each actual public preview bundle. The ledger has 81
+visual operation bindings outstanding and seven motion effect gaps in each
+of three cells. Release qualification is still pending.
+
 ## Capture recovery and Linux control (2026-11-17)
 
 Phase 4's 47-case queue is complete after a Windows checkpoint recovery.

@@ -54,4 +54,28 @@ class EntryPoints(unittest.TestCase):
                      patch.object(collector,'collect',return_value=report):
                     self.assertEqual(route.run_with_case_collection(args),expected)
                 self.assertEqual(json.loads((output/'operation-case-results.json').read_text()),report)
+
+    def test_unclosed_trace_retains_route_failure_and_remains_strict_on_green_route(self):
+        import ci_mcp_route as route
+        import operation_case_collector as collector
+        for result in (0, 1):
+            with self.subTest(result=result), tempfile.TemporaryDirectory() as folder:
+                output = Path(folder) / 'evidence'
+                args = argparse.Namespace(case_output_dir=output, existing=False,
+                                          core_root=Path(folder), godot='fixture',
+                                          require_all_public_operations=False)
+                with patch.object(route, 'run', return_value=result), \
+                     patch.object(route, 'godot_executable', return_value='fixture'), \
+                     patch.object(collector, 'prepare'), \
+                     patch.object(collector, 'collect', side_effect=ValueError('unclosed trace pair')):
+                    if result:
+                        self.assertEqual(route.run_with_case_collection(args), result)
+                    else:
+                        with self.assertRaisesRegex(ValueError, 'unclosed trace pair'):
+                            route.run_with_case_collection(args)
+                failure = json.loads((output / 'operation-collection-failure.json').read_text())
+                self.assertEqual(failure, {'route_returncode': result,
+                                           'collector_error': 'unclosed trace pair'})
+                self.assertFalse((output / 'operation-case-results.json').exists())
+
 if __name__=='__main__':unittest.main()

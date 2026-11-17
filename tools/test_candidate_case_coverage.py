@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from audit_candidate_case_coverage import MOTION_EFFECT_KEYS, admit_cell, attach_motion_effects, confined
+from audit_candidate_case_coverage import MOTION_EFFECT_KEYS, admit_cell, attach_motion_effects, attach_preview_visual, confined, sha
 from check_release_audit import CORES
 
 
@@ -108,6 +108,69 @@ class MotionSupplementJoin(unittest.TestCase):
             sample['tested_source'] = 'different-source'
             with self.assertRaisesRegex(ValueError, 'foreign source'):
                 attach_motion_effects({}, 'same-source', {}, {}, [windows, linux], Path('archive'))
+
+
+class PreviewVisualJoin(unittest.TestCase):
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        root = Path(temp.name)
+        self.receipt = root / 'evidence.json'
+        self.operation = 'animation_inspect.preview'
+        self.source = 'a' * 40
+        self.dependencies = {'addons/godot_ai_animation/handlers/inspect.gd': 'b' * 40}
+        self.cells = []
+        media = []
+        ids = []
+        for cell_index in range(4):
+            case_id = f'public-preview-{cell_index}'
+            ids.append(case_id)
+            images = []
+            for index in range(4):
+                path = root / f'{cell_index}-{index}.png'
+                path.write_bytes(path.name.encode())
+                images.append({'path': path.name, 'sha256': sha(path), 'role': 'rendered_preview_image'})
+            media.extend(dict(image, kind='image') for image in images)
+            self.cells.append({'operations': {self.operation: {
+                'rendered_preview': {'case_id': case_id, 'artifacts': images},
+                'checks': {'visual_review': {'pass': []}},
+                'missing_passing_checks': ['visual_review'],
+            }}})
+        assessment = root / 'review.json'
+        assessment.write_text(json.dumps({'assessments': [{
+            'operation': self.operation, 'case_ids': ids, 'reviewer_type': 'independent',
+            'human_approved': False, 'status': 'pass', 'method': 'ordered static preview',
+            'findings': 'fixture framing', 'media': media,
+        }]}))
+        self.record = {
+            'operation_key': self.operation, 'tested_source': self.source, 'engine': '4.7.2',
+            'scope': 'candidate', 'case_ids': ids, 'dependencies': self.dependencies,
+            'artifacts': media + [{'path': assessment.name, 'sha256': sha(assessment),
+                                   'role': 'independent_assessment'}],
+        }
+
+    def attach(self):
+        self.receipt.write_text(json.dumps(self.record))
+        attach_preview_visual(self.cells, self.source, self.dependencies, self.dependencies, self.receipt)
+
+    def test_joins_only_the_actual_public_preview_cases(self):
+        self.attach()
+        for cell in self.cells:
+            item = cell['operations'][self.operation]
+            self.assertEqual(item['checks']['visual_review']['pass'], [item['rendered_preview']['case_id']])
+            self.assertEqual(item['missing_passing_checks'], [])
+
+    def test_rejects_wrong_public_case_or_different_image(self):
+        actual = self.record['case_ids'][0]
+        self.record['case_ids'][0] = 'foreign'
+        with self.assertRaisesRegex(ValueError, 'cases, source or dependencies'):
+            self.attach()
+        self.record['case_ids'][0] = actual
+        self.cells[-1]['operations'][self.operation]['rendered_preview']['artifacts'][0]['sha256'] = '0' * 64
+        with self.assertRaisesRegex(ValueError, 'image hashes differ'):
+            self.attach()
+        self.assertTrue(all(not cell['operations'][self.operation]['checks']['visual_review']['pass']
+                            for cell in self.cells))
 
 
 if __name__ == '__main__': unittest.main()

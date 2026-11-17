@@ -16,7 +16,8 @@ from pathlib import Path
 from fastmcp import Client
 from fastmcp.client.transports import StdioTransport
 
-from mcp_presets_audit import call
+from gate_diagnostics import progress
+from mcp_presets_audit import call as public_call
 from remaining_read_witness import witnessed_read
 from operation_case_collector import record_snapshot_result
 from operation_pose_blend_refusal_checks import observe_missing_pose
@@ -35,6 +36,7 @@ def pose_files(directory: Path) -> dict:
 
 
 async def run(args: argparse.Namespace) -> int:
+    progress(args, "preparing_fixture")
     run_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     folder = args.project_root / "repair_rig_audit" / run_id
     folder.mkdir(parents=True, exist_ok=False)
@@ -53,7 +55,17 @@ async def run(args: argparse.Namespace) -> int:
         "--port", str(args.port), "--ws-port", str(args.ws_port)],
         cwd=str(args.core_root), keep_alive=False)
     row = {"run_id": run_id, "scene": scene, "pose_dir": pose_dir}
+
+    async def call(client, tool, params):
+        phase = tool + ("." + params["op"] if "op" in params else "")
+        progress(args, "call_start", phase=phase)
+        result = await public_call(client, tool, params)
+        progress(args, "call_returned", phase=phase)
+        return result
+
+    progress(args, "connecting")
     async with Client(transport) as client:
+        progress(args, "session_activate_start")
         await client.call_tool("session_activate", {"session_id": args.session_hint})
         row["open"] = await call(client, "scene_open", {"path": scene})
         save_base = {"op": "pose_save", "skeleton_path": SKELETON,
@@ -70,6 +82,7 @@ async def run(args: argparse.Namespace) -> int:
             {**save_base, "name": "arm"})
         files_before_list = pose_files(disk_dir)
         files_before_list_ns = time.perf_counter_ns()
+        progress(args, "read_witness_start", phase="pose_list")
         row["list"] = await witnessed_read(client, "custom_animation_rig",
             {"op": "pose_list", "directory": pose_dir}, scene, "valid")
         files_after_list = pose_files(disk_dir)
@@ -81,6 +94,7 @@ async def run(args: argparse.Namespace) -> int:
             "open": row["open"], "save_requests": [{**save_base, "name": "rest"}, {**save_base, "name": "arm"}],
             "save_results": [row["save_rest"], row["save_arm"]],
             "observation_scope": "pose-directory exact bytes/content only; live scene unobserved"})
+        progress(args, "read_witness_start", phase="pose_list_invalid")
         row["invalid_list"] = await witnessed_read(client, "custom_animation_rig",
             {"op": "pose_list", "directory": []}, scene, "refusal")
         if not row["invalid_list"].get("error", "").startswith("INVALID_PARAMS:"):
@@ -113,6 +127,8 @@ async def run(args: argparse.Namespace) -> int:
         row["clip_persisted"] = await call(client, "custom_animation_inspect", describe)
         row["missing_pose"] = await observe_missing_pose(client, call, scene, pose_dir,
             disk_dir, blend_base, row["blend_half"])
+        progress(args, "transport_exit_start")
+    progress(args, "transport_exit_completed")
     failures = []
     for name, value in row.items():
         if name in ("open", "save_rest", "apply_arm", "save_arm", "list",
@@ -144,6 +160,7 @@ def main() -> int:
     parser.add_argument("--session-hint", required=True)
     parser.add_argument("--port", type=int, required=True)
     parser.add_argument("--ws-port", type=int, required=True)
+    parser.add_argument("--record", type=Path)
     return asyncio.run(run(parser.parse_args()))
 
 

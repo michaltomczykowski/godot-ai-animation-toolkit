@@ -7,7 +7,7 @@ import json
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import subprocess
 
-from check_release_audit import CORES, required_checks, validate_inventory
+from check_release_audit import CORES, artifact_is_valid, operation_binding_errors, required_checks, validate_inventory
 from check_rendered_preview_matrix import verify_identity
 from operation_dependencies import source_blobs
 from validate_release_package import read_blobs
@@ -156,6 +156,45 @@ def attach_rendered_previews(repo, tested_source, cells, directories):
         item['rendered_preview'] = bound
 
 
+def attach_preview_visual(cells, tested_source, tested_tree, candidate_tree, receipt):
+    """Join the independently reviewed PNGs to their actual preview cases."""
+    operation = 'animation_inspect.preview'
+    bindings = [cell['operations'][operation].get('rendered_preview') for cell in cells]
+    if len(bindings) != 4 or not all(bindings):
+        raise ValueError('Preview visual evidence requires all four public preview bundles')
+    expected_ids = {binding['case_id'] for binding in bindings}
+    evidence = load(receipt)
+    dependencies = evidence.get('dependencies', {})
+    ids = evidence.get('case_ids', [])
+    if (len(expected_ids) != 4 or len(ids) != 4 or set(ids) != expected_ids
+            or evidence.get('tested_source') != tested_source or evidence.get('engine') != '4.7.2'
+            or evidence.get('scope') != 'candidate' or not dependencies
+            or any(tested_tree.get(path) != blob or candidate_tree.get(path) != blob
+                   for path, blob in dependencies.items())):
+        raise ValueError('Preview visual cases, source or dependencies differ')
+    for artifact in evidence.get('artifacts', []):
+        if not artifact_is_valid(artifact, receipt.parent):
+            raise ValueError('Preview visual artifact is missing or changed')
+    errors = operation_binding_errors(evidence, operation, 'visual_review', receipt.parent)
+    if errors:
+        raise ValueError('; '.join(errors))
+    assessments = [artifact for artifact in evidence['artifacts'] if artifact['role'] == 'independent_assessment']
+    if len(assessments) != 1:
+        raise ValueError('Expected one independent preview assessment artifact')
+    rows = load(receipt.parent / assessments[0]['path'])['assessments']
+    expected_images = Counter(artifact['sha256'] for binding in bindings for artifact in binding['artifacts']
+                              if artifact['role'] == 'rendered_preview_image')
+    if (len(rows) != 1 or sum(expected_images.values()) != 16
+            or Counter(image['sha256'] for image in rows[0]['media'] if image.get('kind') == 'image')
+            != expected_images):
+        raise ValueError('Independently reviewed image hashes differ from the four public preview bundles')
+    for cell, binding in zip(cells, bindings):
+        item = cell['operations'][operation]
+        item['checks']['visual_review']['pass'].append(binding['case_id'])
+        item['missing_passing_checks'].remove('visual_review')
+        item['preview_visual'] = {'receipt': str(receipt.resolve()), 'sha256': sha(receipt)}
+
+
 MOTION_EFFECT_KEYS = frozenset('animation_motion.' + name for name in (
     'idle_cycle', 'turn_cycle', 'jump', 'strafe_cycle', 'walk_start', 'walk_stop'))
 
@@ -273,7 +312,8 @@ def attach_setup_effect(inventory, tested_source, tested_tree, blobs, cells, rep
     }
 
 
-def audit(repo, source, directories, preview_directories=(), motion_directory=None, setup_replay=None):
+def audit(repo, source, directories, preview_directories=(), motion_directory=None, setup_replay=None,
+          preview_visual=None):
     source = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', source + '^{commit}'], text=True).strip()
     inventory = json.loads(subprocess.check_output(['git', '-C', str(repo), 'show', source + ':docs/operation-audit.json']))
     errors = validate_inventory(inventory)
@@ -295,6 +335,8 @@ def audit(repo, source, directories, preview_directories=(), motion_directory=No
         raise ValueError('Four distinct released-core/platform cells required')
     if preview_directories:
         attach_rendered_previews(repo, tested_source, cells, preview_directories)
+    if preview_visual:
+        attach_preview_visual(cells, tested_source, tested_tree, candidate_tree, preview_visual)
     if motion_directory:
         attach_motion_effects(inventory, tested_source, tested_tree, blobs, cells, motion_directory)
     if setup_replay:
@@ -308,7 +350,7 @@ def audit(repo, source, directories, preview_directories=(), motion_directory=No
             'candidate_source': source, 'tested_source': tested_source, 'production_changes': changes,
             'production_blobs_equal': not changes, 'cells': cells,
             'qualification': 'pending', 'release_approved': False,
-            'scope': 'Raw CI and optional exact-source preview/motion check-to-case presence only. Refusals/failures retained; no cross-cell folding, visual/source bridge or release approval.'}
+            'scope': 'Raw CI and optional exact-source preview, motion and static preview assessment bindings. Refusals/failures retained. Qualification remains pending.'}
 
 
 def main():
@@ -318,13 +360,15 @@ def main():
     parser.add_argument('--cell', type=Path, action='append', required=True)
     parser.add_argument('--preview', type=Path, action='append', default=[],
                         help='Optional exact-source bundle; if supplied, require all four cells')
+    parser.add_argument('--preview-visual', type=Path, help='Independent PNG assessment bound to the four preview cases')
     parser.add_argument('--motion-effects', type=Path, help='Exact-source six-effect supplement')
     parser.add_argument('--setup-effect', type=Path, help='Exact-source fixed-speed setup replay')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     if args.output.exists():
         parser.error('Exclusive output already exists')
-    result = audit(args.repo, args.source, args.cell, args.preview, args.motion_effects, args.setup_effect)
+    result = audit(args.repo, args.source, args.cell, args.preview, args.motion_effects, args.setup_effect,
+                   args.preview_visual)
     with args.output.open('x', encoding='utf-8') as stream:
         json.dump(result, stream, indent=2)
     print('CASE_LEDGER_ADMITTED cells=4 operations=103 production_blobs_equal=%s qualification=pending' % result['production_blobs_equal'])
