@@ -5,8 +5,9 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
-from audit_candidate_case_coverage import admit_cell, confined
+from audit_candidate_case_coverage import MOTION_EFFECT_KEYS, admit_cell, attach_motion_effects, confined
 from check_release_audit import CORES
 
 
@@ -82,6 +83,31 @@ class AdmissionTests(unittest.TestCase):
     def test_path_escape(self):
         for name in ('../outside', 'C:/private.json', '/etc/passwd', 'folder\\file'):
             with self.subTest(name=name), self.assertRaises(ValueError): confined(self.root, name)
+
+
+class MotionSupplementJoin(unittest.TestCase):
+    def test_bound_checks_do_not_cross_platform_or_supply_setup(self):
+        fields = dict(tested_source='same-source', core_version='4.2.1',
+                      core_commit=CORES['4.2.1'], engine='4.7.2.stable.official')
+        def effects(passing):
+            return {k: {'checks': {'valid_effect': {'pass': [k + ':real'] if passing else []}},
+                        'missing_passing_checks': ['valid_effect', 'visual_review']}
+                    for k in MOTION_EFFECT_KEYS}
+        windows = dict(**fields, platform='windows', operations=effects(False))
+        linux = dict(**fields, platform='linux', operations=effects(False))
+        sample = dict(**fields, platform='windows', operations=effects(True),
+                      non_invocation_failures=[], report='report.json', report_sha256='report-hash',
+                      context_sha256='context-hash', raw_artifacts=[])
+        with patch('audit_candidate_case_coverage.admit_cell', return_value=sample):
+            attach_motion_effects({}, 'same-source', {}, {}, [windows, linux], Path('archive'))
+            self.assertEqual({tuple(row['missing_passing_checks']) for row in windows['operations'].values()},
+                             {('visual_review',)})
+            self.assertNotIn('motion_effect_supplement', linux)
+            self.assertEqual({tuple(row['missing_passing_checks']) for row in linux['operations'].values()},
+                             {('valid_effect', 'visual_review')})
+            sample['tested_source'] = 'different-source'
+            with self.assertRaisesRegex(ValueError, 'foreign source'):
+                attach_motion_effects({}, 'same-source', {}, {}, [windows, linux], Path('archive'))
 
 
 if __name__ == '__main__': unittest.main()

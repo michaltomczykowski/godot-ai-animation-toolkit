@@ -156,7 +156,39 @@ def attach_rendered_previews(repo, tested_source, cells, directories):
         item['rendered_preview'] = bound
 
 
-def audit(repo, source, directories, preview_directories=()):
+MOTION_EFFECT_KEYS = frozenset('animation_motion.' + name for name in (
+    'idle_cycle', 'turn_cycle', 'jump', 'strafe_cycle', 'walk_start', 'walk_stop'))
+
+
+def attach_motion_effects(inventory, tested_source, tested_tree, blobs, cells, directory):
+    """Add only the six independently checked effects in their actual cell."""
+    supplement = admit_cell(directory, inventory, tested_tree, blobs)
+    if supplement['tested_source'] != tested_source or supplement['non_invocation_failures']:
+        raise ValueError('Motion supplement has a foreign source or derived failures')
+    matches = [row for row in cells if all(row[k] == supplement[k] for k in
+               ('platform', 'core_version', 'core_commit', 'engine'))]
+    if len(matches) != 1:
+        raise ValueError('Motion supplement is outside the released matrix')
+    observed = {k: item['checks'].get('valid_effect', {}).get('pass', [])
+                for k, item in supplement['operations'].items()}
+    if {k for k, values in observed.items() if values} != MOTION_EFFECT_KEYS:
+        raise ValueError('Motion supplement does not bind the six intended effects')
+    target = matches[0]
+    for key in sorted(MOTION_EFFECT_KEYS):
+        item = target['operations'][key]
+        values = item['checks']['valid_effect']['pass']
+        values.extend(case_id for case_id in observed[key] if case_id not in values)
+        item['missing_passing_checks'] = [check for check in item['missing_passing_checks']
+                                          if check != 'valid_effect']
+    target['motion_effect_supplement'] = {
+        'report': supplement['report'], 'report_sha256': supplement['report_sha256'],
+        'context_sha256': supplement['context_sha256'], 'raw_artifacts': supplement['raw_artifacts'],
+        'operations': {k: observed[k] for k in sorted(MOTION_EFFECT_KEYS)},
+        'scope': 'Six independent ordinary Responsive dummy cases; this cell only.',
+    }
+
+
+def audit(repo, source, directories, preview_directories=(), motion_directory=None):
     source = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', source + '^{commit}'], text=True).strip()
     inventory = json.loads(subprocess.check_output(['git', '-C', str(repo), 'show', source + ':docs/operation-audit.json']))
     errors = validate_inventory(inventory)
@@ -168,7 +200,7 @@ def audit(repo, source, directories, preview_directories=()):
     tested_source = tested.pop()
     tested_tree, candidate_tree = tree(repo, tested_source), tree(repo, source)
     deps = set()
-    for p in directories:
+    for p in [*directories, *([motion_directory] if motion_directory else [])]:
         deps.update(b['git_blob'] for b in load(p / 'operation-context.json')['dependencies'].values())
     blobs = read_blobs(repo, sorted(deps))
     cells = [admit_cell(p, inventory, tested_tree, blobs) for p in directories]
@@ -177,6 +209,8 @@ def audit(repo, source, directories, preview_directories=()):
         raise ValueError('Four distinct released-core/platform cells required')
     if preview_directories:
         attach_rendered_previews(repo, tested_source, cells, preview_directories)
+    if motion_directory:
+        attach_motion_effects(inventory, tested_source, tested_tree, blobs, cells, motion_directory)
     for cell in cells:
         cell['required_gaps'] = dict(Counter(
             check for item in cell['operations'].values() for check in item['missing_passing_checks']))
@@ -186,7 +220,7 @@ def audit(repo, source, directories, preview_directories=()):
             'candidate_source': source, 'tested_source': tested_source, 'production_changes': changes,
             'production_blobs_equal': not changes, 'cells': cells,
             'qualification': 'pending', 'release_approved': False,
-            'scope': 'Raw CI and optional exact-source preview check-to-case presence only. Refusals/failures retained; no cross-cell folding, visual/source bridge or release approval.'}
+            'scope': 'Raw CI and optional exact-source preview/motion check-to-case presence only. Refusals/failures retained; no cross-cell folding, visual/source bridge or release approval.'}
 
 
 def main():
@@ -196,11 +230,12 @@ def main():
     parser.add_argument('--cell', type=Path, action='append', required=True)
     parser.add_argument('--preview', type=Path, action='append', default=[],
                         help='Optional exact-source bundle; if supplied, require all four cells')
+    parser.add_argument('--motion-effects', type=Path, help='Exact-source six-effect supplement')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     if args.output.exists():
         parser.error('Exclusive output already exists')
-    result = audit(args.repo, args.source, args.cell, args.preview)
+    result = audit(args.repo, args.source, args.cell, args.preview, args.motion_effects)
     with args.output.open('x', encoding='utf-8') as stream:
         json.dump(result, stream, indent=2)
     print('CASE_LEDGER_ADMITTED cells=4 operations=103 production_blobs_equal=%s qualification=pending' % result['production_blobs_equal'])

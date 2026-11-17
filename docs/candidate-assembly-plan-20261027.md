@@ -77,6 +77,30 @@ foreign-source previews before mutating the ledger. The reproducible rerun
 Tested with all four actual bundles, 20 related unit tests, and three negative
 controls on the actual archive inputs. No visual check is inferred here.
 
+Same-source motion replay: six actual public Godot AI 4.2.1 / Windows
+cases generated, saved and reopened at the audited `a0acf2d` checkout
+in a fresh project. Idle, turn, jump, strafe, start and stop pass their
+existing intent checks on Player and Tree at 30/60/120 FPS. No derived
+failures. Private `motion-intent-six-a0acf2d-r001` case report SHA-256:
+`497157a8bea2b0362d32a1e1704b1df98ff119994ab7d9212630feef4665c1ca`.
+The new `--motion-effects` audit option adds the checks only to the
+Windows 4.2.1 cell and leaves all other cells intact. Its rerun
+`case-gap-ledger-with-motion-r001.json` SHA-256 is
+`6f262b4369ab0de40c030b25e986a3fb7a8bb743952264c5cfcbf0ce087aa662`.
+The only machine-effect operation without a passing same-source case
+anywhere in this ledger is character setup. Its fresh setup run is staged
+separately under `setup-intent-a0acf2d-r001`.
+
+Visual reuse intake: rechecked 157 unique media, assessment, plan, native
+and capture receipt files for 49 effect/edit/preset/library representatives
+covering 47 operations in `effect-visual-input-index-r001.json` (SHA-256
+`a4b894492052806f19ade4841f13fdd29535ed46532c937854230704b2701348`).
+37 representatives name original public test-run and inner-case IDs.
+The remaining 12 have documentary selectors and changed recorded
+dependencies; keep them pending until current case/output parity is shown.
+This indexes existing assessments without changing their limits or granting
+candidate visual passes.
+
 ## Linux timeout diagnosis
 
 Run 40359394495, Linux clean ZIP with core 4.2.1, reached the editor's

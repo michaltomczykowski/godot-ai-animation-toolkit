@@ -1,5 +1,19 @@
 # Agent notes
 
+## Current release staging, November 17
+
+Do not merge/tag/publish until qualified and the user explicitly confirms.
+Linux instrumented clean ZIP passes both cores/orders; no recurrence of the
+allocation hang. Official Linux native crash not fixed by passing runs.
+Six of seven same-source motion effects now pass at archived audited
+checkout a0acf2d (Windows/core 4.2.1); use coverage CLI --motion-effects
+with private motion-intent-six-a0acf2d-r001. Same-source setup run uses
+private run_setup_intent_a0acf2d_r001.py and isolated setup-project-a0acf2d-r001;
+inspect setup-intent-a0acf2d-r001/execution.json before starting another
+engine. Do not relabel old source or use 4.4.2 interactive editor for tests.
+The 47-operation effect media index is intake only, not qualification.
+Exact artifacts and gaps are in docs/candidate-assembly-plan-20261027.md.
+
 ## Resume November 17
 
 Both live MCPs respond after Codex restart. Interactive validation now uses
