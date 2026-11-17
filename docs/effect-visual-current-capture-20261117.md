@@ -37,6 +37,33 @@ SHA-256 `eef5597e58e50dc26350db515b7dec35cd836a97411bc2ff7064b68099fd08af`.
 The 49 effect/edit/preset/library files have different encoded hashes
 from their historical counterparts. Their prepared packet stays pending.
 
+## Exact rig recipe and pose playback
+
+The Windows 4.2.1 public Godot AI editor ran `rig_clip_history` and
+`rig_pose_history` at `a0acf2d` on official Godot 4.7.2. The new manifest
+binds nine operation representatives to their public test calls,
+inner dispatches and exact saved undo and redo bytes. The serialized
+scenes all differ from the archive. The current native preflight passed
+all 54 plays across 30, 60 and 120 FPS. The 72-second recording matches
+all 4,320 reviewed PNG hashes and all 4,320 decoded frame and timestamp
+records. The independent review applies to the authored joint and axis
+display on this synthetic rig.
+
+| Private receipt | SHA-256 |
+| --- | --- |
+| `rig-public-a0acf2d-r001/operation-case-results.json` | `0c82ea6e729c454f7ba1d954de9852fdc372c38fd92fe566f96f4b4414367a4b` |
+| `rig-exact-a0acf2d-r001/manifest.json` | `9ed26a3a794d6c2099edf387f8d76535077de816f9e5307a8317c20a11efeb4b` |
+| `rig-exact-visual-staging-r001/media-equivalence.json` | `c2064603c8e02266e43bd969baa416b9975781e94f5cf8e97edfd5464f46dc12` |
+| `rig-exact-visual-staging-r001/rig-visual-evidence-records.json` | `d0dbf1bcc3270ed93634df57f3fd955f36a0c49a1441df40df56462d1540d17c` |
+
+`--rig-cases` and `--rig-visual` join the exact reviewed operations to
+their observed platform and released core. The join rejects unrelated
+operations, duplicate records, missing artifacts and unrelated case IDs.
+The updated ledger is `case-gap-ledger-with-exact-rig-visual-r008.json`.
+Windows 4.2.1 now has 65 remaining visual bindings. The other three cells
+have 81 each. The 47-operation effect packet remains pending independent
+assessment.
+
 ## Completed batch and sampled visual review
 
 All **47 of 47** pre-draw captures now have native playback receipts and

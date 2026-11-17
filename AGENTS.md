@@ -3,9 +3,11 @@
 ## Linux diagnostic and 103-operation audit follow-up
 
 All four cells now have the machine-effect joins. Use
-`ci-f75c324-r001/case-gap-ledger-with-exact-graph-visual-r007.json`.
-The seven graph operations have independent visual bindings in the
-Windows 4.2.1 cell after full decoded equivalence.
+`ci-f75c324-r001/case-gap-ledger-with-exact-rig-visual-r008.json`.
+Seven graph and nine rig operations have independent visual bindings in
+Windows 4.2.1 after full decoded equivalence. That cell has 65 remaining
+visual bindings. The other cells each have 81. Fresh Windows 4.3.0 public
+rig and graph inputs are staged by `run_rig_graph_public_win430_r001.py`.
 The Linux motion inputs are run `44148286646` and the setup inputs are
 `44148826193`. The capture checkpoint lists the complete private visual
 review packet. Visual qualification and official crash stability are open.
@@ -16,10 +18,13 @@ Its Windows 4.3.0 inputs are the fresh motion directory and dummy setup
 receipt recorded in the candidate assembly plan. Each Linux cell still
 has seven missing machine-effect bindings. Visual qualification is open.
 
-Run `44126929152` failed to link Embree in the baseline. Check retry
-`44142755538` on diagnostics/godot-4.7.2-doc-queue. Both builds use the
-same raycast-disabled profile. The custom build never qualifies the
-official-engine stability gate. Use the new static preview join in
+Run `44126929152` failed to link Embree in the baseline. Both binaries in
+`44142755538` built and reached the public preview calls. Both complete-log
+checks failed on a Vulkan initialization error. Check corrected run
+`44158710552` on diagnostics/godot-4.7.2-doc-queue. Both builds use the same
+raycast-disabled profile, matched renderer packages and separate XDG paths.
+The custom build never qualifies the official-engine stability gate.
+Use the static preview join in
 `ci-f75c324-r001/case-gap-ledger-with-static-preview-r001.json`. It binds
 one visual operation across all four cells. The required release receipt
 is still pending. The roadmap and candidate assembly record Windows
@@ -29,8 +34,8 @@ route timeouts and their new stage diagnostics.
 
 The 47-case queue and its stagger and retarget follow-ups are complete.
 The current capture document lists the combined receipt, sampled findings
-and decoded pixel checks. The separate paired Linux source-build run
-`44126929152` is diagnostic. Recheck it and the official Linux runs before
+and decoded pixel checks. The active paired Linux source-build run
+`44158710552` is diagnostic. Recheck it and the official Linux runs before
 changing the release status. The operation qualification receipt is still
 pending.
 

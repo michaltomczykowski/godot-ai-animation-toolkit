@@ -33,6 +33,13 @@ This cell now has 74 pending visual bindings. The other three have 81.
 The four-cell candidate machine checks remain complete. Ledger SHA-256:
 `b307a612391f57383b2cfa10e0630cca8ec80a6485249b111588d4a4e402c30f`.
 
+`case-gap-ledger-with-exact-rig-visual-r008.json` adds nine bounded rig
+visuals to Windows 4.2.1 after all 4,320 decoded frames and timestamps
+matched the original independent review. This cell has 65 visual gaps.
+The remaining cells have 81 each. All machine coverage is still present.
+Ledger SHA-256:
+`068f7bae42c544742c4f6583c214753cea8259bf4c762c7f87a1d7c274572d32`.
+
 ## Both Windows machine-effect ledgers complete
 
 Fresh public Godot AI 4.3.0 calls at audited source `a0acf2d` produced the
@@ -91,6 +98,12 @@ The first paired Godot source run `44126929152` reached the linker and
 failed on Embree AVX2 symbols, before the changed code or preview ran.
 The retry `44142755538` uses one shared build profile for baseline and
 locked variants, omitting the optional Embree-backed raycast module.
+Both binaries compiled. The cold runs reached the public preview calls
+under OpenGL llvmpipe, then both failed the complete-log gate on the same
+Vulkan initialization error. This experiment did not reproduce the heap
+abort. Diagnostic commit `ddee6d1` matches the normal renderer job's Mesa
+Vulkan packages, gives each variant its own XDG paths, and retains logs and
+reports. The corrected paired replay is `44158710552`.
 Official Linux clean ZIP jobs in `44132486656` passed on both cores.
 The native Linux crash and its official-engine gate remain open.
 

@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from audit_candidate_case_coverage import (
-    MOTION_EFFECT_KEYS, admit_cell, attach_graph_visual, attach_motion_effects, attach_preview_visual, confined,
+    MOTION_EFFECT_KEYS, admit_cell, attach_motion_effects, attach_preview_visual, attach_saved_visual, confined,
     setup_input_digests, sha,
 )
 from check_release_audit import CORES
@@ -211,7 +211,7 @@ class PortableSetupInputs(unittest.TestCase):
                 setup_input_digests(root, inputs, scene, dependencies)
 
 
-class GraphVisualJoin(unittest.TestCase):
+class SavedVisualJoin(unittest.TestCase):
     def test_rejects_a_foreign_saved_case_and_attaches_only_in_its_own_cell(self):
         operation = 'animation_graph.wire'
         inventory = {'operations': [{'key': operation, 'effect_kind': 'scene_structure'}]}
@@ -234,12 +234,44 @@ class GraphVisualJoin(unittest.TestCase):
                  patch('audit_candidate_case_coverage.operation_binding_errors', return_value=[]):
                 receipt.write_text(json.dumps({'records': [record]}))
                 with self.assertRaisesRegex(ValueError, 'case, source or dependencies'):
-                    attach_graph_visual(inventory, 'same', tree, tree, {}, cells, Path(folder), receipt)
+                    attach_saved_visual(inventory, 'same', tree, tree, {}, cells, Path(folder), receipt, 'graph')
                 record['case_ids'] = ['actual-case']
                 receipt.write_text(json.dumps({'records': [record]}))
-                attach_graph_visual(inventory, 'same', tree, tree, {}, cells, Path(folder), receipt)
+                attach_saved_visual(inventory, 'same', tree, tree, {}, cells, Path(folder), receipt, 'graph')
             self.assertEqual(cells[0]['operations'][operation]['checks']['visual_review']['pass'], ['actual-case'])
             self.assertEqual(cells[1]['operations'][operation]['missing_passing_checks'], ['visual_review'])
+
+    def test_rig_review_admits_only_recorded_operations(self):
+        allowed, pending, outside = ('animation_rig.squat', 'animation_rig.blink', 'animation_rig.rig_chain')
+        inventory = {'operations': [{'key': op, 'effect_kind': 'scene_structure'}
+                                    for op in (allowed, pending, outside)]}
+        cell_identity = dict(platform='windows', core_version='4.2.1',
+                             core_commit=CORES['4.2.1'], engine='official')
+        source = dict(cell_identity, tested_source='same', non_invocation_failures=[], report_sha256='report',
+                      operations={op: {'checks': {name: {'pass': [op + '-case']}
+                                                  for name in ('undo_redo', 'save_reopen', 'source_unchanged')}}
+                                  for op in (allowed, pending, outside)})
+        cell = dict(cell_identity, operations={op: {'checks': {'visual_review': {'pass': []}},
+                                                   'missing_passing_checks': ['visual_review']}
+                                              for op in (allowed, pending, outside)})
+        deps = {'rig.gd': 'blob'}
+        with tempfile.TemporaryDirectory() as folder, \
+             patch('audit_candidate_case_coverage.admit_cell', return_value=source), \
+             patch('audit_candidate_case_coverage.operation_binding_errors', return_value=[]):
+            root = Path(folder)
+            receipt = root / 'rig-review.json'
+            for operation in (outside, allowed):
+                record = dict(operation_key=operation, case_ids=[operation + '-case'], tested_source='same',
+                              scope='candidate', engine='4.7.2', dependencies=deps, artifacts=[])
+                receipt.write_text(json.dumps({'records': [record]}))
+                if operation == outside:
+                    with self.assertRaisesRegex(ValueError, 'unexpected operation coverage'):
+                        attach_saved_visual(inventory, 'same', deps, deps, {}, [cell], root, receipt, 'rig')
+                    continue
+                attach_saved_visual(inventory, 'same', deps, deps, {}, [cell], root, receipt, 'rig')
+            self.assertEqual(cell['operations'][allowed]['checks']['visual_review']['pass'], [allowed + '-case'])
+            for operation in (pending, outside):
+                self.assertEqual(cell['operations'][operation]['missing_passing_checks'], ['visual_review'])
 
 
 if __name__ == '__main__': unittest.main()
