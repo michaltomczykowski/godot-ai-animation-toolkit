@@ -1,0 +1,79 @@
+name: Official Linux cold preview under CPU load
+
+on:
+  push:
+    branches: [diagnostics/godot-4.7.2-doc-queue]
+    paths:
+      - .github/workflows/linux-doc-official-loaded.yml
+
+permissions:
+  contents: read
+
+jobs:
+  cold-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {version: '4.2.1', sha: bfc264200584ea5823f18356acb164781f57796d}
+          - {version: '4.3.0', sha: b82b5c519b1b17228f70d8effce1626f391bd1dd}
+    env:
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      GALLIUM_DRIVER: llvmpipe
+      TOOLKIT_PREVIEW_NATIVE_DEBUGGER: postmortem
+      TOOLKIT_PREVIEW_DOC_LOADER_WATCH: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: hi-godot/godot-ai
+          ref: ${{ matrix.sha }}
+          path: .ci/godot-ai
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: chickensoft-games/setup-godot@c233594225991af5aec714e52457cc76d6df8fa2
+        with:
+          version: '4.7.2'
+          use-dotnet: false
+      - name: Install preview and debugger dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xauth gdb stress-ng libgl1-mesa-dri mesa-utils mesa-vulkan-drivers libvulkan1
+          python -m pip install Pillow==11.3.0 -e .ci/godot-ai
+      - name: Run the unchanged cold preview three times under scheduler load
+        run: |
+          engine="$(command -v godot)"
+          sha256sum "$engine"
+          "$engine" --version
+          stress-ng --cpu "$(nproc)" --cpu-load 75 --timeout 12m --metrics-brief \
+            > "$RUNNER_TEMP/cpu-pressure.log" 2>&1 &
+          load_pid=$!
+          trap 'kill -INT "$load_pid" 2>/dev/null || true; wait "$load_pid" || true' EXIT
+          status=0
+          for trial in 1 2 3; do
+            kill -0 "$load_pid"
+            cat /proc/loadavg
+            if ! bash diagnostics/replay-doc-queue-preview.sh "loaded-$trial" "$engine"; then
+              status=1
+            fi
+          done
+          kill -0 "$load_pid"
+          exit "$status"
+      - name: Preserve trial reports and debugger text
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-linux-loaded-${{ matrix.version }}
+          path: |
+            ${{ runner.temp }}/cpu-pressure.log
+            ${{ runner.temp }}/preview-results-*/editor.log
+            ${{ runner.temp }}/preview-results-*/backend.log
+            ${{ runner.temp }}/preview-results-*/*.json
+            ${{ runner.temp }}/preview-results-*/*.txt
+          if-no-files-found: ignore
