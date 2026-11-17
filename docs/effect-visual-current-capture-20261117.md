@@ -88,6 +88,34 @@ The five reviewed frame ranges match every archived PNG, decoded frame
 and timestamp. These bindings cover the synthetic rig with the same
 declared runtime activation and stimulus as the original review.
 
+## Fixed-camera dummy sequence
+
+The current dummy sequence was composed through the Windows Godot AI 4.2.1
+route at `a0acf2d`, saved and force-reopened. The original four-rig wrapper
+reports its aggregate as false because this scoped run selects one rig.
+The actual dummy history case and all six Player and Tree plays at
+30, 60 and 120 FPS passed with zero engine errors. The new 22-second
+recording matches all 1,320 reviewed PNGs and all decoded frame and timestamp
+records. The movie SHA-256 also matches the reviewed movie. The existing
+operation binding validator accepts the scoped sequence evidence in
+`sequence-dummy-exact-visual-staging-r001/sequence-visual-evidence-records.json`,
+SHA-256 `8e16c0baf18eda66a0c53d7bc7cb2c437b14186dafa0fee51383d6d363340d61`.
+Ledger r011 joins it to the observed Windows 4.2.1 case.
+
+## Ten edit comparisons
+
+The current retime, reverse, mirror, trim, amplitude, resample, layer,
+offset, loop and key edit movies passed all 7,200 decoded frame checks.
+Both panes in every frame show the expected marker positions. The motion
+curves match the previously derived independent formulas and both takes
+reset at the intended frame. Ten ordered sheets were reviewed. They show
+the expected action changes and the intentionally unchanged resample
+trajectory. The tests cover the synthetic fixture and its selected values.
+Private `exact-edit-temporal-pixels-r002/decoded-temporal-witnesses.json`
+SHA-256 `8113c77f1a2ba1b676719c588a775f8260f3445eb6917c844941d5a5a628d01c`.
+The ten comparisons await a scoped independent assessment of the fresh
+recordings.
+
 ## Completed batch and sampled visual review
 
 All **47 of 47** pre-draw captures now have native playback receipts and

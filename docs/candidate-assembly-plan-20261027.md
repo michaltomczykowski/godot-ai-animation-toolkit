@@ -59,6 +59,13 @@ The scoped evidence SHA-256 is
 The ledger leaves 60 distinct visual operations pending. Its SHA-256 is
 `dede49ed00ae6b5d0ba1f0704f2e5f5bcf0982a1fbd014eefb0ce454503432f3`.
 
+`case-gap-ledger-with-exact-sequence-visual-r011.json` adds one independent
+sequence assessment from the actual Windows 4.2.1 compose, save and reopen.
+The exact 1,320-frame fixed-camera dummy replay matches the reviewed movie.
+All 103 operations retain machine coverage. The ledger leaves 59 distinct
+visual gaps. Its SHA-256 is
+`ba09627e2fcf05070c84cd9bb893afeca5af3567a824858d35434ae9b8dd70da`.
+
 Linux run `44161331573` completed the public suites but failed while
 collecting the results. Its exporter tried to import a helper added after
 the frozen `a0acf2d` checkout. The corrected exporter passed the local
