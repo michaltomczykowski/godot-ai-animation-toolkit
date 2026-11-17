@@ -32,6 +32,27 @@ Private `supplement-admission-r001.json` SHA-256:
 This does not supply Windows rendered preview evidence, independent visual
 assessment for these preview cases, or proof of Linux stability.
 
+Subsequent local replay now supplies the two Windows preview cases for this
+same tested checkout. A detached checkout at `a0acf2d`, the original tested
+ZIP, separate user settings and exact released cores were used. Both actual
+public preview calls pass the strict trace, PNG and saved-source restoration
+adapter. Execution receipt SHA-256
+`4340a6990ec262fb3d3b818cf3eeb124078c82b283fdd06697b673a71e583f29`
+under private `windows-previews-a0acf2d-r001`.
+All 16 original PNGs from both platforms and cores were viewed at native
+320×240 in an ordered contact sheet. The four distinct poses are legible and
+the full character stays in frame. This is a static preview assessment only,
+not approval of animation quality or release. Assessment SHA-256
+`621f371f0b16e06692e0481f9dd214121a6f255561b6b6594c3761e8bdeded83`.
+
+The six historical motion effect cases and three-clock setup replay are
+indexed under private `ci-f75c324-r001/motion-supplement-index-r001.json`
+(SHA-256 `47bb2055368522c12726691ddcf61990f4f0048bcbc61def2d5e3f24c10f7011`).
+Raw artifact hashes and case IDs were checked. The idle/turn source differs
+only by the later Spring helper UID; the other four effects and fresh setup
+executor have equal addon Git blobs. Original source identities remain
+unchanged, and none of these older receipts is relabeled candidate evidence.
+
 ## Linux timeout diagnosis
 
 Run 40359394495, Linux clean ZIP with core 4.2.1, reached the editor's
@@ -49,6 +70,12 @@ install orders get distinct receipts. Local diagnostic unit tests, Python
 compilation, and diff checks pass. Inspect the next failed job's progress
 and timeout metadata before changing runtime behavior.
 
+CI 44105449468 now has verified Linux 4.2.1 and 4.3.0 successes for both
+enable orders at actual checkout `644fffd509300a60f353f647a3ccef174cb9f56f`.
+All four route logs include the allocation-gate pass and all four editor log
+hashes match the clean-install receipts. This was the run before adding the
+allocation progress capture, so it does not identify the original stall.
+
 ## Native editor abort
 
 Godot issue [#124603](https://github.com/godotengine/godot/issues/124603)
@@ -63,6 +90,23 @@ released Godot AI cores. The normal preview jobs and the release gate keep
 their existing inputs. The diagnostic pass captures bounded debugger text if
 the editor aborts and deletes the raw core. A passing diagnostic run cannot
 establish that the intermittent crash is fixed.
+
+Both postmortem jobs in run 44106923913 passed and reported
+`no_observed_native_crash`. Each produced four images; the kernel pattern
+was restored and no core was uploaded. Linux clean install on the instrumented
+run 44106189254 was still active at this checkpoint.
+
+## Last three recording cases
+
+The independently verified recording inputs include 2,670 artifacts and all
+60 decoded observations. The project technical review viewed all eight
+ordered sheets plus full-resolution examples. Secondary motion matches
+reference and redo at sampled times, the create case adds an unconnected root,
+and the append case adds the expected linked child. No visible clipping or
+unexpected topology change. This is a technical review of the unskinned
+witnesses and static topology, with independent release assessment still
+required. Private root technical assessment SHA-256:
+`ad7d547663752822d5e3ebbfb17b59156e12f72f8cd1c09278bb3e5c2133774c`.
 
 Use CI 40477883598 (PR head f75c32457dc64057e60f32bc7e61498c32ae420b).
 Download the four live-route bundles, two rendered-preview bundles, four clean
