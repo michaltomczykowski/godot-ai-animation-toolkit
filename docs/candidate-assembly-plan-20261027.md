@@ -91,6 +91,25 @@ The only machine-effect operation without a passing same-source case
 anywhere in this ledger is character setup. Its fresh setup run is staged
 separately under `setup-intent-a0acf2d-r001`.
 
+Setup subsequently passed its real public history and forced-reopen run on
+four rigs and 60 native playbacks. A separate fixed desired-speed replay of
+the fresh bundled-dummy saved scene passed at 30/60/120 FPS, including actual
+translation direction, travel, grounding, contact and ownership. The
+pre-engine parser refusal in `explicit-blend-r001` is preserved; it used
+`params` instead of `request` on the supporting scene-open event. The passing
+`explicit-blend-r002/setup-valid-effect.json` SHA-256 is
+`03fd9a9784d58ca82a2cd96995617522427a0f89163bc255a161b6e4d369e72f`.
+
+The new `--setup-effect` join verifies dry run, actual write, save and forced
+reopen in the raw public trace as well as saved bytes and recomputed native
+observations. Private `case-gap-ledger-with-motion-setup-r001.json` SHA-256:
+`3cd34386f90ec4841c797a9af8bcaa70bdac674c2f7e0fca1ead3fe26db12f3e`.
+All 103 operations at the audited source now have each applicable machine
+check represented somewhere in the matrix. The six focused motion checks
+and setup are confined to Windows 4.2.1; each remaining cell still lists the
+seven absent checks. The independent visual bindings and final release
+qualification remain separate.
+
 Visual reuse intake: rechecked 157 unique media, assessment, plan, native
 and capture receipt files for 49 effect/edit/preset/library representatives
 covering 47 operations in `effect-visual-input-index-r001.json` (SHA-256

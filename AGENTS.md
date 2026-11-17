@@ -14,6 +14,13 @@ engine. Do not relabel old source or use 4.4.2 interactive editor for tests.
 The 47-operation effect media index is intake only, not qualification.
 Exact artifacts and gaps are in docs/candidate-assembly-plan-20261027.md.
 
+Later: setup public + 60 native plays and separately bound fixed-speed dummy
+replay at three clocks pass. Audit --setup-effect private
+setup-intent-a0acf2d-r001/explicit-blend-r002. All 103 operations now have
+operation-level machine check coverage somewhere in the audited matrix;
+Windows 4.2.1 has no machine gaps, other cells retain seven. No local
+engine queue remains active. Next bind visual evidence and final qualification.
+
 ## Resume November 17
 
 Both live MCPs respond after Codex restart. Interactive validation now uses

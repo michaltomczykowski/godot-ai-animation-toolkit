@@ -188,7 +188,92 @@ def attach_motion_effects(inventory, tested_source, tested_tree, blobs, cells, d
     }
 
 
-def audit(repo, source, directories, preview_directories=(), motion_directory=None):
+def attach_setup_effect(inventory, tested_source, tested_tree, blobs, cells, replay):
+    """Bind a fixed desired-speed replay to the actual saved public setup case."""
+    from audit_setup_intent_bridge import REQUEST, SPEC, verify_numeric
+
+    directory = replay.parent
+    supplement = admit_cell(directory, inventory, tested_tree, blobs)
+    context = load(directory / 'operation-context.json')
+    receipt, inputs = load(replay / 'setup-valid-effect.json'), load(replay / 'input.json')
+    native, manifest = load(replay / 'native.json'), load(replay / 'fixed-spec.json')
+    key = 'animation_motion.character_setup'
+    case_id = receipt['public_case_id']
+    if (receipt.get('status') != 'pass' or receipt.get('operation') != key
+            or supplement['non_invocation_failures']
+            or any(value != tested_source for value in (
+                supplement['tested_source'], receipt.get('tested_source'), inputs.get('source'),
+                native.get('source_head'), manifest.get('source_head')))):
+        raise ValueError('Setup supplement has a foreign source, operation or failure')
+    for field in ('engine', 'platform', 'core_version'):
+        if receipt.get(field) != supplement[field]:
+            raise ValueError('Setup replay platform/core/engine differs from public execution')
+    if (receipt.get('input_sha256') != sha(replay / 'input.json')
+            or receipt.get('native_sha256') != sha(replay / 'native.json')
+            or inputs.get('manifest_sha256') != sha(replay / 'fixed-spec.json')
+            or native.get('manifest_sha256') != inputs['manifest_sha256']
+            or inputs.get('case_report_sha256') != supplement['report_sha256']
+            or inputs.get('context_sha256') != supplement['context_sha256']
+            or native.get('checker_sha256') != context['dependencies'][
+                'test_project/tools/check_setup_tree_quality.gd']['sha256']):
+        raise ValueError('Setup replay bound artifacts changed')
+    rows = manifest.get('cases', [])
+    if (len(rows) != 1 or rows[0].get('id') != 'dummy' or rows[0].get('request') != REQUEST
+            or rows[0].get('quality_specs') != [SPEC] or native.get('passed') is not True
+            or native.get('failures') != [] or native.get('engine_errors') != []
+            or len(native.get('runs', [])) != 3
+            or case_id not in supplement['operations'][key]['checks']['mcp_invocation']['pass']):
+        raise ValueError('Setup replay must join exactly one real dummy setup and three native clocks')
+    pinned = inputs['paths']
+    if len(pinned) != 5 or any(sha(Path(path)) != digest for path, digest in pinned.items()):
+        raise ValueError('Setup replay physical inputs changed')
+    scene_tail = '/' + rows[0]['scene'].removeprefix('res://')
+    if [d for p, d in pinned.items() if Path(p).as_posix().endswith(scene_tail)] != [rows[0]['scene_sha256']]:
+        raise ValueError('Setup replay scene does not match the pinned saved output')
+    ordered = inputs.get('raw_case_ids', [])
+    if len(ordered) != 4 or len(set(ordered)) != 4 or ordered[1] != case_id:
+        raise ValueError('Setup trace must bind dry run, write, save and forced reopen')
+    linked = {}
+    for raw in supplement['raw_artifacts']:
+        if raw['role'] != 'raw_public_calls':
+            continue
+        with confined(directory, raw['path']).open(encoding='utf-8') as stream:
+            for line in stream:
+                event = json.loads(line)
+                if event.get('id') in ordered:
+                    if event['id'] in linked:
+                        raise ValueError('Duplicate setup trace case')
+                    linked[event['id']] = event
+    if set(linked) != set(ordered):
+        raise ValueError('Missing setup public trace cases')
+    dry, write, save, reopen = [linked[case] for case in ordered]
+    if (not all(e.get('scene') == rows[0]['scene'] and e.get('route') == 'public_godot_ai'
+                and e.get('context_sha256') == supplement['context_sha256']
+                and not e.get('response', {}).get('error') for e in (dry, write, save, reopen))
+            or not dry['execution_ns'] < write['execution_ns'] < save['execution_ns'] < reopen['execution_ns']
+            or dry.get('params') != dict(REQUEST, dry_run=True) or write.get('params') != REQUEST
+            or write.get('response') != rows[0].get('write')
+            or save.get('public_tool') != 'scene_save' or reopen.get('public_tool') != 'scene_open'
+            or reopen.get('request') != {'path': rows[0]['scene'], 'force_reload': True}
+            or reopen.get('response', {}).get('reloaded_from_disk') is not True):
+        raise ValueError('Setup public request, saved result or forced reopen changed')
+    if verify_numeric(native['runs'], [-1.35006184791564e-5, 0., 1.]) != receipt['observations']:
+        raise ValueError('Recomputed setup observation differs')
+    matched = [row for row in cells if all(row[k] == supplement[k] for k in
+               ('platform', 'core_version', 'core_commit', 'engine'))]
+    if len(matched) != 1:
+        raise ValueError('Setup supplement is outside the released matrix')
+    target = matched[0]['operations'][key]
+    target['checks']['valid_effect']['pass'].append(case_id)
+    target['missing_passing_checks'] = [n for n in target['missing_passing_checks'] if n != 'valid_effect']
+    target['setup_effect_supplement'] = {
+        'case_id': case_id, 'proof': str(replay / 'setup-valid-effect.json'),
+        'proof_sha256': sha(replay / 'setup-valid-effect.json'),
+        'report_sha256': supplement['report_sha256'], 'raw_artifacts': supplement['raw_artifacts'],
+    }
+
+
+def audit(repo, source, directories, preview_directories=(), motion_directory=None, setup_replay=None):
     source = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', source + '^{commit}'], text=True).strip()
     inventory = json.loads(subprocess.check_output(['git', '-C', str(repo), 'show', source + ':docs/operation-audit.json']))
     errors = validate_inventory(inventory)
@@ -200,7 +285,8 @@ def audit(repo, source, directories, preview_directories=(), motion_directory=No
     tested_source = tested.pop()
     tested_tree, candidate_tree = tree(repo, tested_source), tree(repo, source)
     deps = set()
-    for p in [*directories, *([motion_directory] if motion_directory else [])]:
+    extras = [p for p in (motion_directory, setup_replay.parent if setup_replay else None) if p]
+    for p in [*directories, *extras]:
         deps.update(b['git_blob'] for b in load(p / 'operation-context.json')['dependencies'].values())
     blobs = read_blobs(repo, sorted(deps))
     cells = [admit_cell(p, inventory, tested_tree, blobs) for p in directories]
@@ -211,6 +297,8 @@ def audit(repo, source, directories, preview_directories=(), motion_directory=No
         attach_rendered_previews(repo, tested_source, cells, preview_directories)
     if motion_directory:
         attach_motion_effects(inventory, tested_source, tested_tree, blobs, cells, motion_directory)
+    if setup_replay:
+        attach_setup_effect(inventory, tested_source, tested_tree, blobs, cells, setup_replay)
     for cell in cells:
         cell['required_gaps'] = dict(Counter(
             check for item in cell['operations'].values() for check in item['missing_passing_checks']))
@@ -231,11 +319,12 @@ def main():
     parser.add_argument('--preview', type=Path, action='append', default=[],
                         help='Optional exact-source bundle; if supplied, require all four cells')
     parser.add_argument('--motion-effects', type=Path, help='Exact-source six-effect supplement')
+    parser.add_argument('--setup-effect', type=Path, help='Exact-source fixed-speed setup replay')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     if args.output.exists():
         parser.error('Exclusive output already exists')
-    result = audit(args.repo, args.source, args.cell, args.preview, args.motion_effects)
+    result = audit(args.repo, args.source, args.cell, args.preview, args.motion_effects, args.setup_effect)
     with args.output.open('x', encoding='utf-8') as stream:
         json.dump(result, stream, indent=2)
     print('CASE_LEDGER_ADMITTED cells=4 operations=103 production_blobs_equal=%s qualification=pending' % result['production_blobs_equal'])
