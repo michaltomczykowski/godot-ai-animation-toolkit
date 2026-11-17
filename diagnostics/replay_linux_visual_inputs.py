@@ -52,7 +52,11 @@ async def public_suites(project, core, output):
 
 
 def archive_scenes(output, user_data, operations):
-    from audit_candidate_case_coverage import confined
+    def confined(root, name):
+        path = (root / name).resolve()
+        if not path.is_relative_to(root.resolve()) or not path.is_file():
+            raise ValueError('Saved input is missing or outside the staging root: ' + name)
+        return path
 
     events = {}
     for artifact in operations['raw_artifacts']:
