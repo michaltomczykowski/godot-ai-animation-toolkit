@@ -20,8 +20,8 @@ both released cores for visual review. See the [candidate assembly notes](docs/c
 Both corrected custom builds reached a ready editor in `44158710552`,
 then the isolated attach subprocess closed before the first public call.
 The fix forwards the configured capability path to the subprocess.
-`44169897306` runs the exact preview on stock Godot before compiling the
-next pair. The all-platform graph and rig visuals and the scoped modifier,
+The stock Godot preview passed in `44169897306` before the next paired
+compile. The all-platform graph and rig visuals and the scoped modifier,
 sequence and dummy setup visuals are now in the ledger. Visual assessments
 remain for 58 distinct operations.
 

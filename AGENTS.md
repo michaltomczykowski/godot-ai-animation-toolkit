@@ -17,7 +17,7 @@ films have full decoded pixel witnesses
 under `exact-edit-temporal-pixels-r002` and await independent assessment.
 Linux-authored graph and rig receipts match the reviewed movies on fixed
 Windows playback. The dummy setup also has an admitted visual binding.
-Use `case-gap-ledger-with-exact-setup-visual-r013.json`. There are 58
+Use `case-gap-ledger-with-exact-setup-visual-r014.json`. There are 58
 distinct visual gaps.
 The Linux motion inputs are run `44148286646` and the setup inputs are
 `44148826193`. The capture checkpoint lists the complete private visual
@@ -44,8 +44,9 @@ route timeouts and their new stage diagnostics.
 The two variants in `44158710552` compiled and reached editor readiness.
 Both attach subprocesses closed before the first public call after XDG
 isolation changed the capability path. The diagnostic preview harness now
-forwards the capability location. Check `44169897306` for the stock preview before
-the next two source builds. The stock allocator abort remains open.
+forwards the capability location. The stock preview preflight passed in
+`44169897306` and the next baseline source build started. The stock
+allocator abort remains open.
 
 ## Latest active capture queue, November 17
 

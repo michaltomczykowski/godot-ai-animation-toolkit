@@ -66,7 +66,7 @@ All 103 operations retain machine coverage. The ledger leaves 59 distinct
 visual gaps. Its SHA-256 is
 `ba09627e2fcf05070c84cd9bb893afeca5af3567a824858d35434ae9b8dd70da`.
 
-Ledger `case-gap-ledger-with-exact-setup-visual-r013.json` also adds one
+Ledger `case-gap-ledger-with-exact-setup-visual-r014.json` also adds one
 independent visual assessment for the saved bundled dummy setup on
 Windows 4.2.1. All 360 current PNGs match the reviewed segment. The
 lossless six-second excerpt contains only the bundled dummy and matches
@@ -76,7 +76,7 @@ outputs used the fixed Windows renderer for visual comparison. The
 remaining 58 distinct visual operations consist of the 47-operation
 effect corpus, ten motion operations and rig chain.
 Ledger SHA-256:
-`ec08eec50232a18652958e1e3e8477af909b1e7ca5f878384aed4f8e29399de1`.
+`bfa8eeb97182019846b806a6556def2d16ba932b49b2b776f45a87a96114ae18`.
 
 Linux run `44161331573` completed the public suites but failed while
 collecting the results. Its exporter tried to import a helper added after
@@ -159,9 +159,9 @@ filters inherited variables. Diagnostic commit `f956aad` explicitly
 forwards the capability path variables. The repair branch returns to the
 exact preview runner used by the admitted four-cell evidence. The
 diagnostic branch uses the same launcher
-for stock and both custom builds. Run `44169897306` executes the stock
-preview before spending another source build. The completed pair is
-inconclusive for the allocator abort.
+for stock and both custom builds. The official 4.7.2 preview preflight
+passed in `44169897306`, and the new baseline build started. The earlier
+paired result remains inconclusive for the allocator abort.
 Official Linux clean ZIP jobs in `44132486656` passed on both cores.
 The native Linux crash and its official-engine gate remain open.
 
