@@ -1,4 +1,4 @@
-"""Admit four raw CI cells and report operation/check gaps; never qualify a release."""
+"""Admit the required raw CI cells and report operation/check gaps."""
 from __future__ import annotations
 import argparse
 from collections import Counter
@@ -51,7 +51,8 @@ def admit_cell(directory, inventory, tested_tree, blobs):
         raise ValueError('Changed trace context')
     if not report.get('engine', '').startswith('4.7.2.stable.official.'):
         raise ValueError('Official Godot 4.7.2 required')
-    if report.get('core_commit') != CORES.get(report.get('core_version')) or report.get('platform') not in ('windows', 'linux'):
+    core = report.get('core_version')
+    if core not in CORES or report.get('core_commit') != CORES[core] or report.get('platform') not in ('windows', 'linux'):
         raise ValueError('Unknown compatibility cell')
     if context.get('ci_source_identity', {}).get('checkout_sha') != report['tested_source']:
         raise ValueError('Actual checkout identity missing')
@@ -160,13 +161,14 @@ def attach_preview_visual(cells, tested_source, tested_tree, candidate_tree, rec
     """Join the independently reviewed PNGs to their actual preview cases."""
     operation = 'animation_inspect.preview'
     bindings = [cell['operations'][operation].get('rendered_preview') for cell in cells]
-    if len(bindings) != 4 or not all(bindings):
-        raise ValueError('Preview visual evidence requires all four public preview bundles')
+    cell_count = len(bindings)
+    if cell_count != 2 * len(CORES) or not all(bindings):
+        raise ValueError('Preview visual evidence requires each public preview bundle')
     expected_ids = {binding['case_id'] for binding in bindings}
     evidence = load(receipt)
     dependencies = evidence.get('dependencies', {})
     ids = evidence.get('case_ids', [])
-    if (len(expected_ids) != 4 or len(ids) != 4 or set(ids) != expected_ids
+    if (len(expected_ids) != cell_count or len(ids) != cell_count or set(ids) != expected_ids
             or evidence.get('tested_source') != tested_source or evidence.get('engine') != '4.7.2'
             or evidence.get('scope') != 'candidate' or not dependencies
             or any(tested_tree.get(path) != blob or candidate_tree.get(path) != blob
@@ -184,10 +186,10 @@ def attach_preview_visual(cells, tested_source, tested_tree, candidate_tree, rec
     rows = load(receipt.parent / assessments[0]['path'])['assessments']
     expected_images = Counter(artifact['sha256'] for binding in bindings for artifact in binding['artifacts']
                               if artifact['role'] == 'rendered_preview_image')
-    if (len(rows) != 1 or sum(expected_images.values()) != 16
+    if (len(rows) != 1 or sum(expected_images.values()) != 4 * cell_count
             or Counter(image['sha256'] for image in rows[0]['media'] if image.get('kind') == 'image')
             != expected_images):
-        raise ValueError('Independently reviewed image hashes differ from the four public preview bundles')
+        raise ValueError('Independently reviewed image hashes differ from the public preview bundles')
     for cell, binding in zip(cells, bindings):
         item = cell['operations'][operation]
         item['checks']['visual_review']['pass'].append(binding['case_id'])
@@ -419,8 +421,9 @@ def audit(repo, source, directories, preview_directories=(), motion_directory=No
     blobs = read_blobs(repo, sorted(deps))
     cells = [admit_cell(p, inventory, tested_tree, blobs) for p in directories]
     actual = [(c['platform'], c['core_version']) for c in cells]
-    if len(actual) != 4 or set(actual) != {(p, c) for p in ('windows', 'linux') for c in CORES}:
-        raise ValueError('Four distinct released-core/platform cells required')
+    expected = {(platform, core) for platform in ('windows', 'linux') for core in CORES}
+    if len(actual) != len(expected) or set(actual) != expected:
+        raise ValueError('All distinct release-core/platform cells required')
     if preview_directories:
         attach_rendered_previews(repo, tested_source, cells, preview_directories)
     if preview_visual:
@@ -450,8 +453,8 @@ def main():
     parser.add_argument('--source', required=True)
     parser.add_argument('--cell', type=Path, action='append', required=True)
     parser.add_argument('--preview', type=Path, action='append', default=[],
-                        help='Optional exact-source bundle; if supplied, require all four cells')
-    parser.add_argument('--preview-visual', type=Path, help='Independent PNG assessment bound to the four preview cases')
+                        help='Optional exact-source bundle; if supplied, require one per cell')
+    parser.add_argument('--preview-visual', type=Path, help='Independent PNG assessment bound to the preview cases')
     parser.add_argument('--graph-cases', type=Path, action='append', help='Fresh public graph history evidence, once per cell')
     parser.add_argument('--graph-visual', type=Path, action='append', help='Independent recordings in graph case directory order')
     parser.add_argument('--rig-cases', type=Path, action='append', help='Fresh public rig history evidence, once per cell')
@@ -471,7 +474,8 @@ def main():
                    args.modifier_cases, args.modifier_visual)
     with args.output.open('x', encoding='utf-8') as stream:
         json.dump(result, stream, indent=2)
-    print('CASE_LEDGER_ADMITTED cells=4 operations=103 production_blobs_equal=%s qualification=pending' % result['production_blobs_equal'])
+    print(f"CASE_LEDGER_ADMITTED cells={len(result['cells'])} operations=103 "
+          f"production_blobs_equal={result['production_blobs_equal']} qualification=pending")
 
 
 if __name__ == '__main__':

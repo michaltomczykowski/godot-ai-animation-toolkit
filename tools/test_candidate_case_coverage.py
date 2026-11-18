@@ -131,7 +131,7 @@ class PreviewVisualJoin(unittest.TestCase):
         self.cells = []
         media = []
         ids = []
-        for cell_index in range(4):
+        for cell_index in range(2 * len(CORES)):
             case_id = f'public-preview-{cell_index}'
             ids.append(case_id)
             images = []
