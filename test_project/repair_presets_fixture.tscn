@@ -1,0 +1,18 @@
+[gd_scene format=3]
+
+[node name="RepairPresetsFixture" type="Node"]
+
+[node name="Target3D" type="Node3D" parent="."]
+
+[node name="Other3D" type="Node3D" parent="."]
+
+[node name="Target2D" type="Control" parent="."]
+offset_right = 100.0
+offset_bottom = 60.0
+
+[node name="Other2D" type="Control" parent="."]
+offset_left = 140.0
+offset_right = 240.0
+offset_bottom = 60.0
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]

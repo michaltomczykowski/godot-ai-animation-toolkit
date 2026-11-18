@@ -1,0 +1,62 @@
+--- a/tools/ci_rendered_preview.py
++++ b/tools/ci_rendered_preview.py
+@@ -18,6 +18,7 @@
+ import time
+ 
+ from ci_mcp_route import port_open
++from preview_renderer_profile import LINUX, PROFILES, validate_environment, validate_renderer_identity
+ 
+ 
+ def digest(path):
+@@ -202,12 +203,15 @@
+     args.output.mkdir(parents=True,exist_ok=False)
+     context=args.output/'context.json'
+     report={'schema_version':1,'operation':'animation_inspect.preview','calls':[],'images':[],'passed':False,'editor_command':[],
+-        'display':os.environ.get('DISPLAY'),'renderer':'gl_compatibility'}
++        'display':os.environ.get('DISPLAY'),'renderer':'gl_compatibility',
++        'renderer_profile':args.renderer_profile}
+     owned=[]
+     try:
+-        if not os.environ.get('DISPLAY'): raise ValueError('DISPLAY is required; use xvfb-run')
++        validate_environment(args.renderer_profile,sys.platform,os.environ.get('DISPLAY'))
+         report['context']=prepare(Path(__file__).resolve().parents[1],args.core_root,args.godot,context)
+         report['context_sha256']=digest(context)
++        if report['context']['platform'] != ('linux' if args.renderer_profile==LINUX else 'windows'):
++            raise ValueError('renderer profile/recorded context platform mismatch')
+         os.environ['TOOLKIT_OPERATION_CONTEXT']=str(context)
+         os.environ['TOOLKIT_OPERATION_TRACE_DIR']=str(args.output/'traces')
+         if port_open(args.port) or port_open(args.ws_port): raise ValueError('backend ports already occupied')
+@@ -231,10 +235,8 @@
+             owned.append(subprocess.Popen(command,env=env,stdout=editor_log,stderr=subprocess.STDOUT))
+             asyncio.run(exercise(args,report))
+             startup=(args.output/'editor.log').read_text(encoding='utf-8',errors='replace')
+-            identity=[line for line in startup.splitlines() if 'OpenGL API' in line]
+-            if not identity or not any('llvmpipe' in line.lower() for line in identity):
+-                raise ValueError('editor log does not identify actual Mesa llvmpipe OpenGL renderer')
+-            report['renderer_identity']=identity
++            report['renderer_identity']=validate_renderer_identity(
++                args.renderer_profile,report['context']['platform'],startup)
+             report['passed']=True
+     except Exception as exc:
+         report['error']=str(exc)
+@@ -253,7 +255,11 @@
+         report['logs']=[{'path':name,'sha256':digest(args.output/name)} for name in ['editor.log','backend.log'] if (args.output/name).is_file()]
+         if (args.output/'editor.log').is_file():
+             try:
+-                validate_editor_log((args.output/'editor.log').read_text(encoding='utf-8',errors='replace'))
++                complete_log=(args.output/'editor.log').read_text(encoding='utf-8',errors='replace')
++                validate_editor_log(complete_log)
++                if report.get('context'):
++                    report['renderer_identity']=validate_renderer_identity(
++                        args.renderer_profile,report['context']['platform'],complete_log)
+             except ValueError as exc:
+                 report['passed']=False
+                 report['error']=str(exc)
+@@ -264,6 +270,7 @@
+ 
+ if __name__ == '__main__':
+     parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--renderer-profile',choices=PROFILES,default=LINUX)
+     parser.add_argument('--core-root',type=Path,required=True)
+     parser.add_argument('--project',type=Path,default=Path('test_project'))
+     parser.add_argument('--output',type=Path,default=Path('rendered-preview-artifacts'))

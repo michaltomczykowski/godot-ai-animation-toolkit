@@ -48,7 +48,7 @@ const _TREE_TYPES := {
 	"blend3": 3,
 	"add2": 2,
 	"add3": 3,
-	"one_shot": 1,
+	"one_shot": 2,
 	"time_scale": 1,
 	"state_machine": 0,
 	"blend_space_1d": 0,
@@ -120,10 +120,20 @@ static func state_machine(spec: Dictionary) -> Dictionary:
 		if not expression.is_empty():
 			link.advance_expression = expression
 		machine.add_transition(StringName(from), StringName(to), link)
+	var start_name := str(spec.get("start", state_names[0]))
+	if not state_names.has(start_name):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
+			"Start state '%s' is not in states: %s" % [start_name, ", ".join(state_names)])
+	var start_link := AnimationNodeStateMachineTransition.new()
+	start_link.advance_mode = AnimationNodeStateMachineTransition.ADVANCE_MODE_AUTO
+	start_link.xfade_time = 0.0
+	machine.add_transition(&"Start", StringName(start_name), start_link)
 	return {
 		"root": machine,
 		"state_count": states.size(),
-		"transition_count": transitions.size(),
+		"transition_count": machine.get_transition_count(),
+		"authored_transition_count": transitions.size(),
+		"start_state": start_name,
 		"conditions": conditions,
 		"issues": _collect_issues(machine, []),
 	}
@@ -216,13 +226,10 @@ static func wrap_one_shot(
 	tree.add_node(StringName("Base"), base_root, Vector2(0.0, 0.0))
 	tree.add_node(StringName("OneShot"), shot, Vector2(220.0, 0.0))
 	tree.add_node(StringName("Shot"), clip, Vector2(220.0, 140.0))
-	tree.connect_node(StringName("OneShot"), 0, StringName("Shot"))
-	var blend := AnimationNodeBlend2.new()
-	tree.add_node(StringName("Blend2"), blend, Vector2(440.0, 0.0))
-	tree.connect_node(StringName("Blend2"), 0, StringName("Base"))
-	tree.connect_node(StringName("Blend2"), 1, StringName("OneShot"))
+	tree.connect_node(StringName("OneShot"), 0, StringName("Base"))
+	tree.connect_node(StringName("OneShot"), 1, StringName("Shot"))
 	if tree.has_node(StringName("output")):
-		tree.connect_node(StringName("output"), 0, StringName("Blend2"))
+		tree.connect_node(StringName("output"), 0, StringName("OneShot"))
 	return {"root": tree, "node_count": tree.get_node_list().size(), "issues": _collect_issues(tree, [])}
 
 
@@ -563,9 +570,13 @@ static func _walk_issues(node: AnimationNode, clips: Array, issues: Array) -> vo
 		return
 	if node is AnimationNodeStateMachine:
 		var machine := node as AnimationNodeStateMachine
-		if machine.get_node_list().size() > 1 and machine.get_transition_count() == 0:
+		var authored_transitions := 0
+		for index in machine.get_transition_count():
+			if str(machine.get_transition_from(index)) != "Start":
+				authored_transitions += 1
+		if machine.get_node_list().size() > 3 and authored_transitions == 0:
 			issues.append({"severity": "warning", "code": "no_transitions",
-				"message": "the state machine has multiple states but no transitions"})
+				"message": "the state machine has multiple states but no transition between them"})
 		for state_name in machine.get_node_list():
 			_walk_issues(machine.get_node(state_name), clips, issues)
 		return

@@ -1,0 +1,4213 @@
+{
+  "kind": "qualification_gap_analysis_not_evidence",
+  "as_of_utc": "2026-10-16T21:52:46.894201+00:00",
+  "reviewed_root_head": "c19a25e3ea7e574361c239d254e3f45528121795",
+  "completed_ci_run": 38936700953,
+  "ci_branch_head": "d3143132ee4ffc18830cff3d89d1fc2b43570e7f",
+  "ci_actual_tested_source": "70458fd5c8a2ddd9fc2459651d9b020acc0e2448",
+  "ci_run_conclusion": "failure",
+  "cells": [
+    {
+      "artifact": "mcp-editor-ubuntu-latest-4.2.1",
+      "report_sha256": "529b04ead5b647f6c569d32b97aee7b13e607a29eb2c112c9f49dd6e3e5db4e9",
+      "context_sha256": "06de10f9d408ad746270359417649a403e0fff948fe1cb07e2d7701da5cbaca9",
+      "tested_source": "70458fd5c8a2ddd9fc2459651d9b020acc0e2448",
+      "platform": "linux",
+      "core_version": "4.2.1",
+      "core_commit": "bfc264200584ea5823f18356acb164781f57796d",
+      "case_count": 1362,
+      "successful_external_operation_count": 102,
+      "missing_external_operations": [
+        "animation_inspect.preview"
+      ],
+      "noninvocation_failed_checks": []
+    },
+    {
+      "artifact": "mcp-editor-ubuntu-latest-4.3.0",
+      "report_sha256": "ed0bebcc8bd338088a51875b4fc9ed5303ca9c016c3668da54a0deb482dc44e7",
+      "context_sha256": "dc90db325b52010e8bda474267c96a68acff99a40cf4ca07e4f44c2be45a16cf",
+      "tested_source": "70458fd5c8a2ddd9fc2459651d9b020acc0e2448",
+      "platform": "linux",
+      "core_version": "4.3.0",
+      "core_commit": "b82b5c519b1b17228f70d8effce1626f391bd1dd",
+      "case_count": 1362,
+      "successful_external_operation_count": 102,
+      "missing_external_operations": [
+        "animation_inspect.preview"
+      ],
+      "noninvocation_failed_checks": []
+    },
+    {
+      "artifact": "mcp-editor-windows-latest-4.2.1",
+      "report_sha256": "e37fcac31aad18d6418a60921afebf54ddb2966479a5c8d8dbcaef9cb80b7d74",
+      "context_sha256": "ac3d0588faca9f57a4db81e4379d3bddf6c30d10372271eecb51393e0e5e1d23",
+      "tested_source": "70458fd5c8a2ddd9fc2459651d9b020acc0e2448",
+      "platform": "windows",
+      "core_version": "4.2.1",
+      "core_commit": "bfc264200584ea5823f18356acb164781f57796d",
+      "case_count": 1153,
+      "successful_external_operation_count": 102,
+      "missing_external_operations": [
+        "animation_inspect.preview"
+      ],
+      "noninvocation_failed_checks": []
+    },
+    {
+      "artifact": "mcp-editor-windows-latest-4.3.0",
+      "report_sha256": "e4e646e5b74744197b54ae0acd8cbc00f28f5fdf145e913136cd8d4d420c697d",
+      "context_sha256": "6992ac5cbb7a135ec6ec2a1b7498f649c2509111b4ff19e2b06af00d426b78e5",
+      "tested_source": "70458fd5c8a2ddd9fc2459651d9b020acc0e2448",
+      "platform": "windows",
+      "core_version": "4.3.0",
+      "core_commit": "b82b5c519b1b17228f70d8effce1626f391bd1dd",
+      "case_count": 1362,
+      "successful_external_operation_count": 102,
+      "missing_external_operations": [
+        "animation_inspect.preview"
+      ],
+      "noninvocation_failed_checks": []
+    }
+  ],
+  "linux_preview_bundles": [
+    {
+      "artifact": "rendered-preview-linux-core-4.2.1",
+      "tested_source": "70458fd5c8a2ddd9fc2459651d9b020acc0e2448",
+      "platform": "linux",
+      "core_version": "4.2.1",
+      "public_case_id": "039fcf70f5584cf68a1e55a7c004dc0f-f0102e97688748958e75834c31f7c288:13",
+      "report_sha256": "539eb0c7fd64b9924184f37bab61ee38b60c3402749f9e268585199cbabbf633",
+      "strict_derived_checks": {
+        "valid_effect": "pass",
+        "file_effect": "pass",
+        "source_unchanged": "pass",
+        "typed_errors": "pass",
+        "reported_errors": "pass"
+      }
+    },
+    {
+      "artifact": "rendered-preview-linux-core-4.3.0",
+      "tested_source": "70458fd5c8a2ddd9fc2459651d9b020acc0e2448",
+      "platform": "linux",
+      "core_version": "4.3.0",
+      "public_case_id": "06de492eb70848ff9b26219cfa19608a-1438fb407473431e8c4b8b1f68f658ab:13",
+      "report_sha256": "eb709e880839341ef319ecd67b0fd0f3d874d3ed84aa09f50ec83b5e587ea1e3",
+      "strict_derived_checks": {
+        "valid_effect": "pass",
+        "file_effect": "pass",
+        "source_unchanged": "pass",
+        "typed_errors": "pass",
+        "reported_errors": "pass"
+      }
+    }
+  ],
+  "old_ci_changed_production_dependencies": [
+    "addons/godot_ai_animation/handlers/motion.gd",
+    "addons/godot_ai_animation/runtime/setup_grounding.gd",
+    "addons/godot_ai_animation/utils/pose_bake_sampler.gd"
+  ],
+  "old_ci_changed_validation_dependencies": [
+    "test_project/tests/test_setup_integration.gd",
+    "test_project/tools/check_setup_grounding_controls.gd",
+    "test_project/tools/check_setup_tree_quality.gd",
+    "test_project/tools/render_saved_effects.gd",
+    "tools/check_saved_effects.py",
+    "tools/check_setup_grounding_controls.py",
+    "tools/plan_saved_effects.py",
+    "tools/test_check_setup_grounding_controls.py"
+  ],
+  "required_check_counts": {
+    "dry_run": 86,
+    "file_effect": 6,
+    "mcp_invocation": 103,
+    "playback": 81,
+    "reported_errors": 103,
+    "save_reopen": 81,
+    "source_unchanged": 103,
+    "track_paths_types": 67,
+    "typed_errors": 103,
+    "undo_redo": 81,
+    "valid_effect": 103,
+    "visual_review": 82
+  },
+  "old_source_observed_common_coverage": {
+    "dry_run": 39,
+    "file_effect": 3,
+    "mcp_invocation": 102,
+    "playback": 74,
+    "reported_errors": 25,
+    "save_reopen": 36,
+    "source_unchanged": 25,
+    "track_paths_types": 15,
+    "typed_errors": 39,
+    "undo_redo": 36,
+    "valid_effect": 5
+  },
+  "old_source_missing_validator_counts": {
+    "dry_run": 47,
+    "file_effect": 3,
+    "mcp_invocation": 1,
+    "playback": 7,
+    "reported_errors": 78,
+    "save_reopen": 45,
+    "source_unchanged": 78,
+    "track_paths_types": 52,
+    "typed_errors": 64,
+    "undo_redo": 45,
+    "valid_effect": 98,
+    "visual_review": 82
+  },
+  "local16_report": {
+    "tested_source": "66c3ede5b575f4435666289616e01af135129f5a",
+    "report_sha256": "860d48d2fbe7e15a53c51d3d3164197173a0a716336489e57b48a40afdf205d7",
+    "platform": "windows",
+    "core_version": "4.2.1",
+    "case_count": 16,
+    "external_invocations": 0,
+    "qualification": "pending"
+  },
+  "actions": {
+    "FX": "FX: bind independent intended values/events (not merely authored-key echo); raw non-target/error assertions; SpriteFrames resource types/cell binding; finish temporal assessment, audio event+PCM+listening.",
+    "EDIT": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+    "PRESET": "PRESET: instrument existing preset_library_history cases at actual snapshots/Undo/reopen; expose operation-specific recipe expectations in saved playback; finish assessment.",
+    "GRAPH": "GRAPH: bind existing graph_route_history per-case snapshots/history/error/source and actual serialized graph/parameter assertions; reuse exact native branches; assess saved Tree output.",
+    "GRAPH_READ": "GRAPH_READ: expose test_graph_get_is_read_only actual dump/fixture comparison, before/after state and typed refusal; no playback/Undo.",
+    "RIG": "RIG: emit exact existing rig_pose/chain/clip/bake inner cases; bind saved native per-case assertions (pose_apply/rig_chain still lack playback adapter); no suite-total mapping. Assess actual applicable output.",
+    "POSE_FILE": "POSE_FILE: instrument test_rig_pose_history.test_pose_file_and_shape_contracts with exact pose_save/pose_blend file bytes/readback/nohistory/fixture invariance. Add one nontrivial from/to pose_blend file expectation and its dry-byte case: current public file test blends identical inputs and lacks that dry positive.",
+    "RIG_READ": "RIG_READ: bind actual pose_list/rig_get contents to independent saved pose/skeleton state, plus typed refusals/no mutation/errors.",
+    "MODIFIER": "MODIFIER: add source/operation IDs and case-local assertion outcomes to existing 828-state/276-reference native rows; bind five op-specific subsets and existing inner history; assess unchanged saved clips.",
+    "MOTION": "MOTION: retain actual current motion/setup matrices; expose exact per-operation dry/history/reopen/numerical/source/error cases from existing suites/receipts. Source-specific runtime grounder/bake checkpoint is separate, not all-motion qualification.",
+    "SEQUENCE": "SEQUENCE: bind existing compose history and saved native reference cases, exact source/root ownership and typed nochange outcomes; reuse current actual sequence footage once dependency matched.",
+    "LIB_APPLY": "LIB_APPLY: hook existing preset_library_history template_preset/template_fx/spec_apply cases and both saved states; emit independent remapped clip values/metadata and recipe-file preservation.",
+    "LIB_FILE": "LIB_FILE: existing16-call adapter closes observed writer semantics/dry/file/source/error/refusal; final frozen-source CI reruns same existing calls automatically. Do not invent scene Undo/playback.",
+    "LIB_READ": "LIB_READ: exact first-test content/nochange/error checks already observed; add raw bindings for existing malformed-read refusals (template_list/spec_import), whose typed_errors are not emitted by first16 calls.",
+    "INSPECT": "INSPECT: bind actual read results to planted fixture expectations in mcp_inspect_audit (8 ops) or mcp_inspect_3d.py / mcp_motion_audit_saved.py (rig_profile/sample/motion_audit); expose before/after timeline/state + typed refusal/error logs. No scene history/playback.",
+    "PREVIEW": "PREVIEW: Linux two-core strict PNG/restoration evidence exists at old source; execute Windows real rendered route for both released cores, preserve exact external IDs, then independent static visual assessment. Final-source Linux CI runs already wired."
+  },
+  "operations": [
+    {
+      "operation": "animation_presets.pulse",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "PRESET",
+      "minimum_next_work": "PRESET: instrument existing preset_library_history cases at actual snapshots/Undo/reopen; expose operation-specific recipe expectations in saved playback; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_presets_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_presets.bounce",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "PRESET",
+      "minimum_next_work": "PRESET: instrument existing preset_library_history cases at actual snapshots/Undo/reopen; expose operation-specific recipe expectations in saved playback; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_presets_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_presets.orbit",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "PRESET",
+      "minimum_next_work": "PRESET: instrument existing preset_library_history cases at actual snapshots/Undo/reopen; expose operation-specific recipe expectations in saved playback; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_presets_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_presets.sweep",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "PRESET",
+      "minimum_next_work": "PRESET: instrument existing preset_library_history cases at actual snapshots/Undo/reopen; expose operation-specific recipe expectations in saved playback; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_presets_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_presets.drift",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "PRESET",
+      "minimum_next_work": "PRESET: instrument existing preset_library_history cases at actual snapshots/Undo/reopen; expose operation-specific recipe expectations in saved playback; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_presets_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_presets.spin",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "PRESET",
+      "minimum_next_work": "PRESET: instrument existing preset_library_history cases at actual snapshots/Undo/reopen; expose operation-specific recipe expectations in saved playback; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_presets_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_presets.float",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "PRESET",
+      "minimum_next_work": "PRESET: instrument existing preset_library_history cases at actual snapshots/Undo/reopen; expose operation-specific recipe expectations in saved playback; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_presets_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_presets.stagger",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "PRESET",
+      "minimum_next_work": "PRESET: instrument existing preset_library_history cases at actual snapshots/Undo/reopen; expose operation-specific recipe expectations in saved playback; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_presets_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_presets.showcase",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "PRESET",
+      "minimum_next_work": "PRESET: instrument existing preset_library_history cases at actual snapshots/Undo/reopen; expose operation-specific recipe expectations in saved playback; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_presets_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_fx.shake",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "save_reopen",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "FX",
+      "minimum_next_work": "FX: bind independent intended values/events (not merely authored-key echo); raw non-target/error assertions; SpriteFrames resource types/cell binding; finish temporal assessment, audio event+PCM+listening.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_fx_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_fx.zoom_punch",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "save_reopen",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "FX",
+      "minimum_next_work": "FX: bind independent intended values/events (not merely authored-key echo); raw non-target/error assertions; SpriteFrames resource types/cell binding; finish temporal assessment, audio event+PCM+listening.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_fx_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_fx.hit_flash",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "save_reopen",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "FX",
+      "minimum_next_work": "FX: bind independent intended values/events (not merely authored-key echo); raw non-target/error assertions; SpriteFrames resource types/cell binding; finish temporal assessment, audio event+PCM+listening.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_fx_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_fx.damage_bar",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "save_reopen",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "FX",
+      "minimum_next_work": "FX: bind independent intended values/events (not merely authored-key echo); raw non-target/error assertions; SpriteFrames resource types/cell binding; finish temporal assessment, audio event+PCM+listening.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_fx_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_fx.typewriter",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "save_reopen",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "FX",
+      "minimum_next_work": "FX: bind independent intended values/events (not merely authored-key echo); raw non-target/error assertions; SpriteFrames resource types/cell binding; finish temporal assessment, audio event+PCM+listening.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_fx_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_fx.progress_fill",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "save_reopen",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "FX",
+      "minimum_next_work": "FX: bind independent intended values/events (not merely authored-key echo); raw non-target/error assertions; SpriteFrames resource types/cell binding; finish temporal assessment, audio event+PCM+listening.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_fx_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_fx.counter",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "save_reopen",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "FX",
+      "minimum_next_work": "FX: bind independent intended values/events (not merely authored-key echo); raw non-target/error assertions; SpriteFrames resource types/cell binding; finish temporal assessment, audio event+PCM+listening.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_fx_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_fx.dialog_pop",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "save_reopen",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "FX",
+      "minimum_next_work": "FX: bind independent intended values/events (not merely authored-key echo); raw non-target/error assertions; SpriteFrames resource types/cell binding; finish temporal assessment, audio event+PCM+listening.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_fx_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_fx.transition",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "save_reopen",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "FX",
+      "minimum_next_work": "FX: bind independent intended values/events (not merely authored-key echo); raw non-target/error assertions; SpriteFrames resource types/cell binding; finish temporal assessment, audio event+PCM+listening.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_fx_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_fx.wave",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "save_reopen",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "FX",
+      "minimum_next_work": "FX: bind independent intended values/events (not merely authored-key echo); raw non-target/error assertions; SpriteFrames resource types/cell binding; finish temporal assessment, audio event+PCM+listening.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_fx_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_fx.spring",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "save_reopen",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "FX",
+      "minimum_next_work": "FX: bind independent intended values/events (not merely authored-key echo); raw non-target/error assertions; SpriteFrames resource types/cell binding; finish temporal assessment, audio event+PCM+listening.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_fx_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_fx.pendulum",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "save_reopen",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "FX",
+      "minimum_next_work": "FX: bind independent intended values/events (not merely authored-key echo); raw non-target/error assertions; SpriteFrames resource types/cell binding; finish temporal assessment, audio event+PCM+listening.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_fx_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_fx.path_follow",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "save_reopen",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "FX",
+      "minimum_next_work": "FX: bind independent intended values/events (not merely authored-key echo); raw non-target/error assertions; SpriteFrames resource types/cell binding; finish temporal assessment, audio event+PCM+listening.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_fx_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_fx.flipbook",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "save_reopen",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "FX",
+      "minimum_next_work": "FX: bind independent intended values/events (not merely authored-key echo); raw non-target/error assertions; SpriteFrames resource types/cell binding; finish temporal assessment, audio event+PCM+listening.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_fx_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_fx.sprite_frames",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "save_reopen",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "FX",
+      "minimum_next_work": "FX: bind independent intended values/events (not merely authored-key echo); raw non-target/error assertions; SpriteFrames resource types/cell binding; finish temporal assessment, audio event+PCM+listening.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_fx_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_fx.audio_cue",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "save_reopen",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "FX",
+      "minimum_next_work": "FX: bind independent intended values/events (not merely authored-key echo); raw non-target/error assertions; SpriteFrames resource types/cell binding; finish temporal assessment, audio event+PCM+listening.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_fx_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_graph.state_machine",
+      "effect": "scene_structure",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "GRAPH",
+      "minimum_next_work": "GRAPH: bind existing graph_route_history per-case snapshots/history/error/source and actual serialized graph/parameter assertions; reuse exact native branches; assess saved Tree output.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_graph_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_graph.blend_space",
+      "effect": "scene_structure",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "GRAPH",
+      "minimum_next_work": "GRAPH: bind existing graph_route_history per-case snapshots/history/error/source and actual serialized graph/parameter assertions; reuse exact native branches; assess saved Tree output.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_graph_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_graph.blend_tree",
+      "effect": "scene_structure",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "GRAPH",
+      "minimum_next_work": "GRAPH: bind existing graph_route_history per-case snapshots/history/error/source and actual serialized graph/parameter assertions; reuse exact native branches; assess saved Tree output.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_graph_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_graph.wire",
+      "effect": "scene_structure",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "GRAPH",
+      "minimum_next_work": "GRAPH: bind existing graph_route_history per-case snapshots/history/error/source and actual serialized graph/parameter assertions; reuse exact native branches; assess saved Tree output.",
+      "visual_mode": "static_allowed",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_graph_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_graph.graph_get",
+      "effect": "read",
+      "required_checks": [
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "GRAPH_READ",
+      "minimum_next_work": "GRAPH_READ: expose test_graph_get_is_read_only actual dump/fixture comparison, before/after state and typed refusal; no playback/Undo.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_graph_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_graph.locomotion",
+      "effect": "scene_structure",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "GRAPH",
+      "minimum_next_work": "GRAPH: bind existing graph_route_history per-case snapshots/history/error/source and actual serialized graph/parameter assertions; reuse exact native branches; assess saved Tree output.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_graph_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_graph.one_shot_layer",
+      "effect": "scene_structure",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "GRAPH",
+      "minimum_next_work": "GRAPH: bind existing graph_route_history per-case snapshots/history/error/source and actual serialized graph/parameter assertions; reuse exact native branches; assess saved Tree output.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_graph_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_graph.additive_lean",
+      "effect": "scene_structure",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "GRAPH",
+      "minimum_next_work": "GRAPH: bind existing graph_route_history per-case snapshots/history/error/source and actual serialized graph/parameter assertions; reuse exact native branches; assess saved Tree output.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_graph_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_edit.retime",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "EDIT",
+      "minimum_next_work": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_edit.retarget",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "EDIT",
+      "minimum_next_work": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_edit.reverse",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "EDIT",
+      "minimum_next_work": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_edit.mirror",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "EDIT",
+      "minimum_next_work": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_edit.offset",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "EDIT",
+      "minimum_next_work": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_edit.ease_range",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "EDIT",
+      "minimum_next_work": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_edit.set_interp",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "EDIT",
+      "minimum_next_work": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_edit.trim",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "EDIT",
+      "minimum_next_work": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_edit.split_at",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "EDIT",
+      "minimum_next_work": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_edit.merge",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "EDIT",
+      "minimum_next_work": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_edit.amplitude",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "EDIT",
+      "minimum_next_work": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_edit.loop",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "EDIT",
+      "minimum_next_work": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_edit.key_edit",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "EDIT",
+      "minimum_next_work": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_edit.cleanup",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "EDIT",
+      "minimum_next_work": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_edit.smooth",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "EDIT",
+      "minimum_next_work": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_edit.resample",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "EDIT",
+      "minimum_next_work": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_edit.reduce",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "EDIT",
+      "minimum_next_work": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_edit.add_noise",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "EDIT",
+      "minimum_next_work": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_edit.overlap",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "EDIT",
+      "minimum_next_work": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_edit.layer",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo"
+      ],
+      "old_source_remaining_validator_checks": [
+        "track_paths_types",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "EDIT",
+      "minimum_next_work": "EDIT: export existing fixed native expected-value assertions plus track/type/metadata and cleanup/reduce key-count assertions. Existing exact history/source/error adapter already executes; finish assessment.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_inspect.describe",
+      "effect": "read",
+      "required_checks": [
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "INSPECT",
+      "minimum_next_work": "INSPECT: bind actual read results to planted fixture expectations in mcp_inspect_audit (8 ops) or mcp_inspect_3d.py / mcp_motion_audit_saved.py (rig_profile/sample/motion_audit); expose before/after timeline/state + typed refusal/error logs. No scene history/playback.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py",
+        "mcp_fx_audit.py",
+        "mcp_inspect_3d.py",
+        "mcp_inspect_audit.py",
+        "mcp_library_audit.py",
+        "mcp_motion_remaining_cycles.py",
+        "mcp_motion_sequence_history.py",
+        "mcp_motion_setup_secondary.py",
+        "mcp_presets_audit.py",
+        "mcp_rig_bake.py",
+        "mcp_rig_bake_restoration.py",
+        "mcp_rig_pose_crud.py",
+        "mcp_rig_pose_ui_history.py",
+        "mcp_rig_recipes.py",
+        "mcp_sequence_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_inspect.timeline",
+      "effect": "read",
+      "required_checks": [
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "INSPECT",
+      "minimum_next_work": "INSPECT: bind actual read results to planted fixture expectations in mcp_inspect_audit (8 ops) or mcp_inspect_3d.py / mcp_motion_audit_saved.py (rig_profile/sample/motion_audit); expose before/after timeline/state + typed refusal/error logs. No scene history/playback.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_edit_audit.py",
+        "mcp_fx_audit.py",
+        "mcp_inspect_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_inspect.audit",
+      "effect": "read",
+      "required_checks": [
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "INSPECT",
+      "minimum_next_work": "INSPECT: bind actual read results to planted fixture expectations in mcp_inspect_audit (8 ops) or mcp_inspect_3d.py / mcp_motion_audit_saved.py (rig_profile/sample/motion_audit); expose before/after timeline/state + typed refusal/error logs. No scene history/playback.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_inspect_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_inspect.compare",
+      "effect": "read",
+      "required_checks": [
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "INSPECT",
+      "minimum_next_work": "INSPECT: bind actual read results to planted fixture expectations in mcp_inspect_audit (8 ops) or mcp_inspect_3d.py / mcp_motion_audit_saved.py (rig_profile/sample/motion_audit); expose before/after timeline/state + typed refusal/error logs. No scene history/playback.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_inspect_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_inspect.stats",
+      "effect": "read",
+      "required_checks": [
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "INSPECT",
+      "minimum_next_work": "INSPECT: bind actual read results to planted fixture expectations in mcp_inspect_audit (8 ops) or mcp_inspect_3d.py / mcp_motion_audit_saved.py (rig_profile/sample/motion_audit); expose before/after timeline/state + typed refusal/error logs. No scene history/playback.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_inspect_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_inspect.motion_report",
+      "effect": "read",
+      "required_checks": [
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "INSPECT",
+      "minimum_next_work": "INSPECT: bind actual read results to planted fixture expectations in mcp_inspect_audit (8 ops) or mcp_inspect_3d.py / mcp_motion_audit_saved.py (rig_profile/sample/motion_audit); expose before/after timeline/state + typed refusal/error logs. No scene history/playback.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_inspect_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_inspect.motion_audit",
+      "effect": "read",
+      "required_checks": [
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "INSPECT",
+      "minimum_next_work": "INSPECT: bind actual read results to planted fixture expectations in mcp_inspect_audit (8 ops) or mcp_inspect_3d.py / mcp_motion_audit_saved.py (rig_profile/sample/motion_audit); expose before/after timeline/state + typed refusal/error logs. No scene history/playback.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_inspect_3d.py",
+        "mcp_motion_audit_saved.py"
+      ]
+    },
+    {
+      "operation": "animation_inspect.rig_profile",
+      "effect": "read",
+      "required_checks": [
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "INSPECT",
+      "minimum_next_work": "INSPECT: bind actual read results to planted fixture expectations in mcp_inspect_audit (8 ops) or mcp_inspect_3d.py / mcp_motion_audit_saved.py (rig_profile/sample/motion_audit); expose before/after timeline/state + typed refusal/error logs. No scene history/playback.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_inspect_3d.py"
+      ]
+    },
+    {
+      "operation": "animation_inspect.sample",
+      "effect": "read",
+      "required_checks": [
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "INSPECT",
+      "minimum_next_work": "INSPECT: bind actual read results to planted fixture expectations in mcp_inspect_audit (8 ops) or mcp_inspect_3d.py / mcp_motion_audit_saved.py (rig_profile/sample/motion_audit); expose before/after timeline/state + typed refusal/error logs. No scene history/playback.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_inspect_3d.py"
+      ]
+    },
+    {
+      "operation": "animation_inspect.preview",
+      "effect": "render",
+      "required_checks": [
+        "file_effect",
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [],
+      "old_source_remaining_validator_checks": [
+        "file_effect",
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "PREVIEW",
+      "minimum_next_work": "PREVIEW: Linux two-core strict PNG/restoration evidence exists at old source; execute Windows real rendered route for both released cores, preserve exact external IDs, then independent static visual assessment. Final-source Linux CI runs already wired.",
+      "visual_mode": "static_allowed",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": []
+    },
+    {
+      "operation": "animation_inspect.dry_run",
+      "effect": "read",
+      "required_checks": [
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "INSPECT",
+      "minimum_next_work": "INSPECT: bind actual read results to planted fixture expectations in mcp_inspect_audit (8 ops) or mcp_inspect_3d.py / mcp_motion_audit_saved.py (rig_profile/sample/motion_audit); expose before/after timeline/state + typed refusal/error logs. No scene history/playback.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_inspect_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_inspect.help",
+      "effect": "read",
+      "required_checks": [
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "INSPECT",
+      "minimum_next_work": "INSPECT: bind actual read results to planted fixture expectations in mcp_inspect_audit (8 ops) or mcp_inspect_3d.py / mcp_motion_audit_saved.py (rig_profile/sample/motion_audit); expose before/after timeline/state + typed refusal/error logs. No scene history/playback.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_inspect_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_library.template_save",
+      "effect": "file_write",
+      "required_checks": [
+        "dry_run",
+        "file_effect",
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "file_effect",
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_remaining_validator_checks": [],
+      "local_66c_inner_checks": [
+        "dry_run",
+        "file_effect",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "action_group": "LIB_FILE",
+      "minimum_next_work": "LIB_FILE: existing16-call adapter closes observed writer semantics/dry/file/source/error/refusal; final frozen-source CI reruns same existing calls automatically. Do not invent scene Undo/playback.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_library_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_library.template_apply",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "LIB_APPLY",
+      "minimum_next_work": "LIB_APPLY: hook existing preset_library_history template_preset/template_fx/spec_apply cases and both saved states; emit independent remapped clip values/metadata and recipe-file preservation.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_library_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_library.template_list",
+      "effect": "read",
+      "required_checks": [
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "valid_effect"
+      ],
+      "old_source_remaining_validator_checks": [
+        "typed_errors"
+      ],
+      "local_66c_inner_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "valid_effect"
+      ],
+      "action_group": "LIB_READ",
+      "minimum_next_work": "LIB_READ: exact first-test content/nochange/error checks already observed; add raw bindings for existing malformed-read refusals (template_list/spec_import), whose typed_errors are not emitted by first16 calls.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_library_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_library.template_delete",
+      "effect": "file_write",
+      "required_checks": [
+        "dry_run",
+        "file_effect",
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "file_effect",
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_remaining_validator_checks": [],
+      "local_66c_inner_checks": [
+        "dry_run",
+        "file_effect",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "action_group": "LIB_FILE",
+      "minimum_next_work": "LIB_FILE: existing16-call adapter closes observed writer semantics/dry/file/source/error/refusal; final frozen-source CI reruns same existing calls automatically. Do not invent scene Undo/playback.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_library_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_library.spec_export",
+      "effect": "file_write",
+      "required_checks": [
+        "dry_run",
+        "file_effect",
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "dry_run",
+        "file_effect",
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_remaining_validator_checks": [],
+      "local_66c_inner_checks": [
+        "dry_run",
+        "file_effect",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "action_group": "LIB_FILE",
+      "minimum_next_work": "LIB_FILE: existing16-call adapter closes observed writer semantics/dry/file/source/error/refusal; final frozen-source CI reruns same existing calls automatically. Do not invent scene Undo/playback.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_library_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_library.spec_import",
+      "effect": "read",
+      "required_checks": [
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "valid_effect"
+      ],
+      "old_source_remaining_validator_checks": [
+        "typed_errors"
+      ],
+      "local_66c_inner_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "valid_effect"
+      ],
+      "action_group": "LIB_READ",
+      "minimum_next_work": "LIB_READ: exact first-test content/nochange/error checks already observed; add raw bindings for existing malformed-read refusals (template_list/spec_import), whose typed_errors are not emitted by first16 calls.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_library_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_library.spec_apply",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "LIB_APPLY",
+      "minimum_next_work": "LIB_APPLY: hook existing preset_library_history template_preset/template_fx/spec_apply cases and both saved states; emit independent remapped clip values/metadata and recipe-file preservation.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_library_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_rig.pose_save",
+      "effect": "file_write",
+      "required_checks": [
+        "dry_run",
+        "file_effect",
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "file_effect",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "POSE_FILE",
+      "minimum_next_work": "POSE_FILE: instrument test_rig_pose_history.test_pose_file_and_shape_contracts with exact pose_save/pose_blend file bytes/readback/nohistory/fixture invariance. Add one nontrivial from/to pose_blend file expectation and its dry-byte case: current public file test blends identical inputs and lacks that dry positive.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_motion_sequence_history.py",
+        "mcp_rig_bake_restoration.py",
+        "mcp_rig_modifier_ui_history.py",
+        "mcp_rig_pose_crud.py",
+        "mcp_rig_pose_ui_history.py"
+      ]
+    },
+    {
+      "operation": "animation_rig.pose_apply",
+      "effect": "scene_structure",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "RIG",
+      "minimum_next_work": "RIG: emit exact existing rig_pose/chain/clip/bake inner cases; bind saved native per-case assertions (pose_apply/rig_chain still lack playback adapter); no suite-total mapping. Assess actual applicable output.",
+      "visual_mode": "static_allowed",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_rig_pose_apply_audit.py",
+        "mcp_rig_pose_crud.py"
+      ]
+    },
+    {
+      "operation": "animation_rig.pose_blend",
+      "effect": "file_write",
+      "required_checks": [
+        "dry_run",
+        "file_effect",
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "file_effect",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "POSE_FILE",
+      "minimum_next_work": "POSE_FILE: instrument test_rig_pose_history.test_pose_file_and_shape_contracts with exact pose_save/pose_blend file bytes/readback/nohistory/fixture invariance. Add one nontrivial from/to pose_blend file expectation and its dry-byte case: current public file test blends identical inputs and lacks that dry positive.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_rig_pose_crud.py"
+      ]
+    },
+    {
+      "operation": "animation_rig.pose_to_clip",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "RIG",
+      "minimum_next_work": "RIG: emit exact existing rig_pose/chain/clip/bake inner cases; bind saved native per-case assertions (pose_apply/rig_chain still lack playback adapter); no suite-total mapping. Assess actual applicable output.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_rig_pose_crud.py",
+        "mcp_rig_pose_ui_history.py"
+      ]
+    },
+    {
+      "operation": "animation_rig.pose_list",
+      "effect": "read",
+      "required_checks": [
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "RIG_READ",
+      "minimum_next_work": "RIG_READ: bind actual pose_list/rig_get contents to independent saved pose/skeleton state, plus typed refusals/no mutation/errors.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_rig_pose_crud.py"
+      ]
+    },
+    {
+      "operation": "animation_rig.rig_get",
+      "effect": "read",
+      "required_checks": [
+        "mcp_invocation",
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "reported_errors",
+        "source_unchanged",
+        "typed_errors",
+        "valid_effect"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "RIG_READ",
+      "minimum_next_work": "RIG_READ: bind actual pose_list/rig_get contents to independent saved pose/skeleton state, plus typed refusals/no mutation/errors.",
+      "visual_mode": "not_applicable",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_retarget_audit.py",
+        "mcp_rig_bake.py",
+        "mcp_rig_chain_audit.py",
+        "mcp_rig_modifiers_audit.py",
+        "mcp_rig_pose_apply_audit.py",
+        "mcp_rig_pose_ui_history.py"
+      ]
+    },
+    {
+      "operation": "animation_rig.rig_chain",
+      "effect": "scene_structure",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "RIG",
+      "minimum_next_work": "RIG: emit exact existing rig_pose/chain/clip/bake inner cases; bind saved native per-case assertions (pose_apply/rig_chain still lack playback adapter); no suite-total mapping. Assess actual applicable output.",
+      "visual_mode": "static_allowed",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_rig_chain_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_rig.walk_cycle",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "RIG",
+      "minimum_next_work": "RIG: emit exact existing rig_pose/chain/clip/bake inner cases; bind saved native per-case assertions (pose_apply/rig_chain still lack playback adapter); no suite-total mapping. Assess actual applicable output.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_rig_bake.py",
+        "mcp_rig_recipes.py"
+      ]
+    },
+    {
+      "operation": "animation_rig.idle_breathing",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "RIG",
+      "minimum_next_work": "RIG: emit exact existing rig_pose/chain/clip/bake inner cases; bind saved native per-case assertions (pose_apply/rig_chain still lack playback adapter); no suite-total mapping. Assess actual applicable output.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_rig_recipes.py"
+      ]
+    },
+    {
+      "operation": "animation_rig.blink",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "RIG",
+      "minimum_next_work": "RIG: emit exact existing rig_pose/chain/clip/bake inner cases; bind saved native per-case assertions (pose_apply/rig_chain still lack playback adapter); no suite-total mapping. Assess actual applicable output.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_rig_pose_ui_history.py",
+        "mcp_rig_recipes.py"
+      ]
+    },
+    {
+      "operation": "animation_rig.jumping_jack",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "RIG",
+      "minimum_next_work": "RIG: emit exact existing rig_pose/chain/clip/bake inner cases; bind saved native per-case assertions (pose_apply/rig_chain still lack playback adapter); no suite-total mapping. Assess actual applicable output.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_rig_recipes.py"
+      ]
+    },
+    {
+      "operation": "animation_rig.squat",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "RIG",
+      "minimum_next_work": "RIG: emit exact existing rig_pose/chain/clip/bake inner cases; bind saved native per-case assertions (pose_apply/rig_chain still lack playback adapter); no suite-total mapping. Assess actual applicable output.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_rig_recipes.py"
+      ]
+    },
+    {
+      "operation": "animation_rig.punch",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "RIG",
+      "minimum_next_work": "RIG: emit exact existing rig_pose/chain/clip/bake inner cases; bind saved native per-case assertions (pose_apply/rig_chain still lack playback adapter); no suite-total mapping. Assess actual applicable output.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_rig_recipes.py"
+      ]
+    },
+    {
+      "operation": "animation_rig.bake_pose_sequence",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "RIG",
+      "minimum_next_work": "RIG: emit exact existing rig_pose/chain/clip/bake inner cases; bind saved native per-case assertions (pose_apply/rig_chain still lack playback adapter); no suite-total mapping. Assess actual applicable output.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_rig_bake.py",
+        "mcp_rig_bake_restoration.py",
+        "mcp_rig_pose_ui_history.py"
+      ]
+    },
+    {
+      "operation": "animation_motion.walk_cycle",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "MOTION",
+      "minimum_next_work": "MOTION: retain actual current motion/setup matrices; expose exact per-operation dry/history/reopen/numerical/source/error cases from existing suites/receipts. Source-specific runtime grounder/bake checkpoint is separate, not all-motion qualification.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_motion_remaining_cycles.py"
+      ]
+    },
+    {
+      "operation": "animation_motion.run_cycle",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "MOTION",
+      "minimum_next_work": "MOTION: retain actual current motion/setup matrices; expose exact per-operation dry/history/reopen/numerical/source/error cases from existing suites/receipts. Source-specific runtime grounder/bake checkpoint is separate, not all-motion qualification.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_motion_remaining_cycles.py"
+      ]
+    },
+    {
+      "operation": "animation_motion.idle_cycle",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "MOTION",
+      "minimum_next_work": "MOTION: retain actual current motion/setup matrices; expose exact per-operation dry/history/reopen/numerical/source/error cases from existing suites/receipts. Source-specific runtime grounder/bake checkpoint is separate, not all-motion qualification.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_motion_remaining_cycles.py"
+      ]
+    },
+    {
+      "operation": "animation_motion.cycle",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "MOTION",
+      "minimum_next_work": "MOTION: retain actual current motion/setup matrices; expose exact per-operation dry/history/reopen/numerical/source/error cases from existing suites/receipts. Source-specific runtime grounder/bake checkpoint is separate, not all-motion qualification.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_motion_remaining_cycles.py"
+      ]
+    },
+    {
+      "operation": "animation_motion.character_setup",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "MOTION",
+      "minimum_next_work": "MOTION: retain actual current motion/setup matrices; expose exact per-operation dry/history/reopen/numerical/source/error cases from existing suites/receipts. Source-specific runtime grounder/bake checkpoint is separate, not all-motion qualification.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_motion_setup_secondary.py"
+      ]
+    },
+    {
+      "operation": "animation_motion.secondary_motion",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "MOTION",
+      "minimum_next_work": "MOTION: retain actual current motion/setup matrices; expose exact per-operation dry/history/reopen/numerical/source/error cases from existing suites/receipts. Source-specific runtime grounder/bake checkpoint is separate, not all-motion qualification.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_motion_sequence_history.py",
+        "mcp_motion_setup_secondary.py"
+      ]
+    },
+    {
+      "operation": "animation_motion.jump",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "MOTION",
+      "minimum_next_work": "MOTION: retain actual current motion/setup matrices; expose exact per-operation dry/history/reopen/numerical/source/error cases from existing suites/receipts. Source-specific runtime grounder/bake checkpoint is separate, not all-motion qualification.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_motion_remaining_cycles.py"
+      ]
+    },
+    {
+      "operation": "animation_motion.turn_cycle",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "MOTION",
+      "minimum_next_work": "MOTION: retain actual current motion/setup matrices; expose exact per-operation dry/history/reopen/numerical/source/error cases from existing suites/receipts. Source-specific runtime grounder/bake checkpoint is separate, not all-motion qualification.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_motion_remaining_cycles.py"
+      ]
+    },
+    {
+      "operation": "animation_motion.strafe_cycle",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "MOTION",
+      "minimum_next_work": "MOTION: retain actual current motion/setup matrices; expose exact per-operation dry/history/reopen/numerical/source/error cases from existing suites/receipts. Source-specific runtime grounder/bake checkpoint is separate, not all-motion qualification.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_motion_remaining_cycles.py"
+      ]
+    },
+    {
+      "operation": "animation_motion.walk_start",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "MOTION",
+      "minimum_next_work": "MOTION: retain actual current motion/setup matrices; expose exact per-operation dry/history/reopen/numerical/source/error cases from existing suites/receipts. Source-specific runtime grounder/bake checkpoint is separate, not all-motion qualification.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_motion_remaining_cycles.py",
+        "mcp_motion_sequence_history.py"
+      ]
+    },
+    {
+      "operation": "animation_motion.walk_stop",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "MOTION",
+      "minimum_next_work": "MOTION: retain actual current motion/setup matrices; expose exact per-operation dry/history/reopen/numerical/source/error cases from existing suites/receipts. Source-specific runtime grounder/bake checkpoint is separate, not all-motion qualification.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_motion_remaining_cycles.py"
+      ]
+    },
+    {
+      "operation": "animation_rig_modifiers.ik_setup",
+      "effect": "scene_structure",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "MODIFIER",
+      "minimum_next_work": "MODIFIER: add source/operation IDs and case-local assertion outcomes to existing 828-state/276-reference native rows; bind five op-specific subsets and existing inner history; assess unchanged saved clips.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_rig_modifier_ui_history.py",
+        "mcp_rig_modifiers_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_rig_modifiers.spring_setup",
+      "effect": "scene_structure",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "MODIFIER",
+      "minimum_next_work": "MODIFIER: add source/operation IDs and case-local assertion outcomes to existing 828-state/276-reference native rows; bind five op-specific subsets and existing inner history; assess unchanged saved clips.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_rig_modifier_ui_history.py",
+        "mcp_rig_modifiers_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_rig_modifiers.look_at_setup",
+      "effect": "scene_structure",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "MODIFIER",
+      "minimum_next_work": "MODIFIER: add source/operation IDs and case-local assertion outcomes to existing 828-state/276-reference native rows; bind five op-specific subsets and existing inner history; assess unchanged saved clips.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_rig_modifier_ui_history.py",
+        "mcp_rig_modifiers_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_rig_modifiers.retarget_setup",
+      "effect": "scene_structure",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "MODIFIER",
+      "minimum_next_work": "MODIFIER: add source/operation IDs and case-local assertion outcomes to existing 828-state/276-reference native rows; bind five op-specific subsets and existing inner history; assess unchanged saved clips.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_retarget_audit.py",
+        "mcp_rig_modifier_ui_history.py"
+      ]
+    },
+    {
+      "operation": "animation_rig_modifiers.twist_setup",
+      "effect": "scene_structure",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "MODIFIER",
+      "minimum_next_work": "MODIFIER: add source/operation IDs and case-local assertion outcomes to existing 828-state/276-reference native rows; bind five op-specific subsets and existing inner history; assess unchanged saved clips.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_rig_modifier_ui_history.py",
+        "mcp_rig_modifiers_audit.py"
+      ]
+    },
+    {
+      "operation": "animation_sequence.compose",
+      "effect": "scene_write",
+      "required_checks": [
+        "dry_run",
+        "mcp_invocation",
+        "playback",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "old_source_observed_common_checks": [
+        "mcp_invocation",
+        "playback"
+      ],
+      "old_source_remaining_validator_checks": [
+        "dry_run",
+        "reported_errors",
+        "save_reopen",
+        "source_unchanged",
+        "track_paths_types",
+        "typed_errors",
+        "undo_redo",
+        "valid_effect",
+        "visual_review"
+      ],
+      "local_66c_inner_checks": [],
+      "action_group": "SEQUENCE",
+      "minimum_next_work": "SEQUENCE: bind existing compose history and saved native reference cases, exact source/root ownership and typed nochange outcomes; reuse current actual sequence footage once dependency matched.",
+      "visual_mode": "continuous_required",
+      "current_candidate": "pending",
+      "reason": "No final all103 portable qualification manifest; retain actual source identities and redo final compatibility/execution after source freeze.",
+      "observed_external_drivers": [
+        "mcp_motion_sequence_history.py",
+        "mcp_sequence_audit.py"
+      ]
+    }
+  ],
+  "limits": "Read-only derived gap table. Raw passing cases on failed/stale CI remain scoped observations, not compatibility/release passes. No suite-total or historical-ledger derivation, no visual viewing claimed, no new native/public execution.",
+  "added_eligible_dependencies_since_old_ci": [
+    "test_project/tests/test_rig_bake_setup_grounding.gd",
+    "tools/saved_effect_contracts.py",
+    "tools/test_saved_nearest_hold.py",
+    "tools/test_transition_capture_bounds.py"
+  ]
+}

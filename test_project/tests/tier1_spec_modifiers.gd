@@ -210,7 +210,7 @@ func _check_mirror() -> void:
 func _check_offset() -> void:
 	var spec := _fixture()
 	var shifted := SpecModifiers.offset(spec, 0.5, false)
-	_expect_eq(_key_times(shifted.tracks[0]), [0.5, 1.0, 1.5], "offset shifts key times")
+	_expect_eq(_key_times(shifted.tracks[0]), [0.0, 0.5, 1.0, 1.5], "offset holds first value until shifted keys")
 	_expect_approx(float(shifted.length), 1.5, "offset grows the length to fit the last key")
 	var wrapped := SpecModifiers.offset(spec, 0.5, true)
 	_expect_approx(float(wrapped.length), 1.0, "wrapped offset keeps the length")
@@ -362,7 +362,12 @@ func _check_merge() -> void:
 	_expect_approx(float(merged.length), 1.5, "merge sums the lengths")
 	_expect_eq((merged.tracks as Array).size(), 4, "merge unions the tracks")
 	var position_track: Dictionary = merged.tracks[ClipSpec.find_track_index(merged, "Sprite:position")]
-	_expect_eq(_key_times(position_track), [0.0, 0.5, 1.0, 1.0], "merge offsets the second clip's keys")
+	_expect_eq((position_track.keys as Array).size(), 4, "merge preserves both conflicting seam keys")
+	_expect(float(position_track.keys[2].time) < 1.0 and float(position_track.keys[2].time) > 0.999,
+		"merge keeps the first source's endpoint just before the seam")
+	_expect_approx(float(position_track.keys[3].time), 1.0, "merge starts the next source at the seam")
+	_expect_vec(position_track.keys[2].value, Vector2(20, 0), "merge keeps outgoing value")
+	_expect_vec(position_track.keys[3].value, Vector2(99, 0), "merge keeps incoming value")
 	_expect_eq(int(merged.loop_mode), Animation.LOOP_NONE, "merge always produces LOOP_NONE")
 	var gapped := SpecModifiers.merge([spec, other], 0.25)
 	_expect_approx(float(gapped.length), 1.75, "merge adds the gap between clips")
@@ -466,14 +471,16 @@ func _check_roundtrip() -> void:
 	_expect(not SpecIO.describe_unsupported(bezier).is_empty(), "unsupported tracks have a description")
 	var invalid := SpecBuilder.validate({"length": 1.0, "tracks": [{"type": Animation.TYPE_BEZIER, "path": "X", "keys": []}]})
 	_expect(invalid.has("error"), "builder validation rejects unsupported track types")
+	var no_property := SpecBuilder.validate({"length": 1.0, "tracks": [
+		{"type": Animation.TYPE_VALUE, "path": "Card1", "keys": []}]})
+	_expect(no_property.has("error"), "builder rejects an inert value track without a property")
 
 
 func _check_registry() -> void:
 	var families := OpRegistry.families()
-	_expect_eq(families.size(), 9, "nine tool families are registered")
+	_expect_eq(families.size(), 10, "ten tool families are registered")
 	# The Godot AI server promotes at most eight tools, sorted by name, so
-	# exactly one family opts out and keeps the promoted set full. If the cap
-	# ever grows, this is the assertion that tells us to promote it instead.
+	# two families opt out while the promoted set stays at the server cap.
 	var promoted: Array = []
 	for family_name in families:
 		if bool(families[family_name].get("promoted", true)):
@@ -481,6 +488,11 @@ func _check_registry() -> void:
 	_expect(promoted.size() == 8, "eight families stay promoted (got %d)" % promoted.size())
 	_expect(not bool(families[OpRegistry.FAMILY_RIG_MODIFIERS].get("promoted", true)),
 		"the modifier half opts out of promotion so it does not crowd one out")
+	_expect(not bool(families[OpRegistry.FAMILY_SEQUENCE].get("promoted", true)),
+		"sequence is currently reachable through custom_manage")
+	for file_family in [OpRegistry.FAMILY_LIBRARY, OpRegistry.FAMILY_RIG]:
+		_expect(not bool(families[file_family].get("undoable", true)),
+			"%s cannot promise batch undo while it contains file writes" % file_family)
 	for family_name in OpRegistry.family_names():
 		var info: Dictionary = families[family_name]
 		var description := str(info.get("description", ""))
@@ -550,6 +562,10 @@ func _check_registry() -> void:
 			_expect(descriptor_names.has(op_name), "%s enum op '%s' has a descriptor" % [family_name, op_name])
 		for required in schema.get("required", []):
 			_expect(properties.has(required), "%s required param '%s' is declared" % [family_name, required])
+			if required != "op":
+				for descriptor in info.get("ops", []):
+					_expect((descriptor.get("params", []) as Array).has(required),
+						"%s required param '%s' applies to %s" % [family_name, required, descriptor.name])
 		for param_name in properties:
 			var used := false
 			for descriptor in info.get("ops", []):

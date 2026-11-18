@@ -1,0 +1,39 @@
+[gd_scene format=3]
+
+[sub_resource type="Environment" id="RoomEnvironment"]
+background_mode = 1
+background_color = Color(0.0823529, 0.137255, 0.188235, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.83, 0.87, 0.95, 1)
+ambient_light_energy = 0.46
+reflected_light_source = 2
+tonemap_mode = 2
+
+[sub_resource type="StandardMaterial3D" id="Mat_deck"]
+albedo_color = Color(0.105882, 0.160784, 0.223529, 1)
+metallic = 0.1
+roughness = 0.48
+
+[sub_resource type="BoxMesh" id="Mesh_1"]
+material = SubResource("Mat_deck")
+size = Vector3(80, 0.08, 80)
+
+[node name="KineticRoom" type="Node3D"]
+
+[node name="Environment" type="WorldEnvironment" parent="."]
+environment = SubResource("RoomEnvironment")
+
+[node name="Key" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.84, -0.5, -0.11)
+light_color = Color(1, 0.941176, 0.843137, 1)
+light_energy = 0.79
+shadow_enabled = true
+
+[node name="Rim" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.55, 2.43, -0.18)
+light_color = Color(0.61, 0.72, 0.91, 1)
+light_energy = 0.40
+
+[node name="Floor" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.26, 0)
+mesh = SubResource("Mesh_1")

@@ -1,0 +1,153 @@
+# Close the r002 start/stop revision
+
+## Feedback and scope, 2026-10-13
+
+The user reviewed the Responsive body-response comparison and said:
+“yeah it's better, continue”. Record this as approval of the focused body
+revision and authorization to continue. Individual rig coverage was not stated.
+It does not approve the other styles, composed playback or a release.
+
+Preserve the delivered preview, its feedback and the rejected r001 evidence.
+Keep accepted walk/run/idle generators and eleven historical/accepted fixtures.
+
+## 1. Complete ordinary coverage
+
+Generate fresh ordinary start/stop clips for all five styles, four rigs and
+both root modes: 80 saved public-tool outputs. Use the visible Godot 4.7.2
+editor, external Undo/Redo witnesses, dry/pose nonmutation, forced save/reopen,
+track resolution and actual Godot AI custom-tool invocation. Preserve failures.
+
+Run the original 480 Player/Tree plays at 30/60/120 FPS against separately
+saved accepted walk/idle references. Keep contact, sliding, penetration, reach,
+knee stability, endpoint and continuation gates. Compare the fresh Responsive
+clips against the approved preview in engine, including every authored channel
+and played pose, before carrying its scoped approval forward.
+
+## 2. Timing, sequencing and reload
+
+Repeat the 96 explicit timing requests across fractional phases, independently
+short/long transition periods, a nondefault gait period/sample rate and both
+root modes. Every accepted scene must pass the same played checks. Reach
+refusals must be typed and nonmutating; report their actual count.
+
+Compose four saved idle -> start -> two walks -> stop -> idle clips through
+the public sequence operation. Verify external history/dry/save/reopen and 24
+Player/Tree plays, source crops, blends, contacts/markers, one mixer and one
+root consumer. Retest 160 transition dry calls across an actual core reload.
+Verify ten families/eight promoted tools/103 advertised operation choices.
+
+Repeat the independent continuation controls and 48 deliberate double-travel
+controls on the new saved clips. Retain failed controls and raw engine logs.
+
+## 3. Regression and exact-source CI
+
+Run public motion/sequence tests, the complete local editor suite and fourteen
+headless suites. Preserve source/core identities and zero protected fixture
+drift. Archive fresh Windows/Linux CI with its six raw editor/live-route logs,
+exact coverage and only the two named private-X-Bot skips on hosted runners.
+The previously pending preview-source CI runs are green; collect their receipt
+as historical proof, not proof of a later changed implementation.
+
+## 4. Continuous review and explicit pause
+
+Capture twenty style movies (clean/diagnostic per operation/style), 1080p60,
+24 seconds each. Display front and side simultaneously; each rig gets two
+complete three-second takes with fresh scene resets. This keeps both cameras
+at the same character size as the preview while avoiding sequential camera
+duplicates. The approved 48-second r001/r002 comparisons stay preserved.
+
+Capture clean/diagnostic 88-second sequence movies with both cameras, two
+complete takes per rig and the whole action chain. Capture only saved engine
+playback; no pose synthesis, duplicate bone writers or camera animation.
+Decode every MP4, verify original PNG CRCs, scene/source/camera/take provenance
+and copied hashes, and archive sources, scenes, rigs and phase receipts.
+
+Push the review branch, verify its remote SHA, open the full pack in PC
+Explorer and explicitly pause for remaining-style/sequence feedback. Preserve
+the scoped Responsive approval; do not replace it with a new null approval.
+No main merge, tag, release or media upload at this gate.
+
+## Execution ledger
+
+- Planning and focused feedback preservation: complete, source `12ab9c9` pushed.
+- Ordinary public generation: 80/80 clips pass dry/pose/history/save/reopen
+  across all five styles and both root modes, source `12ab9c9`.
+- First Responsive start parity: 24/24 Player/Tree plays pass; authored channels
+  exactly match the accepted preview. The new parity helper's initial typed
+  variable parse errors were preserved, then repaired before any measurements.
+- Preview CI `a003d24` / Actions `38373939709`: complete green source receipt
+  and six raw logs archived; four editors, both live routes and 28 headless jobs.
+- New review renderer shows both cameras simultaneously with fresh resets;
+  reload fixtures now strip copied root scene UIDs before engine save.
+- Full ordinary matrix: 480/480 plays pass, zero engine errors/clamps, source
+  `12ab9c9`, receipt `candidate-r002/native-bcd6c1fc0b8140d5b71aa622eeba087e`.
+- Preview parity: all 96/96 Player/Tree/FPS plays pass; all authored channels
+  exactly equal the approved preview and actor/contact/body metadata unchanged.
+- Four public saved sequences and 24/24 native sequence plays pass.
+- Continuation controls: 288 positive and 288 shifted-endpoint detections pass.
+  All 48 deliberate double actor-travel failures are detected, zero engine errors.
+- Twenty native style movies recording; first 24s clean movie fully decoded.
+- Timing: all 96 public requests checked, 91 accepted clips /546 native plays
+  pass, five typed nonmutating reach refusals. All 24 timing groups complete.
+- Headless: fourteen suites pass, exit zero and all fourteen pass markers.
+- Actual core reload: 160/160 dry calls pass; all ten families/eight promoted
+  tools/103 choices remain available, full scene hashes and poses unchanged.
+- Public regression: motion 71/71 and sequence 3/3 pass after reload.
+- Complete continuous media, exact-source CI receipt and PC delivery: pending.
+
+### Local editor startup guard repair
+
+The first complete local editor run passed all 397 tests with zero test engine
+or discovery errors, but correctly failed the overall gate: one registry probe
+ran while the core reported `importing`, producing ten blocked-route errors.
+The old harness stopped waiting after five seconds and proceeded without a
+readiness assertion. Raw logs/results and exit 1 are preserved in the closure
+root. The released core checkout remains clean at `bfc2642`.
+
+The CI harness now waits for three consecutive `ready` observations before
+each registry probe and before suite execution, with a 60-second deadline and
+explicit failure if readiness never arrives. It does not change core readiness
+or bypass the write block. Repeat the complete suite in `editor-retry-r002`;
+the original failed route gate remains in the evidence archive.
+
+The second attempt reached that startup deadline while the historical project
+finished scanning (its final readiness was `ready`). Rather than bypassing the
+guard or increasing its deadline, create a clean isolated validation project
+linked to the same addon/core/tests/tools/models and tracked demo scenes.
+`editor-clean-r003` passes **397/397**, zero skips/test engine/discovery/route
+errors, both 10-family/103-route probes and zero walk/run/idle golden drift.
+Startup readiness took 15,590 ms; restored probe 206 ms; suite readiness 96 ms.
+The old scan/transport warnings remain in preserved raw logs. All eleven
+protected files remain exact. Local `gates.json` now passes all required checks.
+
+## Delivery and manual pause
+
+- Twenty style movies complete: 24s /1,440 decoded frames each, simultaneous
+  front/side cameras, two complete reset-separated takes per rig, clean and
+  diagnostic modes. Four rigs and five styles on both start and stop.
+- Two full sequence movies complete: 88s /5,280 decoded frames each, 1080p60.
+  The original queue attempt stopped on a transient Windows progress-file read
+  before any sequence frames. It remains untouched. Bounded read-only retries
+  now handle a transient missing path; a permanent missing path still fails.
+  `sequence-recording-r003` holds fresh exact copies of the saved route/native
+  receipt and the completed captures; no scene/animation was regenerated.
+- Final CI `5df333a` / Actions `38415667286` green: 28 headless jobs, four
+  editor jobs 395/397 with only two named private-rig skips, both live routes
+  118/118, all required/advisory jobs pass. Exact merge/source/core identities
+  and six raw logs archived in `source-ci-5df333a`. Protected gait drift zero.
+- Four source/scene/evidence ZIPs verified, 423 saved-scene entries rehashed,
+  all 22 movie copies checked. Thirteen rig dependencies and eleven protected
+  working fixtures unchanged; both source ZIPs match their canonical Git blobs.
+- PC Explorer observed with all 22 videos and the sequence clean selected.
+  Scoped Responsive approval preserved; remaining-style/sequence feedback is
+  pending. **Pause here for explicit human review. No release or promotion.**
+
+## Human approval and phase closure, 2026-10-13
+
+User says “they look okay, continue” in response to remaining-style and
+full-sequence review. The presented r002 set is approved, with individual
+watched files unspecified. Prior Responsive feedback remains preserved.
+All 22 delivered hashes remain exact; existing regression and exact-source
+CI pass. No animation source changed after the delivery. Approval receipt:
+`closure-r002/approved-r002-feedback.json`. Start/stop closure is complete;
+continue with `turn-quality-review-plan.md`. Release-wide gates remain.

@@ -1,0 +1,258 @@
+[gd_scene format=3 uid="uid://c0rrdo1ks20e3"]
+
+[ext_resource type="Script" uid="uid://cqaj3r2y2dpqp" path="res://showcase_2_0/stages_3d/play_exhibit.gd" id="Replay"]
+[ext_resource type="PackedScene" path="res://showcase_2_0/stages_3d/kinetic_room.tscn" id="Room"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_deck"]
+albedo_color = Color(0.105882, 0.160784, 0.223529, 1)
+metallic = 0.1
+roughness = 0.48
+
+[sub_resource type="CylinderMesh" id="Mesh_1"]
+material = SubResource("Mat_deck")
+top_radius = 1.93
+bottom_radius = 1.98
+height = 0.18
+radial_segments = 48
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="Mat_dark"]
+albedo_color = Color(0.14902, 0.223529, 0.298039, 1)
+metallic = 0.16
+roughness = 0.37
+
+[sub_resource type="CylinderMesh" id="Mesh_3"]
+material = SubResource("Mat_dark")
+top_radius = 1.91
+bottom_radius = 1.91
+height = 0.025
+radial_segments = 48
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="Mat_line"]
+albedo_color = Color(0.345098, 0.439216, 0.517647, 1)
+metallic = 0.1
+roughness = 0.58
+
+[sub_resource type="TorusMesh" id="Mesh_5"]
+material = SubResource("Mat_line")
+inner_radius = 1.8125
+outer_radius = 1.8475
+ring_segments = 12
+
+[sub_resource type="StandardMaterial3D" id="Mat_steel"]
+albedo_color = Color(0.388235, 0.482353, 0.564706, 1)
+metallic = 0.4
+roughness = 0.36
+
+[sub_resource type="BoxMesh" id="Mesh_7"]
+material = SubResource("Mat_steel")
+size = Vector3(3.2, 0.23, 0.105)
+
+[sub_resource type="StandardMaterial3D" id="Mat_cyan"]
+albedo_color = Color(0.258824, 0.85098, 0.87451, 1)
+metallic = 0.24
+roughness = 0.24
+emission_enabled = true
+emission = Color(0.258824, 0.85098, 0.87451, 1)
+emission_energy_multiplier = 0.24
+
+[sub_resource type="BoxMesh" id="Mesh_9"]
+material = SubResource("Mat_cyan")
+size = Vector3(3.2, 0.03, 0.044)
+
+[sub_resource type="StandardMaterial3D" id="Mat_slate"]
+albedo_color = Color(0.188235, 0.305882, 0.407843, 1)
+metallic = 0.2
+roughness = 0.4
+
+[sub_resource type="BoxMesh" id="Mesh_11"]
+material = SubResource("Mat_slate")
+size = Vector3(0.19, 0.4, 0.89)
+
+[sub_resource type="StandardMaterial3D" id="Mat_gold"]
+albedo_color = Color(1, 0.752941, 0.462745, 1)
+metallic = 0.3
+roughness = 0.29
+emission_enabled = true
+emission = Color(1, 0.752941, 0.462745, 1)
+emission_energy_multiplier = 0.15
+
+[sub_resource type="BoxMesh" id="Mesh_13"]
+material = SubResource("Mat_gold")
+size = Vector3(0.1, 0.026, 0.66)
+
+[sub_resource type="BoxMesh" id="Mesh_14"]
+material = SubResource("Mat_dark")
+size = Vector3(0.085, 0.13, 0.75)
+
+[sub_resource type="BoxMesh" id="Mesh_15"]
+material = SubResource("Mat_gold")
+size = Vector3(0.55, 0.26, 0.82)
+
+[sub_resource type="StandardMaterial3D" id="Mat_ice"]
+albedo_color = Color(0.870588, 0.972549, 0.980392, 1)
+metallic = 0.15
+roughness = 0.25
+emission_enabled = true
+emission = Color(0.870588, 0.972549, 0.980392, 1)
+emission_energy_multiplier = 0.14
+
+[sub_resource type="BoxMesh" id="Mesh_17"]
+material = SubResource("Mat_ice")
+size = Vector3(0.38, 0.19, 0.54)
+
+[sub_resource type="StandardMaterial3D" id="Mat_screen"]
+albedo_color = Color(0.0392157, 0.0980392, 0.14902, 1)
+metallic = 0.1
+roughness = 0.56
+
+[sub_resource type="BoxMesh" id="Mesh_19"]
+material = SubResource("Mat_screen")
+size = Vector3(0.23, 0.026, 0.32)
+
+[sub_resource type="BoxMesh" id="Mesh_20"]
+material = SubResource("Mat_cyan")
+size = Vector3(0.035, 0.013, 0.24)
+
+[sub_resource type="Animation" id="Animation_sybvs"]
+length = 1.8
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Prop:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1.8),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(-1.24, 0.4, 0), Vector3(1.24, 0.4, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_8jv26"]
+_data = {
+&"drift": SubResource("Animation_sybvs")
+}
+
+[node name="KineticStage" type="Node3D" unique_id=679580479]
+script = ExtResource("Replay")
+
+[node name="Room" parent="." unique_id=1606978017 instance=ExtResource("Room")]
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1261890921]
+transform = Transform3D(0.97526044, -0.079407215, 0.2063046, 0, 0.93325573, 0.35921273, -0.22105902, -0.35032594, 0.9101674, 1.7, 3.35, 7.5)
+projection = 1
+current = true
+size = 3.7
+far = 55.0
+
+[node name="Deck" type="MeshInstance3D" parent="." unique_id=643393796]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+mesh = SubResource("Mesh_1")
+
+[node name="Facing" type="MeshInstance3D" parent="." unique_id=44841763]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.002, 0)
+mesh = SubResource("Mesh_3")
+
+[node name="OuterRim" type="MeshInstance3D" parent="." unique_id=130604710]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.025, 0)
+mesh = SubResource("Mesh_5")
+
+[node name="Rail0" type="MeshInstance3D" parent="." unique_id=1362043329]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.145, -0.31)
+mesh = SubResource("Mesh_7")
+
+[node name="RailTrim0" type="MeshInstance3D" parent="." unique_id=17249352]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.274, -0.31)
+mesh = SubResource("Mesh_9")
+
+[node name="Rail1" type="MeshInstance3D" parent="." unique_id=1607100996]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.145, 0.31)
+mesh = SubResource("Mesh_7")
+
+[node name="RailTrim1" type="MeshInstance3D" parent="." unique_id=589658592]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.274, 0.31)
+mesh = SubResource("Mesh_9")
+
+[node name="Stop0" type="MeshInstance3D" parent="." unique_id=314156865]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.66, 0.205, 0)
+mesh = SubResource("Mesh_11")
+
+[node name="Marker0" type="MeshInstance3D" parent="." unique_id=324411867]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.66, 0.416, 0)
+mesh = SubResource("Mesh_13")
+
+[node name="Stop1" type="MeshInstance3D" parent="." unique_id=699715333]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.66, 0.205, 0)
+mesh = SubResource("Mesh_11")
+
+[node name="Marker1" type="MeshInstance3D" parent="." unique_id=996537805]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.66, 0.416, 0)
+mesh = SubResource("Mesh_13")
+
+[node name="Tie0" type="MeshInstance3D" parent="." unique_id=484305800]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0.107, 0)
+mesh = SubResource("Mesh_14")
+
+[node name="Tie1" type="MeshInstance3D" parent="." unique_id=827718030]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2, 0.107, 0)
+mesh = SubResource("Mesh_14")
+
+[node name="Tie2" type="MeshInstance3D" parent="." unique_id=692168749]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.9, 0.107, 0)
+mesh = SubResource("Mesh_14")
+
+[node name="Tie3" type="MeshInstance3D" parent="." unique_id=1708368379]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 0.107, 0)
+mesh = SubResource("Mesh_14")
+
+[node name="Tie4" type="MeshInstance3D" parent="." unique_id=1280387888]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3, 0.107, 0)
+mesh = SubResource("Mesh_14")
+
+[node name="Tie5" type="MeshInstance3D" parent="." unique_id=920699401]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.107, 0)
+mesh = SubResource("Mesh_14")
+
+[node name="Tie6" type="MeshInstance3D" parent="." unique_id=13226470]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, 0.107, 0)
+mesh = SubResource("Mesh_14")
+
+[node name="Tie7" type="MeshInstance3D" parent="." unique_id=1019059918]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0.107, 0)
+mesh = SubResource("Mesh_14")
+
+[node name="Tie8" type="MeshInstance3D" parent="." unique_id=1728472720]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9, 0.107, 0)
+mesh = SubResource("Mesh_14")
+
+[node name="Tie9" type="MeshInstance3D" parent="." unique_id=1946546134]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2, 0.107, 0)
+mesh = SubResource("Mesh_14")
+
+[node name="Tie10" type="MeshInstance3D" parent="." unique_id=169672123]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 0.107, 0)
+mesh = SubResource("Mesh_14")
+
+[node name="Prop" type="Node3D" parent="." unique_id=1163184426]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.24, 0.4, 0)
+
+[node name="Carriage" type="MeshInstance3D" parent="Prop" unique_id=860292215]
+mesh = SubResource("Mesh_15")
+
+[node name="Housing" type="MeshInstance3D" parent="Prop" unique_id=804709537]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.195, 0)
+mesh = SubResource("Mesh_17")
+
+[node name="Sight" type="MeshInstance3D" parent="Prop" unique_id=996711299]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+mesh = SubResource("Mesh_19")
+
+[node name="SightLine" type="MeshInstance3D" parent="Prop" unique_id=884067897]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.317, 0)
+mesh = SubResource("Mesh_20")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1862797499]
+libraries/ = SubResource("AnimationLibrary_8jv26")

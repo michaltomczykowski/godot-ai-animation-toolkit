@@ -1,0 +1,420 @@
+[gd_scene format=3 uid="uid://be4yljegavvqb"]
+
+[ext_resource type="AudioStream" path="res://showcase_2_0/stages_2d/art/relay_chime.wav" id="7_u0t8o"]
+[ext_resource type="Texture2D" path="res://showcase_2_0/stages_2d/art/harbor_distant.jpg" id="background"]
+[ext_resource type="Texture2D" path="res://showcase_2_0/stages_2d/art/button_hover.png" id="button_hover"]
+[ext_resource type="Texture2D" path="res://showcase_2_0/stages_2d/art/button_idle.png" id="button_idle"]
+[ext_resource type="Texture2D" path="res://showcase_2_0/stages_2d/art/harbor_foreground.png" id="foreground"]
+[ext_resource type="Texture2D" path="res://showcase_2_0/stages_2d/art/beacon_frames.png" id="lanterns"]
+[ext_resource type="Script" uid="uid://dtpelbiln4kai" path="res://showcase_2_0/stages_2d/harbor_stage.gd" id="stage"]
+
+[sub_resource type="SystemFont" id="serif"]
+font_names = PackedStringArray("Georgia", "Liberation Serif", "Noto Serif", "DejaVu Serif")
+
+[sub_resource type="Animation" id="chapter"]
+resource_name = "chapter"
+length = 18.0
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:chapter_time")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 18),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 18.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Breakwater:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 18),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(-26, -3), Vector2(-6, -3)]
+}
+
+[sub_resource type="AnimationLibrary" id="timeline"]
+_data = {
+&"chapter": SubResource("chapter")
+}
+
+[sub_resource type="StyleBoxFlat" id="Panels_style"]
+bg_color = Color(0.038, 0.066, 0.128, 0.68)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.637, 0.668, 0.717, 0.27)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+anti_aliasing_size = 0.8
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_u0t8o"]
+atlas = ExtResource("lanterns")
+region = Rect2(0, 0, 272, 362)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5ecip"]
+atlas = ExtResource("lanterns")
+region = Rect2(272, 0, 272, 362)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_8jshu"]
+atlas = ExtResource("lanterns")
+region = Rect2(544, 0, 272, 362)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cv8y6"]
+atlas = ExtResource("lanterns")
+region = Rect2(816, 0, 272, 362)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_fip23"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_u0t8o")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5ecip")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_8jshu")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_cv8y6")
+}],
+"loop": 0,
+"name": &"ignition",
+"speed": 1.5
+}]
+
+[sub_resource type="StyleBoxFlat" id="Readout_style"]
+bg_color = Color(0.035, 0.063, 0.113, 0.89)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.637, 0.668, 0.717, 0.27)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+anti_aliasing_size = 0.8
+
+[sub_resource type="StyleBoxTexture" id="button_normal"]
+content_margin_top = 12.0
+texture = ExtResource("button_idle")
+
+[sub_resource type="StyleBoxTexture" id="button_pressed"]
+content_margin_top = 12.0
+texture = ExtResource("button_hover")
+
+[sub_resource type="StyleBoxTexture" id="button_hover"]
+content_margin_top = 12.0
+texture = ExtResource("button_hover")
+
+[sub_resource type="StyleBoxFlat" id="button_focus"]
+draw_center = false
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.557, 0.844, 0.81, 1)
+corner_radius_top_left = 13
+corner_radius_top_right = 13
+corner_radius_bottom_right = 13
+corner_radius_bottom_left = 13
+
+[sub_resource type="Animation" id="Animation_4gub6"]
+length = 2.6666666666666665
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("FlipLamp:frame")
+tracks/0/interp = 0
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.6666667, 1.3333334, 2),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [0, 1, 2, 3]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_0ej38"]
+_data = {
+&"ignition": SubResource("Animation_4gub6")
+}
+
+[sub_resource type="Animation" id="Animation_oouy1"]
+length = 3.0
+tracks/0/type = "audio"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Chime")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"clips": [{
+"end_offset": 0.0,
+"start_offset": 0.0,
+"stream": ExtResource("7_u0t8o")
+}],
+"times": PackedFloat32Array(2)
+}
+tracks/0/use_blend = false
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_wmo2c"]
+_data = {
+&"bell": SubResource("Animation_oouy1")
+}
+
+[node name="Beacon" type="Node2D" unique_id=1693120764]
+script = ExtResource("stage")
+stage_kind = 1
+
+[node name="Harbor" type="TextureRect" parent="." unique_id=1509502845]
+offset_left = -28.0
+offset_top = -16.0
+offset_right = 1308.0
+offset_bottom = 736.0
+mouse_filter = 2
+texture = ExtResource("background")
+expand_mode = 1
+
+[node name="TopShade" type="ColorRect" parent="." unique_id=1035076863]
+offset_right = 1280.0
+offset_bottom = 206.0
+mouse_filter = 2
+color = Color(0.025, 0.04, 0.085, 0.24)
+
+[node name="Breakwater" type="TextureRect" parent="." unique_id=2098710008]
+offset_left = -26.0
+offset_top = -3.0
+offset_right = 1306.0
+offset_bottom = 746.0
+mouse_filter = 2
+texture = ExtResource("foreground")
+expand_mode = 1
+
+[node name="EyebrowRule" type="ColorRect" parent="." unique_id=1355611996]
+offset_left = 71.0
+offset_top = 56.0
+offset_right = 95.0
+offset_bottom = 58.0
+mouse_filter = 2
+color = Color(1, 0.744, 0.382, 1)
+
+[node name="Eyebrow" type="Label" parent="." unique_id=439711573]
+offset_left = 105.0
+offset_top = 43.0
+offset_right = 805.0
+offset_bottom = 69.0
+theme_override_colors/font_color = Color(1, 0.744, 0.382, 1)
+theme_override_font_sizes/font_size = 17
+text = "LAMPLIGHT RELAY   /   BEACON"
+vertical_alignment = 1
+
+[node name="Title" type="Label" parent="." unique_id=889018553]
+offset_left = 70.0
+offset_top = 75.0
+offset_right = 1120.0
+offset_bottom = 149.0
+theme_override_colors/font_color = Color(0.961, 0.929, 0.826, 1)
+theme_override_fonts/font = SubResource("serif")
+theme_override_font_sizes/font_size = 66
+text = "Light the east beacon"
+vertical_alignment = 1
+
+[node name="Description" type="Label" parent="." unique_id=1924583909]
+offset_left = 74.0
+offset_top = 157.0
+offset_right = 1094.0
+offset_bottom = 192.0
+theme_override_colors/font_color = Color(0.707, 0.765, 0.832, 1)
+theme_override_font_sizes/font_size = 24
+text = "Four painted frames, one harbor signal."
+vertical_alignment = 1
+
+[node name="HeaderRule" type="ColorRect" parent="." unique_id=600428306]
+offset_left = 72.0
+offset_top = 207.0
+offset_right = 1208.0
+offset_bottom = 208.0
+mouse_filter = 2
+color = Color(0.637, 0.668, 0.717, 0.27)
+
+[node name="Timeline" type="AnimationPlayer" parent="." unique_id=40952870]
+libraries/ = SubResource("timeline")
+
+[node name="Panels" type="Panel" parent="." unique_id=639680113]
+offset_left = 72.0
+offset_top = 234.0
+offset_right = 1208.0
+offset_bottom = 537.0
+pivot_offset = Vector2(568, 151.5)
+mouse_filter = 2
+theme_override_styles/panel = SubResource("Panels_style")
+
+[node name="Divider" type="ColorRect" parent="Panels" unique_id=1729600449]
+layout_mode = 0
+offset_left = 567.0
+offset_top = 18.0
+offset_right = 568.0
+offset_bottom = 285.0
+mouse_filter = 2
+color = Color(0.637, 0.668, 0.717, 0.27)
+
+[node name="LeftLabel" type="Label" parent="Panels" unique_id=1598277654]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 12.0
+offset_right = 548.0
+offset_bottom = 47.0
+theme_override_colors/font_color = Color(0.557, 0.844, 0.81, 1)
+theme_override_font_sizes/font_size = 20
+text = "SPRITE2D FLIPBOOK"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RightLabel" type="Label" parent="Panels" unique_id=1757919192]
+layout_mode = 0
+offset_left = 590.0
+offset_top = 12.0
+offset_right = 1118.0
+offset_bottom = 47.0
+theme_override_colors/font_color = Color(0.557, 0.844, 0.81, 1)
+theme_override_font_sizes/font_size = 20
+text = "ANIMATEDSPRITE2D SPRITEFRAMES"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="FlipLamp" type="Sprite2D" parent="." unique_id=1155461691]
+position = Vector2(357, 406)
+scale = Vector2(0.66, 0.66)
+texture = ExtResource("lanterns")
+hframes = 4
+
+[node name="AnimatedLamp" type="AnimatedSprite2D" parent="." unique_id=1892817375]
+position = Vector2(922, 406)
+scale = Vector2(0.66, 0.66)
+sprite_frames = SubResource("SpriteFrames_fip23")
+animation = &"ignition"
+
+[node name="Readout" type="Panel" parent="." unique_id=64821826]
+offset_left = 72.0
+offset_top = 553.0
+offset_right = 1208.0
+offset_bottom = 634.0
+pivot_offset = Vector2(568, 40.5)
+mouse_filter = 2
+theme_override_styles/panel = SubResource("Readout_style")
+
+[node name="Phase" type="Label" parent="Readout" unique_id=1093029871]
+layout_mode = 0
+offset_left = 23.0
+offset_top = 15.0
+offset_right = 163.0
+offset_bottom = 63.0
+theme_override_colors/font_color = Color(0.707, 0.765, 0.832, 1)
+theme_override_font_sizes/font_size = 17
+text = "LAMP PHASE"
+vertical_alignment = 1
+
+[node name="Pip0" type="ColorRect" parent="Readout" unique_id=733857797]
+layout_mode = 0
+offset_left = 160.0
+offset_top = 28.0
+offset_right = 174.0
+offset_bottom = 50.0
+mouse_filter = 2
+color = Color(1, 0.744, 0.382, 1)
+
+[node name="Pip1" type="ColorRect" parent="Readout" unique_id=154340021]
+layout_mode = 0
+offset_left = 183.0
+offset_top = 28.0
+offset_right = 197.0
+offset_bottom = 50.0
+mouse_filter = 2
+color = Color(1, 0.744, 0.382, 1)
+
+[node name="Pip2" type="ColorRect" parent="Readout" unique_id=260386257]
+layout_mode = 0
+offset_left = 206.0
+offset_top = 28.0
+offset_right = 220.0
+offset_bottom = 50.0
+mouse_filter = 2
+color = Color(1, 0.744, 0.382, 1)
+
+[node name="Pip3" type="ColorRect" parent="Readout" unique_id=668120492]
+layout_mode = 0
+offset_left = 229.0
+offset_top = 28.0
+offset_right = 243.0
+offset_bottom = 50.0
+mouse_filter = 2
+color = Color(1, 0.744, 0.382, 1)
+
+[node name="LightState" type="Label" parent="Readout" unique_id=1313729051]
+layout_mode = 0
+offset_left = 268.0
+offset_top = 15.0
+offset_right = 528.0
+offset_bottom = 63.0
+theme_override_colors/font_color = Color(1, 0.744, 0.382, 1)
+theme_override_font_sizes/font_size = 23
+text = "DARK"
+vertical_alignment = 1
+
+[node name="ChimeState" type="Label" parent="Readout" unique_id=1325069432]
+layout_mode = 0
+offset_left = 610.0
+offset_top = 15.0
+offset_right = 844.0
+offset_bottom = 63.0
+theme_override_colors/font_color = Color(0.557, 0.844, 0.81, 1)
+theme_override_font_sizes/font_size = 20
+text = "CHIME AT 2.00 S"
+vertical_alignment = 1
+
+[node name="BeaconButton" type="Button" parent="Readout" unique_id=1099779707]
+layout_mode = 0
+offset_left = 863.0
+offset_top = 9.0
+offset_right = 1106.0
+offset_bottom = 74.0
+pivot_offset = Vector2(121.5, 32.5)
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.961, 0.929, 0.826, 1)
+theme_override_colors/font_focus_color = Color(0.961, 0.929, 0.826, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.744, 0.382, 1)
+theme_override_colors/font_hover_color = Color(0.961, 0.929, 0.826, 1)
+theme_override_font_sizes/font_size = 23
+theme_override_styles/normal = SubResource("button_normal")
+theme_override_styles/pressed = SubResource("button_pressed")
+theme_override_styles/hover = SubResource("button_hover")
+theme_override_styles/focus = SubResource("button_focus")
+text = "Ignite beacon"
+
+[node name="SignalRing" type="Line2D" parent="." unique_id=855767809]
+visible = false
+position = Vector2(922, 406)
+points = PackedVector2Array(80, 0, 79.615, 7.841, 78.463, 15.607, 76.555, 23.223, 73.91, 30.615, 70.554, 37.712, 66.518, 44.446, 61.841, 50.751, 56.569, 56.569, 50.751, 61.841, 44.446, 66.518, 37.712, 70.554, 30.615, 73.91, 23.223, 76.555, 15.607, 78.463, 7.841, 79.615, 0, 80, -7.841, 79.615, -15.607, 78.463, -23.223, 76.555, -30.615, 73.91, -37.712, 70.554, -44.446, 66.518, -50.751, 61.841, -56.569, 56.569, -61.841, 50.751, -66.518, 44.446, -70.554, 37.712, -73.91, 30.615, -76.555, 23.223, -78.463, 15.607, -79.615, 7.841, -80, 0, -79.615, -7.841, -78.463, -15.607, -76.555, -23.223, -73.91, -30.615, -70.554, -37.712, -66.518, -44.446, -61.841, -50.751, -56.569, -56.569, -50.751, -61.841, -44.446, -66.518, -37.712, -70.554, -30.615, -73.91, -23.223, -76.555, -15.607, -78.463, -7.841, -79.615, 0, -80, 7.841, -79.615, 15.607, -78.463, 23.223, -76.555, 30.615, -73.91, 37.712, -70.554, 44.446, -66.518, 50.751, -61.841, 56.569, -56.569, 61.841, -50.751, 66.518, -44.446, 70.554, -37.712, 73.91, -30.615, 76.555, -23.223, 78.463, -15.607, 79.615, -7.841, 80, 0)
+width = 2.5
+default_color = Color(1, 0.744, 0.382, 1)
+antialiased = true
+
+[node name="Chime" type="AudioStreamPlayer" parent="." unique_id=780183645]
+volume_db = -5.0
+
+[node name="Flipbook" type="AnimationPlayer" parent="." unique_id=1624417879]
+libraries/ = SubResource("AnimationLibrary_0ej38")
+
+[node name="AudioCue" type="AnimationPlayer" parent="." unique_id=1057130936]
+libraries/ = SubResource("AnimationLibrary_wmo2c")

@@ -1,0 +1,22 @@
+--- a/tools/operation_case_collector.py
++++ b/tools/operation_case_collector.py
+@@ -248,6 +248,9 @@
+     return isinstance(value, (int,float)) and not isinstance(value,bool) and math.isfinite(value)
+ 
+ def native_checks(event, context):
++    from operation_edit_native_checks import OPS as EDIT_OPS, verify_native as verify_edit_native
++    if event.get('operation','').removeprefix('animation_edit.') in EDIT_OPS and event.get('operation','').startswith('animation_edit.'):
++        return verify_edit_native(event,context)
+     from operation_rig_native_checks import OPS, verify_native
+     if event.get('operation') in OPS:
+         return verify_native(event, context)
+@@ -381,6 +384,9 @@
+ 
+ def native_origin_matches(event, call):
+     """Bind named checker outputs, not merely another successful clip in the scene."""
++    from operation_edit_native_checks import OPS as EDIT_OPS, origin_matches as edit_origin_matches
++    if event.get('operation','').removeprefix('animation_edit.') in EDIT_OPS and event.get('operation','').startswith('animation_edit.'):
++        return edit_origin_matches(event,call)
+     from operation_rig_native_checks import OPS, origin_matches
+     if event.get('operation') in OPS:
+         return origin_matches(event, call)

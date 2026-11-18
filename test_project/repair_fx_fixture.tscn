@@ -1,0 +1,64 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://tests/fixtures/sheet.png" id="1_xhrd2"]
+
+[sub_resource type="Curve2D" id="Curve2D_oabxn"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 100, 80)
+}
+point_count = 3
+
+[node name="RepairFxFixture" type="Node2D" unique_id=1517049765]
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=507147578]
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=530582616]
+
+[node name="Flash" type="ColorRect" parent="." unique_id=278898456]
+offset_right = 80.0
+offset_bottom = 40.0
+color = Color(0.3, 0.2, 0.2, 1)
+
+[node name="DamageBar" type="ProgressBar" parent="." unique_id=249689326]
+value = 80.0
+
+[node name="FillBar" type="ProgressBar" parent="." unique_id=1113987602]
+value = 10.0
+
+[node name="TypeLabel" type="Label" parent="." unique_id=855955932]
+text = "Procedural animation toolkit"
+
+[node name="ScoreLabel" type="Label" parent="." unique_id=1247014542]
+text = "0"
+
+[node name="DialogPanel" type="Panel" parent="." unique_id=1940458292]
+
+[node name="FadeOverlay" type="ColorRect" parent="." unique_id=1309561013]
+offset_right = 640.0
+offset_bottom = 360.0
+color = Color(0, 0, 0, 1)
+
+[node name="Card1" type="Node2D" parent="." unique_id=411677193]
+
+[node name="Card2" type="Node2D" parent="." unique_id=1430048049]
+position = Vector2(80, 0)
+
+[node name="Card3" type="Node2D" parent="." unique_id=522907066]
+position = Vector2(160, 0)
+
+[node name="SpringTarget" type="Node2D" parent="." unique_id=17214560]
+
+[node name="PendulumTarget" type="Node2D" parent="." unique_id=1138958327]
+
+[node name="PatrolPath" type="Path2D" parent="." unique_id=88856567]
+curve = SubResource("Curve2D_oabxn")
+
+[node name="Drone" type="Node2D" parent="." unique_id=770527557]
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1896707679]
+texture = ExtResource("1_xhrd2")
+hframes = 4
+
+[node name="SheetSprite" type="AnimatedSprite2D" parent="." unique_id=1500274001]
+
+[node name="CuePlayer" type="AudioStreamPlayer2D" parent="." unique_id=461340275]

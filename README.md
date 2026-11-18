@@ -1,412 +1,299 @@
 # Godot AI Animation Toolkit
 
-A standalone [Godot](https://godotengine.org) addon that gives
-[Godot AI](https://github.com/hi-godot/godot-ai) agents eight animation tools
-(102 ops) — **no core patches**:
+[![Watch the Godot AI Animation Toolkit 2.0.0 showcase](docs/images/showcase-2.0.0-poster.jpg)](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v2.0.0/godot-ai-animation-toolkit-2.0.0-showcase.mp4)
 
-- **`animation_presets`** — build clips in one call (the presets scoped out of
-  core during the animation PR review: a generalized `pulse` plus `bounce`,
-  `orbit`, `sweep`, `drift`, `spin`, `float`, `stagger`, `showcase`).
-- **`animation_edit`** — edit any existing clip in place: `retime`, `retarget`,
-  `reverse`, `mirror`, `offset`, `ease_range`, `set_interp`, `trim`, `split_at`,
-  `merge`, `amplitude`, `loop`, `key_edit`, `cleanup`, plus quality passes
-  (`smooth`, `resample`, `add_noise`, `overlap`, `layer`).
-- **`animation_fx`** — one-call generators for game feel, UI, sprites and
-  audio: `shake`, `zoom_punch`, `hit_flash`, `damage_bar`, `typewriter`,
-  `progress_fill`, `counter`, `dialog_pop`, `transition`, `wave`, `spring`,
-  `pendulum`, `path_follow`, `flipbook`, `sprite_frames`, `audio_cue`.
-- **`animation_graph`** — AnimationTree authoring: `state_machine`, `blend_space`,
-  `blend_tree`, `wire`, `graph_get`, plus `locomotion`, `one_shot_layer` and
-  `additive_lean` setups.
-- **`animation_library`** — reusable templates (`template_save/apply/list/delete`)
-  and JSON clip specs (`spec_export/import/apply`).
-- **`animation_rig`** — skeletons from scratch (`rig_chain`), skeleton poses
-  (`pose_save`, `pose_apply`, `pose_blend`, `pose_to_clip` — whose keys can carry
-  an analytic three-bone `aim` solve that lands the hand/foot exactly on a world
-  target — `pose_list`, `rig_get`), procedural recipes (`walk_cycle`,
-  `idle_breathing`, `blink`, `jumping_jack`, `squat`, `punch`) and
-  `bake_pose_sequence` (live modifiers → a plain clip, baked deterministically
-  and with every touched skeleton restored).
-- **`animation_rig_modifiers`** — the five modifier setups: `ik_setup` (including
-  `kind=spline`, which follows a `Path3D` rather than a marker), `spring_setup`,
-  `look_at_setup`, `retarget_setup` and `twist_setup`. Every setup **verifies its
-  own wiring after committing and rolls the action back if it did not take**, and
-  parameters Godot ignores in the chosen mode are rejected instead of quietly
-  queued. Not promoted to a first-class tool (the server promotes at most eight),
-  so call it with
-  `custom_manage(op="invoke", tool_name="animation_rig_modifiers", params={...})`.
-- **`animation_motion`** — procedural humanoid locomotion and idle:
-  `walk_cycle`, `run_cycle`, `strafe_cycle`, `idle_cycle` and a generic `cycle`
-  build densely sampled clips with two-bone IK leg solves (planted feet), pelvis
-  bob/sway/yaw/roll, a counter-rotating torso distributed over the detected spine
-  chain, proper arm swing with forward elbow follow-through, and an idle that
-  looks around and twists the torso; `jump` and `turn_cycle` are one-shots with
-  phase markers, `walk_start`/`walk_stop` blend in and out of a gait at a given
-  `phase`; `spine_chain` / `twist_spread` shape how far
-  up the spine a twist travels, `style`/`overrides` tune the motion,
-  `root_motion` keys forward travel, `character_setup` builds idle + walk + run
-  and the locomotion tree in one call, and `secondary_motion` bakes offline
-  spring bones (hair/tail/cloth) into a clip.
-- **`animation_inspect`** — read-only reasoning and QA: `describe`, `timeline`,
-  `audit` (broken paths, dead clips, loop seams, autoplay conflicts),
-  `compare`, `stats`, `motion_report` (key density, peaks, seam pops,
-  hemisphere flips), `motion_audit` (plays the clip on a rig and grades it:
-  per-foot contact windows and the horizontal slide while planted, hip bob, all
-  pass/fail against a budget), `rig_profile` (bone roles/candidates, T/A pose, limb
-  reach, capabilities; saves a reusable profile), `sample` (FK probe: world
-  bone positions, foot heights, contact windows), `preview` (offscreen PNGs of
-  the posed character, so a clip can be *seen*), `dry_run` (run any op without
-  committing), `help`.
+[**Watch the 2.0.0 showcase (4:20)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v2.0.0/godot-ai-animation-toolkit-2.0.0-showcase.mp4)
 
-All eight sit on one declarative clip-spec engine, so every op is a pure
-spec → spec transform and each mutating call is one scene-pinned undo action.
+**Chapters** · 0:00 Intro · 0:10 3D Motion · 1:22 3D Rigs and Workflows ·
+2:30 3D Presets · 3:02 2D Lamplight Relay · 4:14 Run the Showcase
 
-```json
-{"tool": "custom_animation_presets", "params": {
-  "op": "bounce",
-  "player_path": "/Main/HUD",
-  "target_path": "Button",
-  "intensity": 0.2
-}}
-```
+Give your Godot AI agent animation tools in the running Godot editor. Generate
+clips, animate UI and characters, build AnimationTrees, edit existing motion,
+and inspect the results. The toolkit registers **10 tool families with
+103 operations** and creates native Godot scenes, clips, tracks, and resources.
 
-```json
-{"tool": "custom_animation_edit", "params": {
-  "op": "retime",
-  "player_path": "/Main/HUD",
-  "animation_name": "open",
-  "factor": 0.5
-}}
-```
+[Download 2.0.0](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/tag/v2.0.0)
+· [Try the showcase](#run-the-godot-showcase)
+· [Read the agent guide](#agent-workflow)
+· [Browse all operations](docs/op-index.md)
 
-![The generated demo scene running](docs/images/presets-showcase.gif)
+## What you can do
 
-*`op="showcase"` builds the scene above — seven nodes, seven autoplaying clips, one undo step.*
-
-[![Watch the full showcase](docs/images/showcase-poster.png)](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v1.1.0/animation_toolkit_full_showcase.mp4)
-
-**[Full showcase (3:12)](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v1.1.0/animation_toolkit_full_showcase.mp4)**
-— every phase in one pass: clips, editing, inspection, generators, graphs, the
-project library, rigs, procedural recipes and the exercise recipes, with the CI
-results at the end.
-
-## Presets
-
-| op | What it builds | Defaults |
-| --- | --- | --- |
-| `pulse` | Breathing / ping-pong on any property (`scale` shortcut, or typed `from_value`/`to_value` for `modulate:a`, `position`, `modulate`, …) | `duration=0.4`, `loop_mode="none"` |
-| `bounce` | Center-pivot scale overshoot with settle-back — UI press feedback | `intensity=0.15`, `duration=0.4` |
-| `orbit` | Circular position orbit (XZ plane for 3D, screen space for 2D/Control) | `radius=1.0` (3D) / `100.0` (2D), `duration=2.0` |
-| `sweep` | Full-turn rotation sweep — radar scans, cooldown rings | `turns=1.0`, `duration=1.0` |
-| `drift` | One-axis position offset — scanlines, marquee, conveyor | `axis="x"`, `duration=1.0` |
-| `spin` | 3D quaternion turn around local Y | `turns=1.0`, `duration=3.0` |
-| `float` | 3D bob: rise + scale + turn through the transform | `height=0.7`, `scale=1.25`, `duration=2.4` |
-| `stagger` | Reveal a list of targets one after another in **one clip** | `effect="fade_in"`, `stagger=0.06`, `duration=0.3` |
-| `showcase` | Builds a runnable demo of every preset (7 nodes + 7 autoplaying clips) | `name="AnimationShowcase"` |
-
-Every preset:
-
-- builds **one** `Animation` clip with typed keys and named transitions
-  (`linear` / `ease_in` / `ease_out` / `ease_in_out`);
-- commits **one scene-pinned undo action** — a single Ctrl-Z removes the clip
-  (and any auto-created library);
-- recenters a Control's `pivot_offset` for `bounce`/`sweep` **inside the same
-  action**, so the pop/rotation starts from the widget's middle;
-- starts from the target's *current* transform (scale/rotation/position), so a
-  preset never snaps the node to identity.
-
-(`showcase` is the exception: it builds a whole demo subtree in one action
-instead of a single clip.)
-
-## Editing existing clips
-
-`animation_edit` works on any clip in any `AnimationPlayer` — including
-hand-authored ones — and commits one scene-pinned undo action per call.
-
-| op | What it does |
+| Family | What it does |
 | --- | --- |
-| `retime` | Scale the timeline by `factor` or to `length` (optionally `keys_only`). |
-| `retarget` | Rename a node's tracks, or bulk-remap a subtree prefix after a refactor. |
-| `reverse` | Play the clip backwards. |
-| `mirror` | Mirror position/rotation (optionally scale) across a plane, about a pivot. |
-| `offset` | Shift every key in time, optionally wrapping inside the loop. |
-| `ease_range` | Set per-key transitions inside a time range. |
-| `set_interp` | Track-level interpolation (linear / nearest / cubic for 3D transform tracks). |
-| `trim` | Keep a time range, with sampled boundary keys. |
-| `split_at` | Cut one clip into two. |
-| `merge` | Concatenate clips (optionally across players) into one. |
-| `amplitude` | Scale key deltas about a baseline. |
-| `loop` | Set the loop mode, optionally making a linear loop seamless. |
-| `key_edit` | Add / set / remove / move a single key. |
-| `cleanup` | Drop redundant keys and empty tracks. |
-| `smooth` | Soften key values toward their neighbours — noise/follow-through cleanup. |
-| `resample` | Rebuild value tracks at a fixed fps through the engine's interpolator (transitions and cubic preserved). |
-| `reduce` | Drop redundant keys inside a measured error budget (degrees for rotations, units for the rest) — the dense cycles slim down with the curve intact. |
-| `add_noise` | Seeded smooth micro-motion on value keys (breathing, tremor). |
-| `overlap` | Delay one node/subtree's tracks by `delay` seconds — per-limb follow-through. |
-| `layer` | Combine another clip: `add` its delta from its first key, or `mix` toward it by `weight`. |
+| Presets | Animate bounces, pulses, orbits, spins, staggered entrances, and more. |
+| FX | Add camera feedback, hit flashes, counters, progress fills, sprite animation, and audio cues. |
+| Motion | Generate humanoid idle, walk, run, strafe, jump, turn, starts and stops. Set up locomotion or bake secondary motion. |
+| Sequences | Compose existing 3D clips and saved poses with timed fades and contact markers. |
+| Rigs | Build bone chains, save and apply poses, generate pose-driven clips, and bake final poses. |
+| Rig modifiers | Configure IK, spring bones, look-at, retarget, and twist modifiers. |
+| Graphs | Build AnimationTree state machines, blend spaces, locomotion, and layers. |
+| Editing | Retime, trim, split, merge, mirror, retarget, resample, or clean up existing tracks. |
+| Library | Reuse named templates and exchange typed JSON clip specs. |
+| Inspection | Read timelines and rig profiles, audit tracks and motion, sample bones, and render posed previews. |
 
-Clips containing bezier / blend-shape / animation tracks (or compressed tracks)
-are refused with a clear error rather than rewritten lossily.
-
-## Game feel, UI, sprites and audio
-
-`animation_fx` covers the rest of the everyday animation work: camera shake and
-punches, hit flashes, delayed damage bars, typewriter text, progress fills,
-rolling counters, dialog entrances, screen transitions, cascading waves, springs,
-pendulums, path following, sprite flipbooks, spritesheet slicing and audio cues.
-Same contract as the presets — one undo action per call, `dry_run` supported.
-
-```json
-{"tool": "custom_animation_fx", "params": {
-  "op": "shake",
-  "player_path": "/Main",
-  "target_path": "Camera2D",
-  "intensity": 10,
-  "seed": 7
-}}
-```
-
-## A living menu (example)
-
-[**Video: menu demo (0:47)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v1.1.0/animation_toolkit_menu_demo.mp4)
-— a game menu whose every reaction is an ordinary toolkit clip, driven by
-synthetic mouse input: an aurora shader and GPU motes for the backdrop, an
-entry `stagger`, a sliding selection highlight, hover pops from a saved
-`template_apply`, `bounce` + `hit_flash` with a camera `zoom_punch` on press, a
-`transition` wipe into a `progress_fill`/`counter` loading screen, `dialog_pop`
-options and credits cards over a dimming scrim (the cards close by replaying
-their clip reversed with `animation_edit reverse`), and a quit that `shake`s
-the screen.
-
-The scene ships in the test project: open `test_project/demo_menu.tscn` and run
-it — 24 animation players, every clip authored with the toolkit, plus one small
-driver that replays the interaction timeline.
-
-## AnimationTree graphs
-
-`animation_graph` builds and inspects the graph layer: state machines with
-conditions and cross-fades, 1D/2D blend spaces, recursive blend trees, and
-ready-made locomotion / one-shot / additive layer setups. It creates and wires
-the `AnimationTree` for you, exposes the resulting parameter paths, and flags
-graphs that reference clips the player does not have.
-
-```json
-{"tool": "custom_animation_graph", "params": {
-  "op": "locomotion",
-  "player_path": "/Main",
-  "mode": "state_machine"
-}}
-```
-
-## Reuse and interchange
-
-`animation_library` turns one-off calls into project knowledge: save any
-presets/fx/motion/rig call as a named template and apply it later to other
-players or targets with overrides, and move whole clips in and out of a typed
-JSON format (`spec_export` / `spec_import` / `spec_apply`, with optional track
-remapping).
-
-```json
-{"tool": "custom_animation_library", "params": {
-  "op": "template_save",
-  "name": "button_pop",
-  "tool": "animation_presets",
-  "forward_op": "bounce",
-  "intensity": 0.2
-}}
-```
-
-## Rigs, poses and procedural recipes
-
-`animation_rig` builds and drives skeletons: bones from a spec or a node
-subtree (`rig_chain`), IK (`ik_setup` — two-bone and chain solvers), spring
-bones, look-at, retargeting and twist-disperser (`twist_setup`) modifiers, and
-skeleton poses as portable rest-relative data. On top of that sit seven sparse
-rig recipes — `walk_cycle` (with `arm_down` for T-pose rigs), `idle_breathing`,
-`blink`, `jumping_jack`, `squat`, `punch` and `bake_pose_sequence`, which samples
-a source clip with the active modifiers running and keys the final pose into a
-new clip. (For smooth character locomotion, see `animation_motion` below.)
-
-Torso twist and lean are **distributed over the detected spine chain** rather
-than hard-coded per bone, in both families: `spine_chain` overrides the detected
-chain (it must be one parent chain), and `twist_spread` slides a twist between
-the hips alone and the whole chain. A parameter therefore means the same *total*
-rotation on a 3-bone and a 6-bone spine, which is what stops a long spine from
-winding up mid-clip.
-
-Bone clips are ordinary transform tracks, so everything else in the toolkit
-works on them — `retime`, `mirror`, `reverse`, `amplitude`, JSON export,
-templates.
-
-```json
-{"tool": "custom_animation_rig", "params": {
-  "op": "pose_to_clip",
-  "player_path": "/Main/Rig/AnimationPlayer",
-  "skeleton_path": "/Main/Rig/Skeleton3D",
-  "animation_name": "wave",
-  "loop_mode": "linear",
-  "keys": [{"name": "idle", "time": 0.0}, {"name": "wave_mid", "time": 0.5}, {"name": "idle", "time": 1.0}]
-}}
-```
-
-```json
-{"tool": "custom_animation_rig", "params": {
-  "op": "squat",
-  "player_path": "/Main/Rig/AnimationPlayer",
-  "skeleton_path": "/Main/Rig/Skeleton3D",
-  "animation_name": "squat",
-  "duration": 2.0,
-  "bob": 0.32,
-  "loop_mode": "linear"
-}}
-```
-
-The modifier setups live in their own (non-promoted) family, so they go through
-`custom_manage`:
-
-```json
-{"tool": "custom_manage", "params": {
-  "op": "invoke",
-  "tool_name": "animation_rig_modifiers",
-  "params": {
-    "op": "ik_setup",
-    "skeleton_path": "/Main/Rig/Skeleton3D",
-    "chain": ["B-upperArm.L", "B-forearm.L", "B-hand.L"],
-    "target_name": "HandTarget",
-    "active": true
-  }
-}}
-```
-
-## Procedural motion (3D character cycles)
-
-[**Video: dummy motion pack (0:40)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v1.3.0/animation_toolkit_motion_pack.mp4)
-— jump, turn, strafe and a speed-driven walk recorded on the bundled human
-dummy: one-shot moves with phase markers, planted feet, toe roll and shoulder
-follow-through, all from one call each.
-
-`animation_motion` is the character-motion family: gaits (`walk_cycle`,
-`run_cycle`, `strafe_cycle`), an `idle_cycle`, one-shots (`jump`,
-`turn_cycle`), gait transitions (`walk_start` / `walk_stop`) and `cycle` build
-smooth clips from analytic drivers instead of a handful of hand-tuned keys.
-Legs are solved per sample by a two-bone IK so the stance foot stays planted and
-rolls heel-to-toe; the pelvis bobs/sways/yaws/rolls, the chest counter-rotates
-and the arms swing about a sagittal hinge with elbow and clavicle
-follow-through. Pass `speed` (m/s) and the stride is solved for you; `style`
-(`relaxed` / `heavy` / `sneaky`) and `overrides` tune everything; gaits emit
-`contact`/`toe_off`/`passing` phase markers for footsteps and blends;
-`root_motion` keys forward travel and wires `AnimationPlayer.root_motion_track`
-in the same undo action; `secondary_motion` bakes offline spring bones (hair,
-tails, cloth) into any clip; `character_setup` goes from a bare rig to a
-playable locomotion set — idle + walk + run (optionally jump/turn), a speed
-blend space, the `AnimationTree` and the root-motion track — in one call and one
-undo. T-pose rigs get their arms lowered automatically.
-
-```json
-{"tool": "custom_animation_motion", "params": {
-  "op": "character_setup",
-  "player_path": "/Main/Rig/AnimationPlayer",
-  "skeleton_path": "/Main/Rig/Skeleton3D",
-  "speed": 1.4,
-  "run_speed": 4.0,
-  "include_jump": true
-}}
-```
-
-```json
-{"tool": "custom_animation_motion", "params": {
-  "op": "walk_cycle",
-  "player_path": "/Main/Rig/AnimationPlayer",
-  "skeleton_path": "/Main/Rig/Skeleton3D",
-  "animation_name": "walk",
-  "duration": 1.0,
-  "loop_mode": "linear"
-}}
-```
-
-## Inspecting and auditing
-
-`animation_inspect` is read-only, so an agent can look before it edits — and
-`dry_run` shows exactly what a generator or edit call would produce without
-committing it. `audit` scans a player or the whole scene and reports findings
-with a severity, a code and a `fix` hint naming the op that resolves them
-(e.g. a linear loop that pops at the seam → `animation_edit loop
-make_seamless=true`). `rig_profile` tells an agent what a rig can do before it
-tries (roles and candidates, T/A pose, limb reach, capabilities, suggested
-ops — and a saved profile the rig/motion ops reuse), while `sample` FK-probes a
-clip numerically (world bone positions, foot heights, contact windows) so
-motion can be verified without rendering it.
-
-```json
-{"tool": "custom_animation_inspect", "params": {
-  "op": "audit",
-  "severity": "warning"
-}}
-```
+2.0.0 makes **Responsive** the default for new humanoid motion. Grounded,
+Relaxed, Heavy, and Sneaky are available as explicit styles. Regenerating a
+clip can change motion and timing, so keep a saved copy before replacing it.
+See the [2.0.0 migration guide](docs/migration-2.0.0.md) and
+[release notes](docs/releases/2.0.0.md) for the upgrade details.
 
 ## Install
 
-1. Copy `addons/godot_ai_animation/` into your project's `addons/` folder.
-2. Install and enable [Godot AI](https://github.com/hi-godot/godot-ai)
-   (`>= 4.1.0`) in the same project.
-3. Enable **Godot AI Animation Toolkit** in *Project → Project Settings →
-   Plugins* (either order works).
+1. Use **Godot 4.7.2 stable** and install **Godot AI 4.4.2 or later stable**
+   in your project. The release qualification uses Godot AI 4.4.2 on Windows
+   and Linux. [Godot AI 4.4.2](https://github.com/hi-godot/godot-ai/releases/tag/v4.4.2)
+2. Download `godot-ai-animation-toolkit-2.0.0.zip` and verify it against the
+   release SHA-256 file. Extract it into your project root so
+   `addons/godot_ai_animation/plugin.cfg` sits beside the other addons under
+   `addons/`.
+3. In **Project → Project Settings → Plugins**, enable **Godot AI** and
+   **Godot AI Animation Toolkit**. Either enable order works.
+4. In the Godot AI dock, configure your MCP client. Open the dock's **Tools**
+   tab and check the families you need under **Custom tools (addon-registered)**.
+   Enablement applies immediately and persists per project.
 
-Agents reach each tool as a promoted first-class tool (e.g.
-`custom_animation_motion`) or through `custom_manage(op="list"/"invoke")`. The
-Godot AI dock's Tools tab lists them with enable/disable toggles.
+The installation ZIP contains the toolkit addon and its MIT license.
+Get Godot AI separately. The demo scenes and their saved clips come with
+the repository source, and the showcase video is a separate release asset.
 
-## Requirements
+## Run the Godot showcase
 
-| | |
+1. Get this repository's source for `v2.0.0`.
+2. In its `test_project/addons/` folder, install Godot AI 4.4.2 and copy
+   `addons/godot_ai_animation/` from the repository root. On Windows, a checkout
+   of the Godot AI source can also be linked with
+   `./tools/setup_dev.ps1 -GodotAiPath C:\path\to\godot-ai`.
+3. Import [the test project](test_project/project.godot) in Godot 4.7.2. In
+   Godot's FileSystem dock, open
+   [`res://showcase_2_0/showcase.tscn`](test_project/showcase_2_0/showcase.tscn)
+   and press **F6** to run the current scene. Choose a chapter or replay it.
+   After the intro, the tour shows robot and humanoid motion and rig workflows,
+   then 3D props and 2D Lamplight Relay. Try **Dispatch relay** and replay the harbor
+   scenes. Open the saved examples in the editor to inspect their tracks.
+
+## Limitations
+
+- **Known Linux editor issue.** An intermittent crash was observed during scene
+  save in stock Godot 4.7.2 on Linux. Windows and Linux passed the release
+  clean-install checks, and the official Linux rendered-preview run passed.
+  The intermittent crash remains unresolved. Save incremental checkpoints
+  when editing important scenes.
+- **Character motion.** Procedural locomotion targets humanoid rigs on level
+  surfaces. It generates animation. Gameplay movement and collision belong to
+  your game code. Preview the result on your own rig.
+- **Interpolation and ownership.** Some track types, overlapping sequence fades,
+  and incompatible root-motion changes are rejected. Inspect actual scene
+  ownership, resources, and tool diagnostics before editing.
+- **Rendered previews and Undo.** PNG previews need a rendering-capable editor.
+  Supported scene changes use editor Undo/Redo. A scene save, profile export,
+  template write, or other disk effect needs separate file-level recovery.
+
+[MIT license](LICENSE) · [Tool reference](docs/tool-reference.md) ·
+[Operation inventory and limitations](docs/operation-audit.json)
+
+## Agent workflow
+
+Use the live Godot AI tools to read the edited scene and work in small,
+verifiable steps. The [generated parameter index](docs/op-index.md) and the
+active project's advertised schemas are the references for exact operation
+inputs.
+
+### 1. Discover tools in the correct editor
+
+1. Confirm which Godot project and editor session the user wants. When there
+   are several, list them with `session_manage` and `{"op":"list"}`, then
+   select the correct `session_id` with `session_activate`.
+2. Call `custom_manage` with `{"op":"list"}`. Read each returned family name
+   and its `params_schema`. Use the available `custom_animation_*` tools
+   for direct calls. Use the nested `custom_manage` invocation described below
+   for `animation_sequence` and `animation_rig_modifiers`.
+3. When a tool is missing, check plugin enablement, the supported stable
+   Godot AI version, the active session, and the family checkbox in the
+   Godot AI dock. Refresh the MCP client tool list after changing a checkbox.
+   The dock's built-in animation domain setting controls core tools. The
+   per-family checkboxes control the toolkit.
+
+If the catalog is empty, verify that a Godot editor session is active. A cached
+tool may return `CUSTOM_TOOL_DISABLED` after that family is turned off.
+
+### 2. Resolve the scene, player, and targets
+
+- Call `scene_open` with the project-relative `res://` scene file path when
+  you need to switch scenes. Confirm the reported switch and call
+  `scene_get_hierarchy` before editing.
+- Use the real root-qualified node paths returned by the hierarchy.
+  `player_path` points to an existing `AnimationPlayer`. Use
+  `skeleton_path` for a `Skeleton3D` and `tree_path` for an
+  `AnimationTree`.
+- For preset and FX clip tracks, resolve relative target paths from the
+  player's animation root. For example, a target sibling named `Target2D`
+  can use `"target_path": "Target2D"` when the animation root is the
+  player's parent. Read the scene and player configuration before choosing a
+  path. For tools that read named libraries, preserve the full `library/clip`
+  key shown by inspection.
+- Inspect existing clips with `describe` or `timeline`. For a humanoid rig,
+  start with `rig_profile` and `save: false`. Check unresolved tracks,
+  detected bone roles, and active AnimationTrees before you write.
+
+### 3. Dry run, then author a clip
+
+These requests show MCP tool names and argument objects. For a disposable
+example, duplicate `repair_presets_fixture.tscn` in the test project as
+`readme_presets.tscn`, keeping its root name, then open the copy.
+
+```json
+{
+  "tool": "scene_open",
+  "params": {"path": "res://readme_presets.tscn"}
+}
+```
+
+```json
+{
+  "tool": "custom_animation_presets",
+  "params": {
+    "op": "bounce",
+    "player_path": "/RepairPresetsFixture/AnimationPlayer",
+    "target_path": "Target2D",
+    "animation_name": "audit_bounce",
+    "intensity": 0.2,
+    "dry_run": true
+  }
+}
+```
+
+Read the result before committing. For operations that advertise `dry_run`,
+the dry run leaves the scene and disk unchanged. When the result matches
+the request, repeat the call with `dry_run` omitted, leaving `overwrite`
+off unless the user wants to replace the existing clip. Inspect the result.
+
+```json
+{
+  "tool": "custom_animation_inspect",
+  "params": {
+    "op": "describe",
+    "player_path": "/RepairPresetsFixture/AnimationPlayer",
+    "animation_name": "audit_bounce"
+  }
+}
+```
+
+Editing uses the same inspect/dry-run/write loop. In a copy of
+`repair_edit_fixture.tscn`, the `walk` clip is on the
+`/RepairGraphFixture/AnimationPlayer`. This request checks a change to its
+timing.
+
+```json
+{
+  "tool": "custom_animation_edit",
+  "params": {
+    "op": "retime",
+    "player_path": "/RepairGraphFixture/AnimationPlayer",
+    "animation_name": "walk",
+    "factor": 0.5,
+    "dry_run": true
+  }
+}
+```
+
+### 4. Compose or configure through the addon catalog
+
+With `custom_manage`, the outer `op` is `invoke`. Its `params` contains
+`tool_name` and a second `params` object with the family operation and
+inputs. The family name here is the registered name without the
+`custom_` prefix.
+
+For a copy of `repair_sequence_fixture.tscn` with its original node names
+and approach and kick clips, check a two-segment composition.
+
+```json
+{
+  "tool": "custom_manage",
+  "params": {
+    "op": "invoke",
+    "params": {
+      "tool_name": "animation_sequence",
+      "params": {
+        "op": "compose",
+        "player_path": "/RepairSequenceFixture/AnimationPlayer",
+        "skeleton_path": "/RepairSequenceFixture/Skeleton3D",
+        "animation_name": "audit_action",
+        "duration": 1.8,
+        "segments": [
+          {"start": 0.0, "duration": 1.0, "source_animation": "approach"},
+          {
+            "start": 0.8,
+            "duration": 1.0,
+            "source_animation": "kick",
+            "fade_in": 0.2,
+            "contacts": [{"name": "impact", "time": 0.3}]
+          }
+        ],
+        "dry_run": true
+      }
+    }
+  }
+}
+```
+
+For a copy of `repair_rig_fixture.tscn`, check a two-bone IK setup using
+the reference rig's arm chain. The modifier is configured inactive so you can
+review its wiring before enabling it.
+
+```json
+{
+  "tool": "custom_manage",
+  "params": {
+    "op": "invoke",
+    "params": {
+      "tool_name": "animation_rig_modifiers",
+      "params": {
+        "op": "ik_setup",
+        "skeleton_path": "/RepairRigFixture/Dummy/Skeleton3D",
+        "kind": "two_bone",
+        "chain": ["B-upperArm.L", "B-forearm.L", "B-hand.L"],
+        "target_name": "AuditHandTarget",
+        "active": false,
+        "dry_run": true
+      }
+    }
+  }
+}
+```
+
+For motion, secondary motion, and sequence dry runs or writes, pause or stop
+the destination player and deactivate its linked AnimationTrees. For a
+root-motion sequence, use one player and compatible source clips. Verify who
+applies translation in gameplay before changing extraction. If the actor
+controller consumes extracted deltas, keep it as the only translation owner.
+
+### 5. Play, inspect, undo, and save
+
+1. Check the tool response and inspect the actual result. Verify track paths,
+   expected length, key timing, clip names, and graph parameter paths.
+2. Play the clip in the editor or run a disposable copy of the scene.
+   Scrub the start, end, transitions, and any loop seam. For character motion,
+   check contacts and root travel against the user's intent. Use numeric
+   `sample` or `motion_audit` where applicable and render `preview` in a
+   graphical editor when a visual comparison is useful.
+3. If you need to revert a supported scene edit, use the scene's editor
+   **Undo** action, then inspect again. Back up disk files separately for
+   library, export, profile, preview, and save operations.
+4. Save the intended scene with `{"tool":"scene_save","params":{}}`.
+   Confirm that it succeeded and named the expected scene. To verify the
+   saved copy, call `scene_open` with its `res://` path and
+   `force_reload: true`, then describe and play the clip again. Force reload
+   discards unsaved in-memory edits, so confirm the save or preserve those
+   edits first.
+5. Report the scene path, affected nodes or clips, what you checked in
+   playback, and any remaining limitation.
+
+| If you hit this | What to check |
 | --- | --- |
-| Godot | 4.5 – 4.7 |
-| Godot AI | `>= 4.1.0` (custom-tools registry) |
-| Platform | any (no OS-specific code) |
-
-The addon is **self-contained**: it uses the Godot AI custom-tools registration
-API only, never core animation-handler internals, and loads cleanly (with a
-warning) when Godot AI is absent.
-
-## Development
-
-```powershell
-# Link the core addon + this addon into the test project (Windows)
-./tools/setup_dev.ps1 -GodotAiPath C:\path\to\godot-ai
-
-# Tier 1: pure helpers, headless, no editor
-./tools/test_tier1.ps1
-
-# Tier 2: editor suite (open test_project in the editor, then)
-#   godot-ai test_run suite=animation_presets
-```
-
-`test_project/` is a Godot project wired to both addons; `tests/` holds the
-editor suites (191 rows across all nine tools) and the headless checks
-(`tier1_value_codec.gd`, `tier1_spec_modifiers.gd`, `tier1_fx_specs.gd`,
-`tier1_graph_builders.gd`, `tier1_spec_json.gd`, `tier1_pose_math.gd`,
-`tier1_motion_drivers.gd`, `tier1_quality_modifiers.gd`, 2700+ checks). The
-`demo_*.tscn` scenes are the ones recorded for the showcase videos — each is one
-toolkit call (plus autoplay) or one built demo subtree.
-
-```powershell
-# Regenerate docs/op-index.md from the op registry (the single source of truth)
-./tools/gen_docs.ps1
-```
-
-## Documentation
-
-- [`docs/tool-reference.md`](docs/tool-reference.md) — curated reference for
-  every tool, with semantics per op.
-- [`docs/op-index.md`](docs/op-index.md) — generated per-op parameter index
-  (freshness-checked by the tier-1 suite).
-- [`docs/recipes.md`](docs/recipes.md) — core recipes → preset calls, with the
-  demo GIFs.
-- [`ROADMAP.md`](ROADMAP.md) — the plan from presets to a full animation toolkit.
-- [`addons/godot_ai_animation/README.md`](addons/godot_ai_animation/README.md) —
-  addon-level notes and architecture.
-
-## Licence
-
-MIT — see [`LICENSE`](LICENSE).
+| Wrong node, broken track, or clip missing | Re-read the scene hierarchy, animation root, registered paths, and full library/clip key. |
+| Unsupported tracks or invalid values | Inspect the original clip and choose an operation whose contract supports its tracks. Preserve the original and revise the request using the diagnostic. |
+| Shared library or instanced resource | Confirm the intended scene owns the change. Work on a copy or a local resource where isolation is required, and verify the original scene after saving. |
+| Busy player, active tree, or extraction conflict | Pause playback, disable the linked tree, or author on a separate inactive player. Validate translation ownership after re-enabling playback. |
+| Preview unavailable in headless mode | Use a graphical Godot editor for PNGs. Use `timeline`, `sample`, or `motion_audit` for numeric checks where applicable. |
+| Linux editor closes during save | Reopen the project and inspect the last saved scene and editor log before retrying any write. |

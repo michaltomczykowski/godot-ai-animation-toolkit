@@ -76,13 +76,16 @@ func _check_state_machine() -> void:
 	_expect(machine.get_node_list().has(StringName("Start")) and machine.get_node_list().has(StringName("End")),
 		"Godot's implicit Start/End markers exist")
 	_expect(machine.has_node(StringName("idle")), "state names are preserved")
-	_expect(int(built.state_count) == 3 and int(built.transition_count) == 3, "counts are reported")
+	_expect(int(built.state_count) == 3 and int(built.transition_count) == 4
+		and int(built.authored_transition_count) == 3, "counts include Start separately")
 	var idle_node := machine.get_node(StringName("idle"))
 	_expect(idle_node is AnimationNodeAnimation, "states hold animation nodes")
 	_expect(str((idle_node as AnimationNodeAnimation).animation) == "idle", "the state's clip is set")
 	_expect(machine.get_node_position(StringName("walk")).x > machine.get_node_position(StringName("idle")).x,
 		"auto layout spreads the states out")
-	_expect(machine.get_transition_count() == 3, "transitions are added")
+	_expect(machine.get_transition_count() == 4, "authored and Start transitions are added")
+	_expect(str(machine.get_transition_from(3)) == "Start"
+		and str(machine.get_transition_to(3)) == "idle", "Start enters the first state")
 	var first := machine.get_transition(0)
 	_expect_approx(first.xfade_time, 0.2, "xfade is stored")
 	_expect(first.advance_mode == AnimationNodeStateMachineTransition.ADVANCE_MODE_AUTO,
@@ -130,6 +133,10 @@ func _check_state_machine_validation() -> void:
 		"states": [{"name": "a", "animation": "idle"}],
 		"state_machine_type": "floating",
 	}), "invalid state machine types are rejected")
+	_expect_error(GraphBuilders.state_machine({
+		"states": [{"name": "a", "animation": "idle"}],
+		"start": "missing",
+	}), "the start state must exist")
 	var no_clip := GraphBuilders.state_machine({"states": [{"name": "a"}]})
 	_expect(not no_clip.has("error"), "a state without a clip still builds")
 	_expect(str((no_clip.root.get_node(StringName("a")) as AnimationNodeAnimation).animation) == "",
@@ -210,7 +217,7 @@ func _check_blend_tree() -> void:
 		"inputs": [{"type": "blend2", "inputs": [
 			{"type": "animation", "animation": "walk"},
 			{"type": "animation", "animation": "run"},
-		]}],
+		]}, {"type": "animation", "animation": "jump"}],
 	})
 	_expect(not nested.has("error"), "nested blend trees build")
 	_expect(nested.root.has_node(StringName("OneShot")), "the one-shot node exists")
@@ -218,7 +225,7 @@ func _check_blend_tree() -> void:
 	_expect_approx(shot.fadein_time, 0.15, "fadein is applied")
 	_expect_approx(shot.fadeout_time, 0.3, "fadeout is applied")
 	_expect(shot.mix_mode == AnimationNodeOneShot.MIX_MODE_ADD, "mix_mode is applied")
-	_expect(int(nested.node_count) == 4, "nested node count (%d)" % int(nested.node_count))
+	_expect(int(nested.node_count) == 5, "nested node count (%d)" % int(nested.node_count))
 	var with_sm := GraphBuilders.blend_tree({
 		"type": "blend2",
 		"inputs": [
@@ -247,7 +254,8 @@ func _check_output_wiring() -> void:
 			],
 		}
 		if label == "nested":
-			spec = {"type": "one_shot", "inputs": [spec]}
+			spec = {"type": "one_shot", "inputs": [spec,
+				{"type": "animation", "animation": "jump"}]}
 		var built := GraphBuilders.blend_tree(spec)
 		_expect(not built.has("error"), "%s blend_tree builds" % label)
 		var tree: AnimationNodeBlendTree = built.root
@@ -276,6 +284,9 @@ func _check_output_wiring() -> void:
 
 
 func _check_blend_tree_validation() -> void:
+	_expect_error(GraphBuilders.blend_tree({"type": "one_shot",
+		"inputs": [{"type": "animation", "animation": "idle"}]}),
+		"one-shot specs need both base and shot inputs")
 	var wrong_inputs := GraphBuilders.blend_tree({
 		"type": "blend2",
 		"inputs": [{"type": "animation", "animation": "walk"}],
@@ -313,8 +324,9 @@ func _check_wrap_one_shot() -> void:
 	_expect(not wrapped.has("error"), "wrap_one_shot builds")
 	var tree: AnimationNodeBlendTree = wrapped.root
 	_expect(tree is AnimationNodeBlendTree, "the wrapped root is a blend tree")
-	for node_name in ["Base", "OneShot", "Shot", "Blend2", "output"]:
+	for node_name in ["Base", "OneShot", "Shot", "output"]:
 		_expect(tree.has_node(StringName(node_name)), "'%s' node exists" % node_name)
+	_expect(not tree.has_node(&"Blend2"), "OneShot directly combines base and shot")
 	_expect(tree.get_node(StringName("Base")) is AnimationNodeBlendSpace1D,
 		"the base root is preserved as the Base node")
 	var shot: AnimationNodeOneShot = tree.get_node(StringName("OneShot"))
@@ -339,7 +351,7 @@ func _check_dump() -> void:
 	var built := GraphBuilders.state_machine(_sm_spec())
 	var dump := GraphBuilders.graph_dump(built.root)
 	_expect(str(dump.type) == "state_machine", "the dump names the root type")
-	_expect(int(dump.state_count) == 3 and int(dump.transition_count) == 3, "the dump counts states/transitions")
+	_expect(int(dump.state_count) == 3 and int(dump.transition_count) == 4, "the dump counts states/transitions including Start")
 	var walk_state: Dictionary = {}
 	for state in dump.states:
 		if str(state.name) == "walk":

@@ -247,7 +247,8 @@ func _check_overlap() -> void:
 	_expect_eq(int(shifted.changed), 2, "overlap shifts the matched subtree only")
 	var arm_keys: Array = shifted.spec.tracks[ClipSpec.find_track_index(shifted.spec, "Rig/Arm:rotation")].keys
 	var leg_keys: Array = shifted.spec.tracks[ClipSpec.find_track_index(shifted.spec, "Rig/Leg:rotation")].keys
-	_expect_approx(float(arm_keys[0].time), 0.25, "overlap delays the arm")
+	_expect_approx(float(arm_keys[0].time), 0.0, "overlap holds the initial arm pose")
+	_expect_approx(float(arm_keys[1].time), 0.25, "overlap delays the arm motion")
 	_expect_approx(float(leg_keys[0].time), 0.0, "overlap leaves the leg alone")
 	_expect_approx(float(shifted.spec.length), 1.25, "a non-wrapped overlap grows the clip")
 	var wrapped := QualityModifiers.overlap(spec, "Rig/Arm", 0.25, true)
@@ -291,6 +292,20 @@ func _check_layer() -> void:
 	var layered := QualityModifiers.layer(base_rot, overlay_rot, 1.0, "add", "")
 	var layered_q: Quaternion = layered.spec.tracks[ClipSpec.find_track_index(layered.spec, "B:rotation")].keys[1].value
 	_expect(absf(layered_q.get_angle() - deg_to_rad(60.0)) < 0.001, "add multiplies rotations")
+	var base_2d := ClipSpec.make(1.0, Animation.LOOP_NONE)
+	ClipSpec.add_value_track(base_2d, "Character:position", [
+		{"time": 0.0, "value": Vector2.ZERO, "transition": 1.0},
+		{"time": 1.0, "value": Vector2(100, 0), "transition": 1.0},
+	])
+	var overlay_2d := ClipSpec.make(1.0, Animation.LOOP_NONE)
+	ClipSpec.add_value_track(overlay_2d, "Character:position", [
+		{"time": 0.0, "value": Vector2.ZERO, "transition": 1.0},
+		{"time": 1.0, "value": Vector2(200, 0), "transition": 1.0},
+	])
+	var added_2d := QualityModifiers.layer(base_2d, overlay_2d, 0.4, "add", "")
+	_expect_eq(int(added_2d.changed), 2, "2D layer edits both source keys")
+	_expect((added_2d.spec.tracks[0].keys[1].value as Vector2).is_equal_approx(Vector2(180, 0)),
+		"2D additive layer preserves base travel and adds the weighted source delta")
 	var remapped := QualityModifiers.layer(base, overlay, 1.0, "mix", "Other")
 	var created_track := ClipSpec.find_track_index(remapped.spec, "Other:value")
 	_expect(created_track >= 0, "remap_node rewrites the source node path")

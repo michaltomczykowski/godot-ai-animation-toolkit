@@ -1,0 +1,622 @@
+[gd_scene format=3 uid="uid://cpsgrhrp4nu15"]
+
+[ext_resource type="Texture2D" path="res://showcase_2_0/stages_2d/art/harbor_distant.jpg" id="background"]
+[ext_resource type="Texture2D" path="res://showcase_2_0/stages_2d/art/button_hover.png" id="button_hover"]
+[ext_resource type="Texture2D" path="res://showcase_2_0/stages_2d/art/button_idle.png" id="button_idle"]
+[ext_resource type="Texture2D" path="res://showcase_2_0/stages_2d/art/harbor_foreground.png" id="foreground"]
+[ext_resource type="Script" uid="uid://dtpelbiln4kai" path="res://showcase_2_0/stages_2d/harbor_stage.gd" id="stage"]
+[ext_resource type="Texture2D" path="res://showcase_2_0/stages_2d/art/stamp_letter.png" id="stamp_letter"]
+[ext_resource type="Texture2D" path="res://showcase_2_0/stages_2d/art/stamp_moon.png" id="stamp_moon"]
+
+[sub_resource type="SystemFont" id="serif"]
+font_names = PackedStringArray("Georgia", "Liberation Serif", "Noto Serif", "DejaVu Serif")
+
+[sub_resource type="Animation" id="chapter"]
+resource_name = "chapter"
+length = 18.0
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:chapter_time")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 18),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 18.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Breakwater:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 18),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(-26, -3), Vector2(-6, -3)]
+}
+
+[sub_resource type="AnimationLibrary" id="timeline"]
+_data = {
+&"chapter": SubResource("chapter")
+}
+
+[sub_resource type="StyleBoxFlat" id="Ledger_style"]
+bg_color = Color(0.035, 0.063, 0.113, 0.89)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.637, 0.668, 0.717, 0.27)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+anti_aliasing_size = 0.8
+
+[sub_resource type="StyleBoxFlat" id="bar_back"]
+bg_color = Color(0.24, 0.3, 0.42, 0.74)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="bar_fill"]
+bg_color = Color(1, 0.744, 0.382, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxTexture" id="button_normal"]
+content_margin_top = 12.0
+texture = ExtResource("button_idle")
+
+[sub_resource type="StyleBoxTexture" id="button_pressed"]
+content_margin_top = 12.0
+texture = ExtResource("button_hover")
+
+[sub_resource type="StyleBoxTexture" id="button_hover"]
+content_margin_top = 12.0
+texture = ExtResource("button_hover")
+
+[sub_resource type="StyleBoxFlat" id="button_focus"]
+draw_center = false
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.557, 0.844, 0.81, 1)
+corner_radius_top_left = 13
+corner_radius_top_right = 13
+corner_radius_bottom_right = 13
+corner_radius_bottom_left = 13
+
+[sub_resource type="StyleBoxFlat" id="Inbox_style"]
+bg_color = Color(0.045, 0.087, 0.15, 0.53)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.637, 0.668, 0.717, 0.27)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+anti_aliasing_size = 0.8
+
+[sub_resource type="StyleBoxFlat" id="Message_style"]
+bg_color = Color(0.064, 0.113, 0.19, 0.99)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 0.744, 0.382, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+anti_aliasing_size = 0.8
+
+[sub_resource type="Animation" id="Animation_0wcju"]
+length = 0.48
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Ledger/DispatchButton:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.168, 0.312, 0.48),
+"transitions": PackedFloat32Array(1, 0.5, -2, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1.14, 1.14), Vector2(0.965, 0.965), Vector2(1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_brfyv"]
+_data = {
+&"confirm": SubResource("Animation_0wcju")
+}
+
+[sub_resource type="Animation" id="Animation_brfyv"]
+length = 1.75
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Ledger/Stamp0:modulate:a")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.65),
+"transitions": PackedFloat32Array(0.5, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Ledger/Stamp1:modulate:a")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.55, 1.2),
+"transitions": PackedFloat32Array(0.5, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Ledger/Stamp2:modulate:a")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(1.1, 1.75),
+"transitions": PackedFloat32Array(0.5, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_ot7hu"]
+_data = {
+&"manifest_reveal": SubResource("Animation_brfyv")
+}
+
+[sub_resource type="Animation" id="Animation_sg0r2"]
+length = 2.24
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Ledger/Charge:value")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 2.24),
+"transitions": PackedFloat32Array(1, 0.5),
+"update": 0,
+"values": [0.0, 100.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_o3m3b"]
+_data = {
+&"fill": SubResource("Animation_sg0r2")
+}
+
+[sub_resource type="Animation" id="Animation_ot7hu"]
+length = 0.78
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Inbox/Message:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.468, 0.78),
+"transitions": PackedFloat32Array(1, 0.5, 1),
+"update": 0,
+"values": [Vector2(0.64, 0.64), Vector2(1.12, 1.12), Vector2(1, 1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Inbox/Message:modulate:a")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.468),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_nppfi"]
+_data = {
+&"accepted": SubResource("Animation_ot7hu")
+}
+
+[node name="Dispatch" type="Node2D" unique_id=440130528]
+script = ExtResource("stage")
+
+[node name="Harbor" type="TextureRect" parent="." unique_id=449080166]
+offset_left = -28.0
+offset_top = -16.0
+offset_right = 1308.0
+offset_bottom = 736.0
+mouse_filter = 2
+texture = ExtResource("background")
+expand_mode = 1
+
+[node name="TopShade" type="ColorRect" parent="." unique_id=1266593525]
+offset_right = 1280.0
+offset_bottom = 206.0
+mouse_filter = 2
+color = Color(0.025, 0.04, 0.085, 0.24)
+
+[node name="Breakwater" type="TextureRect" parent="." unique_id=519931576]
+offset_left = -26.0
+offset_top = -3.0
+offset_right = 1306.0
+offset_bottom = 746.0
+mouse_filter = 2
+texture = ExtResource("foreground")
+expand_mode = 1
+
+[node name="EyebrowRule" type="ColorRect" parent="." unique_id=1561391511]
+offset_left = 71.0
+offset_top = 56.0
+offset_right = 95.0
+offset_bottom = 58.0
+mouse_filter = 2
+color = Color(1, 0.744, 0.382, 1)
+
+[node name="Eyebrow" type="Label" parent="." unique_id=1905497138]
+offset_left = 105.0
+offset_top = 43.0
+offset_right = 805.0
+offset_bottom = 69.0
+theme_override_colors/font_color = Color(1, 0.744, 0.382, 1)
+theme_override_font_sizes/font_size = 17
+text = "LAMPLIGHT RELAY   /   DISPATCH"
+vertical_alignment = 1
+
+[node name="Title" type="Label" parent="." unique_id=137851743]
+offset_left = 70.0
+offset_top = 75.0
+offset_right = 1120.0
+offset_bottom = 149.0
+theme_override_colors/font_color = Color(0.961, 0.929, 0.826, 1)
+theme_override_fonts/font = SubResource("serif")
+theme_override_font_sizes/font_size = 66
+text = "Dispatch the night watch"
+vertical_alignment = 1
+
+[node name="Description" type="Label" parent="." unique_id=1859594909]
+offset_left = 74.0
+offset_top = 157.0
+offset_right = 1094.0
+offset_bottom = 192.0
+theme_override_colors/font_color = Color(0.707, 0.765, 0.832, 1)
+theme_override_font_sizes/font_size = 24
+text = "A harbor manifest travels by lamplight."
+vertical_alignment = 1
+
+[node name="HeaderRule" type="ColorRect" parent="." unique_id=950850923]
+offset_left = 72.0
+offset_top = 207.0
+offset_right = 1208.0
+offset_bottom = 208.0
+mouse_filter = 2
+color = Color(0.637, 0.668, 0.717, 0.27)
+
+[node name="Timeline" type="AnimationPlayer" parent="." unique_id=1413089612]
+libraries/ = SubResource("timeline")
+
+[node name="Ledger" type="Panel" parent="." unique_id=1534416159]
+offset_left = 72.0
+offset_top = 235.0
+offset_right = 644.0
+offset_bottom = 629.0
+pivot_offset = Vector2(286, 197)
+mouse_filter = 2
+theme_override_styles/panel = SubResource("Ledger_style")
+
+[node name="Log" type="Label" parent="Ledger" unique_id=523160589]
+layout_mode = 0
+offset_left = 27.0
+offset_top = 18.0
+offset_right = 427.0
+offset_bottom = 50.0
+theme_override_colors/font_color = Color(1, 0.744, 0.382, 1)
+theme_override_font_sizes/font_size = 20
+text = "HARBOR MANIFEST"
+vertical_alignment = 1
+
+[node name="Number" type="Label" parent="Ledger" unique_id=287387945]
+layout_mode = 0
+offset_left = 430.0
+offset_top = 18.0
+offset_right = 542.0
+offset_bottom = 50.0
+theme_override_colors/font_color = Color(0.707, 0.765, 0.832, 1)
+theme_override_font_sizes/font_size = 17
+text = "RELAY 048"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="LedgerRule" type="ColorRect" parent="Ledger" unique_id=788526907]
+layout_mode = 0
+offset_left = 26.0
+offset_top = 60.0
+offset_right = 545.0
+offset_bottom = 61.0
+mouse_filter = 2
+color = Color(0.637, 0.668, 0.717, 0.27)
+
+[node name="Stamp0" type="Control" parent="Ledger" unique_id=454835616]
+anchors_preset = 0
+offset_left = 26.0
+offset_top = 72.0
+offset_right = 526.0
+offset_bottom = 126.0
+mouse_filter = 2
+
+[node name="Seal" type="TextureRect" parent="Ledger/Stamp0" unique_id=1097819496]
+layout_mode = 0
+offset_right = 50.0
+offset_bottom = 50.0
+mouse_filter = 2
+texture = ExtResource("stamp_moon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Heading" type="Label" parent="Ledger/Stamp0" unique_id=327025313]
+layout_mode = 0
+offset_left = 66.0
+offset_right = 226.0
+offset_bottom = 22.0
+theme_override_colors/font_color = Color(0.557, 0.844, 0.81, 1)
+theme_override_font_sizes/font_size = 15
+text = "DESTINATION"
+vertical_alignment = 1
+
+[node name="Detail" type="Label" parent="Ledger/Stamp0" unique_id=374034402]
+layout_mode = 0
+offset_left = 66.0
+offset_top = 22.0
+offset_right = 458.0
+offset_bottom = 50.0
+theme_override_colors/font_color = Color(0.961, 0.929, 0.826, 1)
+theme_override_font_sizes/font_size = 23
+text = "East Breakwater"
+vertical_alignment = 1
+
+[node name="Stamp1" type="Control" parent="Ledger" unique_id=1367620420]
+anchors_preset = 0
+offset_left = 26.0
+offset_top = 131.0
+offset_right = 526.0
+offset_bottom = 185.0
+mouse_filter = 2
+
+[node name="Seal" type="TextureRect" parent="Ledger/Stamp1" unique_id=2009155308]
+layout_mode = 0
+offset_right = 50.0
+offset_bottom = 50.0
+mouse_filter = 2
+texture = ExtResource("stamp_letter")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Heading" type="Label" parent="Ledger/Stamp1" unique_id=1883797538]
+layout_mode = 0
+offset_left = 66.0
+offset_right = 226.0
+offset_bottom = 22.0
+theme_override_colors/font_color = Color(0.557, 0.844, 0.81, 1)
+theme_override_font_sizes/font_size = 15
+text = "PAYLOAD"
+vertical_alignment = 1
+
+[node name="Detail" type="Label" parent="Ledger/Stamp1" unique_id=1984468988]
+layout_mode = 0
+offset_left = 66.0
+offset_top = 22.0
+offset_right = 458.0
+offset_bottom = 50.0
+theme_override_colors/font_color = Color(0.961, 0.929, 0.826, 1)
+theme_override_font_sizes/font_size = 23
+text = "Night watch signal"
+vertical_alignment = 1
+
+[node name="Stamp2" type="Control" parent="Ledger" unique_id=1860956786]
+anchors_preset = 0
+offset_left = 26.0
+offset_top = 190.0
+offset_right = 526.0
+offset_bottom = 244.0
+mouse_filter = 2
+
+[node name="Seal" type="TextureRect" parent="Ledger/Stamp2" unique_id=1439481725]
+layout_mode = 0
+offset_right = 50.0
+offset_bottom = 50.0
+mouse_filter = 2
+texture = ExtResource("stamp_moon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Heading" type="Label" parent="Ledger/Stamp2" unique_id=2139326528]
+layout_mode = 0
+offset_left = 66.0
+offset_right = 226.0
+offset_bottom = 22.0
+theme_override_colors/font_color = Color(0.557, 0.844, 0.81, 1)
+theme_override_font_sizes/font_size = 15
+text = "COURIER"
+vertical_alignment = 1
+
+[node name="Detail" type="Label" parent="Ledger/Stamp2" unique_id=616862211]
+layout_mode = 0
+offset_left = 66.0
+offset_top = 22.0
+offset_right = 458.0
+offset_bottom = 50.0
+theme_override_colors/font_color = Color(0.961, 0.929, 0.826, 1)
+theme_override_font_sizes/font_size = 23
+text = "Lamplight moth"
+vertical_alignment = 1
+
+[node name="ProgressState" type="Label" parent="Ledger" unique_id=677009218]
+layout_mode = 0
+offset_left = 26.0
+offset_top = 250.0
+offset_right = 424.0
+offset_bottom = 278.0
+theme_override_colors/font_color = Color(0.707, 0.765, 0.832, 1)
+theme_override_font_sizes/font_size = 18
+text = "Ready to dispatch"
+vertical_alignment = 1
+
+[node name="ProgressReadout" type="Label" parent="Ledger" unique_id=528592737]
+layout_mode = 0
+offset_left = 448.0
+offset_top = 250.0
+offset_right = 543.0
+offset_bottom = 278.0
+theme_override_colors/font_color = Color(1, 0.744, 0.382, 1)
+theme_override_font_sizes/font_size = 18
+text = "000%"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Charge" type="ProgressBar" parent="Ledger" unique_id=1857608849]
+layout_mode = 0
+offset_left = 27.0
+offset_top = 282.0
+offset_right = 543.0
+offset_bottom = 291.0
+mouse_filter = 2
+theme_override_styles/background = SubResource("bar_back")
+theme_override_styles/fill = SubResource("bar_fill")
+show_percentage = false
+
+[node name="DispatchButton" type="Button" parent="Ledger" unique_id=1368576134]
+layout_mode = 0
+offset_left = 160.0
+offset_top = 308.0
+offset_right = 410.0
+offset_bottom = 381.0
+pivot_offset = Vector2(125, 36.5)
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.961, 0.929, 0.826, 1)
+theme_override_colors/font_focus_color = Color(0.961, 0.929, 0.826, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.744, 0.382, 1)
+theme_override_colors/font_hover_color = Color(0.961, 0.929, 0.826, 1)
+theme_override_font_sizes/font_size = 23
+theme_override_styles/normal = SubResource("button_normal")
+theme_override_styles/pressed = SubResource("button_pressed")
+theme_override_styles/hover = SubResource("button_hover")
+theme_override_styles/focus = SubResource("button_focus")
+text = "Dispatch relay"
+
+[node name="Inbox" type="Panel" parent="." unique_id=1738848530]
+offset_left = 674.0
+offset_top = 235.0
+offset_right = 1208.0
+offset_bottom = 629.0
+pivot_offset = Vector2(267, 197)
+mouse_filter = 2
+theme_override_styles/panel = SubResource("Inbox_style")
+
+[node name="Heading" type="Label" parent="Inbox" unique_id=1709266179]
+layout_mode = 0
+offset_left = 29.0
+offset_top = 18.0
+offset_right = 491.0
+offset_bottom = 49.0
+theme_override_colors/font_color = Color(0.557, 0.844, 0.81, 1)
+theme_override_font_sizes/font_size = 20
+text = "BREAKWATER INBOX"
+vertical_alignment = 1
+
+[node name="LedgerRule" type="ColorRect" parent="Inbox" unique_id=296833160]
+layout_mode = 0
+offset_left = 28.0
+offset_top = 60.0
+offset_right = 503.0
+offset_bottom = 61.0
+mouse_filter = 2
+color = Color(0.637, 0.668, 0.717, 0.27)
+
+[node name="Waiting" type="Label" parent="Inbox" unique_id=994125351]
+layout_mode = 0
+offset_left = 32.0
+offset_top = 137.0
+offset_right = 502.0
+offset_bottom = 227.0
+theme_override_colors/font_color = Color(0.707, 0.765, 0.832, 1)
+theme_override_font_sizes/font_size = 25
+text = "The breakwater is listening…"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Message" type="Panel" parent="Inbox" unique_id=1327495832]
+layout_mode = 0
+offset_left = 25.0
+offset_top = 84.0
+offset_right = 509.0
+offset_bottom = 365.0
+pivot_offset = Vector2(242, 140.5)
+mouse_filter = 2
+theme_override_styles/panel = SubResource("Message_style")
+
+[node name="Seal" type="TextureRect" parent="Inbox/Message" unique_id=1061661731]
+layout_mode = 0
+offset_left = 176.0
+offset_top = 22.0
+offset_right = 308.0
+offset_bottom = 154.0
+mouse_filter = 2
+texture = ExtResource("stamp_letter")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Accepted" type="Label" parent="Inbox/Message" unique_id=478386177]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 163.0
+offset_right = 472.0
+offset_bottom = 212.0
+theme_override_colors/font_color = Color(0.961, 0.929, 0.826, 1)
+theme_override_fonts/font = SubResource("serif")
+theme_override_font_sizes/font_size = 43
+text = "Relay accepted"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Copy" type="Label" parent="Inbox/Message" unique_id=2024585755]
+layout_mode = 0
+offset_left = 9.0
+offset_top = 217.0
+offset_right = 475.0
+offset_bottom = 251.0
+theme_override_colors/font_color = Color(0.557, 0.844, 0.81, 1)
+theme_override_font_sizes/font_size = 23
+text = "Light the beacon at East Breakwater."
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ButtonMotion" type="AnimationPlayer" parent="." unique_id=1912587980]
+libraries/ = SubResource("AnimationLibrary_brfyv")
+
+[node name="Stamps" type="AnimationPlayer" parent="." unique_id=720168881]
+libraries/ = SubResource("AnimationLibrary_ot7hu")
+
+[node name="Progress" type="AnimationPlayer" parent="." unique_id=1198480577]
+libraries/ = SubResource("AnimationLibrary_o3m3b")
+
+[node name="Dialog" type="AnimationPlayer" parent="." unique_id=2049766677]
+libraries/ = SubResource("AnimationLibrary_nppfi")

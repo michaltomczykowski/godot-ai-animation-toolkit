@@ -30,6 +30,7 @@ func _init() -> void:
 	_check_transition()
 	_check_dialog_pop()
 	_check_assign_paths()
+	_check_no_effect_guards()
 	if _failures == 0:
 		print("TIER1 PASS (%d checks)" % _checks)
 	else:
@@ -120,6 +121,16 @@ func _check_hit_flash() -> void:
 	_expect_approx(float(built.spec.length), 0.18, "hit_flash length")
 	_expect_error(FxSpecs.hit_flash_spec(base, flash, 0.0, 1), "hit_flash rejects zero duration")
 	_expect_error(FxSpecs.hit_flash_spec(base, flash, 0.2, 0), "hit_flash rejects count 0")
+	_expect_error(FxSpecs.hit_flash_spec(base, base, 0.2, 1), "hit_flash rejects an explicit no-change color")
+	_expect_error(FxSpecs.hit_flash_spec(Color(0,0,0,0), Color(1,1,1,0), 0.2, 1), "hit_flash rejects two transparent endpoints")
+	for baseline in [Color.WHITE, Color(0.1,0.2,0.3,1), Color(1,1,1,0), Color(0,0,0,0)]:
+		var pulse := FxSpecs.hit_flash_default_color(baseline)
+		_expect(not pulse.is_equal_approx(baseline), "default contrast differs from baseline")
+		_expect(pulse.a > 0.0, "default pulse has visible alpha")
+		var contrast := FxSpecs.hit_flash_spec(baseline,pulse,0.18,1)
+		_expect(not contrast.has("error"), "default contrast builds")
+		var contrast_keys := _keys(contrast.spec)
+		_expect((contrast_keys[-1].value as Color).is_equal_approx(baseline), "default contrast restores exact baseline")
 
 
 func _check_typewriter() -> void:
@@ -333,3 +344,19 @@ func _check_assign_paths() -> void:
 	_expect(str(spec.tracks[1].path) == "Panel:modulate:a", "stored properties are kept")
 	_expect(str(spec.tracks[2].path) == "Panel", "method tracks take the node path alone")
 	_expect(str(spec.tracks[3].path) == "Panel", "audio tracks take the node path alone")
+
+func _check_no_effect_guards() -> void:
+	for builder in [FxSpecs.progress_fill_spec,FxSpecs.damage_bar_spec]:
+		var unchanged: Dictionary = builder.call(1.0,1.0,0.2,0.2)
+		_expect(unchanged.get("error",{}).get("code")=="OPERATION_UNAVAILABLE","Equal endpoints return typed refusal")
+		var invalid: Dictionary = builder.call(1.0,1.0,0.0,0.0)
+		_expect(invalid.get("error",{}).get("code")=="VALUE_OUT_OF_RANGE","Invalid duration keeps original precedence")
+	for args in [[1.0,1.0,4,1.0,"%d","","","set_text"],[0.1,0.2,4,1.0,"%d","","","set_text"],[0.0,100.0,4,1.0,"fixed","$","!","set_text"]]:
+		var constant: Dictionary = FxSpecs.counter_spec.callv(args)
+		_expect(constant.get("error",{}).get("code")=="OPERATION_UNAVAILABLE","All formatted keys equal refuses")
+	_expect(not FxSpecs.counter_spec(0.1,0.2,4,1.0,"%.2f","","","set_text").has("error"),"Distinct rendered floats remain supported")
+	for offset in [Vector2.ZERO,Vector3.ZERO]:
+		var constant := FxSpecs.spring_spec(offset,offset,2.0,0.35,1.0,30)
+		_expect(constant.get("error",{}).get("code")=="OPERATION_UNAVAILABLE","Zero spring vector refuses")
+		var invalid := FxSpecs.spring_spec(offset,offset,2.0,0.35,0.0,30)
+		_expect(invalid.get("error",{}).get("code")=="VALUE_OUT_OF_RANGE","Zero spring duration keeps precedence")

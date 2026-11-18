@@ -20,7 +20,7 @@ extends RefCounted
 ##
 ## Rest-relative storage is what makes poses portable between rigs with the same
 ## bone names (and between the F/M human dummy variants) and gives mirroring a
-## well-defined meaning: rotations mirror as (w, -x, y, z), positions as
+## well-defined meaning: rotations mirror as (x, -y, -z, w), positions as
 ## (-x, y, z), scale is untouched.
 
 const SpecJson := preload("res://addons/godot_ai_animation/spec/spec_json.gd")
@@ -222,18 +222,33 @@ static func from_json(raw: Variant) -> Dictionary:
 	if not raw is Dictionary:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "A pose must be a JSON object")
 	var dict: Dictionary = raw
-	if not dict.has("bones"):
+	if not dict.get("bones") is Dictionary:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "The pose has no 'bones' section")
+	if dict.has("format") and dict.format != "godot-ai-animation-pose":
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Unsupported pose format")
+	if dict.has("version") and dict.version != 1:
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Unsupported pose version")
+	if not dict.get("rest_relative", true) is bool or not dict.get("rest_relative", true):
+		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Poses must use rest_relative=true")
 	var out := make_pose(str(dict.get("source", "")))
 	out["rest_relative"] = bool(dict.get("rest_relative", true))
 	for bone in (dict.bones as Dictionary):
+		if not bone is String or str(bone).is_empty() or not dict.bones[bone] is Dictionary:
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Every pose bone needs a name and an object of values")
 		var values: Dictionary = dict.bones[bone]
 		var rotation := SpecJson.decode_value(values.get("rotation", {"kind": "quaternion", "w": 1.0}))
 		var position := SpecJson.decode_value(values.get("position", {"kind": "vector3"}))
 		var scale := SpecJson.decode_value(values.get("scale", {"kind": "vector3", "x": 1.0, "y": 1.0, "z": 1.0}))
 		if rotation.has("error") or position.has("error") or scale.has("error"):
 			return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "Pose bone '%s' has malformed values" % str(bone))
-		set_bone(out, str(bone), rotation.ok, position.ok, scale.ok)
+		if not rotation.ok is Quaternion or not position.ok is Vector3 or not scale.ok is Vector3:
+			return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "Pose bone '%s' needs Quaternion rotation and Vector3 position/scale" % str(bone))
+		var q: Quaternion = rotation.ok
+		var p: Vector3 = position.ok
+		var s: Vector3 = scale.ok
+		if not q.is_finite() or q.length_squared() < 0.000001 or not p.is_finite() or not s.is_finite() or is_zero_approx(s.x) or is_zero_approx(s.y) or is_zero_approx(s.z):
+			return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "Pose bone '%s' needs finite values, a nonzero rotation and nonzero scale" % str(bone))
+		set_bone(out, str(bone), q.normalized(), p, s)
 	if (out.bones as Dictionary).is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "The pose has no bones")
 	return {"pose": out, "bone_count": bone_count(out)}

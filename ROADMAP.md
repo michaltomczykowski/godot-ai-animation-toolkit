@@ -40,7 +40,7 @@ clip editing, inspection, animation graphs, a project library, and later rigs.
   (AnimationTree), `animation_inspect` (read-only).
 - **Keyframe/procedural first**; character/rig authoring (Phase 6) comes after.
 - Self-contained: public Godot APIs only, no core Godot AI animation internals.
-  Godot 4.5–4.7, Godot AI >= 4.1.0.
+  Godot 4.7, Godot AI >= 4.1.0.
 - Every op: one scene-pinned undo action, typed values via `ValueCodec`, precise
   error codes, headless-testable pure math in tier-1.
 

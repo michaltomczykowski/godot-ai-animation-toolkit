@@ -320,6 +320,11 @@ static func overlap(spec: Dictionary, track_path: String, delay: float, wrap: bo
 	var changed := 0
 	for track in _select_tracks(out, track_path):
 		var keys: Array = track.get("keys", [])
+		var source_count := keys.size()
+		var hold: Dictionary = {}
+		if not wrap and delay > 0.0 and not keys.is_empty():
+			hold = (keys[0] as Dictionary).duplicate(true)
+			hold["time"] = 0.0
 		for key in keys:
 			var time := float(key.get("time", 0.0)) + delay
 			if wrap and length > 0.0:
@@ -329,7 +334,11 @@ static func overlap(spec: Dictionary, track_path: String, delay: float, wrap: bo
 			key["time"] = time
 		ClipSpec.sort_keys(track)
 		_dedupe_times(track)
-		changed += keys.size()
+		keys = track.get("keys", [])
+		if not hold.is_empty() and not keys.is_empty() \
+				and float((keys[0] as Dictionary).get("time", 0.0)) > 0.0:
+			keys.push_front(hold)
+		changed += source_count
 		if not wrap:
 			out["length"] = maxf(float(out.get("length", 0.0)), ClipSpec.last_key_time(track))
 	return {"spec": out, "changed": changed}
@@ -542,6 +551,11 @@ static func _add_values(base: Variant, overlay: Variant, neutral: Variant, weigh
 		if base == null:
 			return delta3 * weight
 		return (base as Vector3) + delta3 * weight
+	if typeof(overlay) == TYPE_VECTOR2:
+		var delta2: Vector2 = (overlay as Vector2) - (neutral as Vector2) if typeof(neutral) == TYPE_VECTOR2 else overlay as Vector2
+		if base == null:
+			return delta2 * weight
+		return (base as Vector2) + delta2 * weight
 	if typeof(overlay) == TYPE_FLOAT:
 		var deltaf: float = float(overlay) - float(neutral) if neutral != null else float(overlay)
 		if base == null:

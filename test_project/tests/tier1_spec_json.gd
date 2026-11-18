@@ -91,8 +91,13 @@ func _check_values() -> void:
 	var encoded_float := SpecJson.encode_value(1.5)
 	_expect(encoded_float.ok is float, "floats stay bare numbers")
 	_expect_approx(float(SpecJson.decode_value(2).ok), 2.0, "numbers decode as floats")
-	_expect_error(SpecJson.encode_value("text"), "strings cannot be encoded")
-	_expect_error(SpecJson.decode_value("text"), "strings cannot be decoded")
+	_expect(SpecJson.decode_value(SpecJson.encode_value("text").ok).ok == "text", "strings round-trip")
+	_expect(SpecJson.decode_value(SpecJson.encode_value(false).ok).ok == false, "bools round-trip")
+	var integer: int = 9007199254740993
+	_expect(SpecJson.decode_value(SpecJson.encode_value(integer).ok).ok == integer, "integers above JSON float precision round-trip")
+	var transform := Transform3D(Basis(Vector3(2, 0, 0), Vector3(0.5, 3, 0), Vector3(0, 0, 4)), Vector3(5, 6, 7))
+	_expect(SpecJson.decode_value(SpecJson.encode_value(transform).ok).ok.is_equal_approx(transform), "scaled and sheared transforms round-trip")
+	_expect_error(SpecJson.encode_value([]), "unsupported arrays are refused")
 	_expect_error(SpecJson.decode_value({"x": 1}), "value dicts need a kind")
 	_expect_error(SpecJson.decode_value({"kind": "blob"}), "unknown kinds are rejected")
 

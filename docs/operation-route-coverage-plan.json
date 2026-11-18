@@ -1,0 +1,1253 @@
+{
+  "schema_version": 1,
+  "scope": "Static source audit of ci_mcp_route driver selection; not executed coverage or qualification.",
+  "operations": [
+    {
+      "operation": "animation_edit.add_noise",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_edit_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_edit.amplitude",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_edit_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_edit.cleanup",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_edit_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_edit.ease_range",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_edit_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_edit.key_edit",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_edit_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_edit.layer",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_edit_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_edit.loop",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_edit_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_edit.merge",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_edit_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_edit.mirror",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_edit_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_edit.offset",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_edit_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_edit.overlap",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_edit_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_edit.reduce",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_edit_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_edit.resample",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_edit_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_edit.retarget",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_edit_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_edit.retime",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_edit_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_edit.reverse",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_edit_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_edit.set_interp",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_edit_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_edit.smooth",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_edit_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_edit.split_at",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_edit_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_edit.trim",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_edit_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_fx.audio_cue",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_fx_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_fx.counter",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_fx_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_fx.damage_bar",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_fx_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_fx.dialog_pop",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_fx_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_fx.flipbook",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_fx_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_fx.hit_flash",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_fx_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_fx.path_follow",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_fx_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_fx.pendulum",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_fx_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_fx.progress_fill",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_fx_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_fx.shake",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_fx_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_fx.spring",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_fx_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_fx.sprite_frames",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_fx_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_fx.transition",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_fx_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_fx.typewriter",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_fx_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_fx.wave",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_fx_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_fx.zoom_punch",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_fx_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_graph.additive_lean",
+      "effect_kind": "scene_structure",
+      "expected_route_drivers": [
+        "tools/mcp_graph_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_graph.blend_space",
+      "effect_kind": "scene_structure",
+      "expected_route_drivers": [
+        "tools/mcp_graph_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_graph.blend_tree",
+      "effect_kind": "scene_structure",
+      "expected_route_drivers": [
+        "tools/mcp_graph_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_graph.graph_get",
+      "effect_kind": "read",
+      "expected_route_drivers": [
+        "tools/mcp_graph_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_read_result; source invariance and result semantics still require explicit actual checks"
+    },
+    {
+      "operation": "animation_graph.locomotion",
+      "effect_kind": "scene_structure",
+      "expected_route_drivers": [
+        "tools/mcp_graph_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_graph.one_shot_layer",
+      "effect_kind": "scene_structure",
+      "expected_route_drivers": [
+        "tools/mcp_graph_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_graph.state_machine",
+      "effect_kind": "scene_structure",
+      "expected_route_drivers": [
+        "tools/mcp_graph_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_graph.wire",
+      "effect_kind": "scene_structure",
+      "expected_route_drivers": [
+        "tools/mcp_graph_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_inspect.audit",
+      "effect_kind": "read",
+      "expected_route_drivers": [
+        "tools/mcp_inspect_audit.py",
+        "tools/mcp_inspect_3d.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_read_result; source invariance and result semantics still require explicit actual checks"
+    },
+    {
+      "operation": "animation_inspect.compare",
+      "effect_kind": "read",
+      "expected_route_drivers": [
+        "tools/mcp_inspect_audit.py",
+        "tools/mcp_inspect_3d.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_read_result; source invariance and result semantics still require explicit actual checks"
+    },
+    {
+      "operation": "animation_inspect.describe",
+      "effect_kind": "read",
+      "expected_route_drivers": [
+        "tools/mcp_inspect_audit.py",
+        "tools/mcp_inspect_3d.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_read_result; source invariance and result semantics still require explicit actual checks"
+    },
+    {
+      "operation": "animation_inspect.dry_run",
+      "effect_kind": "read",
+      "expected_route_drivers": [
+        "tools/mcp_inspect_audit.py",
+        "tools/mcp_inspect_3d.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_read_result; source invariance and result semantics still require explicit actual checks"
+    },
+    {
+      "operation": "animation_inspect.help",
+      "effect_kind": "read",
+      "expected_route_drivers": [
+        "tools/mcp_inspect_audit.py",
+        "tools/mcp_inspect_3d.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_read_result; source invariance and result semantics still require explicit actual checks"
+    },
+    {
+      "operation": "animation_inspect.motion_audit",
+      "effect_kind": "read",
+      "expected_route_drivers": [
+        "tools/mcp_inspect_audit.py",
+        "tools/mcp_inspect_3d.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_read_result; source invariance and result semantics still require explicit actual checks"
+    },
+    {
+      "operation": "animation_inspect.motion_report",
+      "effect_kind": "read",
+      "expected_route_drivers": [
+        "tools/mcp_inspect_audit.py",
+        "tools/mcp_inspect_3d.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_read_result; source invariance and result semantics still require explicit actual checks"
+    },
+    {
+      "operation": "animation_inspect.preview",
+      "effect_kind": "render",
+      "expected_route_drivers": [
+        "tools/mcp_inspect_audit.py",
+        "tools/mcp_inspect_3d.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "known_gap": "Current headless CI intentionally expects typed rendering refusal. No successful preview or PNG-output pass may be inferred."
+    },
+    {
+      "operation": "animation_inspect.rig_profile",
+      "effect_kind": "read",
+      "expected_route_drivers": [
+        "tools/mcp_inspect_audit.py",
+        "tools/mcp_inspect_3d.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_read_result; source invariance and result semantics still require explicit actual checks"
+    },
+    {
+      "operation": "animation_inspect.sample",
+      "effect_kind": "read",
+      "expected_route_drivers": [
+        "tools/mcp_inspect_audit.py",
+        "tools/mcp_inspect_3d.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_read_result; source invariance and result semantics still require explicit actual checks"
+    },
+    {
+      "operation": "animation_inspect.stats",
+      "effect_kind": "read",
+      "expected_route_drivers": [
+        "tools/mcp_inspect_audit.py",
+        "tools/mcp_inspect_3d.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_read_result; source invariance and result semantics still require explicit actual checks"
+    },
+    {
+      "operation": "animation_inspect.timeline",
+      "effect_kind": "read",
+      "expected_route_drivers": [
+        "tools/mcp_inspect_audit.py",
+        "tools/mcp_inspect_3d.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_read_result; source invariance and result semantics still require explicit actual checks"
+    },
+    {
+      "operation": "animation_library.spec_apply",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_library_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_library.spec_export",
+      "effect_kind": "file_write",
+      "expected_route_drivers": [
+        "tools/mcp_library_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_file_effect; exact file contents/existence/deletion and dry-run invariance still require explicit actual checks"
+    },
+    {
+      "operation": "animation_library.spec_import",
+      "effect_kind": "read",
+      "expected_route_drivers": [
+        "tools/mcp_library_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_read_result; source invariance and result semantics still require explicit actual checks"
+    },
+    {
+      "operation": "animation_library.template_apply",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_library_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_library.template_delete",
+      "effect_kind": "file_write",
+      "expected_route_drivers": [
+        "tools/mcp_library_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_file_effect; exact file contents/existence/deletion and dry-run invariance still require explicit actual checks"
+    },
+    {
+      "operation": "animation_library.template_list",
+      "effect_kind": "read",
+      "expected_route_drivers": [
+        "tools/mcp_library_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_read_result; source invariance and result semantics still require explicit actual checks"
+    },
+    {
+      "operation": "animation_library.template_save",
+      "effect_kind": "file_write",
+      "expected_route_drivers": [
+        "tools/mcp_library_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_file_effect; exact file contents/existence/deletion and dry-run invariance still require explicit actual checks"
+    },
+    {
+      "operation": "animation_motion.character_setup",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_motion_remaining_cycles.py",
+        "tools/mcp_motion_setup_secondary.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_motion.cycle",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_motion_remaining_cycles.py",
+        "tools/mcp_motion_setup_secondary.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_motion.idle_cycle",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_motion_remaining_cycles.py",
+        "tools/mcp_motion_setup_secondary.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_motion.jump",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_motion_remaining_cycles.py",
+        "tools/mcp_motion_setup_secondary.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_motion.run_cycle",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_motion_remaining_cycles.py",
+        "tools/mcp_motion_setup_secondary.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_motion.secondary_motion",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_motion_remaining_cycles.py",
+        "tools/mcp_motion_setup_secondary.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_motion.strafe_cycle",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_motion_remaining_cycles.py",
+        "tools/mcp_motion_setup_secondary.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_motion.turn_cycle",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_motion_remaining_cycles.py",
+        "tools/mcp_motion_setup_secondary.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_motion.walk_cycle",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_motion_remaining_cycles.py",
+        "tools/mcp_motion_setup_secondary.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_motion.walk_start",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_motion_remaining_cycles.py",
+        "tools/mcp_motion_setup_secondary.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_motion.walk_stop",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_motion_remaining_cycles.py",
+        "tools/mcp_motion_setup_secondary.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_presets.bounce",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_presets_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_presets.drift",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_presets_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_presets.float",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_presets_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_presets.orbit",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_presets_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_presets.pulse",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_presets_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_presets.showcase",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_presets_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_presets.spin",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_presets_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_presets.stagger",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_presets_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_presets.sweep",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_presets_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_rig.bake_pose_sequence",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_rig_pose_crud.py",
+        "tools/mcp_rig_pose_apply_audit.py",
+        "tools/mcp_rig_chain_audit.py",
+        "tools/mcp_rig_bake.py",
+        "tools/mcp_rig_recipes.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_rig.blink",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_rig_pose_crud.py",
+        "tools/mcp_rig_pose_apply_audit.py",
+        "tools/mcp_rig_chain_audit.py",
+        "tools/mcp_rig_bake.py",
+        "tools/mcp_rig_recipes.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_rig.idle_breathing",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_rig_pose_crud.py",
+        "tools/mcp_rig_pose_apply_audit.py",
+        "tools/mcp_rig_chain_audit.py",
+        "tools/mcp_rig_bake.py",
+        "tools/mcp_rig_recipes.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_rig.jumping_jack",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_rig_pose_crud.py",
+        "tools/mcp_rig_pose_apply_audit.py",
+        "tools/mcp_rig_chain_audit.py",
+        "tools/mcp_rig_bake.py",
+        "tools/mcp_rig_recipes.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_rig.pose_apply",
+      "effect_kind": "scene_structure",
+      "expected_route_drivers": [
+        "tools/mcp_rig_pose_crud.py",
+        "tools/mcp_rig_pose_apply_audit.py",
+        "tools/mcp_rig_chain_audit.py",
+        "tools/mcp_rig_bake.py",
+        "tools/mcp_rig_recipes.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_rig.pose_blend",
+      "effect_kind": "file_write",
+      "expected_route_drivers": [
+        "tools/mcp_rig_pose_crud.py",
+        "tools/mcp_rig_pose_apply_audit.py",
+        "tools/mcp_rig_chain_audit.py",
+        "tools/mcp_rig_bake.py",
+        "tools/mcp_rig_recipes.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_file_effect; exact file contents/existence/deletion and dry-run invariance still require explicit actual checks"
+    },
+    {
+      "operation": "animation_rig.pose_list",
+      "effect_kind": "read",
+      "expected_route_drivers": [
+        "tools/mcp_rig_pose_crud.py",
+        "tools/mcp_rig_pose_apply_audit.py",
+        "tools/mcp_rig_chain_audit.py",
+        "tools/mcp_rig_bake.py",
+        "tools/mcp_rig_recipes.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_read_result; source invariance and result semantics still require explicit actual checks"
+    },
+    {
+      "operation": "animation_rig.pose_save",
+      "effect_kind": "file_write",
+      "expected_route_drivers": [
+        "tools/mcp_rig_pose_crud.py",
+        "tools/mcp_rig_pose_apply_audit.py",
+        "tools/mcp_rig_chain_audit.py",
+        "tools/mcp_rig_bake.py",
+        "tools/mcp_rig_recipes.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_file_effect; exact file contents/existence/deletion and dry-run invariance still require explicit actual checks"
+    },
+    {
+      "operation": "animation_rig.pose_to_clip",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_rig_pose_crud.py",
+        "tools/mcp_rig_pose_apply_audit.py",
+        "tools/mcp_rig_chain_audit.py",
+        "tools/mcp_rig_bake.py",
+        "tools/mcp_rig_recipes.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_rig.punch",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_rig_pose_crud.py",
+        "tools/mcp_rig_pose_apply_audit.py",
+        "tools/mcp_rig_chain_audit.py",
+        "tools/mcp_rig_bake.py",
+        "tools/mcp_rig_recipes.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_rig.rig_chain",
+      "effect_kind": "scene_structure",
+      "expected_route_drivers": [
+        "tools/mcp_rig_pose_crud.py",
+        "tools/mcp_rig_pose_apply_audit.py",
+        "tools/mcp_rig_chain_audit.py",
+        "tools/mcp_rig_bake.py",
+        "tools/mcp_rig_recipes.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_rig.rig_get",
+      "effect_kind": "read",
+      "expected_route_drivers": [
+        "tools/mcp_rig_pose_crud.py",
+        "tools/mcp_rig_pose_apply_audit.py",
+        "tools/mcp_rig_chain_audit.py",
+        "tools/mcp_rig_bake.py",
+        "tools/mcp_rig_recipes.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks.",
+      "native_playback": "not_applicable_to_read_result; source invariance and result semantics still require explicit actual checks"
+    },
+    {
+      "operation": "animation_rig.squat",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_rig_pose_crud.py",
+        "tools/mcp_rig_pose_apply_audit.py",
+        "tools/mcp_rig_chain_audit.py",
+        "tools/mcp_rig_bake.py",
+        "tools/mcp_rig_recipes.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_rig.walk_cycle",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_rig_pose_crud.py",
+        "tools/mcp_rig_pose_apply_audit.py",
+        "tools/mcp_rig_chain_audit.py",
+        "tools/mcp_rig_bake.py",
+        "tools/mcp_rig_recipes.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_rig_modifiers.ik_setup",
+      "effect_kind": "scene_structure",
+      "expected_route_drivers": [
+        "tools/mcp_rig_modifiers_audit.py",
+        "tools/mcp_retarget_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_rig_modifiers.look_at_setup",
+      "effect_kind": "scene_structure",
+      "expected_route_drivers": [
+        "tools/mcp_rig_modifiers_audit.py",
+        "tools/mcp_retarget_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_rig_modifiers.retarget_setup",
+      "effect_kind": "scene_structure",
+      "expected_route_drivers": [
+        "tools/mcp_rig_modifiers_audit.py",
+        "tools/mcp_retarget_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_rig_modifiers.spring_setup",
+      "effect_kind": "scene_structure",
+      "expected_route_drivers": [
+        "tools/mcp_rig_modifiers_audit.py",
+        "tools/mcp_retarget_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_rig_modifiers.twist_setup",
+      "effect_kind": "scene_structure",
+      "expected_route_drivers": [
+        "tools/mcp_rig_modifiers_audit.py",
+        "tools/mcp_retarget_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    },
+    {
+      "operation": "animation_sequence.compose",
+      "effect_kind": "scene_write",
+      "expected_route_drivers": [
+        "tools/mcp_sequence_audit.py"
+      ],
+      "mapping_status": "static_driver_candidates_not_execution_proof",
+      "actual_executed_case_ids": [],
+      "candidate_status": "pending",
+      "receipt_strategy": "Exact common public-call trace for mcp_invocation; add independent per-operation validator receipts for other applicable checks."
+    }
+  ],
+  "pending_actual_trace_cells": [
+    "windows/4.2.1",
+    "windows/4.3.0",
+    "linux/4.2.1",
+    "linux/4.3.0"
+  ],
+  "private_skips": "never successful operation proof",
+  "core_main": "advisory"
+}

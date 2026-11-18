@@ -4,8 +4,8 @@ extends RefCounted
 ## Clip spec <-> JSON-safe dictionaries (the `spec_export` / `spec_apply`
 ## interchange format).
 ##
-## Every value carries its type so a round-trip is exact: numbers stay numbers,
-## and Vector2/Vector3/Color/Quaternion are tagged dictionaries. Audio streams
+## Float/bool/text values are JSON-native; exact integers and
+## Vector2/Vector3/Color/Quaternion/Transform3D are tagged. Audio streams
 ## are referenced by `res://` path (resources cannot be inlined in JSON).
 ##
 ## Envelope:
@@ -14,6 +14,7 @@ extends RefCounted
 
 const ClipSpec := preload("res://addons/godot_ai_animation/spec/clip_spec.gd")
 const ErrorCodes := preload("res://addons/godot_ai_animation/utils/error_codes.gd")
+const Builder := preload("res://addons/godot_ai_animation/spec/spec_builder.gd")
 
 const FORMAT := "godot-ai-animation-clip"
 const VERSION := 1
@@ -23,8 +24,16 @@ const VERSION := 1
 
 static func encode_value(value: Variant) -> Dictionary:
 	match typeof(value):
-		TYPE_FLOAT, TYPE_INT:
+		TYPE_FLOAT:
 			return {"ok": float(value)}
+		TYPE_INT:
+			return {"ok": {"kind": "int", "value": str(value)}}
+		TYPE_BOOL, TYPE_STRING:
+			return {"ok": value}
+		TYPE_TRANSFORM3D:
+			return {"ok": {"kind": "transform3d", "x": encode_value(value.basis.x).ok,
+				"y": encode_value(value.basis.y).ok, "z": encode_value(value.basis.z).ok,
+				"origin": encode_value(value.origin).ok}}
 		TYPE_VECTOR2:
 			var v2 := value as Vector2
 			return {"ok": {"kind": "vector2", "x": v2.x, "y": v2.y}}
@@ -42,6 +51,8 @@ static func encode_value(value: Variant) -> Dictionary:
 
 
 static func decode_value(raw: Variant) -> Dictionary:
+	if raw is bool or raw is String:
+		return {"ok": raw}
 	if raw is float or raw is int:
 		return {"ok": float(raw)}
 	if not raw is Dictionary:
@@ -50,7 +61,24 @@ static func decode_value(raw: Variant) -> Dictionary:
 	var dict: Dictionary = raw
 	if not dict.has("kind"):
 		return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "A value dict needs a 'kind'")
+	var components: Array = {"vector2": ["x", "y"], "vector3": ["x", "y", "z"],
+		"color": ["r", "g", "b", "a"], "quaternion": ["x", "y", "z", "w"]}.get(str(dict.kind), [])
+	for field in components:
+		if dict.has(field) and not (dict[field] is float or dict[field] is int):
+			return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "%s component '%s' must be numeric" % [str(dict.kind), field])
 	match str(dict.kind):
+		"int":
+			if not dict.get("value") is String or not str(dict.value).is_valid_int():
+				return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "An int value needs an integer string")
+			return {"ok": int(dict.value)}
+		"transform3d":
+			var parts := {}
+			for key in ["x", "y", "z", "origin"]:
+				var decoded := decode_value(dict.get(key))
+				if decoded.has("error") or not decoded.get("ok") is Vector3:
+					return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "A transform3d needs vector3 %s" % key)
+				parts[key] = decoded.ok
+			return {"ok": Transform3D(Basis(parts.x, parts.y, parts.z), parts.origin)}
 		"vector2":
 			return {"ok": Vector2(_number(dict, "x"), _number(dict, "y"))}
 		"vector3":
@@ -101,13 +129,14 @@ static func _track_to_json(track: Dictionary) -> Dictionary:
 		"path": str(track.get("path", "")),
 		"enabled": bool(track.get("enabled", true)),
 		"keys": [],
+		"interp": int(track.get("interp", Animation.INTERPOLATION_LINEAR)),
+		"loop_wrap": bool(track.get("loop_wrap", true)),
 	}
 	if ClipSpec.is_value_type(type):
 		out["interp"] = int(track.get("interp", Animation.INTERPOLATION_LINEAR))
+		out["loop_wrap"] = bool(track.get("loop_wrap", true))
 		if type == Animation.TYPE_VALUE:
 			out["update_mode"] = int(track.get("update_mode", Animation.UPDATE_CONTINUOUS))
-		else:
-			out["loop_wrap"] = bool(track.get("loop_wrap", true))
 	elif type == Animation.TYPE_AUDIO:
 		out["use_blend"] = bool(track.get("use_blend", false))
 	for key in track.get("keys", []):
@@ -117,6 +146,7 @@ static func _track_to_json(track: Dictionary) -> Dictionary:
 					"time": float(key.get("time", 0.0)),
 					"method": str(key.get("method", "")),
 					"args": key.get("args", []),
+					"transition": float(key.get("transition", 1.0)),
 				})
 			Animation.TYPE_AUDIO:
 				var stream: Resource = key.get("stream")
@@ -125,6 +155,7 @@ static func _track_to_json(track: Dictionary) -> Dictionary:
 					"stream": stream.resource_path if stream != null else "",
 					"start_offset": float(key.get("start_offset", 0.0)),
 					"end_offset": float(key.get("end_offset", 0.0)),
+					"transition": float(key.get("transition", 1.0)),
 				})
 			_:
 				var encoded := encode_value(key.get("value"))
@@ -142,6 +173,15 @@ static func from_json(raw: Variant) -> Dictionary:
 	if not raw is Dictionary:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "A clip spec must be a JSON object")
 	var dict: Dictionary = raw
+	for key in ["version", "length", "loop_mode"]:
+		if dict.has(key) and not (dict[key] is float or dict[key] is int):
+			return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "Clip spec %s must be a number" % key)
+		if dict.has(key) and not is_finite(float(dict[key])):
+			return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "Clip spec %s must be finite" % key)
+	if float(dict.get("loop_mode", 0)) not in [0.0, 1.0, 2.0]:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "Clip spec loop_mode must be 0, 1 or 2")
+	if not dict.get("markers", []) is Array or not dict.get("tracks", []) is Array:
+		return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "Clip spec markers and tracks must be arrays")
 	if str(dict.get("format", "")) != FORMAT:
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 			"Not a %s document (got format '%s')" % [FORMAT, str(dict.get("format", ""))])
@@ -150,6 +190,8 @@ static func from_json(raw: Variant) -> Dictionary:
 			"Clip spec version %d is newer than this toolkit supports (%d)" % [int(dict.version), VERSION])
 	var spec := ClipSpec.make(float(dict.get("length", 0.0)), int(dict.get("loop_mode", Animation.LOOP_NONE)))
 	for marker in dict.get("markers", []):
+		if not marker is Dictionary or not (marker.get("time", 0.0) is float or marker.get("time", 0.0) is int):
+			return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "Each marker must be an object with a numeric time")
 		var color := decode_value(marker.get("color"))
 		spec.markers.append({
 			"name": str(marker.get("name", "")),
@@ -164,6 +206,8 @@ static func from_json(raw: Variant) -> Dictionary:
 		if built.has("error"):
 			return built
 		spec.tracks.append(built.track)
+	var valid := Builder.validate(spec)
+	if valid.has("error"): return valid
 	return {"spec": spec, "track_count": spec.tracks.size(), "key_count": ClipSpec.total_key_count(spec)}
 
 
@@ -171,6 +215,13 @@ static func _track_from_json(raw: Variant, index: int) -> Dictionary:
 	if not raw is Dictionary:
 		return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "tracks[%d] must be an object" % index)
 	var dict: Dictionary = raw
+	for field in ["type", "interp", "update_mode"]:
+		if dict.has(field) and not (dict[field] is int or dict[field] is float):
+			return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "tracks[%d].%s must be a number" % [index, field])
+	if float(dict.get("interp", 1)) not in [0.0, 1.0, 2.0, 3.0, 4.0] or float(dict.get("update_mode", 0)) not in [0.0, 1.0, 2.0, 3.0]:
+		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "Track interpolation or update mode is out of range")
+	if not dict.get("keys", []) is Array:
+		return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "tracks[%d].keys must be an array" % index)
 	var type := int(dict.get("type", -1))
 	if not ClipSpec.is_supported_type(type):
 		return ErrorCodes.make(ErrorCodes.WRONG_TYPE,
@@ -184,28 +235,38 @@ static func _track_from_json(raw: Variant, index: int) -> Dictionary:
 		"enabled": bool(dict.get("enabled", true)),
 		"compressed": false,
 		"keys": [],
+		"interp": int(dict.get("interp", Animation.INTERPOLATION_LINEAR)),
+		"loop_wrap": bool(dict.get("loop_wrap", true)),
 	}
 	if ClipSpec.is_value_type(type):
 		track["interp"] = int(dict.get("interp", Animation.INTERPOLATION_LINEAR))
+		track["loop_wrap"] = bool(dict.get("loop_wrap", true))
 		if type == Animation.TYPE_VALUE:
 			track["update_mode"] = int(dict.get("update_mode", Animation.UPDATE_CONTINUOUS))
-		else:
-			track["loop_wrap"] = bool(dict.get("loop_wrap", true))
 	elif type == Animation.TYPE_AUDIO:
 		track["use_blend"] = bool(dict.get("use_blend", false))
 	var keys: Array = dict.get("keys", [])
 	if keys.is_empty():
 		return ErrorCodes.make(ErrorCodes.INVALID_PARAMS, "tracks[%d] has no keys" % index)
 	for key_index in keys.size():
+		if not keys[key_index] is Dictionary:
+			return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "tracks[%d].keys[%d] must be an object" % [index, key_index])
 		var key: Dictionary = keys[key_index]
+		for field in ["time", "transition", "start_offset", "end_offset"]:
+			if key.has(field) and not (key[field] is float or key[field] is int):
+				return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "tracks[%d].keys[%d].%s must be a number" % [index, key_index, field])
+			if key.has(field) and not is_finite(float(key[field])):
+				return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "Key %s must be finite" % field)
 		var time := float(key.get("time", 0.0))
 		match type:
 			Animation.TYPE_METHOD:
+				if not key.get("args", []) is Array:
+					return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "Method args must be an array")
 				var method := str(key.get("method", ""))
 				if method.is_empty():
 					return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 						"tracks[%d].keys[%d] has no method" % [index, key_index])
-				track.keys.append({"time": time, "method": method, "args": key.get("args", [])})
+				track.keys.append({"time": time, "method": method, "args": key.get("args", []), "transition": float(key.get("transition", 1.0))})
 			Animation.TYPE_AUDIO:
 				var stream_path := str(key.get("stream", ""))
 				if stream_path.is_empty():
@@ -214,11 +275,15 @@ static func _track_from_json(raw: Variant, index: int) -> Dictionary:
 				if not ResourceLoader.exists(stream_path):
 					return ErrorCodes.make(ErrorCodes.INVALID_PARAMS,
 						"Audio stream not found: %s" % stream_path)
+				var stream := load(stream_path)
+				if not stream is AudioStream:
+					return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "Audio track requires an AudioStream: %s" % stream_path)
 				track.keys.append({
 					"time": time,
-					"stream": load(stream_path),
+					"stream": stream,
 					"start_offset": float(key.get("start_offset", 0.0)),
 					"end_offset": float(key.get("end_offset", 0.0)),
+					"transition": float(key.get("transition", 1.0)),
 				})
 			_:
 				var decoded := decode_value(key.get("value"))
@@ -231,6 +296,35 @@ static func _track_from_json(raw: Variant, index: int) -> Dictionary:
 					"transition": float(key.get("transition", 1.0)),
 				})
 	return {"track": track}
+
+
+## Refuse values that JSON would silently stringify or replace with null.
+static func export_error(spec: Dictionary) -> Dictionary:
+	for track in spec.get("tracks", []):
+		for key in track.get("keys", []):
+			if ClipSpec.is_value_type(int(track.type)):
+				var encoded := encode_value(key.get("value"))
+				if encoded.has("error"): return encoded
+			elif int(track.type) == Animation.TYPE_METHOD:
+				if not _json_native(key.get("args", [])):
+					return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "Method args must be JSON-native for export")
+			elif int(track.type) == Animation.TYPE_AUDIO:
+				var stream = key.get("stream")
+				if not stream is AudioStream or stream.resource_path.is_empty() or not ResourceLoader.exists(stream.resource_path):
+					return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "Audio export requires a saved AudioStream")
+	return {}
+
+static func _json_native(value: Variant) -> bool:
+	if value == null or value is bool or value is String or value is int or value is float: return true
+	if value is Array:
+		for entry in value:
+			if not _json_native(entry): return false
+		return true
+	if value is Dictionary:
+		for key in value:
+			if not key is String or not _json_native(value[key]): return false
+		return true
+	return false
 
 
 # --- path remapping --------------------------------------------------------

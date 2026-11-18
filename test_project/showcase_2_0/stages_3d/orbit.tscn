@@ -1,0 +1,273 @@
+[gd_scene format=3 uid="uid://dh41imqacl25f"]
+
+[ext_resource type="Script" uid="uid://cqaj3r2y2dpqp" path="res://showcase_2_0/stages_3d/play_exhibit.gd" id="Replay"]
+[ext_resource type="PackedScene" path="res://showcase_2_0/stages_3d/kinetic_room.tscn" id="Room"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_deck"]
+albedo_color = Color(0.105882, 0.160784, 0.223529, 1)
+metallic = 0.1
+roughness = 0.48
+
+[sub_resource type="CylinderMesh" id="Mesh_1"]
+material = SubResource("Mat_deck")
+top_radius = 1.76
+bottom_radius = 1.81
+height = 0.18
+radial_segments = 48
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="Mat_dark"]
+albedo_color = Color(0.14902, 0.223529, 0.298039, 1)
+metallic = 0.16
+roughness = 0.37
+
+[sub_resource type="CylinderMesh" id="Mesh_3"]
+material = SubResource("Mat_dark")
+top_radius = 1.74
+bottom_radius = 1.74
+height = 0.025
+radial_segments = 48
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="Mat_line"]
+albedo_color = Color(0.345098, 0.439216, 0.517647, 1)
+metallic = 0.1
+roughness = 0.58
+
+[sub_resource type="TorusMesh" id="Mesh_5"]
+material = SubResource("Mat_line")
+inner_radius = 1.6425
+outer_radius = 1.6775
+ring_segments = 12
+
+[sub_resource type="TorusMesh" id="Mesh_6"]
+material = SubResource("Mat_line")
+inner_radius = 1.1495
+outer_radius = 1.1905
+ring_segments = 12
+
+[sub_resource type="TorusMesh" id="Mesh_7"]
+material = SubResource("Mat_line")
+inner_radius = 0.879
+outer_radius = 0.901
+ring_segments = 12
+
+[sub_resource type="StandardMaterial3D" id="Mat_slate"]
+albedo_color = Color(0.188235, 0.305882, 0.407843, 1)
+metallic = 0.2
+roughness = 0.4
+
+[sub_resource type="CylinderMesh" id="Mesh_9"]
+material = SubResource("Mat_slate")
+top_radius = 0.3
+bottom_radius = 0.49
+height = 0.29
+radial_segments = 8
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="Mat_blue"]
+albedo_color = Color(0.380392, 0.560784, 0.921569, 1)
+metallic = 0.18
+roughness = 0.3
+emission_enabled = true
+emission = Color(0.380392, 0.560784, 0.921569, 1)
+emission_energy_multiplier = 0.13
+
+[sub_resource type="SphereMesh" id="Mesh_11"]
+material = SubResource("Mat_blue")
+radius = 0.29
+height = 0.59
+radial_segments = 32
+rings = 18
+
+[sub_resource type="StandardMaterial3D" id="Mat_ice"]
+albedo_color = Color(0.870588, 0.972549, 0.980392, 1)
+metallic = 0.15
+roughness = 0.25
+emission_enabled = true
+emission = Color(0.870588, 0.972549, 0.980392, 1)
+emission_energy_multiplier = 0.14
+
+[sub_resource type="TorusMesh" id="Mesh_13"]
+material = SubResource("Mat_ice")
+inner_radius = 0.321
+outer_radius = 0.379
+ring_segments = 12
+
+[sub_resource type="StandardMaterial3D" id="Mat_gold"]
+albedo_color = Color(1, 0.752941, 0.462745, 1)
+metallic = 0.3
+roughness = 0.29
+emission_enabled = true
+emission = Color(1, 0.752941, 0.462745, 1)
+emission_energy_multiplier = 0.15
+
+[sub_resource type="SphereMesh" id="Mesh_15"]
+material = SubResource("Mat_gold")
+radius = 0.24
+height = 0.47
+radial_segments = 20
+rings = 18
+
+[sub_resource type="StandardMaterial3D" id="Mat_cyan"]
+albedo_color = Color(0.258824, 0.85098, 0.87451, 1)
+metallic = 0.24
+roughness = 0.24
+emission_enabled = true
+emission = Color(0.258824, 0.85098, 0.87451, 1)
+emission_energy_multiplier = 0.24
+
+[sub_resource type="BoxMesh" id="Mesh_17"]
+material = SubResource("Mat_cyan")
+size = Vector3(0.25, 0.055, 0.22)
+
+[sub_resource type="StandardMaterial3D" id="Mat_steel"]
+albedo_color = Color(0.388235, 0.482353, 0.564706, 1)
+metallic = 0.4
+roughness = 0.36
+
+[sub_resource type="CylinderMesh" id="Mesh_19"]
+material = SubResource("Mat_steel")
+top_radius = 0.13
+bottom_radius = 0.14
+height = 0.32
+radial_segments = 12
+rings = 1
+
+[sub_resource type="BoxMesh" id="Mesh_20"]
+material = SubResource("Mat_steel")
+size = Vector3(0.1, 0.022, 0.024)
+
+[sub_resource type="Animation" id="Animation_wkkey"]
+length = 2.35
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Prop:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.146875, 0.29375, 0.440625, 0.5875, 0.734375, 0.88125, 1.028125, 1.175, 1.321875, 1.46875, 1.615625, 1.7625, 1.909375, 2.05625, 2.203125, 2.35),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(1.18, 0.6, 0), Vector3(1.0901779, 0.6, 0.45156646), Vector3(0.834386, 0.6, 0.834386), Vector3(0.45156646, 0.6, 1.0901779), Vector3(7.225178e-17, 0.6, 1.18), Vector3(-0.45156646, 0.6, 1.0901779), Vector3(-0.834386, 0.6, 0.834386), Vector3(-1.0901779, 0.6, 0.45156646), Vector3(-1.18, 0.6, 1.4450356e-16), Vector3(-1.0901779, 0.6, -0.45156646), Vector3(-0.834386, 0.6, -0.834386), Vector3(-0.45156646, 0.6, -1.0901779), Vector3(-2.1675532e-16, 0.6, -1.18), Vector3(0.45156646, 0.6, -1.0901779), Vector3(0.834386, 0.6, -0.834386), Vector3(1.0901779, 0.6, -0.45156646), Vector3(1.18, 0.6, -2.890071e-16)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_h6leo"]
+_data = {
+&"orbit": SubResource("Animation_wkkey")
+}
+
+[node name="KineticStage" type="Node3D" unique_id=1494350879]
+script = ExtResource("Replay")
+
+[node name="Room" parent="." unique_id=1446428154 instance=ExtResource("Room")]
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=701703563]
+transform = Transform3D(0.9638804, -0.12097336, 0.23727617, 0, 0.89089245, 0.4542144, -0.26633537, -0.43780836, 0.85871375, 2.1, 4.5, 7.6)
+projection = 1
+current = true
+size = 3.5
+far = 55.0
+
+[node name="Deck" type="MeshInstance3D" parent="." unique_id=435101781]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+mesh = SubResource("Mesh_1")
+
+[node name="Facing" type="MeshInstance3D" parent="." unique_id=348722568]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.002, 0)
+mesh = SubResource("Mesh_3")
+
+[node name="OuterRim" type="MeshInstance3D" parent="." unique_id=1069259507]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.025, 0)
+mesh = SubResource("Mesh_5")
+
+[node name="OrbitalGuide" type="MeshInstance3D" parent="." unique_id=352437769]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.034, 0)
+mesh = SubResource("Mesh_6")
+
+[node name="InnerGuide" type="MeshInstance3D" parent="." unique_id=1986529486]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.032, 0)
+mesh = SubResource("Mesh_7")
+
+[node name="Mount" type="MeshInstance3D" parent="." unique_id=2051518277]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
+mesh = SubResource("Mesh_9")
+
+[node name="Beacon" type="MeshInstance3D" parent="." unique_id=418058024]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.58, 0)
+mesh = SubResource("Mesh_11")
+
+[node name="Antenna" type="MeshInstance3D" parent="." unique_id=1824891111]
+transform = Transform3D(0.90630776, -0.42261827, 0, 0.24240388, 0.5198368, -0.81915206, 0.34618863, 0.74240386, 0.57357645, 0, 0.58, 0)
+mesh = SubResource("Mesh_13")
+
+[node name="Prop" type="Node3D" parent="." unique_id=1400899045]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+
+[node name="Satellite" type="MeshInstance3D" parent="Prop" unique_id=1397141673]
+mesh = SubResource("Mesh_15")
+
+[node name="PanelL" type="MeshInstance3D" parent="Prop" unique_id=604813436]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.29, 0, 0)
+mesh = SubResource("Mesh_17")
+
+[node name="PanelR" type="MeshInstance3D" parent="Prop" unique_id=1020161312]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.29, 0, 0)
+mesh = SubResource("Mesh_17")
+
+[node name="Spindle" type="MeshInstance3D" parent="Prop" unique_id=2109115869]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.07, 0)
+mesh = SubResource("Mesh_19")
+
+[node name="Tick0" type="MeshInstance3D" parent="." unique_id=1377438061]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.29, 0.039, 0)
+mesh = SubResource("Mesh_20")
+
+[node name="Tick1" type="MeshInstance3D" parent="." unique_id=852139398]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 1.1171728, 0.039, 0.645)
+mesh = SubResource("Mesh_20")
+
+[node name="Tick2" type="MeshInstance3D" parent="." unique_id=486647176]
+transform = Transform3D(0.49999997, 0, -0.86602545, 0, 1, 0, 0.86602545, 0, 0.49999997, 0.645, 0.039, 1.1171728)
+mesh = SubResource("Mesh_20")
+
+[node name="Tick3" type="MeshInstance3D" parent="." unique_id=612158801]
+transform = Transform3D(7.54979e-08, 0, -1, 0, 1, 0, 1, 0, 7.54979e-08, 7.898972e-17, 0.039, 1.29)
+mesh = SubResource("Mesh_20")
+
+[node name="Tick4" type="MeshInstance3D" parent="." unique_id=698834977]
+transform = Transform3D(-0.50000006, 0, -0.8660254, 0, 1, 0, 0.8660254, 0, -0.50000006, -0.645, 0.039, 1.1171728)
+mesh = SubResource("Mesh_20")
+
+[node name="Tick5" type="MeshInstance3D" parent="." unique_id=429654781]
+transform = Transform3D(-0.8660254, 0, -0.50000006, 0, 1, 0, 0.50000006, 0, -0.8660254, -1.1171728, 0.039, 0.645)
+mesh = SubResource("Mesh_20")
+
+[node name="Tick6" type="MeshInstance3D" parent="." unique_id=1245855770]
+transform = Transform3D(-1, 0, 8.742278e-08, 0, 1, 0, -8.742278e-08, 0, -1, -1.29, 0.039, 1.5797944e-16)
+mesh = SubResource("Mesh_20")
+
+[node name="Tick7" type="MeshInstance3D" parent="." unique_id=1472757952]
+transform = Transform3D(-0.8660254, 0, 0.49999997, 0, 1, 0, -0.49999997, 0, -0.8660254, -1.1171728, 0.039, -0.645)
+mesh = SubResource("Mesh_20")
+
+[node name="Tick8" type="MeshInstance3D" parent="." unique_id=526412357]
+transform = Transform3D(-0.4999999, 0, 0.86602545, 0, 1, 0, -0.86602545, 0, -0.4999999, -0.645, 0.039, -1.1171728)
+mesh = SubResource("Mesh_20")
+
+[node name="Tick9" type="MeshInstance3D" parent="." unique_id=2069704827]
+transform = Transform3D(1.1924881e-08, 0, 1, 0, 1, 0, -1, 0, 1.1924881e-08, -2.3696917e-16, 0.039, -1.29)
+mesh = SubResource("Mesh_20")
+
+[node name="Tick10" type="MeshInstance3D" parent="." unique_id=758828335]
+transform = Transform3D(0.4999999, 0, 0.86602545, 0, 1, 0, -0.86602545, 0, 0.4999999, 0.645, 0.039, -1.1171728)
+mesh = SubResource("Mesh_20")
+
+[node name="Tick11" type="MeshInstance3D" parent="." unique_id=1336514979]
+transform = Transform3D(0.8660253, 0, 0.5000002, 0, 1, 0, -0.5000002, 0, 0.8660253, 1.1171728, 0.039, -0.645)
+mesh = SubResource("Mesh_20")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1530370514]
+libraries/ = SubResource("AnimationLibrary_h6leo")

@@ -1,0 +1,63 @@
+--- a/tools/operation_case_collector.py
++++ b/tools/operation_case_collector.py
+@@ -243,6 +243,9 @@
+     return isinstance(value, (int,float)) and not isinstance(value,bool) and math.isfinite(value)
+ 
+ def native_checks(event, context):
++    from operation_rig_native_checks import OPS, verify_native
++    if event.get('operation') in OPS:
++        return verify_native(event, context)
+     command = event.get('command', [])
+     if not command or command[0] != context.get('engine_command'):
+         raise ValueError('native engine command differs from actual version probe')
+@@ -373,6 +376,9 @@
+ 
+ def native_origin_matches(event, call):
+     """Bind named checker outputs, not merely another successful clip in the scene."""
++    from operation_rig_native_checks import OPS, origin_matches
++    if event.get('operation') in OPS:
++        return origin_matches(event, call)
+     command=event['command']
+     script=command[command.index('--script')+1]
+     args=command[command.index('--')+1:]
+--- a/tools/ci_mcp_route.py
++++ b/tools/ci_mcp_route.py
+@@ -363,6 +363,7 @@
+                 command.append(op)
+             playback = subprocess.run(command, capture_output=True, text=True,
+                                       timeout=30, check=False)
++            record_native_result("animation_rig_modifiers." + op, row["scene"], command, playback)
+             reported = next((line[len(runtime_marker):]
+                              for line in playback.stdout.splitlines()
+                              if line.startswith(runtime_marker)), "")
+@@ -968,6 +969,10 @@
+         print("MCP_CI_FAIL=rig_route:recipes_missing")
+         return False
+     playback_cases = [
++        ("pose_apply", results["pose_apply"]["scene"],
++         "res://tools/check_rig_saved_structure_runtime.gd", "RIG_SAVED_STRUCTURE="),
++        ("rig_chain", results["rig_chain"]["scene"],
++         "res://tools/check_rig_saved_structure_runtime.gd", "RIG_SAVED_STRUCTURE="),
+         ("pose_to_clip", results["pose_crud"]["scene"],
+          "res://tools/check_rig_pose_clip_runtime.gd", "RIG_POSE_CLIP="),
+         ("bake_pose_sequence", results["bake_pose_sequence"]["scene"],
+@@ -979,7 +984,7 @@
+     for op, scene, checker, marker in playback_cases:
+         command = [godot_executable(args.godot), "--headless", "--path",
+                    str(args.project), "--script", checker, "--", scene]
+-        if checker.endswith("check_rig_recipe_runtime.gd"):
++        if checker.endswith(("check_rig_recipe_runtime.gd", "check_rig_saved_structure_runtime.gd")):
+             command.append(op)
+         playback = subprocess.run(command, capture_output=True, text=True,
+                                   timeout=30, check=False)
+--- a/test_project/tools/check_rig_modifiers_runtime.gd
++++ b/test_project/tools/check_rig_modifiers_runtime.gd
+@@ -142,7 +142,7 @@
+ 					failures.append("active twist did not distribute to hips (processed %d times)" % int(observed.count))
+ 		_:
+ 			failures.append("unknown operation")
+-	print("RIG_MODIFIER_RUNTIME=" + JSON.stringify({"op": args[1],
++	print("RIG_MODIFIER_RUNTIME=" + JSON.stringify({"scene": args[0], "op": args[1],
+ 		"modifier_class": modifier.get_class(), "target_resolved": target_resolved,
+ 		"response": response, "failures": failures}))
+ 	quit(0 if failures.is_empty() else 1)

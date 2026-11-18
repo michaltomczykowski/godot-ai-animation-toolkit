@@ -1,0 +1,24 @@
+--- a/tools/operation_case_collector.py
++++ b/tools/operation_case_collector.py
+@@ -194,6 +194,10 @@
+ 
+ def record_snapshot_result(validator,row):
+     if not os.environ.get('TOOLKIT_OPERATION_CONTEXT') and not os.environ.get('TOOLKIT_OPERATION_TRACE_DIR'):return
++    if validator=="pose_blend_refusal_v1":
++        from operation_pose_blend_refusal_checks import derive
++        return _emit("operation_snapshot_assertions", {"operation":row["operation"],
++            "validator":validator,"row":row,"checks":derive(row),"route":"public_godot_ai"})
+     if validator=="bounded_read_v1":
+         from operation_bounded_read_checks import derive
+         return _emit("operation_snapshot_assertions", {"operation":row["operation"],
+@@ -510,7 +514,9 @@
+                       'raw_event_id':event['id'],'scene':event['scene'],'failures':failures,
+                       'limits':'Source-specific native playback checks only; additional FX paths/types when applicable. Native audio playing is an event, not audible-output or visual approval.'})
+     for event in snapshot_events:
+-        if event.get("validator")=="bounded_read_v1":
++        if event.get("validator")=="pose_blend_refusal_v1":
++            from operation_pose_blend_refusal_checks import verify_event
++        elif event.get("validator")=="bounded_read_v1":
+             from operation_bounded_read_checks import verify_event
+         elif event.get("validator")=="inspect_read_v1":
+             from operation_inspect_checks import verify_event

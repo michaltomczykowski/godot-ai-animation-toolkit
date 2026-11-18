@@ -1,0 +1,22 @@
+# Motion/sequence raw history evidence plan
+
+Scope: existing 273 cases, ten unique animation_motion writers plus animation_sequence.compose. The eleven motion variant names include three cycle presets; character_setup retains its separate gate. No new requests, fixtures, generator algorithms, thresholds or physical effect claims.
+
+Each raw case records identity (group/variant/mode/FPS/test), exact request and responses, baseline/dry/refusal/generated/undo/redo snapshots, playback controls, scene/global history versions at each stage, actual undo/redo returns, output/library identity observations, orphan observations, saved scene paths/SHA256/byte lengths/reopened snapshots, source instance bytes/hashes, peer snapshots, logger slice and assertion state. Failure returns emit incomplete evidence, never a pass.
+
+Strict adapter binds the exact source dependencies, public verbose test_run span, suite/test/case and operation. It derives only dry_run, typed_errors (NODE_NOT_FOUND), undo_redo, save_reopen, source_unchanged and reported_errors from complete raw observations. Actual native-reference/interpolation checks remain in the existing checker, unmodified and pending a separately bound per-case native witness; no valid_effect/playback/track_paths_types promotion from history or batch totals.
+
+Implementation is source/offline tested only until root parses and executes it in the actual frozen-source public route. A minimal collector patch is supplied against root233562a; shared collector/trace files are not replaced.
+
+## Prepared implementation and offline validation (2026-10-23)
+
+- `test_motion_sequence_history.gd` emits a case-local row through a new dedicated trace helper; the shared trace and collector are untouched. Original operation calls, assertions, native reference construction and saved matrix payload stay intact. Temporary raw persistence fields are removed before `Saved.finish`, retaining the original matrix shape. The already-integrated root jump duration1.2 request is carried forward from root233; it is not a new recipe change.
+- Adapter rejects incomplete stages and binds all listed checkout SHA256/Git blob identities, exact editor driver, actual `mcp_motion_sequence_history.py` begin/end event kinds/routes/context/run, exact verbose suite request, case timestamp inside the wall-clock span, monotonic command order and matching completed per-test result. Machine JSON rounding tolerance (relative1e-14) applies to request numeric comparisons, never bool/number coercion. Saved typed geometry mirrors the existing engine `is_equal_approx` rule; non-geometry resource fields retain exact comparison. All row numeric values must be finite.
+- Python unittest: four methods PASS, covering273 synthetic positive identities;27 stage corruptions; three non-finite numeric controls; three instanced source/peer corruptions; four missing-stage controls; five event-identity/span controls; four public-driver/context/route/kind controls; missing dependency, failed/mismatched public test, bool/number and typed geometry controls. Python compile PASS. Minimal collector patch `git apply --check` against root checkout PASS.
+- No Godot process, editor, GPU, public calls, production changes, accepted fixture edits or root edits were made. Godot parsing and actual public273-case execution remain pending root. No current candidate qualification is claimed.
+
+## Deliberately missing witness
+
+The native checker still proves its existing independent reference comparisons, but its aggregate totals are not bound to each new raw history row. Therefore this adapter deliberately emits no `valid_effect`, `playback` or `track_paths_types` checks. The reference resource path/hash is recorded for later linkage, not treated as evidence of a matching native execution. `character_setup` is not one of these ten unique motion writer keys and keeps its separate actual-public/native gate. No graph/read/visual/style or standalone external operation coverage is inferred.
+
+Next root execution: integrate helper/adapter/test file plus minimal dispatch patch; parse GDScript in the linked project; execute existing public motion/sequence driver with operation context/trace env enabled; retain273 raw rows and actual suite response; collect with strict adapter; run unchanged native checker separately. Any missing exact NODE_NOT_FOUND response, stage/version discrepancy or save mismatch stays a failure for inspection, not a suite-total override.

@@ -119,12 +119,23 @@ static func zoom_punch_spec(base: Variant, amount: float, duration: float, peak_
 
 # --- hit_flash -------------------------------------------------------------
 
+## An omitted color is a contrasting modulation pulse, not white-on-white.
+static func hit_flash_default_color(base: Color) -> Color:
+	var alpha := base.a if base.a > 0.0 else 1.0
+	if maxf(base.r, maxf(base.g, base.b)) < 0.5:
+		return Color(1.0, 1.0, 1.0, alpha)
+	return Color(base.r * 0.25, base.g * 0.25, base.b * 0.25, alpha)
+
 ## Flash `modulate` to `flash` and back `count` times.
 static func hit_flash_spec(base: Color, flash: Color, duration: float, count: int) -> Dictionary:
 	if duration <= 0.0:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'duration' must be > 0")
 	if count < 1:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'count' must be >= 1")
+	if base.is_equal_approx(flash):
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "hit_flash color equals the baseline modulation; choose a contrasting color or omit color for an automatic contrast pulse")
+	if base.a <= 0.0 and flash.a <= 0.0:
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "hit_flash baseline and pulse are both transparent; choose a visible pulse alpha")
 	var step := duration / float(count * 2)
 	var keys: Array = [{"time": 0.0, "value": base, "transition": 1.0}]
 	for index in count:
@@ -176,6 +187,8 @@ static func progress_fill_spec(from: float, to: float, duration: float, delay: f
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'duration' must be > 0")
 	if delay < 0.0:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'delay' must be >= 0")
+	if is_equal_approx(from, to):
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "progress_fill from/to are equal; choose a different destination to animate an effect")
 	var keys: Array = [{"time": 0.0, "value": from, "transition": 1.0}]
 	if delay > 0.0:
 		keys.append({"time": delay, "value": from, "transition": 1.0})
@@ -200,6 +213,7 @@ static func counter_spec(
 	if method.is_empty():
 		return ErrorCodes.make(ErrorCodes.MISSING_REQUIRED_PARAM, "'method' must not be empty")
 	var keys: Array = []
+	var output_changed := false
 	for index in steps + 1:
 		var ratio := float(index) / float(steps)
 		var value := from + (to - from) * ratio
@@ -210,11 +224,15 @@ static func counter_spec(
 			label = format % value
 		else:
 			label = format
+		if not keys.is_empty() and prefix + label + suffix != str(keys[0].args[0]):
+			output_changed = true
 		keys.append({
 			"time": duration * ratio,
 			"method": method,
 			"args": [prefix + label + suffix],
 		})
+	if not output_changed:
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "counter formats every sampled key to the same text; choose a wider range or more precise format")
 	var spec := ClipSpec.make(duration, Animation.LOOP_NONE)
 	ClipSpec.add_method_track(spec, "", keys)
 	return {"spec": spec, "steps": steps}
@@ -286,6 +304,8 @@ static func spring_spec(
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'duration' must be > 0")
 	if typeof(baseline) != typeof(offset):
 		return ErrorCodes.make(ErrorCodes.WRONG_TYPE, "'offset' must match the target's position type")
+	if (offset is Vector2 and (offset as Vector2).is_zero_approx()) or (offset is Vector3 and (offset as Vector3).is_zero_approx()):
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "spring offset is zero; choose a nonzero displacement to animate an effect")
 	samples = clampi(samples, 4, _MAX_KEYS - 1)
 	var omega := TAU * frequency
 	var keys: Array = []
@@ -520,6 +540,8 @@ static func damage_bar_spec(from: float, to: float, delay: float, duration: floa
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'duration' must be > 0")
 	if delay < 0.0:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "'delay' must be >= 0")
+	if is_equal_approx(from, to):
+		return ErrorCodes.make(ErrorCodes.OPERATION_UNAVAILABLE, "damage_bar from/to are equal; choose a different destination to animate an effect")
 	var keys: Array = [{"time": 0.0, "value": from, "transition": 1.0}]
 	if delay > 0.0:
 		keys.append({"time": delay, "value": from, "transition": 1.0})
