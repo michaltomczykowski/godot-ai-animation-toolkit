@@ -2274,6 +2274,71 @@ func blink(params: Dictionary) -> Dictionary:
 # jumping_jack / squat / punch
 # ============================================================================
 
+## Direction from a bone to the next role in its limb, in the bone's local
+## rest frame. Imported rigs can use any axis and may have twist bones between
+## the two roles. An unrelated or coincident endpoint leaves the axis unknown.
+static func _rest_segment_axis(skeleton: Skeleton3D, bone: int, endpoint: int) -> Vector3:
+	var offset := Transform3D.IDENTITY
+	var index := endpoint
+	while index >= 0 and index != bone:
+		offset = skeleton.get_bone_rest(index) * offset
+		index = skeleton.get_bone_parent(index)
+	if index != bone or not offset.origin.is_finite() or offset.origin.length_squared() < 1e-12:
+		return Vector3.ZERO
+	return offset.origin.normalized()
+
+
+static func _recipe_parent_basis(skeleton: Skeleton3D, bone: int, at_rest := false) -> Basis:
+	var parent := skeleton.get_bone_parent(bone)
+	if parent < 0:
+		return Basis.IDENTITY
+	if at_rest:
+		return skeleton.get_bone_global_rest(parent).basis
+	return skeleton.get_bone_global_pose(parent).basis
+
+
+static func _segment_aim_delta(
+	skeleton: Skeleton3D, bone: String, endpoint: String, target: Vector3, degrees: float,
+) -> Quaternion:
+	var index := skeleton.find_bone(bone)
+	if index < 0 or is_zero_approx(degrees):
+		return Quaternion.IDENTITY
+	var segment := _rest_segment_axis(skeleton, index, skeleton.find_bone(endpoint))
+	if segment == Vector3.ZERO:
+		return _aim_delta(skeleton, bone, target, degrees)
+	var rest := skeleton.get_bone_rest(index).basis
+	var parent_basis := _recipe_parent_basis(skeleton, index, true)
+	var from := (parent_basis * rest * segment).normalized()
+	var toward := target.normalized()
+	var angle := from.angle_to(toward)
+	var axis := from.cross(toward)
+	if axis.length_squared() < 1e-8:
+		if from.dot(toward) >= 0.0:
+			return Quaternion.IDENTITY
+		axis = from.cross(Vector3.RIGHT)
+		if axis.length_squared() < 1e-8:
+			axis = from.cross(Vector3.UP)
+	var swung := from.rotated(axis.normalized(), clampf(deg_to_rad(degrees), -angle, angle))
+	var in_parent := (parent_basis.inverse() * swung).normalized()
+	var rotation := rest.get_rotation_quaternion()
+	return Quaternion((rest.get_scale() * segment).normalized(), rotation.inverse() * in_parent).normalized()
+
+
+## Point the real limb segment through the current parent pose. Change only
+## rotation so the temporary solve and the resulting rotation tracks agree.
+static func _point_segment(skeleton: Skeleton3D, bone: int, endpoint: int, direction: Vector3) -> void:
+	if direction.length_squared() < 1e-12:
+		return
+	var segment := _rest_segment_axis(skeleton, bone, endpoint)
+	if segment == Vector3.ZERO:
+		_point_bone(skeleton, str(skeleton.get_bone_name(bone)), direction)
+		return
+	var in_parent := (_recipe_parent_basis(skeleton, bone).inverse() * direction).normalized()
+	var rotation := skeleton.get_bone_pose_rotation(bone)
+	var current := (rotation * (skeleton.get_bone_pose_scale(bone) * segment)).normalized()
+	skeleton.set_bone_pose_rotation(bone, (Quaternion(current, in_parent) * rotation).normalized())
+
+
 ## A jumping-jack rep: the arms swing down -> overhead while the legs spread
 ## apart and back together, with a small rise when open. Needs a standing rest
 ## pose (T- or A-pose arms both work).
@@ -2304,19 +2369,30 @@ func jumping_jack(params: Dictionary) -> Dictionary:
 	var spread := float(params.get("stride", 18.0))
 	var hop := float(params.get("bob", 0.04))
 	var half := length * 0.5
+	var left_out := Vector3.RIGHT
+	var thigh_l := skeleton.find_bone(str(roles.thigh_l))
+	var thigh_r := skeleton.find_bone(str(roles.thigh_r))
+	if thigh_l >= 0 and thigh_r >= 0:
+		var across := skeleton.get_bone_global_rest(thigh_l).origin - skeleton.get_bone_global_rest(thigh_r).origin
+		across.y = 0.0
+		if across.length_squared() > 1e-8:
+			left_out = across.normalized()
 	var keys := {}
 	for side in ["l", "r"]:
 		var arm := str(roles["arm_" + side])
+		var forearm := str(roles.get("forearm_" + side, ""))
+		var arms_down := _segment_aim_delta(skeleton, arm, forearm, Vector3.DOWN, arm_amount)
 		keys[arm] = {"rotation": [
-			{"time": 0.0, "delta": _aim_delta(skeleton, arm, Vector3.DOWN, arm_amount)},
-			{"time": half, "delta": _aim_delta(skeleton, arm, Vector3.UP, arm_amount)},
-			{"time": length, "delta": _aim_delta(skeleton, arm, Vector3.DOWN, arm_amount)},
+			{"time": 0.0, "delta": arms_down},
+			{"time": half, "delta": _segment_aim_delta(skeleton, arm, forearm, Vector3.UP, arm_amount)},
+			{"time": length, "delta": arms_down},
 		]}
 		var thigh := str(roles["thigh_" + side])
-		var outward := Vector3.RIGHT if side == "l" else Vector3.LEFT
+		var shin := str(roles.get("shin_" + side, ""))
+		var outward := left_out if side == "l" else -left_out
 		keys[thigh] = {"rotation": [
 			{"time": 0.0, "delta": Quaternion.IDENTITY},
-			{"time": half, "delta": _aim_delta(skeleton, thigh, outward, spread)},
+			{"time": half, "delta": _segment_aim_delta(skeleton, thigh, shin, outward, spread)},
 			{"time": length, "delta": Quaternion.IDENTITY},
 		]}
 	if roles.has("hips"):
@@ -2363,22 +2439,30 @@ func squat(params: Dictionary) -> Dictionary:
 	if depth <= 0.0:
 		return ErrorCodes.make(ErrorCodes.VALUE_OUT_OF_RANGE, "bob (squat depth in metres) must be > 0")
 	var arm_amount := float(params.get("amplitude", 65.0))
-	var times := [0.0, length * 0.35, length * 0.65, length]
-	var factors := [0.0, 1.0, 1.0, 0.0]
 	var snapshot := _pose_snapshot(skeleton)
+	# The ankle drifts if the player interpolates only the standing and bottom
+	# rotations. Bake intermediate solves through descent and ascent.
+	const PHASE_STEPS := 12
+	var times: Array[float] = []
+	var poses: Array[Dictionary] = []
+	for step in range(PHASE_STEPS + 1):
+		var progress := float(step) / PHASE_STEPS
+		var factor := ease(progress, -2.0)
+		times.append(length * 0.35 * progress)
+		poses.append(_squat_deltas(skeleton, roles, depth * factor, arm_amount * factor))
+	for step in range(PHASE_STEPS, -1, -1):
+		times.append(length - times[step])
+		poses.append(poses[step])
+	_pose_restore(skeleton, snapshot)
 	var keys := {}
 	for index in times.size():
-		var factor: float = factors[index]
-		var deltas := _squat_deltas(skeleton, roles, depth * factor, arm_amount * factor)
-		for bone in deltas:
-			var entry: Dictionary = deltas[bone]
-			if not keys.has(bone):
-				keys[bone] = {}
+		for bone in poses[index]:
+			var entry: Dictionary = poses[index][bone]
 			var kind := "rotation" if entry.has("rotation") else "position"
-			if not (keys[bone] as Dictionary).has(kind):
-				(keys[bone] as Dictionary)[kind] = []
-			((keys[bone] as Dictionary)[kind] as Array).append({"time": times[index], "delta": entry[kind]})
-	_pose_restore(skeleton, snapshot)
+			if not keys.has(bone):
+				keys[bone] = {kind: []}
+			var track: Array = keys[bone][kind]
+			track.append({"time": times[index], "delta": entry[kind], "transition": "linear"})
 	var committed := _commit_procedural_clip(params, resolved,
 		str(params.get("animation_name", "squat")), length, loop_result.ok, keys)
 	if committed.has("error"):
@@ -2395,7 +2479,7 @@ static func _squat_deltas(skeleton: Skeleton3D, roles: Dictionary, depth: float,
 	var out := {}
 	var hips_index := skeleton.find_bone(str(roles.hips))
 	if hips_index >= 0:
-		var hips_delta := Vector3(0, -depth, 0)
+		var hips_delta := _recipe_parent_basis(skeleton, hips_index).inverse() * (Vector3.DOWN * depth)
 		skeleton.set_bone_pose_position(hips_index, skeleton.get_bone_rest(hips_index).origin + hips_delta)
 		out[str(roles.hips)] = {"position": hips_delta}
 	var forward := _forward_dir(skeleton, roles)
@@ -2403,24 +2487,32 @@ static func _squat_deltas(skeleton: Skeleton3D, roles: Dictionary, depth: float,
 		var thigh := str(roles.get("thigh_" + side, ""))
 		var shin := str(roles.get("shin_" + side, ""))
 		var foot := str(roles.get("foot_" + side, ""))
-		if thigh.is_empty() or shin.is_empty() or foot.is_empty():
-			continue
 		var thigh_index := skeleton.find_bone(thigh)
 		var shin_index := skeleton.find_bone(shin)
 		var foot_index := skeleton.find_bone(foot)
-		var hip := skeleton.get_bone_global_pose(thigh_index).origin
-		var ankle := skeleton.get_bone_global_rest(foot_index).origin
-		var upper := (skeleton.get_bone_global_rest(shin_index).origin - skeleton.get_bone_global_rest(thigh_index).origin).length()
-		var lower := (skeleton.get_bone_global_rest(foot_index).origin - skeleton.get_bone_global_rest(shin_index).origin).length()
-		var knee := _knee_position(hip, ankle, upper, lower, forward)
-		_point_bone(skeleton, thigh, knee - hip)
-		_point_bone(skeleton, shin, ankle - knee)
+		if thigh_index < 0 or shin_index < 0 or foot_index < 0:
+			continue
+		var foot_rest := skeleton.get_bone_global_rest(foot_index)
+		if depth > 0.0:
+			var hip := skeleton.get_bone_global_pose(thigh_index).origin
+			var knee_rest := skeleton.get_bone_global_rest(shin_index).origin
+			var upper := knee_rest.distance_to(skeleton.get_bone_global_rest(thigh_index).origin)
+			var lower := knee_rest.distance_to(foot_rest.origin)
+			if minf(upper, lower) > 0.001:
+				var knee := _knee_position(hip, foot_rest.origin, upper, lower, forward)
+				_point_segment(skeleton, thigh_index, shin_index, knee - hip)
+				_point_segment(skeleton, shin_index, foot_index,
+					foot_rest.origin - skeleton.get_bone_global_pose(shin_index).origin)
+				var foot_basis := _recipe_parent_basis(skeleton, foot_index).inverse() * foot_rest.basis
+				skeleton.set_bone_pose_rotation(foot_index, foot_basis.get_rotation_quaternion())
 		out[thigh] = {"rotation": _pose_delta_rotation(skeleton, thigh_index)}
 		out[shin] = {"rotation": _pose_delta_rotation(skeleton, shin_index)}
+		out[foot] = {"rotation": _pose_delta_rotation(skeleton, foot_index)}
 		var arm := str(roles.get("arm_" + side, ""))
 		if not arm.is_empty():
-			var arm_target := (forward * 0.8 + Vector3.DOWN * 0.35).normalized()
-			out[arm] = {"rotation": _aim_delta(skeleton, arm, arm_target, arm_amount)}
+			var forearm := str(roles.get("forearm_" + side, ""))
+			var arm_target := forward * 0.8 + Vector3.DOWN * 0.35
+			out[arm] = {"rotation": _segment_aim_delta(skeleton, arm, forearm, arm_target, arm_amount)}
 	return out
 
 
@@ -2519,20 +2611,28 @@ static func _punch_deltas(skeleton: Skeleton3D, roles: Dictionary, punching: Str
 	var degrees: Array = SpineTwist.amplitudes(maxi(1, torso.size()), twist, weights) if not torso.is_empty() else []
 	for index in torso.size():
 		var bone := str(torso[index])
-		out[bone] = {"rotation": Quaternion(Vector3.UP, deg_to_rad(float(degrees[index]) * twist_sign))}
+		var delta := Quaternion(Vector3.UP, deg_to_rad(float(degrees[index]) * twist_sign))
+		out[bone] = {"rotation": delta}
+		var bone_index := skeleton.find_bone(bone)
+		if bone_index >= 0:
+			var rest := skeleton.get_bone_rest(bone_index).basis.get_rotation_quaternion()
+			skeleton.set_bone_pose_rotation(bone_index, (rest * delta).normalized())
 	for side in ["l", "r"]:
 		var arm := str(roles.get("arm_" + side, ""))
 		var forearm := str(roles.get("forearm_" + side, ""))
-		if arm.is_empty() or forearm.is_empty():
+		var arm_index := skeleton.find_bone(arm)
+		var forearm_index := skeleton.find_bone(forearm)
+		if arm_index < 0 or forearm_index < 0:
 			continue
+		var hand_index := skeleton.find_bone(str(roles.get("hand_" + side, "")))
 		if side == punching:
-			_point_bone(skeleton, arm, (forward + Vector3.DOWN * 0.08).normalized())
-			_point_bone(skeleton, forearm, forward)
+			_point_segment(skeleton, arm_index, forearm_index, forward + Vector3.DOWN * 0.08)
+			_point_segment(skeleton, forearm_index, hand_index, forward)
 		else:
-			_point_bone(skeleton, arm, (Vector3.DOWN * 0.8 + forward * 0.4).normalized())
-			_point_bone(skeleton, forearm, (Vector3.UP * 0.45 + forward * 0.85).normalized())
-		out[arm] = {"rotation": _pose_delta_rotation(skeleton, skeleton.find_bone(arm))}
-		out[forearm] = {"rotation": _pose_delta_rotation(skeleton, skeleton.find_bone(forearm))}
+			_point_segment(skeleton, arm_index, forearm_index, Vector3.DOWN * 0.8 + forward * 0.4)
+			_point_segment(skeleton, forearm_index, hand_index, Vector3.UP * 0.45 + forward * 0.85)
+		out[arm] = {"rotation": _pose_delta_rotation(skeleton, arm_index)}
+		out[forearm] = {"rotation": _pose_delta_rotation(skeleton, forearm_index)}
 	return out
 
 

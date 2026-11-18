@@ -10,6 +10,7 @@ const OpRegistry := preload("res://addons/godot_ai_animation/registry/op_registr
 const RigHandler := preload("res://addons/godot_ai_animation/handlers/rig.gd")
 
 const DUMMY := "res://models/human_dummy/HumanCharacterDummy_F.fbx"
+const KITE := "res://showcase_2_0/robot.tscn"
 const POSE_FILE := "res://animation_toolkit/tmp_pose.json"
 const POSE_DIR := "res://animation_toolkit/tmp_poses"
 const POSE_DIR_PARAM := {"pose_dir": POSE_DIR}
@@ -84,14 +85,14 @@ func _find_of_type(node: Node, type_name: String) -> Node:
 	return null
 
 
-## Instance the human dummy into the scene and locate its rig.
-func _rig(prefix: String) -> Dictionary:
+## Instance a test performer into the scene and locate its rig.
+func _rig(prefix: String, fixture: String = DUMMY) -> Dictionary:
 	var scene_root := EditorInterface.get_edited_scene_root()
 	if scene_root == null:
 		return {"error": "no scene"}
-	if not ResourceLoader.exists(DUMMY):
-		return {"error": "the human dummy asset is missing"}
-	var packed = load(DUMMY)
+	if not ResourceLoader.exists(fixture):
+		return {"error": "the rig fixture is missing: " + fixture}
+	var packed = load(fixture)
 	var root: Node = packed.instantiate()
 	root.name = prefix + "Dummy"
 	scene_root.add_child(root)
@@ -1821,17 +1822,13 @@ func test_squat_keeps_the_feet_planted() -> void:
 	var skeleton: Skeleton3D = rig.skeleton
 	var anim: Animation = rig.player.get_animation("squat")
 	assert_true(anim != null, "the clip exists")
-	var bottom := 1
-	var hips_index := _track_index(anim, ":B-hips", Animation.TYPE_POSITION_3D)
-	assert_true(hips_index >= 0, "the hips have a position track")
-	var hips_key: Vector3 = anim.track_get_key_value(hips_index, bottom)
-	var hips_rest: Vector3 = skeleton.get_bone_rest(skeleton.find_bone("B-hips")).origin
+	var hips_index := skeleton.find_bone("B-hips")
+	var hips_rest := skeleton.get_bone_rest(hips_index).origin
+	var player: AnimationPlayer = rig.player
+	player.play("squat")
+	player.seek(anim.length * 0.35, true)
+	var hips_key := skeleton.get_bone_pose_position(hips_index)
 	assert_true(hips_key.y < hips_rest.y - depth * 0.8, "the hips drop (%.2f -> %.2f)" % [hips_rest.y, hips_key.y])
-	for bone_name in ["B-thigh.L", "B-shin.L", "B-thigh.R", "B-shin.R"]:
-		var track := _track_index(anim, ":" + bone_name, Animation.TYPE_ROTATION_3D)
-		assert_true(track >= 0, "%s has a rotation track" % bone_name)
-		skeleton.set_bone_pose_rotation(skeleton.find_bone(bone_name), anim.track_get_key_value(track, bottom))
-	skeleton.set_bone_pose_position(skeleton.find_bone("B-hips"), hips_key)
 	for side in ["L", "R"]:
 		var foot := skeleton.find_bone("B-foot." + side)
 		var rest_ankle: Vector3 = skeleton.get_bone_global_rest(foot).origin
@@ -1839,6 +1836,86 @@ func test_squat_keeps_the_feet_planted() -> void:
 		assert_true(posed_ankle.distance_to(rest_ankle) < 0.02,
 			"the %s ankle stays planted (moved %.3f m)" % [side, posed_ankle.distance_to(rest_ankle)])
 	_teardown(rig)
+
+
+## The showcase robot stores joint offsets in its rest origins while its
+## rotation bases are identity. Aiming at pose-basis +Y inverts its limbs.
+func test_kite_rig_recipes_follow_joint_segments() -> void:
+	var rig := _rig("RigKite", KITE)
+	assert_true(not rig.has("error"), str(rig.get("error", "")))
+	if rig.has("error"):
+		return
+	var skeleton: Skeleton3D = rig.skeleton
+	var player: AnimationPlayer = rig.player
+	player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	for recipe in [
+		{"op": "squat", "duration": 2.0},
+		{"op": "punch", "duration": 0.8, "bob": 0.0},
+		{"op": "jumping_jack", "duration": 1.0, "amplitude": 165.0},
+	]:
+		var result := _handler.run({
+			"skeleton_path": rig.skeleton_path, "player_path": rig.player_path,
+		}.merged(recipe), null)
+		assert_true(result.has("data"), "Kite %s should generate a clip: %s" % [recipe.op, str(result)])
+		if not result.has("data"):
+			_teardown(rig)
+			return
+
+	player.play("squat")
+	var worst_ankle_delta := 0.0
+	var worst_boot_tilt := 0.0
+	for tick in range(121):
+		player.seek(tick / 60.0, true)
+		for side in ["L", "R"]:
+			var foot := skeleton.find_bone("foot." + side)
+			var rest := skeleton.get_bone_global_rest(foot)
+			var pose := skeleton.get_bone_global_pose(foot)
+			worst_ankle_delta = maxf(worst_ankle_delta, rest.origin.distance_to(pose.origin))
+			worst_boot_tilt = maxf(worst_boot_tilt,
+				rest.basis.get_rotation_quaternion().angle_to(pose.basis.get_rotation_quaternion()))
+	assert_true(worst_ankle_delta < 0.02, "both ankles stay planted throughout (max %.4f m)" % worst_ankle_delta)
+	assert_true(worst_boot_tilt < 0.04, "both boots remain level (max %.4f rad)" % worst_boot_tilt)
+	player.seek(1.0, true)
+	var hips := skeleton.find_bone("hips")
+	assert_true(skeleton.get_bone_global_pose(hips).origin.y < 0.75, "Kite lowers its hips")
+	for side in ["L", "R"]:
+		var knee := skeleton.find_bone("shin." + side)
+		assert_true(skeleton.get_bone_global_pose(knee).origin.z > 0.2, "the " + side + " knee bends toward the visor")
+
+	skeleton.reset_bone_poses()
+	player.play("punch")
+	for strike in [[0.14, "L"], [0.54, "R"]]:
+		player.seek(strike[0], true)
+		var side: String = strike[1]
+		var other := "R" if side == "L" else "L"
+		var arm := _kite_joint(skeleton, "hand." + side) - _kite_joint(skeleton, "upperArm." + side)
+		var guard := _kite_joint(skeleton, "hand." + other) - _kite_joint(skeleton, "upperArm." + other)
+		assert_true(arm.z > 0.43 and arm.z > guard.z + 0.13, "the " + side + " fist extends forward")
+		assert_true(guard.z > 0.1 and guard.y < 0.0, "the " + other + " fist stays in front in guard")
+	for time in [0.0, 0.4, 0.8]:
+		player.seek(time, true)
+		for side in ["L", "R"]:
+			var guard := _kite_joint(skeleton, "hand." + side) - _kite_joint(skeleton, "upperArm." + side)
+			assert_true(guard.z > 0.1 and guard.y < 0.0, "the " + side + " fist returns to guard")
+
+	skeleton.reset_bone_poses()
+	player.play("jumping_jack")
+	player.seek(0.0, true)
+	var closed_width := _kite_joint(skeleton, "foot.L").distance_to(_kite_joint(skeleton, "foot.R"))
+	player.seek(0.5, true)
+	var open_width := _kite_joint(skeleton, "foot.L").distance_to(_kite_joint(skeleton, "foot.R"))
+	assert_true(open_width > closed_width + 0.25, "Kite spreads its legs outward")
+	for side in ["L", "R"]:
+		assert_true(_kite_joint(skeleton, "hand." + side).y > _kite_joint(skeleton, "head").y,
+			"the " + side + " hand rises overhead")
+	player.seek(1.0, true)
+	var final_width := _kite_joint(skeleton, "foot.L").distance_to(_kite_joint(skeleton, "foot.R"))
+	assert_true(is_equal_approx(final_width, closed_width), "Kite returns to the closed stance")
+	_teardown(rig)
+
+
+func _kite_joint(skeleton: Skeleton3D, name: String) -> Vector3:
+	return skeleton.get_bone_global_pose(skeleton.find_bone(name)).origin
 
 
 func test_punch_extends_the_arm_forward() -> void:
