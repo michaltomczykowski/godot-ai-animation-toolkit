@@ -1,5 +1,15 @@
 # Agent notes
 
+## November 18 upstream comparison and stock save
+
+Both pinned Godot AI releases already ship the scene save pause and the
+resource save fix from hi-godot/godot-ai#289. Stock Linux 4.7.2 opened and
+saved the archived public scene with both addons absent in private run
+44290722818 and preserved the serialized animation and library. This is
+an attribution control. Continue to require a supported repair and the
+real stock save and preview route for the original intermittent crash.
+Latest completed review run 44206433787 passed all 62 executed jobs.
+
 ## November 18 completed CI and crash trace
 
 Run 44198731499 passed 62 jobs including all four clean ZIP cells and

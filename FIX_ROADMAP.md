@@ -1,5 +1,40 @@
 # Animation Toolkit repair roadmap
 
+## Upstream comparison and stock scene save (2026-11-18)
+
+Godot AI reported a re-entrant resource-save crash in
+[#288](https://github.com/hi-godot/godot-ai/issues/288) and merged the
+resource-save transport guard in
+[#289](https://github.com/hi-godot/godot-ai/pull/289). GitHub's commit
+comparison confirms that both released cores in our matrix contain it.
+Their scene-save implementations also both pause the connection around
+`EditorInterface.save_scene()`. Our captured abort is on Godot's
+documentation loader with an allocator error. The previous Godot AI
+incident had a nested dispatcher stack and a duplicate progress task.
+
+Godot's archived [#124603](https://github.com/godotengine/godot/issues/124603)
+is the closest report for the official Linux binary. The open
+[#122158](https://github.com/godotengine/godot/issues/122158) reports a
+different failure in the same script documentation loader during editor
+exit. The editor progress-dialog report
+[#118544](https://github.com/godotengine/godot/issues/118544) remains open.
+The current official stable release still resolves to 4.7.2.
+
+Stock Linux Godot 4.7.2 opened and saved the publicly captured scene from
+run 44198731499 in a fresh project with no addons. The native editor
+shortcut updated the file and preserved the serialized Animation and
+AnimationLibrary sections byte for byte. Godot resolved the reimported
+rig by its path after reporting a stale UID. The saved scene is
+usable independently of both addons. The live generation and documentation
+timing from the failing run are still unaccounted for. The stock save
+control ran in the private qualification repository as run 44290722818.
+
+Review run [44206433787](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/44206433787)
+completed all 62 jobs successfully at `487217e`, including all four
+installation cells and the combined release gate. No supported repair for
+the original intermittent Linux crash has been verified. Release approval
+remains pending official editor stability.
+
 ## Completed install and release gates, Linux trace (2026-11-18)
 
 [Run 44198731499](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/44198731499)
