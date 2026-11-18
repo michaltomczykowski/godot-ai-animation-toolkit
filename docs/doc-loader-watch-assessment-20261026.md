@@ -10,7 +10,12 @@ CI40243257753, PR head abf8ea20beba2d37cf3b5d63a82b5fdea738f854; both actual che
 - Recorded first8 loader pre-realloc snapshots start size0/capacity2/storage0/request560bytes; subsequent sizes2,3,5,8,12,18,27 and capacities3,5,8,12,18,27,41 request840,1400,2240,3360,5040,7560,11480bytes. Element width0x118=280bytes. Capacity is updated before realloc in these snapshots, so it is not proof of already allocated capacity. Later loader snapshots/stacks are suppressed by per-writer quota, counts continue.
 - Public save_scene is received at136. At137 allocator prints `malloc(): mismatching next->prev_size (unsorted)`.
 - At138 main GDB1/LWP4229 reports storage-pointer write; snapshot size315,capacity473,storage0x7fff47c5be20,flag0. At139 same main thread reports size316 with same capacity/storage/flag. Stack top PCs0x1cb7e29 and0x1cb7beb; caller0x1e6938d. These are actual stores to the same globals the loader writes, within the same flagfalse regeneration window.
-- At141 loader39 receives SIGABRT. Its native stack detects allocator failure in realloc_static during the previously identified recursive script-doc buffer growth. No flagtrue/window_complete occurred. Exit summary counts loader13before_realloc,12pointer_write,315size_write plus main1pointer_write/1size_write; writer_limit_exceeded=false. These counts include writes without retained detailed snapshots.
+- At141 loader39 receives SIGABRT. Glibc detects corrupt heap metadata in a
+  184-byte malloc during recursive script documentation loading. See the
+  allocation trace below. No flagtrue/window_complete occurred. Exit summary
+  counts loader13before_realloc,12pointer_write,315size_write plus
+  main1pointer_write/1size_write. The counts include writes without retained
+  detailed snapshots, and writer_limit_exceeded=false.
 
 Two metadata writers in the same incomplete-load window are confirmed. Exact simultaneous machine-instruction execution is not required for an interleaving race and is not measured here. Crucially, allocator error text precedes recorded main stores in the combined log. Hardware stops and separate output buffering do not give a precise cross-thread happens-before history. Do not claim the observed main stores caused the already-reported corruption.
 
@@ -24,9 +29,38 @@ No DWARF or matching official debug symbols were available; names below are stro
 
 Both main top PCs lie in FDE0x1cb7bb0..0x1cb7e6c,700bytes. It compares shared count/capacity, grows by1.5, multiplies allocation by0x118, calls0x4410780 realloc wrapper, stores result to0x8fb68b8 at0x1cb7e22, then increments shared count at0x1cb7be5 before element writes. This is the shared LocalVector<ClassDoc> append implementation, not independently identifiable as a named EditorHelp function.
 
-Caller FDE0x1e68890..0x1e696ee references `Updating scripts documentation` and `update_script_paths_documentation`. At0x1e6937a it loads flag0x8fb68c8; false branch0x1e69388 calls0x1cb7bb0; true branch calls the doc-store path. Official EditorFileSystem source lines2246/2273 calls EditorHelp::add_doc; pinned EditorHelp lines2978–2985 branches on _script_docs_loaded and appends to _docs_to_add. The observed main path is therefore strongly identified as an inlined EditorHelp::add_doc called by script documentation update; stripped addresses alone would not justify the name.
+Caller FDE0x1e68890..0x1e696ee references `Updating scripts documentation` and `update_script_paths_documentation`. At0x1e6937a it loads flag0x8fb68c8; false branch0x1e69388 calls0x1cb7bb0; true branch calls the doc-store path. Official EditorFileSystem source lines2246/2273 calls EditorHelp::add_doc; pinned EditorHelp lines2978â€“2985 branches on _script_docs_loaded and appends to _docs_to_add. The observed main path is therefore strongly identified as an inlined EditorHelp::add_doc called by script documentation update; stripped addresses alone would not justify the name.
 
-Pinned loader lines3192–3226 clears the same queue, flagfalse, recursively loads scripts and appends their docs without a queue mutex. LocalVector push_back lines97–103 uses unsynchronized count/capacity/data. This source+byte+watch combination establishes conflicting unsynchronized access to the same queue metadata. It does not identify a particular overwritten heap byte, double-free pointer, lost element or corrupting instruction. Loader rdi/rsi at the final crashing realloc were not captured under the exhausted detailed-event quota. No payload/allocator metadata watch was installed.
+The pinned loader clears the same queue at flagfalse, recursively loads scripts
+and appends their docs without a queue mutex. LocalVector push_back uses
+unsynchronized count, capacity and data. The source, instructions and watch
+events establish conflicting access to the same queue metadata. The original
+corrupting instruction and heap location remain unknown. The watch covered
+queue metadata.
+
+## Allocation trace rechecked on 18 November 2026
+
+Re-decoded the captured loader return addresses against the exact official
+ELF named above. The archived GDB log has SHA-256
+`28faf0d7979e84721ec6c7d98f26a8ec26fb3231896099e73a3df39bfd1ff237`.
+The detection stack shows `_int_malloc(bytes=184)` and `__libc_malloc`.
+The engine caller resolves directly to the ELF's malloc import. The
+upstream frames show a four-byte element buffer allocation and a slash
+test in the recursive loader's path-building call. Together with the
+pinned `get_file_path` and `String::path_join` source, these instructions
+point to script-path construction before loading the resource. The
+stripped ELF allows a source alignment and leaves full symbolication open.
+
+This corrects the earlier attribution of the abort to queue reallocation.
+The allocator detected damage during path construction. The concurrent
+queue writers remain a separate observed fact and one possible source of
+earlier damage. A source-level control must distinguish those possibilities
+before claiming a repair. The original failure and cold official save and
+render checks remain release requirements.
+
+The offline trace is retained locally in
+`linux-native-abort-followup-r001/analysis.json`, SHA-256
+`ff799265111d5c4a17e05a9446b9e003e66bb977da032370e7675c7c59fc4d9c`.
 
 ## Minimum causal control and candidate fix
 
@@ -41,3 +75,5 @@ For the unchanged official4.7.2 public API, no exposed docs-ready/join primitive
 - https://github.com/godotengine/godot/blob/ed1daf0bf001b61586d9930840f2f1394092c079/editor/doc/editor_help.cpp
 - https://github.com/godotengine/godot/blob/ed1daf0bf001b61586d9930840f2f1394092c079/editor/file_system/editor_file_system.cpp
 - https://github.com/godotengine/godot/blob/ed1daf0bf001b61586d9930840f2f1394092c079/core/templates/local_vector.h
+- https://github.com/godotengine/godot/blob/ed1daf0bf001b61586d9930840f2f1394092c079/core/string/ustring.cpp
+- https://github.com/godotengine/godot/blob/ed1daf0bf001b61586d9930840f2f1394092c079/core/os/memory.cpp

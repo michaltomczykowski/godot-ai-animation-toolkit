@@ -1,5 +1,15 @@
 # Agent notes
 
+## November 18 completed CI and crash trace
+
+Run 44198731499 passed 62 jobs including all four clean ZIP cells and
+release-gate. Verify with `gh run view 44198731499 --json status,conclusion,jobs`.
+The exact downloaded matrix passed tools/check_install_matrix.py.
+The ELF follow-up in docs/doc-loader-watch-assessment-20261026.md corrects
+where glibc first reported damage. Preserve the loader path-building
+allocation evidence, the independent queue-writer observations and the
+two original crashes. Phase 2 remains open and approval is pending readiness.
+
 ## November 18 release checkpoint
 
 Use the latest entry in FIX_ROADMAP.md. CI 44187385094 completed with all

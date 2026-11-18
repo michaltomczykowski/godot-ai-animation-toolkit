@@ -1,5 +1,30 @@
 # Animation Toolkit repair roadmap
 
+## Completed install and release gates, Linux trace (2026-11-18)
+
+[Run 44198731499](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/actions/runs/44198731499)
+completed successfully on review head `e98e2e1`. All 62 executed jobs
+passed. The publication job was skipped on the draft PR. All four clean
+ZIP cells passed both enable orders, including Windows 4.2.1. The completed
+release gate verified both stock rendered-preview receipts and reported
+`INSTALL_MATRIX_PASS=4`. A local recheck of the downloaded receipts and
+logs also passed against the CI merge source `ae9480717a22b8a96614a862941329536107d14a`
+and its 96-file ZIP manifest. Private run `44198390548` qualified all 103
+operations and the public check accepted its exact-tree receipt.
+
+The stock Linux core 4.3.0 crash trace now locates glibc's heap-corruption
+detection in a 184-byte malloc on the script documentation loader's
+path-building chain. The hash-matched official engine instructions and
+pinned source support `get_file_path` and `String::path_join` as that
+chain. The shared documentation queue still has observed concurrent
+writers. The original corrupting event remains unknown.
+See the [corrected watch assessment](docs/doc-loader-watch-assessment-20261026.md).
+
+The workflow gates passed at the tested source. Official Godot 4.7.2
+stability still requires a supported repair validated on the cold stock
+save and preview path. Keep the PR draft and hold merge, tag and
+publication for explicit approval after that gate closes.
+
 ## Compatibility and release audit checkpoint (2026-11-18)
 
 Draft PR #1 at `fa92fb6` against `5e13a6c` completed 60 jobs successfully
