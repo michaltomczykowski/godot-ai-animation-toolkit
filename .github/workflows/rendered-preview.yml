@@ -25,15 +25,9 @@ on:
 
 jobs:
   linux-rendered-preview:
-    name: Rendered preview / Linux / core ${{ matrix.core-version }}
+    name: Rendered preview / Linux / core 4.4.2
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - {core-version: '4.2.1', core-sha: 'bfc264200584ea5823f18356acb164781f57796d'}
-          - {core-version: '4.3.0', core-sha: 'b82b5c519b1b17228f70d8effce1626f391bd1dd'}
     env:
       LIBGL_ALWAYS_SOFTWARE: '1'
       GALLIUM_DRIVER: llvmpipe
@@ -44,7 +38,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: hi-godot/godot-ai
-          ref: ${{ matrix.core-sha }}
+          ref: 423954f4314e250fa2602525d461debc91b1a173
           path: .ci/godot-ai
       - uses: chickensoft-games/setup-godot@c233594225991af5aec714e52457cc76d6df8fa2
         with:
@@ -79,6 +73,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: rendered-preview-linux-core-${{ matrix.core-version }}${{ inputs.native_debugger == 'postmortem' && '-postmortem' || '' }}
+          name: rendered-preview-linux-core-4.4.2${{ inputs.native_debugger == 'postmortem' && '-postmortem' || '' }}
           path: rendered-preview-artifacts
           if-no-files-found: error

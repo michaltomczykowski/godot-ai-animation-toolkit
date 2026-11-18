@@ -26,7 +26,7 @@ OPERATION_NAMES = {
 }
 EXPECTED_OPERATIONS = {family + "." + op for family, ops in OPERATION_NAMES.items() for op in ops}
 STATES = {"pass", "fail", "pending", "not_applicable"}
-CORES = {"4.2.1": "bfc264200584ea5823f18356acb164781f57796d", "4.3.0": "b82b5c519b1b17228f70d8effce1626f391bd1dd"}
+CORES = {"4.4.2": "423954f4314e250fa2602525d461debc91b1a173"}
 CHECKS = ["mcp_invocation", "valid_effect", "track_paths_types", "dry_run", "undo_redo", "save_reopen", "playback", "visual_review", "reported_errors", "source_unchanged", "typed_errors", "file_effect"]
 
 
@@ -222,9 +222,14 @@ def validate_release(doc, receipt, root, source, receipt_dir):
         for artifact in artifacts:
             if not artifact_is_valid(artifact, receipt_dir):
                 errors.append("compatibility artifact missing or changed")
-    actual = {(m.get("platform"), m.get("core_version")) for m in matrix if m.get("status") == "pass" and m.get("engine") == "4.7.2" and m.get("core_commit") == CORES.get(m.get("core_version")) and m.get("tested_source") == tested_source}
-    if actual != {(p, c) for p in ("windows", "linux") for c in CORES}:
-        errors.append("exact-source Windows/Linux released-core 4.2.1/4.3.0 matrix incomplete")
+    expected_cells = {(platform, core) for platform in ("windows", "linux") for core in CORES}
+    actual = {(m.get("platform"), m.get("core_version")) for m in matrix
+              if m.get("status") == "pass" and m.get("engine") == "4.7.2"
+              and m.get("core_version") in CORES
+              and m.get("core_commit") == CORES[m["core_version"]]
+              and m.get("tested_source") == tested_source}
+    if actual != expected_cells:
+        errors.append("exact-source Windows/Linux released-core 4.4.2 matrix incomplete")
     for row in doc["operations"]:
         key = row["key"]
         item = operations.get(key, {})
@@ -233,8 +238,11 @@ def validate_release(doc, receipt, root, source, receipt_dir):
         if row["availability"]["status"] == "unavailable":
             required = {"mcp_invocation", "typed_errors", "source_unchanged", "reported_errors"}
         invocation_refs = item.get("checks", {}).get("mcp_invocation", {}).get("evidence_refs", [])
-        invocation_matrix = {(records.get(ref, {}).get("platform"), records.get(ref, {}).get("core_version")) for ref in invocation_refs if records.get(ref, {}).get("core_commit") == CORES.get(records.get(ref, {}).get("core_version"))}
-        if invocation_matrix != {(p, c) for p in ("windows", "linux") for c in CORES}:
+        invocation_matrix = {(records[ref].get("platform"), records[ref]["core_version"])
+                             for ref in invocation_refs if ref in records
+                             and records[ref].get("core_version") in CORES
+                             and records[ref].get("core_commit") == CORES[records[ref]["core_version"]]}
+        if invocation_matrix != expected_cells:
             errors.append(f"{key}: public invocation released-core/platform coverage incomplete")
         for name in required:
             check = item.get("checks", {}).get(name, {})
@@ -247,6 +255,11 @@ def validate_release(doc, receipt, root, source, receipt_dir):
                     errors.append(f"{key}.{name}/{ref}: stale/noncandidate evidence")
                 if evidence.get("engine") != "4.7.2" or not evidence.get("case_ids") or not evidence.get("dependencies"):
                     errors.append(f"{key}.{name}/{ref}: missing engine/cases/dependencies")
+                if name != "visual_review":
+                    core = evidence.get("core_version")
+                    if ((evidence.get("platform"), core) not in expected_cells
+                            or evidence.get("core_commit") != CORES[core]):
+                        errors.append(f"{key}.{name}/{ref}: evidence uses an unqualified core or platform")
                 if name == "mcp_invocation" and evidence.get("route") != "public_godot_ai":
                     errors.append(f"{key}: public Godot AI route missing")
                 if name == "visual_review":

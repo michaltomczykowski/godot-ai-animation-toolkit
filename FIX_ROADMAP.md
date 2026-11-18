@@ -1,5 +1,19 @@
 # Animation Toolkit repair roadmap
 
+## Godot AI 4.4.2 baseline (2026-11-18)
+
+Toolkit 2.0.0 now requires stable Godot AI 4.4.2 or later. The release
+workflows qualify exactly 4.4.2 at
+`423954f4314e250fa2602525d461debc91b1a173` on Windows and Linux with
+official Godot 4.7.2. Both clean-install enable orders and the original
+Linux public save and rendered preview checks remain required.
+
+The 4.2.1 and 4.3.0 compatibility receipts remain historical. The
+103-operation checker requires fresh candidate evidence on the new
+baseline. A completed audit for the previous baseline cannot qualify
+this tree. The intermittent Linux editor failure remains a release
+blocker, and merge, tag and publication require approval after readiness.
+
 ## Native save with toolkit activation isolated (2026-11-18)
 
 Private run `44292474569` passed two native GUI saves with official Godot

@@ -15,6 +15,7 @@ import subprocess
 import sys
 import zipfile
 from validate_release_package import validate, git, read_blobs
+from check_release_audit import CORES
 
 PROBE = '''@tool
 extends EditorPlugin
@@ -92,8 +93,7 @@ def main() -> None:
         raise ValueError('Use a fresh output directory; previous evidence is preserved')
     a.output.mkdir(parents=True)
     core_sha = git(a.core_root, 'rev-parse', 'HEAD').decode().strip()
-    expected = {'4.2.1': 'bfc264200584ea5823f18356acb164781f57796d', '4.3.0': 'b82b5c519b1b17228f70d8effce1626f391bd1dd'}
-    if a.core_ref not in expected or core_sha != expected[a.core_ref]:
+    if core_sha != CORES.get(a.core_ref):
         raise ValueError('Clean install requires an exact supported released core')
     results = []
     for order in ('core-first', 'toolkit-first'):

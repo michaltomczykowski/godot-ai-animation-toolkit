@@ -1,8 +1,8 @@
 # Final v2.0.0 execution plan
 
-Approved26October2026. Official Godot4.7.2; Windows and Linux; released Godot AI
-4.2.1 and4.3.0. Unresolved Linux instability blocks publication. This is the
-active execution order under release-completion-plan.md.
+Official Godot 4.7.2 on Windows and Linux, with Godot AI 4.4.2 pinned
+for release qualification. The previous 4.2.1 and 4.3.0 receipts remain
+historical evidence. Unresolved Linux instability blocks publication.
 
 | Phase | State | Completion gate |
 | --- | --- | --- |
@@ -10,8 +10,8 @@ active execution order under release-completion-plan.md.
 |2.Linux stability|blocked|Supported repair passes official4.7.2 public save/render flows; patched-engine experiments stay separate.|
 |3.Seven motion effect checks|complete, scoped local gates|All seven independent intent joins pass; final candidate/source/compatibility assembly remains phase5–6.|
 |4.Remaining recordings|complete|Independent visual assessments cover all applicable operations. The final three exact cases were decoded in full.|
-|5.Candidate audit/package|complete at `cf0ed51`|103-operation candidate audit and immutable 2.0.0 ZIP both pass. The approved Linux release hold remains in effect.|
-|6.Qualify/merge/publish|pending|Four-cell final matrix,ZIP/UI/reload/workflows,verified main,tag/assets/download checksum pass.|
+|5.Candidate audit/package|4.4.2 qualification pending|Rebind the 103-operation audit and immutable ZIP to the exact new candidate.|
+|6.Qualify/merge/publish|pending|Windows and Linux with both enable orders, public routes, reload and workflow checks. Verify main and assets after release approval.|
 
 ## Execution limits
 

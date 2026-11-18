@@ -1,9 +1,9 @@
-"""Require four exact-source, released-core clean ZIP receipts and their logs."""
+"""Require exact-source Windows and Linux clean ZIP receipts and their logs."""
 import argparse
 import hashlib
 import json
 from pathlib import Path
-import sys
+from check_release_audit import CORES
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
@@ -14,8 +14,7 @@ def main():
     package = json.loads(a.package.read_text())
     if package['source'] != a.source:
         raise ValueError('Package source mismatch')
-    expected = {(os, core) for os in ('windows', 'linux') for core in ('4.2.1', '4.3.0')}
-    cores = {'4.2.1': 'bfc264200584ea5823f18356acb164781f57796d', '4.3.0': 'b82b5c519b1b17228f70d8effce1626f391bd1dd'}
+    expected = {(os, core) for os in ('windows', 'linux') for core in CORES}
     seen = set()
     for path in a.receipts.rglob('clean-install-receipt.json'):
         r = json.loads(path.read_text())
@@ -23,7 +22,7 @@ def main():
         cell = (platform, r['core'])
         if cell not in expected or cell in seen:
             raise ValueError('Unexpected/duplicate matrix cell')
-        if r['source'] != a.source or r['engine'] != '4.7.2' or r['core_source'] != cores[r['core']] or r['zip_sha256'] != package['zip_sha256']:
+        if r['source'] != a.source or r['engine'] != '4.7.2' or r['core_source'] != CORES[r['core']] or r['zip_sha256'] != package['zip_sha256']:
             raise ValueError('Stale/incompatible install receipt')
         if {c['order'] for c in r['cases']} != {'core-first', 'toolkit-first'} or len(r['cases']) != 2:
             raise ValueError('Both enable orders required')
@@ -34,7 +33,7 @@ def main():
         seen.add(cell)
     if seen != expected:
         raise ValueError('Missing required installation cells: ' + str(expected - seen))
-    print('INSTALL_MATRIX_PASS=4')
+    print(f'INSTALL_MATRIX_PASS={len(seen)}')
 
 if __name__ == '__main__':
     main()

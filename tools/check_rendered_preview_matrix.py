@@ -1,13 +1,11 @@
-"""Require both released-core rendered receipts from this workflow's exact source."""
+"""Require the pinned release's rendered receipt from this workflow's exact source."""
 from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
 import subprocess
 from operation_dependencies import source_blobs
-
-CORES={'4.2.1':'bfc264200584ea5823f18356acb164781f57796d',
-       '4.3.0':'b82b5c519b1b17228f70d8effce1626f391bd1dd'}
+from check_release_audit import CORES
 
 
 def verify_identity(context, source, core, blobs, *, platform='linux'):

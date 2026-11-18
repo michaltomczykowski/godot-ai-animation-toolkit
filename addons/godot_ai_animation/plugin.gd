@@ -1,7 +1,7 @@
 @tool
 extends EditorPlugin
 
-## Registers the animation toolkit's tools with Godot AI (>= 4.2.1):
+## Registers the animation toolkit's tools with Godot AI.
 ## `animation_presets`, `animation_fx`, `animation_graph`, `animation_edit`,
 ## `animation_inspect`, `animation_library`, `animation_rig` and
 ## `animation_motion`. All are promoted to first-class `custom_*` tools and are
@@ -19,6 +19,7 @@ const REGISTRY_SCRIPT := "res://addons/godot_ai/custom_tools/mcp_tool_registry.g
 const SPEC_SCRIPT := "res://addons/godot_ai/custom_tools/mcp_custom_tool_spec.gd"
 const SOURCE_CFG := "res://addons/godot_ai_animation/plugin.cfg"
 const CORE_CFG := "res://addons/godot_ai/plugin.cfg"
+const MINIMUM_CORE_VERSION := "4.4.2"
 const RETRY_WINDOW_SEC := 30.0
 const POLL_INTERVAL_SEC := 0.5
 
@@ -83,7 +84,7 @@ func _process(delta: float) -> void:
 		if not _warned:
 			_warned = true
 			push_warning(
-				"Godot AI Animation Toolkit: Godot AI (>= 4.2.1) not ready - "
+				"Godot AI Animation Toolkit: Godot AI (>= " + MINIMUM_CORE_VERSION + ") not ready - "
 				+ "toolkit registration did not become ready."
 			)
 		return
@@ -243,7 +244,7 @@ static func _instance():
 
 
 ## Check metadata before loading core scripts. Stable releases only; comparing
-## numeric components avoids treating 4.10 as older than 4.2.
+## numeric components avoids treating 4.10 as older than 4.4.
 static func _core_dependency_error() -> String:
 	var cfg_file := FileAccess.open(CORE_CFG, FileAccess.READ)
 	var fingerprint := "unreadable:" + str(FileAccess.get_open_error())
@@ -260,23 +261,23 @@ static func _core_dependency_error() -> String:
 
 static func _read_core_metadata() -> String:
 	if not FileAccess.file_exists(CORE_CFG):
-		return "Godot AI >= 4.2.1 required; addon not installed (" + CORE_CFG + ")."
+		return "Godot AI >= " + MINIMUM_CORE_VERSION + " required; addon not installed (" + CORE_CFG + ")."
 	var cfg := ConfigFile.new()
 	if cfg.load(CORE_CFG) != OK:
 		return "Godot AI metadata could not be read: " + CORE_CFG
 	var version := str(cfg.get_value("plugin", "version", ""))
 	var parts := version.split(".")
 	if parts.size() != 3:
-		return "Godot AI has an invalid or prerelease version: '" + version + "'; stable >= 4.2.1 required."
+		return "Godot AI has an invalid or prerelease version: '" + version + "'; stable >= " + MINIMUM_CORE_VERSION + " required."
 	for part in parts:
 		if not part.is_valid_int() or int(part) < 0 or part.begins_with("+") or (part.length() > 1 and part.begins_with("0")):
-			return "Godot AI has an invalid or prerelease version: '" + version + "'; stable >= 4.2.1 required."
-	var minimum := [4, 2, 1]
+			return "Godot AI has an invalid or prerelease version: '" + version + "'; stable >= " + MINIMUM_CORE_VERSION + " required."
+	var minimum := MINIMUM_CORE_VERSION.split(".")
 	for i in range(3):
-		if int(parts[i]) > minimum[i]:
+		if int(parts[i]) > int(minimum[i]):
 			return ""
-		if int(parts[i]) < minimum[i]:
-			return "Godot AI " + version + " is too old; >= 4.2.1 required."
+		if int(parts[i]) < int(minimum[i]):
+			return "Godot AI " + version + " is too old; >= " + MINIMUM_CORE_VERSION + " required."
 	return ""
 
 

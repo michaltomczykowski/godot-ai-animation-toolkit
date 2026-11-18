@@ -1,5 +1,15 @@
 # Agent notes
 
+## November 18 Godot AI baseline change
+
+Use stable Godot AI 4.4.2, commit
+`423954f4314e250fa2602525d461debc91b1a173`, with official Godot 4.7.2
+for new toolkit candidate evidence. The previous four-cell receipts
+remain preserved under their actual core versions. The active matrix
+has Windows and Linux cells, each with both enable orders. Rebind
+the 103-operation audit to the new candidate and keep the official
+Linux stability requirement and the release approval hold.
+
 ## November 18 matched native save control
 
 Private run 44292474569 saved the exact archived scene on official

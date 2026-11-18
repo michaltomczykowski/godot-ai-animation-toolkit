@@ -2,6 +2,7 @@
 from pathlib import Path
 import unittest
 import yaml
+from check_release_audit import CORES
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -14,7 +15,7 @@ class WorkflowGateControls(unittest.TestCase):
         gate=jobs['release-gate']
         self.assertIn('rendered-preview',gate['needs'])
         downloads=[s for s in gate['steps'] if s.get('uses')=='actions/download-artifact@v4']
-        preview=next(s for s in downloads if s['with'].get('pattern')=='rendered-preview-linux-core-*')
+        preview=next(s for s in downloads if s['with'].get('name')=='rendered-preview-linux-core-${{ env.CORE_VERSION }}')
         self.assertNotIn('run-id',preview['with'])
         self.assertNotIn('github-token',preview['with'])
         self.assertTrue(any('check_rendered_preview_matrix.py --source "$GITHUB_SHA"' in s.get('run','') for s in gate['steps']))
@@ -23,9 +24,22 @@ class WorkflowGateControls(unittest.TestCase):
         workflow=yaml.safe_load((ROOT/'.github/workflows/rendered-preview.yml').read_text())
         triggers=workflow.get('on',workflow.get(True))
         self.assertEqual(set(triggers),{'workflow_call','workflow_dispatch'})
-        cells=workflow['jobs']['linux-rendered-preview']['strategy']['matrix']['include']
-        self.assertEqual({c['core-version'] for c in cells},{'4.2.1','4.3.0'})
-        self.assertTrue(all(len(c['core-sha'])==40 for c in cells))
+        version, commit = next(iter(CORES.items()))
+        ci = yaml.safe_load((ROOT/'.github/workflows/ci.yml').read_text())
+        self.assertEqual((ci['env']['CORE_VERSION'], ci['env']['CORE_REF']), (version, commit))
+        for name in ('editor-suite', 'mcp-route', 'clean-install'):
+            job = ci['jobs'][name]
+            self.assertEqual(job['strategy']['matrix'], {'os': ['ubuntu-latest', 'windows-latest']})
+            core = next(step['with'] for step in job['steps']
+                        if step.get('with', {}).get('repository') == 'hi-godot/godot-ai')
+            self.assertEqual(core['ref'], '${{ env.CORE_REF }}')
+        steps = workflow['jobs']['linux-rendered-preview']['steps']
+        core = next(step['with'] for step in steps
+                    if step.get('with', {}).get('repository') == 'hi-godot/godot-ai')
+        self.assertEqual(core['ref'], commit)
+        artifact = next(step['with']['name'] for step in steps
+                        if step.get('uses') == 'actions/upload-artifact@v4')
+        self.assertTrue(artifact.startswith(f'rendered-preview-linux-core-{version}${{{{'))
 
     def test_tag_uses_remote_main_and_only_three_explicit_assets(self):
         workflow=yaml.safe_load((ROOT/'.github/workflows/ci.yml').read_text())

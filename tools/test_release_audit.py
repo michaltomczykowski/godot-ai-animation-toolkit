@@ -63,9 +63,11 @@ class AuditGateTests(unittest.TestCase):
             receipt["production_dependencies"][next(iter(receipt["production_dependencies"]))] = "0" * 40
             first = receipt["operations"][self.doc["operations"][0]["key"]]
             for record in first["evidence_records"].values(): record["assessment"]["human_approved"] = True
+            next(iter(first["evidence_records"].values()))["core_version"] = "4.3.0"
             errors = validate_release(self.doc, receipt, self.root, source, Path(directory))
             self.assertTrue(any("dependency changed" in e for e in errors))
             self.assertTrue(any("mislabeled" in e for e in errors))
+            self.assertTrue(any("unqualified core" in e for e in errors))
 
     def test_artifact_parent_and_absolute_paths_fail(self):
         with tempfile.TemporaryDirectory() as directory:

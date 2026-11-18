@@ -278,7 +278,7 @@ undoable commands) rejects it — call it directly.
 
 ## Requirements
 
-- [Godot AI](https://github.com/hi-godot/godot-ai) `>= 4.2.1` installed in the
+- [Godot AI](https://github.com/hi-godot/godot-ai) `>= 4.4.2` installed in the
   same project (this addon registers through its custom-tools API).
 - Godot 4.7.2 stable.
 
@@ -315,9 +315,9 @@ See the repository README, `docs/tool-reference.md` and the generated
 
 ## 2.0.0 candidate compatibility and installation
 
-Use Godot 4.7.2 with stable Godot AI >=4.2.1. Required release qualification
-covers Windows/Linux with released cores 4.2.1 and 4.3.0; development main is
-advisory. The 2.0.0 metadata is a candidate version until publication gates pass.
+Use Godot 4.7.2 with stable Godot AI >=4.4.2. Required release qualification
+covers Windows and Linux with the pinned Godot AI 4.4.2 release.
+The 2.0.0 metadata is a candidate version until publication gates pass.
 
 Enable families in Godot AI's Tools -> Custom tools (addon-registered) list.
 Ten families register; eight are promoted. Per-family checkboxes apply immediately

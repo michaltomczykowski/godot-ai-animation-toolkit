@@ -60,7 +60,8 @@ func _run() -> void:
     var plugin_script = load("res://addons/godot_ai_animation/plugin.gd")
     var cfg_path := "res://addons/godot_ai/plugin.cfg"
     assert("not installed" in plugin_script._core_dependency_error())
-    var versions := {"4.1.0": "too old", "4.2.0": "too old", "": "invalid", "4.2.1-rc1": "prerelease", "bad": "invalid", "4.2.1": "", "4.3.0": "", "4.10.0": ""}
+    var versions := {"4.2.1": "too old", "4.3.0": "too old", "4.4.1": "too old",
+        "": "invalid", "4.4.2-rc1": "prerelease", "bad": "invalid", "4.4.2": "", "4.10.0": ""}
     for version in versions:
         var cfg := ConfigFile.new()
         cfg.set_value("plugin", "version", version)
@@ -77,7 +78,7 @@ func _run() -> void:
     for i in range(12):
         assert("could not be read" in plugin_script._core_dependency_error())
     var cfg := ConfigFile.new()
-    cfg.set_value("plugin", "version", "4.2.1")
+    cfg.set_value("plugin", "version", "4.4.2")
     cfg.save(cfg_path)
     var registry_script = load("res://addons/godot_ai/custom_tools/mcp_tool_registry.gd")
     registry_script.instance = RefCounted.new()
@@ -91,7 +92,7 @@ func _run() -> void:
     for i in range(12):
         assert(not plugin_script._register_specs(batch, spec_script))
     assert(batch.calls == 2)
-    cfg.set_value("plugin", "version", "4.3.0")
+    cfg.set_value("plugin", "version", "4.4.3")
     cfg.save(cfg_path)
     assert(plugin_script._core_dependency_error() == "")
     assert(not plugin_script._register_specs(batch, spec_script))

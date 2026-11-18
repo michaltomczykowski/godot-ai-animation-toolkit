@@ -395,7 +395,7 @@ motion can be verified without rendering it.
 
 1. Copy `addons/godot_ai_animation/` into your project's `addons/` folder.
 2. Install and enable [Godot AI](https://github.com/hi-godot/godot-ai)
-   (`>= 4.2.1`) in the same project.
+   (`>= 4.4.2`) in the same project.
 3. Enable **Godot AI Animation Toolkit** in *Project → Project Settings →
    Plugins* (either order works).
 
@@ -408,7 +408,7 @@ Godot AI dock's Tools tab lists them with enable/disable toggles.
 | | |
 | --- | --- |
 | Godot | 4.7.2 stable |
-| Godot AI | `>= 4.2.1` (custom-tools registry) |
+| Godot AI | `>= 4.4.2` (custom-tools registry) |
 | Qualified platforms | Windows and Linux; other platforms are unqualified |
 
 The addon is **self-contained**: it uses the Godot AI custom-tools registration
@@ -459,9 +459,9 @@ MIT — see [`LICENSE`](LICENSE).
 
 ## 2.0.0 candidate compatibility and installation
 
-Use Godot 4.7.2 with stable Godot AI >=4.2.1. Required release qualification
-covers Windows/Linux with released cores 4.2.1 and 4.3.0; development main is
-advisory. The 2.0.0 metadata is a candidate version until publication gates pass.
+Use Godot 4.7.2 with stable Godot AI >=4.4.2. Required release qualification
+covers Windows and Linux with the pinned Godot AI 4.4.2 release.
+The 2.0.0 metadata is a candidate version until publication gates pass.
 
 Enable families in Godot AI's Tools -> Custom tools (addon-registered) list.
 Ten families register; eight are promoted. Per-family checkboxes apply immediately

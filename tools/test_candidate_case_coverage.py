@@ -25,7 +25,7 @@ class AdmissionTests(unittest.TestCase):
         self.content = b'committed production bytes'
         self.tree = {'addons/godot_ai_animation/example.gd': self.blob}
         self.context = dict(tested_source='b' * 40, engine='4.7.2.stable.official.ed1daf0bf',
-                            platform='linux', core_version='4.2.1', core_commit=CORES['4.2.1'],
+                            platform='linux', core_version='4.4.2', core_commit=CORES['4.4.2'],
                             ci_source_identity={'checkout_sha': 'b' * 40},
                             dependencies={next(iter(self.tree)): {'git_blob': self.blob,
                                           'sha256': hashlib.sha256(self.content).hexdigest()}})
@@ -90,8 +90,8 @@ class AdmissionTests(unittest.TestCase):
 
 class MotionSupplementJoin(unittest.TestCase):
     def test_bound_checks_do_not_cross_platform_or_supply_setup(self):
-        fields = dict(tested_source='same-source', core_version='4.2.1',
-                      core_commit=CORES['4.2.1'], engine='4.7.2.stable.official')
+        fields = dict(tested_source='same-source', core_version='4.4.2',
+                      core_commit=CORES['4.4.2'], engine='4.7.2.stable.official')
         def effects(passing):
             return {k: {'checks': {'valid_effect': {'pass': [k + ':real'] if passing else []}},
                         'missing_passing_checks': ['valid_effect', 'visual_review']}
@@ -220,8 +220,8 @@ class SavedVisualJoin(unittest.TestCase):
             record = {'operation_key': operation, 'case_ids': ['foreign'], 'tested_source': 'same',
                       'scope': 'candidate', 'engine': '4.7.2', 'dependencies': {'graph.gd': 'blob'},
                       'artifacts': []}
-            windows = {'platform': 'windows', 'core_version': '4.2.1',
-                       'core_commit': CORES['4.2.1'], 'engine': 'official'}
+            windows = {'platform': 'windows', 'core_version': '4.4.2',
+                       'core_commit': CORES['4.4.2'], 'engine': 'official'}
             public_checks = {check: {'pass': ['actual-case']}
                              for check in ('undo_redo', 'save_reopen', 'source_unchanged')}
             source = dict(windows, tested_source='same', non_invocation_failures=[],
@@ -245,8 +245,8 @@ class SavedVisualJoin(unittest.TestCase):
         allowed, pending, outside = ('animation_rig.squat', 'animation_rig.blink', 'animation_rig.rig_chain')
         inventory = {'operations': [{'key': op, 'effect_kind': 'scene_structure'}
                                     for op in (allowed, pending, outside)]}
-        cell_identity = dict(platform='windows', core_version='4.2.1',
-                             core_commit=CORES['4.2.1'], engine='official')
+        cell_identity = dict(platform='windows', core_version='4.4.2',
+                             core_commit=CORES['4.4.2'], engine='official')
         source = dict(cell_identity, tested_source='same', non_invocation_failures=[], report_sha256='report',
                       operations={op: {'checks': {name: {'pass': [op + '-case']}
                                                   for name in ('undo_redo', 'save_reopen', 'source_unchanged')}}
