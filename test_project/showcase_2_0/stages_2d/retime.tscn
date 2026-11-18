@@ -1,0 +1,389 @@
+[gd_scene format=3 uid="uid://i1b1dukkg8he"]
+
+[ext_resource type="Texture2D" path="res://showcase_2_0/stages_2d/art/harbor_distant.jpg" id="background"]
+[ext_resource type="Texture2D" path="res://showcase_2_0/stages_2d/art/harbor_foreground.png" id="foreground"]
+[ext_resource type="Texture2D" path="res://showcase_2_0/stages_2d/art/moth_body.png" id="moth_body"]
+[ext_resource type="Script" uid="uid://dtpelbiln4kai" path="res://showcase_2_0/stages_2d/harbor_stage.gd" id="stage"]
+[ext_resource type="Texture2D" path="res://showcase_2_0/stages_2d/art/wing_left.png" id="wing_left"]
+[ext_resource type="Texture2D" path="res://showcase_2_0/stages_2d/art/wing_right.png" id="wing_right"]
+
+[sub_resource type="SystemFont" id="serif"]
+font_names = PackedStringArray("Georgia", "Liberation Serif", "Noto Serif", "DejaVu Serif")
+
+[sub_resource type="Animation" id="chapter"]
+resource_name = "chapter"
+length = 18.0
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:chapter_time")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 18),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 18.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Breakwater:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 18),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(-26, -3), Vector2(-6, -3)]
+}
+
+[sub_resource type="AnimationLibrary" id="timeline"]
+_data = {
+&"chapter": SubResource("chapter")
+}
+
+[sub_resource type="StyleBoxFlat" id="CardBefore_style"]
+bg_color = Color(0.035, 0.063, 0.113, 0.89)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.637, 0.668, 0.717, 0.27)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+anti_aliasing_size = 0.8
+
+[sub_resource type="Curve2D" id="comparison_route"]
+bake_interval = 4.0
+_data = {
+"points": PackedVector2Array(0, 0, 148, -20, 104, 110, -116, 0, 114, -4, 555, 87, -127, -17, 0, 0, 1035, 110)
+}
+point_count = 3
+
+[sub_resource type="Animation" id="Animation_rdayk"]
+length = 6.0
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Courier:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.11320755, 0.2264151, 0.33962265, 0.4528302, 0.5660377, 0.6792453, 0.7924528, 0.9056604, 1.018868, 1.1320754, 1.245283, 1.3584906, 1.4716982, 1.5849056, 1.6981132, 1.8113208, 1.9245284, 2.037736, 2.1509433, 2.2641509, 2.3773584, 2.490566, 2.6037736, 2.7169812, 2.8301888, 2.9433963, 3.0566037, 3.1698112, 3.2830188, 3.3962264, 3.509434, 3.6226416, 3.7358491, 3.8490567, 3.962264, 4.075472, 4.188679, 4.3018866, 4.4150944, 4.5283017, 4.6415095, 4.754717, 4.8679247, 4.981132, 5.09434, 5.207547, 5.3207545, 5.4339623, 5.5471697, 5.6603775, 5.773585, 5.8867927, 6),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(104, 110), Vector2(121.45447, 107.740906), Vector2(138.9317, 105.66495), Vector2(156.42786, 103.75513), Vector2(173.93993, 101.99692), Vector2(191.4654, 100.37778), Vector2(209.00229, 98.88739), Vector2(226.54898, 97.51712), Vector2(244.10394, 96.257416), Vector2(261.66605, 95.101746), Vector2(279.23438, 94.043976), Vector2(296.80792, 93.07736), Vector2(314.38608, 92.197754), Vector2(331.9681, 91.400116), Vector2(349.5535, 90.6799), Vector2(367.14175, 90.03381), Vector2(384.73248, 89.458466), Vector2(402.32532, 88.95038), Vector2(419.91986, 88.506805), Vector2(437.51587, 88.12512), Vector2(455.11304, 87.80289), Vector2(472.71118, 87.53784), Vector2(490.31006, 87.328186), Vector2(507.90955, 87.1716), Vector2(525.5094, 87.06647), Vector2(543.10944, 87.01074), Vector2(560.7066, 86.81479), Vector2(578.3018, 86.403625), Vector2(595.9005, 86.18634), Vector2(613.5005, 86.12146), Vector2(631.1005, 86.18298), Vector2(648.69977, 86.35242), Vector2(666.298, 86.6174), Vector2(683.89465, 86.96759), Vector2(701.48956, 87.39685), Vector2(719.0824, 87.900085), Vector2(736.6732, 88.47354), Vector2(754.2617, 89.11444), Vector2(771.84766, 89.82135), Vector2(789.43085, 90.59329), Vector2(807.0111, 91.430115), Vector2(824.5881, 92.33276), Vector2(842.16144, 93.302246), Vector2(859.7309, 94.34085), Vector2(877.2959, 95.45169), Vector2(894.856, 96.63861), Vector2(912.4104, 97.90747), Vector2(929.95825, 99.26361), Vector2(947.4982, 100.71741), Vector2(965.02905, 102.278625), Vector2(982.5482, 103.96286), Vector2(1000.0532, 105.79062), Vector2(1017.5393, 107.7901), Vector2(1035, 110)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_3r6xx"]
+_data = {
+&"crossing": SubResource("Animation_rdayk")
+}
+
+[sub_resource type="StyleBoxFlat" id="CardAfter_style"]
+bg_color = Color(0.035, 0.063, 0.113, 0.89)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.637, 0.668, 0.717, 0.27)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+anti_aliasing_size = 0.8
+
+[sub_resource type="Animation" id="Animation_3r6xx"]
+length = 3.0
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Courier:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.056603774, 0.11320755, 0.16981132, 0.2264151, 0.28301886, 0.33962265, 0.3962264, 0.4528302, 0.509434, 0.5660377, 0.6226415, 0.6792453, 0.7358491, 0.7924528, 0.8490566, 0.9056604, 0.9622642, 1.018868, 1.0754716, 1.1320754, 1.1886792, 1.245283, 1.3018868, 1.3584906, 1.4150944, 1.4716982, 1.5283018, 1.5849056, 1.6415094, 1.6981132, 1.754717, 1.8113208, 1.8679246, 1.9245284, 1.981132, 2.037736, 2.0943396, 2.1509433, 2.2075472, 2.2641509, 2.3207548, 2.3773584, 2.4339623, 2.490566, 2.54717, 2.6037736, 2.6603773, 2.7169812, 2.7735848, 2.8301888, 2.8867924, 2.9433963, 3),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(104, 110), Vector2(121.45447, 107.740906), Vector2(138.9317, 105.66492), Vector2(156.42786, 103.75513), Vector2(173.93993, 101.99689), Vector2(191.4654, 100.37781), Vector2(209.00229, 98.88739), Vector2(226.54898, 97.51709), Vector2(244.10394, 96.25745), Vector2(261.66605, 95.101746), Vector2(279.23438, 94.043945), Vector2(296.80792, 93.07739), Vector2(314.38608, 92.197754), Vector2(331.9681, 91.40015), Vector2(349.5535, 90.6799), Vector2(367.14175, 90.03381), Vector2(384.73248, 89.458466), Vector2(402.32532, 88.95038), Vector2(419.91986, 88.506805), Vector2(437.51587, 88.12512), Vector2(455.11304, 87.80289), Vector2(472.71118, 87.53784), Vector2(490.31006, 87.328186), Vector2(507.90955, 87.1716), Vector2(525.5094, 87.06647), Vector2(543.10944, 87.01074), Vector2(560.7066, 86.81479), Vector2(578.3018, 86.403625), Vector2(595.9005, 86.18634), Vector2(613.5005, 86.12146), Vector2(631.1005, 86.18298), Vector2(648.69977, 86.35242), Vector2(666.298, 86.6174), Vector2(683.89465, 86.96759), Vector2(701.48956, 87.39685), Vector2(719.0824, 87.900085), Vector2(736.6732, 88.47354), Vector2(754.2617, 89.11444), Vector2(771.84766, 89.82135), Vector2(789.43085, 90.59329), Vector2(807.0111, 91.430115), Vector2(824.5881, 92.33276), Vector2(842.16144, 93.302246), Vector2(859.7309, 94.34082), Vector2(877.2959, 95.45166), Vector2(894.856, 96.63861), Vector2(912.4104, 97.90747), Vector2(929.95825, 99.26361), Vector2(947.4982, 100.71741), Vector2(965.02905, 102.278625), Vector2(982.5482, 103.96289), Vector2(1000.0532, 105.79059), Vector2(1017.5393, 107.7901), Vector2(1035, 110)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_4swej"]
+_data = {
+&"crossing": SubResource("Animation_3r6xx")
+}
+
+[node name="Retime" type="Node2D" unique_id=1645599082]
+script = ExtResource("stage")
+stage_kind = 3
+
+[node name="Harbor" type="TextureRect" parent="." unique_id=1581936427]
+offset_left = -28.0
+offset_top = -16.0
+offset_right = 1308.0
+offset_bottom = 736.0
+mouse_filter = 2
+texture = ExtResource("background")
+expand_mode = 1
+
+[node name="TopShade" type="ColorRect" parent="." unique_id=437646672]
+offset_right = 1280.0
+offset_bottom = 206.0
+mouse_filter = 2
+color = Color(0.025, 0.04, 0.085, 0.24)
+
+[node name="Breakwater" type="TextureRect" parent="." unique_id=433804697]
+offset_left = -26.0
+offset_top = -3.0
+offset_right = 1306.0
+offset_bottom = 746.0
+mouse_filter = 2
+texture = ExtResource("foreground")
+expand_mode = 1
+
+[node name="EyebrowRule" type="ColorRect" parent="." unique_id=330039244]
+offset_left = 71.0
+offset_top = 56.0
+offset_right = 95.0
+offset_bottom = 58.0
+mouse_filter = 2
+color = Color(1, 0.744, 0.382, 1)
+
+[node name="Eyebrow" type="Label" parent="." unique_id=1319719287]
+offset_left = 105.0
+offset_top = 43.0
+offset_right = 805.0
+offset_bottom = 69.0
+theme_override_colors/font_color = Color(1, 0.744, 0.382, 1)
+theme_override_font_sizes/font_size = 17
+text = "LAMPLIGHT RELAY   /   RETIME"
+vertical_alignment = 1
+
+[node name="Title" type="Label" parent="." unique_id=1007700590]
+offset_left = 70.0
+offset_top = 75.0
+offset_right = 1120.0
+offset_bottom = 149.0
+theme_override_colors/font_color = Color(0.961, 0.929, 0.826, 1)
+theme_override_fonts/font = SubResource("serif")
+theme_override_font_sizes/font_size = 66
+text = "One route, two arrival times"
+vertical_alignment = 1
+
+[node name="Description" type="Label" parent="." unique_id=958166126]
+offset_left = 74.0
+offset_top = 157.0
+offset_right = 1094.0
+offset_bottom = 192.0
+theme_override_colors/font_color = Color(0.707, 0.765, 0.832, 1)
+theme_override_font_sizes/font_size = 24
+text = "The same flight clip plays at its original timing and at 2× speed."
+vertical_alignment = 1
+
+[node name="HeaderRule" type="ColorRect" parent="." unique_id=325759933]
+offset_left = 72.0
+offset_top = 207.0
+offset_right = 1208.0
+offset_bottom = 208.0
+mouse_filter = 2
+color = Color(0.637, 0.668, 0.717, 0.27)
+
+[node name="Timeline" type="AnimationPlayer" parent="." unique_id=982409935]
+libraries/ = SubResource("timeline")
+
+[node name="Before" type="Node2D" parent="." unique_id=1001564761]
+position = Vector2(72, 230)
+
+[node name="CardBefore" type="Panel" parent="Before" unique_id=1647087083]
+offset_right = 1136.0
+offset_bottom = 169.0
+pivot_offset = Vector2(568, 84.5)
+mouse_filter = 2
+theme_override_styles/panel = SubResource("CardBefore_style")
+
+[node name="Title" type="Label" parent="Before" unique_id=412261923]
+offset_left = 22.0
+offset_top = 11.0
+offset_right = 627.0
+offset_bottom = 45.0
+theme_override_colors/font_color = Color(0.557, 0.844, 0.81, 1)
+theme_override_font_sizes/font_size = 22
+text = "BEFORE   /   ORIGINAL"
+vertical_alignment = 1
+
+[node name="Timer" type="Label" parent="Before" unique_id=1085994420]
+offset_left = 830.0
+offset_top = 11.0
+offset_right = 1114.0
+offset_bottom = 45.0
+theme_override_colors/font_color = Color(0.557, 0.844, 0.81, 1)
+theme_override_font_sizes/font_size = 23
+text = "0.00 / 0.00 S"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Route" type="Path2D" parent="Before" unique_id=799809711]
+curve = SubResource("comparison_route")
+
+[node name="Course" type="Line2D" parent="Before" unique_id=1600781756]
+width = 3.0
+default_color = Color(0.572, 0.665, 0.78, 0.5)
+antialiased = true
+
+[node name="Trail" type="Line2D" parent="Before" unique_id=380916400]
+width = 3.6
+default_color = Color(1, 0.744, 0.382, 1)
+joint_mode = 2
+end_cap_mode = 2
+antialiased = true
+
+[node name="Arrived" type="Label" parent="Before" unique_id=1850218396]
+offset_left = 912.0
+offset_top = 125.0
+offset_right = 1057.0
+offset_bottom = 151.0
+theme_override_colors/font_color = Color(0.557, 0.844, 0.81, 1)
+theme_override_font_sizes/font_size = 16
+text = "ARRIVED"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Courier" type="Node2D" parent="Before" unique_id=1170135332]
+position = Vector2(104, 110)
+scale = Vector2(0.112, 0.112)
+
+[node name="WingRig" type="Skeleton2D" parent="Before/Courier" unique_id=1017681881]
+
+[node name="LeftWing" type="Bone2D" parent="Before/Courier/WingRig" unique_id=1804833294]
+position = Vector2(-38, -13)
+rest = Transform2D(1, 0, 0, 1, -38, -13)
+auto_calculate_length_and_angle = false
+length = 144.0
+bone_angle = 3.1415923
+
+[node name="Wing" type="Sprite2D" parent="Before/Courier/WingRig/LeftWing" unique_id=1705771621]
+position = Vector2(-172, -3)
+texture = ExtResource("wing_left")
+
+[node name="RightWing" type="Bone2D" parent="Before/Courier/WingRig" unique_id=168507260]
+position = Vector2(38, -13)
+rest = Transform2D(1, 0, 0, 1, 38, -13)
+auto_calculate_length_and_angle = false
+length = 144.0
+bone_angle = 0.0
+
+[node name="Wing" type="Sprite2D" parent="Before/Courier/WingRig/RightWing" unique_id=600088514]
+position = Vector2(172, -3)
+texture = ExtResource("wing_right")
+
+[node name="Body" type="Sprite2D" parent="Before/Courier/WingRig" unique_id=1971453413]
+position = Vector2(0, -24)
+texture = ExtResource("moth_body")
+
+[node name="Move" type="AnimationPlayer" parent="Before" unique_id=1625009362]
+libraries/ = SubResource("AnimationLibrary_3r6xx")
+
+[node name="After" type="Node2D" parent="." unique_id=497602832]
+position = Vector2(72, 421)
+
+[node name="CardAfter" type="Panel" parent="After" unique_id=1084750640]
+offset_right = 1136.0
+offset_bottom = 169.0
+pivot_offset = Vector2(568, 84.5)
+mouse_filter = 2
+theme_override_styles/panel = SubResource("CardAfter_style")
+
+[node name="Title" type="Label" parent="After" unique_id=230229590]
+offset_left = 22.0
+offset_top = 11.0
+offset_right = 627.0
+offset_bottom = 45.0
+theme_override_colors/font_color = Color(1, 0.744, 0.382, 1)
+theme_override_font_sizes/font_size = 22
+text = "AFTER   /   RETIME ×0.50"
+vertical_alignment = 1
+
+[node name="Timer" type="Label" parent="After" unique_id=1020360139]
+offset_left = 830.0
+offset_top = 11.0
+offset_right = 1114.0
+offset_bottom = 45.0
+theme_override_colors/font_color = Color(1, 0.744, 0.382, 1)
+theme_override_font_sizes/font_size = 23
+text = "0.00 / 0.00 S"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Route" type="Path2D" parent="After" unique_id=1331972461]
+curve = SubResource("comparison_route")
+
+[node name="Course" type="Line2D" parent="After" unique_id=187911327]
+width = 3.0
+default_color = Color(0.572, 0.665, 0.78, 0.5)
+antialiased = true
+
+[node name="Trail" type="Line2D" parent="After" unique_id=1967428234]
+width = 3.6
+default_color = Color(1, 0.744, 0.382, 1)
+joint_mode = 2
+end_cap_mode = 2
+antialiased = true
+
+[node name="Arrived" type="Label" parent="After" unique_id=1899939113]
+offset_left = 912.0
+offset_top = 125.0
+offset_right = 1057.0
+offset_bottom = 151.0
+theme_override_colors/font_color = Color(1, 0.744, 0.382, 1)
+theme_override_font_sizes/font_size = 16
+text = "ARRIVED"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Courier" type="Node2D" parent="After" unique_id=2066393512]
+position = Vector2(104, 110)
+scale = Vector2(0.112, 0.112)
+
+[node name="WingRig" type="Skeleton2D" parent="After/Courier" unique_id=868963337]
+
+[node name="LeftWing" type="Bone2D" parent="After/Courier/WingRig" unique_id=1972366776]
+position = Vector2(-38, -13)
+rest = Transform2D(1, 0, 0, 1, -38, -13)
+auto_calculate_length_and_angle = false
+length = 144.0
+bone_angle = 3.1415923
+
+[node name="Wing" type="Sprite2D" parent="After/Courier/WingRig/LeftWing" unique_id=1703514563]
+position = Vector2(-172, -3)
+texture = ExtResource("wing_left")
+
+[node name="RightWing" type="Bone2D" parent="After/Courier/WingRig" unique_id=851151181]
+position = Vector2(38, -13)
+rest = Transform2D(1, 0, 0, 1, 38, -13)
+auto_calculate_length_and_angle = false
+length = 144.0
+bone_angle = 0.0
+
+[node name="Wing" type="Sprite2D" parent="After/Courier/WingRig/RightWing" unique_id=413221858]
+position = Vector2(172, -3)
+texture = ExtResource("wing_right")
+
+[node name="Body" type="Sprite2D" parent="After/Courier/WingRig" unique_id=1237246852]
+position = Vector2(0, -24)
+texture = ExtResource("moth_body")
+
+[node name="Move" type="AnimationPlayer" parent="After" unique_id=1106639575]
+libraries/ = SubResource("AnimationLibrary_4swej")
+
+[node name="Footnote" type="Label" parent="." unique_id=916716698]
+offset_left = 75.0
+offset_top = 613.0
+offset_right = 1175.0
+offset_bottom = 651.0
+theme_override_colors/font_color = Color(0.707, 0.765, 0.832, 1)
+theme_override_font_sizes/font_size = 19
+text = "Same key values and flight path    •    Half the duration"
+vertical_alignment = 1

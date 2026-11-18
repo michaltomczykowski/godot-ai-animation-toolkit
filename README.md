@@ -2,11 +2,10 @@
 
 [![Watch the Godot AI Animation Toolkit 2.0.0 showcase](docs/images/showcase-2.0.0-poster.jpg)](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v2.0.0/godot-ai-animation-toolkit-2.0.0-showcase.mp4)
 
-[**Watch the 2.0.0 showcase (2:30)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v2.0.0/godot-ai-animation-toolkit-2.0.0-showcase.mp4)
+[**Watch the 2.0.0 showcase (4:15)**](https://github.com/michaltomczykowski/godot-ai-animation-toolkit/releases/download/v2.0.0/godot-ai-animation-toolkit-2.0.0-showcase.mp4)
 
-**Chapters** · 0:00 Intro · 0:08 Presets and FX · 0:34 Motion and sequences ·
-1:01 Rigs and modifiers · 1:23 Graphs · 1:43 Editing and libraries ·
-2:04 Inspection · 2:24 Finish
+**Chapters** · 0:00 Intro · 0:05 3D Presets · 0:37 3D Motion ·
+1:49 3D Rigs and Workflows · 2:57 2D Lamplight Relay · 4:09 Run the Showcase
 
 Give your Godot AI agent animation tools in the running Godot editor. Generate
 clips, animate UI and characters, build AnimationTrees, edit existing motion,
@@ -69,7 +68,9 @@ the repository source, and the showcase video is a separate release asset.
    Godot's FileSystem dock, open
    [`res://showcase_2_0/showcase.tscn`](test_project/showcase_2_0/showcase.tscn)
    and press **F6** to run the current scene. Choose a chapter or replay it.
-   Open the original showcase example scenes in the editor to inspect them.
+   The gallery starts with 3D props, motion styles, and rig workflows. In the
+   2D Lamplight Relay chapter, try **Dispatch relay** and replay the harbor
+   scenes. Open the saved examples in the editor to inspect their tracks.
 
 ## Limitations
 

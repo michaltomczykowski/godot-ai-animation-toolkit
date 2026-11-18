@@ -1,0 +1,927 @@
+{
+  "duration": 255,
+  "chapters": [
+    {
+      "at": 0,
+      "label": "Intro"
+    },
+    {
+      "at": 5,
+      "label": "3D Presets"
+    },
+    {
+      "at": 37,
+      "label": "3D Motion"
+    },
+    {
+      "at": 109,
+      "label": "3D Rigs and Workflows"
+    },
+    {
+      "at": 177,
+      "label": "2D Lamplight Relay"
+    },
+    {
+      "at": 249,
+      "label": "Run the Showcase"
+    }
+  ],
+  "cues": [
+    {
+      "at": 0,
+      "chapter": 0,
+      "title": "Godot AI Animation Toolkit 2.0",
+      "detail": "3D motion, rigs, and scene animation",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/robot_motion.tscn",
+          "clip": "walk",
+          "size": 2.65
+        }
+      ]
+    },
+    {
+      "at": 5,
+      "chapter": 1,
+      "title": "Pulse",
+      "detail": "Give a reactor core a breathing scale cycle",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_3d/pulse.tscn"
+    },
+    {
+      "at": 9,
+      "chapter": 1,
+      "title": "Bounce",
+      "detail": "Compress and settle a mechanical switch",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_3d/bounce.tscn"
+    },
+    {
+      "at": 13,
+      "chapter": 1,
+      "title": "Orbit",
+      "detail": "Circle a satellite in the XZ plane",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_3d/orbit.tscn"
+    },
+    {
+      "at": 17,
+      "chapter": 1,
+      "title": "Sweep",
+      "detail": "Rotate a turret around its Y axis",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_3d/sweep.tscn"
+    },
+    {
+      "at": 21,
+      "chapter": 1,
+      "title": "Drift",
+      "detail": "Move cargo along a single rail",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_3d/drift.tscn"
+    },
+    {
+      "at": 25,
+      "chapter": 1,
+      "title": "Spin",
+      "detail": "Turn a pickup using quaternion keys",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_3d/spin.tscn"
+    },
+    {
+      "at": 29,
+      "chapter": 1,
+      "title": "Float",
+      "detail": "Lift, scale, and turn a floating crystal",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_3d/float.tscn"
+    },
+    {
+      "at": 33,
+      "chapter": 1,
+      "title": "Stagger",
+      "detail": "Dock a row of lights in sequence",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_3d/stagger.tscn"
+    },
+    {
+      "at": 37.0,
+      "chapter": 2,
+      "title": "Idle",
+      "detail": "Breath, gaze, and weight shift",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "idle",
+          "label": "Responsive",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": false,
+          "dedupe_group": "idle"
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "idle_grounded",
+          "label": "Grounded",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": false,
+          "dedupe_group": "idle"
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "idle_relaxed",
+          "label": "Relaxed",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": false,
+          "dedupe_group": "idle"
+        }
+      ]
+    },
+    {
+      "at": 41.5,
+      "chapter": 2,
+      "title": "Idle",
+      "detail": "Breath, gaze, and weight shift",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "idle_heavy",
+          "label": "Heavy",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": false,
+          "dedupe_group": "idle"
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "idle_sneaky",
+          "label": "Sneaky",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": false,
+          "dedupe_group": "idle"
+        }
+      ]
+    },
+    {
+      "at": 46.0,
+      "chapter": 2,
+      "title": "Walk",
+      "detail": "Foot support, stride, and arm swing",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "walk",
+          "label": "Responsive",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": false,
+          "dedupe_group": "walk",
+          "floor_y": -0.027
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "walk_grounded",
+          "label": "Grounded",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": false,
+          "dedupe_group": "walk",
+          "floor_y": -0.027
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "walk_relaxed",
+          "label": "Relaxed",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": false,
+          "dedupe_group": "walk",
+          "floor_y": -0.027
+        }
+      ]
+    },
+    {
+      "at": 50.5,
+      "chapter": 2,
+      "title": "Walk",
+      "detail": "Foot support, stride, and arm swing",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "walk_heavy",
+          "label": "Heavy",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": false,
+          "dedupe_group": "walk",
+          "floor_y": -0.027
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "walk_sneaky",
+          "label": "Sneaky",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": false,
+          "dedupe_group": "walk",
+          "floor_y": -0.027
+        }
+      ]
+    },
+    {
+      "at": 55.0,
+      "chapter": 2,
+      "title": "Run",
+      "detail": "Fast leg recovery and a flight phase",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "run",
+          "label": "Responsive",
+          "size": 3.05,
+          "angle": 0.76,
+          "center_y": 0.94,
+          "once": false,
+          "dedupe_group": "run",
+          "floor_y": -0.04
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "run_grounded",
+          "label": "Grounded",
+          "size": 3.05,
+          "angle": 0.76,
+          "center_y": 0.94,
+          "once": false,
+          "dedupe_group": "run",
+          "floor_y": -0.04
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "run_relaxed",
+          "label": "Relaxed",
+          "size": 3.05,
+          "angle": 0.76,
+          "center_y": 0.94,
+          "once": false,
+          "dedupe_group": "run",
+          "floor_y": -0.04
+        }
+      ]
+    },
+    {
+      "at": 59.5,
+      "chapter": 2,
+      "title": "Run",
+      "detail": "Fast leg recovery and a flight phase",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "run_heavy",
+          "label": "Heavy",
+          "size": 3.05,
+          "angle": 0.76,
+          "center_y": 0.94,
+          "once": false,
+          "dedupe_group": "run",
+          "floor_y": -0.04
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "run_sneaky",
+          "label": "Sneaky",
+          "size": 3.05,
+          "angle": 0.76,
+          "center_y": 0.94,
+          "once": false,
+          "dedupe_group": "run",
+          "floor_y": -0.04
+        }
+      ]
+    },
+    {
+      "at": 64.0,
+      "chapter": 2,
+      "title": "Strafe",
+      "detail": "In-place lateral footwork with fixed facing",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "strafe",
+          "label": "Responsive",
+          "size": 3.05,
+          "angle": 0.32,
+          "center_y": 0.94,
+          "once": false,
+          "dedupe_group": "strafe",
+          "floor_y": -0.055
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "strafe_grounded",
+          "label": "Grounded",
+          "size": 3.05,
+          "angle": 0.32,
+          "center_y": 0.94,
+          "once": false,
+          "dedupe_group": "strafe",
+          "floor_y": -0.055
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "strafe_relaxed",
+          "label": "Relaxed",
+          "size": 3.05,
+          "angle": 0.32,
+          "center_y": 0.94,
+          "once": false,
+          "dedupe_group": "strafe",
+          "floor_y": -0.055
+        }
+      ]
+    },
+    {
+      "at": 68.5,
+      "chapter": 2,
+      "title": "Strafe",
+      "detail": "In-place lateral footwork with fixed facing",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "strafe_heavy",
+          "label": "Heavy",
+          "size": 3.05,
+          "angle": 0.32,
+          "center_y": 0.94,
+          "once": false,
+          "dedupe_group": "strafe",
+          "floor_y": -0.064
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "strafe_sneaky",
+          "label": "Sneaky",
+          "size": 3.05,
+          "angle": 0.32,
+          "center_y": 0.94,
+          "once": false,
+          "dedupe_group": "strafe",
+          "floor_y": -0.075
+        }
+      ]
+    },
+    {
+      "at": 73.0,
+      "chapter": 2,
+      "title": "Jump",
+      "detail": "Anticipation, flight, contact, and recovery",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "jump",
+          "label": "Responsive",
+          "size": 3.55,
+          "angle": 0.76,
+          "center_y": 1.3,
+          "once": true,
+          "dedupe_group": "jump"
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "jump_grounded",
+          "label": "Grounded",
+          "size": 3.55,
+          "angle": 0.76,
+          "center_y": 1.3,
+          "once": true,
+          "dedupe_group": "jump"
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "jump_relaxed",
+          "label": "Relaxed",
+          "size": 3.55,
+          "angle": 0.76,
+          "center_y": 1.3,
+          "once": true,
+          "dedupe_group": "jump"
+        }
+      ]
+    },
+    {
+      "at": 77.5,
+      "chapter": 2,
+      "title": "Jump",
+      "detail": "Anticipation, flight, contact, and recovery",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "jump_heavy",
+          "label": "Heavy",
+          "size": 3.55,
+          "angle": 0.76,
+          "center_y": 1.3,
+          "once": true,
+          "dedupe_group": "jump"
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "jump_sneaky",
+          "label": "Sneaky",
+          "size": 3.55,
+          "angle": 0.76,
+          "center_y": 1.3,
+          "once": true,
+          "dedupe_group": "jump"
+        }
+      ]
+    },
+    {
+      "at": 82.0,
+      "chapter": 2,
+      "title": "Turn",
+      "detail": "Shift weight, pivot, and settle",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "turn",
+          "label": "Responsive",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": true,
+          "dedupe_group": "turn"
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "turn_grounded",
+          "label": "Grounded",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": true,
+          "dedupe_group": "turn"
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "turn_relaxed",
+          "label": "Relaxed",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": true,
+          "dedupe_group": "turn"
+        }
+      ]
+    },
+    {
+      "at": 86.5,
+      "chapter": 2,
+      "title": "Turn",
+      "detail": "Shift weight, pivot, and settle",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "turn_heavy",
+          "label": "Heavy",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": true,
+          "dedupe_group": "turn"
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "turn_sneaky",
+          "label": "Sneaky",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": true,
+          "dedupe_group": "turn"
+        }
+      ]
+    },
+    {
+      "at": 91.0,
+      "chapter": 2,
+      "title": "Walk Start",
+      "detail": "Build speed from the standing pose",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "walk_start",
+          "label": "Responsive",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": true,
+          "dedupe_group": "walk_start",
+          "floor_y": -0.027
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "walk_start_grounded",
+          "label": "Grounded",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": true,
+          "dedupe_group": "walk_start",
+          "floor_y": -0.027
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "walk_start_relaxed",
+          "label": "Relaxed",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": true,
+          "dedupe_group": "walk_start",
+          "floor_y": -0.027
+        }
+      ]
+    },
+    {
+      "at": 95.5,
+      "chapter": 2,
+      "title": "Walk Start",
+      "detail": "Build speed from the standing pose",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "walk_start_heavy",
+          "label": "Heavy",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": true,
+          "dedupe_group": "walk_start",
+          "floor_y": -0.027
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "walk_start_sneaky",
+          "label": "Sneaky",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": true,
+          "dedupe_group": "walk_start",
+          "floor_y": -0.027
+        }
+      ]
+    },
+    {
+      "at": 100.0,
+      "chapter": 2,
+      "title": "Walk Stop",
+      "detail": "Absorb travel and return to a stable stance",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "walk_stop",
+          "label": "Responsive",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": true,
+          "dedupe_group": "walk_stop",
+          "floor_y": -0.027
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "walk_stop_grounded",
+          "label": "Grounded",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": true,
+          "dedupe_group": "walk_stop",
+          "floor_y": -0.027
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "walk_stop_relaxed",
+          "label": "Relaxed",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": true,
+          "dedupe_group": "walk_stop",
+          "floor_y": -0.027
+        }
+      ]
+    },
+    {
+      "at": 104.5,
+      "chapter": 2,
+      "title": "Walk Stop",
+      "detail": "Absorb travel and return to a stable stance",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "walk_stop_heavy",
+          "label": "Heavy",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": true,
+          "dedupe_group": "walk_stop",
+          "floor_y": -0.027
+        },
+        {
+          "scene": "res://showcase_2_0/stages_3d/motion_stage.tscn",
+          "clip": "walk_stop_sneaky",
+          "label": "Sneaky",
+          "size": 3.05,
+          "angle": 0.56,
+          "center_y": 0.94,
+          "once": true,
+          "dedupe_group": "walk_stop",
+          "floor_y": -0.027
+        }
+      ]
+    },
+    {
+      "at": 109,
+      "chapter": 3,
+      "title": "Zombie Shuffle",
+      "detail": "Custom walk and upper-body pose recipe",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_3d/zombie.tscn"
+    },
+    {
+      "at": 115,
+      "chapter": 3,
+      "title": "Flying Kick",
+      "detail": "Keyed takeoff, extension, and landing",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/flykick/performer.tscn",
+          "clip": "flying_kick",
+          "angle": 1.2,
+          "center_z": 0.5,
+          "center_y": 1.16,
+          "size": 2.9,
+          "once": true
+        }
+      ]
+    },
+    {
+      "at": 123,
+      "chapter": 3,
+      "title": "Rig Walk",
+      "detail": "A lightweight skeletal cycle",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/workflow_motion.tscn",
+          "clip": "rig_walk"
+        }
+      ]
+    },
+    {
+      "at": 127,
+      "chapter": 3,
+      "title": "Breathing",
+      "detail": "Subtle chest and head motion",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/robot_rig.tscn",
+          "clip": "idle_breathing"
+        }
+      ]
+    },
+    {
+      "at": 131,
+      "chapter": 3,
+      "title": "Blink",
+      "detail": "Keyframed eyelids on the robot",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_3d/blink.tscn"
+    },
+    {
+      "at": 135,
+      "chapter": 3,
+      "title": "Jumping Jack",
+      "detail": "Outward arm arcs and coordinated leg spread",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/robot_rig.tscn",
+          "clip": "jumping_jack",
+          "size": 2.78,
+          "center_y": 1.12
+        }
+      ]
+    },
+    {
+      "at": 140,
+      "chapter": 3,
+      "title": "Squat",
+      "detail": "Lower and rise with planted feet",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/robot_rig.tscn",
+          "clip": "squat"
+        }
+      ]
+    },
+    {
+      "at": 144,
+      "chapter": 3,
+      "title": "Punch",
+      "detail": "Alternate straight strikes from guard",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/robot_rig.tscn",
+          "clip": "punch"
+        }
+      ]
+    },
+    {
+      "at": 148,
+      "chapter": 3,
+      "title": "Two-Bone IK",
+      "detail": "The hand follows a moving reach target",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/robot_rig.tscn",
+          "clip": "idle_breathing",
+          "modifier": "ik"
+        }
+      ]
+    },
+    {
+      "at": 152,
+      "chapter": 3,
+      "title": "Look At",
+      "detail": "The head tracks a moving target",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/robot_rig.tscn",
+          "clip": "idle_breathing",
+          "modifier": "look"
+        }
+      ]
+    },
+    {
+      "at": 156,
+      "chapter": 3,
+      "title": "Spring Bones",
+      "detail": "The aerial lags and settles after the punch",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/robot_rig.tscn",
+          "clip": "punch",
+          "modifier": "spring",
+          "size": 2.42,
+          "center_y": 1.15,
+          "once": true
+        }
+      ]
+    },
+    {
+      "at": 160,
+      "chapter": 3,
+      "title": "Motion Sequence",
+      "detail": "Idle, start, walk, stop, and settle",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/robot_motion.tscn",
+          "clip": "showcase_sequence",
+          "travel": true,
+          "once": true,
+          "size": 3.2,
+          "center_z": 1.15,
+          "angle": 1.12
+        }
+      ]
+    },
+    {
+      "at": 167,
+      "chapter": 3,
+      "title": "AnimationTree",
+      "detail": "Blend idle, walk, and run through the locomotion graph",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/robot_graph.tscn",
+          "clip": "graph"
+        }
+      ]
+    },
+    {
+      "at": 171,
+      "chapter": 3,
+      "title": "Retime a Clip",
+      "detail": "The same saved walk at its original and extended timing",
+      "kind": "actors",
+      "actors": [
+        {
+          "scene": "res://showcase_2_0/workflow_motion.tscn",
+          "clip": "original",
+          "label": "Original",
+          "size": 2.8
+        },
+        {
+          "scene": "res://showcase_2_0/workflow_motion.tscn",
+          "clip": "extended",
+          "label": "Extended",
+          "size": 2.8
+        }
+      ]
+    },
+    {
+      "at": 175,
+      "chapter": 3,
+      "title": "Inspect Saved Motion",
+      "detail": "Native render samples and persisted track data",
+      "kind": "inspection"
+    },
+    {
+      "at": 177,
+      "chapter": 4,
+      "title": "Dispatch",
+      "detail": "Lamplight Relay",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_2d/dispatch.tscn",
+      "canvas": true
+    },
+    {
+      "at": 195,
+      "chapter": 4,
+      "title": "Beacon",
+      "detail": "Lamplight Relay",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_2d/beacon.tscn",
+      "canvas": true
+    },
+    {
+      "at": 213,
+      "chapter": 4,
+      "title": "Flight",
+      "detail": "Lamplight Relay",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_2d/flight.tscn",
+      "canvas": true
+    },
+    {
+      "at": 231,
+      "chapter": 4,
+      "title": "Landing",
+      "detail": "Lamplight Relay",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_2d/retime.tscn",
+      "canvas": true
+    },
+    {
+      "at": 249,
+      "chapter": 5,
+      "title": "Open the gallery in Godot",
+      "detail": "Source scenes and agent guide in the repository",
+      "kind": "closing",
+      "canvas": true
+    }
+  ]
+}

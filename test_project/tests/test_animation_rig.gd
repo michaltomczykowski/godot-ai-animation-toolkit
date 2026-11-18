@@ -11,6 +11,7 @@ const RigHandler := preload("res://addons/godot_ai_animation/handlers/rig.gd")
 
 const DUMMY := "res://models/human_dummy/HumanCharacterDummy_F.fbx"
 const KITE := "res://showcase_2_0/robot.tscn"
+const KITE_RIG := "res://showcase_2_0/robot_rig.tscn"
 const POSE_FILE := "res://animation_toolkit/tmp_pose.json"
 const POSE_DIR := "res://animation_toolkit/tmp_poses"
 const POSE_DIR_PARAM := {"pose_dir": POSE_DIR}
@@ -1899,19 +1900,61 @@ func test_kite_rig_recipes_follow_joint_segments() -> void:
 			assert_true(guard.z > 0.1 and guard.y < 0.0, "the " + side + " fist returns to guard")
 
 	skeleton.reset_bone_poses()
+	_assert_kite_jack(skeleton, player)
+	_teardown(rig)
+
+
+func test_saved_kite_jumping_jack_sweeps_outward() -> void:
+	var rig := _rig("RigKiteSaved", KITE_RIG)
+	assert_true(not rig.has("error"), str(rig.get("error", "")))
+	if rig.has("error"):
+		return
+	var player: AnimationPlayer = rig.player
+	player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	_assert_kite_jack(rig.skeleton, player)
+	_teardown(rig)
+
+
+func _assert_kite_jack(skeleton: Skeleton3D, player: AnimationPlayer) -> void:
+	assert_true(player.has_animation("jumping_jack"), "Kite has a jumping jack clip")
+	if not player.has_animation("jumping_jack"):
+		return
 	player.play("jumping_jack")
+	var duration := player.get_animation("jumping_jack").length
 	player.seek(0.0, true)
 	var closed_width := _kite_joint(skeleton, "foot.L").distance_to(_kite_joint(skeleton, "foot.R"))
-	player.seek(0.5, true)
+	var closed_hands := {}
+	for side in ["L", "R"]:
+		closed_hands[side] = _kite_joint(skeleton, "hand." + side)
+		assert_true(closed_hands[side].y < _kite_joint(skeleton, "upperArm." + side).y - 0.4,
+			"the " + side + " hand starts down")
+	player.seek(duration * 0.5, true)
 	var open_width := _kite_joint(skeleton, "foot.L").distance_to(_kite_joint(skeleton, "foot.R"))
 	assert_true(open_width > closed_width + 0.25, "Kite spreads its legs outward")
 	for side in ["L", "R"]:
 		assert_true(_kite_joint(skeleton, "hand." + side).y > _kite_joint(skeleton, "head").y,
 			"the " + side + " hand rises overhead")
-	player.seek(1.0, true)
+
+	var most_medial_elbow := 0.0
+	for step in range(241):
+		player.seek(duration * step / 240.0, true)
+		for side in ["L", "R"]:
+			var sign_out := 1.0 if side == "L" else -1.0
+			var shoulder := _kite_joint(skeleton, "upperArm." + side)
+			var elbow := _kite_joint(skeleton, "forearm." + side) - shoulder
+			most_medial_elbow = minf(most_medial_elbow, sign_out * elbow.x)
+			if step == 60 or step == 180:
+				var hand := _kite_joint(skeleton, "hand." + side) - shoulder
+				assert_true(sign_out * hand.x > 0.4,
+					"the %s hand swings out at phase %.2f (x=%.3f m)" % [side, step / 240.0, hand.x])
+	assert_true(most_medial_elbow > -0.005,
+		"both elbows stay outside their shoulders throughout the rep (min %.4f m)" % most_medial_elbow)
+
 	var final_width := _kite_joint(skeleton, "foot.L").distance_to(_kite_joint(skeleton, "foot.R"))
 	assert_true(is_equal_approx(final_width, closed_width), "Kite returns to the closed stance")
-	_teardown(rig)
+	for side in ["L", "R"]:
+		assert_true(_kite_joint(skeleton, "hand." + side).is_equal_approx(closed_hands[side]),
+			"the " + side + " hand returns to its starting position")
 
 
 func _kite_joint(skeleton: Skeleton3D, name: String) -> Vector3:

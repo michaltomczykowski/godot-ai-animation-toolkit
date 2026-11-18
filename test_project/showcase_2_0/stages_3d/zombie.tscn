@@ -1,0 +1,280 @@
+[gd_scene format=3 uid="uid://7nf8j580w3an"]
+
+[ext_resource type="PackedScene" path="res://showcase_2_0/stages_3d/kenney/Model/characterMedium.fbx" id="KenneyModel"]
+[ext_resource type="PackedScene" path="res://showcase_2_0/stages_3d/kinetic_room.tscn" id="Room"]
+[ext_resource type="Script" uid="uid://cqaj3r2y2dpqp" path="res://showcase_2_0/stages_3d/play_exhibit.gd" id="ZombieReplay"]
+
+[ext_resource type="Texture2D" path="res://showcase_2_0/stages_3d/kenney/Skins/zombieMaleA.png" id="SkinTexture"]
+
+[sub_resource type="StandardMaterial3D" id="ZombieSkin"]
+albedo_texture = ExtResource("SkinTexture")
+texture_filter = 0
+roughness = 0.92
+
+[sub_resource type="StandardMaterial3D" id="Mat_deck"]
+albedo_color = Color(0.105882, 0.160784, 0.223529, 1)
+metallic = 0.1
+roughness = 0.48
+
+[sub_resource type="CylinderMesh" id="Mesh_1"]
+material = SubResource("Mat_deck")
+top_radius = 1.74
+bottom_radius = 1.79
+height = 0.18
+radial_segments = 48
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="Mat_dark"]
+albedo_color = Color(0.14902, 0.223529, 0.298039, 1)
+metallic = 0.16
+roughness = 0.37
+
+[sub_resource type="CylinderMesh" id="Mesh_3"]
+material = SubResource("Mat_dark")
+top_radius = 1.72
+bottom_radius = 1.72
+height = 0.025
+radial_segments = 48
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="Mat_line"]
+albedo_color = Color(0.345098, 0.439216, 0.517647, 1)
+metallic = 0.1
+roughness = 0.58
+
+[sub_resource type="TorusMesh" id="Mesh_5"]
+material = SubResource("Mat_line")
+inner_radius = 1.6225
+outer_radius = 1.6575
+ring_segments = 12
+
+[sub_resource type="StandardMaterial3D" id="Mat_screen"]
+albedo_color = Color(0.0392157, 0.0980392, 0.14902, 1)
+metallic = 0.1
+roughness = 0.56
+
+[sub_resource type="CylinderMesh" id="Mesh_7"]
+material = SubResource("Mat_screen")
+top_radius = 1.49
+bottom_radius = 1.49
+height = 0.039
+radial_segments = 48
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="Mat_gold"]
+albedo_color = Color(1, 0.752941, 0.462745, 1)
+metallic = 0.3
+roughness = 0.29
+emission_enabled = true
+emission = Color(1, 0.752941, 0.462745, 1)
+emission_energy_multiplier = 0.15
+
+[sub_resource type="TorusMesh" id="Mesh_9"]
+material = SubResource("Mat_gold")
+inner_radius = 1.4015
+outer_radius = 1.4385
+ring_segments = 12
+
+[sub_resource type="StandardMaterial3D" id="Mat_slate"]
+albedo_color = Color(0.188235, 0.305882, 0.407843, 1)
+metallic = 0.2
+roughness = 0.4
+
+[sub_resource type="BoxMesh" id="Mesh_11"]
+material = SubResource("Mat_slate")
+size = Vector3(1.7, 0.007, 0.014)
+
+[sub_resource type="StandardMaterial3D" id="Mat_steel"]
+albedo_color = Color(0.388235, 0.482353, 0.564706, 1)
+metallic = 0.4
+roughness = 0.36
+
+[sub_resource type="BoxMesh" id="Mesh_13"]
+material = SubResource("Mat_steel")
+size = Vector3(0.19, 0.51, 0.19)
+
+[sub_resource type="StandardMaterial3D" id="Mat_green"]
+albedo_color = Color(0.717647, 0.905882, 0.517647, 1)
+metallic = 0.17
+roughness = 0.35
+emission_enabled = true
+emission = Color(0.717647, 0.905882, 0.517647, 1)
+emission_energy_multiplier = 0.12
+
+[sub_resource type="BoxMesh" id="Mesh_15"]
+material = SubResource("Mat_green")
+size = Vector3(0.19, 0.09, 0.19)
+
+[sub_resource type="BoxMesh" id="Mesh_16"]
+material = SubResource("Mat_slate")
+size = Vector3(2.45, 0.07, 0.07)
+
+[sub_resource type="StandardMaterial3D" id="Mat_rust"]
+albedo_color = Color(0.721569, 0.403922, 0.239216, 1)
+metallic = 0.2
+roughness = 0.47
+
+[sub_resource type="BoxMesh" id="Mesh_18"]
+material = SubResource("Mat_rust")
+size = Vector3(0.62, 0.051, 0.073)
+
+[sub_resource type="Animation" id="Animation_ow4sq"]
+length = 1.37
+loop_mode = 1
+tracks/0/type = "rotation_3d"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Performer/Root/Skeleton3D:LeftUpLeg")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = PackedFloat32Array(0, -2, 0.97553176, 0.06411135, -0.033909466, -0.20755167, 0.685, -2, 0.98224753, 0.072145715, -0.0074237734, 0.17300208, 1.37, -2, 0.97553176, 0.06411135, -0.033909466, -0.20755167)
+tracks/1/type = "rotation_3d"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Performer/Root/Skeleton3D:RightUpLeg")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = PackedFloat32Array(0, -2, 0.9827799, -0.062760964, -0.036348738, 0.16995129, 0.685, -2, 0.97488254, -0.07180743, -0.010191289, -0.21057975, 1.37, -2, 0.9827799, -0.062760964, -0.036348738, 0.16995129)
+tracks/2/type = "rotation_3d"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Performer/Root/Skeleton3D:LeftLeg")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = PackedFloat32Array(0, -2, 0.092115484, 0.03161959, 0.04335526, 0.9943014, 0.548, -2, -0.03366532, 0.025915906, 0.04698769, 0.99799156, 0.822, -2, 0.06257776, 0.03031949, 0.04427422, 0.9965966, 1.37, -2, 0.092115484, 0.03161959, 0.04335526, 0.9943014)
+tracks/3/type = "rotation_3d"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Performer/Root/Skeleton3D:RightLeg")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = PackedFloat32Array(0, -2, 0.060509007, 0.014020482, -0.04710512, 0.996957, 0.548, -2, 0.09005835, 0.012616881, -0.047500327, 0.9947232, 0.822, -2, -0.03575918, 0.018490631, -0.04553639, 0.99815124, 1.37, -2, 0.060509007, 0.014020482, -0.04710512, 0.996957)
+tracks/4/type = "rotation_3d"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Performer/Root/Skeleton3D:LeftArm")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = PackedFloat32Array(0, -2, 0.48757055, 0.60415775, -0.37697554, 0.5051315, 0.685, -2, 0.58193874, 0.5125779, -0.49434918, 0.39272156, 1.37, -2, 0.48757055, 0.60415775, -0.37697554, 0.5051315)
+tracks/5/type = "rotation_3d"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Performer/Root/Skeleton3D:RightArm")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = PackedFloat32Array(0, -2, 0.6545996, 0.68967795, -0.25515988, -0.17532007, 0.685, -2, 0.6767462, 0.72765756, -0.10619189, -0.035389956, 1.37, -2, 0.6545996, 0.68967795, -0.25515988, -0.17532007)
+tracks/6/type = "position_3d"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("Performer/Root/Skeleton3D:Hips")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = PackedFloat32Array(0, -2, 4.645995e-06, 0.00321951, -4.656895e-10, 0.3425, -2, 4.645995e-06, 0.00361951, -4.656895e-10, 0.685, -2, 4.645995e-06, 0.00321951, -4.656895e-10, 1.0275, -2, 4.645995e-06, 0.00361951, -4.656895e-10, 1.37, -2, 4.645995e-06, 0.00321951, -4.656895e-10)
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_s2uym"]
+_data = {
+&"zombie_walk": SubResource("Animation_ow4sq")
+}
+
+[node name="ZombieStage" type="Node3D" unique_id=1606536526]
+script = ExtResource("ZombieReplay")
+
+[node name="Room" parent="." unique_id=548287506 instance=ExtResource("Room")]
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1727958872]
+transform = Transform3D(0.93887633, -0.06434984, 0.33818686, 0, 0.9823742, 0.18692511, -0.34425464, -0.17549956, 0.9223278, 2.75, 2.6, 7.5)
+projection = 1
+current = true
+size = 3.95
+far = 55.0
+
+[node name="Deck" type="MeshInstance3D" parent="." unique_id=654529825]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+mesh = SubResource("Mesh_1")
+
+[node name="Facing" type="MeshInstance3D" parent="." unique_id=209640404]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.002, 0)
+mesh = SubResource("Mesh_3")
+
+[node name="OuterRim" type="MeshInstance3D" parent="." unique_id=916526407]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.025, 0)
+mesh = SubResource("Mesh_5")
+
+[node name="Inset" type="MeshInstance3D" parent="." unique_id=122570987]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.027, 0)
+mesh = SubResource("Mesh_7")
+
+[node name="WarningRim" type="MeshInstance3D" parent="." unique_id=266545825]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.051, 0)
+mesh = SubResource("Mesh_9")
+
+[node name="FloorSeam0" type="MeshInstance3D" parent="." unique_id=707114471]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.052, -1.14)
+mesh = SubResource("Mesh_11")
+
+[node name="FloorSeam1" type="MeshInstance3D" parent="." unique_id=145252768]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.052, -0.855)
+mesh = SubResource("Mesh_11")
+
+[node name="FloorSeam2" type="MeshInstance3D" parent="." unique_id=812913423]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.052, -0.57)
+mesh = SubResource("Mesh_11")
+
+[node name="FloorSeam3" type="MeshInstance3D" parent="." unique_id=1497473951]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.052, -0.285)
+mesh = SubResource("Mesh_11")
+
+[node name="FloorSeam4" type="MeshInstance3D" parent="." unique_id=580484289]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.052, 0)
+mesh = SubResource("Mesh_11")
+
+[node name="FloorSeam5" type="MeshInstance3D" parent="." unique_id=967117871]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.052, 0.285)
+mesh = SubResource("Mesh_11")
+
+[node name="FloorSeam6" type="MeshInstance3D" parent="." unique_id=1948824139]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.052, 0.57)
+mesh = SubResource("Mesh_11")
+
+[node name="FloorSeam7" type="MeshInstance3D" parent="." unique_id=1530175657]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.052, 0.855)
+mesh = SubResource("Mesh_11")
+
+[node name="FloorSeam8" type="MeshInstance3D" parent="." unique_id=277794121]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.052, 1.14)
+mesh = SubResource("Mesh_11")
+
+[node name="Post0" type="MeshInstance3D" parent="." unique_id=329369243]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.24, 0.304, -0.45)
+mesh = SubResource("Mesh_13")
+
+[node name="Emitter0" type="MeshInstance3D" parent="." unique_id=1550722505]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.24, 0.58, -0.45)
+mesh = SubResource("Mesh_15")
+
+[node name="Post1" type="MeshInstance3D" parent="." unique_id=778279055]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.24, 0.304, -0.45)
+mesh = SubResource("Mesh_13")
+
+[node name="Emitter1" type="MeshInstance3D" parent="." unique_id=814714622]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.24, 0.58, -0.45)
+mesh = SubResource("Mesh_15")
+
+[node name="Guardrail" type="MeshInstance3D" parent="." unique_id=1481937162]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.364, -0.45)
+mesh = SubResource("Mesh_16")
+
+[node name="PedestalStripe" type="MeshInstance3D" parent="." unique_id=354294131]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.074, 1.27)
+mesh = SubResource("Mesh_18")
+
+[node name="Performer" parent="." unique_id=1422465228 instance=ExtResource("KenneyModel")]
+transform = Transform3D(0.61, 0, 0, 0, 0.61, 0, 0, 0, 0.61, 0, 0.057, 0)
+
+[node name="characterMedium" parent="Performer/Root/Skeleton3D" index="0"]
+surface_material_override/0 = SubResource("ZombieSkin")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1981258527]
+libraries/ = SubResource("AnimationLibrary_s2uym")
+
+[editable path="Performer"]

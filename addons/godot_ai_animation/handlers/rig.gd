@@ -2339,6 +2339,41 @@ static func _point_segment(skeleton: Skeleton3D, bone: int, endpoint: int, direc
 	skeleton.set_bone_pose_rotation(bone, (Quaternion(current, in_parent) * rotation).normalized())
 
 
+static func _jack_arm_keys(
+	skeleton: Skeleton3D, arm: String, forearm: String, outward: Vector3, amount: float, length: float,
+) -> Array:
+	var down := _segment_aim_delta(skeleton, arm, forearm, Vector3.DOWN, amount)
+	var overhead := _segment_aim_delta(skeleton, arm, forearm, Vector3.UP, amount)
+	var half := length * 0.5
+	if absf(down.dot(overhead)) > 0.0001:
+		return [{"time": 0.0, "delta": down}, {"time": half, "delta": overhead}, {"time": length, "delta": down}]
+
+	# Near a half-turn either quaternion hemisphere can win a shortest-path
+	# comparison. Choose the one that points the elbow away from the torso.
+	var index := skeleton.find_bone(arm)
+	var segment := _rest_segment_axis(skeleton, index, skeleton.find_bone(forearm))
+	if segment == Vector3.ZERO:
+		segment = Vector3.UP
+	var rest := skeleton.get_bone_rest(index).basis
+	var parent_rotation := _recipe_parent_basis(skeleton, index, true) * Basis(rest.get_rotation_quaternion())
+	var local_segment := (rest.get_scale() * segment).normalized()
+	var positive := parent_rotation * (down.slerpni(overhead, 0.5) * local_segment)
+	var negative := parent_rotation * (down.slerpni(-overhead, 0.5) * local_segment)
+	if negative.dot(outward) > positive.dot(outward):
+		overhead = -overhead
+
+	# Intermediate keys make both halves follow the chosen arc in Godot's
+	# ordinary rotation tracks. Sample the same easing used by the recipe.
+	var steps := 30
+	var transition := ValueCodec.parse_transition("ease_in_out")
+	var keys: Array = []
+	for step in range(steps * 2 + 1):
+		var progress := float(mini(step, steps * 2 - step)) / steps
+		var delta := down.slerpni(overhead, ease(progress, transition)).normalized()
+		keys.append({"time": length * step / (steps * 2), "delta": delta, "transition": "linear"})
+	return keys
+
+
 ## A jumping-jack rep: the arms swing down -> overhead while the legs spread
 ## apart and back together, with a small rise when open. Needs a standing rest
 ## pose (T- or A-pose arms both work).
@@ -2381,15 +2416,10 @@ func jumping_jack(params: Dictionary) -> Dictionary:
 	for side in ["l", "r"]:
 		var arm := str(roles["arm_" + side])
 		var forearm := str(roles.get("forearm_" + side, ""))
-		var arms_down := _segment_aim_delta(skeleton, arm, forearm, Vector3.DOWN, arm_amount)
-		keys[arm] = {"rotation": [
-			{"time": 0.0, "delta": arms_down},
-			{"time": half, "delta": _segment_aim_delta(skeleton, arm, forearm, Vector3.UP, arm_amount)},
-			{"time": length, "delta": arms_down},
-		]}
+		var outward := left_out if side == "l" else -left_out
+		keys[arm] = {"rotation": _jack_arm_keys(skeleton, arm, forearm, outward, arm_amount, length)}
 		var thigh := str(roles["thigh_" + side])
 		var shin := str(roles.get("shin_" + side, ""))
-		var outward := left_out if side == "l" else -left_out
 		keys[thigh] = {"rotation": [
 			{"time": 0.0, "delta": Quaternion.IDENTITY},
 			{"time": half, "delta": _segment_aim_delta(skeleton, thigh, shin, outward, spread)},

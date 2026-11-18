@@ -1,0 +1,328 @@
+[gd_scene format=3 uid="uid://dmy4cffacxbsw"]
+
+[ext_resource type="Script" uid="uid://cqaj3r2y2dpqp" path="res://showcase_2_0/stages_3d/play_exhibit.gd" id="Replay"]
+[ext_resource type="PackedScene" path="res://showcase_2_0/stages_3d/kinetic_room.tscn" id="Room"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_deck"]
+albedo_color = Color(0.105882, 0.160784, 0.223529, 1)
+metallic = 0.1
+roughness = 0.48
+
+[sub_resource type="CylinderMesh" id="Mesh_1"]
+material = SubResource("Mat_deck")
+top_radius = 1.76
+bottom_radius = 1.81
+height = 0.18
+radial_segments = 48
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="Mat_dark"]
+albedo_color = Color(0.14902, 0.223529, 0.298039, 1)
+metallic = 0.16
+roughness = 0.37
+
+[sub_resource type="CylinderMesh" id="Mesh_3"]
+material = SubResource("Mat_dark")
+top_radius = 1.74
+bottom_radius = 1.74
+height = 0.025
+radial_segments = 48
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="Mat_line"]
+albedo_color = Color(0.345098, 0.439216, 0.517647, 1)
+metallic = 0.1
+roughness = 0.58
+
+[sub_resource type="TorusMesh" id="Mesh_5"]
+material = SubResource("Mat_line")
+inner_radius = 1.6425
+outer_radius = 1.6775
+ring_segments = 12
+
+[sub_resource type="StandardMaterial3D" id="Mat_screen"]
+albedo_color = Color(0.0392157, 0.0980392, 0.14902, 1)
+metallic = 0.1
+roughness = 0.56
+
+[sub_resource type="CylinderMesh" id="Mesh_7"]
+material = SubResource("Mat_screen")
+top_radius = 1.33
+bottom_radius = 1.38
+height = 0.13
+radial_segments = 48
+rings = 1
+
+[sub_resource type="TorusMesh" id="Mesh_8"]
+material = SubResource("Mat_line")
+inner_radius = 0.468
+outer_radius = 0.492
+ring_segments = 12
+
+[sub_resource type="TorusMesh" id="Mesh_9"]
+material = SubResource("Mat_line")
+inner_radius = 0.788
+outer_radius = 0.812
+ring_segments = 12
+
+[sub_resource type="TorusMesh" id="Mesh_10"]
+material = SubResource("Mat_line")
+inner_radius = 1.168
+outer_radius = 1.192
+ring_segments = 12
+
+[sub_resource type="StandardMaterial3D" id="Mat_ice"]
+albedo_color = Color(0.870588, 0.972549, 0.980392, 1)
+metallic = 0.15
+roughness = 0.25
+emission_enabled = true
+emission = Color(0.870588, 0.972549, 0.980392, 1)
+emission_energy_multiplier = 0.14
+
+[sub_resource type="BoxMesh" id="Mesh_12"]
+material = SubResource("Mat_ice")
+size = Vector3(0.115, 0.025, 0.027)
+
+[sub_resource type="BoxMesh" id="Mesh_13"]
+material = SubResource("Mat_line")
+size = Vector3(0.068, 0.025, 0.027)
+
+[sub_resource type="StandardMaterial3D" id="Mat_cyan"]
+albedo_color = Color(0.258824, 0.85098, 0.87451, 1)
+metallic = 0.24
+roughness = 0.24
+emission_enabled = true
+emission = Color(0.258824, 0.85098, 0.87451, 1)
+emission_energy_multiplier = 0.24
+
+[sub_resource type="BoxMesh" id="Mesh_15"]
+material = SubResource("Mat_cyan")
+size = Vector3(1.15, 0.082, 0.068)
+
+[sub_resource type="StandardMaterial3D" id="Mat_slate"]
+albedo_color = Color(0.188235, 0.305882, 0.407843, 1)
+metallic = 0.2
+roughness = 0.4
+
+[sub_resource type="BoxMesh" id="Mesh_17"]
+material = SubResource("Mat_slate")
+size = Vector3(0.93, 0.05, 0.092)
+
+[sub_resource type="StandardMaterial3D" id="Mat_gold"]
+albedo_color = Color(1, 0.752941, 0.462745, 1)
+metallic = 0.3
+roughness = 0.29
+emission_enabled = true
+emission = Color(1, 0.752941, 0.462745, 1)
+emission_energy_multiplier = 0.15
+
+[sub_resource type="SphereMesh" id="Mesh_19"]
+material = SubResource("Mat_gold")
+radius = 0.077
+height = 0.105
+radial_segments = 16
+rings = 18
+
+[sub_resource type="StandardMaterial3D" id="Mat_steel"]
+albedo_color = Color(0.388235, 0.482353, 0.564706, 1)
+metallic = 0.4
+roughness = 0.36
+
+[sub_resource type="CylinderMesh" id="Mesh_21"]
+material = SubResource("Mat_steel")
+top_radius = 0.17
+bottom_radius = 0.2
+height = 0.18
+radial_segments = 16
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Mesh_22"]
+material = SubResource("Mat_ice")
+top_radius = 0.066
+bottom_radius = 0.075
+height = 0.044
+radial_segments = 16
+rings = 1
+
+[sub_resource type="Animation" id="Animation_cmq02"]
+length = 2.45
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Prop:rotation:y")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 2.45),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 6.283185307179586]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_1fawb"]
+_data = {
+&"sweep": SubResource("Animation_cmq02")
+}
+
+[node name="KineticStage" type="Node3D" unique_id=2132830128]
+script = ExtResource("Replay")
+
+[node name="Room" parent="." unique_id=2076064221 instance=ExtResource("Room")]
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=728191527]
+transform = Transform3D(0.9778024, -0.121573, 0.17065299, 0, 0.8144597, 0.58022016, -0.20952909, -0.5673407, 0.79638064, 1.5, 5.4, 7)
+projection = 1
+current = true
+size = 3.62
+far = 55.0
+
+[node name="Deck" type="MeshInstance3D" parent="." unique_id=1146928526]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+mesh = SubResource("Mesh_1")
+
+[node name="Facing" type="MeshInstance3D" parent="." unique_id=1301360525]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.002, 0)
+mesh = SubResource("Mesh_3")
+
+[node name="OuterRim" type="MeshInstance3D" parent="." unique_id=2071608444]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.025, 0)
+mesh = SubResource("Mesh_5")
+
+[node name="Dial" type="MeshInstance3D" parent="." unique_id=2062520533]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.09, 0)
+mesh = SubResource("Mesh_7")
+
+[node name="Guide0" type="MeshInstance3D" parent="." unique_id=305731232]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.165, 0)
+mesh = SubResource("Mesh_8")
+
+[node name="Guide1" type="MeshInstance3D" parent="." unique_id=1202556659]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.165, 0)
+mesh = SubResource("Mesh_9")
+
+[node name="Guide2" type="MeshInstance3D" parent="." unique_id=2027404670]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.165, 0)
+mesh = SubResource("Mesh_10")
+
+[node name="Tick0" type="MeshInstance3D" parent="." unique_id=1161052615]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.29, 0.168, 0)
+mesh = SubResource("Mesh_12")
+
+[node name="Tick1" type="MeshInstance3D" parent="." unique_id=1442298376]
+transform = Transform3D(0.9659258, 0, -0.25881904, 0, 1, 0, 0.25881904, 0, 0.9659258, 1.2460443, 0.168, 0.33387658)
+mesh = SubResource("Mesh_13")
+
+[node name="Tick2" type="MeshInstance3D" parent="." unique_id=197393090]
+transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 1.1171728, 0.168, 0.645)
+mesh = SubResource("Mesh_13")
+
+[node name="Tick3" type="MeshInstance3D" parent="." unique_id=1309596692]
+transform = Transform3D(0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, 0.70710677, 0.9121677, 0.168, 0.9121677)
+mesh = SubResource("Mesh_13")
+
+[node name="Tick4" type="MeshInstance3D" parent="." unique_id=762137619]
+transform = Transform3D(0.49999997, 0, -0.86602545, 0, 1, 0, 0.86602545, 0, 0.49999997, 0.645, 0.168, 1.1171728)
+mesh = SubResource("Mesh_13")
+
+[node name="Tick5" type="MeshInstance3D" parent="." unique_id=54062126]
+transform = Transform3D(0.25881907, 0, -0.9659258, 0, 1, 0, 0.9659258, 0, 0.25881907, 0.33387658, 0.168, 1.2460443)
+mesh = SubResource("Mesh_13")
+
+[node name="Tick6" type="MeshInstance3D" parent="." unique_id=224293365]
+transform = Transform3D(7.54979e-08, 0, -1, 0, 1, 0, 1, 0, 7.54979e-08, 7.898972e-17, 0.168, 1.29)
+mesh = SubResource("Mesh_12")
+
+[node name="Tick7" type="MeshInstance3D" parent="." unique_id=1060722440]
+transform = Transform3D(-0.25881904, 0, -0.9659258, 0, 1, 0, 0.9659258, 0, -0.25881904, -0.33387658, 0.168, 1.2460443)
+mesh = SubResource("Mesh_13")
+
+[node name="Tick8" type="MeshInstance3D" parent="." unique_id=2095442065]
+transform = Transform3D(-0.50000006, 0, -0.8660254, 0, 1, 0, 0.8660254, 0, -0.50000006, -0.645, 0.168, 1.1171728)
+mesh = SubResource("Mesh_13")
+
+[node name="Tick9" type="MeshInstance3D" parent="." unique_id=1326992546]
+transform = Transform3D(-0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, -0.70710677, -0.9121677, 0.168, 0.9121677)
+mesh = SubResource("Mesh_13")
+
+[node name="Tick10" type="MeshInstance3D" parent="." unique_id=1776770361]
+transform = Transform3D(-0.8660254, 0, -0.50000006, 0, 1, 0, 0.50000006, 0, -0.8660254, -1.1171728, 0.168, 0.645)
+mesh = SubResource("Mesh_13")
+
+[node name="Tick11" type="MeshInstance3D" parent="." unique_id=377005255]
+transform = Transform3D(-0.9659259, 0, -0.25881892, 0, 1, 0, 0.25881892, 0, -0.9659259, -1.2460443, 0.168, 0.33387658)
+mesh = SubResource("Mesh_13")
+
+[node name="Tick12" type="MeshInstance3D" parent="." unique_id=1099210538]
+transform = Transform3D(-1, 0, 8.742278e-08, 0, 1, 0, -8.742278e-08, 0, -1, -1.29, 0.168, 1.5797944e-16)
+mesh = SubResource("Mesh_12")
+
+[node name="Tick13" type="MeshInstance3D" parent="." unique_id=580327527]
+transform = Transform3D(-0.9659258, 0, 0.25881907, 0, 1, 0, -0.25881907, 0, -0.9659258, -1.2460443, 0.168, -0.33387658)
+mesh = SubResource("Mesh_13")
+
+[node name="Tick14" type="MeshInstance3D" parent="." unique_id=1303082207]
+transform = Transform3D(-0.8660254, 0, 0.49999997, 0, 1, 0, -0.49999997, 0, -0.8660254, -1.1171728, 0.168, -0.645)
+mesh = SubResource("Mesh_13")
+
+[node name="Tick15" type="MeshInstance3D" parent="." unique_id=1584767972]
+transform = Transform3D(-0.7071068, 0, 0.7071067, 0, 1, 0, -0.7071067, 0, -0.7071068, -0.9121677, 0.168, -0.9121677)
+mesh = SubResource("Mesh_13")
+
+[node name="Tick16" type="MeshInstance3D" parent="." unique_id=1514562035]
+transform = Transform3D(-0.4999999, 0, 0.86602545, 0, 1, 0, -0.86602545, 0, -0.4999999, -0.645, 0.168, -1.1171728)
+mesh = SubResource("Mesh_13")
+
+[node name="Tick17" type="MeshInstance3D" parent="." unique_id=1591584123]
+transform = Transform3D(-0.25881898, 0, 0.9659259, 0, 1, 0, -0.9659259, 0, -0.25881898, -0.33387658, 0.168, -1.2460443)
+mesh = SubResource("Mesh_13")
+
+[node name="Tick18" type="MeshInstance3D" parent="." unique_id=871802796]
+transform = Transform3D(1.1924881e-08, 0, 1, 0, 1, 0, -1, 0, 1.1924881e-08, -2.3696917e-16, 0.168, -1.29)
+mesh = SubResource("Mesh_12")
+
+[node name="Tick19" type="MeshInstance3D" parent="." unique_id=1939115352]
+transform = Transform3D(0.258819, 0, 0.9659258, 0, 1, 0, -0.9659258, 0, 0.258819, 0.33387658, 0.168, -1.2460443)
+mesh = SubResource("Mesh_13")
+
+[node name="Tick20" type="MeshInstance3D" parent="." unique_id=100867559]
+transform = Transform3D(0.4999999, 0, 0.86602545, 0, 1, 0, -0.86602545, 0, 0.4999999, 0.645, 0.168, -1.1171728)
+mesh = SubResource("Mesh_13")
+
+[node name="Tick21" type="MeshInstance3D" parent="." unique_id=52125211]
+transform = Transform3D(0.70710665, 0, 0.7071069, 0, 1, 0, -0.7071069, 0, 0.70710665, 0.9121677, 0.168, -0.9121677)
+mesh = SubResource("Mesh_13")
+
+[node name="Tick22" type="MeshInstance3D" parent="." unique_id=173056510]
+transform = Transform3D(0.8660253, 0, 0.5000002, 0, 1, 0, -0.5000002, 0, 0.8660253, 1.1171728, 0.168, -0.645)
+mesh = SubResource("Mesh_13")
+
+[node name="Tick23" type="MeshInstance3D" parent="." unique_id=1761585999]
+transform = Transform3D(0.96592575, 0, 0.25881928, 0, 1, 0, -0.25881928, 0, 0.96592575, 1.2460443, 0.168, -0.33387658)
+mesh = SubResource("Mesh_13")
+
+[node name="Prop" type="Node3D" parent="." unique_id=671652595]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.212, 0)
+
+[node name="SweepArm" type="MeshInstance3D" parent="Prop" unique_id=662022983]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.66, 0, 0)
+mesh = SubResource("Mesh_15")
+
+[node name="Trace" type="MeshInstance3D" parent="Prop" unique_id=760600248]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.68, -0.011, 0.073)
+mesh = SubResource("Mesh_17")
+
+[node name="Tip" type="MeshInstance3D" parent="Prop" unique_id=27047040]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.24, 0.006, 0)
+mesh = SubResource("Mesh_19")
+
+[node name="Hinge" type="MeshInstance3D" parent="Prop" unique_id=919958422]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.023, 0)
+mesh = SubResource("Mesh_21")
+
+[node name="Pin" type="MeshInstance3D" parent="Prop" unique_id=1464916778]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.126, 0)
+mesh = SubResource("Mesh_22")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1929002833]
+libraries/ = SubResource("AnimationLibrary_1fawb")
