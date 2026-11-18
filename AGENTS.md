@@ -1,5 +1,14 @@
 # Agent notes
 
+## November 18 matched native save control
+
+Private run 44292474569 saved the exact archived scene on official
+4.7.2 with Godot AI 4.3.0 and the toolkit enabled or disabled. Both
+animation and library sections matched. Preserve the retained logs in
+ci-44292474569-native-save-addon-control-r001. This controls activation
+during native save. The intermittent live generation-and-save failure
+remains open. Keep the approval gate for merge, tag and publication.
+
 ## November 18 upstream comparison and stock save
 
 Both pinned Godot AI releases already ship the scene save pause and the

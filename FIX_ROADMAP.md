@@ -1,5 +1,26 @@
 # Animation Toolkit repair roadmap
 
+## Native save with toolkit activation isolated (2026-11-18)
+
+Private run `44292474569` passed two native GUI saves with official Godot
+4.7.2 and released Godot AI 4.3.0. Both fresh projects used the same
+committed test project, installed scripts and previously captured scene.
+The project setting for toolkit activation was the only planned variable.
+The editor log records loading the toolkit plugin in the enabled case.
+Both saves preserved the animation and library serialization with the
+same SHA-256
+`4fe36cdea44151dc19eefdb5ae5ef8d6f8c2116d68c3b4e3ded0bd3a1d0f1f98`.
+Both backend and editor logs are staged locally in
+`ci-44292474569-native-save-addon-control-r001`.
+
+The toolkit editor plugin registers tools and maintains registry
+registration. Its source contains no scene-save or filesystem-change
+hook. The native save control confirms the saved fixture works with
+either activation setting while Godot AI is installed. The original
+failure involved live public generation and save during documentation
+loading. Its corrupting event and a supported repair on official Godot
+4.7.2 remain unverified. Phase 2 and the release hold stay open.
+
 ## Upstream comparison and stock scene save (2026-11-18)
 
 Godot AI reported a re-entrant resource-save crash in
