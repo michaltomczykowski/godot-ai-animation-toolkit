@@ -13,22 +13,16 @@ The kinetic props are ordinary Node3D scenes with saved AnimationPlayer clips. T
 | Float | Transform3D combining lift, scale, and turn |
 | Stagger | Position on five independently timed Node3D targets |
 | Blink | Scale on two Skeleton3D eye bones |
-| Zombie | Bone rotation and hips translation on an imported skeleton |
+| Zombie | Bone rotation, hips translation and a single performer position track on a synthetic humanoid |
 
 ## Locomotion styles
 
 Open `motion_stage.tscn` and choose a clip in AnimationPlayer. The eight families are `idle`, `walk`, `run`, `strafe`, `jump`, `turn`, `walk_start` and `walk_stop`. Under each base name, Responsive uses the unsuffixed clip. Grounded, Relaxed, Heavy and Sneaky use their respective lowercase suffixes. Default and Responsive have identical saved track paths, key values and times, interpolation, clip duration, loop mode and markers in all eight families. Grounded and Responsive also match in Turn. The locomotion comparisons use in-place motion.
 
-## Kenney character
+## Zombie Shuffle
 
-The imported `characterMedium.fbx` and `zombieMaleA.png` are unmodified files from Kenney's **Animated Characters Retro 1.1**. The accompanying CC0 license is in `kenney/License.txt`. The original toolkit-generated `zombie_walk` uses the Godot AI `animation_rig.walk_cycle` recipe on `Performer/Root/Skeleton3D`.
+`zombie.tscn` uses an original human-proportioned mannequin built from native primitive meshes and bone attachments. The base gait was generated with `animation_motion.walk_cycle` on `Performer/Skeleton3D` using `style: grounded`, `duration: 3.0`, `samples: 60`, `speed: 0.25`, `root_motion: true`, `set_root_motion: false` and `loop_mode: none`. The main style overrides are a 70% stance, 16° forward lean, 3.6 cm crouch, 9° arm swing and delayed wrist follow-through.
 
-| Roles | Imported bones |
-| --- | --- |
-| hips, spine, chest, neck, head | Hips, Spine, UpperChest, Neck, Head |
-| thigh_l, shin_l, foot_l, toe_l | LeftUpLeg, LeftLeg, LeftFoot, LeftToes |
-| thigh_r, shin_r, foot_r, toe_r | RightUpLeg, RightLeg, RightFoot, RightToes |
-| arm_l, forearm_l, hand_l | LeftArm, LeftForeArm, LeftHand |
-| arm_r, forearm_r, hand_r | RightArm, RightForeArm, RightHand |
+The six-second `zombie_shuffle` take retimes pose and travel together across two cycles. The baked clip adds asymmetric arm and head poses and fits the visible soles to the deck. Its single `Performer:position` track moves the mannequin 1.5 m. The gallery uses the three-quarter `Camera3D`. The `SideCamera` provides a profile view of the contacts.
 
-The FBX import converts the Z-up bind pose through the model's Root node. On this skeleton, the recipe's `arm_down` setting points the arms forward in the Godot scene. The authored cycle uses an 86° reach, 12° arm swing, 22° stride, and 17° knee bend.
+The earlier exhibit’s `characterMedium.fbx` and `zombieMaleA.png` are retained in `kenney/` alongside the CC0 license for Kenney’s **Animated Characters Retro 1.1**.

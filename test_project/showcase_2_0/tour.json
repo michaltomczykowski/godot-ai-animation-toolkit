@@ -1,28 +1,28 @@
 {
-  "duration": 255,
+  "duration": 260,
   "chapters": [
     {
       "at": 0,
       "label": "Intro"
     },
     {
-      "at": 5,
-      "label": "3D Presets"
-    },
-    {
-      "at": 37,
+      "at": 10,
       "label": "3D Motion"
     },
     {
-      "at": 109,
+      "at": 82,
       "label": "3D Rigs and Workflows"
     },
     {
-      "at": 177,
+      "at": 150,
+      "label": "3D Presets"
+    },
+    {
+      "at": 182,
       "label": "2D Lamplight Relay"
     },
     {
-      "at": 249,
+      "at": 254,
       "label": "Run the Showcase"
     }
   ],
@@ -31,83 +31,14 @@
       "at": 0,
       "chapter": 0,
       "title": "Godot AI Animation Toolkit 2.0",
-      "detail": "3D motion, rigs, and scene animation",
-      "kind": "actors",
-      "actors": [
-        {
-          "scene": "res://showcase_2_0/robot_motion.tscn",
-          "clip": "walk",
-          "size": 2.65
-        }
-      ]
+      "detail": "Create and edit 2D and 3D clips, rigs, and AnimationTrees in Godot.",
+      "scope": "Procedural walks target humanoids on level ground.",
+      "gameplay": "Gameplay movement and collision stay in your game code.",
+      "kind": "intro"
     },
     {
-      "at": 5,
+      "at": 10.0,
       "chapter": 1,
-      "title": "Pulse",
-      "detail": "Give a reactor core a breathing scale cycle",
-      "kind": "scene",
-      "scene": "res://showcase_2_0/stages_3d/pulse.tscn"
-    },
-    {
-      "at": 9,
-      "chapter": 1,
-      "title": "Bounce",
-      "detail": "Compress and settle a mechanical switch",
-      "kind": "scene",
-      "scene": "res://showcase_2_0/stages_3d/bounce.tscn"
-    },
-    {
-      "at": 13,
-      "chapter": 1,
-      "title": "Orbit",
-      "detail": "Circle a satellite in the XZ plane",
-      "kind": "scene",
-      "scene": "res://showcase_2_0/stages_3d/orbit.tscn"
-    },
-    {
-      "at": 17,
-      "chapter": 1,
-      "title": "Sweep",
-      "detail": "Rotate a turret around its Y axis",
-      "kind": "scene",
-      "scene": "res://showcase_2_0/stages_3d/sweep.tscn"
-    },
-    {
-      "at": 21,
-      "chapter": 1,
-      "title": "Drift",
-      "detail": "Move cargo along a single rail",
-      "kind": "scene",
-      "scene": "res://showcase_2_0/stages_3d/drift.tscn"
-    },
-    {
-      "at": 25,
-      "chapter": 1,
-      "title": "Spin",
-      "detail": "Turn a pickup using quaternion keys",
-      "kind": "scene",
-      "scene": "res://showcase_2_0/stages_3d/spin.tscn"
-    },
-    {
-      "at": 29,
-      "chapter": 1,
-      "title": "Float",
-      "detail": "Lift, scale, and turn a floating crystal",
-      "kind": "scene",
-      "scene": "res://showcase_2_0/stages_3d/float.tscn"
-    },
-    {
-      "at": 33,
-      "chapter": 1,
-      "title": "Stagger",
-      "detail": "Dock a row of lights in sequence",
-      "kind": "scene",
-      "scene": "res://showcase_2_0/stages_3d/stagger.tscn"
-    },
-    {
-      "at": 37.0,
-      "chapter": 2,
       "title": "Idle",
       "detail": "Breath, gaze, and weight shift",
       "kind": "actors",
@@ -145,8 +76,8 @@
       ]
     },
     {
-      "at": 41.5,
-      "chapter": 2,
+      "at": 14.5,
+      "chapter": 1,
       "title": "Idle",
       "detail": "Breath, gaze, and weight shift",
       "kind": "actors",
@@ -174,8 +105,8 @@
       ]
     },
     {
-      "at": 46.0,
-      "chapter": 2,
+      "at": 19.0,
+      "chapter": 1,
       "title": "Walk",
       "detail": "Foot support, stride, and arm swing",
       "kind": "actors",
@@ -216,8 +147,8 @@
       ]
     },
     {
-      "at": 50.5,
-      "chapter": 2,
+      "at": 23.5,
+      "chapter": 1,
       "title": "Walk",
       "detail": "Foot support, stride, and arm swing",
       "kind": "actors",
@@ -247,8 +178,8 @@
       ]
     },
     {
-      "at": 55.0,
-      "chapter": 2,
+      "at": 28.0,
+      "chapter": 1,
       "title": "Run",
       "detail": "Fast leg recovery and a flight phase",
       "kind": "actors",
@@ -289,8 +220,8 @@
       ]
     },
     {
-      "at": 59.5,
-      "chapter": 2,
+      "at": 32.5,
+      "chapter": 1,
       "title": "Run",
       "detail": "Fast leg recovery and a flight phase",
       "kind": "actors",
@@ -320,8 +251,8 @@
       ]
     },
     {
-      "at": 64.0,
-      "chapter": 2,
+      "at": 37.0,
+      "chapter": 1,
       "title": "Strafe",
       "detail": "In-place lateral footwork with fixed facing",
       "kind": "actors",
@@ -362,8 +293,8 @@
       ]
     },
     {
-      "at": 68.5,
-      "chapter": 2,
+      "at": 41.5,
+      "chapter": 1,
       "title": "Strafe",
       "detail": "In-place lateral footwork with fixed facing",
       "kind": "actors",
@@ -393,8 +324,8 @@
       ]
     },
     {
-      "at": 73.0,
-      "chapter": 2,
+      "at": 46.0,
+      "chapter": 1,
       "title": "Jump",
       "detail": "Anticipation, flight, contact, and recovery",
       "kind": "actors",
@@ -432,8 +363,8 @@
       ]
     },
     {
-      "at": 77.5,
-      "chapter": 2,
+      "at": 50.5,
+      "chapter": 1,
       "title": "Jump",
       "detail": "Anticipation, flight, contact, and recovery",
       "kind": "actors",
@@ -461,8 +392,8 @@
       ]
     },
     {
-      "at": 82.0,
-      "chapter": 2,
+      "at": 55.0,
+      "chapter": 1,
       "title": "Turn",
       "detail": "Shift weight, pivot, and settle",
       "kind": "actors",
@@ -500,8 +431,8 @@
       ]
     },
     {
-      "at": 86.5,
-      "chapter": 2,
+      "at": 59.5,
+      "chapter": 1,
       "title": "Turn",
       "detail": "Shift weight, pivot, and settle",
       "kind": "actors",
@@ -529,8 +460,8 @@
       ]
     },
     {
-      "at": 91.0,
-      "chapter": 2,
+      "at": 64.0,
+      "chapter": 1,
       "title": "Walk Start",
       "detail": "Build speed from the standing pose",
       "kind": "actors",
@@ -571,8 +502,8 @@
       ]
     },
     {
-      "at": 95.5,
-      "chapter": 2,
+      "at": 68.5,
+      "chapter": 1,
       "title": "Walk Start",
       "detail": "Build speed from the standing pose",
       "kind": "actors",
@@ -602,8 +533,8 @@
       ]
     },
     {
-      "at": 100.0,
-      "chapter": 2,
+      "at": 73.0,
+      "chapter": 1,
       "title": "Walk Stop",
       "detail": "Absorb travel and return to a stable stance",
       "kind": "actors",
@@ -644,8 +575,8 @@
       ]
     },
     {
-      "at": 104.5,
-      "chapter": 2,
+      "at": 77.5,
+      "chapter": 1,
       "title": "Walk Stop",
       "detail": "Absorb travel and return to a stable stance",
       "kind": "actors",
@@ -675,16 +606,16 @@
       ]
     },
     {
-      "at": 109,
-      "chapter": 3,
+      "at": 82,
+      "chapter": 2,
       "title": "Zombie Shuffle",
-      "detail": "Custom walk and upper-body pose recipe",
+      "detail": "Grounded walk with uneven timing and soft arm follow-through",
       "kind": "scene",
       "scene": "res://showcase_2_0/stages_3d/zombie.tscn"
     },
     {
-      "at": 115,
-      "chapter": 3,
+      "at": 88,
+      "chapter": 2,
       "title": "Flying Kick",
       "detail": "Keyed takeoff, extension, and landing",
       "kind": "actors",
@@ -701,8 +632,8 @@
       ]
     },
     {
-      "at": 123,
-      "chapter": 3,
+      "at": 96,
+      "chapter": 2,
       "title": "Rig Walk",
       "detail": "A lightweight skeletal cycle",
       "kind": "actors",
@@ -714,8 +645,8 @@
       ]
     },
     {
-      "at": 127,
-      "chapter": 3,
+      "at": 100,
+      "chapter": 2,
       "title": "Breathing",
       "detail": "Subtle chest and head motion",
       "kind": "actors",
@@ -727,16 +658,16 @@
       ]
     },
     {
-      "at": 131,
-      "chapter": 3,
+      "at": 104,
+      "chapter": 2,
       "title": "Blink",
       "detail": "Keyframed eyelids on the robot",
       "kind": "scene",
       "scene": "res://showcase_2_0/stages_3d/blink.tscn"
     },
     {
-      "at": 135,
-      "chapter": 3,
+      "at": 108,
+      "chapter": 2,
       "title": "Jumping Jack",
       "detail": "Outward arm arcs and coordinated leg spread",
       "kind": "actors",
@@ -750,8 +681,8 @@
       ]
     },
     {
-      "at": 140,
-      "chapter": 3,
+      "at": 113,
+      "chapter": 2,
       "title": "Squat",
       "detail": "Lower and rise with planted feet",
       "kind": "actors",
@@ -763,8 +694,8 @@
       ]
     },
     {
-      "at": 144,
-      "chapter": 3,
+      "at": 117,
+      "chapter": 2,
       "title": "Punch",
       "detail": "Alternate straight strikes from guard",
       "kind": "actors",
@@ -776,8 +707,8 @@
       ]
     },
     {
-      "at": 148,
-      "chapter": 3,
+      "at": 121,
+      "chapter": 2,
       "title": "Two-Bone IK",
       "detail": "The hand follows a moving reach target",
       "kind": "actors",
@@ -790,8 +721,8 @@
       ]
     },
     {
-      "at": 152,
-      "chapter": 3,
+      "at": 125,
+      "chapter": 2,
       "title": "Look At",
       "detail": "The head tracks a moving target",
       "kind": "actors",
@@ -804,8 +735,8 @@
       ]
     },
     {
-      "at": 156,
-      "chapter": 3,
+      "at": 129,
+      "chapter": 2,
       "title": "Spring Bones",
       "detail": "The aerial lags and settles after the punch",
       "kind": "actors",
@@ -821,8 +752,8 @@
       ]
     },
     {
-      "at": 160,
-      "chapter": 3,
+      "at": 133,
+      "chapter": 2,
       "title": "Motion Sequence",
       "detail": "Idle, start, walk, stop, and settle",
       "kind": "actors",
@@ -839,8 +770,8 @@
       ]
     },
     {
-      "at": 167,
-      "chapter": 3,
+      "at": 140,
+      "chapter": 2,
       "title": "AnimationTree",
       "detail": "Blend idle, walk, and run through the locomotion graph",
       "kind": "actors",
@@ -852,8 +783,8 @@
       ]
     },
     {
-      "at": 171,
-      "chapter": 3,
+      "at": 144,
+      "chapter": 2,
       "title": "Retime a Clip",
       "detail": "The same saved walk at its original and extended timing",
       "kind": "actors",
@@ -873,14 +804,78 @@
       ]
     },
     {
-      "at": 175,
-      "chapter": 3,
+      "at": 148,
+      "chapter": 2,
       "title": "Inspect Saved Motion",
       "detail": "Native render samples and persisted track data",
       "kind": "inspection"
     },
     {
-      "at": 177,
+      "at": 150,
+      "chapter": 3,
+      "title": "Pulse",
+      "detail": "Give a reactor core a breathing scale cycle",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_3d/pulse.tscn"
+    },
+    {
+      "at": 154,
+      "chapter": 3,
+      "title": "Bounce",
+      "detail": "Compress and settle a mechanical switch",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_3d/bounce.tscn"
+    },
+    {
+      "at": 158,
+      "chapter": 3,
+      "title": "Orbit",
+      "detail": "Circle a satellite in the XZ plane",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_3d/orbit.tscn"
+    },
+    {
+      "at": 162,
+      "chapter": 3,
+      "title": "Sweep",
+      "detail": "Rotate a turret around its Y axis",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_3d/sweep.tscn"
+    },
+    {
+      "at": 166,
+      "chapter": 3,
+      "title": "Drift",
+      "detail": "Move cargo along a single rail",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_3d/drift.tscn"
+    },
+    {
+      "at": 170,
+      "chapter": 3,
+      "title": "Spin",
+      "detail": "Turn a pickup using quaternion keys",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_3d/spin.tscn"
+    },
+    {
+      "at": 174,
+      "chapter": 3,
+      "title": "Float",
+      "detail": "Lift, scale, and turn a floating crystal",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_3d/float.tscn"
+    },
+    {
+      "at": 178,
+      "chapter": 3,
+      "title": "Stagger",
+      "detail": "Dock a row of lights in sequence",
+      "kind": "scene",
+      "scene": "res://showcase_2_0/stages_3d/stagger.tscn"
+    },
+    {
+      "at": 182,
       "chapter": 4,
       "title": "Dispatch",
       "detail": "Lamplight Relay",
@@ -889,7 +884,7 @@
       "canvas": true
     },
     {
-      "at": 195,
+      "at": 200,
       "chapter": 4,
       "title": "Beacon",
       "detail": "Lamplight Relay",
@@ -898,7 +893,7 @@
       "canvas": true
     },
     {
-      "at": 213,
+      "at": 218,
       "chapter": 4,
       "title": "Flight",
       "detail": "Lamplight Relay",
@@ -907,7 +902,7 @@
       "canvas": true
     },
     {
-      "at": 231,
+      "at": 236,
       "chapter": 4,
       "title": "Landing",
       "detail": "Lamplight Relay",
@@ -916,7 +911,7 @@
       "canvas": true
     },
     {
-      "at": 249,
+      "at": 254,
       "chapter": 5,
       "title": "Open the gallery in Godot",
       "detail": "Source scenes and agent guide in the repository",

@@ -211,6 +211,8 @@ func _show(index: int, play_scene: bool) -> void:
 		_chapter_buttons[i].add_theme_stylebox_override("normal", _style(MINT if active else PANEL))
 		_chapter_buttons[i].add_theme_color_override("font_color", INK if active else PAPER)
 	match str(cue.kind):
+		"intro":
+			_show_intro(cue)
 		"actors":
 			_show_actors(cue.actors)
 		"scene":
@@ -223,8 +225,22 @@ func _show(index: int, play_scene: bool) -> void:
 			_problem("Unknown cue kind: " + str(cue.kind))
 	if cue.kind == "closing":
 		_closing_caption(cue)
-	elif not cue.get("canvas", false):
+	elif cue.kind != "intro" and not cue.get("canvas", false):
 		_caption(cue)
+
+
+func _show_intro(cue: Dictionary) -> void:
+	var left := 96.0
+	var width := _frame.size.x - left * 2.0
+	var top := (_frame.size.y - 308.0) * 0.5
+	_rect(_stage, Rect2(Vector2.ZERO, _frame.size), INK)
+	_rect(_stage, Rect2(left, top, 88, 5), MINT)
+	_label(_stage, cue.title, Rect2(left, top + 26, width, 76), 60, PAPER)
+	_label(_stage, cue.detail, Rect2(left, top + 116, width, 52), 30, PAPER)
+	_rect(_stage, Rect2(left, top + 200, width, 108), PANEL)
+	_rect(_stage, Rect2(left, top + 200, 4, 108), LINE)
+	_label(_stage, cue.scope, Rect2(left + 22, top + 219, width - 44, 32), 24, SOFT)
+	_label(_stage, cue.gameplay, Rect2(left + 22, top + 257, width - 44, 32), 24, SOFT)
 
 
 func _caption(cue: Dictionary) -> void:
