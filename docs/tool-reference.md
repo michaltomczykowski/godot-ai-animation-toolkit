@@ -1,23 +1,48 @@
 # Toolkit tool reference
 
-Exposed to agents as the promoted first-class tools
-**`custom_animation_presets`** (create clips), **`custom_animation_fx`**
-(generators for game feel, UI, sprites and audio), **`custom_animation_graph`**
-(AnimationTree authoring), **`custom_animation_edit`** (edit existing clips),
-**`custom_animation_inspect`** (read-only inspection), **`custom_animation_library`**
-(reusable templates + JSON clip specs), **`custom_animation_rig`** (skeleton
-poses, pose-driven clips and procedural recipes) and
-**`custom_animation_motion`** (procedural humanoid cycles and secondary spring
-bones), all reachable through
-`custom_manage(op="invoke", tool_name=...)`.
+The toolkit registers ten families with the active Godot AI editor
+session. Discover enabled families and their `params_schema` with
+`custom_manage` using `{"op":"list"}`.
 
-A ninth family, **`animation_rig_modifiers`** (the five modifier setups:
-`ik_setup`, `spring_setup`, `look_at_setup`, `retarget_setup`, `twist_setup`),
-shares the `animation_rig` handler and is documented in the `animation_rig`
-section below. It is **not promoted**: the Godot AI server promotes at most
-eight tools, so with nine families one has to give up its slot. Call it as
-`custom_manage(op="invoke", tool_name="animation_rig_modifiers",
-params={"op": "ik_setup", ...})`.
+| Family | Preferred MCP tool |
+| --- | --- |
+| `animation_presets` | `custom_animation_presets` |
+| `animation_fx` | `custom_animation_fx` |
+| `animation_graph` | `custom_animation_graph` |
+| `animation_edit` | `custom_animation_edit` |
+| `animation_inspect` | `custom_animation_inspect` |
+| `animation_library` | `custom_animation_library` |
+| `animation_rig` | `custom_animation_rig` |
+| `animation_motion` | `custom_animation_motion` |
+| `animation_rig_modifiers` | `custom_manage` |
+| `animation_sequence` | `custom_manage` |
+
+All ten families can be invoked through `custom_manage`. Its outer
+`op` is `invoke`. The outer `params` supplies the registered family name
+as `tool_name` and a nested `params` object containing the operation's
+usual arguments. For example, this checks an inactive two-bone IK setup on
+a copy of `test_project/repair_rig_fixture.tscn`.
+
+```json
+{
+  "tool": "custom_manage",
+  "params": {
+    "op": "invoke",
+    "params": {
+      "tool_name": "animation_rig_modifiers",
+      "params": {
+        "op": "ik_setup",
+        "skeleton_path": "/RepairRigFixture/Dummy/Skeleton3D",
+        "kind": "two_bone",
+        "chain": ["B-upperArm.L", "B-forearm.L", "B-hand.L"],
+        "target_name": "AuditHandTarget",
+        "active": false,
+        "dry_run": true
+      }
+    }
+  }
+}
+```
 
 `dry_run: true` is side-effect free on every op that advertises it: no scene
 node is added or changed, no clip is written, no undo action is committed and
@@ -203,9 +228,10 @@ a `WRONG_TYPE` / `INVALID_PARAMS` error instead of being rewritten lossily.
 
 ## `animation_inspect`
 
-Read-only: it never mutates the scene or the undo stack, so the core's
-`batch_execute` (which requires undoable commands) does not accept it — call it
-directly, or through `custom_manage(op="invoke")`.
+Inspection preserves the edited scene and its Undo history. Operations such
+as `rig_profile` with `save: true` and `preview` write separate files.
+Call `custom_animation_inspect` directly or use the nested
+`custom_manage` invocation.
 
 | op | What it reports |
 | --- | --- |
@@ -428,10 +454,10 @@ Notes:
 
 ## `animation_rig`
 
-Served by **two** catalog families: `animation_rig` (promoted — this section's
-poses, inspection and recipes) and `animation_rig_modifiers` (not promoted —
-the five `*_setup` rows below, because the server promotes at most eight
-tools). Call both through `custom_manage`, and pass the same params either way.
+Use `custom_animation_rig` for rig building, poses, recipes, and baking.
+The five modifier setup operations below belong to
+`animation_rig_modifiers`. Invoke that family through `custom_manage`
+using the nested request shown above.
 
 Phase 6a/6b: **poses and rig building**. A pose is portable, rest-relative data
 — `{bone: {rotation delta, position delta, scale}}` — so it survives rig
@@ -818,6 +844,43 @@ their requested units. This repair covers level-surface authored motion.
 {"tool": "custom_animation_motion", "params": {"op": "walk_start",
   "player_path": "/Main/Rig/AnimationPlayer", "skeleton_path": "/Main/Rig/Skeleton3D",
   "animation_name": "walk_start", "duration": 0.35, "phase": 0.0}}
+```
+
+## `animation_sequence`
+
+Use `compose` to build one character clip from native 3D clips and saved or
+inline poses. The first segment starts at zero. Later gaps hold the preceding
+pose, and an overlapping fade can blend two contributors. Pause or stop
+the destination player and deactivate its linked AnimationTrees before a
+dry run or write. Translation root extraction is supported when the
+sources and destination configuration are compatible.
+
+This request checks composition in a copy of
+`test_project/repair_sequence_fixture.tscn`.
+
+```json
+{
+  "tool": "custom_manage",
+  "params": {
+    "op": "invoke",
+    "params": {
+      "tool_name": "animation_sequence",
+      "params": {
+        "op": "compose",
+        "player_path": "/RepairSequenceFixture/AnimationPlayer",
+        "skeleton_path": "/RepairSequenceFixture/Skeleton3D",
+        "animation_name": "audit_action",
+        "duration": 1.8,
+        "segments": [
+          {"start": 0.0, "duration": 1.0, "source_animation": "approach"},
+          {"start": 0.8, "duration": 1.0, "source_animation": "kick", "fade_in": 0.2,
+           "contacts": [{"name": "impact", "time": 0.3}]}
+        ],
+        "dry_run": true
+      }
+    }
+  }
+}
 ```
 
 ### Simultaneous sequence cues

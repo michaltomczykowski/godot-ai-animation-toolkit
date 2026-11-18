@@ -49,6 +49,7 @@ class WorkflowGateControls(unittest.TestCase):
         self.assertIn('test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/main)"',source)
         publish=next(s['run'] for s in steps if 'gh release create' in s.get('run',''))
         self.assertNotIn('dist/*',publish)
+        self.assertIn('--draft',publish)
         self.assertIn('"$archive" "$archive.manifest.json" "$archive.sha256"',publish)
 
 

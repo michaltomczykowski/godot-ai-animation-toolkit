@@ -505,9 +505,9 @@ jobs:
           git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/main)"
-      - name: Publish ZIP, checksum and source manifest with curated notes
+      - name: Stage ZIP, checksum and source manifest in a draft release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           archive="dist/godot-ai-animation-toolkit-${GITHUB_REF_NAME#v}.zip"
-          gh release create "$GITHUB_REF_NAME" "$archive" "$archive.manifest.json" "$archive.sha256" --verify-tag --title "$GITHUB_REF_NAME" --notes-file docs/releases/2.0.0.md
+          gh release create "$GITHUB_REF_NAME" "$archive" "$archive.manifest.json" "$archive.sha256" --verify-tag --draft --title "$GITHUB_REF_NAME" --notes-file docs/releases/2.0.0.md

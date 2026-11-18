@@ -1,32 +1,52 @@
 # Migrating to 2.0.0
 
-2.0.0 changes generation defaults. Existing Animation resources and saved clips
-remain intact. Review regenerated motion before replacing clips in a project.
-Omitted/default style resolves to Responsive; choose `grounded` explicitly for
-that variant. Explicit timing and root-motion controls retain their contracts.
+## Upgrade and enable
 
-Use Godot 4.7.2 and a stable Godot AI release >=4.2.1. Qualification covers
-Windows/Linux on released 4.2.1 and 4.3.0. Development main is advisory. Missing,
-unreadable, malformed, prerelease or older core metadata produces a dependency
-diagnostic and prevents registration. Enable the two plugins in either order.
+Use Godot 4.7.2 and a stable Godot AI release 4.4.2 or later.
+The release qualification covers Windows and Linux on Godot AI 4.4.2.
+Missing, unreadable, malformed, prerelease, or older core metadata prevents
+tool registration and produces a dependency diagnostic.
 
-Godot AI's Tools tab lists each family under **Custom tools (addon-registered)**.
-Each checkbox applies immediately, persists in the project and controls discovery
-and invocation. The native animation-domain checkbox controls core animation
-tools; it is not a toolkit-wide suite selector. Eight families are promoted;
-invoke `animation_sequence` and `animation_rig_modifiers` through `custom_manage`.
+1. Back up your project and your current addon directory.
+2. Install Godot AI separately. Verify the toolkit ZIP against the SHA-256
+   file on the release page and extract it into your project root. The ZIP
+   contains `addons/godot_ai_animation/` and the MIT license.
+3. Enable both plugins in **Project → Project Settings → Plugins**. Either
+   enable order works.
+4. In the Godot AI dock, open **Tools → Custom tools (addon-registered)**.
+   Each family checkbox applies immediately and persists in the project.
+   The built-in animation domain toggle controls Godot AI's core tools.
 
-The supported motion scope is humanoid rigs on level surfaces. A skeleton clip
-does not supply collision resolution or an actor controller. Assign exactly one
-translation owner when consuming root motion. Rendered inspection needs rendering
-support; headless calls return a typed refusal when rendering is unavailable.
-Scene history and library/file effects have different Undo semantics. Consult
-the operation inventory for each capability and contextual refusal.
+Eight families have promoted `custom_*` tools. Discover the catalog with
+`custom_manage` using `{"op":"list"}`. Invoke `animation_sequence` and
+`animation_rig_modifiers` through `custom_manage` with the family name and
+nested operation arguments. The [README's agent guide](../README.md#agent-workflow)
+shows complete requests.
 
-Install by extracting the addon ZIP into a clean project's root. The archive
-contains `addons/godot_ai_animation` and LICENSE, not the core addon, test fixtures,
-models or review footage. Install Godot AI separately. Validate the checksum and
-package manifest against the published source before enabling the addon.
+## Regenerating motion
 
-This document describes the candidate contract. A version bump alone does not
-mean release qualification or publication is complete.
+Omitted or default style now resolves to **Responsive**. Select `grounded`
+explicitly for that variant, or choose `relaxed`, `heavy`, or `sneaky`.
+Existing Animation resources and saved clips remain intact. Work on a
+separate clip or scene copy when regenerating, then compare movement, timing,
+root extraction, and playback before replacing a clip.
+
+Procedural locomotion targets humanoid rigs on level surfaces. Game code
+handles collision and actor movement. Assign exactly one translation
+owner when consuming root motion. Motion and sequence writes and dry runs
+require a stopped or paused destination player and inactive linked
+AnimationTrees.
+
+## Known issues and limitations
+
+- An intermittent scene-save crash was observed in stock Godot 4.7.2 on
+  Linux. The Windows and Linux clean-install checks and the official
+  Linux rendered-preview check passed. The crash remains unresolved.
+  Save incremental checkpoints.
+- Rendered inspection needs a rendering-capable editor. Headless preview
+  can return a typed refusal when rendering is unavailable.
+- Scene Undo/Redo covers supported scene mutations. Disk effects such as
+  exports and scene saves need separate file-level recovery.
+
+See [the operation reference](op-index.md) for supported inputs and
+[the operation inventory](operation-audit.json) for contextual refusals.

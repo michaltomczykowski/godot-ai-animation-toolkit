@@ -1,0 +1,106 @@
+{
+  "duration": 1.0,
+  "track_count": 25,
+  "tracks": [
+    {
+      "path": "Robot/Skeleton3D:hips",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:hips",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:thigh.L",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:shin.L",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:foot.L",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:toe.L",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:thigh.R",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:shin.R",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:foot.R",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:toe.R",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:spine",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:chest",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:neck",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:head",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:upperArm.L",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:shoulder.L",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:forearm.L",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:hand.L",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:upperArm.R",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:shoulder.R",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:forearm.R",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:hand.R",
+      "keys": 61
+    },
+    {
+      "path": "Robot:position",
+      "keys": 61
+    },
+    {
+      "path": "Robot/Skeleton3D:aerial",
+      "keys": 31
+    },
+    {
+      "path": "Robot/Skeleton3D:aerial_tip",
+      "keys": 31
+    }
+  ]
+}

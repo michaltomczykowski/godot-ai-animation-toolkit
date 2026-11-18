@@ -1,5 +1,17 @@
 # Animation Toolkit repair roadmap
 
+## 2.0.0 release presentation and Linux support
+
+The release owner accepted the known stock Godot 4.7.2 Linux scene-save
+abort risk for 2.0.0. The README and release notes document it. Required
+Windows and Linux compatibility, rendered preview and private audit
+checks still apply to the exact reviewed candidate tree.
+
+Public showcase scenes use the original Kite rig and project-owned
+demo assets. The showcase video is a separate asset on the draft
+GitHub release. Merge, tag and publication wait for final approval
+after the refreshed candidate passes.
+
 ## Godot AI 4.4.2 baseline (2026-11-18)
 
 Toolkit 2.0.0 now requires stable Godot AI 4.4.2 or later. The release

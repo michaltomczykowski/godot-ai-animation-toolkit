@@ -1,5 +1,14 @@
 # Agent notes
 
+## 2.0.0 publication handoff
+
+The release owner accepted the existing intermittent Godot 4.7.2 Linux
+scene-save issue as a documented limitation for 2.0.0. Keep the exact
+candidate compatibility, rendered preview and private audit jobs
+required. Keep merge, tag and publication on hold until final approval.
+After approval, the tag workflow stages three install assets in a draft
+release. Attach and verify the showcase before publishing.
+
 ## November 18 Godot AI baseline change
 
 Use stable Godot AI 4.4.2, commit
