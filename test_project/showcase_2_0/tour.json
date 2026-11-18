@@ -31,9 +31,9 @@
       "at": 0,
       "chapter": 0,
       "title": "Godot AI Animation Toolkit 2.0",
-      "detail": "Create and edit 2D and 3D clips, rigs, and AnimationTrees in Godot.",
-      "scope": "Procedural walks target humanoids on level ground.",
-      "gameplay": "Gameplay movement and collision stay in your game code.",
+      "detail": "Ask your Godot AI agent to animate a scene.",
+      "capabilities": "Generate walks, jumps, and UI effects.\nBlend and edit native clips in Godot.",
+      "limits": "You still direct the animation and write movement and collision logic.",
       "kind": "intro"
     },
     {

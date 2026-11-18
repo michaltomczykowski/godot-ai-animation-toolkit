@@ -230,17 +230,20 @@ func _show(index: int, play_scene: bool) -> void:
 
 
 func _show_intro(cue: Dictionary) -> void:
-	var left := 96.0
+	var left := 90.0
 	var width := _frame.size.x - left * 2.0
-	var top := (_frame.size.y - 308.0) * 0.5
+	var top := (_frame.size.y - 348.0) * 0.5
 	_rect(_stage, Rect2(Vector2.ZERO, _frame.size), INK)
 	_rect(_stage, Rect2(left, top, 88, 5), MINT)
-	_label(_stage, cue.title, Rect2(left, top + 26, width, 76), 60, PAPER)
-	_label(_stage, cue.detail, Rect2(left, top + 116, width, 52), 30, PAPER)
-	_rect(_stage, Rect2(left, top + 200, width, 108), PANEL)
-	_rect(_stage, Rect2(left, top + 200, 4, 108), LINE)
-	_label(_stage, cue.scope, Rect2(left + 22, top + 219, width - 44, 32), 24, SOFT)
-	_label(_stage, cue.gameplay, Rect2(left + 22, top + 257, width - 44, 32), 24, SOFT)
+	_label(_stage, cue.title, Rect2(left, top + 24, width, 76), 58, PAPER)
+	_label(_stage, cue.detail, Rect2(left, top + 112, width, 48), 34, MINT)
+	var capabilities := _label(_stage, cue.capabilities, Rect2(left, top + 169, width, 84), 34, PAPER)
+	capabilities.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_rect(_stage, Rect2(left, top + 264, width, 84), PANEL)
+	_rect(_stage, Rect2(left, top + 264, 4, 84), MINT)
+	var limits := _label(_stage, cue.limits, Rect2(left + 22, top + 271, width - 44, 70), 30, PAPER)
+	limits.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	limits.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 
 
 func _caption(cue: Dictionary) -> void:
